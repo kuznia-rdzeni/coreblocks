@@ -51,7 +51,7 @@ def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
 def assign(
     lhs: AssignArg, rhs: AssignArg, *, fields: AssignFields = AssignType.RHS, lhs_strict=False, rhs_strict=False
 ) -> Iterable[Assign]:
-    """Safe record assignment.
+    """Safe structured assignment.
 
     This function recursively generates assignment statements for
     field-containing structures. This includes: Amaranth `Record`\\s,
@@ -84,12 +84,12 @@ def assign(
             All fields in `rhs` are assigned. If one of them is not present
             in `lhs`, an exception is raised.
         AssignType.ALL
-            Assume that both records have the same layouts. All fields present
+            Assume that both structures have the same layouts. All fields present
             in `lhs` or `rhs` are assigned.
         Mapping
             Keys are field names, values follow the format for `fields`.
         Iterable
-            Items are field names. For subrecords, AssignType.ALL is assumed.
+            Items are field names. For subfields, AssignType.ALL is assumed.
 
     Returns
     -------
@@ -152,7 +152,7 @@ def assign(
             )
     else:
         if not isinstance(fields, AssignType):
-            raise ValueError("Fields on assigning non-records lhs: {} rhs: {}".format(lhs, rhs))
+            raise ValueError("Fields on assigning non-structures lhs: {} rhs: {}".format(lhs, rhs))
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 

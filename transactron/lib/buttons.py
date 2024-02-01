@@ -19,10 +19,10 @@ class ClickIn(Elaboratable):
     ----------
     get: Method
         The method for retrieving data from the input. Accepts an empty
-        argument, returns a `Record`.
+        argument, returns a structure.
     btn: Signal, in
         The button input.
-    dat: Record, in
+    dat: View, in
         The data input.
     """
 
@@ -30,7 +30,7 @@ class ClickIn(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
+        layout: method layout
             The data format for the input.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
@@ -75,11 +75,11 @@ class ClickOut(Elaboratable):
     Attributes
     ----------
     put: Method
-        The method for retrieving data from the input. Accepts a `Record`,
+        The method for retrieving data from the input. Accepts a structure,
         returns empty result.
     btn: Signal, in
         The button input.
-    dat: Record, out
+    dat: View, out
         The data output.
     """
 
@@ -87,7 +87,7 @@ class ClickOut(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
+        layout: method layout
             The data format for the output.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.

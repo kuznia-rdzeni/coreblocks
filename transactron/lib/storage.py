@@ -42,12 +42,12 @@ class MemoryBank(Elaboratable):
         """
         Parameters
         ----------
-        data_layout: record layout
-            The format of records stored in the Memory.
+        data_layout: method layout
+            The format of structures stored in the Memory.
         elem_count: int
             Number of elements stored in Memory.
         granularity: Optional[int]
-            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
+            Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
         safe_writes: bool
             Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that

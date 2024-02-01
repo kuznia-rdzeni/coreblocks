@@ -26,9 +26,9 @@ class FIFO(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts an empty argument, returns a `Record`.
+        The read method. Accepts an empty argument, returns a structure.
     write: Method
-        The write method. Accepts a `Record`, returns empty result.
+        The write method. Accepts a structure, returns empty result.
     """
 
     def __init__(
@@ -37,8 +37,8 @@ class FIFO(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
-            The format of records stored in the FIFO.
+        layout: method layout
+            The format of structures stored in the FIFO.
         depth: int
             Size of the FIFO.
         fifoType: Elaboratable
@@ -94,17 +94,17 @@ class Forwarder(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts an empty argument, returns a `Record`.
+        The read method. Accepts an empty argument, returns a structure.
     write: Method
-        The write method. Accepts a `Record`, returns empty result.
+        The write method. Accepts a structure, returns empty result.
     """
 
     def __init__(self, layout: MethodLayout, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
-        layout: record layout
-            The format of records forwarded.
+        layout: method layout
+            The format of structures forwarded.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -161,21 +161,21 @@ class Connect(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts a (possibly empty) `Record`, returns
-        a `Record`.
+        The read method. Accepts a (possibly empty) structure, returns
+        a structure.
     write: Method
-        The write method. Accepts a `Record`, returns a (possibly empty)
-        `Record`.
+        The write method. Accepts a structure, returns a (possibly empty)
+        structure.
     """
 
     def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = (), *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
-        layout: record layout
-            The format of records forwarded.
-        rev_layout: record layout
-            The format of records forwarded in the reverse direction.
+        layout: method layout
+            The format of structures forwarded.
+        rev_layout: method layout
+            The format of structures forwarded in the reverse direction.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.

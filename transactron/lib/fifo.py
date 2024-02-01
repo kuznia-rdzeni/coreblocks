@@ -11,10 +11,10 @@ class BasicFifo(Elaboratable):
     Attributes
     ----------
     read: Method
-        Reads from the FIFO. Accepts an empty argument, returns a `Record`.
+        Reads from the FIFO. Accepts an empty argument, returns a structure.
         Ready only if the FIFO is not empty.
     write: Method
-        Writes to the FIFO. Accepts a `Record`, returns empty result.
+        Writes to the FIFO. Accepts a structure, returns empty result.
         Ready only if the FIFO is not full.
     clear: Method
         Clears the FIFO entries. Has priority over `read` and `write` methods.
@@ -26,9 +26,8 @@ class BasicFifo(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
+        layout: method layout
             Layout of data stored in the FIFO.
-            If integer is given, Record with field `data` and width of this paramter is used as internal layout.
         depth: int
             Size of the FIFO.
         src_loc: int | SrcLoc

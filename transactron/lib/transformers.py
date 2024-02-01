@@ -62,7 +62,7 @@ class MethodMap(Elaboratable, Transformer):
     Takes a target method and creates a transformed method which calls the
     original target method, mapping the input and output values with
     functions. The mapping functions take two parameters, a `Module` and the
-    `Record` being transformed. Alternatively, a `Method` can be
+    structure being transformed. Alternatively, a `Method` can be
     passed.
 
     Attributes
@@ -84,11 +84,11 @@ class MethodMap(Elaboratable, Transformer):
         ----------
         target: Method
             The target method.
-        i_transform: (record layout, function or Method), optional
+        i_transform: (method layout, function or Method), optional
             Input mapping function. If specified, it should be a pair of a
             function and a input layout for the transformed method.
             If not present, input is passed unmodified.
-        o_transform: (record layout, function or Method), optional
+        o_transform: (method layout, function or Method), optional
             Output mapping function. If specified, it should be a pair of a
             function and a output layout for the transformed method.
             If not present, output is passed unmodified.
@@ -122,7 +122,7 @@ class MethodFilter(Elaboratable, Transformer):
 
     Takes a target method and creates a method which calls the target method
     only when some condition is true. The condition function takes two
-    parameters, a module and the input `Record` of the method. Non-zero
+    parameters, a module and the input structure of the method. Non-zero
     return value is interpreted as true. Alternatively to using a function,
     a `Method` can be passed as a condition.
     By default, the target method is locked for use even if it is not called.
@@ -201,7 +201,7 @@ class MethodProduct(Elaboratable, Unifier):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[Record]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, Callable[[TModule, list[MethodStruct]], RecordDict]]] = None,
         *,
         src_loc: int | SrcLoc = 0
     ):
@@ -400,7 +400,7 @@ class ConnectAndMapTrans(Elaboratable):
     Behaves like `ConnectTrans`, but modifies the transferred data using
     functions or `Method`s. Equivalent to a combination of `ConnectTrans`
     and `MethodMap`. The mapping functions take two parameters, a `Module`
-    and the `Record` being transformed.
+    and the structure being transformed.
     """
 
     def __init__(
