@@ -9,7 +9,7 @@ from transactron import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.lib import *
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
 
@@ -34,9 +34,9 @@ def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, 
 
 
 class ICacheBypass(Elaboratable, CacheInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster) -> None:
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
-        self.wb_master = wb_master
+        self.bus_master = bus_master
 
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
@@ -50,17 +50,15 @@ class ICacheBypass(Elaboratable, CacheInterface):
         @def_method(m, self.issue_req)
         def _(addr: Value) -> None:
             m.d.sync += req_addr.eq(addr)
-            self.wb_master.request(
+            self.bus_master.request_read(
                 m,
                 addr=addr >> log2_int(self.params.word_width_bytes),
-                data=0,
-                we=0,
-                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
         @def_method(m, self.accept_res)
         def _():
-            res = self.wb_master.result(m)
+            res = self.bus_master.get_read_response(m)
             return {
                 "instr": extract_instr_from_word(m, self.params, res.data, req_addr),
                 "error": res.err,

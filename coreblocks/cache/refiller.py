@@ -1,21 +1,19 @@
+from coreblocks.cache.icache import CacheRefillerInterface
 from coreblocks.params import ICacheLayouts, ICacheParameters
-from coreblocks.peripherals.wishbone import WishboneMaster
-from transactron import Method, Transaction
-from transactron.core import TModule, def_method
-from transactron.lib import Forwarder
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from transactron.core import Transaction
+from transactron.lib import C, Cat, Elaboratable, Forwarder, Method, Signal, TModule, def_method
 
-from amaranth import Cat, Elaboratable, Repl, Signal
 from amaranth.utils import log2_int
 
-from .iface import CacheRefillerInterface
 
-__all__ = ["SimpleWBCacheRefiller"]
+__all__ = ["SimpleCommonBusCacheRefiller"]
 
 
-class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster):
+class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface):
         self.params = params
-        self.wb_master = wb_master
+        self.bus_master = bus_master
 
         self.start_refill = Method(i=layouts.start_refill)
         self.accept_refill = Method(o=layouts.accept_refill)
@@ -33,12 +31,10 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
 
         with Transaction().body(m):
             address = address_fwd.read(m)
-            self.wb_master.request(
+            self.bus_master.request_read(
                 m,
                 addr=Cat(address["word_counter"], address["refill_address"]),
-                data=0,
-                we=0,
-                sel=Repl(1, self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
         @def_method(m, self.start_refill, ready=~refill_active)
@@ -52,7 +48,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
 
         @def_method(m, self.accept_refill, ready=refill_active)
         def _():
-            fetched = self.wb_master.result(m)
+            fetched = self.bus_master.get_read_response(m)
 
             last = (word_counter == (self.params.words_in_block - 1)) | fetched.err
 
@@ -66,7 +62,7 @@ class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
                 address_fwd.write(m, word_counter=next_word_counter, refill_address=refill_address)
 
             return {
-                "addr": Cat(Repl(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
+                "addr": Cat(C(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
                 "data": fetched.data,
                 "error": fetched.err,
                 "last": last,

@@ -107,7 +107,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             self.assertTrue(resp["err"])
 
         def slave():
-            wwb = WishboneInterfaceWrapper(twbm.wbm.wbMaster)
+            wwb = WishboneInterfaceWrapper(twbm.wbm.wb_master)
 
             yield from wwb.slave_wait()
             yield from wwb.slave_verify(2, 0, 0, 1)
@@ -319,7 +319,7 @@ class WishboneMemorySlaveCircuit(Elaboratable):
         m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
         m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
 
-        m.d.comb += self.mem_master.wbMaster.connect(self.mem_slave.bus)
+        m.d.comb += self.mem_master.wb_master.connect(self.mem_slave.bus)
 
         return m
 
@@ -369,7 +369,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                     self.assertEqual(res["data"], mem_state[req["addr"]])
 
         def write_process():
-            wwb = WishboneInterfaceWrapper(self.m.mem_master.wbMaster)
+            wwb = WishboneInterfaceWrapper(self.m.mem_master.wb_master)
             for _ in range(self.iters):
                 yield from wwb.wait_ack()
                 req = wr_queue.pop()
