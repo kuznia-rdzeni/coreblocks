@@ -13,6 +13,16 @@ from transactron.lib import FIFO
 from coreblocks.params.genparams import GenParams
 from transactron.utils.dependencies import DependencyManager, ListKey
 
+__all__ = [
+    "MetricRegisterModel",
+    "MetricModel",
+    "HwMetric",
+    "HwCounter",
+    "HwExpHistogram",
+    "LatencyMeasurer",
+    "HardwareMetricsManager",
+]
+
 
 @dataclass_json
 @dataclass(frozen=True)
@@ -45,7 +55,7 @@ class MetricModel:
     comprises multiple registers, each dedicated to storing specific values.
 
     The configuration of registers is internally determined by a
-    specific metric typ eand is not user-configurable.
+    specific metric type and is not user-configurable.
 
     Attributes
     ----------
@@ -186,7 +196,7 @@ class HwCounter(Elaboratable, HwMetric):
 
     def elaborate(self, platform):
         if not self.gen_params.hardware_metrics_enabled:
-            return Module()
+            return TModule()
 
         m = TModule()
 
@@ -196,7 +206,7 @@ class HwCounter(Elaboratable, HwMetric):
 
         return m
 
-    def incr(self, m: TModule):
+    def incr(self, m: TModule, *, cond: ValueLike = C(1)):
         """
         Increases the value of the counter by 1.
 
@@ -210,25 +220,6 @@ class HwCounter(Elaboratable, HwMetric):
         if not self.gen_params.hardware_metrics_enabled:
             return
 
-        self._incr(m)
-
-    def incr_when(self, m: TModule, cond: ValueLike):
-        """
-        Conditionally increases the value of the counter by 1.
-
-        Should be called in the body of either a transaction or a method.
-
-        Parameters
-        ----------
-        m: TModule
-            Transactron module
-        cond: ValueLike
-            Signal to indicate if the counter should increase.
-        """
-
-        if not self.gen_params.hardware_metrics_enabled:
-            return
-
         with m.If(cond):
             self._incr(m)
 
@@ -238,15 +229,24 @@ class HwExpHistogram(Elaboratable, HwMetric):
 
     Represents the distribution of sampled data through a histogram. A histogram
     samples observations (usually things like request durations or queue sizes) and counts
-    them in configurable buckets. The buckets are of exponential size. For example,
+    them in a configurable number of buckets. The buckets are of exponential size. For example,
     a histogram with 5 buckets would have the following value ranges:
-    [0, 1); [1, 2); [2, 4); [4, 8); [8, 16).
+    [0, 1); [1, 2); [2, 4); [4, 8); [8, +inf).
 
     Additionally, the histogram tracks the number of observations, the sum
     of observed values, and the minimum and maximum values.
     """
 
-    def __init__(self, gen_params: GenParams, fully_qualified_name: str, description: str = "", *, max_value: int):
+    def __init__(
+        self,
+        gen_params: GenParams,
+        fully_qualified_name: str,
+        description: str = "",
+        *,
+        bucket_count: int,
+        sample_width: int = 32,
+        registers_width: int = 32,
+    ):
         """
         Parameters
         ----------
@@ -262,34 +262,39 @@ class HwExpHistogram(Elaboratable, HwMetric):
         """
 
         super().__init__(gen_params, fully_qualified_name, description)
-        self.max_sample_width = bits_for(max_value)
-        self.bucket_count = self.max_sample_width + 1
+        self.bucket_count = bucket_count
+        self.sample_width = sample_width
 
-        self._add = Method(i=[("sample", self.max_sample_width)])
+        self._add = Method(i=[("sample", self.sample_width)])
 
-        self.count = HwMetricRegister("count", gen_params.isa.xlen, "the count of events that have been observed")
-        self.sum = HwMetricRegister("sum", gen_params.isa.xlen, "the total sum of all observed values")
+        self.count = HwMetricRegister("count", registers_width, "the count of events that have been observed")
+        self.sum = HwMetricRegister("sum", registers_width, "the total sum of all observed values")
         self.min = HwMetricRegister(
             "min",
-            self.max_sample_width,
+            self.sample_width,
             "the minimum of all observed values",
-            reset=(1 << self.max_sample_width) - 1,
+            reset=(1 << self.sample_width) - 1,
         )
-        self.max = HwMetricRegister("max", self.max_sample_width, "the maximum of all observed values")
-        self.buckets = [
-            HwMetricRegister(
-                f"bucket-{2**i}",
-                gen_params.isa.xlen,
-                f"the cumulative counter for the observation bucket [{0 if i == 0 else 2**(i-1)}, {2**i})",
+        self.max = HwMetricRegister("max", self.sample_width, "the maximum of all observed values")
+
+        self.buckets = []
+        for i in range(self.bucket_count):
+            bucket_start = 0 if i == 0 else 2 ** (i - 1)
+            bucket_end = "inf" if i == self.bucket_count - 1 else 2**i
+
+            self.buckets.append(
+                HwMetricRegister(
+                    f"bucket-{bucket_end}",
+                    registers_width,
+                    f"the cumulative counter for the observation bucket [{bucket_start}, {bucket_end})",
+                )
             )
-            for i in range(self.bucket_count)
-        ]
 
         self.add_registers([self.count, self.sum, self.max, self.min] + self.buckets)
 
     def elaborate(self, platform):
         if not self.gen_params.hardware_metrics_enabled:
-            return Module()
+            return TModule()
 
         m = TModule()
 
@@ -304,21 +309,24 @@ class HwExpHistogram(Elaboratable, HwMetric):
             with m.If(sample < self.min.value):
                 m.d.sync += self.min.value.eq(sample)
 
-            # No bits are set - goes to the first bucket.
-            with m.If(sample == 0):
-                m.d.sync += self.buckets[0].value.eq(self.buckets[0].value + 1)
-
             # todo: perhaps replace with a recursive implementation of the priority encoder
-            bucket_idx = Signal(range(self.max_sample_width))
-            for i in range(self.max_sample_width):
+            bucket_idx = Signal(range(self.sample_width))
+            for i in range(self.sample_width):
                 with m.If(sample[i]):
                     m.d.av_comb += bucket_idx.eq(i)
 
             for i, bucket in enumerate(self.buckets):
+                should_incr = C(0)
                 if i == 0:
-                    continue
+                    # The first bucket has a range [0, 1).
+                    should_incr = sample == 0
+                elif i == self.bucket_count - 1:
+                    # The last bucket should count values bigger or equal to 2**(self.bucket_count-1)
+                    should_incr = (bucket_idx >= i - 1) & (sample != 0)
+                else:
+                    should_incr = (bucket_idx == i - 1) & (sample != 0)
 
-                with m.If(bucket_idx == i - 1):
+                with m.If(should_incr):
                     m.d.sync += bucket.value.eq(bucket.value + 1)
 
         return m
@@ -386,18 +394,26 @@ class LatencyMeasurer(Elaboratable):
         self._start = Method()
         self._stop = Method()
 
+        # This bucket count gives us the best possible granularity.
+        bucket_count = bits_for(self.max_latency) + 1
+        self.histogram = HwExpHistogram(
+            self.gen_params,
+            self.fully_qualified_name,
+            self.description,
+            bucket_count=bucket_count,
+            sample_width=bits_for(self.max_latency),
+        )
+
     def elaborate(self, platform):
         if not self.gen_params.hardware_metrics_enabled:
-            return Module()
+            return TModule()
 
         m = TModule()
 
         epoch_width = bits_for(self.max_latency)
 
         m.submodules.fifo = self.fifo = FIFO([("epoch", epoch_width)], self.slots_number)
-        m.submodules.histogram = self.histogram = HwExpHistogram(
-            self.gen_params, self.fully_qualified_name, self.description, max_value=self.max_latency
-        )
+        m.submodules.histogram = self.histogram
 
         epoch = Signal(epoch_width)
 
@@ -500,9 +516,11 @@ class HardwareMetricsManager:
         Parameters
         ----------
         metric_name: str
-            The name of the metric.
+            The fully qualified name of the metric, for example 'frontend.icache.loads'.
         reg_name: str
-            The name of the register.
+            The name of the register from that metric, for example if
+            the metric is a histogram, the 'reg_name' could be 'min'
+            or 'bucket-32'.
         """
 
         metrics = self.get_metrics()

@@ -1,9 +1,11 @@
 import json
 import random
+import queue
+from parameterized import parameterized_class
 
 from amaranth import *
 
-from coreblocks.structs_common.hw_metrics import HwCounter, HwExpHistogram, HardwareMetricsManager
+from coreblocks.structs_common.hw_metrics import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from transactron import *
@@ -41,7 +43,7 @@ class CounterWithConditionInMethodCircuit(Elaboratable):
 
         @def_method(m, self.method)
         def _(cond):
-            self.counter.incr_when(m, cond)
+            self.counter.incr(m, cond=cond)
 
         return m
 
@@ -57,7 +59,7 @@ class CounterWithoutMethodCircuit(Elaboratable):
         m.submodules.counter = self.counter
 
         with Transaction().body(m):
-            self.counter.incr_when(m, self.cond)
+            self.counter.incr(m, cond=self.cond)
 
         return m
 
@@ -81,8 +83,9 @@ class TestHwCounter(TestCaseWithSimulator):
                 else:
                     yield
 
-                val = yield m._dut.counter.count.value
-                self.assertEqual(val, called_cnt)
+                # Note that it takes one cycle to update the register value, so here
+                # we are comparing the "previous" values.
+                self.assertEqual(called_cnt, (yield m._dut.counter.count.value))
 
                 if call_now:
                     called_cnt += 1
@@ -104,8 +107,9 @@ class TestHwCounter(TestCaseWithSimulator):
                 else:
                     yield
 
-                val = yield m._dut.counter.count.value
-                self.assertEqual(val, called_cnt)
+                # Note that it takes one cycle to update the register value, so here
+                # we are comparing the "previous" values.
+                self.assertEqual(called_cnt, (yield m._dut.counter.count.value))
 
                 if call_now and condition == 1:
                     called_cnt += 1
@@ -124,8 +128,9 @@ class TestHwCounter(TestCaseWithSimulator):
                 yield m.cond.eq(condition)
                 yield
 
-                val = yield m.counter.count.value
-                self.assertEqual(val, called_cnt)
+                # Note that it takes one cycle to update the register value, so here
+                # we are comparing the "previous" values.
+                self.assertEqual(called_cnt, (yield m.counter.count.value))
 
                 if condition == 1:
                     called_cnt += 1
@@ -135,9 +140,11 @@ class TestHwCounter(TestCaseWithSimulator):
 
 
 class ExpHistogramCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, max_value: int):
+    def __init__(self, gen_params: GenParams, bucket_cnt: int, sample_width: int):
+        self.sample_width = sample_width
+
         self.method = Method(i=data_layout(32))
-        self.histogram = HwExpHistogram(gen_params, "histogram", max_value=max_value)
+        self.histogram = HwExpHistogram(gen_params, "histogram", bucket_count=bucket_cnt, sample_width=sample_width)
 
     def elaborate(self, platform):
         m = TModule()
@@ -146,46 +153,57 @@ class ExpHistogramCircuit(Elaboratable):
 
         @def_method(m, self.method)
         def _(data):
-            self.histogram.add(m, data[0 : self.histogram.max_sample_width])
+            self.histogram.add(m, data[0 : self.sample_width])
 
         return m
 
 
+@parameterized_class(
+    ("bucket_count", "sample_width"),
+    [
+        (5, 5),  # last bucket is [8, inf), max sample=31
+        (8, 5),  # last bucket is [64, inf), max sample=31
+        (8, 6),  # last bucket is [64, inf), max sample=63
+        (8, 20),  # last bucket is [64, inf), max sample=big
+    ],
+)
 class TestHwHistogram(TestCaseWithSimulator):
+    bucket_count: int
+    sample_width: int
+
     def setUp(self) -> None:
         self.gen_params = GenParams(test_core_config.replace(hardware_metrics=True))
 
         random.seed(42)
 
-    def test_counter_in_method(self):
-        max_value = 100
+    def test_histogram(self):
+        m = SimpleTestCircuit(
+            ExpHistogramCircuit(self.gen_params, bucket_cnt=self.bucket_count, sample_width=self.sample_width)
+        )
 
-        m = SimpleTestCircuit(ExpHistogramCircuit(self.gen_params, max_value))
+        max_sample_value = 2**self.sample_width - 1
 
         def test_process():
-            min = max_value + 1
+            min = max_sample_value + 1
             max = 0
             sum = 0
             count = 0
 
-            bucket_cnt = 8
-            buckets = [0] * bucket_cnt
+            buckets = [0] * self.bucket_count
 
             for _ in range(500):
                 if random.randrange(3) == 0:
-                    value = random.randint(0, max_value)
-                    value = 6
+                    value = random.randint(0, max_sample_value)
                     if value < min:
                         min = value
                     if value > max:
                         max = value
                     sum += value
                     count += 1
-                    for i in range(bucket_cnt):
-                        if value < 2**i:
+                    for i in range(self.bucket_count):
+                        if value < 2**i or i == self.bucket_count - 1:
                             buckets[i] += 1
                             break
-
                     yield from m.method.call(data=value)
                     yield
                 else:
@@ -193,18 +211,107 @@ class TestHwHistogram(TestCaseWithSimulator):
 
                 histogram = m._dut.histogram
                 # Skip the assertion if the min is still uninitialized
-                if min != max_value + 1:
+                if min != max_sample_value + 1:
                     self.assertEqual(min, (yield histogram.min.value))
 
                 self.assertEqual(max, (yield histogram.max.value))
                 self.assertEqual(sum, (yield histogram.sum.value))
                 self.assertEqual(count, (yield histogram.count.value))
 
-                for i in range(bucket_cnt):
-                    self.assertEqual(buckets[i], (yield histogram.buckets[i].value))
+                total_count = 0
+                for i in range(self.bucket_count):
+                    bucket_value = yield histogram.buckets[i].value
+                    total_count += bucket_value
+                    self.assertEqual(buckets[i], bucket_value)
+
+                # Sanity check if all buckets sum up to the total count value
+                self.assertEqual(total_count, (yield histogram.count.value))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(test_process)
+
+
+@parameterized_class(
+    ("slots_number", "expected_consumer_wait"),
+    [
+        (2, 5),
+        (2, 10),
+        (5, 10),
+        (10, 1),
+        (10, 10),
+        (5, 5),
+    ],
+)
+class TestLatencyMeasurer(TestCaseWithSimulator):
+    slots_number: int
+    expected_consumer_wait: float
+
+    def setUp(self) -> None:
+        self.gen_params = GenParams(test_core_config.replace(hardware_metrics=True))
+
+        random.seed(42)
+
+    def test_latency_measurer(self):
+        m = SimpleTestCircuit(
+            LatencyMeasurer(self.gen_params, "latency", slots_number=self.slots_number, max_latency=300)
+        )
+
+        latencies: list[int] = []
+
+        event_queue = queue.Queue()
+
+        time = 0
+
+        def ticker():
+            nonlocal time
+
+            yield Passive()
+
+            while True:
+                yield
+                time += 1
+
+        finish = False
+
+        def producer():
+            nonlocal finish
+
+            for _ in range(200):
+                yield from m._start.call()
+
+                # Make sure that the time is updated first.
+                yield Settle()
+                event_queue.put(time)
+                yield from self.random_wait_geom(0.8)
+
+            finish = True
+
+        def consumer():
+            while not finish:
+                yield from m._stop.call()
+
+                # Make sure that the time is updated first.
+                yield Settle()
+                latencies.append(time - event_queue.get())
+
+                yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
+
+            self.assertEqual(min(latencies), (yield m._dut.histogram.min.value))
+            self.assertEqual(max(latencies), (yield m._dut.histogram.max.value))
+            self.assertEqual(sum(latencies), (yield m._dut.histogram.sum.value))
+            self.assertEqual(len(latencies), (yield m._dut.histogram.count.value))
+
+            for i in range(m._dut.histogram.bucket_count):
+                bucket_start = 0 if i == 0 else 2 ** (i - 1)
+                bucket_end = 1e10 if i == m._dut.histogram.bucket_count - 1 else 2**i
+
+                count = sum(1 for x in latencies if bucket_start <= x < bucket_end)
+                self.assertEqual(count, (yield m._dut.histogram.buckets[i].value))
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(producer)
+            sim.add_sync_process(consumer)
+            sim.add_sync_process(ticker)
 
 
 class MetricManagerTestCircuit(Elaboratable):
@@ -222,9 +329,9 @@ class MetricManagerTestCircuit(Elaboratable):
 
         @def_method(m, self.incr_counters)
         def _(counter1, counter2, counter3):
-            self.counter1.incr_when(m, counter1)
-            self.counter2.incr_when(m, counter2)
-            self.counter3.incr_when(m, counter3)
+            self.counter1.incr(m, cond=counter1)
+            self.counter2.incr(m, cond=counter2)
+            self.counter3.incr(m, cond=counter3)
 
         return m
 
