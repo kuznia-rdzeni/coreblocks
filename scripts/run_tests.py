@@ -60,6 +60,9 @@ def run_regressions_with_cocotb(tests: list[str], traces: bool) -> bool:
     test_cases = ",".join(tests)
     arglist += [f"TESTCASE={test_cases}"]
 
+    verilog_code = topdir.joinpath("core.v")
+    arglist += [f"VERILOG_SOURCES={verilog_code}"]
+
     if traces:
         arglist += ["TRACES=1"]
 

@@ -1,7 +1,7 @@
 from amaranth import *
 from transactron.core import Priority
 from transactron.lib import BasicFifo, Semaphore
-from coreblocks.frontend.icache import ICacheInterface
+from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
 from ..params import *
@@ -13,14 +13,14 @@ class Fetch(Elaboratable):
     after each fetch.
     """
 
-    def __init__(self, gen_params: GenParams, icache: ICacheInterface, cont: Method) -> None:
+    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        icache : ICacheInterface
+        icache : CacheInterface
             Instruction Cache
         cont : Method
             Method which should be invoked to send fetched data to the next step.
@@ -114,14 +114,14 @@ class UnalignedFetch(Elaboratable):
     Simple fetch unit that works with unaligned and RVC instructions.
     """
 
-    def __init__(self, gen_params: GenParams, icache: ICacheInterface, cont: Method) -> None:
+    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        icache : ICacheInterface
+        icache : CacheInterface
             Instruction Cache
         cont : Method
             Method which should be invoked to send fetched data to the next step.

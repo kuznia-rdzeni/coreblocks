@@ -2,7 +2,7 @@ from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
 
 from .memory import *
-from .common import SimulationBackend
+from .common import SimulationBackend, SimulationExecutionResult
 
 from ..common import SimpleTestCircuit, PysimSimulator
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
@@ -89,7 +89,7 @@ class PySimulation(SimulationBackend):
 
         return f
 
-    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> bool:
+    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         wb_instr_bus = WishboneBus(self.gp.wb_params)
         wb_data_bus = WishboneBus(self.gp.wb_params)
         core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
@@ -106,12 +106,12 @@ class PySimulation(SimulationBackend):
         sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
         sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
         sim.add_sync_process(self._waiter())
-        res = sim.run()
+        success = sim.run()
 
         if self.verbose:
             print(f"Simulation finished in {self.cycle_cnt} cycles")
 
-        return res
+        return SimulationExecutionResult(success)
 
     def stop(self):
         self.running = False
