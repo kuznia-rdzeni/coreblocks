@@ -23,6 +23,8 @@ from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
 
+from transactron.utils.assign import AssignArg
+
 from .graph import Owned, OwnershipGraph, Direction
 from transactron.utils import *
 from transactron.utils.transactron_helpers import _graph_ccs
@@ -518,9 +520,9 @@ class TransactionManager(Elaboratable):
         graph = OwnershipGraph(fragment)
         method_map = MethodMap(self.transactions)
         for method, transactions in method_map.transactions_by_method.items():
-            if len(method.data_in) > len(method.data_out):
+            if len(method.data_in.as_value()) > len(method.data_out.as_value()):
                 direction = Direction.IN
-            elif len(method.data_in) < len(method.data_out):
+            elif method.data_in.shape().size < method.data_out.shape().size:
                 direction = Direction.OUT
             else:
                 direction = Direction.INOUT
@@ -880,8 +882,8 @@ class TransactionBase(Owned, Protocol):
     defined: bool = False
     name: str
     src_loc: SrcLoc
-    method_uses: dict["Method", tuple[Record, Signal]]
-    method_calls: defaultdict["Method", list[tuple[CtrlPath, Record, ValueLike]]]
+    method_uses: dict["Method", tuple[MethodStruct, Signal]]
+    method_calls: defaultdict["Method", list[tuple[CtrlPath, MethodStruct, ValueLike]]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
@@ -1145,9 +1147,10 @@ class Method(TransactionBase):
     behavior.) Calling a `Method` always takes a single clock cycle.
 
     Data is combinationally transferred between to and from `Method`\\s
-    using Amaranth `Record`\\s. The transfer can take place in both directions
-    at the same time: from the called `Method` to the caller (`data_out`)
-    and from the caller to the called `Method` (`data_in`).
+    using Amaranth structures (`View` with a `StructLayout`). The transfer
+    can take place in both directions at the same time: from the called
+    `Method` to the caller (`data_out`) and from the caller to the called
+    `Method` (`data_in`).
 
     A module which defines a `Method` should use `body` or `def_method`
     to describe the method's effect on the module state.
@@ -1162,10 +1165,10 @@ class Method(TransactionBase):
     run: Signal, out
         Signals that the method is called in the current cycle by some
         `Transaction`. Defined by the `TransactionManager`.
-    data_in: Record, out
+    data_in: MethodStruct, out
         Contains the data passed to the `Method` by the caller
         (a `Transaction` or another `Method`).
-    data_out: Record, in
+    data_out: MethodStruct, in
         Contains the data passed from the `Method` to the caller
         (a `Transaction` or another `Method`). Typically defined by
         calling `body`.
@@ -1187,12 +1190,10 @@ class Method(TransactionBase):
         name: str or None
             Name hint for this `Method`. If `None` (default) the name is
             inferred from the variable name this `Method` is assigned to.
-        i: record layout
+        i: method layout
             The format of `data_in`.
-            An `int` corresponds to a `Record` with a single `data` field.
-        o: record layout
-            The format of `data_in`.
-            An `int` corresponds to a `Record` with a single `data` field.
+        o: method layout
+            The format of `data_out`.
         nonexclusive: bool
             If true, the method is non-exclusive: it can be called by multiple
             transactions in the same clock cycle. If such a situation happens,
@@ -1211,13 +1212,21 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
         self.run = Signal(name=self.owned_name + "_run")
-        self.data_in = Record(i)
-        self.data_out = Record(o)
+        self.data_in: MethodStruct = Signal(from_method_layout(i))
+        self.data_out: MethodStruct = Signal(from_method_layout(o))
         self.nonexclusive = nonexclusive
         self.single_caller = single_caller
         self.validate_arguments: Optional[Callable[..., ValueLike]] = None
         if nonexclusive:
-            assert len(self.data_in) == 0
+            assert len(self.data_in.as_value()) == 0
+
+    @property
+    def layout_in(self):
+        return self.data_in.shape()
+
+    @property
+    def layout_out(self):
+        return self.data_out.shape()
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None, src_loc: int | SrcLoc = 0) -> "Method":
@@ -1241,7 +1250,7 @@ class Method(TransactionBase):
         Method
             The freshly constructed `Method`.
         """
-        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout, src_loc=get_src_loc(src_loc))
+        return Method(name=name, i=other.layout_in, o=other.layout_out, src_loc=get_src_loc(src_loc))
 
     def proxy(self, m: TModule, method: "Method"):
         """Define as a proxy for another method.
@@ -1269,7 +1278,7 @@ class Method(TransactionBase):
         ready: ValueLike = C(1),
         out: ValueLike = C(0, 0),
         validate_arguments: Optional[Callable[..., ValueLike]] = None,
-    ) -> Iterator[Record]:
+    ) -> Iterator[MethodStruct]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -1288,7 +1297,7 @@ class Method(TransactionBase):
             Signal to indicate if the method is ready to be run. By
             default it is `Const(1)`, so the method is always ready.
             Assigned combinationially to the `ready` attribute.
-        out : Record, in
+        out : Value, in
             Data generated by the `Method`, which will be passed to
             the caller (a `Transaction` or another `Method`). Assigned
             combinationally to the `data_out` attribute.
@@ -1327,14 +1336,14 @@ class Method(TransactionBase):
             with m.AvoidedIf(self.run):
                 yield self.data_in
 
-    def _validate_arguments(self, arg_rec: Record) -> ValueLike:
+    def _validate_arguments(self, arg_rec: MethodStruct) -> ValueLike:
         if self.validate_arguments is not None:
             return self.ready & method_def_helper(self, self.validate_arguments, arg_rec)
         return self.ready
 
     def __call__(
-        self, m: TModule, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
-    ) -> Record:
+        self, m: TModule, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
+    ) -> MethodStruct:
         """Call a method.
 
         Methods can only be called from transaction and method bodies.
@@ -1348,7 +1357,7 @@ class Method(TransactionBase):
         m : TModule
             Module in which operations on signals should be executed,
         arg : Value or dict of Values
-            Call argument. Can be passed as a `Record` of the method's
+            Call argument. Can be passed as a `View` of the method's
             input layout or as a dictionary. Alternative syntax uses
             keyword arguments.
         enable : Value
@@ -1361,7 +1370,7 @@ class Method(TransactionBase):
 
         Returns
         -------
-        data_out : Record
+        data_out : MethodStruct
             The result of the method call.
 
         Examples
@@ -1381,7 +1390,7 @@ class Method(TransactionBase):
             with Transaction().body(m):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
-        arg_rec = Record.like(self.data_in)
+        arg_rec = Signal.like(self.data_in)
 
         if arg is not None and kwargs:
             raise ValueError(f"Method '{self.name}' call with both keyword arguments and legacy record argument")
@@ -1399,7 +1408,7 @@ class Method(TransactionBase):
         caller.method_calls[self].append((m.ctrl_path, arg_rec, enable_sig))
 
         if self not in caller.method_uses:
-            arg_rec_use = Record.like(self.data_in)
+            arg_rec_use = Signal(self.layout_in)
             arg_rec_enable_sig = Signal()
             caller.method_uses[self] = (arg_rec_use, arg_rec_enable_sig)
 
@@ -1427,9 +1436,9 @@ def def_method(
     The decorated function should take keyword arguments corresponding to the
     fields of the method's input layout. The `**kwargs` syntax is supported.
     Alternatively, it can take one argument named `arg`, which will be a
-    record with input signals.
+    structure with input signals.
 
-    The returned value can be either a record with the method's output layout
+    The returned value can be either a structure with the method's output layout
     or a dictionary of outputs.
 
     Parameters
@@ -1469,7 +1478,7 @@ def def_method(
         def _(**args):
             return args["arg1"] + args["arg2"]
 
-    Alternative syntax (arg record):
+    Alternative syntax (arg structure):
 
     .. highlight:: python
     .. code-block:: python
@@ -1479,8 +1488,8 @@ def def_method(
             return {"res": arg.arg1 + arg.arg2}
     """
 
-    def decorator(func: Callable[..., Optional[RecordDict]]):
-        out = Record.like(method.data_out)
+    def decorator(func: Callable[..., Optional[AssignArg]]):
+        out = Signal(method.layout_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out, validate_arguments=validate_arguments) as arg:

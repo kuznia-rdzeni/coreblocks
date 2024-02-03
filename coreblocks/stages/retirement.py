@@ -197,7 +197,7 @@ class Retirement(Elaboratable):
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m) & ~(0b11))
+                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m).data & ~(0b11))
 
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
