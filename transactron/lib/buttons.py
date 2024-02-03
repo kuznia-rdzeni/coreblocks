@@ -22,7 +22,7 @@ class ClickIn(Elaboratable):
         argument, returns a structure.
     btn: Signal, in
         The button input.
-    dat: RecordStruct, in
+    dat: MethodStruct, in
         The data input.
     """
 
@@ -79,7 +79,7 @@ class ClickOut(Elaboratable):
         returns empty result.
     btn: Signal, in
         The button input.
-    dat: RecordStruct, out
+    dat: MethodStruct, out
         The data output.
     """
 
