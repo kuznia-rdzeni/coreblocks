@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
@@ -17,6 +18,7 @@ from coreblocks.params.keys import (
 )
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
+from transactron.utils.transactron_helpers import from_method_layout
 
 
 class PrivilegeLevel(IntEnum, shape=2):
@@ -112,7 +114,7 @@ class CSRRegister(Elaboratable):
         self._fu_write = Method(i=csr_layouts._fu_write)
 
         self.value = Signal(gen_params.isa.xlen)
-        self.side_effects = Record([("read", 1), ("write", 1)])
+        self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list
         dm = gen_params.get(DependencyManager)
@@ -121,9 +123,9 @@ class CSRRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        internal_method_layout = [("data", self.gen_params.isa.xlen), ("active", 1)]
-        write_internal = Record(internal_method_layout)
-        fu_write_internal = Record(internal_method_layout)
+        internal_method_layout = from_method_layout([("data", self.gen_params.isa.xlen), ("active", 1)])
+        write_internal = Signal(internal_method_layout)
+        fu_write_internal = Signal(internal_method_layout)
 
         m.d.sync += self.side_effects.eq(0)
 
@@ -228,7 +230,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = Record(self.csr_layouts.rs.data_layout + [("valid", 1)])
+        instr = Signal(StructLayout(self.csr_layouts.rs.data_layout.members | {"valid": 1}))
 
         m.d.comb += ready_to_process.eq(precommitting & instr.valid & (instr.rp_s1 == 0))
 

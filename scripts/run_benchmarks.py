@@ -8,6 +8,7 @@ import re
 import sys
 import os
 import subprocess
+import tabulate
 from typing import Literal
 from pathlib import Path
 
@@ -15,6 +16,7 @@ topdir = Path(__file__).parent.parent
 sys.path.insert(0, str(topdir))
 
 import test.regression.benchmark  # noqa: E402
+from test.regression.benchmark import BenchmarkResult  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
 
 
@@ -58,6 +60,9 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     test_cases = ",".join(benchmarks)
     arglist += [f"TESTCASE={test_cases}"]
 
+    verilog_code = topdir.joinpath("core.v")
+    arglist += [f"VERILOG_SOURCES={verilog_code}"]
+
     if traces:
         arglist += ["TRACES=1"]
 
@@ -100,6 +105,38 @@ def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], t
     return False
 
 
+def build_result_table(results: dict[str, BenchmarkResult]) -> str:
+    if len(results) == 0:
+        return ""
+
+    header = ["Testbench name", "Cycles", "Instructions", "IPC"]
+
+    # First fetch all metrics names to build the header
+    result = next(iter(results.values()))
+    for metric_name in sorted(result.metric_values.keys()):
+        regs = result.metric_values[metric_name]
+        for reg_name in regs:
+            header.append(f"{metric_name}/{reg_name}")
+
+    columns = [header]
+    for benchmark_name, result in results.items():
+        ipc = result.instr / result.cycles
+
+        column = [benchmark_name, result.cycles, result.instr, ipc]
+
+        for metric_name in sorted(result.metric_values.keys()):
+            regs = result.metric_values[metric_name]
+            for reg_name in regs:
+                column.append(regs[reg_name])
+
+        columns.append(column)
+
+    # Transpose the table, as the library expects to get a list of rows (and we have a list of columns).
+    rows = [list(i) for i in zip(*columns)]
+
+    return tabulate.tabulate(rows, headers="firstrow", tablefmt="simple_outline")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", action="store_true", help="List all benchmarks")
@@ -136,22 +173,23 @@ def main():
         print("Benchmark execution failed")
         sys.exit(1)
 
-    results = []
     ipcs = []
+
+    results: dict[str, BenchmarkResult] = {}
+
     for name in benchmarks:
         with open(f"{str(test.regression.benchmark.results_dir)}/{name}.json", "r") as f:
-            res = json.load(f)
+            result = BenchmarkResult.from_json(f.read())  # type: ignore
 
-        ipc = res["instr"] / res["cycle"]
-        ipcs.append(ipc)
+        results[name] = result
 
-        results.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc})
-        print(f"Benchmark '{name}': cycles={res['cycle']}, instructions={res['instr']} ipc={ipc:.4f}")
+        ipc = result.instr / result.cycles
+        ipcs.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc})
 
-    print(f"Average ipc={sum(ipcs)/len(ipcs):.4f}")
+    print(build_result_table(results))
 
     with open(args.output, "w") as benchmark_file:
-        json.dump(results, benchmark_file, indent=4)
+        json.dump(ipcs, benchmark_file, indent=4)
 
 
 if __name__ == "__main__":

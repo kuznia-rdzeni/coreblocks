@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 
 from transactron import Method, def_method, Transaction, TModule
 from coreblocks.params import *
@@ -220,7 +221,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         precommiting = Signal()  # start execution
         issued = Signal()  # instruction was issued to the bus
         flush = Signal()  # exception handling, requests are not issued
-        current_instr = Record(self.lsu_layouts.rs.data_layout)
+        current_instr = Signal(self.lsu_layouts.rs.data_layout)
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
@@ -248,7 +249,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             return {"rs_entry_id": 0}
 
         @def_method(m, self.insert)
-        def _(rs_data: Record, rs_entry_id: Value):
+        def _(rs_data: View, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += valid.eq(1)
 

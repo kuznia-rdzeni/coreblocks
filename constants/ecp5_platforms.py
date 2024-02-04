@@ -97,8 +97,8 @@ def adapter_resources(adapter: AdapterBase, number: int):
                 number,
                 en=pins.p(),
                 done=pins.p(),
-                data_in=pins.p(adapter.data_in.shape().width),
-                data_out=pins.p(adapter.data_out.shape().width),
+                data_in=pins.p(adapter.data_in.shape().size),
+                data_out=pins.p(adapter.data_out.shape().size),
             )
         ]
 

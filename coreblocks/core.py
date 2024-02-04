@@ -25,9 +25,10 @@ from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.frontend.icache import ICache, SimpleCommonBusCacheRefiller, ICacheBypass
+from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
+from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo

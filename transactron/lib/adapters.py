@@ -1,6 +1,6 @@
 from amaranth import *
 
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MethodStruct
 from ..core import *
 from ..core import SignalBundle
 from ..utils._typing import type_self_kwargs_as
@@ -13,8 +13,8 @@ __all__ = [
 
 
 class AdapterBase(Elaboratable):
-    data_in: Record
-    data_out: Record
+    data_in: MethodStruct
+    data_out: MethodStruct
 
     def __init__(self, iface: Method):
         self.iface = iface
@@ -56,8 +56,8 @@ class AdapterTrans(AdapterBase):
         """
         super().__init__(iface)
         self.src_loc = get_src_loc(src_loc)
-        self.data_in = Record.like(iface.data_in)
-        self.data_out = Record.like(iface.data_out)
+        self.data_in = Signal.like(iface.data_in)
+        self.data_out = Signal.like(iface.data_out)
 
     def elaborate(self, platform):
         m = TModule()
@@ -105,8 +105,8 @@ class Adapter(AdapterBase):
         kwargs["src_loc"] = get_src_loc(kwargs.setdefault("src_loc", 0))
 
         super().__init__(Method(**kwargs))
-        self.data_in = Record.like(self.iface.data_out)
-        self.data_out = Record.like(self.iface.data_in)
+        self.data_in = Signal.like(self.iface.data_out)
+        self.data_out = Signal.like(self.iface.data_in)
 
     def elaborate(self, platform):
         m = TModule()

@@ -7,11 +7,12 @@ from amaranth.sim import Passive, Settle
 from amaranth.utils import exact_log2
 
 from transactron.lib import AdapterTrans, Adapter
-from coreblocks.frontend.icache import SimpleCommonBusCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
+from coreblocks.cache.icache import ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
+from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
 from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper

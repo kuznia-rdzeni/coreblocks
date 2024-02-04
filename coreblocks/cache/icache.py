@@ -1,6 +1,5 @@
 from functools import reduce
 import operator
-from typing import Protocol
 
 from amaranth import *
 from amaranth.utils import exact_log2
@@ -9,12 +8,15 @@ from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from transactron.utils import assign, OneHotSwitchDynamic
-from transactron.utils._typing import HasElaborate
 from transactron.lib import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
+from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
 
-__all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleCommonBusCacheRefiller"]
+__all__ = [
+    "ICache",
+    "ICacheBypass",
+]
 
 
 def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, addr: Value):
@@ -31,42 +33,7 @@ def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, 
     return instr_out
 
 
-class ICacheInterface(HasElaborate, Protocol):
-    """
-    Instruction Cache Interface.
-
-    Parameters
-    ----------
-    issue_req : Method
-        A method that is used to issue a cache lookup request.
-    accept_res : Method
-        A method that is used to accept the result of a cache lookup request.
-    flush : Method
-        A method that is used to flush the whole cache.
-    """
-
-    issue_req: Method
-    accept_res: Method
-    flush: Method
-
-
-class CacheRefillerInterface(HasElaborate, Protocol):
-    """
-    Instruction Cache Refiller Interface.
-
-    Parameters
-    ----------
-    start_refill : Method
-        A method that is used to start a refill for a given cache line.
-    accept_refill : Method
-        A method that is used to accept one word from the requested cache line.
-    """
-
-    start_refill: Method
-    accept_refill: Method
-
-
-class ICacheBypass(Elaboratable, ICacheInterface):
+class ICacheBypass(Elaboratable, CacheInterface):
     def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
         self.bus_master = bus_master
@@ -104,7 +71,7 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         return m
 
 
-class ICache(Elaboratable, ICacheInterface):
+class ICache(Elaboratable, CacheInterface):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
