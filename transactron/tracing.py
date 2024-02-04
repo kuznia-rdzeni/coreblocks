@@ -4,19 +4,19 @@ Utilities for extracting dependencies from Amaranth.
 
 import warnings
 
-from amaranth.hdl.ir import Elaboratable, Fragment, Instance
-from amaranth.hdl.xfrm import FragmentTransformer
-from amaranth.hdl import dsl, ir, mem, xfrm
+from amaranth.hdl._ir import Elaboratable, Fragment, Instance
+from amaranth.hdl._xfrm import FragmentTransformer
+from amaranth.hdl import _dsl, _ir, _mem, _xfrm
 from transactron.utils import HasElaborate
 from . import core
 
 
 # generic tuple because of aggressive monkey-patching
-modules_with_fragment: tuple = core, ir, dsl, mem, xfrm
+modules_with_fragment: tuple = core, _ir, _dsl, _mem, _xfrm
 # List of Fragment subclasses which should be patched to inherit from TracingFragment.
 # The first element of the tuple is a subclass name to patch, and the second element
 # of the tuple is tuple with modules in which the patched subclass should be installed.
-fragment_subclasses_to_patch = [("MemoryInstance", (mem, xfrm))]
+fragment_subclasses_to_patch = [("MemoryInstance", (_mem, _xfrm))]
 
 DIAGNOSTICS = False
 orig_on_fragment = FragmentTransformer.on_fragment
@@ -26,8 +26,8 @@ class TracingEnabler:
     def __enter__(self):
         self.orig_fragment_get = Fragment.get
         self.orig_on_fragment = FragmentTransformer.on_fragment
-        self.orig_fragment_class = ir.Fragment
-        self.orig_instance_class = ir.Instance
+        self.orig_fragment_class = _ir.Fragment
+        self.orig_instance_class = _ir.Instance
         self.orig_patched_fragment_subclasses = []
         Fragment.get = TracingFragment.get
         FragmentTransformer.on_fragment = TracingFragmentTransformer.on_fragment

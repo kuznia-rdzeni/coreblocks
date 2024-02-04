@@ -7,7 +7,7 @@ from collections.abc import Iterator, Mapping
 from typing import TypeVar, Generic
 from typing_extensions import Self
 from amaranth.hdl import *
-from amaranth.hdl.ast import Assign, ShapeCastable, ValueCastable
+from amaranth.hdl._ast import Assign, ShapeCastable, ValueCastable
 from transactron.utils._typing import ShapeLike, ValueLike
 
 __all__ = ["Field", "Layout", "StructLayout", "UnionLayout", "ArrayLayout", "FlexibleLayout", "View", "Struct", "Union"]

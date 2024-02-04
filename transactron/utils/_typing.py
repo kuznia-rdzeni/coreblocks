@@ -18,8 +18,8 @@ from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
-from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
-from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
+from amaranth.hdl._ast import ShapeCastable, Statement, ValueCastable
+from amaranth.hdl._dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
 from amaranth.hdl.rec import Direction, Layout
 
 __all__ = [

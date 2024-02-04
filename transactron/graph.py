@@ -6,7 +6,7 @@ from enum import IntFlag
 from collections import defaultdict
 from typing import Literal, Optional, Protocol
 
-from amaranth.hdl.ir import Elaboratable, Fragment
+from amaranth import Elaboratable, Fragment
 from .tracing import TracingFragment
 
 

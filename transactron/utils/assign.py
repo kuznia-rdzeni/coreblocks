@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional, TypeAlias, cast
 from collections.abc import Iterable, Mapping
 from amaranth import *
-from amaranth.hdl.ast import Assign, ArrayProxy
+from amaranth.hdl._ast import Assign, ArrayProxy
 from amaranth.lib import data
 from ._typing import ValueLike
 

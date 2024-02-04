@@ -1,8 +1,9 @@
+from amaranth import *
 from coreblocks.cache.icache import CacheRefillerInterface
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from transactron.core import Transaction
-from transactron.lib import C, Cat, Elaboratable, Forwarder, Method, Signal, TModule, def_method
+from transactron.lib import Forwarder, Method, TModule, def_method
 
 from amaranth.utils import exact_log2
 

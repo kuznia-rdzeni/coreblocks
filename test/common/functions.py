@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.hdl.ast import Statement
+from amaranth.hdl._ast import Statement
 from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.sim.core import Command
 from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
