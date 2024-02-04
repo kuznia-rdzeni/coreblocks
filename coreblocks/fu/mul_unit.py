@@ -45,13 +45,13 @@ class MulFn(DecoderManager):
         ]
 
 
-def get_input(arg: Record) -> tuple[Value, Value]:
+def get_input(arg: MethodStruct) -> tuple[Value, Value]:
     """
     Operation of getting two input values.
 
     Parameters
     ----------
-    arg: Record
+    arg: MethodStruct
         Arguments of functional unit issue call.
 
     Returns

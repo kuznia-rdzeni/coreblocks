@@ -1,8 +1,8 @@
 from amaranth import *
 from transactron import Method, def_method, Priority, TModule
-from transactron.utils._typing import ValueLike, MethodLayout, SrcLoc
+from transactron.utils._typing import ValueLike, MethodLayout, SrcLoc, MethodStruct
 from transactron.utils.amaranth_ext import mod_incr
-from transactron.utils.transactron_helpers import get_src_loc
+from transactron.utils.transactron_helpers import from_method_layout, get_src_loc
 
 
 class BasicFifo(Elaboratable):
@@ -11,10 +11,10 @@ class BasicFifo(Elaboratable):
     Attributes
     ----------
     read: Method
-        Reads from the FIFO. Accepts an empty argument, returns a `Record`.
+        Reads from the FIFO. Accepts an empty argument, returns a structure.
         Ready only if the FIFO is not empty.
     write: Method
-        Writes to the FIFO. Accepts a `Record`, returns empty result.
+        Writes to the FIFO. Accepts a structure, returns empty result.
         Ready only if the FIFO is not full.
     clear: Method
         Clears the FIFO entries. Has priority over `read` and `write` methods.
@@ -26,9 +26,8 @@ class BasicFifo(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
+        layout: method layout
             Layout of data stored in the FIFO.
-            If integer is given, Record with field `data` and width of this paramter is used as internal layout.
         depth: int
             Size of the FIFO.
         src_loc: int | SrcLoc
@@ -36,14 +35,14 @@ class BasicFifo(Elaboratable):
             Alternatively, the source location to use instead of the default.
         """
         self.layout = layout
-        self.width = len(Record(self.layout))
+        self.width = from_method_layout(self.layout).size
         self.depth = depth
 
         src_loc = get_src_loc(src_loc)
         self.read = Method(o=self.layout, src_loc=src_loc)
         self.write = Method(i=self.layout, src_loc=src_loc)
         self.clear = Method(src_loc=src_loc)
-        self.head = Record(self.layout)
+        self.head = Signal(from_method_layout(layout))
 
         self.buff = Memory(width=self.width, depth=self.depth)
 
@@ -82,7 +81,7 @@ class BasicFifo(Elaboratable):
         m.d.comb += self.head.eq(self.buff_rdport.data)
 
         @def_method(m, self.write, ready=self.write_ready)
-        def _(arg: Record) -> None:
+        def _(arg: MethodStruct) -> None:
             m.d.top_comb += self.buff_wrport.addr.eq(self.write_idx)
             m.d.top_comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)

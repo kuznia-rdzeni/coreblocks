@@ -108,7 +108,7 @@ class HelperConnect(Elaboratable):
         m = TModule()
 
         with Transaction().body(m, request=self.request):
-            self.target(m, self.data ^ self.source(m))
+            self.target(m, self.data ^ self.source(m).data)
 
         return m
 

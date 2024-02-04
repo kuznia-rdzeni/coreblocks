@@ -1,7 +1,8 @@
 from collections.abc import Iterable, Mapping
-from ._typing import LayoutList, ShapeLike, LayoutLike
+from ._typing import ShapeLike, MethodLayout
 from typing import Any, Sized
 from statistics import fmean
+from amaranth.lib.data import StructLayout
 
 
 __all__ = [
@@ -18,8 +19,8 @@ __all__ = [
 ]
 
 
-def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
-    return [item for item in layout if item[0] in fields]
+def layout_subset(layout: StructLayout, *, fields: set[str]) -> StructLayout:
+    return StructLayout({item: value for item, value in layout.members.items() if item in fields})
 
 
 def make_hashable(val):
@@ -77,7 +78,7 @@ def bits_from_int(num: int, lower: int, length: int):
     return (num >> lower) & ((1 << (length)) - 1)
 
 
-def data_layout(val: ShapeLike) -> LayoutLike:
+def data_layout(val: ShapeLike) -> MethodLayout:
     return [("data", val)]
 
 

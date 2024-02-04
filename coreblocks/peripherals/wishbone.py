@@ -9,6 +9,7 @@ from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
 from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
 from transactron.lib.connectors import Forwarder
+from transactron.utils.transactron_helpers import make_layout
 
 
 class WishboneParameters:
@@ -96,14 +97,14 @@ class WishboneMasterMethodLayout:
     """
 
     def __init__(self, wb_params: WishboneParameters):
-        self.request_layout = [
-            ("addr", wb_params.addr_width, DIR_FANIN),
-            ("data", wb_params.data_width, DIR_FANIN),
-            ("we", 1, DIR_FANIN),
-            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
-        ]
+        self.request_layout = make_layout(
+            ("addr", wb_params.addr_width),
+            ("data", wb_params.data_width),
+            ("we", 1),
+            ("sel", wb_params.data_width // wb_params.granularity),
+        )
 
-        self.result_layout = [("data", wb_params.data_width), ("err", 1)]
+        self.result_layout = make_layout(("data", wb_params.data_width), ("err", 1))
 
 
 class WishboneMaster(Elaboratable):
@@ -139,7 +140,7 @@ class WishboneMaster(Elaboratable):
         self.result = Method(o=self.method_layouts.result_layout)
 
         # latched input signals
-        self.txn_req = Record(self.method_layouts.request_layout)
+        self.txn_req = Signal(self.method_layouts.request_layout)
 
     def elaborate(self, platform):
         m = TModule()
