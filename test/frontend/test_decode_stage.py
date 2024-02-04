@@ -1,6 +1,6 @@
 from transactron.lib import AdapterTrans, FIFO
 
-from ..common import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, ModuleConnector
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, ModuleConnector
 
 from coreblocks.frontend.decode_stage import DecodeStage
 from coreblocks.params import GenParams, FetchLayouts, DecodeLayouts, OpType, Funct3, Funct7

@@ -10,7 +10,7 @@ from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionRepor
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.optypes import OpType
 
-from ..common import *
+from transactron.testing import *
 
 import random
 

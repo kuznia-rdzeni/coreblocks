@@ -8,7 +8,7 @@ from coreblocks.params.configurations import test_core_config
 from transactron.lib import Adapter
 from transactron.utils import ModuleConnector
 
-from ..common import *
+from transactron.testing import *
 
 import random
 

@@ -1,5 +1,5 @@
 from amaranth import *
-from test.common import *
+from transactron.testing import *
 
 
 class EmptyCircuit(Elaboratable):

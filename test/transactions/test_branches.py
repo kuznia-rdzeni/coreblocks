@@ -11,7 +11,7 @@ from transactron.core import (
     def_method,
 )
 from unittest import TestCase
-from ..common import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator
 
 
 class TestExclusivePath(TestCase):
