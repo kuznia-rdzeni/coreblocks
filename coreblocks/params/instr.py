@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 
-from amaranth.hdl.ast import ValueCastable
+from amaranth.hdl._ast import ValueCastable
 from amaranth import *
 
 from transactron.utils import ValueLike
