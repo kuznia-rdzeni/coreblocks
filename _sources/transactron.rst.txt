@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    transactron.lib
+   transactron.testing
    transactron.utils
 
 Submodules
