@@ -521,27 +521,6 @@ every clock cycle.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="transactron.core.TransactionContext">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.</span></span><span class="sig-name descname"><span class="pre">TransactionContext</span></span><a class="headerlink" href="#transactron.core.TransactionContext" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.core.TransactionContext.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.TransactionContext.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.core.TransactionContext.get">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></span><a class="headerlink" href="#transactron.core.TransactionContext.get" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="transactron.core.TransactionContext.stack">
-<span class="sig-name descname"><span class="pre">stack</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">transactron.core.TransactionManager</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#transactron.core.TransactionContext.stack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="transactron.core.TransactionManager">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.</span></span><span class="sig-name descname"><span class="pre">TransactionManager</span></span><a class="headerlink" href="#transactron.core.TransactionManager" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -577,13 +556,25 @@ are never granted in the same clock cycle.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.TransactionManagerKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.</span></span><span class="sig-name descname"><span class="pre">TransactionManagerKey</span></span><a class="headerlink" href="#transactron.core.TransactionManagerKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionManager</span></code></a>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.TransactionManagerKey.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.core.TransactionManagerKey.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.core.TransactionModule">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.</span></span><span class="sig-name descname"><span class="pre">TransactionModule</span></span><a class="headerlink" href="#transactron.core.TransactionModule" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p><cite>TransactionModule</cite> is used as wrapper on <cite>Elaboratable</cite> classes,
 which adds support for transactions. It creates a
 <cite>TransactionManager</cite> which will handle transaction scheduling
-and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.</p>
+and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.
+The <cite>TransactionManager</cite> is stored in a <cite>DependencyManager</cite>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.core.TransactionModule.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elaboratable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HasElaborate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.TransactionModule.__init__" title="Permalink to this definition"></a></dt>
@@ -599,8 +590,8 @@ transactions and methods.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="transactron.core.TransactionModule.transaction_context">
-<span class="sig-name descname"><span class="pre">transaction_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#transactron.core.TransactionContext" title="transactron.core.TransactionContext"><span class="pre">TransactionContext</span></a></span></span><a class="headerlink" href="#transactron.core.TransactionModule.transaction_context" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="transactron.core.TransactionModule.context">
+<span class="sig-name descname"><span class="pre">context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.DependencyContext" title="transactron.utils.dependencies.DependencyContext"><span class="pre">DependencyContext</span></a></span></span><a class="headerlink" href="#transactron.core.TransactionModule.context" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1409,27 +1400,6 @@ every clock cycle.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="transactron.TransactionContext">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.</span></span><span class="sig-name descname"><span class="pre">TransactionContext</span></span><a class="headerlink" href="#transactron.TransactionContext" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.TransactionContext.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.TransactionContext.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.TransactionContext.get">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></span><a class="headerlink" href="#transactron.TransactionContext.get" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="transactron.TransactionContext.stack">
-<span class="sig-name descname"><span class="pre">stack</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">transactron.core.TransactionManager</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#transactron.TransactionContext.stack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="transactron.TransactionManager">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.</span></span><span class="sig-name descname"><span class="pre">TransactionManager</span></span><a class="headerlink" href="#transactron.TransactionManager" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -1471,7 +1441,8 @@ are never granted in the same clock cycle.</p>
 <p><cite>TransactionModule</cite> is used as wrapper on <cite>Elaboratable</cite> classes,
 which adds support for transactions. It creates a
 <cite>TransactionManager</cite> which will handle transaction scheduling
-and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.</p>
+and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.
+The <cite>TransactionManager</cite> is stored in a <cite>DependencyManager</cite>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.TransactionModule.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elaboratable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HasElaborate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.TransactionModule.__init__" title="Permalink to this definition"></a></dt>
@@ -1487,8 +1458,8 @@ transactions and methods.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="transactron.TransactionModule.transaction_context">
-<span class="sig-name descname"><span class="pre">transaction_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#transactron.core.TransactionContext" title="transactron.core.TransactionContext"><span class="pre">TransactionContext</span></a></span></span><a class="headerlink" href="#transactron.TransactionModule.transaction_context" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="transactron.TransactionModule.context">
+<span class="sig-name descname"><span class="pre">context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.DependencyContext" title="transactron.utils.dependencies.DependencyContext"><span class="pre">DependencyContext</span></a></span></span><a class="headerlink" href="#transactron.TransactionModule.context" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1563,7 +1534,7 @@ are accepted.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 16:12 2024-02-04.
+      <span class="lastupdated">Last updated on 10:41 2024-02-05.
       </span></p>
   </div>
 
