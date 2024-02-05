@@ -34,7 +34,7 @@ __all__ = [
     "Priority",
     "TModule",
     "TransactionManager",
-    "TransactionContext",
+    "TransactionManagerKey",
     "TransactionModule",
     "Transaction",
     "Method",
@@ -553,25 +553,9 @@ class TransactionManager(Elaboratable):
         }
 
 
-class TransactionContext:
-    stack: list[TransactionManager] = []
-
-    def __init__(self, manager: TransactionManager):
-        self.manager = manager
-
-    def __enter__(self):
-        self.stack.append(self.manager)
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_tb):
-        top = self.stack.pop()
-        assert self.manager is top
-
-    @classmethod
-    def get(cls) -> TransactionManager:
-        if not cls.stack:
-            raise RuntimeError("TransactionContext stack is empty")
-        return cls.stack[-1]
+@dataclass(frozen=True)
+class TransactionManagerKey(SimpleKey[TransactionManager]):
+    pass
 
 
 class TransactionModule(Elaboratable):
@@ -580,6 +564,7 @@ class TransactionModule(Elaboratable):
     which adds support for transactions. It creates a
     `TransactionManager` which will handle transaction scheduling
     and can be used in definition of `Method`\\s and `Transaction`\\s.
+    The `TransactionManager` is stored in a `DependencyManager`.
     """
 
     def __init__(self, elaboratable: HasElaborate, manager: Optional[TransactionManager] = None):
@@ -592,21 +577,22 @@ class TransactionModule(Elaboratable):
         """
         if manager is None:
             manager = TransactionManager()
-        self.transactionManager = manager
+        self.manager = DependencyManager()
+        self.manager.add_dependency(TransactionManagerKey(), manager)
         self.elaboratable = elaboratable
 
-    def transaction_context(self) -> TransactionContext:
-        return TransactionContext(self.transactionManager)
+    def context(self) -> DependencyContext:
+        return DependencyContext(self.manager)
 
     def elaborate(self, platform):
-        with silence_mustuse(self.transactionManager):
-            with self.transaction_context():
+        with silence_mustuse(self.manager.get_dependency(TransactionManagerKey())):
+            with self.context():
                 elaboratable = Fragment.get(self.elaboratable, platform)
 
         m = Module()
 
         m.submodules.main_module = elaboratable
-        m.submodules.transactionManager = self.transactionManager
+        m.submodules.transactionManager = self.manager.get_dependency(TransactionManagerKey())
 
         return m
 
@@ -1093,7 +1079,7 @@ class Transaction(TransactionBase):
         self.owner, owner_name = get_caller_class_name(default="$transaction")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         if manager is None:
-            manager = TransactionContext.get()
+            manager = DependencyContext.get().get_dependency(TransactionManagerKey())
         manager.add_transaction(self)
         self.request = Signal(name=self.owned_name + "_request")
         self.runnable = Signal(name=self.owned_name + "_runnable")

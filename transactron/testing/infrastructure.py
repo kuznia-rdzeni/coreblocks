@@ -14,7 +14,7 @@ from .functions import TestGen
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
-from transactron.core import TransactionModule
+from transactron.core import TransactionManagerKey, TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
@@ -227,7 +227,9 @@ class TestCaseWithSimulator(unittest.TestCase):
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
             profile = Profile()
-            sim.add_sync_process(profiler_process(sim.tested_module.transactionManager, profile, clk_period))
+            sim.add_sync_process(
+                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile, clk_period)
+            )
 
         res = sim.run()
 
