@@ -2,9 +2,10 @@ import random
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
+from transactron.utils import MethodStruct
 from transactron.lib import *
 
 from parameterized import parameterized
@@ -41,7 +42,7 @@ class TestDefMethod(TestCaseWithSimulator):
         self.do_test_definition(definition)
 
     def test_fields_valid2(self):
-        rec = Record([("bar1", 4), ("bar2", 6)])
+        rec = Signal(from_method_layout([("bar1", 4), ("bar2", 6)]))
 
         def definition(arg):
             return {"foo1": Signal(3), "foo2": rec}
@@ -55,7 +56,7 @@ class TestDefMethod(TestCaseWithSimulator):
         self.do_test_definition(definition)
 
     def test_fields_valid4(self):
-        def definition(arg: Record):
+        def definition(arg: MethodStruct):
             return arg
 
         self.do_test_definition(definition)
@@ -560,8 +561,8 @@ class DataDependentConditionalCircuit(Elaboratable):
         self.method = Method(i=data_layout(n))
         self.ready_function = ready_function
 
-        self.in_t1 = Record(data_layout(n))
-        self.in_t2 = Record(data_layout(n))
+        self.in_t1 = Signal(from_method_layout(data_layout(n)))
+        self.in_t2 = Signal(from_method_layout(data_layout(n)))
         self.ready = Signal()
         self.req_t1 = Signal()
         self.req_t2 = Signal()

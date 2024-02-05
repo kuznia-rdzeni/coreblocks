@@ -7,12 +7,14 @@ from collections.abc import Callable, MutableMapping, MutableSequence, MutableSe
 from typing import Any, Generic, Iterable, Iterator, Mapping, NoReturn, Optional, Sequence, TypeVar, final, overload
 from enum import Enum
 from transactron.utils import ValueLike, ShapeLike, StatementLike
+from amaranth.lib.data import View
 
 __all__ = ["Shape", "ShapeCastable", "signed", "unsigned", "Value", "Const", "C", "AnyConst", "AnySeq", "Operator", "Mux", "Part", "Slice", "Cat", "Repl", "Array", "ArrayProxy", "Signal", "ClockSignal", "ResetSignal", "ValueCastable", "Sample", "Past", "Stable", "Rose", "Fell", "Initial", "Statement", "Switch", "Property", "Assign", "Assert", "Assume", "Cover", "ValueKey", "ValueDict", "ValueSet", "SignalKey", "SignalDict", "SignalSet", "ValueLike", "ShapeLike", "StatementLike", "SwitchKey"]
 
 
 T = TypeVar("T")
 U = TypeVar("U")
+_T_ShapeCastable = TypeVar("_T_ShapeCastable", bound=ShapeCastable, covariant=True)
 Flattenable = T | Iterable[Flattenable[T]]
 SwitchKey = str | int | Enum
 
@@ -425,9 +427,19 @@ class Signal(Value, DUID, metaclass=_SignalMeta):
     Pa"""
     def __init__(self, shape: Optional[ShapeLike] = ..., *, name: Optional[str] = ..., reset: int | Enum = ..., reset_less: bool = ..., attrs: dict = ..., decoder: type[Enum] | Callable[[int], str] = ..., src_loc_at=...) -> None:
         ...
-    
+
+    @overload
+    @staticmethod
+    def like(other: View[_T_ShapeCastable], *, name: Optional[str] = ..., name_suffix: Optional[str] =..., src_loc_at=..., **kwargs) -> View[_T_ShapeCastable]:
+        ...
+
+    @overload
     @staticmethod
     def like(other: ValueLike, *, name: Optional[str] = ..., name_suffix: Optional[str] =..., src_loc_at=..., **kwargs) -> Signal:
+        ...
+
+    @staticmethod
+    def like(other: ValueLike, *, name: Optional[str] = ..., name_suffix: Optional[str] =..., src_loc_at=..., **kwargs):
         """Create Signal based on another.
 """
         ...
@@ -438,6 +450,7 @@ class Signal(Value, DUID, metaclass=_SignalMeta):
     def __repr__(self) -> str:
         ...
     
+    name: str
     decoder: Any
 
 

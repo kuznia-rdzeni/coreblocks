@@ -1,4 +1,4 @@
-from ..common import TestCaseWithSimulator, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.params import GenParams

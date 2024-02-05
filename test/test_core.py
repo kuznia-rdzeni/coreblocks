@@ -3,7 +3,7 @@ from amaranth import Elaboratable, Module
 from transactron.lib import AdapterTrans
 from transactron.utils import align_to_power_of_two, signed_to_int
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams

@@ -1,5 +1,7 @@
 from amaranth import *
 import amaranth.lib.fifo
+
+from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc
 
@@ -24,9 +26,9 @@ class FIFO(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts an empty argument, returns a `Record`.
+        The read method. Accepts an empty argument, returns a structure.
     write: Method
-        The write method. Accepts a `Record`, returns empty result.
+        The write method. Accepts a structure, returns empty result.
     """
 
     def __init__(
@@ -35,8 +37,8 @@ class FIFO(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
-            The format of records stored in the FIFO.
+        layout: method layout
+            The format of structures stored in the FIFO.
         depth: int
             Size of the FIFO.
         fifoType: Elaboratable
@@ -46,7 +48,7 @@ class FIFO(Elaboratable):
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
         """
-        self.width = len(Record(layout))
+        self.width = from_method_layout(layout).size
         self.depth = depth
         self.fifoType = fifo_type
 
@@ -92,17 +94,17 @@ class Forwarder(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts an empty argument, returns a `Record`.
+        The read method. Accepts an empty argument, returns a structure.
     write: Method
-        The write method. Accepts a `Record`, returns empty result.
+        The write method. Accepts a structure, returns empty result.
     """
 
     def __init__(self, layout: MethodLayout, *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
-        layout: record layout
-            The format of records forwarded.
+        layout: method layout
+            The format of structures forwarded.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -111,7 +113,7 @@ class Forwarder(Elaboratable):
         self.read = Method(o=layout, src_loc=src_loc)
         self.write = Method(i=layout, src_loc=src_loc)
         self.clear = Method(src_loc=src_loc)
-        self.head = Record.like(self.read.data_out)
+        self.head = Signal.like(self.read.data_out)
 
         self.clear.add_conflict(self.read, Priority.LEFT)
         self.clear.add_conflict(self.write, Priority.LEFT)
@@ -119,9 +121,9 @@ class Forwarder(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        reg = Record.like(self.read.data_out)
+        reg = Signal.like(self.read.data_out)
         reg_valid = Signal()
-        read_value = Record.like(self.read.data_out)
+        read_value = Signal.like(self.read.data_out)
         m.d.comb += self.head.eq(read_value)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
@@ -159,21 +161,21 @@ class Connect(Elaboratable):
     Attributes
     ----------
     read: Method
-        The read method. Accepts a (possibly empty) `Record`, returns
-        a `Record`.
+        The read method. Accepts a (possibly empty) structure, returns
+        a structure.
     write: Method
-        The write method. Accepts a `Record`, returns a (possibly empty)
-        `Record`.
+        The write method. Accepts a structure, returns a (possibly empty)
+        structure.
     """
 
     def __init__(self, layout: MethodLayout = (), rev_layout: MethodLayout = (), *, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
-        layout: record layout
-            The format of records forwarded.
-        rev_layout: record layout
-            The format of records forwarded in the reverse direction.
+        layout: method layout
+            The format of structures forwarded.
+        rev_layout: method layout
+            The format of structures forwarded in the reverse direction.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -185,8 +187,8 @@ class Connect(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        read_value = Record.like(self.read.data_out)
-        rev_read_value = Record.like(self.write.data_out)
+        read_value = Signal.like(self.read.data_out)
+        rev_read_value = Signal.like(self.write.data_out)
 
         self.write.simultaneous(self.read)
 
@@ -232,8 +234,8 @@ class ConnectTrans(Elaboratable):
         m = TModule()
 
         with Transaction(src_loc=self.src_loc).body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
+            data1 = Signal.like(self.method1.data_out)
+            data2 = Signal.like(self.method2.data_out)
 
             m.d.top_comb += data1.eq(self.method1(m, data2))
             m.d.top_comb += data2.eq(self.method2(m, data1))

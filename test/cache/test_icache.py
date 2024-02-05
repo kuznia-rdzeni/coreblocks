@@ -14,7 +14,7 @@ from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 

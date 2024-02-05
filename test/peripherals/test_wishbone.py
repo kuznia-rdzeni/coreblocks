@@ -5,7 +5,7 @@ from coreblocks.peripherals.wishbone import *
 
 from transactron.lib import AdapterTrans
 
-from ..common import *
+from transactron.testing import *
 
 
 class WishboneInterfaceWrapper:
