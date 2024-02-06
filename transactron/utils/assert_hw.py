@@ -5,7 +5,7 @@ import operator
 from dataclasses import dataclass
 from transactron.utils.depcache import DependentCache
 from transactron.utils import SrcLoc
-from transactron.utils.dependencies import DependencyManager, ListKey
+from transactron.utils.dependencies import DependencyContext, DependencyManager, ListKey
 
 __all__ = ["AssertKey", "assertion", "assert_bit", "assert_bits"]
 
@@ -15,7 +15,7 @@ class AssertKey(ListKey[tuple[Value, SrcLoc]]):
     pass
 
 
-def assertion(dependencies: DependentCache | DependencyManager, value: Value, *, src_loc_at: int = 0):
+def assertion(value: Value, *, src_loc_at: int = 0):
     """Signal if assertion false.
 
     This function might help find some hardware bugs which might otherwise be
@@ -24,10 +24,6 @@ def assertion(dependencies: DependentCache | DependencyManager, value: Value, *,
 
     Parameters
     ----------
-    dependencies : DependentCache | DependencyManager
-        The assertion feature uses the `DependencyManager` to store
-        assertions. If `DependentCache` is passed instead, `DependencyManager`
-        is requested from the cache.
     value : Value
         If the value of this Amaranth expression is false, the assertion will
         fail.
@@ -35,9 +31,8 @@ def assertion(dependencies: DependentCache | DependencyManager, value: Value, *,
         How many stack frames below to look for the source location, used to
         identify the failing assertion.
     """
-    if isinstance(dependencies, DependentCache):
-        dependencies = dependencies.get(DependencyManager)
     src_loc = get_src_loc(src_loc_at)
+    dependencies = DependencyContext.get()
     dependencies.add_dependency(AssertKey(), (value, src_loc))
 
 

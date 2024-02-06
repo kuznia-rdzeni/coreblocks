@@ -2,7 +2,7 @@ from amaranth import *
 
 from transactron.utils import assertion
 from transactron.utils.dependencies import DependencyManager
-from ..common import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator
 
 
 class AssertionTest(Elaboratable):
@@ -16,7 +16,7 @@ class AssertionTest(Elaboratable):
 
         m.d.comb += self.output.eq(self.input & ~self.input)
 
-        assertion(self.dependency_manager, self.input == self.output)
+        assertion(self.input == self.output)
 
         return m
 
