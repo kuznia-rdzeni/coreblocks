@@ -110,6 +110,8 @@ class _TestModule(Elaboratable):
 
         m.submodules.tested_module = self.tested_module
 
+        m.domains.sync_neg = ClockDomain(clk_edge="neg", local=True)
+
         return m
 
 
@@ -161,6 +163,7 @@ class PysimSimulator(Simulator):
         super().__init__(test_module)
 
         self.add_clock(clk_period)
+        self.add_clock(clk_period, domain="sync_neg")
 
         if isinstance(tested_module, HasDebugSignals):
             extra_signals = tested_module.debug_signals
@@ -257,10 +260,10 @@ class TestCaseWithSimulator(unittest.TestCase):
         if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
             profile = Profile()
             sim.add_sync_process(
-                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile, clk_period)
+                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile)
             )
 
-        sim.add_sync_process(make_assert_handler(self.assertTrue, clk_period))
+        sim.add_sync_process(make_assert_handler(self.assertTrue))
 
         res = sim.run()
 

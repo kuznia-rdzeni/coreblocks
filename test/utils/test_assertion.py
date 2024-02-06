@@ -26,7 +26,6 @@ class TestAssertion(TestCaseWithSimulator):
         def proc():
             yield
             yield m.input.eq(1)
-            yield
 
         with self.assertRaises(AssertionError):
             with self.run_simulation(m) as sim:
