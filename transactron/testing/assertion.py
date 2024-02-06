@@ -2,13 +2,15 @@ from collections.abc import Callable
 from typing import Any
 from amaranth.sim import Passive, Delay
 from transactron.utils import assert_bit, assert_bits
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 
 
 __all__ = ["make_assert_handler"]
 
 
-def make_assert_handler(dependency_manager: DependencyManager, my_assert: Callable[[int, str], Any], clk_period: float):
+def make_assert_handler(my_assert: Callable[[int, str], Any], clk_period: float):
+    dependency_manager = DependencyContext.get()
+
     def assert_handler():
         yield Passive()
         while True:

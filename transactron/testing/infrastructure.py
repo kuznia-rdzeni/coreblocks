@@ -9,7 +9,7 @@ from abc import ABC
 from amaranth import *
 from amaranth.sim import *
 
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
@@ -93,8 +93,12 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
 
 class _TestModule(Elaboratable):
-    def __init__(self, tested_module: HasElaborate, add_transaction_module):
-        self.tested_module = TransactionModule(tested_module) if add_transaction_module else tested_module
+    def __init__(self, tested_module: HasElaborate, add_transaction_module: bool):
+        self.tested_module = (
+            TransactionModule(tested_module, dependency_manager=DependencyContext.get())
+            if add_transaction_module
+            else tested_module
+        )
         self.add_transaction_module = add_transaction_module
 
     def elaborate(self, platform) -> HasElaborate:
@@ -197,6 +201,25 @@ class PysimSimulator(Simulator):
 class TestCaseWithSimulator(unittest.TestCase):
     dependency_manager: DependencyManager
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.dependency_manager = DependencyManager()
+
+        def wrap(f: Callable[[], None]):
+            @functools.wraps(f)
+            def wrapper():
+                with DependencyContext(self.dependency_manager):
+                    f()
+
+            return wrapper
+
+        for k in dir(self):
+            if k.startswith("test"):
+                f = getattr(self, k)
+                if isinstance(f, Callable):
+                    setattr(self, k, wrap(getattr(self, k)))
+
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
@@ -237,9 +260,7 @@ class TestCaseWithSimulator(unittest.TestCase):
                 profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile, clk_period)
             )
 
-        # DependencyManager is requires for assertion checking
-        if hasattr(self, "dependency_manager"):
-            sim.add_sync_process(make_assert_handler(self.dependency_manager, self.assertTrue, clk_period))
+        sim.add_sync_process(make_assert_handler(self.assertTrue, clk_period))
 
         res = sim.run()
 

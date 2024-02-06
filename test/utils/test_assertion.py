@@ -1,13 +1,11 @@
 from amaranth import *
 
 from transactron.utils import assertion
-from transactron.utils.dependencies import DependencyManager
 from transactron.testing import TestCaseWithSimulator
 
 
 class AssertionTest(Elaboratable):
-    def __init__(self, dependency_manager: DependencyManager):
-        self.dependency_manager = dependency_manager
+    def __init__(self):
         self.input = Signal()
         self.output = Signal()
 
@@ -22,15 +20,13 @@ class AssertionTest(Elaboratable):
 
 
 class TestAssertion(TestCaseWithSimulator):
-    def setUp(self):
-        self.dependency_manager = DependencyManager()
-
     def test_assertion(self):
-        m = AssertionTest(self.dependency_manager)
+        m = AssertionTest()
 
         def proc():
             yield
             yield m.input.eq(1)
+            yield
 
         with self.assertRaises(AssertionError):
             with self.run_simulation(m) as sim:

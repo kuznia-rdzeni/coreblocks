@@ -567,7 +567,12 @@ class TransactionModule(Elaboratable):
     The `TransactionManager` is stored in a `DependencyManager`.
     """
 
-    def __init__(self, elaboratable: HasElaborate, manager: Optional[TransactionManager] = None):
+    def __init__(
+        self,
+        elaboratable: HasElaborate,
+        dependency_manager: Optional[DependencyManager] = None,
+        transaction_manager: Optional[TransactionManager] = None,
+    ):
         """
         Parameters
         ----------
@@ -575,10 +580,12 @@ class TransactionModule(Elaboratable):
                 The `Elaboratable` which should be wrapped to add support for
                 transactions and methods.
         """
-        if manager is None:
-            manager = TransactionManager()
-        self.manager = DependencyManager()
-        self.manager.add_dependency(TransactionManagerKey(), manager)
+        if transaction_manager is None:
+            transaction_manager = TransactionManager()
+        if dependency_manager is None:
+            dependency_manager = DependencyManager()
+        self.manager = dependency_manager
+        self.manager.add_dependency(TransactionManagerKey(), transaction_manager)
         self.elaboratable = elaboratable
 
     def context(self) -> DependencyContext:

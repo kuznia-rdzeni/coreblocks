@@ -21,6 +21,7 @@ from transactron.core import (
     trivial_roundrobin_cc_scheduler,
     eager_deterministic_cc_scheduler,
 )
+from transactron.utils.dependencies import DependencyContext
 
 
 class TestNames(TestCase):
@@ -110,7 +111,7 @@ class TransactionConflictTestCircuit(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-        tm = TransactionModule(m, TransactionManager(self.scheduler))
+        tm = TransactionModule(m, DependencyContext.get(), TransactionManager(self.scheduler))
         adapter = Adapter(i=data_layout(32), o=data_layout(32))
         m.submodules.out = self.out = TestbenchIO(adapter)
         m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
