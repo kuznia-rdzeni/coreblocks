@@ -577,8 +577,14 @@ class TransactionModule(Elaboratable):
         Parameters
         ----------
         elaboratable: HasElaborate
-                The `Elaboratable` which should be wrapped to add support for
-                transactions and methods.
+            The `Elaboratable` which should be wrapped to add support for
+            transactions and methods.
+        dependency_manager: DependencyManager, optional
+            The `DependencyManager` to use inside the transaction module.
+            If omitted, a new one is created.
+        transaction_manager: TransactionManager, optional
+            The `TransactionManager` to use inside the transaction module.
+            If omitted, a new one is created.
         """
         if transaction_manager is None:
             transaction_manager = TransactionManager()
