@@ -15,14 +15,14 @@ Coreblocks is an experimental, modular out-of-order [RISC-V](https://riscv.org/s
 
 In the future, we would like to achieve the following goals:
 
- * Performace (up to a point, on FPGAs). We would like Coreblocks not to be too sluggish, without compromising the simplicity goal.
+ * Performance (up to a point, on FPGAs). We would like Coreblocks not to be too sluggish, without compromising the simplicity goal.
    We don't wish to compete with high performance cores like [BOOM](https://github.com/riscv-boom/riscv-boom) though.
  * Wide(r) RISC-V support. Currently, we are focusing on getting the support for the core RV32I ISA right, but the ambitious long term plan is to be able to run full operating systems (e.g. Linux) on the core.
 
 ## State of the project
 
 The core currently supports the full RV32I instruction set and several extensions, including M (multiplication and division) and C (compressed instructions).
-Interrupts and exceptions are currently not supported.
+Exceptions and some of machine-mode CSRs are supported, the support for interrupts is currently rudimentary and incompatible with the RISC-V spec.
 Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex) (currently using a [patched version](https://github.com/kuznia-rdzeni/litex/tree/coreblocks)).
 
 The transaction system we use as the foundation for the core is well-tested and usable.
