@@ -1,7 +1,6 @@
 from amaranth.sim import Passive, Settle
 
-from ..common import SimpleTestCircuit
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.params import GenParams
@@ -11,7 +10,7 @@ from queue import Queue
 from random import Random
 
 
-class TestReorderBuffer(CoreblocksTestCaseWithSimulator):
+class TestReorderBuffer(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
             while self.regs_left_queue.empty():
@@ -88,7 +87,7 @@ class TestReorderBuffer(CoreblocksTestCaseWithSimulator):
             sim.add_sync_process(self.do_retire)
 
 
-class TestFullDoneCase(CoreblocksTestCaseWithSimulator):
+class TestFullDoneCase(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
             log_reg = self.rand.randrange(self.log_regs)

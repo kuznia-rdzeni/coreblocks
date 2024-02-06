@@ -9,7 +9,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.lib import Adapter, AdapterTrans
@@ -317,7 +317,7 @@ class NestedTransactionsTestCircuit(SchedulingTestCircuit):
         m = TModule()
         tm = TransactionModule(m)
 
-        with tm.transaction_context():
+        with tm.context():
             with Transaction().body(m, request=self.r1):
                 m.d.comb += self.t1.eq(1)
                 with Transaction().body(m, request=self.r2):
@@ -342,7 +342,7 @@ class NestedMethodsTestCircuit(SchedulingTestCircuit):
             def _():
                 m.d.comb += self.t2.eq(1)
 
-        with tm.transaction_context():
+        with tm.context():
             with Transaction().body(m):
                 method1(m)
 
@@ -389,7 +389,7 @@ class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
         def _():
             pass
 
-        with tm.transaction_context():
+        with tm.context():
             with (t1 := Transaction()).body(m, request=self.r1):
                 method(m)
                 m.d.comb += self.t1.eq(1)

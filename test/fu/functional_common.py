@@ -16,8 +16,7 @@ from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionRepor
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.params.optypes import OpType
 from transactron.lib import Adapter
-from test.common import RecordIntDict, RecordIntDictRet, TestbenchIO, SimpleTestCircuit
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator, SimpleTestCircuit
 from transactron.utils import ModuleConnector
 
 
@@ -44,7 +43,7 @@ class ExecFn:
 _T = TypeVar("_T")
 
 
-class FunctionalUnitTestCase(CoreblocksTestCaseWithSimulator, Generic[_T]):
+class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     """
     Common test unit for testing functional modules which are using @see{FuncUnitLayouts}.
     For example of usage see @see{MultiplierUnitTest}.
@@ -139,11 +138,12 @@ class FunctionalUnitTestCase(CoreblocksTestCaseWithSimulator, Generic[_T]):
             cause = None
             if "exception" in results:
                 cause = results["exception"]
+                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": results.setdefault("exception_pc", pc)})
+
                 results.pop("exception")
+                results.pop("exception_pc")
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
-            if cause is not None:
-                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": pc})
 
     def consumer(self):
         while self.responses:

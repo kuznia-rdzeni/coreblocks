@@ -2,7 +2,7 @@ from coreblocks.peripherals.axi_lite import *
 from transactron import Method, def_method, TModule
 from transactron.lib import AdapterTrans
 
-from ..common import *
+from transactron.testing import *
 
 
 class AXILiteInterfaceWrapper:

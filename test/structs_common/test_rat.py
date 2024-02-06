@@ -1,5 +1,4 @@
-from ..common import SimpleTestCircuit
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.structs_common.rat import FRAT, RRAT
 from coreblocks.params import GenParams
@@ -9,7 +8,7 @@ from collections import deque
 from random import Random
 
 
-class TestFrontendRegisterAliasTable(CoreblocksTestCaseWithSimulator):
+class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
             rl = self.rand.randrange(self.gen_params.isa.reg_cnt)
@@ -48,7 +47,7 @@ class TestFrontendRegisterAliasTable(CoreblocksTestCaseWithSimulator):
             sim.add_sync_process(self.do_rename)
 
 
-class TestRetirementRegisterAliasTable(CoreblocksTestCaseWithSimulator):
+class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
             rl = self.rand.randrange(self.gen_params.isa.reg_cnt)

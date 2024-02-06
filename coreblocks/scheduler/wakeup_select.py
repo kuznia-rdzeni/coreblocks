@@ -41,14 +41,14 @@ class WakeupSelect(Elaboratable):
 
         with Transaction().body(m):
             ready = self.get_ready(m)
-            ready_width = len(ready)
+            ready_width = ready.shape().size
             last = Signal(range(ready_width))
             for i in range(ready_width):
-                with m.If(ready[i]):
+                with m.If(ready.ready_list[i]):
                     m.d.comb += last.eq(i)
 
             row = self.take_row(m, last)
-            issue_rec = Record(self.gen_params.get(FuncUnitLayouts).issue)
+            issue_rec = Signal(self.gen_params.get(FuncUnitLayouts).issue)
             m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
             self.issue(m, issue_rec)
 

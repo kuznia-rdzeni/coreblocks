@@ -24,7 +24,7 @@ params_build_wrap_extr = [
 
 
 def mkproxy(layout):
-    arr = Array([Record(layout) for _ in range(4)])
+    arr = Array([Signal(reclayout2datalayout(layout)) for _ in range(4)])
     sig = Signal(2)
     return arr[sig]
 
@@ -40,7 +40,6 @@ def mkstruct(layout):
 
 
 params_mk = [
-    ("rec", Record),
     ("proxy", mkproxy),
     ("struct", mkstruct),
 ]

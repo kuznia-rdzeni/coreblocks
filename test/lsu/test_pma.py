@@ -10,12 +10,12 @@ from coreblocks.params.keys import ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
-from test.common import TestbenchIO, def_method_mock
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
-class TestPMADirect(CoreblocksTestCaseWithSimulator):
+class TestPMADirect(TestCaseWithSimulator):
     def verify_region(self, region: PMARegion):
         for i in range(region.start, region.end + 1):
             yield self.test_module.addr.eq(i)
@@ -56,6 +56,7 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
 
         self.bus = WishboneMaster(wb_params)
+        self.bus_master_adapter = WishboneMasterAdapter(self.bus)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
@@ -63,19 +64,20 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
-        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus)
+        m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
         m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
         m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
         m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
-        self.io_in = WishboneInterfaceWrapper(self.bus.wbMaster)
+        self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus = self.bus
+        m.submodules.bus_master_adapter = self.bus_master_adapter
         return m
 
 
-class TestPMAIndirect(CoreblocksTestCaseWithSimulator):
+class TestPMAIndirect(TestCaseWithSimulator):
     def get_instr(self, addr):
         return {
             "rp_s1": 0,

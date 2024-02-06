@@ -19,8 +19,7 @@ from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenPar
 from coreblocks.params.configurations import test_core_config
 from coreblocks.structs_common.rob import ReorderBuffer
 from coreblocks.utils.protocols import FuncBlock
-from ..common import RecordIntDict, TestGen, TestbenchIO, def_method_mock
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -118,7 +117,7 @@ class SchedulerTestCircuit(Elaboratable):
         ),
     ],
 )
-class TestScheduler(CoreblocksTestCaseWithSimulator):
+class TestScheduler(TestCaseWithSimulator):
     optype_sets: list[set[OpType]]
     instr_count: int
 
@@ -384,4 +383,3 @@ class TestScheduler(CoreblocksTestCaseWithSimulator):
             )
             sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_sync_process(instr_input_process)
-            sim.add_sync_process(core_state_mock)

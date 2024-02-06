@@ -1,5 +1,6 @@
 from typing import Optional, cast
 from amaranth import *
+from amaranth.lib.data import StructLayout
 from amaranth.sim import Settle
 
 from collections import deque
@@ -14,8 +15,7 @@ from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from ..common import RecordIntDict, TestbenchIO
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 
 
 class WakeupTestCircuit(Elaboratable):
@@ -39,7 +39,7 @@ class WakeupTestCircuit(Elaboratable):
         return m
 
 
-class TestWakeupSelect(CoreblocksTestCaseWithSimulator):
+class TestWakeupSelect(TestCaseWithSimulator):
     def setUp(self):
         self.gen_params = GenParams(
             test_core_config.replace(func_units_config=tuple(RSBlockComponent([], rs_entries=16) for _ in range(2)))
@@ -50,14 +50,14 @@ class TestWakeupSelect(CoreblocksTestCaseWithSimulator):
 
         random.seed(42)
 
-    def random_entry(self, layout) -> RecordIntDict:
+    def random_entry(self, layout: StructLayout) -> RecordIntDict:
         result = {}
-        for key, width_or_layout in layout:
+        for key, width_or_layout in layout.members.items():
             if isinstance(width_or_layout, int):
                 result[key] = random.randrange(width_or_layout)
             elif isclass(width_or_layout) and issubclass(width_or_layout, Enum):
                 result[key] = random.choice(list(width_or_layout))
-            else:
+            elif isinstance(width_or_layout, StructLayout):
                 result[key] = self.random_entry(width_or_layout)
         return result
 

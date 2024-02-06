@@ -1,6 +1,6 @@
 from amaranth.sim import *
 
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
@@ -9,7 +9,7 @@ from unittest import TestCase
 from typing import Optional
 
 
-class TestDecoder(CoreblocksTestCaseWithSimulator):
+class TestDecoder(TestCaseWithSimulator):
     class InstrTest:
         def __init__(
             self,
@@ -267,7 +267,7 @@ class TestDecoder(CoreblocksTestCaseWithSimulator):
             self.do_test(test)
 
 
-class TestDecoderEExtLegal(CoreblocksTestCaseWithSimulator):
+class TestDecoderEExtLegal(TestCaseWithSimulator):
     E_TEST = [
         (0x00000033, False),  # add x0, x0, x0
         (0x00F787B3, False),  # add x15, x15, x15

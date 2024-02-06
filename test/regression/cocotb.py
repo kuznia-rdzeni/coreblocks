@@ -9,9 +9,10 @@ from cocotb.clock import Clock, Timer
 from cocotb.handle import ModifiableObject
 from cocotb.triggers import FallingEdge, Event, with_timeout
 from cocotb_bus.bus import Bus
+from cocotb.result import SimTimeoutError
 
 from .memory import *
-from .common import SimulationBackend
+from .common import SimulationBackend, SimulationExecutionResult
 
 
 @dataclass
@@ -136,7 +137,7 @@ class CocotbSimulation(SimulationBackend):
         self.dut = dut
         self.finish_event = Event()
 
-    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> bool:
+    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
 
@@ -150,9 +151,13 @@ class CocotbSimulation(SimulationBackend):
         data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
 
-        res = await with_timeout(self.finish_event.wait(), timeout_cycles, "ns")
+        success = True
+        try:
+            await with_timeout(self.finish_event.wait(), timeout_cycles, "ns")
+        except SimTimeoutError:
+            success = False
 
-        return res is not None
+        return SimulationExecutionResult(success)
 
     def stop(self):
         self.finish_event.set()

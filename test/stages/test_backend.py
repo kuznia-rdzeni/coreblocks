@@ -8,8 +8,7 @@ from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.params.layouts import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from ..common import TestbenchIO
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 
 class BackendTestCircuit(Elaboratable):
@@ -69,7 +68,7 @@ class BackendTestCircuit(Elaboratable):
         return m
 
 
-class TestBackend(CoreblocksTestCaseWithSimulator):
+class TestBackend(TestCaseWithSimulator):
     def initialize(self):
         self.gen_params = GenParams(test_core_config)
         self.m = BackendTestCircuit(self.gen_params, self.fu_count)

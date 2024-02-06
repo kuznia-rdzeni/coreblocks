@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
@@ -11,12 +12,13 @@ from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.params.isa import Funct3, ExceptionCause
 from coreblocks.params.keys import (
     AsyncInterruptInsertSignalKey,
-    BranchResolvedKey,
+    FetchResumeKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
+from transactron.utils.transactron_helpers import from_method_layout
 
 
 class PrivilegeLevel(IntEnum, shape=2):
@@ -112,7 +114,7 @@ class CSRRegister(Elaboratable):
         self._fu_write = Method(i=csr_layouts._fu_write)
 
         self.value = Signal(gen_params.isa.xlen)
-        self.side_effects = Record([("read", 1), ("write", 1)])
+        self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list
         dm = gen_params.get(DependencyManager)
@@ -121,9 +123,9 @@ class CSRRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        internal_method_layout = [("data", self.gen_params.isa.xlen), ("active", 1)]
-        write_internal = Record(internal_method_layout)
-        fu_write_internal = Record(internal_method_layout)
+        internal_method_layout = from_method_layout([("data", self.gen_params.isa.xlen), ("active", 1)])
+        write_internal = Signal(internal_method_layout)
+        fu_write_internal = Signal(internal_method_layout)
 
         m.d.sync += self.side_effects.eq(0)
 
@@ -194,7 +196,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
 
-        self.fetch_continue = Method(o=gen_params.get(FetchLayouts).branch_verify)
+        self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
 
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRLayouts)
@@ -228,7 +230,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = Record(self.csr_layouts.rs.data_layout + [("valid", 1)])
+        instr = Signal(StructLayout(self.csr_layouts.rs.data_layout.members | {"valid": 1}))
 
         m.d.comb += ready_to_process.eq(precommitting & instr.valid & (instr.rp_s1 == 0))
 
@@ -358,12 +360,11 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_continue, accepted)
+        @def_method(m, self.fetch_resume, accepted)
         def _():
             # CSR instructions are never compressed, PC+4 is always next instruction
             return {
-                "from_pc": instr.pc,
-                "next_pc": instr.pc + self.gen_params.isa.ilen_bytes,
+                "pc": instr.pc + self.gen_params.isa.ilen_bytes,
                 "resume_from_exception": False,
             }
 
@@ -381,7 +382,7 @@ class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
         unit = CSRUnit(gen_params)
-        connections.add_dependency(BranchResolvedKey(), unit.fetch_continue)
+        connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
         connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 

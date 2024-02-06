@@ -8,7 +8,7 @@ from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ValueLike
 
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator
 
 COMMON_TESTS = [
     # Illegal instruction
@@ -274,7 +274,7 @@ RV64_TESTS = [
     ("name", "isa_xlen", "test_cases"),
     [("rv32ic", 32, COMMON_TESTS + RV32_TESTS), ("rv64ic", 64, COMMON_TESTS + RV64_TESTS)],
 )
-class TestInstrDecompress(CoreblocksTestCaseWithSimulator):
+class TestInstrDecompress(TestCaseWithSimulator):
     isa_xlen: int
     test_cases: list[tuple[int, ValueLike]]
 

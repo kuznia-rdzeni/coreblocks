@@ -1,4 +1,6 @@
 from amaranth import *
+
+from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc
 
@@ -17,10 +19,10 @@ class ClickIn(Elaboratable):
     ----------
     get: Method
         The method for retrieving data from the input. Accepts an empty
-        argument, returns a `Record`.
+        argument, returns a structure.
     btn: Signal, in
         The button input.
-    dat: Record, in
+    dat: MethodStruct, in
         The data input.
     """
 
@@ -28,7 +30,7 @@ class ClickIn(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
+        layout: method layout
             The data format for the input.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
@@ -37,7 +39,7 @@ class ClickIn(Elaboratable):
         src_loc = get_src_loc(src_loc)
         self.get = Method(o=layout, src_loc=src_loc)
         self.btn = Signal()
-        self.dat = Record(layout)
+        self.dat = Signal(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = TModule()
@@ -73,11 +75,11 @@ class ClickOut(Elaboratable):
     Attributes
     ----------
     put: Method
-        The method for retrieving data from the input. Accepts a `Record`,
+        The method for retrieving data from the input. Accepts a structure,
         returns empty result.
     btn: Signal, in
         The button input.
-    dat: Record, out
+    dat: MethodStruct, out
         The data output.
     """
 
@@ -85,7 +87,7 @@ class ClickOut(Elaboratable):
         """
         Parameters
         ----------
-        layout: record layout
+        layout: method layout
             The data format for the output.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
@@ -94,7 +96,7 @@ class ClickOut(Elaboratable):
         src_loc = get_src_loc(src_loc)
         self.put = Method(i=layout, src_loc=src_loc)
         self.btn = Signal()
-        self.dat = Record(layout)
+        self.dat = Signal(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = TModule()

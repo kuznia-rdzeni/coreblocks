@@ -3,7 +3,7 @@ from amaranth import *
 from transactron import Method, def_method, TModule
 
 
-from ..common import TestCaseWithSimulator, data_layout, SimpleTestCircuit, ModuleConnector
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, ModuleConnector
 
 
 class Echo(Elaboratable):

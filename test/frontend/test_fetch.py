@@ -8,15 +8,14 @@ from amaranth.sim import Passive
 from transactron.core import Method
 from transactron.lib import AdapterTrans, FIFO, Adapter
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
-from coreblocks.frontend.icache import ICacheInterface
+from coreblocks.cache.iface import CacheInterface
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ModuleConnector
-from ..common import TestbenchIO, def_method_mock, SimpleTestCircuit
-from test.coreblocks_test_case import CoreblocksTestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit
 
 
-class MockedICache(Elaboratable, ICacheInterface):
+class MockedICache(Elaboratable, CacheInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
@@ -36,7 +35,7 @@ class MockedICache(Elaboratable, ICacheInterface):
         return m
 
 
-class TestFetch(CoreblocksTestCaseWithSimulator):
+class TestFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
 
@@ -44,14 +43,13 @@ class TestFetch(CoreblocksTestCaseWithSimulator):
 
         fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
+
         self.fetch = SimpleTestCircuit(Fetch(self.gen_params, self.icache, fifo.write))
-        self.verify_branch = TestbenchIO(AdapterTrans(self.fetch._dut.verify_branch))
 
         self.m = ModuleConnector(
             icache=self.icache,
             fetch=self.fetch,
             io_out=self.io_out,
-            verify_branch=self.verify_branch,
             fifo=fifo,
         )
 
@@ -83,6 +81,7 @@ class TestFetch(CoreblocksTestCaseWithSimulator):
             # randomize being a branch instruction
             if is_branch:
                 data |= 0b1100000
+                data &= ~0b0010000  # but not system
 
             self.output_q.append({"instr": data, "error": 0})
 
@@ -112,18 +111,31 @@ class TestFetch(CoreblocksTestCaseWithSimulator):
         return self.output_q.popleft()
 
     def fetch_out_check(self):
+        discard_mispredict = False
+        next_pc = 0
         for _ in range(self.iterations):
+            v = yield from self.io_out.call()
+            if discard_mispredict:
+                while v["pc"] != next_pc:
+                    v = yield from self.io_out.call()
+                discard_mispredict = False
+
             while len(self.instr_queue) == 0:
                 yield
 
             instr = self.instr_queue.popleft()
-            if instr["is_branch"]:
-                yield from self.random_wait(10)
-                yield from self.verify_branch.call(from_pc=instr["pc"], next_pc=instr["next_pc"])
-
-            v = yield from self.io_out.call()
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["instr"], instr["instr"])
+
+            if instr["is_branch"]:
+                # branches on mispredict will stall fetch because of exception and then resume with new pc
+                yield from self.random_wait(5)
+                yield from self.fetch.stall_exception.call()
+                yield from self.random_wait(5)
+                yield from self.fetch.resume.call(pc=instr["next_pc"], resume_from_exception=1)
+
+                discard_mispredict = True
+                next_pc = instr["next_pc"]
 
     def test(self):
         with self.run_simulation(self.m) as sim:
@@ -131,7 +143,7 @@ class TestFetch(CoreblocksTestCaseWithSimulator):
             sim.add_sync_process(self.fetch_out_check)
 
 
-class TestUnalignedFetch(CoreblocksTestCaseWithSimulator):
+class TestUnalignedFetch(TestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
         self.instr_queue = deque()
@@ -141,9 +153,10 @@ class TestUnalignedFetch(CoreblocksTestCaseWithSimulator):
         fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         fetch = UnalignedFetch(self.gen_params, self.icache, fifo.write)
-        self.verify_branch = TestbenchIO(AdapterTrans(fetch.verify_branch))
+        self.fetch_resume = TestbenchIO(AdapterTrans(fetch.resume))
+        self.fetch_stall_exception = TestbenchIO(AdapterTrans(fetch.stall_exception))
 
-        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.verify_branch)
+        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.fetch_resume, self.fetch_stall_exception)
 
         self.mem = {}
         self.memerr = set()
@@ -175,6 +188,7 @@ class TestUnalignedFetch(CoreblocksTestCaseWithSimulator):
                 data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
                 if is_branch:
                     data |= 0b1100000
+                    data &= ~0b0010000
 
                 self.mem[pc] = data & 0xFFFF
                 self.mem[pc + 2] = data >> 16
@@ -225,6 +239,7 @@ class TestUnalignedFetch(CoreblocksTestCaseWithSimulator):
         return self.output_q.popleft()
 
     def fetch_out_check(self):
+        discard_mispredict = False
         while self.instr_queue:
             instr = self.instr_queue.popleft()
 
@@ -235,12 +250,22 @@ class TestUnalignedFetch(CoreblocksTestCaseWithSimulator):
                 ) + 2 in self.memerr
 
             v = yield from self.io_out.call()
+            if discard_mispredict:
+                while v["pc"] != instr["pc"]:
+                    v = yield from self.io_out.call()
+                discard_mispredict = False
+
             self.assertEqual(v["pc"], instr["pc"])
             self.assertEqual(v["access_fault"], instr_error)
 
             if instr["is_branch"] or instr_error:
-                yield from self.random_wait(10)
-                yield from self.verify_branch.call(next_pc=instr["next_pc"])
+                yield from self.random_wait(5)
+                yield from self.fetch_stall_exception.call()
+                yield from self.random_wait(5)
+                while (yield from self.fetch_resume.call_try(pc=instr["next_pc"], resume_from_exception=1)) is None:
+                    yield from self.io_out.call_try()  # try flushing to unblock or wait
+
+                discard_mispredict = True
 
     def test(self):
         self.gen_instr_seq()
