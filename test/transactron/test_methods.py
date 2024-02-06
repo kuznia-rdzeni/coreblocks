@@ -127,7 +127,7 @@ class TestDefMethod(TestCaseWithSimulator):
 
 
 class AdapterCircuit(Elaboratable):
-    def __init__(self, module, methods):
+    def __init__(self, module: Elaboratable, methods: list[Method]):
         self.module = module
         self.methods = methods
 
@@ -188,7 +188,8 @@ class TestInvalidMethods(TestCase):
 
                 return m
 
-        Fragment.get(TransactionModule(Twice()), platform=None)
+        m = Twice()
+        Fragment.get(TransactionModule(AdapterCircuit(m, [m.meth2])), platform=None)
 
     def test_diamond(self):
         class Diamond(Elaboratable):
@@ -218,6 +219,37 @@ class TestInvalidMethods(TestCase):
 
         m = Diamond()
         self.assert_re("called twice", AdapterCircuit(m, [m.meth4]))
+
+    def test_diamond_cond(self):
+        class Diamond(Elaboratable):
+            def __init__(self):
+                self.meth1 = Method()
+                self.meth2 = Method()
+                self.meth3 = Method()
+                self.meth4 = Method()
+
+            def elaborate(self, platform):
+                m = TModule()
+
+                with self.meth1.body(m):
+                    pass
+
+                with self.meth2.body(m):
+                    self.meth1(m)
+
+                with self.meth3.body(m):
+                    self.meth1(m)
+
+                with self.meth4.body(m):
+                    with m.If(1):
+                        self.meth2(m)
+                    with m.Else():
+                        self.meth3(m)
+
+                return m
+
+        m = Diamond()
+        Fragment.get(TransactionModule(AdapterCircuit(m, [m.meth4])), platform=None)
 
     def test_loop(self):
         class Loop(Elaboratable):

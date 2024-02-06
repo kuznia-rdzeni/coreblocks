@@ -12,7 +12,7 @@ from transactron.graph import OwnershipGraph, Direction
 from .transaction_base import TransactionBase, TransactionOrMethod, Priority, Relation
 from .method import Method
 from .transaction import Transaction, TransactionManagerKey
-from .tmodule import TModule
+from .tmodule import CtrlPath, TModule
 from .schedulers import eager_deterministic_cc_scheduler
 
 __all__ = ["TransactionManager", "TransactionModule"]
@@ -32,22 +32,42 @@ class MethodMap:
 
         def rec(transaction: Transaction, source: TransactionBase):
             for method, (arg_rec, _) in source.method_uses.items():
-                if not method.defined:
-                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
-                if method in self.methods_by_transaction[transaction]:
-                    raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
                 self.readiness_by_method_and_transaction[(transaction, method)] = method._validate_arguments(arg_rec)
                 rec(transaction, method)
 
         for transaction in transactions:
+            self._check(transaction)
             self.methods_by_transaction[transaction] = []
             rec(transaction, transaction)
 
         for transaction_or_method in self.methods_and_transactions:
             for method in transaction_or_method.method_uses.keys():
                 self.method_parents[method].append(transaction_or_method)
+
+    def _check(self, transaction: "Transaction"):
+        method_paths = defaultdict[Method, list[dict[TransactionBase, list[CtrlPath]]]](list)
+        curr_paths = dict[TransactionBase, list[CtrlPath]]()
+
+        def exclusive(paths1: list[CtrlPath], paths2: list[CtrlPath]):
+            return all(path1.exclusive_with(path2) for path1 in paths1 for path2 in paths2)
+
+        def rec(thing: TransactionBase):
+            assert thing not in curr_paths  # should follow from checks below
+            for method, calls in thing.method_calls.items():
+                if not method.defined:
+                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
+                curr_paths[thing] = [ctrl_path for ctrl_path, _, _ in calls]
+                for other_paths in method_paths[method]:
+                    common = [t for t in curr_paths if t in other_paths]
+                    if all(not exclusive(curr_paths[t], other_paths[t]) for t in common):
+                        raise RuntimeError(f"Method '{method.name}' called twice from non-exclusive paths")
+                method_paths[method].append(dict(curr_paths))
+                rec(method)
+                del curr_paths[thing]
+
+        rec(transaction)
 
     def transactions_for(self, elem: TransactionOrMethod) -> Collection["Transaction"]:
         if isinstance(elem, Transaction):
