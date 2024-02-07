@@ -4,6 +4,14 @@ transactron.testing package
 Submodules
 ----------
 
+transactron.testing.assertion module
+------------------------------------
+
+.. automodule:: transactron.testing.assertion
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.testing.functions module
 ------------------------------------
 

@@ -87,6 +87,14 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-transactron.testing.assertion">
+<span id="transactron-testing-assertion-module"></span><h2>transactron.testing.assertion module<a class="headerlink" href="#module-transactron.testing.assertion" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.assertion.make_assert_handler">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.assertion.</span></span><span class="sig-name descname"><span class="pre">make_assert_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">my_assert</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.assertion.make_assert_handler" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
 <div class="section" id="module-transactron.testing.functions">
 <span id="transactron-testing-functions-module"></span><h2>transactron.testing.functions module<a class="headerlink" href="#module-transactron.testing.functions" title="Permalink to this heading"></a></h2>
 <dl class="py function">
@@ -179,6 +187,14 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.testing.infrastructure.</span></span><span class="sig-name descname"><span class="pre">TestCaseWithSimulator</span></span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TestCase</span></code></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Create an instance of the class that will use the named test
+method when executed. Raises a ValueError if the instance does
+not have a method with the specified name.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.add_all_mocks">
 <span class="sig-name descname"><span class="pre">add_all_mocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.testing.infrastructure.PysimSimulator" title="transactron.testing.infrastructure.PysimSimulator"><span class="pre">PysimSimulator</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_locals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.add_all_mocks" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -191,6 +207,11 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.add_local_mocks">
 <span class="sig-name descname"><span class="pre">add_local_mocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.testing.infrastructure.PysimSimulator" title="transactron.testing.infrastructure.PysimSimulator"><span class="pre">PysimSimulator</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_locals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.add_local_mocks" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.dependency_manager">
+<span class="sig-name descname"><span class="pre">dependency_manager</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.DependencyManager" title="transactron.utils.dependencies.DependencyManager"><span class="pre">DependencyManager</span></a></em><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.dependency_manager" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -228,7 +249,7 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 <span id="transactron-testing-profiler-module"></span><h2>transactron.testing.profiler module<a class="headerlink" href="#module-transactron.testing.profiler" title="Permalink to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="transactron.testing.profiler.profiler_process">
-<span class="sig-prename descclassname"><span class="pre">transactron.testing.profiler.</span></span><span class="sig-name descname"><span class="pre">profiler_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.profiler.Profile" title="transactron.profiler.Profile"><span class="pre">Profile</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">clk_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.profiler.profiler_process" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.profiler.</span></span><span class="sig-name descname"><span class="pre">profiler_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">profile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.html#transactron.profiler.Profile" title="transactron.profiler.Profile"><span class="pre">Profile</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.profiler.profiler_process" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </div>
@@ -378,7 +399,7 @@ during function declaration.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 16:50 2024-02-06.
+      <span class="lastupdated">Last updated on 09:14 2024-02-07.
       </span></p>
   </div>
 

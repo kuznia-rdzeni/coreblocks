@@ -12,6 +12,14 @@ Subpackages
 Submodules
 ----------
 
+transactron.utils.assertion module
+----------------------------------
+
+.. automodule:: transactron.utils.assertion
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.utils.assign module
 -------------------------------
 
