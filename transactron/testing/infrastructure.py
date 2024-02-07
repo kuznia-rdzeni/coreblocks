@@ -8,9 +8,12 @@ from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
+
+from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
+from .assertion import make_assert_handler
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -90,8 +93,12 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
 
 
 class _TestModule(Elaboratable):
-    def __init__(self, tested_module: HasElaborate, add_transaction_module):
-        self.tested_module = TransactionModule(tested_module) if add_transaction_module else tested_module
+    def __init__(self, tested_module: HasElaborate, add_transaction_module: bool):
+        self.tested_module = (
+            TransactionModule(tested_module, dependency_manager=DependencyContext.get())
+            if add_transaction_module
+            else tested_module
+        )
         self.add_transaction_module = add_transaction_module
 
     def elaborate(self, platform) -> HasElaborate:
@@ -102,6 +109,8 @@ class _TestModule(Elaboratable):
         m.d.sync += _dummy.eq(1)
 
         m.submodules.tested_module = self.tested_module
+
+        m.domains.sync_neg = ClockDomain(clk_edge="neg", local=True)
 
         return m
 
@@ -154,6 +163,7 @@ class PysimSimulator(Simulator):
         super().__init__(test_module)
 
         self.add_clock(clk_period)
+        self.add_clock(clk_period, domain="sync_neg")
 
         if isinstance(tested_module, HasDebugSignals):
             extra_signals = tested_module.debug_signals
@@ -192,6 +202,27 @@ class PysimSimulator(Simulator):
 
 
 class TestCaseWithSimulator(unittest.TestCase):
+    dependency_manager: DependencyManager
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.dependency_manager = DependencyManager()
+
+        def wrap(f: Callable[[], None]):
+            @functools.wraps(f)
+            def wrapper():
+                with DependencyContext(self.dependency_manager):
+                    f()
+
+            return wrapper
+
+        for k in dir(self):
+            if k.startswith("test"):
+                f = getattr(self, k)
+                if isinstance(f, Callable):
+                    setattr(self, k, wrap(getattr(self, k)))
+
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
@@ -222,14 +253,17 @@ class TestCaseWithSimulator(unittest.TestCase):
             clk_period=clk_period,
         )
         self.add_all_mocks(sim, sys._getframe(2).f_locals)
+
         yield sim
 
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
             profile = Profile()
             sim.add_sync_process(
-                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile, clk_period)
+                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile)
             )
+
+        sim.add_sync_process(make_assert_handler(self.assertTrue))
 
         res = sim.run()
 
