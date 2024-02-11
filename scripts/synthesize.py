@@ -13,6 +13,7 @@ if __name__ == "__main__":
     sys.path.insert(0, parent)
 
 
+from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
@@ -117,7 +118,7 @@ def unit_fu(unit_params: FunctionalComponentParams):
 
         module = ModuleConnector(fu=fu, issue_connector=issue_connector, accept_connector=accept_connector)
 
-        return resources, TransactionModule(module)
+        return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 
     return unit
 
@@ -138,11 +139,13 @@ core_units = {
 
 
 def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
-    gen_params = GenParams(core_config)
-    resource_builder, module = core(gen_params)
+    dependency_manager = DependencyManager()
+    with DependencyContext(dependency_manager):
+        gen_params = GenParams(core_config)
+        resource_builder, module = core(gen_params)
 
-    if platform == "ecp5":
-        make_ecp5_platform(resource_builder)().build(module)
+        if platform == "ecp5":
+            make_ecp5_platform(resource_builder)().build(module)
 
 
 def main():
