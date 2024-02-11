@@ -4,20 +4,20 @@ import queue
 from parameterized import parameterized_class
 
 from amaranth import *
+from amaranth.sim import Passive, Settle
 
 from coreblocks.structs_common.hw_metrics import *
-from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
 from transactron import *
-from transactron.utils import DependencyManager
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.utils.dependencies import DependencyContext
 
 from ..common import *
 
 
 class CounterInMethodCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self):
         self.method = Method()
-        self.counter = HwCounter(gen_params, "in_method")
+        self.counter = HwCounter("in_method")
 
     def elaborate(self, platform):
         m = TModule()
@@ -32,9 +32,9 @@ class CounterInMethodCircuit(Elaboratable):
 
 
 class CounterWithConditionInMethodCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self):
         self.method = Method(i=[("cond", 1)])
-        self.counter = HwCounter(gen_params, "with_condition_in_method")
+        self.counter = HwCounter("with_condition_in_method")
 
     def elaborate(self, platform):
         m = TModule()
@@ -49,9 +49,9 @@ class CounterWithConditionInMethodCircuit(Elaboratable):
 
 
 class CounterWithoutMethodCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self):
         self.cond = Signal()
-        self.counter = HwCounter(gen_params, "with_condition_without_method")
+        self.counter = HwCounter("with_condition_without_method")
 
     def elaborate(self, platform):
         m = TModule()
@@ -66,12 +66,11 @@ class CounterWithoutMethodCircuit(Elaboratable):
 
 class TestHwCounter(TestCaseWithSimulator):
     def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(hardware_metrics=True))
-
         random.seed(42)
 
     def test_counter_in_method(self):
-        m = SimpleTestCircuit(CounterInMethodCircuit(self.gen_params))
+        m = SimpleTestCircuit(CounterInMethodCircuit())
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         def test_process():
             called_cnt = 0
@@ -94,7 +93,8 @@ class TestHwCounter(TestCaseWithSimulator):
             sim.add_sync_process(test_process)
 
     def test_counter_with_condition_in_method(self):
-        m = SimpleTestCircuit(CounterWithConditionInMethodCircuit(self.gen_params))
+        m = SimpleTestCircuit(CounterWithConditionInMethodCircuit())
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         def test_process():
             called_cnt = 0
@@ -118,7 +118,8 @@ class TestHwCounter(TestCaseWithSimulator):
             sim.add_sync_process(test_process)
 
     def test_counter_with_condition_without_method(self):
-        m = CounterWithoutMethodCircuit(self.gen_params)
+        m = CounterWithoutMethodCircuit()
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         def test_process():
             called_cnt = 0
@@ -140,11 +141,11 @@ class TestHwCounter(TestCaseWithSimulator):
 
 
 class ExpHistogramCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, bucket_cnt: int, sample_width: int):
+    def __init__(self, bucket_cnt: int, sample_width: int):
         self.sample_width = sample_width
 
         self.method = Method(i=data_layout(32))
-        self.histogram = HwExpHistogram(gen_params, "histogram", bucket_count=bucket_cnt, sample_width=sample_width)
+        self.histogram = HwExpHistogram("histogram", bucket_count=bucket_cnt, sample_width=sample_width)
 
     def elaborate(self, platform):
         m = TModule()
@@ -171,15 +172,11 @@ class TestHwHistogram(TestCaseWithSimulator):
     bucket_count: int
     sample_width: int
 
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(hardware_metrics=True))
-
+    def test_histogram(self):
         random.seed(42)
 
-    def test_histogram(self):
-        m = SimpleTestCircuit(
-            ExpHistogramCircuit(self.gen_params, bucket_cnt=self.bucket_count, sample_width=self.sample_width)
-        )
+        m = SimpleTestCircuit(ExpHistogramCircuit(bucket_cnt=self.bucket_count, sample_width=self.sample_width))
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         max_sample_value = 2**self.sample_width - 1
 
@@ -246,15 +243,11 @@ class TestLatencyMeasurer(TestCaseWithSimulator):
     slots_number: int
     expected_consumer_wait: float
 
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(hardware_metrics=True))
-
+    def test_latency_measurer(self):
         random.seed(42)
 
-    def test_latency_measurer(self):
-        m = SimpleTestCircuit(
-            LatencyMeasurer(self.gen_params, "latency", slots_number=self.slots_number, max_latency=300)
-        )
+        m = SimpleTestCircuit(LatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         latencies: list[int] = []
 
@@ -315,12 +308,12 @@ class TestLatencyMeasurer(TestCaseWithSimulator):
 
 
 class MetricManagerTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self):
         self.incr_counters = Method(i=[("counter1", 1), ("counter2", 1), ("counter3", 1)])
 
-        self.counter1 = HwCounter(gen_params, "foo.counter1", "this is the description")
-        self.counter2 = HwCounter(gen_params, "bar.baz.counter2")
-        self.counter3 = HwCounter(gen_params, "bar.baz.counter3", "yet another description")
+        self.counter1 = HwCounter("foo.counter1", "this is the description")
+        self.counter2 = HwCounter("bar.baz.counter2")
+        self.counter3 = HwCounter("bar.baz.counter3", "yet another description")
 
     def elaborate(self, platform):
         m = TModule()
@@ -337,23 +330,18 @@ class MetricManagerTestCircuit(Elaboratable):
 
 
 class TestMetricsManager(TestCaseWithSimulator):
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(hardware_metrics=True))
-        self.metrics_manager = HardwareMetricsManager(self.gen_params.get(DependencyManager))
-
-        random.seed(42)
-
     def test_metrics_metadata(self):
         # We need to initialize the circuit to make sure that metrics are registered
         # in the dependency manager.
-        m = MetricManagerTestCircuit(self.gen_params)
+        m = MetricManagerTestCircuit()
+        metrics_manager = HardwareMetricsManager()
 
         # Run the simulation so Amaranth doesn't scream that we have unused elaboratables.
         with self.run_simulation(m):
             pass
 
         self.assertEqual(
-            self.metrics_manager.get_metrics()["foo.counter1"].to_json(),  # type: ignore
+            metrics_manager.get_metrics()["foo.counter1"].to_json(),  # type: ignore
             json.dumps(
                 {
                     "fully_qualified_name": "foo.counter1",
@@ -364,7 +352,7 @@ class TestMetricsManager(TestCaseWithSimulator):
         )
 
         self.assertEqual(
-            self.metrics_manager.get_metrics()["bar.baz.counter2"].to_json(),  # type: ignore
+            metrics_manager.get_metrics()["bar.baz.counter2"].to_json(),  # type: ignore
             json.dumps(
                 {
                     "fully_qualified_name": "bar.baz.counter2",
@@ -375,7 +363,7 @@ class TestMetricsManager(TestCaseWithSimulator):
         )
 
         self.assertEqual(
-            self.metrics_manager.get_metrics()["bar.baz.counter3"].to_json(),  # type: ignore
+            metrics_manager.get_metrics()["bar.baz.counter3"].to_json(),  # type: ignore
             json.dumps(
                 {
                     "fully_qualified_name": "bar.baz.counter3",
@@ -386,7 +374,12 @@ class TestMetricsManager(TestCaseWithSimulator):
         )
 
     def test_returned_reg_values(self):
-        m = SimpleTestCircuit(MetricManagerTestCircuit(self.gen_params))
+        random.seed(42)
+
+        m = SimpleTestCircuit(MetricManagerTestCircuit())
+        metrics_manager = HardwareMetricsManager()
+
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         def test_process():
             counters = [0] * 3
@@ -400,13 +393,9 @@ class TestMetricsManager(TestCaseWithSimulator):
                     if rand[i] == 1:
                         counters[i] += 1
 
-                self.assertEqual(counters[0], (yield self.metrics_manager.get_register_value("foo.counter1", "count")))
-                self.assertEqual(
-                    counters[1], (yield self.metrics_manager.get_register_value("bar.baz.counter2", "count"))
-                )
-                self.assertEqual(
-                    counters[2], (yield self.metrics_manager.get_register_value("bar.baz.counter3", "count"))
-                )
+                self.assertEqual(counters[0], (yield metrics_manager.get_register_value("foo.counter1", "count")))
+                self.assertEqual(counters[1], (yield metrics_manager.get_register_value("bar.baz.counter2", "count")))
+                self.assertEqual(counters[2], (yield metrics_manager.get_register_value("bar.baz.counter3", "count")))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(test_process)

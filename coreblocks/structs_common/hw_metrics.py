@@ -10,8 +10,7 @@ from transactron.utils import ValueLike
 from transactron import Method, def_method, TModule
 from transactron.utils import SignalBundle
 from transactron.lib import FIFO
-from coreblocks.params.genparams import GenParams
-from transactron.utils.dependencies import DependencyManager, ListKey
+from transactron.utils.dependencies import ListKey, DependencyContext, SimpleKey
 
 __all__ = [
     "MetricRegisterModel",
@@ -21,6 +20,7 @@ __all__ = [
     "HwExpHistogram",
     "LatencyMeasurer",
     "HardwareMetricsManager",
+    "HwMetricsEnabledKey",
 ]
 
 
@@ -106,8 +106,19 @@ class HwMetricRegister(MetricRegisterModel):
 class HwMetricsListKey(ListKey["HwMetric"]):
     """DependencyManager key collecting hardware metrics globally as a list."""
 
-    # This key is defined here, because it is only used internally by HwMetric and HardwareMetricsManager
     pass
+
+
+@dataclass(frozen=True)
+class HwMetricsEnabledKey(SimpleKey[bool]):
+    """
+    DependencyManager key for enabling hardware metrics. If metrics are disabled,
+    none of theirs signals will be synthesized.
+    """
+
+    lock_on_get = False
+    empty_valid = True
+    default_value = False
 
 
 class HwMetric(ABC, MetricModel):
@@ -119,18 +130,14 @@ class HwMetric(ABC, MetricModel):
 
     Attributes
     ----------
-    gen_params: GenParams
-        Core generation parameters.
     signals: dict[str, Signal]
         A mapping from a register name to a Signal containing the value of that register.
     """
 
-    def __init__(self, gen_params: GenParams, fully_qualified_name: str, description: str):
+    def __init__(self, fully_qualified_name: str, description: str):
         """
         Parameters
         ----------
-        gen_params: GenParams
-            Core generation parameters.
         fully_qualified_name: str
             The fully qualified name of the metric.
         description: str
@@ -138,12 +145,10 @@ class HwMetric(ABC, MetricModel):
         """
         super().__init__(fully_qualified_name, description)
 
-        self.gen_params = gen_params
-
         self.signals: dict[str, Signal] = {}
 
-        # add the metric to the global list
-        gen_params.get(DependencyManager).add_dependency(HwMetricsListKey(), self)
+        # add the metric to the global list of all metrics
+        DependencyContext.get().add_dependency(HwMetricsListKey(), self)
 
     def add_registers(self, regs: list[HwMetricRegister]):
         """
@@ -162,6 +167,9 @@ class HwMetric(ABC, MetricModel):
             self.regs[reg.name] = reg
             self.signals[reg.name] = reg.value
 
+    def metrics_enabled(self) -> bool:
+        return DependencyContext.get().get_dependency(HwMetricsEnabledKey())
+
 
 class HwCounter(Elaboratable, HwMetric):
     """Hardware Counter
@@ -169,33 +177,28 @@ class HwCounter(Elaboratable, HwMetric):
     The most basic hardware metric that can just increase its value.
     """
 
-    def __init__(self, gen_params: GenParams, fully_qualified_name: str, description: str = "", *, width_bits: int = 0):
+    def __init__(self, fully_qualified_name: str, description: str = "", *, width_bits: int = 32):
         """
         Parameters
         ----------
-        gen_params: GenParams
-            Core generation parameters.
         fully_qualified_name: str
             The fully qualified name of the metric.
         description: str
             A human-readable description of the metric's functionality.
         width_bits: int
-            The bit-width of the register. If unspecified or equal to 0,
-            the register will have `xlen` bits width.
+            The bit-width of the register. Defaults to 32 bits.
         """
 
-        super().__init__(gen_params, fully_qualified_name, description)
+        super().__init__(fully_qualified_name, description)
 
-        self.count = HwMetricRegister(
-            "count", gen_params.isa.xlen if width_bits == 0 else width_bits, "the value of the counter"
-        )
+        self.count = HwMetricRegister("count", width_bits, "the value of the counter")
 
         self.add_registers([self.count])
 
         self._incr = Method()
 
     def elaborate(self, platform):
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return TModule()
 
         m = TModule()
@@ -217,7 +220,7 @@ class HwCounter(Elaboratable, HwMetric):
         m: TModule
             Transactron module
         """
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return
 
         with m.If(cond):
@@ -239,7 +242,6 @@ class HwExpHistogram(Elaboratable, HwMetric):
 
     def __init__(
         self,
-        gen_params: GenParams,
         fully_qualified_name: str,
         description: str = "",
         *,
@@ -250,8 +252,6 @@ class HwExpHistogram(Elaboratable, HwMetric):
         """
         Parameters
         ----------
-        gen_params: GenParams
-            Core generation parameters.
         fully_qualified_name: str
             The fully qualified name of the metric.
         description: str
@@ -261,7 +261,7 @@ class HwExpHistogram(Elaboratable, HwMetric):
             value is used to calculate the number of buckets.
         """
 
-        super().__init__(gen_params, fully_qualified_name, description)
+        super().__init__(fully_qualified_name, description)
         self.bucket_count = bucket_count
         self.sample_width = sample_width
 
@@ -293,7 +293,7 @@ class HwExpHistogram(Elaboratable, HwMetric):
         self.add_registers([self.count, self.sum, self.max, self.min] + self.buckets)
 
     def elaborate(self, platform):
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return TModule()
 
         m = TModule()
@@ -345,7 +345,7 @@ class HwExpHistogram(Elaboratable, HwMetric):
             The value that will be added to the histogram
         """
 
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return
 
         self._add(m, sample)
@@ -363,7 +363,6 @@ class LatencyMeasurer(Elaboratable):
 
     def __init__(
         self,
-        gen_params: GenParams,
         fully_qualified_name: str,
         description: str = "",
         *,
@@ -373,10 +372,10 @@ class LatencyMeasurer(Elaboratable):
         """
         Parameters
         ----------
-        gen_params: GenParams
-            Core generation parameters.
         fully_qualified_name: str
             The fully qualified name of the metric.
+        description: str
+            A human-readable description of the metric's functionality.
         slots_number: str
             A number of events that the module can track simultaneously.
         max_latency: int
@@ -385,7 +384,6 @@ class LatencyMeasurer(Elaboratable):
             bigger than the maximum, it will overflow and result in a false
             measurement.
         """
-        self.gen_params = gen_params
         self.fully_qualified_name = fully_qualified_name
         self.description = description
         self.slots_number = slots_number
@@ -397,7 +395,6 @@ class LatencyMeasurer(Elaboratable):
         # This bucket count gives us the best possible granularity.
         bucket_count = bits_for(self.max_latency) + 1
         self.histogram = HwExpHistogram(
-            self.gen_params,
             self.fully_qualified_name,
             self.description,
             bucket_count=bucket_count,
@@ -405,7 +402,7 @@ class LatencyMeasurer(Elaboratable):
         )
 
     def elaborate(self, platform):
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return TModule()
 
         m = TModule()
@@ -446,7 +443,7 @@ class LatencyMeasurer(Elaboratable):
             Transactron module
         """
 
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return
 
         self._start(m)
@@ -464,10 +461,13 @@ class LatencyMeasurer(Elaboratable):
             Transactron module
         """
 
-        if not self.gen_params.hardware_metrics_enabled:
+        if not self.metrics_enabled():
             return
 
         self._stop(m)
+
+    def metrics_enabled(self) -> bool:
+        return DependencyContext.get().get_dependency(HwMetricsEnabledKey())
 
 
 class HardwareMetricsManager:
@@ -476,15 +476,7 @@ class HardwareMetricsManager:
     access to them.
     """
 
-    def __init__(self, dep_manager: DependencyManager):
-        """
-        Parameters
-        ----------
-        dep_manager: DependencyManager
-            The dependency manager of the core.
-        """
-        self.dep_manager = dep_manager
-
+    def __init__(self):
         self._metrics: Optional[dict[str, HwMetric]] = None
 
     def _collect_metrics(self) -> dict[str, HwMetric]:
@@ -493,7 +485,7 @@ class HardwareMetricsManager:
         # after the manager object had been created, that metric wouldn't end up
         # being registered.
         metrics: dict[str, HwMetric] = {}
-        for metric in self.dep_manager.get_dependency(HwMetricsListKey()):
+        for metric in DependencyContext.get().get_dependency(HwMetricsListKey()):
             if metric.fully_qualified_name in metrics:
                 raise RuntimeError(f"Metric '{metric.fully_qualified_name}' is already registered")
 
