@@ -12,11 +12,11 @@ from typing import (
     Tuple,
     TypeVar,
     Protocol,
+    Self,
     runtime_checkable,
 )
 from os import environ
 from graphlib import TopologicalSorter
-from typing_extensions import Self
 from dataclasses import dataclass, replace
 from amaranth import *
 from amaranth import tracer
