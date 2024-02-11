@@ -6,7 +6,7 @@ from parameterized import parameterized_class
 from amaranth import *
 from amaranth.sim import Passive, Settle
 
-from coreblocks.structs_common.hw_metrics import *
+from transactron.lib.metrics import *
 from transactron import *
 from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
 from transactron.utils.dependencies import DependencyContext
