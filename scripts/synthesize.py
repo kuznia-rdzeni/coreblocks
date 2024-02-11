@@ -139,8 +139,7 @@ core_units = {
 
 
 def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
-    dependency_manager = DependencyManager()
-    with DependencyContext(dependency_manager):
+    with DependencyContext(DependencyManager()):
         gen_params = GenParams(core_config)
         resource_builder, module = core(gen_params)
 

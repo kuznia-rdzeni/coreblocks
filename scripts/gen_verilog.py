@@ -45,8 +45,7 @@ class Top(Elaboratable):
 
 
 def gen_verilog(core_config: CoreConfiguration, output_path):
-    dependency_manager = DependencyManager()
-    with DependencyContext(dependency_manager):
+    with DependencyContext(DependencyManager()):
         top = Top(GenParams(core_config))
 
         with open(output_path, "w") as f:

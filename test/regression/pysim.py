@@ -91,8 +91,7 @@ class PySimulation(SimulationBackend):
         return f
 
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
-        self.dependency_manager = DependencyManager()
-        with DependencyContext(self.dependency_manager):
+        with DependencyContext(DependencyManager()):
             wb_instr_bus = WishboneBus(self.gp.wb_params)
             wb_data_bus = WishboneBus(self.gp.wb_params)
             core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
