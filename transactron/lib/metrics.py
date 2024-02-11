@@ -28,7 +28,7 @@ __all__ = [
 @dataclass(frozen=True)
 class MetricRegisterModel:
     """
-    Represents a single register of a core metric, serving as a fundamental
+    Represents a single register of a metric, serving as a fundamental
     building block that holds a singular value.
 
     Attributes
@@ -51,7 +51,7 @@ class MetricRegisterModel:
 @dataclass
 class MetricModel:
     """
-    Provides information about a metric exposed by the core. Each metric
+    Provides information about a metric exposed by the circuit. Each metric
     comprises multiple registers, each dedicated to storing specific values.
 
     The configuration of registers is internally determined by a
@@ -472,7 +472,7 @@ class LatencyMeasurer(Elaboratable):
 
 class HardwareMetricsManager:
     """
-    Collects all metrics registered in the core and provides an easy
+    Collects all metrics registered in the circuit and provides an easy
     access to them.
     """
 
@@ -495,7 +495,7 @@ class HardwareMetricsManager:
 
     def get_metrics(self) -> dict[str, HwMetric]:
         """
-        Returns all metrics registered in the core.
+        Returns all metrics registered in the circuit.
         """
         if self._metrics is None:
             self._metrics = self._collect_metrics()
