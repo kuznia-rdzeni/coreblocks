@@ -66,8 +66,8 @@ class SimpleKey(Generic[T], DependencyKey[T, T]):
     Parameters
     ----------
     default_value: T
-        Specifies the value default returned when no dependencies are added. To
-        enable this, `empty_valid` must be True.
+        Specifies the default value returned when no dependencies are added. To
+        enable it `empty_valid` must be True.
     """
 
     default_value: T
