@@ -62,9 +62,19 @@ class SimpleKey(Generic[T], DependencyKey[T, T]):
     Simple dependency keys are used when there is an one-to-one relation between
     keys and dependencies. If more than one dependency is added to a simple key,
     an error is raised.
+
+    Parameters
+    ----------
+    default_value: T
+        Specifies the default value returned when no dependencies are added. To
+        enable it `empty_valid` must be True.
     """
 
+    default_value: T
+
     def combine(self, data: list[T]) -> T:
+        if len(data) == 0:
+            return self.default_value
         if len(data) != 1:
             raise RuntimeError(f"Key {self} assigned {len(data)} values, expected 1")
         return data[0]
