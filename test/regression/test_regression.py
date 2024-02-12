@@ -2,12 +2,14 @@ from .memory import *
 from .common import SimulationBackend
 from .conftest import riscv_tests_dir
 from test.regression.pysim import PySimulation
+import xml.etree.ElementTree as eT
 import asyncio
 from typing import Literal
 import os
 import pytest
 import subprocess
 import json
+import tempfile
 from filelock import FileLock
 
 REGRESSION_TESTS_PREFIX = "test.regression."
@@ -59,6 +61,8 @@ def regression_body_with_cocotb(test_name: str, traces: bool):
 
     verilog_code = os.path.join(os.getcwd(), "core.v")
     arglist += [f"VERILOG_SOURCES={verilog_code}"]
+    tmp_result_file = tempfile.NamedTemporaryFile("r")
+    arglist += [f"COCOTB_RESULTS_FILE={tmp_result_file.name}"]
 
     if traces:
         arglist += ["TRACES=1"]
@@ -66,6 +70,9 @@ def regression_body_with_cocotb(test_name: str, traces: bool):
     res = subprocess.run(arglist)
 
     assert res.returncode == 0
+
+    tree = eT.parse(tmp_result_file.name)
+    assert len(list(tree.iter("failure"))) == 0
 
 
 def regression_body_with_pysim(test_name: str, traces: bool, verbose: bool):

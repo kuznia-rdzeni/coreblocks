@@ -218,9 +218,6 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
-      - name: Check for test failure
-        run: ./scripts/check_test_results.py
-
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
