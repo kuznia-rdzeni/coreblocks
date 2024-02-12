@@ -73,6 +73,12 @@ def main():
     )
 
     parser.add_argument(
+        "--strip-debug",
+        action="store_true",
+        help="Remove debugging signals. Default: %(default)s",
+    )
+
+    parser.add_argument(
         "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
     )
 
@@ -83,7 +89,11 @@ def main():
     if args.config not in str_to_coreconfig:
         raise KeyError(f"Unknown config '{args.config}'")
 
-    gen_verilog(str_to_coreconfig[args.config], args.output)
+    config = str_to_coreconfig[args.config]
+    if args.strip_debug:
+        config = config.replace(debug_signals=False)
+
+    gen_verilog(config, args.output)
 
 
 if __name__ == "__main__":
