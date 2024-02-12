@@ -8,8 +8,9 @@ from pathlib import Path
 topdir = Path(__file__).parent.parent
 
 
-def cd_to_testdir():
-    os.chdir(str(topdir / "test"))
+def cd_to_topdir():
+    os.chdir(topdir)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -54,11 +55,11 @@ def main():
     if args.backend:
         pytest_arguments += [f"--coreblocks-backend={args.backend}"]
 
-    print(pytest_arguments)
     ret = pytest.main(pytest_arguments, [])
 
     exit(ret)
 
 
 if __name__ == "__main__":
+    cd_to_topdir()
     main()

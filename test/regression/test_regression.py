@@ -6,7 +6,6 @@ import asyncio
 from typing import Literal
 import os
 import subprocess
-import sys
 
 REGRESSION_TESTS_PREFIX = "test.regression."
 
@@ -52,9 +51,11 @@ async def run_test(sim_backend: SimulationBackend, test_name: str):
 
 
 def regression_body_with_cocotb(test_name: str, traces: bool):
-    print(os.getcwd(), file=sys.stderr)
-    arglist = ["make", "-C", "cocotb", "-f", "test.Makefile"]
+    arglist = ["make", "-C", "test/regression/cocotb", "-f", "test.Makefile"]
     arglist += [f"TESTCASE={test_name}"]
+
+    verilog_code = os.path.join(os.getcwd(), "core.v")
+    arglist += [f"VERILOG_SOURCES={verilog_code}"]
 
     if traces:
         arglist += ["TRACES=1"]
