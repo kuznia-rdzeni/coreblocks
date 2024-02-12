@@ -4,7 +4,7 @@ Utilities for extracting dependencies from Amaranth.
 
 import warnings
 
-from amaranth.hdl._ir import Elaboratable, Fragment, Instance
+from amaranth.hdl import Elaboratable, Fragment, Instance
 from amaranth.hdl._xfrm import FragmentTransformer
 from amaranth.hdl import _dsl, _ir, _mem, _xfrm
 from transactron.utils import HasElaborate
