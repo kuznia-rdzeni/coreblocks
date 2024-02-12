@@ -565,6 +565,15 @@ for different kinds of keys.</p>
 <p>Simple dependency keys are used when there is an one-to-one relation between
 keys and dependencies. If more than one dependency is added to a simple key,
 an error is raised.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>default_value: T</strong></dt><dd><p>Specifies the default value returned when no dependencies are added. To
+enable it <cite>empty_valid</cite> must be True.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.utils.dependencies.SimpleKey.combine">
 <span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">T</span></span></span><a class="headerlink" href="#transactron.utils.dependencies.SimpleKey.combine" title="Permalink to this definition"></a></dt>
@@ -575,6 +584,11 @@ using <cite>add_dependency</cite> and combines them to a single result.</p>
 <p>Different implementations of <cite>combine</cite> give different combining behavior
 for different kinds of keys.</p>
 </dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.utils.dependencies.SimpleKey.default_value">
+<span class="sig-name descname"><span class="pre">default_value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">T</span></em><a class="headerlink" href="#transactron.utils.dependencies.SimpleKey.default_value" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -634,7 +648,7 @@ for different kinds of keys.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 11:57 2024-02-12.
+      <span class="lastupdated">Last updated on 12:09 2024-02-12.
       </span></p>
   </div>
 
