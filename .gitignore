@@ -24,6 +24,7 @@ test/__traces__
 test/__profiles__/*.json
 pytestdebug.log
 _coreblocks_regression.lock
+_coreblocks_regression.counter
 
 # cocotb build
 /test/regression/cocotb/build

@@ -7,6 +7,7 @@ from typing import Literal
 import os
 import pytest
 import subprocess
+import json
 from filelock import FileLock
 
 REGRESSION_TESTS_PREFIX = "test.regression."
@@ -84,10 +85,30 @@ def verilate_model(worker_id, request: pytest.FixtureRequest):
         return
 
     lock_path = "_coreblocks_regression.lock"
+    counter_path = "_coreblocks_regression.counter"
     with FileLock(lock_path):
         regression_body_with_cocotb("SKIP", False)
+        if os.path.exists(counter_path):
+            with open(counter_path, "r") as counter_file:
+                c = json.load(counter_file)
+        else:
+            c = 0
+        with open(counter_path, "w") as counter_file:
+            json.dump(c + 1, counter_file)
     yield
-    os.remove(lock_path)
+    # Session teardown
+    deferred_remove = False
+    with FileLock(lock_path):
+        with open(counter_path, "r") as counter_file:
+            c = json.load(counter_file)
+        if c == 1:
+            deferred_remove = True
+        else:
+            with open(counter_path, "w") as counter_file:
+                json.dump(c - 1, counter_file)
+    if deferred_remove:
+        os.remove(lock_path)
+        os.remove(counter_path)
 
 
 def test_entrypoint(test_name: str, backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool, verilate_model):
