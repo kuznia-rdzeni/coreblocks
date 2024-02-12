@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707739455070,
+  "lastUpdate": 1707739983015,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -7103,6 +7103,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02bae47bc7ef1142c40a1d85e09ad0b5ac6aaa69",
+          "message": "Fix dataclass-json requirement. (#585)",
+          "timestamp": "2024-02-12T12:57:08+01:00",
+          "tree_id": "91c7cda56ef7b78c0940718fe95a693bb3fa30c1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/02bae47bc7ef1142c40a1d85e09ad0b5ac6aaa69"
+        },
+        "date": 1707739981232,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
             "unit": "Instructions Per Cycle"
           }
         ]
