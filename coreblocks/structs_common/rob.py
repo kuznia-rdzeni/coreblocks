@@ -1,5 +1,6 @@
 from amaranth import *
 from transactron import Method, def_method, TModule
+from transactron.lib.metrics import *
 from ..params import GenParams, ROBLayouts
 
 __all__ = ["ReorderBuffer"]
@@ -16,8 +17,17 @@ class ReorderBuffer(Elaboratable):
         self.data = Array(Signal(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
+        self.perf_rob_wait_time = LatencyMeasurer(
+            "backend.rob.wait_time",
+            description="Distribution of time instructions spend in ROB",
+            slots_number=(2**gen_params.rob_entries_bits + 1),
+            max_latency=1000,
+        )
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.perf_rob_wait_time]
 
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)
@@ -35,11 +45,13 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.retire, ready=self.data[start_idx].done)
         def _():
+            self.perf_rob_wait_time.stop(m)
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.data[start_idx].done.eq(0)
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):
+            self.perf_rob_wait_time.start(m)
             m.d.sync += self.data[end_idx].rob_data.eq(arg)
             m.d.sync += self.data[end_idx].done.eq(0)
             m.d.sync += end_idx.eq(end_idx + 1)

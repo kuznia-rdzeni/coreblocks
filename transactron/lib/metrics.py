@@ -150,6 +150,9 @@ class HwMetric(ABC, MetricModel):
         # add the metric to the global list of all metrics
         DependencyContext.get().add_dependency(HwMetricsListKey(), self)
 
+        # So Amaranth doesn't report that the module is unused when metrics are disabled
+        self._MustUse__silence = True  # type: ignore
+
     def add_registers(self, regs: list[HwMetricRegister]):
         """
         Adds registers to a metric. Should be only called by inheriting classes
