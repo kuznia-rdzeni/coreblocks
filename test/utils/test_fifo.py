@@ -3,7 +3,7 @@ from amaranth.sim import Settle
 
 from transactron.lib import AdapterTrans, BasicFifo
 
-from test.common import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 from collections import deque
 from parameterized import parameterized_class
 import random

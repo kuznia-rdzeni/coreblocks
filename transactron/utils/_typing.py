@@ -30,6 +30,7 @@ __all__ = [
     "StatementLike",
     "LayoutLike",
     "SwitchKey",
+    "SrcLoc",
     "MethodLayout",
     "MethodStruct",
     "SrcLoc",

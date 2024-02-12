@@ -5,7 +5,7 @@ from amaranth.sim import *
 
 from transactron.utils import ModuleConnector
 
-from ..common import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 from transactron import *
 from transactron.lib import Adapter, Connect, ConnectTrans

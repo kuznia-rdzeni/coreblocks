@@ -4,7 +4,7 @@ from amaranth.utils import exact_log2
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
-from ..common import SimpleTestCircuit, PysimSimulator
+from transactron.testing import SimpleTestCircuit, PysimSimulator
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core

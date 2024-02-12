@@ -2,7 +2,7 @@ import random
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.utils import MethodStruct
@@ -346,11 +346,10 @@ class Quadruple2(Elaboratable):
 
 
 class TestQuadrupleCircuits(TestCaseWithSimulator):
-    def test(self):
-        self.work(QuadrupleCircuit(Quadruple()))
-        self.work(QuadrupleCircuit(Quadruple2()))
+    @parameterized.expand([(Quadruple,), (Quadruple2,)])
+    def test(self, quadruple):
+        circ = QuadrupleCircuit(quadruple())
 
-    def work(self, circ):
         def process():
             for n in range(1 << (WIDTH - 2)):
                 out = yield from circ.tb.call(data=n)

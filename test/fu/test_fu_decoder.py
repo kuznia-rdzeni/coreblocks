@@ -3,7 +3,7 @@ from typing import Sequence, Generator
 from amaranth import *
 from amaranth.sim import *
 
-from ..common import SimpleTestCircuit, TestCaseWithSimulator
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator
 
 from coreblocks.fu.fu_decoder import DecoderManager, Decoder
 from coreblocks.params import OpType, Funct3, Funct7, GenParams
