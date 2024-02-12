@@ -3,7 +3,7 @@ from amaranth import Elaboratable, Module
 from transactron.lib import AdapterTrans
 from transactron.utils import align_to_power_of_two, signed_to_int
 
-from .common import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
@@ -298,12 +298,12 @@ class TestCoreAsmSourceBase(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 1200, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 610, {3: 55}, basic_core_config),
+        ("fibonacci", "fibonacci.asm", 1200 * 2, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 610 * 2, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
-        ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
-        ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
-        ("exception_handler", "exception_handler.asm", 1500, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
+        ("exception", "exception.asm", 200 * 2, {1: 1, 2: 2}, basic_core_config),
+        ("exception_mem", "exception_mem.asm", 200 * 2, {1: 1, 2: 2}, basic_core_config),
+        ("exception_handler", "exception_handler.asm", int(1500 * 2.2), {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
@@ -333,11 +333,11 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 @parameterized_class(
     ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi"),
     [
-        ("interrupt.asm", 400, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
-        ("interrupt.asm", 700, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
-        ("interrupt.asm", 600, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
+        ("interrupt.asm", 400 * 4, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
+        ("interrupt.asm", 700 * 4, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
+        ("interrupt.asm", 600 * 4, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
         # interrupts are only inserted on branches, we always have some forward progression. 15 for trigger variantion.
-        ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15),
+        ("interrupt.asm", 80 * 4, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15),
     ],
 )
 class TestCoreInterrupt(TestCoreAsmSourceBase):

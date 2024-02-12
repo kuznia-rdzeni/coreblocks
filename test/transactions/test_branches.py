@@ -11,7 +11,8 @@ from transactron.core import (
     def_method,
 )
 from unittest import TestCase
-from ..common import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator
+from transactron.utils.dependencies import DependencyContext
 
 
 class TestExclusivePath(TestCase):
@@ -87,9 +88,9 @@ class TestExclusiveConflictRemoval(TestCaseWithSimulator):
         circ = ExclusiveConflictRemovalCircuit()
 
         tm = TransactionManager()
-        dut = TransactionModule(circ, tm)
+        dut = TransactionModule(circ, DependencyContext.get(), tm)
 
-        with self.run_simulation(dut):
+        with self.run_simulation(dut, add_transaction_module=False):
             pass
 
         cgr, _, _ = tm._conflict_graph(MethodMap(tm.transactions))

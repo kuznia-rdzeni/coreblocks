@@ -1,9 +1,11 @@
 from amaranth import *
 from amaranth.utils import *
+
+from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc
 from typing import Optional
-from transactron.utils import assign, AssignType
+from transactron.utils import assign, AssignType, LayoutList
 from .reqres import ArgumentsToResultsZipper
 
 __all__ = ["MemoryBank"]
@@ -40,12 +42,12 @@ class MemoryBank(Elaboratable):
         """
         Parameters
         ----------
-        data_layout: record layout
-            The format of records stored in the Memory.
+        data_layout: method layout
+            The format of structures stored in the Memory.
         elem_count: int
             Number of elements stored in Memory.
         granularity: Optional[int]
-            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
+            Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
         safe_writes: bool
             Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
@@ -59,11 +61,11 @@ class MemoryBank(Elaboratable):
         self.data_layout = data_layout
         self.elem_count = elem_count
         self.granularity = granularity
-        self.width = len(Record(self.data_layout))
+        self.width = from_method_layout(self.data_layout).size
         self.addr_width = bits_for(self.elem_count - 1)
         self.safe_writes = safe_writes
 
-        self.read_req_layout = [("addr", self.addr_width)]
+        self.read_req_layout: LayoutList = [("addr", self.addr_width)]
         self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
         if self.granularity is not None:
             self.write_layout.append(("mask", self.width // self.granularity))

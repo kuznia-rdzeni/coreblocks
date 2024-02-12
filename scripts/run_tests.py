@@ -11,7 +11,6 @@ topdir = Path(__file__).parent.parent
 def cd_to_testdir():
     os.chdir(str(topdir / "test"))
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", action="store_true", help="List all tests")

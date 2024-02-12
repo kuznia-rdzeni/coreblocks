@@ -21,6 +21,7 @@ class AXILiteParameters:
     def __init__(self, *, data_width: int = 64, addr_width: int = 64):
         self.data_width = data_width
         self.addr_width = addr_width
+        self.granularity = 8
 
 
 class AXILiteLayout:
@@ -112,18 +113,18 @@ class AXILiteMasterMethodLayouts:
 
     def __init__(self, axil_params: AXILiteParameters):
         self.ra_request_layout = [
-            ("addr", axil_params.addr_width, DIR_FANIN),
-            ("prot", 3, DIR_FANIN),
+            ("addr", axil_params.addr_width),
+            ("prot", 3),
         ]
 
         self.wa_request_layout = [
-            ("addr", axil_params.addr_width, DIR_FANIN),
-            ("prot", 3, DIR_FANIN),
+            ("addr", axil_params.addr_width),
+            ("prot", 3),
         ]
 
         self.wd_request_layout = [
-            ("data", axil_params.data_width, DIR_FANIN),
-            ("strb", axil_params.data_width // 8, DIR_FANIN),
+            ("data", axil_params.data_width),
+            ("strb", axil_params.data_width // 8),
         ]
 
         self.rd_response_layout = [
@@ -174,6 +175,8 @@ class AXILiteMaster(Elaboratable):
 
     def __init__(self, axil_params: AXILiteParameters):
         self.axil_params = axil_params
+        self.axil_layout = AXILiteLayout(self.axil_params).axil_layout
+        self.axil_master = Record(self.axil_layout)
 
         self.method_layouts = AXILiteMasterMethodLayouts(self.axil_params)
 
@@ -222,9 +225,6 @@ class AXILiteMaster(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-
-        self.axil_layout = AXILiteLayout(self.axil_params).axil_layout
-        self.axil_master = Record(self.axil_layout)
 
         m.submodules.rd_forwarder = rd_forwarder = Forwarder(self.method_layouts.rd_response_layout)
         m.submodules.wr_forwarder = wr_forwarder = Forwarder(self.method_layouts.wr_response_layout)

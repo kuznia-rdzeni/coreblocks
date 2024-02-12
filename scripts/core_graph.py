@@ -17,7 +17,7 @@ from coreblocks.params.genparams import GenParams  # noqa: E402
 from transactron.graph import TracingFragment  # noqa: E402
 from test.test_core import CoreTestElaboratable  # noqa: E402
 from coreblocks.params.configurations import basic_core_config  # noqa: E402
-from transactron.core import TransactionModule  # noqa: E402
+from transactron.core import TransactionManagerKey, TransactionModule  # noqa: E402
 
 gp = GenParams(basic_core_config)
 elaboratable = CoreTestElaboratable(gp)
@@ -25,10 +25,10 @@ tm = TransactionModule(elaboratable)
 fragment = TracingFragment.get(tm, platform=None).prepare()
 
 core = fragment
-while not hasattr(core, "transactionManager"):
+while not hasattr(core, "manager"):
     core = core._tracing_original  # type: ignore
 
-mgr = core.transactionManager  # type: ignore
+mgr = core.manager.get_dependency(TransactionManagerKey())  # type: ignore
 
 with arg.ofile as fp:
     graph = mgr.visual_graph(fragment)
