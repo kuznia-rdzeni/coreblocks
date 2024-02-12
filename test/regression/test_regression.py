@@ -5,7 +5,9 @@ from test.regression.pysim import PySimulation
 import asyncio
 from typing import Literal
 import os
+import pytest
 import subprocess
+from filelock import FileLock
 
 REGRESSION_TESTS_PREFIX = "test.regression."
 
@@ -72,7 +74,23 @@ def regression_body_with_pysim(test_name: str, traces: bool, verbose: bool):
     asyncio.run(run_test(PySimulation(verbose, traces_file=traces_file), test_name))
 
 
-def test_entrypoint(test_name: str, backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool):
+@pytest.fixture(scope="session")
+def verilate_model(worker_id, request: pytest.FixtureRequest):
+    """
+    Fixture to prevent races on verilating the coreblocks model. It is run only in
+    distributed, cocotb, mode. It executes a 'SKIP' regression test which verilates the model.
+    """
+    if request.session.config.getoption("coreblocks_backend") != "cocotb" or worker_id == "master":
+        return
+
+    lock_path = "_coreblocks_regression.lock"
+    with FileLock(lock_path):
+        regression_body_with_cocotb("SKIP", False)
+    yield
+    os.remove(lock_path)
+
+
+def test_entrypoint(test_name: str, backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool, verilate_model):
     if backend == "cocotb":
         regression_body_with_cocotb(test_name, traces)
     elif backend == "pysim":
