@@ -173,6 +173,12 @@ def main():
     )
 
     parser.add_argument(
+        "--strip-debug",
+        action="store_true",
+        help="Remove debugging signals. Default: %(default)s",
+    )
+
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -189,7 +195,11 @@ def main():
     if args.unit not in core_units:
         raise KeyError(f"Unknown core unit '{args.unit}'")
 
-    synthesize(str_to_coreconfig[args.config], args.platform, core_units[args.unit])
+    config = str_to_coreconfig[args.config]
+    if args.strip_debug:
+        config = config.replace(debug_signals=False)
+
+    synthesize(config, args.platform, core_units[args.unit])
 
 
 if __name__ == "__main__":
