@@ -17,6 +17,7 @@ from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
 from transactron import TransactionModule
 from transactron.utils import flatten_signals
+from transactron.utils.dependencies import DependencyManager, DependencyContext
 
 from coreblocks.params.configurations import *
 
@@ -36,7 +37,7 @@ class Top(Elaboratable):
 
     def elaborate(self, platform: Platform):
         m = Module()
-        tm = TransactionModule(m)
+        tm = TransactionModule(m, dependency_manager=DependencyContext.get())
 
         m.submodules.c = Core(gen_params=self.gp, wb_instr_bus=self.wb_instr, wb_data_bus=self.wb_data)
 
@@ -44,12 +45,13 @@ class Top(Elaboratable):
 
 
 def gen_verilog(core_config: CoreConfiguration, output_path):
-    top = Top(GenParams(core_config))
+    with DependencyContext(DependencyManager()):
+        top = Top(GenParams(core_config))
 
-    with open(output_path, "w") as f:
-        signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
+        with open(output_path, "w") as f:
+            signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
 
-        f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
+            f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
 
 
 def main():

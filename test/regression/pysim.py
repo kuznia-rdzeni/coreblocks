@@ -4,7 +4,8 @@ from amaranth.utils import log2_int
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
-from transactron.testing import SimpleTestCircuit, PysimSimulator
+from transactron.testing import PysimSimulator
+from transactron.utils.dependencies import DependencyContext, DependencyManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core
@@ -90,28 +91,27 @@ class PySimulation(SimulationBackend):
         return f
 
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
-        wb_instr_bus = WishboneBus(self.gp.wb_params)
-        wb_data_bus = WishboneBus(self.gp.wb_params)
-        core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
+        with DependencyContext(DependencyManager()):
+            wb_instr_bus = WishboneBus(self.gp.wb_params)
+            wb_data_bus = WishboneBus(self.gp.wb_params)
+            core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
 
-        m = SimpleTestCircuit(core)
+            wb_instr_ctrl = WishboneInterfaceWrapper(wb_instr_bus)
+            wb_data_ctrl = WishboneInterfaceWrapper(wb_data_bus)
 
-        wb_instr_ctrl = WishboneInterfaceWrapper(wb_instr_bus)
-        wb_data_ctrl = WishboneInterfaceWrapper(wb_data_bus)
+            self.running = True
+            self.cycle_cnt = 0
 
-        self.running = True
-        self.cycle_cnt = 0
+            sim = PysimSimulator(core, max_cycles=timeout_cycles, traces_file=self.traces_file)
+            sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
+            sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
+            sim.add_sync_process(self._waiter())
+            success = sim.run()
 
-        sim = PysimSimulator(m, max_cycles=timeout_cycles, traces_file=self.traces_file)
-        sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
-        sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
-        sim.add_sync_process(self._waiter())
-        success = sim.run()
+            if self.verbose:
+                print(f"Simulation finished in {self.cycle_cnt} cycles")
 
-        if self.verbose:
-            print(f"Simulation finished in {self.cycle_cnt} cycles")
-
-        return SimulationExecutionResult(success)
+            return SimulationExecutionResult(success)
 
     def stop(self):
         self.running = False
