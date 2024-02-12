@@ -218,7 +218,7 @@ class TestCaseWithSimulator(unittest.TestCase):
             return wrapper
 
         for k in dir(self):
-            if k.startswith("test"):
+            if k.startswith("test") or k == "setUp":
                 f = getattr(self, k)
                 if isinstance(f, Callable):
                     setattr(self, k, wrap(getattr(self, k)))

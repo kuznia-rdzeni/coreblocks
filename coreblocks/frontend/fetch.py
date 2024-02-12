@@ -1,6 +1,7 @@
 from amaranth import *
 from transactron.core import Priority
 from transactron.lib import BasicFifo, Semaphore
+from transactron.lib.metrics import *
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
@@ -135,11 +136,15 @@ class UnalignedFetch(Elaboratable):
         self.stall_exception = Method()
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
+        self.perf_rvc = HwCounter("frontend.ifu.rvc", "Number of decompressed RVC instructions")
+
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
+
+        m.submodules += [self.perf_rvc]
 
         m.submodules.req_limiter = req_limiter = Semaphore(2)
 
@@ -230,6 +235,7 @@ class UnalignedFetch(Elaboratable):
                 with m.If(~cache_resp.error):
                     m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
+                self.perf_rvc.incr(m, cond=is_rvc)
                 self.cont(m, instr=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
         @def_method(m, self.resume, ready=(stalled & ~flushing))

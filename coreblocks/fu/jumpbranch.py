@@ -132,8 +132,16 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.dm = gen_params.get(DependencyManager)
         self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
+        self.perf_jumps = HwCounter("backend.fu.jumpbranch.jumps", "Number of jump instructions issued")
+        self.perf_branches = HwCounter("backend.fu.jumpbranch.branches", "Number of branch instructions issued")
+        self.perf_misaligned = HwCounter(
+            "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
+        )
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.perf_jumps, self.perf_branches, self.perf_misaligned]
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
         m.submodules.fifo_res = fifo_res = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
@@ -157,7 +165,12 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
 
             is_auipc = decoder.decode_fn == JumpBranchFn.Fn.AUIPC
+            is_jump = (decoder.decode_fn == JumpBranchFn.Fn.JAL) | (decoder.decode_fn == JumpBranchFn.Fn.JALR)
+
             jump_result = Mux(jb.taken, jb.jmp_addr, jb.reg_res)
+
+            self.perf_jumps.incr(m, cond=is_jump)
+            self.perf_branches.incr(m, cond=(~is_jump & ~is_auipc))
 
             exception = Signal()
             exception_report = self.dm.get_dependency(ExceptionReportKey())
@@ -173,6 +186,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             misprediction = ~is_auipc & jb.taken
 
             with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
+                self.perf_misaligned.incr(m)
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
