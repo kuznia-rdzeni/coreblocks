@@ -11,8 +11,6 @@ from transactron import *
 from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
 from transactron.utils.dependencies import DependencyContext
 
-from ..common import *
-
 
 class CounterInMethodCircuit(Elaboratable):
     def __init__(self):
