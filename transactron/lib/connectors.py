@@ -11,6 +11,7 @@ __all__ = [
     "Connect",
     "ConnectTrans",
     "ManyToOneConnectTrans",
+    "def_one_caller_wrapper",
 ]
 
 
@@ -277,3 +278,37 @@ class ManyToOneConnectTrans(Elaboratable):
             )
 
         return m
+
+
+def def_one_caller_wrapper(method_to_wrap: Method, wrapper: Method) -> TModule:
+    """
+    Function used to wrap a method that can only have one caller. After wrapping
+    many callers can call the wrapper. The input data are buffered and passed to the
+    wrapped method from one source (caller).
+
+    Parameters
+    ----------
+    method_to_wrap : Method
+        Method that can only be called by a single caller.
+    wrapper : Method
+        Method to be defined as a wrapper over `method_to_wrap`.
+
+    Returns
+    -------
+    TModule
+        Module with created amaranth connections.
+    """
+    if len(method_to_wrap.data_out):
+        raise ValueError("def_one_caller_wrapper support only wrapping of methods which don't return data.")
+
+    m = TModule()
+    buffer = FIFO(method_to_wrap.data_in.layout, 2)
+    m.submodules += buffer
+
+    @def_method(m, wrapper)
+    def _(arg):
+        buffer.write(m, arg)
+
+    m.submodules += ConnectTrans(buffer.read, method_to_wrap)
+
+    return m
