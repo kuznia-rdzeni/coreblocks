@@ -266,3 +266,12 @@ class TestCSRRegister(TestCaseWithSimulator):
 
         with self.run_simulation(self.dut) as sim:
             sim.add_sync_process(self.process_test)
+
+    def test_filtermap(self):
+        pass
+
+    def test_priority(self):
+        pass
+
+    def test_readcomb(self):
+        pass

@@ -1,9 +1,14 @@
+from collections.abc import Callable
+from typing import Optional
 from amaranth import *
+from amaranth.hdl.ast import ValueLike
 from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
 from transactron import Method, def_method, Transaction, TModule
+from transactron.core import RecordDict
+from transactron.lib.transformers import MethodFilter, MethodMap
 from transactron.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from transactron.utils.dependencies import DependencyManager, ListKey
@@ -19,6 +24,7 @@ from coreblocks.params.keys import (
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 from transactron.utils.transactron_helpers import from_method_layout
+from transactron.utils import MethodStruct
 
 
 class PrivilegeLevel(IntEnum, shape=2):
@@ -85,7 +91,17 @@ class CSRRegister(Elaboratable):
                 csr.write(csr_val.data + 1)
     """
 
-    def __init__(self, csr_number: int, gen_params: GenParams, *, ro_bits: int = 0):
+    def __init__(
+        self,
+        csr_number: Optional[int],
+        gen_params: GenParams,
+        *,
+        width: Optional[int] = None,
+        ro_bits: int = 0,
+        fu_write_priority: bool = True,
+        fu_write_filtermap: Optional[Callable[[TModule, MethodStruct], tuple[ValueLike, RecordDict]]] = None,
+        fu_read_map: Optional[Callable[[TModule, MethodStruct], RecordDict]] = None,
+    ):
         """
         Parameters
         ----------
@@ -102,23 +118,42 @@ class CSRRegister(Elaboratable):
         """
         self.gen_params = gen_params
         self.csr_number = csr_number
+        self.width = width if width else gen_params.isa.xlen
         self.ro_bits = ro_bits
+        self.fu_write_priority = fu_write_priority
+        fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
+        fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
 
         csr_layouts = gen_params.get(CSRLayouts)
 
         self.read = Method(o=csr_layouts.read)
+        self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
 
-        # Methods connected automatically by CSRUnit
-        self._fu_read = Method(o=csr_layouts._fu_read)
-        self._fu_write = Method(i=csr_layouts._fu_write)
+        self._internal_fu_read = Method(o=csr_layouts._fu_read)
+        self._internal_fu_write = Method(i=csr_layouts._fu_write)
+        self.fu_write_map = MethodMap(
+            self._internal_fu_write, i_transform=(csr_layouts._fu_write, lambda tm, ms: (fu_write_filtermap(tm, ms)[1]))
+        )
+        self.fu_write_filter = MethodFilter(self.fu_write_map.method, (lambda tm, ms: fu_write_filtermap(tm, ms)[0]))
+        self.fu_read_map = MethodMap(self._internal_fu_read, o_transform=(csr_layouts._fu_read, fu_read_map))
 
-        self.value = Signal(gen_params.isa.xlen)
+        # Methods connected autatically by CSRUnit
+        self._fu_read = self.fu_read_map.method
+        self._fu_write = self.fu_write_filter.method
+
+        self.value = Signal(self.width)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list
-        dm = gen_params.get(DependencyManager)
-        dm.add_dependency(CSRListKey(), self)
+        if csr_number is not None:
+            dm = gen_params.get(DependencyManager)
+            dm.add_dependency(CSRListKey(), self)
+
+        if csr_number and self.width != gen_params.isa.xlen:
+            raise RuntimeError(f"Width of public CSR register is different than {gen_params.isa.xlen}")
+        if self.width > gen_params.isa.xlen:
+            raise RuntimeError("CSR width is greater than layout accessible width")
 
     def elaborate(self, platform):
         m = TModule()
@@ -134,7 +169,7 @@ class CSRRegister(Elaboratable):
             m.d.comb += write_internal.data.eq(data)
             m.d.comb += write_internal.active.eq(1)
 
-        @def_method(m, self._fu_write)
+        @def_method(m, self._internal_fu_write)
         def _(data):
             m.d.comb += fu_write_internal.data.eq(data)
             m.d.comb += fu_write_internal.active.eq(1)
@@ -144,18 +179,34 @@ class CSRRegister(Elaboratable):
         def _():
             return {"data": self.value, "read": self.side_effects.read, "written": self.side_effects.write}
 
-        @def_method(m, self._fu_read)
+        @def_method(m, self._internal_fu_read)
         def _():
             m.d.sync += self.side_effects.read.eq(1)
             return self.value
 
-        # Writes from instructions have priority
+        @def_method(m, self.read_comb)
+        def _():
+            return {
+                "data": Mux(self._internal_fu_write.run, fu_write_internal.data, self.value),
+                "read": self._internal_fu_read.run,
+                "written": self._internal_fu_write.run,
+            }
+
         with m.If(fu_write_internal.active & write_internal.active):
-            m.d.sync += self.value.eq((fu_write_internal.data & ~self.ro_bits) | (write_internal.data & self.ro_bits))
+            if self.fu_write_priority:
+                m.d.sync += self.value.eq(
+                    (fu_write_internal.data & ~self.ro_bits) | (write_internal.data & self.ro_bits)
+                )
+            else:
+                m.d.sync += self.value.eq(write_internal.data)
         with m.Elif(fu_write_internal.active):
             m.d.sync += self.value.eq((fu_write_internal.data & ~self.ro_bits) | (self.value & self.ro_bits))
         with m.Elif(write_internal.active):
             m.d.sync += self.value.eq(write_internal.data)
+
+        m.submodules.fu_write_filter = self.fu_write_filter
+        m.submodules.fu_read_map = self.fu_read_map
+        m.submodules.fu_write_map = self.fu_write_map
 
         return m
 
@@ -214,7 +265,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         for csr in self.dependency_manager.get_dependency(CSRListKey()):
             if csr.csr_number in self.regfile:
                 raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
+            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)  # type: ignore
 
     def elaborate(self, platform):
         self._create_regfile()
