@@ -21,7 +21,7 @@ from dataclasses import dataclass, replace
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
-from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
+from amaranth.hdl.dsl import FSM
 
 from transactron.utils.assign import AssignArg
 
@@ -616,7 +616,7 @@ class _AvoidingModuleBuilderDomains:
     def __init__(self, m: "TModule"):
         object.__setattr__(self, "_m", m)
 
-    def __getattr__(self, name: str) -> _ModuleBuilderDomain:
+    def __getattr__(self, name: str):
         if name == "av_comb":
             return self._m.avoiding_module.d["comb"]
         elif name == "top_comb":
@@ -624,15 +624,8 @@ class _AvoidingModuleBuilderDomains:
         else:
             return self._m.main_module.d[name]
 
-    def __getitem__(self, name: str) -> _ModuleBuilderDomain:
+    def __getitem__(self, name: str):
         return self.__getattr__(name)
-
-    def __setattr__(self, name: str, value):
-        if not isinstance(value, _ModuleBuilderDomain):
-            raise AttributeError(f"Cannot assign 'd.{name}' attribute; did you mean 'd.{name} +='?")
-
-    def __setitem__(self, name: str, value):
-        return self.__setattr__(name, value)
 
 
 class EnterType(Enum):
