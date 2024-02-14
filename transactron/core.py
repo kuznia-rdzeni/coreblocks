@@ -613,19 +613,39 @@ class TransactionModule(Elaboratable):
 class _AvoidingModuleBuilderDomains:
     _m: "TModule"
 
+    class _AvoidingModuleBuilderDomain:
+        """
+        A wrapper over amaranth domain to abstract away internal amaranth implementation.
+        It is needed to allow for correctness check in `__setattr__` which uses `isinstance`.
+        """
+
+        def __init__(self, amaranth_module_domain):
+            self._domain = amaranth_module_domain
+
+        def __iadd__(self, assigns):
+            self._domain.__iadd__(assigns)
+            return self
+
     def __init__(self, m: "TModule"):
         object.__setattr__(self, "_m", m)
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> _AvoidingModuleBuilderDomain:
         if name == "av_comb":
-            return self._m.avoiding_module.d["comb"]
+            return self._AvoidingModuleBuilderDomain(self._m.avoiding_module.d["comb"])
         elif name == "top_comb":
-            return self._m.top_module.d["comb"]
+            return self._AvoidingModuleBuilderDomain(self._m.top_module.d["comb"])
         else:
-            return self._m.main_module.d[name]
+            return self._AvoidingModuleBuilderDomain(self._m.main_module.d[name])
 
-    def __getitem__(self, name: str):
+    def __getitem__(self, name: str) -> _AvoidingModuleBuilderDomain:
         return self.__getattr__(name)
+
+    def __setattr__(self, name: str, value):
+        if not isinstance(value, self._AvoidingModuleBuilderDomain):
+            raise AttributeError(f"Cannot assign 'd.{name}' attribute; did you mean 'd.{name} +='?")
+
+    def __setitem__(self, name: str, value):
+        return self.__setattr__(name, value)
 
 
 class EnterType(Enum):
