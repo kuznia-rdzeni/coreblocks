@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 
+from amaranth import *
 from amaranth.build import Platform
 from amaranth.back import verilog
 from amaranth import Module, Elaboratable
@@ -73,10 +74,15 @@ def escape_verilog_identifier(identifier: str) -> str:
     return identifier
 
 
-def collect_metric_locations(gen_params: GenParams, name_map: SignalDict) -> dict[str, CoreMetricLocation]:
-    if not gen_params.debug_signals_enabled:
-        return {}
+def get_signal_location(signal: Signal, name_map: SignalDict) -> list[str]:
+    raw_location = name_map[signal]
 
+    # Amaranth escapes identifiers when generating Verilog code, but returns non-escaped identifiers
+    # in the name map, so we need to escape it manually.
+    return [escape_verilog_identifier(component) for component in raw_location]
+
+
+def collect_metric_locations(name_map: SignalDict) -> dict[str, CoreMetricLocation]:
     core_metrics_location: dict[str, CoreMetricLocation] = {}
 
     # Collect information about the location of metric registers in the generated code.
@@ -84,13 +90,9 @@ def collect_metric_locations(gen_params: GenParams, name_map: SignalDict) -> dic
     for metric_name, metric in metrics_manager.get_metrics().items():
         metric_loc = CoreMetricLocation()
         for reg_name in metric.regs:
-            signal_location = name_map[metrics_manager.get_register_value(metric_name, reg_name)]
-
-            # Amaranth escapes identifiers when generating Verilog code, but returns non-escaped identifiers
-            # in the name map, so we need to take care of it manually.
-            signal_location = [escape_verilog_identifier(component) for component in signal_location]
-
-            metric_loc.regs[reg_name] = signal_location
+            metric_loc.regs[reg_name] = get_signal_location(
+                metrics_manager.get_register_value(metric_name, reg_name), name_map
+            )
 
         core_metrics_location[metric_name] = metric_loc
 
@@ -109,7 +111,7 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str):
             fragment, name="top", emit_src=True, strip_internal_attrs=True
         )
 
-        gen_info = CoreGenInfo(core_metrics_location=collect_metric_locations(gp, name_map))  # type: ignore
+        gen_info = CoreGenInfo(core_metrics_location=collect_metric_locations(name_map))  # type: ignore
         gen_info.encode(f"{output_path}.json")
 
         with open(output_path, "w") as f:
