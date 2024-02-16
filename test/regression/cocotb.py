@@ -15,7 +15,7 @@ from cocotb.result import SimTimeoutError
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
-from coreblocks.utils.gen_info import CoreGenInfo
+from transactron.utils.gen import GenerationInfo
 
 
 @dataclass
@@ -145,7 +145,7 @@ class CocotbSimulation(SimulationBackend):
         except KeyError:
             raise RuntimeError("No core generation info provided")
 
-        self.gen_info = CoreGenInfo.decode(gen_info_path)
+        self.gen_info = GenerationInfo.decode(gen_info_path)
 
     def get_cocotb_handle(self, path_components: list[str]) -> ModifiableObject:
         obj = self.dut
@@ -179,7 +179,7 @@ class CocotbSimulation(SimulationBackend):
 
         result = SimulationExecutionResult(success)
 
-        for metric_name, metric_loc in self.gen_info.core_metrics_location.items():
+        for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}
             for reg_name, reg_loc in metric_loc.regs.items():
                 value = int(self.get_cocotb_handle(reg_loc))
