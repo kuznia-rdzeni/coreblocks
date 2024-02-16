@@ -60,6 +60,14 @@ transactron.utils.dependencies module
    :undoc-members:
    :show-inheritance:
 
+transactron.utils.gen module
+----------------------------
+
+.. automodule:: transactron.utils.gen
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.utils.transactron\_helpers module
 ---------------------------------------------
 
