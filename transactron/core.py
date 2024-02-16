@@ -615,7 +615,7 @@ class _AvoidingModuleBuilderDomains:
 
     class _AvoidingModuleBuilderDomain:
         """
-        A wrapper over amaranth domain to abstract away internal amaranth implementation.
+        A wrapper over Amaranth domain to abstract away internal Amaranth implementation.
         It is needed to allow for correctness check in `__setattr__` which uses `isinstance`.
         """
 
