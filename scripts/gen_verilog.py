@@ -16,7 +16,6 @@ if __name__ == "__main__":
 from coreblocks.params.genparams import GenParams
 from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
-from transactron.utils.gen import *
 from transactron import TransactionModule
 from transactron.utils import flatten_signals, DependencyManager, DependencyContext
 from transactron.utils.gen import generate_verilog
