@@ -61,7 +61,10 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     arglist += [f"TESTCASE={test_cases}"]
 
     verilog_code = topdir.joinpath("core.v")
+    gen_info_path = f"{verilog_code}.json"
+
     arglist += [f"VERILOG_SOURCES={verilog_code}"]
+    arglist += [f"_COREBLOCKS_GEN_INFO={gen_info_path}"]
 
     if traces:
         arglist += ["TRACES=1"]
