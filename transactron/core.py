@@ -22,7 +22,6 @@ from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
 from amaranth.hdl.dsl import FSM
-from amaranth.hdl.ast import Statement
 
 from transactron.utils.assign import AssignArg
 
@@ -620,7 +619,7 @@ class _AvoidingModuleBuilderDomain:
     def __init__(self, amaranth_module_domain):
         self._domain = amaranth_module_domain
 
-    def __iadd__(self, assigns: list[Statement] | Statement) -> Self:
+    def __iadd__(self, assigns: StatementLike) -> Self:
         self._domain.__iadd__(assigns)
         return self
 
