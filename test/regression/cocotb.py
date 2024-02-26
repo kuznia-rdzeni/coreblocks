@@ -163,7 +163,8 @@ class CocotbSimulation(SimulationBackend):
         while True:
             for assert_info in self.gen_info.asserts:
                 assert_val = self.get_cocotb_handle(assert_info.location)
-                assert assert_val.value
+                n, i = assert_info.src_loc
+                assert assert_val.value, f"Assertion at {n}:{i}"
 
             await clock_edge_event  # type: ignore
 
