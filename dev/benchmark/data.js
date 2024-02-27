@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709028969102,
+  "lastUpdate": 1709029516261,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -7423,6 +7423,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5a7390cdc8b37fdee75ee0a08275725414cfee72",
+          "message": "Remove private _ModuleBuilderDomain (#589)",
+          "timestamp": "2024-02-27T11:08:33+01:00",
+          "tree_id": "e4c1f7746fbcf6fa7e88343847a260589abba311",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5a7390cdc8b37fdee75ee0a08275725414cfee72"
+        },
+        "date": 1709029514091,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
             "unit": "Instructions Per Cycle"
           }
         ]
