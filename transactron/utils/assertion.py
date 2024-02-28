@@ -4,6 +4,7 @@ from functools import reduce
 import operator
 from dataclasses import dataclass
 from transactron.utils import SrcLoc
+from transactron.utils._typing import ModuleLike, ValueLike
 from transactron.utils.dependencies import DependencyContext, ListKey
 
 __all__ = ["AssertKey", "assertion", "assert_bit", "assert_bits"]
@@ -14,7 +15,7 @@ class AssertKey(ListKey[tuple[Signal, SrcLoc]]):
     pass
 
 
-def assertion(m: Module, value: Value, *, src_loc_at: int = 0):
+def assertion(m: ModuleLike, value: ValueLike, *, src_loc_at: int = 0):
     """Define an assertion.
 
     This function might help find some hardware bugs which might otherwise be
