@@ -1,5 +1,6 @@
 from decimal import Decimal
 import inspect
+import os
 from typing import Any
 from collections.abc import Coroutine
 from dataclasses import dataclass
@@ -13,6 +14,8 @@ from cocotb.result import SimTimeoutError
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
+
+from transactron.utils.gen import GenerationInfo
 
 
 @dataclass
@@ -137,6 +140,23 @@ class CocotbSimulation(SimulationBackend):
         self.dut = dut
         self.finish_event = Event()
 
+        try:
+            gen_info_path = os.environ["_COREBLOCKS_GEN_INFO"]
+        except KeyError:
+            raise RuntimeError("No core generation info provided")
+
+        self.gen_info = GenerationInfo.decode(gen_info_path)
+
+    def get_cocotb_handle(self, path_components: list[str]) -> ModifiableObject:
+        obj = self.dut
+        # Skip the first component, as it is already referenced in "self.dut"
+        for component in path_components[1:]:
+            # As the component may start with '_' character, we need to use '_id'
+            # function instead of 'getattr' - this is required by cocotb.
+            obj = obj._id(component, extended=False)
+
+        return obj
+
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
@@ -157,7 +177,16 @@ class CocotbSimulation(SimulationBackend):
         except SimTimeoutError:
             success = False
 
-        return SimulationExecutionResult(success)
+        result = SimulationExecutionResult(success)
+
+        for metric_name, metric_loc in self.gen_info.metrics_location.items():
+            result.metric_values[metric_name] = {}
+            for reg_name, reg_loc in metric_loc.regs.items():
+                value = int(self.get_cocotb_handle(reg_loc))
+                result.metric_values[metric_name][reg_name] = value
+                cocotb.logging.debug(f"Metric {metric_name}/{reg_name}={value}")
+
+        return result
 
     def stop(self):
         self.finish_event.set()

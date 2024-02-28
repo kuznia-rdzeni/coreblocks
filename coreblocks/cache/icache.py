@@ -115,6 +115,15 @@ class ICache(Elaboratable, CacheInterface):
             ("tag", self.params.tag_bits),
         ]
 
+        self.perf_loads = HwCounter("frontend.icache.loads", "Number of requests to the L1 Instruction Cache")
+        self.perf_hits = HwCounter("frontend.icache.hits")
+        self.perf_misses = HwCounter("frontend.icache.misses")
+        self.perf_errors = HwCounter("frontend.icache.fetch_errors")
+        self.perf_flushes = HwCounter("frontend.icache.flushes")
+        self.req_latency = LatencyMeasurer(
+            "frontend.icache.req_latency", "Latencies of cache requests", slots_number=2, max_latency=500
+        )
+
     def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
         return {
             "offset": raw_addr[: self.params.offset_bits],
@@ -128,6 +137,15 @@ class ICache(Elaboratable, CacheInterface):
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules += [
+            self.perf_loads,
+            self.perf_hits,
+            self.perf_misses,
+            self.perf_errors,
+            self.perf_flushes,
+            self.req_latency,
+        ]
+
         m.submodules.mem = self.mem = ICacheMemory(self.params)
         m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
         m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.layouts.accept_res)
@@ -135,10 +153,14 @@ class ICache(Elaboratable, CacheInterface):
         # State machine logic
         needs_refill = Signal()
         refill_finish = Signal()
+        refill_finish_last = Signal()
         refill_error = Signal()
 
         flush_start = Signal()
         flush_finish = Signal()
+
+        with Transaction().body(m):
+            self.perf_flushes.incr(m, cond=flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
             with m.State("FLUSH"):
@@ -179,12 +201,17 @@ class ICache(Elaboratable, CacheInterface):
         m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
 
         with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_saved)):
+            self.perf_errors.incr(m, cond=refill_error_saved)
+            self.perf_misses.incr(m, cond=refill_finish_last)
+            self.perf_hits.incr(m, cond=~refill_finish_last)
+
             self.res_fwd.write(m, instr=instr_out, error=refill_error_saved)
             m.d.sync += refill_error_saved.eq(0)
 
         @def_method(m, self.accept_res)
         def _():
             self.req_fifo.read(m)
+            self.req_latency.stop(m)
             return self.res_fwd.read(m)
 
         mem_read_addr = Record(self.addr_layout)
@@ -192,6 +219,9 @@ class ICache(Elaboratable, CacheInterface):
 
         @def_method(m, self.issue_req, ready=accepting_requests)
         def _(addr: Value) -> None:
+            self.perf_loads.incr(m)
+            self.req_latency.start(m)
+
             deserialized = self.deserialize_addr(addr)
             # Forward read address only if the method is called
             m.d.comb += assign(mem_read_addr, deserialized)
@@ -223,6 +253,8 @@ class ICache(Elaboratable, CacheInterface):
             aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
             self.refiller.start_refill(m, addr=aligned_addr)
 
+        m.d.sync += refill_finish_last.eq(0)
+
         with Transaction().body(m):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
@@ -235,6 +267,7 @@ class ICache(Elaboratable, CacheInterface):
 
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
+            m.d.sync += refill_finish_last.eq(1)
             m.d.comb += refill_error.eq(ret.error)
             m.d.sync += refill_error_saved.eq(ret.error)
 

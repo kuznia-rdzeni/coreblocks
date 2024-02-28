@@ -1,6 +1,6 @@
 from amaranth import *
 
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.structs_common.instr_counter import CoreInstructionCounter
 from coreblocks.structs_common.interrupt_controller import InterruptController
@@ -32,6 +32,7 @@ from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
+from transactron.lib.metrics import HwMetricsEnabledKey
 
 __all__ = ["Core"]
 
@@ -39,6 +40,10 @@ __all__ = ["Core"]
 class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
         self.gen_params = gen_params
+
+        dep_manager = DependencyContext.get()
+        if self.gen_params.debug_signals_enabled:
+            dep_manager.add_dependency(HwMetricsEnabledKey(), True)
 
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus

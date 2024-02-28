@@ -4,9 +4,10 @@ import os
 import sys
 import argparse
 
+from amaranth import *
 from amaranth.build import Platform
-from amaranth.back import verilog
 from amaranth import Module, Elaboratable
+
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,8 +17,8 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.peripherals.wishbone import WishboneBus
 from coreblocks.core import Core
 from transactron import TransactionModule
-from transactron.utils import flatten_signals
-from transactron.utils.dependencies import DependencyManager, DependencyContext
+from transactron.utils import flatten_signals, DependencyManager, DependencyContext
+from transactron.utils.gen import generate_verilog
 
 from coreblocks.params.configurations import *
 
@@ -44,14 +45,17 @@ class Top(Elaboratable):
         return tm
 
 
-def gen_verilog(core_config: CoreConfiguration, output_path):
+def gen_verilog(core_config: CoreConfiguration, output_path: str):
     with DependencyContext(DependencyManager()):
-        top = Top(GenParams(core_config))
+        gp = GenParams(core_config)
+        top = Top(gp)
+        ports = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
 
+        verilog_text, gen_info = generate_verilog(top, ports)
+
+        gen_info.encode(f"{output_path}.json")
         with open(output_path, "w") as f:
-            signals = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
-
-            f.write(verilog.convert(top, ports=signals, strip_internal_attrs=True))
+            f.write(verilog_text)
 
 
 def main():
@@ -73,6 +77,12 @@ def main():
     )
 
     parser.add_argument(
+        "--strip-debug",
+        action="store_true",
+        help="Remove debugging signals. Default: %(default)s",
+    )
+
+    parser.add_argument(
         "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
     )
 
@@ -83,7 +93,11 @@ def main():
     if args.config not in str_to_coreconfig:
         raise KeyError(f"Unknown config '{args.config}'")
 
-    gen_verilog(str_to_coreconfig[args.config], args.output)
+    config = str_to_coreconfig[args.config]
+    if args.strip_debug:
+        config = config.replace(debug_signals=False)
+
+    gen_verilog(config, args.output)
 
 
 if __name__ == "__main__":
