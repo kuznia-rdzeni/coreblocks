@@ -2,7 +2,7 @@ import os.path
 from amaranth.sim import *
 from transactron.core import MethodMap, TransactionManager
 from transactron.profiler import CycleProfile, Profile, ProfileInfo
-from transactron.utils import SrcLoc
+from transactron.utils import SrcLoc, IdGenerator
 from .functions import TestGen
 
 __all__ = ["profiler_process"]
@@ -12,17 +12,7 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
     def process() -> TestGen:
         method_map = MethodMap(transaction_manager.transactions)
         cgr, _, _ = TransactionManager._conflict_graph(method_map)
-        id_map = dict[int, int]()
-        id_seq = 0
-
-        def get_id(obj):
-            try:
-                return id_map[id(obj)]
-            except KeyError:
-                nonlocal id_seq
-                id_seq = id_seq + 1
-                id_map[id(obj)] = id_seq
-                return id_seq
+        get_id = IdGenerator()
 
         def local_src_loc(src_loc: SrcLoc):
             return (os.path.relpath(src_loc[0]), src_loc[1])
