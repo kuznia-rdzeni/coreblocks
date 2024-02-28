@@ -6,7 +6,9 @@ from amaranth.back import verilog
 from amaranth.hdl import ir
 from amaranth.hdl.ast import SignalDict
 
+from transactron.core import TransactionManager, MethodMap
 from transactron.lib.metrics import HardwareMetricsManager
+from transactron.utils._typing import SrcLoc
 
 
 __all__ = [
@@ -34,6 +36,24 @@ class MetricLocation:
 
 @dataclass_json
 @dataclass
+class TransactionSignalsLocation:
+    request: list[str]
+    runnable: list[str]
+    grant: list[str]
+    owned_name: str
+    src_loc: SrcLoc
+
+
+@dataclass_json
+@dataclass
+class MethodSignalsLocation:
+    run: list[str]
+    owned_name: str
+    src_loc: SrcLoc
+
+
+@dataclass_json
+@dataclass
 class GenerationInfo:
     """Various information about the generated circuit.
 
@@ -45,6 +65,8 @@ class GenerationInfo:
     """
 
     metrics_location: dict[str, MetricLocation] = field(default_factory=dict)
+    transaction_signals_location: list[TransactionSignalsLocation] = field(default_factory=list)
+    method_signals_location: list[MethodSignalsLocation] = field(default_factory=list)
 
     def encode(self, file_name: str):
         """
@@ -111,6 +133,36 @@ def collect_metric_locations(name_map: SignalDict) -> dict[str, MetricLocation]:
         metrics_location[metric_name] = metric_loc
 
     return metrics_location
+
+
+def collect_transaction_signals(
+    transaction_manager: TransactionManager, name_map: SignalDict
+) -> list[TransactionSignalsLocation]:
+    signals_location: list[TransactionSignalsLocation] = []
+
+    for transaction in transaction_manager.transactions:
+        request_loc = get_signal_location(transaction.request, name_map)
+        runnable_loc = get_signal_location(transaction.runnable, name_map)
+        grant_loc = get_signal_location(transaction.grant, name_map)
+        signals_location.append(
+            TransactionSignalsLocation(
+                request_loc, runnable_loc, grant_loc, transaction.owned_name, transaction.src_loc
+            )
+        )
+
+    return signals_location
+
+
+def collect_method_signals(
+    transaction_manager: TransactionManager, name_map: SignalDict
+) -> list[MethodSignalsLocation]:
+    signals_location: list[MethodSignalsLocation] = []
+
+    for method in MethodMap(transaction_manager.transactions).methods:
+        run_loc = get_signal_location(method.run, name_map)
+        signals_location.append(MethodSignalsLocation(run_loc, method.owned_name, method.src_loc))
+
+    return signals_location
 
 
 def generate_verilog(
