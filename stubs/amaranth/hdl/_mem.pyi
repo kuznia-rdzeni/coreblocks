@@ -111,9 +111,9 @@ class DummyPort:
     
 
 class MemoryInstance(Fragment):
-    memory : Memory
-    read_ports :list[ReadPort]
-    write_ports : list[WritePort]
-    attrs : dict
-    def __init__(self, memory : Memory, read_ports : list[ReadPort], write_ports : list[WritePort]) -> None:
+    memory: Memory
+    read_ports: list[ReadPort]
+    write_ports: list[WritePort]
+    attrs: dict
+    def __init__(self, memory: Memory, read_ports: list[ReadPort], write_ports: list[WritePort]) -> None:
         ...
