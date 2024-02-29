@@ -170,14 +170,15 @@ instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.XNOR, Funct7.XNOR),
     ],
     OpType.UNARY_BIT_MANIPULATION_1: [
-        Encoding(Opcode.OP_IMM, Funct3.ORCB, funct12=Funct12.ORCB),
         Encoding(Opcode.OP_IMM, Funct3.REV8, funct12=Funct12.REV8_32),
         Encoding(Opcode.OP_IMM, Funct3.SEXTB, funct12=Funct12.SEXTB),
         Encoding(Opcode.OP, Funct3.ZEXTH, funct12=Funct12.ZEXTH),
     ],
-    # Instructions SEXTH, SEXTHB, CPOP, CLZ and CTZ  cannot be distiguished by their Funct7 code
+    # Instructions SEXTH, SEXTHB, CPOP, CLZ and CTZ cannot be distiguished by their Funct7 code
+    # ORCB is here because of optimization to not lookup Funct7 in UNARY_BIT_MANIPULATION_1
     OpType.UNARY_BIT_MANIPULATION_2: [
         Encoding(Opcode.OP_IMM, Funct3.SEXTH, funct12=Funct12.SEXTH),
+        Encoding(Opcode.OP_IMM, Funct3.ORCB, funct12=Funct12.ORCB),
     ],
     OpType.UNARY_BIT_MANIPULATION_3: [
         Encoding(Opcode.OP_IMM, Funct3.CLZ, funct12=Funct12.CLZ),
