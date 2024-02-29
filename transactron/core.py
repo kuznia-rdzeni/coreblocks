@@ -21,7 +21,7 @@ from dataclasses import dataclass, replace
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
-from amaranth.hdl.dsl import FSM, _ModuleBuilderDomain
+from amaranth.hdl.dsl import FSM
 
 from transactron.utils.assign import AssignArg
 
@@ -610,25 +610,39 @@ class TransactionModule(Elaboratable):
         return m
 
 
+class _AvoidingModuleBuilderDomain:
+    """
+    A wrapper over Amaranth domain to abstract away internal Amaranth implementation.
+    It is needed to allow for correctness check in `__setattr__` which uses `isinstance`.
+    """
+
+    def __init__(self, amaranth_module_domain):
+        self._domain = amaranth_module_domain
+
+    def __iadd__(self, assigns: StatementLike) -> Self:
+        self._domain.__iadd__(assigns)
+        return self
+
+
 class _AvoidingModuleBuilderDomains:
     _m: "TModule"
 
     def __init__(self, m: "TModule"):
         object.__setattr__(self, "_m", m)
 
-    def __getattr__(self, name: str) -> _ModuleBuilderDomain:
+    def __getattr__(self, name: str) -> _AvoidingModuleBuilderDomain:
         if name == "av_comb":
-            return self._m.avoiding_module.d["comb"]
+            return _AvoidingModuleBuilderDomain(self._m.avoiding_module.d["comb"])
         elif name == "top_comb":
-            return self._m.top_module.d["comb"]
+            return _AvoidingModuleBuilderDomain(self._m.top_module.d["comb"])
         else:
-            return self._m.main_module.d[name]
+            return _AvoidingModuleBuilderDomain(self._m.main_module.d[name])
 
-    def __getitem__(self, name: str) -> _ModuleBuilderDomain:
+    def __getitem__(self, name: str) -> _AvoidingModuleBuilderDomain:
         return self.__getattr__(name)
 
     def __setattr__(self, name: str, value):
-        if not isinstance(value, _ModuleBuilderDomain):
+        if not isinstance(value, _AvoidingModuleBuilderDomain):
             raise AttributeError(f"Cannot assign 'd.{name}' attribute; did you mean 'd.{name} +='?")
 
     def __setitem__(self, name: str, value):
