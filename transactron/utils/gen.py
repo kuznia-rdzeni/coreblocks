@@ -6,10 +6,11 @@ from amaranth.back import verilog
 from amaranth.hdl import ir
 from amaranth.hdl.ast import SignalDict
 
-from transactron.core import TransactionManager, MethodMap
+from transactron.core import TransactionManager, MethodMap, TransactionManagerKey
 from transactron.lib.metrics import HardwareMetricsManager
-from transactron.utils._typing import SrcLoc
+from transactron.utils.dependencies import DependencyContext
 from transactron.utils.idgen import IdGenerator
+from transactron.profiler import ProfileData
 
 
 __all__ = [
@@ -41,17 +42,12 @@ class TransactionSignalsLocation:
     request: list[str]
     runnable: list[str]
     grant: list[str]
-    owned_name: str
-    src_loc: SrcLoc
 
 
 @dataclass_json
 @dataclass
 class MethodSignalsLocation:
     run: list[str]
-    owned_name: str
-    src_loc: SrcLoc
-    parents: list[int]
 
 
 @dataclass_json
@@ -66,9 +62,10 @@ class GenerationInfo:
         of its registers.
     """
 
-    metrics_location: dict[str, MetricLocation] = field(default_factory=dict)
-    transaction_signals_location: dict[int, TransactionSignalsLocation] = field(default_factory=dict)
-    method_signals_location: dict[int, MethodSignalsLocation] = field(default_factory=dict)
+    metrics_location: dict[str, MetricLocation]
+    transaction_signals_location: dict[int, TransactionSignalsLocation]
+    method_signals_location: dict[int, MethodSignalsLocation]
+    profile_data: ProfileData
 
     def encode(self, file_name: str):
         """
@@ -151,15 +148,12 @@ def collect_transaction_method_signals(
         runnable_loc = get_signal_location(transaction.runnable, name_map)
         grant_loc = get_signal_location(transaction.grant, name_map)
         transaction_signals_location[get_id(transaction)] = TransactionSignalsLocation(
-            request_loc, runnable_loc, grant_loc, transaction.owned_name, transaction.src_loc
+            request_loc, runnable_loc, grant_loc
         )
 
     for method in method_map.methods:
         run_loc = get_signal_location(method.run, name_map)
-        parents = [get_id(parent) for parent in method_map.method_parents[method]]
-        method_signals_location[get_id(method)] = MethodSignalsLocation(
-            run_loc, method.owned_name, method.src_loc, parents
-        )
+        method_signals_location[get_id(method)] = MethodSignalsLocation(run_loc)
 
     return (transaction_signals_location, method_signals_location)
 
@@ -170,6 +164,14 @@ def generate_verilog(
     fragment = ir.Fragment.get(top_module, platform=None).prepare(ports=ports)
     verilog_text, name_map = verilog.convert_fragment(fragment, name=top_name, emit_src=True, strip_internal_attrs=True)
 
-    gen_info = GenerationInfo(metrics_location=collect_metric_locations(name_map))  # type: ignore
+    transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
+    transaction_signals, method_signals = collect_transaction_method_signals(
+        transaction_manager, name_map  # type: ignore
+    )
+    gen_info = GenerationInfo(
+        metrics_location=collect_metric_locations(name_map),  # type: ignore
+        transaction_signals_location=transaction_signals,
+        method_signals_location=method_signals,
+    )
 
     return verilog_text, gen_info

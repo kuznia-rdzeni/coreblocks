@@ -1,11 +1,22 @@
+import os
 from collections import defaultdict
 from typing import Optional
 from dataclasses import dataclass, field
-from transactron.utils import SrcLoc
 from dataclasses_json import dataclass_json
+from transactron.utils import SrcLoc, IdGenerator
+from transactron.core import MethodMap, TransactionManager
 
 
-__all__ = ["ProfileInfo", "Profile"]
+__all__ = [
+    "ProfileInfo",
+    "ProfileData",
+    "RunStat",
+    "RunStatNode",
+    "Profile",
+    "TransactionSamples",
+    "MethodSamples",
+    "ProfileSamples",
+]
 
 
 @dataclass_json
@@ -27,6 +38,50 @@ class ProfileInfo:
     name: str
     src_loc: SrcLoc
     is_transaction: bool
+
+
+@dataclass
+class ProfileData:
+    transactions_and_methods: dict[int, ProfileInfo]
+    method_parents: dict[int, list[int]]
+    transactions_by_method: dict[int, list[int]]
+    transaction_conflicts: dict[int, list[int]]
+
+    @staticmethod
+    def make(transaction_manager: TransactionManager):
+        transactions_and_methods = dict[int, ProfileInfo]()
+        method_parents = dict[int, list[int]]()
+        transactions_by_method = dict[int, list[int]]()
+        transaction_conflicts = dict[int, list[int]]()
+
+        method_map = MethodMap(transaction_manager.transactions)
+        cgr, _, _ = TransactionManager._conflict_graph(method_map)
+        get_id = IdGenerator()
+
+        def local_src_loc(src_loc: SrcLoc):
+            return (os.path.relpath(src_loc[0]), src_loc[1])
+
+        for transaction in method_map.transactions:
+            transactions_and_methods[get_id(transaction)] = ProfileInfo(
+                transaction.owned_name, local_src_loc(transaction.src_loc), True
+            )
+
+        for method in method_map.methods:
+            transactions_and_methods[get_id(method)] = ProfileInfo(
+                method.owned_name, local_src_loc(method.src_loc), False
+            )
+            method_parents[get_id(method)] = [get_id(t_or_m) for t_or_m in method_map.method_parents[method]]
+            transactions_by_method[get_id(method)] = [
+                get_id(t_or_m) for t_or_m in method_map.transactions_by_method[method]
+            ]
+
+        for transaction, transactions in cgr.items():
+            transaction_conflicts[get_id(transaction)] = [get_id(transaction2) for transaction2 in transactions]
+
+        return (
+            ProfileData(transactions_and_methods, method_parents, transactions_by_method, transaction_conflicts),
+            get_id,
+        )
 
 
 @dataclass
@@ -76,6 +131,24 @@ class RunStatNode:
         return RunStatNode(RunStat.make(info))
 
 
+@dataclass
+class TransactionSamples:
+    request: bool
+    runnable: bool
+    grant: bool
+
+
+@dataclass
+class MethodSamples:
+    run: bool
+
+
+@dataclass
+class ProfileSamples:
+    transactions: dict[int, TransactionSamples]
+    methods: dict[int, MethodSamples]
+
+
 @dataclass_json
 @dataclass
 class CycleProfile:
@@ -97,6 +170,44 @@ class CycleProfile:
 
     locked: dict[int, int] = field(default_factory=dict)
     running: dict[int, Optional[int]] = field(default_factory=dict)
+
+    @staticmethod
+    def make(samples: ProfileSamples, data: ProfileData):
+        cprof = CycleProfile()
+
+        for transaction_id, transaction_samples in samples.transactions.items():
+            if transaction_samples.grant:
+                cprof.running[transaction_id] = None
+            elif transaction_samples.request and transaction_samples.runnable:
+                for transaction2_id in data.transaction_conflicts[transaction_id]:
+                    if samples.transactions[transaction2_id].grant:
+                        cprof.locked[transaction_id] = transaction2_id
+
+        running = set(cprof.running)
+        for method_id, method_samples in samples.methods.items():
+            if method_samples.run:
+                running.add(method_id)
+
+        locked_methods = set[int]()
+        for method_id in samples.methods.keys():
+            if method_id not in running:
+                if any(transaction_id in running for transaction_id in data.transactions_by_method[method_id]):
+                    locked_methods.add(method_id)
+
+        for method_id in samples.methods.keys():
+            if method_id in running:
+                for t_or_m_id in data.method_parents[method_id]:
+                    if t_or_m_id in running:
+                        cprof.running[method_id] = t_or_m_id
+            elif method_id in locked_methods:
+                caller = next(
+                    t_or_m_id
+                    for t_or_m_id in data.method_parents[method_id]
+                    if t_or_m_id in running or t_or_m_id in locked_methods
+                )
+                cprof.locked[method_id] = caller
+
+        return cprof
 
 
 @dataclass_json
