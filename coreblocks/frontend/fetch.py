@@ -1,6 +1,8 @@
 from amaranth import *
+from transactron.core import Priority
 from transactron.lib import BasicFifo, Semaphore
-from coreblocks.frontend.icache import ICacheInterface
+from transactron.lib.metrics import *
+from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
 from ..params import *
@@ -12,14 +14,14 @@ class Fetch(Elaboratable):
     after each fetch.
     """
 
-    def __init__(self, gen_params: GenParams, icache: ICacheInterface, cont: Method) -> None:
+    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        icache : ICacheInterface
+        icache : CacheInterface
             Instruction Cache
         cont : Method
             Method which should be invoked to send fetched data to the next step.
@@ -29,8 +31,12 @@ class Fetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
+        self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
+        # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
+        # of exception report, both can happen at any time during normal excecution.
+        # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
+        self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
@@ -71,9 +77,7 @@ class Fetch(Elaboratable):
 
             opcode = res.instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = (
-                (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
-            )
+            unsafe_instr = opcode == Opcode.SYSTEM
 
             with m.If(spin == target.spin):
                 instr = Signal(self.gen_params.isa.ilen)
@@ -92,9 +96,9 @@ class Fetch(Elaboratable):
 
                 self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
-        @def_method(m, self.verify_branch, ready=stalled)
-        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
-            m.d.sync += speculative_pc.eq(next_pc)
+        @def_method(m, self.resume, ready=stalled)
+        def _(pc: Value, resume_from_exception: Value):
+            m.d.sync += speculative_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)
@@ -111,14 +115,14 @@ class UnalignedFetch(Elaboratable):
     Simple fetch unit that works with unaligned and RVC instructions.
     """
 
-    def __init__(self, gen_params: GenParams, icache: ICacheInterface, cont: Method) -> None:
+    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        icache : ICacheInterface
+        icache : CacheInterface
             Instruction Cache
         cont : Method
             Method which should be invoked to send fetched data to the next step.
@@ -128,14 +132,19 @@ class UnalignedFetch(Elaboratable):
         self.icache = icache
         self.cont = cont
 
-        self.verify_branch = Method(i=self.gen_params.get(FetchLayouts).branch_verify)
+        self.resume = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.stall_exception = Method()
+        self.stall_exception.add_conflict(self.resume, Priority.LEFT)
+
+        self.perf_rvc = HwCounter("frontend.ifu.rvc", "Number of decompressed RVC instructions")
 
         # PC of the last fetched instruction. For now only used in tests.
         self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
+
+        m.submodules += [self.perf_rvc]
 
         m.submodules.req_limiter = req_limiter = Semaphore(2)
 
@@ -191,9 +200,7 @@ class UnalignedFetch(Elaboratable):
 
             opcode = instr[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = (
-                (opcode == Opcode.BRANCH) | (opcode == Opcode.JAL) | (opcode == Opcode.JALR) | (opcode == Opcode.SYSTEM)
-            )
+            unsafe_instr = opcode == Opcode.SYSTEM
 
             # Check if we are ready to dispatch an instruction in the current cycle.
             # This can happen in three situations:
@@ -228,12 +235,13 @@ class UnalignedFetch(Elaboratable):
                 with m.If(~cache_resp.error):
                     m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 
+                self.perf_rvc.incr(m, cond=is_rvc)
                 self.cont(m, instr=instr, pc=current_pc, access_fault=cache_resp.error, rvc=is_rvc)
 
-        @def_method(m, self.verify_branch, ready=(stalled & ~flushing))
-        def _(from_pc: Value, next_pc: Value, resume_from_exception: Value):
-            m.d.sync += cache_req_pc.eq(next_pc)
-            m.d.sync += current_pc.eq(next_pc)
+        @def_method(m, self.resume, ready=(stalled & ~flushing))
+        def _(pc: Value, resume_from_exception: Value):
+            m.d.sync += cache_req_pc.eq(pc)
+            m.d.sync += current_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)

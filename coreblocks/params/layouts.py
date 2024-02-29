@@ -1,6 +1,8 @@
+from amaranth.lib.data import StructLayout
 from coreblocks.params import GenParams, OpType, Funct7, Funct3
 from coreblocks.params.isa import ExceptionCause
 from transactron.utils import LayoutList, LayoutListField, layout_subset
+from transactron.utils.transactron_helpers import from_method_layout, make_layout
 
 __all__ = [
     "CommonLayoutFields",
@@ -19,6 +21,7 @@ __all__ = [
     "PMALayouts",
     "CSRLayouts",
     "ICacheLayouts",
+    "JumpBranchLayouts",
 ]
 
 
@@ -83,7 +86,7 @@ class CommonLayoutFields:
         self.instr: LayoutListField = ("instr", gen_params.isa.ilen)
         """RISC V instruction."""
 
-        self.exec_fn_layout: LayoutList = [self.op_type, self.funct3, self.funct7]
+        self.exec_fn_layout = make_layout(self.op_type, self.funct3, self.funct7)
         """Decoded instruction, in layout form."""
 
         self.exec_fn: LayoutListField = ("exec_fn", self.exec_fn_layout)
@@ -135,48 +138,48 @@ class SchedulerLayouts:
         )
         """Logical register number for the destination operand, before ROB allocation."""
 
-        self.reg_alloc_in: LayoutList = [
+        self.reg_alloc_in = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
-        self.reg_alloc_out: LayoutList = [
+        self.reg_alloc_out = make_layout(
             fields.exec_fn,
             fields.regs_l,
             self.regs_p_alloc_out,
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
         self.renaming_in = self.reg_alloc_out
 
-        self.renaming_out: LayoutList = [
+        self.renaming_out = make_layout(
             fields.exec_fn,
             self.regs_l_rob_in,
             fields.regs_p,
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
         self.rob_allocate_in = self.renaming_out
 
-        self.rob_allocate_out: LayoutList = [
+        self.rob_allocate_out = make_layout(
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
         self.rs_select_in = self.rob_allocate_out
 
-        self.rs_select_out: LayoutList = [
+        self.rs_select_out = make_layout(
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
@@ -185,11 +188,11 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
         self.rs_insert_in = self.rs_select_out
 
-        self.free_rf_layout: LayoutList = [fields.reg_id]
+        self.free_rf_layout = make_layout(fields.reg_id)
 
 
 class RFLayouts:
@@ -201,10 +204,10 @@ class RFLayouts:
         self.valid: LayoutListField = ("valid", 1)
         """Physical register was assigned a value."""
 
-        self.rf_read_in: LayoutList = [fields.reg_id]
-        self.rf_free: LayoutList = [fields.reg_id]
-        self.rf_read_out: LayoutList = [fields.reg_val, self.valid]
-        self.rf_write: LayoutList = [fields.reg_id, fields.reg_val]
+        self.rf_read_in = make_layout(fields.reg_id)
+        self.rf_free = make_layout(fields.reg_id)
+        self.rf_read_out = make_layout(fields.reg_val, self.valid)
+        self.rf_write = make_layout(fields.reg_id, fields.reg_val)
 
 
 class RATLayouts:
@@ -216,19 +219,19 @@ class RATLayouts:
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 
-        self.frat_rename_in: LayoutList = [
+        self.frat_rename_in = make_layout(
             fields.rl_s1,
             fields.rl_s2,
             fields.rl_dst,
             fields.rp_dst,
-        ]
-        self.frat_rename_out: LayoutList = [fields.rp_s1, fields.rp_s2]
+        )
+        self.frat_rename_out = make_layout(fields.rp_s1, fields.rp_s2)
 
-        self.rrat_commit_in: LayoutList = [fields.rl_dst, fields.rp_dst]
-        self.rrat_commit_out: LayoutList = [self.old_rp_dst]
+        self.rrat_commit_in = make_layout(fields.rl_dst, fields.rp_dst)
+        self.rrat_commit_out = make_layout(self.old_rp_dst)
 
-        self.rrat_peek_in: LayoutList = [fields.rl_dst]
-        self.rrat_peek_out: LayoutList = self.rrat_commit_out
+        self.rrat_peek_in = make_layout(fields.rl_dst)
+        self.rrat_peek_out = self.rrat_commit_out
 
 
 class ROBLayouts:
@@ -237,10 +240,10 @@ class ROBLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.data_layout: LayoutList = [
+        self.data_layout = make_layout(
             fields.rl_dst,
             fields.rp_dst,
-        ]
+        )
 
         self.rob_data: LayoutListField = ("rob_data", self.data_layout)
         """Data stored in a reorder buffer entry."""
@@ -254,26 +257,26 @@ class ROBLayouts:
         self.end: LayoutListField = ("end", gen_params.rob_entries_bits)
         """Index of the entry following the last (the latest) entry in the reorder buffer."""
 
-        self.id_layout: LayoutList = [fields.rob_id]
+        self.id_layout = make_layout(fields.rob_id)
 
-        self.internal_layout: LayoutList = [
+        self.internal_layout = make_layout(
             self.rob_data,
             self.done,
             fields.exception,
-        ]
+        )
 
-        self.mark_done_layout: LayoutList = [
+        self.mark_done_layout = make_layout(
             fields.rob_id,
             fields.exception,
-        ]
+        )
 
-        self.peek_layout: LayoutList = [
+        self.peek_layout = make_layout(
             self.rob_data,
             fields.rob_id,
             fields.exception,
-        ]
+        )
 
-        self.get_indices: LayoutList = [self.start, self.end]
+        self.get_indices = make_layout(self.start, self.end)
 
 
 class RSLayoutFields:
@@ -293,7 +296,7 @@ class RSFullDataLayout:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.data_layout: LayoutList = [
+        self.data_layout = make_layout(
             fields.rp_s1,
             fields.rp_s2,
             ("rp_s1_reg", gen_params.phys_regs_bits),
@@ -306,7 +309,7 @@ class RSFullDataLayout:
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
 
 class RSInterfaceLayouts:
@@ -316,13 +319,13 @@ class RSInterfaceLayouts:
         fields = gen_params.get(CommonLayoutFields)
         rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
-        self.data_layout: LayoutList = data_layout
+        self.data_layout = from_method_layout(data_layout)
 
-        self.select_out: LayoutList = [rs_fields.rs_entry_id]
+        self.select_out = make_layout(rs_fields.rs_entry_id)
 
-        self.insert_in: LayoutList = [rs_fields.rs_data, rs_fields.rs_entry_id]
+        self.insert_in = make_layout(rs_fields.rs_data, rs_fields.rs_entry_id)
 
-        self.update_in: LayoutList = [fields.reg_id, fields.reg_val]
+        self.update_in = make_layout(fields.reg_id, fields.reg_val)
 
 
 class RetirementLayouts:
@@ -331,7 +334,7 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit: LayoutList = [fields.rob_id, fields.side_fx]
+        self.precommit = make_layout(fields.rob_id, fields.side_fx)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """
@@ -366,7 +369,7 @@ class RSLayouts:
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
         rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
-        self.take_in: LayoutList = [rs_fields.rs_entry_id]
+        self.take_in = make_layout(rs_fields.rs_entry_id)
 
         self.take_out = layout_subset(
             data.data_layout,
@@ -381,7 +384,7 @@ class RSLayouts:
             },
         )
 
-        self.get_ready_list_out: LayoutList = [self.ready_list]
+        self.get_ready_list_out = make_layout(self.ready_list)
 
 
 class ICacheLayouts:
@@ -393,23 +396,23 @@ class ICacheLayouts:
         self.error: LayoutListField = ("last", 1)
         """This is the last cache refill result."""
 
-        self.issue_req: LayoutList = [fields.addr]
+        self.issue_req = make_layout(fields.addr)
 
-        self.accept_res: LayoutList = [
+        self.accept_res = make_layout(
             fields.instr,
             fields.error,
-        ]
+        )
 
-        self.start_refill: LayoutList = [
+        self.start_refill = make_layout(
             fields.addr,
-        ]
+        )
 
-        self.accept_refill: LayoutList = [
+        self.accept_refill = make_layout(
             fields.addr,
             fields.data,
             fields.error,
             self.error,
-        ]
+        )
 
 
 class FetchLayouts:
@@ -424,18 +427,14 @@ class FetchLayouts:
         self.rvc: LayoutListField = ("rvc", 1)
         """Instruction is a compressed (two-byte) one."""
 
-        self.raw_instr: LayoutList = [
+        self.raw_instr = make_layout(
             fields.instr,
             fields.pc,
             self.access_fault,
             self.rvc,
-        ]
+        )
 
-        self.branch_verify: LayoutList = [
-            ("from_pc", gen_params.isa.xlen),
-            ("next_pc", gen_params.isa.xlen),
-            ("resume_from_exception", 1),
-        ]
+        self.resume = make_layout(("pc", gen_params.isa.xlen), ("resume_from_exception", 1))
 
 
 class DecodeLayouts:
@@ -444,13 +443,13 @@ class DecodeLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.decoded_instr: LayoutList = [
+        self.decoded_instr = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
             fields.csr,
             fields.pc,
-        ]
+        )
 
 
 class FuncUnitLayouts:
@@ -462,7 +461,7 @@ class FuncUnitLayouts:
         self.result: LayoutListField = ("result", gen_params.isa.xlen)
         """The result value produced in a functional unit."""
 
-        self.issue: LayoutList = [
+        self.issue = make_layout(
             fields.s1_val,
             fields.s2_val,
             fields.rp_dst,
@@ -470,39 +469,47 @@ class FuncUnitLayouts:
             fields.exec_fn,
             fields.imm,
             fields.pc,
-        ]
+        )
 
-        self.accept: LayoutList = [
+        self.accept = make_layout(
             fields.rob_id,
             self.result,
             fields.rp_dst,
             fields.exception,
-        ]
+        )
 
 
 class UnsignedMulUnitLayouts:
     def __init__(self, gen_params: GenParams):
-        self.issue: LayoutList = [
+        self.issue = make_layout(
             ("i1", gen_params.isa.xlen),
             ("i2", gen_params.isa.xlen),
-        ]
+        )
 
-        self.accept: LayoutList = [
+        self.accept = make_layout(
             ("o", 2 * gen_params.isa.xlen),
-        ]
+        )
 
 
 class DivUnitLayouts:
     def __init__(self, gen_params: GenParams):
-        self.issue: LayoutList = [
+        self.issue = make_layout(
             ("dividend", gen_params.isa.xlen),
             ("divisor", gen_params.isa.xlen),
-        ]
+        )
 
-        self.accept: LayoutList = [
+        self.accept = make_layout(
             ("quotient", gen_params.isa.xlen),
             ("remainder", gen_params.isa.xlen),
-        ]
+        )
+
+
+class JumpBranchLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.verify_branch = make_layout(
+            ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
+        )
+        """ Hint for Branch Predictor about branch result """
 
 
 class LSULayouts:
@@ -537,11 +544,11 @@ class LSULayouts:
 
         self.store: LayoutListField = ("store", 1)
 
-        self.issue: LayoutList = [fields.addr, fields.data, fields.funct3, self.store]
+        self.issue = make_layout(fields.addr, fields.data, fields.funct3, self.store)
 
-        self.issue_out: LayoutList = [fields.exception, fields.cause]
+        self.issue_out = make_layout(fields.exception, fields.cause)
 
-        self.accept: LayoutList = [fields.data, fields.exception, fields.cause]
+        self.accept = make_layout(fields.data, fields.exception, fields.cause)
 
 
 class PMALayouts:
@@ -558,16 +565,16 @@ class CSRLayouts:
 
         self.rs_entries_bits = 0
 
-        self.read: LayoutList = [
+        self.read = make_layout(
             fields.data,
             ("read", 1),
             ("written", 1),
-        ]
+        )
 
-        self.write: LayoutList = [fields.data]
+        self.write = make_layout(fields.data)
 
-        self._fu_read: LayoutList = [fields.data]
-        self._fu_write: LayoutList = [fields.data]
+        self._fu_read = make_layout(fields.data)
+        self._fu_write = make_layout(fields.data)
 
         data_layout = layout_subset(
             data.data_layout,
@@ -597,15 +604,15 @@ class ExceptionRegisterLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.valid = ("valid", 1)
+        self.valid: LayoutListField = ("valid", 1)
 
-        self.report: LayoutList = [
+        self.report = make_layout(
             fields.cause,
             fields.rob_id,
             fields.pc,
-        ]
+        )
 
-        self.get = self.report + [self.valid]
+        self.get = StructLayout(self.report.members | make_layout(self.valid).members)
 
 
 class CoreInstructionCounterLayouts:

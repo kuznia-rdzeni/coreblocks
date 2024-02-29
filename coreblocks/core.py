@@ -1,13 +1,19 @@
 from amaranth import *
 
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.structs_common.instr_counter import CoreInstructionCounter
 from coreblocks.structs_common.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.params.layouts import *
-from coreblocks.params.keys import BranchResolvedKey, GenericCSRRegistersKey, InstructionPrecommitKey, WishboneDataKey
+from coreblocks.params.keys import (
+    BranchVerifyKey,
+    FetchResumeKey,
+    GenericCSRRegistersKey,
+    InstructionPrecommitKey,
+    CommonBusDataKey,
+)
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa import Extension
 from coreblocks.frontend.decode_stage import DecodeStage
@@ -19,11 +25,14 @@ from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
-from coreblocks.frontend.icache import ICache, SimpleWBCacheRefiller, ICacheBypass
+from coreblocks.cache.icache import ICache, ICacheBypass
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
+from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
+from transactron.lib.metrics import HwMetricsEnabledKey
 
 __all__ = ["Core"]
 
@@ -32,11 +41,18 @@ class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
         self.gen_params = gen_params
 
+        dep_manager = DependencyContext.get()
+        if self.gen_params.debug_signals_enabled:
+            dep_manager.add_dependency(HwMetricsEnabledKey(), True)
+
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
+
+        self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
+        self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
 
         self.core_counter = CoreInstructionCounter(self.gen_params)
 
@@ -55,27 +71,34 @@ class Core(Elaboratable):
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
-            self.icache_refiller = SimpleWBCacheRefiller(
-                cache_layouts, self.gen_params.icache_params, self.wb_master_instr
+            self.icache_refiller = SimpleCommonBusCacheRefiller(
+                cache_layouts, self.gen_params.icache_params, self.bus_master_instr_adapter
             )
             self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
         else:
-            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.wb_master_instr)
+            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.bus_master_instr_adapter)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        connections = gen_params.get(DependencyManager)
-        connections.add_dependency(WishboneDataKey(), self.wb_master_data)
+        self.connections = gen_params.get(DependencyManager)
+        self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
 
-        self.exception_cause_register = ExceptionCauseRegister(self.gen_params, rob_get_indices=self.ROB.get_indices)
+        if Extension.C in self.gen_params.isa.extensions:
+            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
+        else:
+            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
+
+        self.exception_cause_register = ExceptionCauseRegister(
+            self.gen_params, rob_get_indices=self.ROB.get_indices, fetch_stall_exception=self.fetch.stall_exception
+        )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), BranchResolvedKey()],
+            extra_methods_required=[InstructionPrecommitKey(), FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -89,16 +112,19 @@ class Core(Elaboratable):
         self.interrupt_controller = InterruptController(self.gen_params)
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
-        connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+        self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.d.comb += self.wb_master_instr.wbMaster.connect(self.wb_instr_bus)
-        m.d.comb += self.wb_master_data.wbMaster.connect(self.wb_data_bus)
+        m.d.comb += self.wb_master_instr.wb_master.connect(self.wb_instr_bus)
+        m.d.comb += self.wb_master_data.wb_master.connect(self.wb_data_bus)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data
+
+        m.submodules.bus_master_instr_adapter = self.bus_master_instr_adapter
+        m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
 
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT
@@ -110,11 +136,8 @@ class Core(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
-        if Extension.C in self.gen_params.isa.extensions:
-            m.submodules.fetch = self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.use(m))
-        else:
-            m.submodules.fetch = self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.use(m))
-
+        m.submodules.fetch_continue = self.fetch_continue
+        m.submodules.fetch = self.fetch
         m.submodules.fifo_fetch = self.fifo_fetch
         m.submodules.core_counter = self.core_counter
         m.submodules.args_discard_map = self.core_counter_increment_discard_map
@@ -137,8 +160,8 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.verify_branch = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(BranchResolvedKey()), self.fetch.verify_branch
+        m.submodules.fetch_resume_connector = ConnectTrans(
+            self.func_blocks_unifier.get_extra_method(FetchResumeKey()), self.fetch.resume
         )
 
         m.submodules.announcement = self.announcement
@@ -155,8 +178,7 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.fetch.verify_branch,
-            fetch_stall=self.fetch.stall_exception,
+            fetch_continue=self.fetch.resume,
             instr_decrement=self.core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )
@@ -170,5 +192,10 @@ class Core(Elaboratable):
         with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
             free_rf_fifo.write(m, free_rf_reg)
             m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
+
+        # TODO: Remove when Branch Predictor implemented
+        with Transaction(name="DiscardBranchVerify").body(m):
+            read = self.connections.get_dependency(BranchVerifyKey())
+            read(m)  # Consume to not block JB Unit
 
         return m

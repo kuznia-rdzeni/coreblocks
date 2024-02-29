@@ -13,6 +13,7 @@ if __name__ == "__main__":
     sys.path.insert(0, parent)
 
 
+from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
@@ -117,7 +118,7 @@ def unit_fu(unit_params: FunctionalComponentParams):
 
         module = ModuleConnector(fu=fu, issue_connector=issue_connector, accept_connector=accept_connector)
 
-        return resources, TransactionModule(module)
+        return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 
     return unit
 
@@ -138,11 +139,12 @@ core_units = {
 
 
 def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
-    gen_params = GenParams(core_config)
-    resource_builder, module = core(gen_params)
+    with DependencyContext(DependencyManager()):
+        gen_params = GenParams(core_config)
+        resource_builder, module = core(gen_params)
 
-    if platform == "ecp5":
-        make_ecp5_platform(resource_builder)().build(module)
+        if platform == "ecp5":
+            make_ecp5_platform(resource_builder)().build(module)
 
 
 def main():
@@ -171,6 +173,12 @@ def main():
     )
 
     parser.add_argument(
+        "--strip-debug",
+        action="store_true",
+        help="Remove debugging signals. Default: %(default)s",
+    )
+
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -187,7 +195,11 @@ def main():
     if args.unit not in core_units:
         raise KeyError(f"Unknown core unit '{args.unit}'")
 
-    synthesize(str_to_coreconfig[args.config], args.platform, core_units[args.unit])
+    config = str_to_coreconfig[args.config]
+    if args.strip_debug:
+        config = config.replace(debug_signals=False)
+
+    synthesize(config, args.platform, core_units[args.unit])
 
 
 if __name__ == "__main__":

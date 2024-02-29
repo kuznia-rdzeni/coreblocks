@@ -1,10 +1,15 @@
+import re
+
 from amaranth.sim import Passive, Settle
 from amaranth.utils import log2_int
+from amaranth import *
 
 from .memory import *
-from .common import SimulationBackend
+from .common import SimulationBackend, SimulationExecutionResult
 
-from ..common import SimpleTestCircuit, PysimSimulator
+from transactron.testing import PysimSimulator, TestGen
+from transactron.utils.dependencies import DependencyContext, DependencyManager
+from transactron.lib.metrics import HardwareMetricsManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core
@@ -20,6 +25,8 @@ class PySimulation(SimulationBackend):
         self.cycle_cnt = 0
         self.verbose = verbose
         self.traces_file = traces_file
+
+        self.metrics_manager = HardwareMetricsManager()
 
     def _wishbone_slave(
         self, mem_model: CoreMemoryModel, wb_ctrl: WishboneInterfaceWrapper, is_instr_bus: bool, delay: int = 0
@@ -81,37 +88,79 @@ class PySimulation(SimulationBackend):
 
         return f
 
-    def _waiter(self):
+    def _waiter(self, on_finish: Callable[[], TestGen[None]]):
         def f():
             while self.running:
                 self.cycle_cnt += 1
                 yield
 
+            yield from on_finish()
+
         return f
 
-    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> bool:
-        wb_instr_bus = WishboneBus(self.gp.wb_params)
-        wb_data_bus = WishboneBus(self.gp.wb_params)
-        core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
+    def pretty_dump_metrics(self, metric_values: dict[str, dict[str, int]], filter_regexp: str = ".*"):
+        print()
+        print("=== Core metrics dump ===")
 
-        m = SimpleTestCircuit(core)
+        put_space_before = True
+        for metric_name in sorted(metric_values.keys()):
+            if not re.search(filter_regexp, metric_name):
+                continue
 
-        wb_instr_ctrl = WishboneInterfaceWrapper(wb_instr_bus)
-        wb_data_ctrl = WishboneInterfaceWrapper(wb_data_bus)
+            metric = self.metrics_manager.get_metrics()[metric_name]
 
-        self.running = True
-        self.cycle_cnt = 0
+            if metric.description != "":
+                if not put_space_before:
+                    print()
 
-        sim = PysimSimulator(m, max_cycles=timeout_cycles, traces_file=self.traces_file)
-        sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
-        sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
-        sim.add_sync_process(self._waiter())
-        res = sim.run()
+                print(f"# {metric.description}")
 
-        if self.verbose:
-            print(f"Simulation finished in {self.cycle_cnt} cycles")
+            for reg in metric.regs.values():
+                reg_value = metric_values[metric_name][reg.name]
 
-        return res
+                desc = f" # {reg.description} [reg width={reg.width}]"
+                print(f"{metric_name}/{reg.name} {reg_value}{desc}")
+
+            put_space_before = False
+            if metric.description != "":
+                print()
+                put_space_before = True
+
+    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
+        with DependencyContext(DependencyManager()):
+            wb_instr_bus = WishboneBus(self.gp.wb_params)
+            wb_data_bus = WishboneBus(self.gp.wb_params)
+            core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
+
+            wb_instr_ctrl = WishboneInterfaceWrapper(wb_instr_bus)
+            wb_data_ctrl = WishboneInterfaceWrapper(wb_data_bus)
+
+            self.running = True
+            self.cycle_cnt = 0
+
+            sim = PysimSimulator(core, max_cycles=timeout_cycles, traces_file=self.traces_file)
+            sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
+            sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
+
+            metric_values: dict[str, dict[str, int]] = {}
+
+            def on_sim_finish():
+                # Collect metric values before we finish the simulation
+                for metric_name, metric in self.metrics_manager.get_metrics().items():
+                    metric = self.metrics_manager.get_metrics()[metric_name]
+                    metric_values[metric_name] = {}
+                    for reg_name in metric.regs:
+                        metric_values[metric_name][reg_name] = yield self.metrics_manager.get_register_value(
+                            metric_name, reg_name
+                        )
+
+            sim.add_sync_process(self._waiter(on_finish=on_sim_finish))
+            success = sim.run()
+
+            if self.verbose:
+                self.pretty_dump_metrics(metric_values)
+
+            return SimulationExecutionResult(success, metric_values)
 
     def stop(self):
         self.running = False

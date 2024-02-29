@@ -12,6 +12,8 @@ class WishboneMasterTransCircuit(Elaboratable):
         self.output = Record(WishboneMaster.resultLayout)
         self.output_btn = Signal()
 
+        self.wbm_ports = list(self.wbm.wb_master.fields.values())
+
         self.m = Module()
         self.tm = TransactionModule(self.m)
         self.wbm = WishboneMaster()
@@ -24,7 +26,7 @@ class WishboneMasterTransCircuit(Elaboratable):
             self.output.err,
             self.output.data,
             self.output_btn,
-        ] + self.wbm.ports
+        ] + self.wbm_ports
 
     def elaborate(self, platform):
         m = self.m

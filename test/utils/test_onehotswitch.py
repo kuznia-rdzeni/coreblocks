@@ -3,7 +3,7 @@ from amaranth.sim import *
 
 from transactron.utils import OneHotSwitch
 
-from test.common import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator
 
 from parameterized import parameterized
 

@@ -38,7 +38,7 @@ jobs:
       - name: Synthesize
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config ${{ matrix.config }}
+          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }}
 
       - name: Print synthesis information
         run: cat ./build/top.tim
@@ -82,7 +82,7 @@ jobs:
   run-perf-benchmarks:
     name: Run performance benchmarks
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: build-perf-benchmarks
     steps:
