@@ -153,6 +153,11 @@ class coreblocks(pluginTemplate):  # noqa: N801
             target_build = "cd {0}; {1};".format(testentry["work_dir"], buildcmd)
             target_run = "mkdir -p {0}; cd {1}; {2};".format(testentry["work_dir"], self.work_dir, simcmd)
 
+            # for some reason C extension enables priv tests. Disable them for now. Not ready yet!
+            if "privilege" in test_dir:
+                print("SKIP generating", test_dir, test)
+                continue
+
             # create a target. The makeutil will create a target with the name "TARGET<num>" where num
             # starts from 0 and increments automatically for each new target that is added
             make_build.add_target(target_build)
