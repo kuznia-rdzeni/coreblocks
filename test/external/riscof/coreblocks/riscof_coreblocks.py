@@ -97,24 +97,9 @@ class coreblocks(pluginTemplate):  # noqa: N801
         # will be useful in setting integer value in the compiler string (if not already hardcoded);
         self.xlen = "64" if 64 in ispec["supported_xlen"] else "32"
 
-        # for coreblocks start building the '--isa' argument. the self.isa is dut specific and may not be
-        # useful for all DUTs
-        self.isa = "rv" + self.xlen
-        if "I" in ispec["ISA"]:
-            self.isa += "i"
-        if "M" in ispec["ISA"]:
-            self.isa += "m"
-        if "F" in ispec["ISA"]:
-            self.isa += "f"
-        if "D" in ispec["ISA"]:
-            self.isa += "d"
-        if "C" in ispec["ISA"]:
-            self.isa += "c"
-        if "B" in ispec["ISA"]:
-            self.isa += "b"
+        self.isa = ispec["ISA"].lower()
 
-        # TODO: The following assumes you are using the riscv-gcc toolchain. If
-        #      not please change appropriately
+        # The following assumes you are using the riscv-gcc toolchain.
         self.compile_cmd = self.compile_cmd + " -mabi=" + ("lp64 " if 64 in ispec["supported_xlen"] else "ilp32 ")
 
     def runTests(self, testList):  # noqa: N802 N803
