@@ -16,20 +16,18 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
         while True:
             yield Tick("sync_neg")
 
-            transactions = dict[int, TransactionSamples]()
-            methods = dict[int, MethodSamples]()
+            samples = ProfileSamples()
 
             for transaction in method_map.transactions:
-                transactions[get_id(transaction)] = TransactionSamples(
+                samples.transactions[get_id(transaction)] = TransactionSamples(
                     bool((yield transaction.request)),
                     bool((yield transaction.runnable)),
                     bool((yield transaction.grant)),
                 )
 
             for method in method_map.methods:
-                methods[get_id(method)] = MethodSamples(bool((yield method.run)))
+                samples.methods[get_id(method)] = MethodSamples(bool((yield method.run)))
 
-            samples = ProfileSamples(transactions, methods)
             cprof = CycleProfile.make(samples, profile_data)
             profile.cycles.append(cprof)
 

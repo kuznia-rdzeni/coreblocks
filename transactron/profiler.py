@@ -145,8 +145,8 @@ class MethodSamples:
 
 @dataclass
 class ProfileSamples:
-    transactions: dict[int, TransactionSamples]
-    methods: dict[int, MethodSamples]
+    transactions: dict[int, TransactionSamples] = field(default_factory=dict)
+    methods: dict[int, MethodSamples] = field(default_factory=dict)
 
 
 @dataclass_json

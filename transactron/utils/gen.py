@@ -168,10 +168,12 @@ def generate_verilog(
     transaction_signals, method_signals = collect_transaction_method_signals(
         transaction_manager, name_map  # type: ignore
     )
+    profile_data, _ = ProfileData.make(transaction_manager)
     gen_info = GenerationInfo(
         metrics_location=collect_metric_locations(name_map),  # type: ignore
         transaction_signals_location=transaction_signals,
         method_signals_location=method_signals,
+        profile_data=profile_data,
     )
 
     return verilog_text, gen_info
