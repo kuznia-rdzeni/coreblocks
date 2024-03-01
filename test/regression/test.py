@@ -1,3 +1,5 @@
+import os
+
 from glob import glob
 from pathlib import Path
 
@@ -6,6 +8,7 @@ from .common import SimulationBackend
 
 test_dir = Path(__file__).parent.parent
 riscv_tests_dir = test_dir.joinpath("external/riscv-tests")
+profile_dir = test_dir.joinpath("__profiles__")
 
 # disable write protection for specific tests with writes to .text section
 exclude_write_protection = ["rv32uc-rvc"]
@@ -43,6 +46,10 @@ async def run_test(sim_backend: SimulationBackend, test_name: str):
     mem_model = CoreMemoryModel(mem_segments)
 
     result = await sim_backend.run(mem_model, timeout_cycles=5000)
+
+    if result.profile is not None:
+        os.makedirs(profile_dir, exist_ok=True)
+        result.profile.encode(f"{profile_dir}/test.regression.{test_name}.json")
 
     if not result.success:
         raise RuntimeError("Simulation timed out")

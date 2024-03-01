@@ -103,7 +103,6 @@ def escape_verilog_identifier(identifier: str) -> str:
 
     for char in characters_to_escape:
         if char in identifier:
-            # Note the intentional space at the end.
             return f"\\{identifier} "
 
     return identifier
