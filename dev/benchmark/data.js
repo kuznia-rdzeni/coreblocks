@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709234715691,
+  "lastUpdate": 1709561773648,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19935,6 +19935,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 18958,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 720,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 956,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6524,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "090f271b9ce84b0da9dbb86cecdafad39d608269",
+          "message": "Enable tests for extensions in riscv-arch-test (#594)",
+          "timestamp": "2024-03-04T15:10:40+01:00",
+          "tree_id": "87fe97c84d05ae902ca6fdfad2f31096f54e90ec",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/090f271b9ce84b0da9dbb86cecdafad39d608269"
+        },
+        "date": 1709561771684,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.25,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 19022,
             "unit": "LUT4"
           },
           {
