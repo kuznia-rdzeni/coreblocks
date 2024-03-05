@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709638043178,
+  "lastUpdate": 1709649598433,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -20166,6 +20166,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 720,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 956,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6524,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3393996105fd897d54b9800321850590b4b567cc",
+          "message": "Remove TestCoreSimple and TestCoreRandomized (#597)",
+          "timestamp": "2024-03-05T15:34:12+01:00",
+          "tree_id": "d84dc73e1844d897b968895226474f2bd2a8dc19",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3393996105fd897d54b9800321850590b4b567cc"
+        },
+        "date": 1709649595493,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.7,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 19983,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 688,
             "unit": "LUT"
           },
           {
