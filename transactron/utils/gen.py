@@ -3,12 +3,16 @@ from dataclasses_json import dataclass_json
 
 from amaranth import *
 from amaranth.back import verilog
-from amaranth.hdl import ir
-from amaranth.hdl.ast import SignalDict
+from amaranth.hdl import Fragment
 
 from transactron.lib.metrics import HardwareMetricsManager
 from transactron.utils._typing import SrcLoc
 from transactron.utils.assertion import assert_bits
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from amaranth.hdl._ast import SignalDict
 
 
 __all__ = [
@@ -113,7 +117,7 @@ def escape_verilog_identifier(identifier: str) -> str:
     return identifier
 
 
-def get_signal_location(signal: Signal, name_map: SignalDict) -> list[str]:
+def get_signal_location(signal: Signal, name_map: "SignalDict") -> list[str]:
     raw_location = name_map[signal]
 
     # Amaranth escapes identifiers when generating Verilog code, but returns non-escaped identifiers
@@ -121,7 +125,7 @@ def get_signal_location(signal: Signal, name_map: SignalDict) -> list[str]:
     return [escape_verilog_identifier(component) for component in raw_location]
 
 
-def collect_metric_locations(name_map: SignalDict) -> dict[str, MetricLocation]:
+def collect_metric_locations(name_map: "SignalDict") -> dict[str, MetricLocation]:
     metrics_location: dict[str, MetricLocation] = {}
 
     # Collect information about the location of metric registers in the generated code.
@@ -138,7 +142,7 @@ def collect_metric_locations(name_map: SignalDict) -> dict[str, MetricLocation]:
     return metrics_location
 
 
-def collect_asserts(name_map: SignalDict) -> list[AssertLocation]:
+def collect_asserts(name_map: "SignalDict") -> list[AssertLocation]:
     asserts: list[AssertLocation] = []
 
     for v, src_loc in assert_bits():
@@ -150,7 +154,7 @@ def collect_asserts(name_map: SignalDict) -> list[AssertLocation]:
 def generate_verilog(
     top_module: Elaboratable, ports: list[Signal], top_name: str = "top"
 ) -> tuple[str, GenerationInfo]:
-    fragment = ir.Fragment.get(top_module, platform=None).prepare(ports=ports)
+    fragment = Fragment.get(top_module, platform=None).prepare(ports=ports)
     verilog_text, name_map = verilog.convert_fragment(fragment, name=top_name, emit_src=True, strip_internal_attrs=True)
 
     gen_info = GenerationInfo(metrics_location=collect_metric_locations(name_map), asserts=collect_asserts(name_map))
