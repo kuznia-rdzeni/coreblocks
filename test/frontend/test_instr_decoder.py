@@ -365,7 +365,7 @@ class TestEncodingUniqueness(TestCase):
                 Encoding(Opcode.OP_IMM, Funct3.BSET, Funct7.BSET),
                 Encoding(Opcode.OP_IMM, Funct3.BINV, Funct7.BINV),
             },
-            OpType.BIT_MANIPULATION: {
+            OpType.BIT_ROTATION: {
                 Encoding(Opcode.OP_IMM, Funct3.ROR, Funct7.ROR),
             },
         }

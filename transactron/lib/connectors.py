@@ -61,8 +61,6 @@ class FIFO(Elaboratable):
 
         m.submodules.fifo = fifo = self.fifoType(width=self.width, depth=self.depth)
 
-        assert fifo.fwft  # the read method requires FWFT behavior
-
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):
             m.d.comb += fifo.w_en.eq(1)

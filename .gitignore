@@ -15,6 +15,9 @@ venv.bak/
 # Verilog files
 *.v
 
+# Verilog generation debug files
+*.v.json
+
 # Waveform dumps
 *.vcd
 *.gtkw

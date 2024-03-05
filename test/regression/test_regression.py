@@ -60,6 +60,8 @@ def regression_body_with_cocotb(test_name: str, traces: bool):
     arglist += [f"TESTCASE={test_name}"]
 
     verilog_code = os.path.join(os.getcwd(), "core.v")
+    gen_info_path = f"{verilog_code}.json"
+    arglist += [f"_COREBLOCKS_GEN_INFO={gen_info_path}"]
     arglist += [f"VERILOG_SOURCES={verilog_code}"]
     tmp_result_file = tempfile.NamedTemporaryFile("r")
     arglist += [f"COCOTB_RESULTS_FILE={tmp_result_file.name}"]

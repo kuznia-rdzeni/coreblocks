@@ -12,15 +12,20 @@ from typing import (
     runtime_checkable,
     Union,
     Any,
+    TYPE_CHECKING,
 )
 from collections.abc import Iterable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
-from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
-from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
+from amaranth.hdl import ShapeCastable, ValueCastable
 from amaranth.hdl.rec import Direction, Layout
+
+if TYPE_CHECKING:
+    from amaranth.hdl._ast import Statement
+    from amaranth.hdl._dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain
+    import amaranth.hdl._dsl
 
 __all__ = [
     "FragmentLike",
@@ -53,7 +58,7 @@ __all__ = [
 FragmentLike: TypeAlias = Fragment | Elaboratable
 ValueLike: TypeAlias = Value | int | Enum | ValueCastable
 ShapeLike: TypeAlias = Shape | ShapeCastable | int | range | type[Enum]
-StatementLike: TypeAlias = Statement | Iterable["StatementLike"]
+StatementLike: TypeAlias = Union["Statement", Iterable["StatementLike"]]
 LayoutLike: TypeAlias = (
     Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
 )
@@ -82,16 +87,16 @@ GraphCC: TypeAlias = set[T]
 
 
 class _ModuleBuilderDomainsLike(Protocol):
-    def __getattr__(self, name: str) -> _ModuleBuilderDomain:
+    def __getattr__(self, name: str) -> "_ModuleBuilderDomain":
         ...
 
-    def __getitem__(self, name: str) -> _ModuleBuilderDomain:
+    def __getitem__(self, name: str) -> "_ModuleBuilderDomain":
         ...
 
-    def __setattr__(self, name: str, value: _ModuleBuilderDomain) -> None:
+    def __setattr__(self, name: str, value: "_ModuleBuilderDomain") -> None:
         ...
 
-    def __setitem__(self, name: str, value: _ModuleBuilderDomain) -> None:
+    def __setitem__(self, name: str, value: "_ModuleBuilderDomain") -> None:
         ...
 
 
@@ -99,8 +104,8 @@ _T_ModuleBuilderDomains = TypeVar("_T_ModuleBuilderDomains", bound=_ModuleBuilde
 
 
 class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
-    submodules: _ModuleBuilderSubmodules
-    domains: _ModuleBuilderDomainSet
+    submodules: "_ModuleBuilderSubmodules"
+    domains: "_ModuleBuilderDomainSet"
     d: _T_ModuleBuilderDomains
 
     def If(self, cond: ValueLike) -> AbstractContextManager[None]:  # noqa: N802
@@ -123,7 +128,7 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
 
     def FSM(  # noqa: N802
         self, reset: Optional[str] = ..., domain: str = ..., name: str = ...
-    ) -> AbstractContextManager[FSM]:
+    ) -> AbstractContextManager["amaranth.hdl._dsl.FSM"]:
         ...
 
     def State(self, name: str) -> AbstractContextManager[None]:  # noqa: N802
