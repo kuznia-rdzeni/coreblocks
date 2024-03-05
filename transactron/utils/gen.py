@@ -6,6 +6,9 @@ from amaranth.back import verilog
 from amaranth.hdl import Fragment
 
 from transactron.lib.metrics import HardwareMetricsManager
+from transactron.utils._typing import SrcLoc
+from transactron.utils.assertion import assert_bits
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -14,6 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "MetricLocation",
+    "AssertLocation",
     "GenerationInfo",
     "generate_verilog",
 ]
@@ -37,6 +41,25 @@ class MetricLocation:
 
 @dataclass_json
 @dataclass
+class AssertLocation:
+    """Information about an assert signal in the generated Verilog code.
+
+    Attributes
+    ----------
+    location : list[str]
+        The location of the assert signal. The location is a list of Verilog
+        identifiers that denote a path consisting of module names (and the
+        signal name at the end) leading to the signal wire.
+    src_loc : SrcLoc
+        Source location of the assertion.
+    """
+
+    location: list[str]
+    src_loc: SrcLoc
+
+
+@dataclass_json
+@dataclass
 class GenerationInfo:
     """Various information about the generated circuit.
 
@@ -45,9 +68,12 @@ class GenerationInfo:
     metrics_location : dict[str, MetricInfo]
         Mapping from a metric name to an object storing Verilog locations
         of its registers.
+    asserts : list[AssertLocation]
+        Locations and metadata for assertion signals.
     """
 
     metrics_location: dict[str, MetricLocation] = field(default_factory=dict)
+    asserts: list[AssertLocation] = field(default_factory=list)
 
     def encode(self, file_name: str):
         """
@@ -116,12 +142,21 @@ def collect_metric_locations(name_map: "SignalDict") -> dict[str, MetricLocation
     return metrics_location
 
 
+def collect_asserts(name_map: "SignalDict") -> list[AssertLocation]:
+    asserts: list[AssertLocation] = []
+
+    for v, src_loc in assert_bits():
+        asserts.append(AssertLocation(get_signal_location(v, name_map), src_loc))
+
+    return asserts
+
+
 def generate_verilog(
     top_module: Elaboratable, ports: list[Signal], top_name: str = "top"
 ) -> tuple[str, GenerationInfo]:
     fragment = Fragment.get(top_module, platform=None).prepare(ports=ports)
     verilog_text, name_map = verilog.convert_fragment(fragment, name=top_name, emit_src=True, strip_internal_attrs=True)
 
-    gen_info = GenerationInfo(metrics_location=collect_metric_locations(name_map))  # type: ignore
+    gen_info = GenerationInfo(metrics_location=collect_metric_locations(name_map), asserts=collect_asserts(name_map))
 
     return verilog_text, gen_info
