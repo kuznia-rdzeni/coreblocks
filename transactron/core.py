@@ -21,7 +21,7 @@ from dataclasses import dataclass, replace
 from amaranth import *
 from amaranth import tracer
 from itertools import count, chain, filterfalse, product
-from amaranth.hdl.dsl import FSM
+from amaranth.hdl._dsl import FSM
 
 from transactron.utils.assign import AssignArg
 

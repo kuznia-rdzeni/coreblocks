@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.utils import bits_for, log2_int
+from amaranth.utils import bits_for, exact_log2
 from amaranth.lib import data
 from collections.abc import Iterable, Mapping
 from transactron.utils._typing import SignalBundle
@@ -54,7 +54,7 @@ def count_leading_zeros(s: Value) -> Value:
         return result
 
     try:
-        xlen_log = log2_int(len(s))
+        xlen_log = exact_log2(len(s))
     except ValueError:
         raise NotImplementedError("CountLeadingZeros - only sizes aligned to power of 2 are supperted")
 
@@ -71,7 +71,7 @@ def count_leading_zeros(s: Value) -> Value:
 
 def count_trailing_zeros(s: Value) -> Value:
     try:
-        log2_int(len(s))
+        exact_log2(len(s))
     except ValueError:
         raise NotImplementedError("CountTrailingZeros - only sizes aligned to power of 2 are supperted")
 

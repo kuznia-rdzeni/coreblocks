@@ -11,7 +11,6 @@ __all__ = ["FIFOInterface", "SyncFIFO", "SyncFIFOBuffered", "AsyncFIFO", "AsyncF
 class FIFOInterface:
     width: int
     depth: int
-    fwft: bool
     w_data: Signal
     w_rdy: Signal
     w_en: Signal
@@ -20,13 +19,13 @@ class FIFOInterface:
     r_rdy: Signal
     r_en: Signal
     r_level: Signal
-    def __init__(self, *, width: int, depth: int, fwft: bool) -> None:
+    def __init__(self, *, width: int, depth: int) -> None:
         ...
     
 
 
 class SyncFIFO(Elaboratable, FIFOInterface):
-    def __init__(self, *, width: int, depth: int, fwft: bool = ...) -> None:
+    def __init__(self, *, width: int, depth: int) -> None:
         ...
     
     def elaborate(self, platform) -> HasElaborate:
