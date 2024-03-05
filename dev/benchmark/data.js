@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709651795783,
+  "lastUpdate": 1709652360633,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -7743,6 +7743,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "903ab2ed8cce05d054ae4bc63728342c2f2b1ff5",
+          "message": "Assertions in cocotb (#590)",
+          "timestamp": "2024-03-05T16:09:08+01:00",
+          "tree_id": "4a9a7b716c2701a6d2841bdb4515de331647bb0f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/903ab2ed8cce05d054ae4bc63728342c2f2b1ff5"
+        },
+        "date": 1709652358577,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
             "unit": "Instructions Per Cycle"
           }
         ]
