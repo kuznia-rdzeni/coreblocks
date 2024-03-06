@@ -63,7 +63,7 @@ jobs:
           submodules: recursive
 
       - name: Cache compiled and reference riscv-arch-test
-        id: cache-submit
+        id: cache-riscv-arch-test
         uses: actions/cache@v3
         env:
           cache-name: cache-riscv-arch-test
