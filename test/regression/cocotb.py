@@ -151,9 +151,20 @@ class CocotbSimulation(SimulationBackend):
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
-            # As the component may start with '_' character, we need to use '_id'
-            # function instead of 'getattr' - this is required by cocotb.
-            obj = obj._id(component, extended=False)
+            try:
+                # As the component may start with '_' character, we need to use '_id'
+                # function instead of 'getattr' - this is required by cocotb.
+                obj = obj._id(component, extended=False)
+            except AttributeError:
+                if component[0] == "\\" and component[-1] == " ":
+                    # workaround for cocotb/verilator weirdness
+                    # for some escaped names lookup fails, but works when unescaped
+                    obj = obj._id(component[1:-1], extended=False)
+                elif component[0] != "\\" and component[-1] != " ":
+                    # wrokaround for different name generation on different yosys versions
+                    obj = obj._id("\\" + component + " ", extended=False)
+                else:
+                    raise
 
         return obj
 
