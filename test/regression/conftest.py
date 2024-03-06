@@ -34,7 +34,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
 
     all_tests = (
         load_regression_tests()
-    )  # The list has to be always in the samo order (e.g. sorted) to allow for parallel testing
+    )  # The list has to be always in the same order (e.g. sorted) to allow for parallel testing
     traces = metafunc.config.getoption("coreblocks_traces")
     backend = metafunc.config.getoption("coreblocks_backend")
     verbose = bool(metafunc.config.getoption("verbose"))

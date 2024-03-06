@@ -18,13 +18,13 @@ def pytest_addoption(parser: pytest.Parser):
         "--coreblocks-test-name",
         action="store",
         type=str,
-        help="Name or regexp in flatten format pointing to test to run.",
+        help="Name or regexp in flatten format matching the tests to run.",
     )
     group.addoption(
         "--coreblocks-test-count",
         action="store",
         type=int,
-        help="Number of tests to starts. If less than number of all selected tests, then starts only subset of them.",
+        help="Number of tests to start. If less than number of all selected tests, then starts only subset of them.",
     )
 
 
