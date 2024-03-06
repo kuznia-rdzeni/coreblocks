@@ -95,6 +95,8 @@ def verilate_model(worker_id, request: pytest.FixtureRequest):
     distributed, cocotb, mode. It executes a 'SKIP' regression test which verilates the model.
     """
     if request.session.config.getoption("coreblocks_backend") != "cocotb" or worker_id == "master":
+        # pytest expect yield on every path in fixture
+        yield None
         return
 
     lock_path = "_coreblocks_regression.lock"
