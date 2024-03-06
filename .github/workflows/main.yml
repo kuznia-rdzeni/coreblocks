@@ -249,6 +249,12 @@ jobs:
       - name: Check traces and profiles
         run: ./scripts/run_tests.py -t -p -c 1 TestCore
 
+      - name: Check regression with pysim
+        run: ./scripts/run_tests.py -c 1 -a -b pysim regression
+
+      - name: Check listing tests
+        run: ./scripts/run_tests.py -l
+
   lint:
     name: Check code formatting and typing
     runs-on: ubuntu-latest
