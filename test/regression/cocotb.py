@@ -157,6 +157,17 @@ class CocotbSimulation(SimulationBackend):
 
         return obj
 
+    async def assert_handler(self, clock):
+        clock_edge_event = FallingEdge(clock)
+
+        while True:
+            for assert_info in self.gen_info.asserts:
+                assert_val = self.get_cocotb_handle(assert_info.location)
+                n, i = assert_info.src_loc
+                assert assert_val.value, f"Assertion at {n}:{i}"
+
+            await clock_edge_event  # type: ignore
+
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
@@ -170,6 +181,8 @@ class CocotbSimulation(SimulationBackend):
 
         data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
+
+        cocotb.start_soon(self.assert_handler(self.dut.clk))
 
         success = True
         try:

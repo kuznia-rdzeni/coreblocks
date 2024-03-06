@@ -14,7 +14,7 @@ class AssertionTest(Elaboratable):
 
         m.d.comb += self.output.eq(self.input & ~self.input)
 
-        assertion(self.input == self.output)
+        assertion(m, self.input == self.output)
 
         return m
 
