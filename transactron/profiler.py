@@ -22,8 +22,10 @@ __all__ = [
 @dataclass_json
 @dataclass
 class ProfileInfo:
-    """Information about transactions and methods. In `Profile`, transactions
-    and methods are referred to by their unique ID numbers.
+    """Information about transactions and methods.
+
+    In `Profile`, transactions and methods are referred to by their unique ID
+    numbers.
 
     Attributes
     ----------
@@ -42,6 +44,24 @@ class ProfileInfo:
 
 @dataclass
 class ProfileData:
+    """Information about transactions and methods from the transaction manager.
+
+    This data is required for transaction profile generation in simulators.
+    Transactions and methods are referred to by their unique ID numbers.
+
+    Attributes
+    ----------
+    transactions_and_methods: dict[int, ProfileInfo]
+        Information about individual transactions and methods.
+    method_parents: dict[int, list[int]]
+        Lists the callers (transactions and methods) for each method. Key is
+        method ID.
+    transactions_by_method: dict[int, list[int]]
+        Lists which transactions are calling each method. Key is method ID.
+    transaction_conflicts: dict[int, list[int]]
+        List which other transactions conflict with each transaction.
+    """
+
     transactions_and_methods: dict[int, ProfileInfo]
     method_parents: dict[int, list[int]]
     transactions_by_method: dict[int, list[int]]
@@ -133,6 +153,18 @@ class RunStatNode:
 
 @dataclass
 class TransactionSamples:
+    """Runtime value of transaction control signals in a given clock cycle.
+
+    Attributes
+    ----------
+    request: bool
+        The value of the transaction's ``request`` signal.
+    runnable: bool
+        The value of the transaction's ``runnable`` signal.
+    grant: bool
+        The value of the transaction's ``grant`` signal.
+    """
+
     request: bool
     runnable: bool
     grant: bool
@@ -140,11 +172,29 @@ class TransactionSamples:
 
 @dataclass
 class MethodSamples:
+    """Runtime value of method control signals in a given clock cycle.
+
+    Attributes
+    ----------
+    run: bool
+        The value of the method's ``run`` signal.
+    """
+
     run: bool
 
 
 @dataclass
 class ProfileSamples:
+    """Runtime values of all transaction and method control signals.
+
+    Attributes
+    ----------
+    transactions: dict[int, TransactionSamples]
+        Runtime values of transaction control signals for each transaction.
+    methods: dict[int, MethodSamples]
+        Runtime values of method control signals for each method.
+    """
+
     transactions: dict[int, TransactionSamples] = field(default_factory=dict)
     methods: dict[int, MethodSamples] = field(default_factory=dict)
 

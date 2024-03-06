@@ -46,6 +46,18 @@ class MetricLocation:
 @dataclass_json
 @dataclass
 class TransactionSignalsLocation:
+    """Information about transaction control signals in the generated Verilog code.
+
+    Attributes
+    ----------
+    request: list[str]
+        The location of the ``request`` signal.
+    runnable: list[str]
+        The location of the ``runnable`` signal.
+    grant: list[str]
+        The location of the ``grant`` signal.
+    """
+
     request: list[str]
     runnable: list[str]
     grant: list[str]
@@ -54,6 +66,14 @@ class TransactionSignalsLocation:
 @dataclass_json
 @dataclass
 class MethodSignalsLocation:
+    """Information about method control signals in the generated Verilog code.
+
+    Attributes
+    ----------
+    run: list[str]
+        The location of the ``run`` signal.
+    """
+
     run: list[str]
 
 
