@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 
 from .isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
@@ -36,7 +36,7 @@ class GenParams(DependentCache):
 
         bytes_in_word = self.isa.xlen // 8
         self.wb_params = WishboneParameters(
-            data_width=self.isa.xlen, addr_width=self.isa.xlen - log2_int(bytes_in_word)
+            data_width=self.isa.xlen, addr_width=self.isa.xlen - exact_log2(bytes_in_word)
         )
 
         self.icache_params = ICacheParameters(

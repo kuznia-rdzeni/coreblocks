@@ -2,7 +2,7 @@ import re
 import os
 
 from amaranth.sim import Passive, Settle
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 from amaranth import *
 
 from transactron.core import TransactionManagerKey
@@ -43,7 +43,7 @@ class PySimulation(SimulationBackend):
                 word_width_bytes = self.gp.isa.xlen // 8
 
                 # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-                addr = (yield wb_ctrl.wb.adr) << log2_int(word_width_bytes)
+                addr = (yield wb_ctrl.wb.adr) << exact_log2(word_width_bytes)
                 sel = yield wb_ctrl.wb.sel
                 dat_w = yield wb_ctrl.wb.dat_w
 

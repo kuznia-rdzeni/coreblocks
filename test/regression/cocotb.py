@@ -189,6 +189,17 @@ class CocotbSimulation(SimulationBackend):
 
             await clock_edge_event  # type: ignore
 
+    async def assert_handler(self, clock):
+        clock_edge_event = FallingEdge(clock)
+
+        while True:
+            for assert_info in self.gen_info.asserts:
+                assert_val = self.get_cocotb_handle(assert_info.location)
+                n, i = assert_info.src_loc
+                assert assert_val.value, f"Assertion at {n}:{i}"
+
+            await clock_edge_event  # type: ignore
+
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
@@ -208,6 +219,8 @@ class CocotbSimulation(SimulationBackend):
             profile = Profile()
             profile.transactions_and_methods = self.gen_info.profile_data.transactions_and_methods
             cocotb.start_soon(self.profile_handler(self.dut.clk, profile))
+
+        cocotb.start_soon(self.assert_handler(self.dut.clk))
 
         success = True
         try:

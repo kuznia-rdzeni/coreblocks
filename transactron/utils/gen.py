@@ -3,18 +3,25 @@ from dataclasses_json import dataclass_json
 
 from amaranth import *
 from amaranth.back import verilog
-from amaranth.hdl import ir
-from amaranth.hdl.ast import SignalDict
+from amaranth.hdl import Fragment
 
 from transactron.core import TransactionManager, MethodMap, TransactionManagerKey
 from transactron.lib.metrics import HardwareMetricsManager
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.idgen import IdGenerator
 from transactron.profiler import ProfileData
+from transactron.utils._typing import SrcLoc
+from transactron.utils.assertion import assert_bits
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from amaranth.hdl._ast import SignalDict
 
 
 __all__ = [
     "MetricLocation",
+    "AssertLocation",
     "GenerationInfo",
     "generate_verilog",
 ]
@@ -52,6 +59,25 @@ class MethodSignalsLocation:
 
 @dataclass_json
 @dataclass
+class AssertLocation:
+    """Information about an assert signal in the generated Verilog code.
+
+    Attributes
+    ----------
+    location : list[str]
+        The location of the assert signal. The location is a list of Verilog
+        identifiers that denote a path consisting of module names (and the
+        signal name at the end) leading to the signal wire.
+    src_loc : SrcLoc
+        Source location of the assertion.
+    """
+
+    location: list[str]
+    src_loc: SrcLoc
+
+
+@dataclass_json
+@dataclass
 class GenerationInfo:
     """Various information about the generated circuit.
 
@@ -60,12 +86,16 @@ class GenerationInfo:
     metrics_location : dict[str, MetricInfo]
         Mapping from a metric name to an object storing Verilog locations
         of its registers.
+    asserts : list[AssertLocation]
+        Locations and metadata for assertion signals.
     """
 
     metrics_location: dict[str, MetricLocation]
     transaction_signals_location: dict[int, TransactionSignalsLocation]
     method_signals_location: dict[int, MethodSignalsLocation]
     profile_data: ProfileData
+    metrics_location: dict[str, MetricLocation]
+    asserts: list[AssertLocation]
 
     def encode(self, file_name: str):
         """
@@ -108,7 +138,7 @@ def escape_verilog_identifier(identifier: str) -> str:
     return identifier
 
 
-def get_signal_location(signal: Signal, name_map: SignalDict) -> list[str]:
+def get_signal_location(signal: Signal, name_map: "SignalDict") -> list[str]:
     raw_location = name_map[signal]
 
     # Amaranth escapes identifiers when generating Verilog code, but returns non-escaped identifiers
@@ -116,7 +146,7 @@ def get_signal_location(signal: Signal, name_map: SignalDict) -> list[str]:
     return [escape_verilog_identifier(component) for component in raw_location]
 
 
-def collect_metric_locations(name_map: SignalDict) -> dict[str, MetricLocation]:
+def collect_metric_locations(name_map: "SignalDict") -> dict[str, MetricLocation]:
     metrics_location: dict[str, MetricLocation] = {}
 
     # Collect information about the location of metric registers in the generated code.
@@ -134,7 +164,7 @@ def collect_metric_locations(name_map: SignalDict) -> dict[str, MetricLocation]:
 
 
 def collect_transaction_method_signals(
-    transaction_manager: TransactionManager, name_map: SignalDict
+    transaction_manager: TransactionManager, name_map: "SignalDict"
 ) -> tuple[dict[int, TransactionSignalsLocation], dict[int, MethodSignalsLocation]]:
     transaction_signals_location: dict[int, TransactionSignalsLocation] = {}
     method_signals_location: dict[int, MethodSignalsLocation] = {}
@@ -157,10 +187,19 @@ def collect_transaction_method_signals(
     return (transaction_signals_location, method_signals_location)
 
 
+def collect_asserts(name_map: "SignalDict") -> list[AssertLocation]:
+    asserts: list[AssertLocation] = []
+
+    for v, src_loc in assert_bits():
+        asserts.append(AssertLocation(get_signal_location(v, name_map), src_loc))
+
+    return asserts
+
+
 def generate_verilog(
     top_module: Elaboratable, ports: list[Signal], top_name: str = "top"
 ) -> tuple[str, GenerationInfo]:
-    fragment = ir.Fragment.get(top_module, platform=None).prepare(ports=ports)
+    fragment = Fragment.get(top_module, platform=None).prepare(ports=ports)
     verilog_text, name_map = verilog.convert_fragment(fragment, name=top_name, emit_src=True, strip_internal_attrs=True)
 
     transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
@@ -173,6 +212,7 @@ def generate_verilog(
         transaction_signals_location=transaction_signals,
         method_signals_location=method_signals,
         profile_data=profile_data,
+        asserts=collect_asserts(name_map),
     )
 
     return verilog_text, gen_info

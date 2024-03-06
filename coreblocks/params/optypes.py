@@ -34,6 +34,7 @@ class OpType(IntEnum):
     SINGLE_BIT_MANIPULATION = auto()
     ADDRESS_GENERATION = auto()
     BIT_MANIPULATION = auto()
+    BIT_ROTATION = auto()
     UNARY_BIT_MANIPULATION_1 = auto()
     UNARY_BIT_MANIPULATION_2 = auto()
     UNARY_BIT_MANIPULATION_3 = auto()
@@ -88,6 +89,7 @@ optypes_by_extensions = {
     ],
     Extension.ZBB: [
         OpType.BIT_MANIPULATION,
+        OpType.BIT_ROTATION,
         OpType.UNARY_BIT_MANIPULATION_1,
         OpType.UNARY_BIT_MANIPULATION_2,
         OpType.UNARY_BIT_MANIPULATION_3,

@@ -1,7 +1,7 @@
 from typing import Callable
 from amaranth import *
 from amaranth.lib import data
-from amaranth.hdl.ast import ArrayProxy, Slice
+from amaranth.hdl._ast import ArrayProxy, Slice
 
 from transactron.utils._typing import LayoutLike
 from transactron.utils import AssignType, assign
