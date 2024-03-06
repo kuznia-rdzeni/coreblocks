@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709735296129,
+  "lastUpdate": 1709735762841,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -7807,6 +7807,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "minver",
             "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "01d54f4889b87e42c16053a1ea3dff41323791ec",
+          "message": "Add pytest - step 2 (#554)",
+          "timestamp": "2024-03-06T15:19:47+01:00",
+          "tree_id": "00944fc83d43ec0cdf4cc9a4fe252da33b734589",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/01d54f4889b87e42c16053a1ea3dff41323791ec"
+        },
+        "date": 1709735760608,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
             "unit": "Instructions Per Cycle"
           }
         ]
