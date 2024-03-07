@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1709819761046,
+  "lastUpdate": 1709820247748,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -7935,6 +7935,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0ae1ed8902d5b0749651c28b3e274a79b16a8096",
+          "message": "Profiles for regression tests (#596)",
+          "timestamp": "2024-03-07T14:47:40+01:00",
+          "tree_id": "95d78a80911dc96dce68ddd1d6f971a7bcdde77b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0ae1ed8902d5b0749651c28b3e274a79b16a8096"
+        },
+        "date": 1709820245520,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
             "unit": "Instructions Per Cycle"
           }
         ]
