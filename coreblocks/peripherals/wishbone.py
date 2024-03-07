@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+from amaranth.lib.wiring import PureInterface, Signature, In, Out, Component
 from functools import reduce
 from typing import List
 import operator
@@ -31,52 +32,36 @@ class WishboneParameters:
         self.granularity = granularity
 
 
-class WishboneLayout:
-    """Wishbone bus Layout generator.
-
-    Parameters
-    ----------
-    wb_params: WishboneParameters
-        Parameters used to generate Wishbone layout
-    master: Boolean
-        Whether the layout should be generated for the master side
-        (otherwise it's generated for the slave side)
-
-    Attributes
-    ----------
-    wb_layout: Record
-        Record of a Wishbone bus.
-    """
-
-    def __init__(self, wb_params: WishboneParameters, master=True):
-        self.wb_layout = [
-            ("dat_r", wb_params.data_width, DIR_FANIN if master else DIR_FANOUT),
-            ("dat_w", wb_params.data_width, DIR_FANOUT if master else DIR_FANIN),
-            ("rst", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("ack", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("adr", wb_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
-            ("cyc", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("stall", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("err", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("lock", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("rty", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANOUT if master else DIR_FANIN),
-            ("stb", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("we", 1, DIR_FANOUT if master else DIR_FANIN),
-        ]
+class WishboneBusSignature(Signature):
+    def __init__(self, wb_params: WishboneParameters):
+        super().__init__({
+            "dat_r": In(wb_params.data_width),
+            "dat_w": Out(wb_params.data_width),
+            "rst": Out(1),
+            "ack": In(1),
+            "adr": Out(wb_params.addr_width),
+            "cyc": Out(1),
+            "stall": In(1),
+            "err": In(1),
+            "lock": Out(1),
+            "rty": In(1),
+            "sel": Out(wb_params.data_width // wb_params.granularity),
+            "stb": Out(1),
+            "we": Out(1),            
+        })
 
 
-class WishboneBus(Record):
-    """Wishbone bus.
-
-    Parameters
-    ----------
-    wb_params: WishboneParameters
-        Parameters for bus generation.
-    """
-
-    def __init__(self, wb_params: WishboneParameters, **kwargs):
-        super().__init__(WishboneLayout(wb_params).wb_layout, **kwargs)
+#class WishboneBus(Record):
+#    """Wishbone bus.
+#
+#    Parameters
+#    ----------
+#    wb_params: WishboneParameters
+#        Parameters for bus generation.
+#    """
+#
+#    def __init__(self, wb_params: WishboneParameters, **kwargs):
+#        super().__init__(WishboneLayout(wb_params).wb_layout, **kwargs)
 
 
 class WishboneMasterMethodLayout:
@@ -107,7 +92,7 @@ class WishboneMasterMethodLayout:
         self.result_layout = make_layout(("data", wb_params.data_width), ("err", 1))
 
 
-class WishboneMaster(Elaboratable):
+class WishboneMaster(Component):
     """Wishbone bus master interface.
 
     Parameters
@@ -129,10 +114,11 @@ class WishboneMaster(Elaboratable):
         Returns state of request (error or success) and data (in case of read request) as `result_layout`.
     """
 
+    wb_master : PureInterface
+
     def __init__(self, wb_params: WishboneParameters):
+        super().__init__({"wb_master": Out(WishboneBusSignature(wb_params))})
         self.wb_params = wb_params
-        self.wb_layout = WishboneLayout(wb_params).wb_layout
-        self.wb_master = Record(self.wb_layout)
 
         self.method_layouts = WishboneMasterMethodLayout(wb_params)
 
