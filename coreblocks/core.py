@@ -27,7 +27,7 @@ from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
@@ -38,7 +38,7 @@ __all__ = ["Core"]
 
 
 class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
+    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneInterface, wb_data_bus: WishboneInterface):
         self.gen_params = gen_params
 
         dep_manager = DependencyContext.get()

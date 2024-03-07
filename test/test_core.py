@@ -8,7 +8,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO
 from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
-from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
+from coreblocks.peripherals.wishbone import WishboneBusSignature, WishboneMemorySlave
 
 from typing import Optional
 import random
@@ -33,8 +33,8 @@ class CoreTestElaboratable(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_instr_bus = WishboneBus(self.gen_params.wb_params)
-        wb_data_bus = WishboneBus(self.gen_params.wb_params)
+        wb_instr_bus = WishboneBusSignature(self.gen_params.wb_params).create()
+        wb_data_bus = WishboneBusSignature(self.gen_params.wb_params).create()
 
         # Align the size of the memory to the length of a cache line.
         instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.block_size_bits)

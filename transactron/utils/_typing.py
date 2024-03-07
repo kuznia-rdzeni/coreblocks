@@ -145,6 +145,7 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
     def next(self, name: str) -> None:
         ...
 
+
 class AbstractSignature(Protocol):
     def flip(self) -> "AbstractSignature":
         ...
@@ -156,7 +157,7 @@ class AbstractSignature(Protocol):
     def __eq__(self, other) -> bool:
         ...
 
-    def flatten(self, obj) -> Iterator[tuple[tuple[*(str | int)], Flow, ValueLike]]:
+    def flatten(self, obj) -> Iterator[tuple[tuple[str | int, ...], Flow, ValueLike]]:
         ...
 
     def is_compliant(self, obj, *, reasons=..., path=...) -> bool:
