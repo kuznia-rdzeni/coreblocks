@@ -133,6 +133,7 @@
 <li class="toctree-l2"><a class="reference internal" href="transactron.utils.html#module-transactron.utils.depcache">transactron.utils.depcache module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transactron.utils.html#module-transactron.utils.dependencies">transactron.utils.dependencies module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transactron.utils.html#module-transactron.utils.gen">transactron.utils.gen module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transactron.utils.html#module-transactron.utils.idgen">transactron.utils.idgen module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transactron.utils.html#module-transactron.utils.transactron_helpers">transactron.utils.transactron_helpers module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="transactron.utils.html#module-transactron.utils">Module contents</a></li>
 </ul>
@@ -848,6 +849,31 @@ Might raise KeyError if not yet hierarchized.</p>
 <div class="section" id="module-transactron.profiler">
 <span id="transactron-profiler-module"></span><h2>transactron.profiler module<a class="headerlink" href="#module-transactron.profiler" title="Permalink to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.profiler.MethodSamples">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">MethodSamples</span></span><a class="headerlink" href="#transactron.profiler.MethodSamples" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Runtime value of method control signals in a given clock cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>run: bool</strong></dt><dd><p>The value of the method’s <code class="docutils literal notranslate"><span class="pre">run</span></code> signal.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.MethodSamples.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.profiler.MethodSamples.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.MethodSamples.run">
+<span class="sig-name descname"><span class="pre">run</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#transactron.profiler.MethodSamples.run" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.profiler.Profile">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">Profile</span></span><a class="headerlink" href="#transactron.profiler.Profile" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
@@ -872,12 +898,12 @@ by their unique ID numbers.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.profiler.Profile.analyze_methods">
-<span class="sig-name descname"><span class="pre">analyze_methods</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">transactron.profiler.RunStatNode</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.profiler.Profile.analyze_methods" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">analyze_methods</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.profiler.RunStatNode" title="transactron.profiler.RunStatNode"><span class="pre">transactron.profiler.RunStatNode</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.profiler.Profile.analyze_methods" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.profiler.Profile.analyze_transactions">
-<span class="sig-name descname"><span class="pre">analyze_transactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">transactron.profiler.RunStatNode</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.profiler.Profile.analyze_transactions" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">analyze_transactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.profiler.RunStatNode" title="transactron.profiler.RunStatNode"><span class="pre">transactron.profiler.RunStatNode</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.profiler.Profile.analyze_transactions" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -928,11 +954,66 @@ by their unique ID numbers.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">ProfileData</span></span><a class="headerlink" href="#transactron.profiler.ProfileData" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Information about transactions and methods from the transaction manager.</p>
+<p>This data is required for transaction profile generation in simulators.
+Transactions and methods are referred to by their unique ID numbers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>transactions_and_methods: dict[int, ProfileInfo]</strong></dt><dd><p>Information about individual transactions and methods.</p>
+</dd>
+<dt><strong>method_parents: dict[int, list[int]]</strong></dt><dd><p>Lists the callers (transactions and methods) for each method. Key is
+method ID.</p>
+</dd>
+<dt><strong>transactions_by_method: dict[int, list[int]]</strong></dt><dd><p>Lists which transactions are calling each method. Key is method ID.</p>
+</dd>
+<dt><strong>transaction_conflicts: dict[int, list[int]]</strong></dt><dd><p>List which other transactions conflict with each transaction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transactions_and_methods</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.profiler.ProfileInfo" title="transactron.profiler.ProfileInfo"><span class="pre">transactron.profiler.ProfileInfo</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method_parents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transactions_by_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transaction_conflicts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.profiler.ProfileData.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData.make">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.TransactionManager" title="transactron.core.TransactionManager"><span class="pre">TransactionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.profiler.ProfileData.make" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData.method_parents">
+<span class="sig-name descname"><span class="pre">method_parents</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.ProfileData.method_parents" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData.transaction_conflicts">
+<span class="sig-name descname"><span class="pre">transaction_conflicts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.ProfileData.transaction_conflicts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData.transactions_and_methods">
+<span class="sig-name descname"><span class="pre">transactions_and_methods</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.profiler.ProfileInfo" title="transactron.profiler.ProfileInfo"><span class="pre">transactron.profiler.ProfileInfo</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.ProfileData.transactions_and_methods" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileData.transactions_by_method">
+<span class="sig-name descname"><span class="pre">transactions_by_method</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.ProfileData.transactions_by_method" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.profiler.ProfileInfo">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">ProfileInfo</span></span><a class="headerlink" href="#transactron.profiler.ProfileInfo" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Information about transactions and methods. In <cite>Profile</cite>, transactions
-and methods are referred to by their unique ID numbers.</p>
+<p>Information about transactions and methods.</p>
+<p>In <cite>Profile</cite>, transactions and methods are referred to by their unique ID
+numbers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
@@ -988,6 +1069,166 @@ and methods are referred to by their unique ID numbers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.profiler.ProfileInfo.to_json">
 <span class="sig-name descname"><span class="pre">to_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#transactron.profiler.ProfileInfo.to_json" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileSamples">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">ProfileSamples</span></span><a class="headerlink" href="#transactron.profiler.ProfileSamples" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Runtime values of all transaction and method control signals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>transactions: dict[int, TransactionSamples]</strong></dt><dd><p>Runtime values of transaction control signals for each transaction.</p>
+</dd>
+<dt><strong>methods: dict[int, MethodSamples]</strong></dt><dd><p>Runtime values of method control signals for each method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileSamples.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transactions:</span> <span class="pre">dict[int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transactron.profiler.TransactionSamples]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">methods:</span> <span class="pre">dict[int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transactron.profiler.MethodSamples]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.profiler.ProfileSamples.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileSamples.methods">
+<span class="sig-name descname"><span class="pre">methods</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.profiler.MethodSamples" title="transactron.profiler.MethodSamples"><span class="pre">transactron.profiler.MethodSamples</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.ProfileSamples.methods" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.ProfileSamples.transactions">
+<span class="sig-name descname"><span class="pre">transactions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.profiler.TransactionSamples" title="transactron.profiler.TransactionSamples"><span class="pre">transactron.profiler.TransactionSamples</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.ProfileSamples.transactions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">RunStat</span></span><a class="headerlink" href="#transactron.profiler.RunStat" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Collected statistics about a transaction or method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name</strong><span class="classifier">str</span></dt><dd><p>The name.</p>
+</dd>
+<dt><strong>src_loc</strong><span class="classifier">SrcLoc</span></dt><dd><p>Source location.</p>
+</dd>
+<dt><strong>locked</strong><span class="classifier">int</span></dt><dd><p>For methods: the number of cycles this method was locked because of
+a disabled call (a call under a false condition). For transactions:
+the number of cycles this transaction was ready to run, but did not
+run because a conflicting transaction has run instead.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">locked</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.profiler.RunStat.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat.locked">
+<span class="sig-name descname"><span class="pre">locked</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#transactron.profiler.RunStat.locked" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat.make">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.profiler.ProfileInfo" title="transactron.profiler.ProfileInfo"><span class="pre">ProfileInfo</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.profiler.RunStat.make" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#transactron.profiler.RunStat.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat.run">
+<span class="sig-name descname"><span class="pre">run</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#transactron.profiler.RunStat.run" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.RunStat.src_loc">
+<span class="sig-name descname"><span class="pre">src_loc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#transactron.profiler.RunStat.src_loc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.profiler.RunStatNode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">RunStatNode</span></span><a class="headerlink" href="#transactron.profiler.RunStatNode" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A statistics tree. Summarizes call graph information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>stat</strong><span class="classifier">RunStat</span></dt><dd><p>Statistics.</p>
+</dd>
+<dt><strong>callers</strong><span class="classifier">dict[int, RunStatNode]</span></dt><dd><p>Statistics for the method callers. For transactions, this is empty.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.RunStatNode.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat:</span> <span class="pre">~transactron.profiler.RunStat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callers:</span> <span class="pre">dict[int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transactron.profiler.RunStatNode]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.profiler.RunStatNode.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.RunStatNode.callers">
+<span class="sig-name descname"><span class="pre">callers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.profiler.RunStatNode" title="transactron.profiler.RunStatNode"><span class="pre">transactron.profiler.RunStatNode</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.profiler.RunStatNode.callers" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.RunStatNode.make">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.profiler.ProfileInfo" title="transactron.profiler.ProfileInfo"><span class="pre">ProfileInfo</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.profiler.RunStatNode.make" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.RunStatNode.stat">
+<span class="sig-name descname"><span class="pre">stat</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#transactron.profiler.RunStat" title="transactron.profiler.RunStat"><span class="pre">RunStat</span></a></em><a class="headerlink" href="#transactron.profiler.RunStatNode.stat" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.profiler.TransactionSamples">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.profiler.</span></span><span class="sig-name descname"><span class="pre">TransactionSamples</span></span><a class="headerlink" href="#transactron.profiler.TransactionSamples" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Runtime value of transaction control signals in a given clock cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>request: bool</strong></dt><dd><p>The value of the transaction’s <code class="docutils literal notranslate"><span class="pre">request</span></code> signal.</p>
+</dd>
+<dt><strong>runnable: bool</strong></dt><dd><p>The value of the transaction’s <code class="docutils literal notranslate"><span class="pre">runnable</span></code> signal.</p>
+</dd>
+<dt><strong>grant: bool</strong></dt><dd><p>The value of the transaction’s <code class="docutils literal notranslate"><span class="pre">grant</span></code> signal.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.profiler.TransactionSamples.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runnable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.profiler.TransactionSamples.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.TransactionSamples.grant">
+<span class="sig-name descname"><span class="pre">grant</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#transactron.profiler.TransactionSamples.grant" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.TransactionSamples.request">
+<span class="sig-name descname"><span class="pre">request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#transactron.profiler.TransactionSamples.request" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.profiler.TransactionSamples.runnable">
+<span class="sig-name descname"><span class="pre">runnable</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#transactron.profiler.TransactionSamples.runnable" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1550,7 +1791,7 @@ are accepted.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 17:29 2024-03-06.
+      <span class="lastupdated">Last updated on 13:48 2024-03-07.
       </span></p>
   </div>
 
