@@ -12,13 +12,15 @@ from typing import (
     runtime_checkable,
     Union,
     Any,
+    Self,
     TYPE_CHECKING,
 )
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
+from amaranth.lib.wiring import Flow, SignatureMembers
 from amaranth.hdl import ShapeCastable, ValueCastable
 from amaranth.hdl.rec import Direction, Layout
 
@@ -86,6 +88,7 @@ Graph: TypeAlias = dict[T, set[T]]
 GraphCC: TypeAlias = set[T]
 
 
+# Protocols for Amaranth classes
 class _ModuleBuilderDomainsLike(Protocol):
     def __getattr__(self, name: str) -> "_ModuleBuilderDomain":
         ...
@@ -141,6 +144,36 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
     @next.setter
     def next(self, name: str) -> None:
         ...
+
+class AbstractSignature(Protocol):
+    def flip(self) -> "AbstractSignature":
+        ...
+
+    @property
+    def members(self) -> SignatureMembers:
+        ...
+
+    def __eq__(self, other) -> bool:
+        ...
+
+    def flatten(self, obj) -> Iterator[tuple[tuple[*(str | int)], Flow, ValueLike]]:
+        ...
+
+    def is_compliant(self, obj, *, reasons=..., path=...) -> bool:
+        ...
+
+    def create(self, *, path=..., src_loc_at=...) -> "AbstractInterface[Self]":
+        ...
+
+    def __repr__(self) -> str:
+        ...
+
+
+_T_AbstractSignature = TypeVar("_T_AbstractSignature", bound=AbstractSignature)
+
+
+class AbstractInterface(Protocol, Generic[_T_AbstractSignature]):
+    signature: _T_AbstractSignature
 
 
 class HasElaborate(Protocol):
