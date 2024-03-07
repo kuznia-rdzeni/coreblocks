@@ -221,7 +221,9 @@ jobs:
           scripts/run_tests.py -a regression
 
       - name: Check regression with pysim
-        run: ./scripts/run_tests.py -c 1 -a -b pysim regression
+        run: |
+          . venv/bin/activate
+          ./scripts/run_tests.py -c 1 -a -b pysim regression
 
 
   unit-test:
