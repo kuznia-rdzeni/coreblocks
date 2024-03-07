@@ -8,13 +8,14 @@ from dataclasses import dataclass
 import cocotb
 from cocotb.clock import Clock, Timer
 from cocotb.handle import ModifiableObject
-from cocotb.triggers import FallingEdge, Event, with_timeout
+from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
 from cocotb_bus.bus import Bus
 from cocotb.result import SimTimeoutError
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
+from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
 from transactron.utils.gen import GenerationInfo
 
 
@@ -151,11 +152,42 @@ class CocotbSimulation(SimulationBackend):
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
-            # As the component may start with '_' character, we need to use '_id'
-            # function instead of 'getattr' - this is required by cocotb.
-            obj = obj._id(component, extended=False)
+            try:
+                # As the component may start with '_' character, we need to use '_id'
+                # function instead of 'getattr' - this is required by cocotb.
+                obj = obj._id(component, extended=False)
+            except AttributeError:
+                if component[0] == "\\" and component[-1] == " ":
+                    # workaround for cocotb/verilator weirdness
+                    # for some escaped names lookup fails, but works when unescaped
+                    obj = obj._id(component[1:-1], extended=False)
+                else:
+                    raise
 
         return obj
+
+    async def profile_handler(self, clock, profile: Profile):
+        clock_edge_event = RisingEdge(clock)
+
+        while True:
+            samples = ProfileSamples()
+
+            for transaction_id, location in self.gen_info.transaction_signals_location.items():
+                request_val = self.get_cocotb_handle(location.request)
+                runnable_val = self.get_cocotb_handle(location.runnable)
+                grant_val = self.get_cocotb_handle(location.grant)
+                samples.transactions[transaction_id] = TransactionSamples(
+                    bool(request_val.value), bool(runnable_val.value), bool(grant_val.value)
+                )
+
+            for method_id, location in self.gen_info.method_signals_location.items():
+                run_val = self.get_cocotb_handle(location.run)
+                samples.methods[method_id] = MethodSamples(bool(run_val.value))
+
+            cprof = CycleProfile.make(samples, self.gen_info.profile_data)
+            profile.cycles.append(cprof)
+
+            await clock_edge_event  # type: ignore
 
     async def assert_handler(self, clock):
         clock_edge_event = FallingEdge(clock)
@@ -182,6 +214,12 @@ class CocotbSimulation(SimulationBackend):
         data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
 
+        profile = None
+        if "__TRANSACTRON_PROFILE" in os.environ:
+            profile = Profile()
+            profile.transactions_and_methods = self.gen_info.profile_data.transactions_and_methods
+            cocotb.start_soon(self.profile_handler(self.dut.clk, profile))
+
         cocotb.start_soon(self.assert_handler(self.dut.clk))
 
         success = True
@@ -191,6 +229,8 @@ class CocotbSimulation(SimulationBackend):
             success = False
 
         result = SimulationExecutionResult(success)
+
+        result.profile = profile
 
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}

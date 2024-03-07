@@ -6,6 +6,7 @@ import sys
 
 test_dir = Path(__file__).parent.parent
 riscv_tests_dir = test_dir.joinpath("external/riscv-tests")
+profile_dir = test_dir.joinpath("__profiles__")
 
 
 def get_all_test_names():
