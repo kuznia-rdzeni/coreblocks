@@ -14,7 +14,7 @@ if __name__ == "__main__":
     sys.path.insert(0, parent)
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.peripherals.wishbone import WishboneBusSignature
+from coreblocks.peripherals.wishbone import WishboneSignature
 from coreblocks.core import Core
 from transactron import TransactionModule
 from transactron.utils import DependencyManager, DependencyContext
@@ -33,8 +33,8 @@ class Top(Elaboratable):
     def __init__(self, gen_params):
         self.gp: GenParams = gen_params
 
-        self.wb_instr = WishboneBusSignature(self.gp.wb_params).create()
-        self.wb_data = WishboneBusSignature(self.gp.wb_params).create()
+        self.wb_instr = WishboneSignature(self.gp.wb_params).create()
+        self.wb_data = WishboneSignature(self.gp.wb_params).create()
 
     def elaborate(self, platform: Platform):
         m = Module()

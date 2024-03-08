@@ -32,7 +32,7 @@ class WishboneParameters:
         self.granularity = granularity
 
 
-class WishboneBusSignature(Signature):
+class WishboneSignature(Signature):
     def __init__(self, wb_params: WishboneParameters):
         super().__init__(
             {
@@ -125,7 +125,7 @@ class WishboneMaster(Component):
     wb_master: WishboneInterface
 
     def __init__(self, wb_params: WishboneParameters):
-        super().__init__({"wb_master": Out(WishboneBusSignature(wb_params))})
+        super().__init__({"wb_master": Out(WishboneSignature(wb_params))})
         self.wb_params = wb_params
 
         self.method_layouts = WishboneMasterMethodLayout(wb_params)
@@ -231,7 +231,7 @@ class PipelinedWishboneMaster(Component):
     wb: WishboneInterface
 
     def __init__(self, wb_params: WishboneParameters, *, max_req: int = 8):
-        super().__init__({"wb": Out(WishboneBusSignature(wb_params))})
+        super().__init__({"wb": Out(WishboneSignature(wb_params))})
         self.wb_params = wb_params
         self.max_req = max_req
 
@@ -328,8 +328,8 @@ class WishboneMuxer(Component):
     def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
         super().__init__(
             {
-                "master_wb": Out(WishboneBusSignature(wb_params)),
-                "slaves": In(WishboneBusSignature(wb_params)).array(num_slaves),
+                "master_wb": Out(WishboneSignature(wb_params)),
+                "slaves": In(WishboneSignature(wb_params)).array(num_slaves),
             }
         )
         self.sselTGA = ssel_tga
@@ -394,8 +394,8 @@ class WishboneArbiter(Component):
     def __init__(self, wb_params: WishboneParameters, num_masters: int):
         super().__init__(
             {
-                "slave_wb": In(WishboneBusSignature(wb_params)),
-                "masters": Out(WishboneBusSignature(wb_params)).array(num_masters),
+                "slave_wb": In(WishboneSignature(wb_params)),
+                "masters": Out(WishboneSignature(wb_params)).array(num_masters),
             }
         )
 
@@ -471,7 +471,7 @@ class WishboneMemorySlave(Component):
     bus: WishboneInterface
 
     def __init__(self, wb_params: WishboneParameters, **kwargs):
-        super().__init__({"bus": In(WishboneBusSignature(wb_params))})
+        super().__init__({"bus": In(WishboneSignature(wb_params))})
         if "width" not in kwargs:
             kwargs["width"] = wb_params.data_width
         if kwargs["width"] not in (8, 16, 32, 64):
