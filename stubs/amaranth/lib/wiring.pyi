@@ -640,7 +640,7 @@ class Signature(metaclass=SignatureMeta):
         """
         ...
     
-    def is_compliant(self, obj, *, reasons=..., path: tuple[str, ...] =...) -> bool:
+    def is_compliant(self, obj, *, reasons: Optional[list[str]] =..., path: tuple[str, ...] =...) -> bool:
         """Check whether an object matches the description in this signature.
 
         This module places few restrictions on what an interface object may be; it does not
@@ -804,7 +804,7 @@ class FlippedSignature(Generic[_T_Signature]):
     def flatten(self, obj) -> Iterator[tuple[tuple[str | int, ...], Flow, ValueLike]]:
         ...
 
-    def is_compliant(self, obj, *, reasons=..., path=...) -> bool:
+    def is_compliant(self, obj, *, reasons: Optional[list[str]] =..., path: tuple[str, ...] =...) -> bool:
         ...
 
     def __getattr__(self, name) -> Any:

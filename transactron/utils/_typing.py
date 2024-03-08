@@ -12,7 +12,6 @@ from typing import (
     runtime_checkable,
     Union,
     Any,
-    Self,
     TYPE_CHECKING,
 )
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -195,10 +194,12 @@ class AbstractSignature(Protocol):
     def flatten(self, obj) -> Iterator[tuple[tuple[str | int, ...], Flow, ValueLike]]:
         ...
 
-    def is_compliant(self, obj, *, reasons=..., path=...) -> bool:
+    def is_compliant(self, obj, *, reasons: Optional[list[str]] = ..., path: tuple[str, ...] = ...) -> bool:
         ...
 
-    def create(self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...) -> "AbstractInterface[Self]":
+    def create(
+        self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...
+    ) -> "AbstractInterface[AbstractSignature]":
         ...
 
     def __repr__(self) -> str:
