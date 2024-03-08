@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.wiring import flipped, connect
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
@@ -117,8 +118,8 @@ class Core(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.d.comb += self.wb_master_instr.wb_master.connect(self.wb_instr_bus)
-        m.d.comb += self.wb_master_data.wb_master.connect(self.wb_data_bus)
+        connect(m, flipped(self.wb_instr_bus), self.wb_master_instr.wb_master)
+        connect(m, flipped(self.wb_data_bus), self.wb_master_instr.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data

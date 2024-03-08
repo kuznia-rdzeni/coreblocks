@@ -20,7 +20,7 @@ from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
-from amaranth.lib.wiring import Flow, SignatureMembers
+from amaranth.lib.wiring import Flow, Member
 from amaranth.hdl import ShapeCastable, ValueCastable
 from amaranth.hdl.rec import Direction, Layout
 
@@ -146,12 +146,47 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
         ...
 
 
+class AbstractSignatureMembers(Protocol):
+    def flip(self) -> "AbstractSignatureMembers":
+        ...
+
+    def __eq__(self, other) -> bool:
+        ...
+
+    def __contains__(self, name: str) -> bool:
+        ...
+
+    def __getitem__(self, name: str) -> Member:
+        ...
+
+    def __setitem__(self, name: str, member: Member) -> NoReturn:
+        ...
+
+    def __delitem__(self, name: str) -> NoReturn:
+        ...
+
+    def __iter__(self) -> Iterator[str]:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def flatten(self, *, path: tuple[str | int, ...] = ...) -> Iterator[tuple[tuple[str | int, ...], Member]]:
+        ...
+
+    def create(self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...) -> dict[str, Any]:
+        ...
+
+    def __repr__(self) -> str:
+        ...
+
+
 class AbstractSignature(Protocol):
     def flip(self) -> "AbstractSignature":
         ...
 
     @property
-    def members(self) -> SignatureMembers:
+    def members(self) -> AbstractSignatureMembers:
         ...
 
     def __eq__(self, other) -> bool:
@@ -163,7 +198,7 @@ class AbstractSignature(Protocol):
     def is_compliant(self, obj, *, reasons=..., path=...) -> bool:
         ...
 
-    def create(self, *, path=..., src_loc_at=...) -> "AbstractInterface[Self]":
+    def create(self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...) -> "AbstractInterface[Self]":
         ...
 
     def __repr__(self) -> str:

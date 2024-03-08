@@ -14,10 +14,10 @@ if __name__ == "__main__":
     sys.path.insert(0, parent)
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.peripherals.wishbone import WishboneBus
+from coreblocks.peripherals.wishbone import WishboneBusSignature
 from coreblocks.core import Core
 from transactron import TransactionModule
-from transactron.utils import flatten_signals, DependencyManager, DependencyContext
+from transactron.utils import DependencyManager, DependencyContext
 from transactron.utils.gen import generate_verilog
 
 from coreblocks.params.configurations import *
@@ -33,8 +33,8 @@ class Top(Elaboratable):
     def __init__(self, gen_params):
         self.gp: GenParams = gen_params
 
-        self.wb_instr = WishboneBus(self.gp.wb_params, name="wb_instr")
-        self.wb_data = WishboneBus(self.gp.wb_params, name="wb_data")
+        self.wb_instr = WishboneBusSignature(self.gp.wb_params).create()
+        self.wb_data = WishboneBusSignature(self.gp.wb_params).create()
 
     def elaborate(self, platform: Platform):
         m = Module()
@@ -49,9 +49,10 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str):
     with DependencyContext(DependencyManager()):
         gp = GenParams(core_config)
         top = Top(gp)
-        ports = list(flatten_signals(top.wb_instr)) + list(flatten_signals(top.wb_data))
+        instr_ports = [getattr(top.wb_instr, name) for name in top.wb_instr.signature.members]
+        data_ports = [getattr(top.wb_data, name) for name in top.wb_data.signature.members]
 
-        verilog_text, gen_info = generate_verilog(top, ports)
+        verilog_text, gen_info = generate_verilog(top, instr_ports + data_ports)
 
         gen_info.encode(f"{output_path}.json")
         with open(output_path, "w") as f:

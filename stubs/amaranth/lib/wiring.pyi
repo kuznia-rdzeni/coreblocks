@@ -387,7 +387,7 @@ class SignatureMembers(Mapping[str, Member]):
 
 
 @final
-class FlippedSignatureMembers(Mapping, Generic[_T_SignatureMembers]):
+class FlippedSignatureMembers(Mapping[str, Member], Generic[_T_SignatureMembers]):
     """Mapping of signature member names to their descriptions, with the directions flipped.
 
     Although an instance of :class:`FlippedSignatureMembers` could be created directly, it will
@@ -933,17 +933,19 @@ class FlippedInterface(Generic[_T_Signature, _T_Interface]):
     """
     def __init__(self, interface: _T_Interface) -> None:
         ...
-    
-    @property
-    def signature(self) -> _T_Signature:
-        """Signature of the flipped interface.
 
-        Returns
-        -------
-        Signature
-            :pc:`unflipped.signature.flip()`
-        """
-        ...
+    # not true -- this is a property -- but required for clean typing
+    signature: _T_Signature
+#    @property
+#    def signature(self) -> _T_Signature:
+#        """Signature of the flipped interface.
+#
+#        Returns
+#        -------
+#        Signature
+#            :pc:`unflipped.signature.flip()`
+#        """
+#        ...
     
     def __eq__(self, other) -> bool:
         """Compare this flipped interface with another.
