@@ -119,7 +119,7 @@ class Core(Elaboratable):
         m = TModule()
 
         connect(m, flipped(self.wb_instr_bus), self.wb_master_instr.wb_master)
-        connect(m, flipped(self.wb_data_bus), self.wb_master_instr.wb_master)
+        connect(m, flipped(self.wb_data_bus), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data
