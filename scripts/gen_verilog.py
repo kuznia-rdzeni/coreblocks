@@ -49,8 +49,12 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str):
     with DependencyContext(DependencyManager()):
         gp = GenParams(core_config)
         top = Top(gp)
-        instr_ports = [getattr(top.wb_instr, name) for name in top.wb_instr.signature.members]
-        data_ports = [getattr(top.wb_data, name) for name in top.wb_data.signature.members]
+        instr_ports: list[Signal] = [getattr(top.wb_instr, name) for name in top.wb_instr.signature.members]
+        data_ports: list[Signal] = [getattr(top.wb_data, name) for name in top.wb_data.signature.members]
+        for sig in instr_ports:
+            sig.name = "wb_instr__" + sig.name
+        for sig in data_ports:
+            sig.name = "wb_data__" + sig.name
 
         verilog_text, gen_info = generate_verilog(top, instr_ports + data_ports)
 
