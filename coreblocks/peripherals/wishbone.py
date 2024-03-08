@@ -53,6 +53,7 @@ class WishboneSignature(Signature):
         )
 
     def create(self, *, path: tuple[str | int, ...] = (), src_loc_at: int = 0):
+        """Create a WishboneInterface."""  # workaround for Sphinx problem with Amaranth docstring
         return cast(WishboneInterface, PureInterface(self, path=path, src_loc_at=src_loc_at + 1))
 
 
