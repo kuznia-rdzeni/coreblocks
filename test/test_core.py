@@ -1,4 +1,5 @@
 from amaranth import Elaboratable, Module
+from amaranth.lib.wiring import connect
 
 from transactron.lib import AdapterTrans
 from transactron.utils import align_to_power_of_two, signed_to_int
@@ -54,8 +55,8 @@ class CoreTestElaboratable(Elaboratable):
         m.submodules.io_in = self.io_in
         m.submodules.interrupt = self.interrupt
 
-        m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
-        m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
+        connect(m, wb_instr_bus, self.wb_mem_slave.bus)
+        connect(m, wb_data_bus, self.wb_mem_slave_data.bus)
 
         return m
 
