@@ -1,6 +1,6 @@
 from .memory import *
 from .common import SimulationBackend
-from .conftest import riscv_tests_dir
+from .conftest import riscv_tests_dir, profile_dir
 from test.regression.pysim import PySimulation
 import xml.etree.ElementTree as eT
 import asyncio
@@ -47,6 +47,10 @@ async def run_test(sim_backend: SimulationBackend, test_name: str):
     mem_model = CoreMemoryModel(mem_segments)
 
     result = await sim_backend.run(mem_model, timeout_cycles=5000)
+
+    if result.profile is not None:
+        os.makedirs(profile_dir, exist_ok=True)
+        result.profile.encode(f"{profile_dir}/test.regression.{test_name}.json")
 
     if not result.success:
         raise RuntimeError("Simulation timed out")
