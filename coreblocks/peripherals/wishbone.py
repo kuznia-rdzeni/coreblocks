@@ -10,6 +10,7 @@ from transactron.lib import AdapterTrans, BasicFifo
 from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
+from transactron.lib import logging
 
 
 class WishboneParameters:
@@ -114,6 +115,8 @@ class WishboneMaster(Elaboratable):
     ----------
     wb_params: WishboneParameters
         Parameters for bus generation.
+    name: str, optional
+        Name of this bus. Used for logging.
 
     Attributes
     ----------
@@ -129,7 +132,8 @@ class WishboneMaster(Elaboratable):
         Returns state of request (error or success) and data (in case of read request) as `result_layout`.
     """
 
-    def __init__(self, wb_params: WishboneParameters):
+    def __init__(self, wb_params: WishboneParameters, name: str = ""):
+        self.name = name
         self.wb_params = wb_params
         self.wb_layout = WishboneLayout(wb_params).wb_layout
         self.wb_master = Record(self.wb_layout)
@@ -141,6 +145,11 @@ class WishboneMaster(Elaboratable):
 
         # latched input signals
         self.txn_req = Signal(self.method_layouts.request_layout)
+
+        logger_name = "bus.wishbone"
+        if name != "":
+            logger_name += f".{name}"
+        self.log = logging.HardwareLogger(logger_name)
 
     def elaborate(self, platform):
         m = TModule()
@@ -194,13 +203,33 @@ class WishboneMaster(Elaboratable):
 
         @def_method(m, self.result)
         def _():
-            return result.read(m)
+            ret = result.read(m)
+
+            self.log.debug(
+                m,
+                True,
+                "response data=0x{:x} err={}",
+                ret.data,
+                ret.err,
+            )
+
+            return ret
 
         @def_method(m, self.request, ready=request_ready & result.write.ready)
         def _(arg):
             m.d.sync += assign(self.txn_req, arg)
             # do WBCycStart state in the same clock cycle
             FSMWBCycStart(arg)
+
+            self.log.debug(
+                m,
+                True,
+                "request addr=0x{:x} data=0x{:x} sel=0x{:x} write={}",
+                arg.addr,
+                arg.data,
+                arg.sel,
+                arg.we,
+            )
 
         result.write.schedule_before(self.request)
         result.read.schedule_before(self.request)

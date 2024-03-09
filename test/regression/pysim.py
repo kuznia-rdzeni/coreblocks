@@ -1,5 +1,6 @@
 import re
 import os
+import logging
 
 from amaranth.sim import Passive, Settle
 from amaranth.utils import exact_log2
@@ -10,7 +11,14 @@ from transactron.core import TransactionManagerKey
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
-from transactron.testing import PysimSimulator, TestGen, profiler_process, Profile
+from transactron.testing import (
+    PysimSimulator,
+    TestGen,
+    profiler_process,
+    Profile,
+    make_logging_process,
+    parse_logging_level,
+)
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
@@ -22,12 +30,14 @@ from coreblocks.peripherals.wishbone import WishboneBus
 
 
 class PySimulation(SimulationBackend):
-    def __init__(self, verbose: bool, traces_file: Optional[str] = None):
+    def __init__(self, traces_file: Optional[str] = None):
         self.gp = GenParams(full_core_config)
         self.running = False
         self.cycle_cnt = 0
-        self.verbose = verbose
         self.traces_file = traces_file
+
+        self.log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
+        self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
 
         self.metrics_manager = HardwareMetricsManager()
 
@@ -49,17 +59,11 @@ class PySimulation(SimulationBackend):
 
                 resp_data = 0
 
-                bus_name = "instr" if is_instr_bus else "data"
-
                 if (yield wb_ctrl.wb.we):
-                    if self.verbose:
-                        print(f"Wishbone '{bus_name}' bus write request: addr=0x{addr:x} data={dat_w:x} sel={sel:b}")
                     resp = mem_model.write(
                         WriteRequest(addr=addr, data=dat_w, byte_count=word_width_bytes, byte_sel=sel)
                     )
                 else:
-                    if self.verbose:
-                        print(f"Wishbone '{bus_name}' bus read request: addr=0x{addr:x} sel={sel:b}")
                     resp = mem_model.read(
                         ReadRequest(
                             addr=addr,
@@ -69,9 +73,6 @@ class PySimulation(SimulationBackend):
                         )
                     )
                     resp_data = resp.data
-
-                    if self.verbose:
-                        print(f"Wishbone '{bus_name}' bus read response: data=0x{resp.data:x}")
 
                 ack = err = rty = 0
                 match resp.status:
@@ -102,8 +103,7 @@ class PySimulation(SimulationBackend):
         return f
 
     def pretty_dump_metrics(self, metric_values: dict[str, dict[str, int]], filter_regexp: str = ".*"):
-        print()
-        print("=== Core metrics dump ===")
+        str = "=== Core metrics dump ===\n"
 
         put_space_before = True
         for metric_name in sorted(metric_values.keys()):
@@ -114,20 +114,22 @@ class PySimulation(SimulationBackend):
 
             if metric.description != "":
                 if not put_space_before:
-                    print()
+                    str += "\n"
 
-                print(f"# {metric.description}")
+                str += f"# {metric.description}\n"
 
             for reg in metric.regs.values():
                 reg_value = metric_values[metric_name][reg.name]
 
                 desc = f" # {reg.description} [reg width={reg.width}]"
-                print(f"{metric_name}/{reg.name} {reg_value}{desc}")
+                str += f"{metric_name}/{reg.name} {reg_value}{desc}\n"
 
             put_space_before = False
             if metric.description != "":
-                print()
+                str += "\n"
                 put_space_before = True
+
+        logging.info(str)
 
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         with DependencyContext(DependencyManager()):
@@ -144,6 +146,11 @@ class PySimulation(SimulationBackend):
             sim = PysimSimulator(core, max_cycles=timeout_cycles, traces_file=self.traces_file)
             sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
             sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
+
+            def on_error():
+                raise RuntimeError("Simulation finished due to an error")
+
+            sim.add_sync_process(make_logging_process(self.log_level, self.log_filter, on_error))
 
             profile = None
             if "__TRANSACTRON_PROFILE" in os.environ:
@@ -166,8 +173,7 @@ class PySimulation(SimulationBackend):
             sim.add_sync_process(self._waiter(on_finish=on_sim_finish))
             success = sim.run()
 
-            if self.verbose:
-                self.pretty_dump_metrics(metric_values)
+            self.pretty_dump_metrics(metric_values)
 
             return SimulationExecutionResult(success, metric_values, profile)
 

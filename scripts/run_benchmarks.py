@@ -74,7 +74,10 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     return res.returncode == 0
 
 
-def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool) -> bool:
+def run_benchmarks_with_pysim(
+    benchmarks: list[str],
+    traces: bool,
+) -> bool:
     suite = unittest.TestSuite()
 
     def _gen_test(test_name: str):
@@ -82,9 +85,7 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool
             traces_file = None
             if traces:
                 traces_file = "benchmark." + test_name
-            asyncio.run(
-                test.regression.benchmark.run_benchmark(PySimulation(verbose, traces_file=traces_file), test_name)
-            )
+            asyncio.run(test.regression.benchmark.run_benchmark(PySimulation(traces_file=traces_file), test_name))
 
         test_fn.__name__ = test_name
         test_fn.__qualname__ = test_name
@@ -94,17 +95,17 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, verbose: bool
     for test_name in benchmarks:
         suite.addTest(unittest.FunctionTestCase(_gen_test(test_name)))
 
-    runner = unittest.TextTestRunner(verbosity=(2 if verbose else 1))
+    runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
 
     return result.wasSuccessful()
 
 
-def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool) -> bool:
+def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool) -> bool:
     if backend == "cocotb":
         return run_benchmarks_with_cocotb(benchmarks, traces)
     elif backend == "pysim":
-        return run_benchmarks_with_pysim(benchmarks, traces, verbose)
+        return run_benchmarks_with_pysim(benchmarks, traces)
     return False
 
 
@@ -144,8 +145,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", action="store_true", help="List all benchmarks")
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
+    parser.add_argument("--log-level", default="WARNING", action="store", help="Level of messages to display.")
+    parser.add_argument("--log-filter", default=".*", action="store", help="Regexp used to filter out logs.")
     parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
     parser.add_argument(
         "-o",
@@ -164,6 +166,9 @@ def main():
             print(name)
         return
 
+    os.environ["__TRANSACTRON_LOG_LEVEL"] = args.log_level
+    os.environ["__TRANSACTRON_LOG_FILTER"] = args.log_filter
+
     if args.benchmark_name:
         pattern = re.compile(args.benchmark_name)
         benchmarks = [name for name in benchmarks if pattern.search(name)]
@@ -175,7 +180,7 @@ def main():
     if args.profile:
         os.environ["__TRANSACTRON_PROFILE"] = "1"
 
-    success = run_benchmarks(benchmarks, args.backend, args.trace, args.verbose)
+    success = run_benchmarks(benchmarks, args.backend, args.trace)
     if not success:
         print("Benchmark execution failed")
         sys.exit(1)

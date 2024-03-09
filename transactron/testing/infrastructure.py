@@ -13,7 +13,7 @@ from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
-from .assertion import make_assert_handler
+from .logging import make_logging_process, parse_logging_level
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -263,7 +263,12 @@ class TestCaseWithSimulator(unittest.TestCase):
                 profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile)
             )
 
-        sim.add_sync_process(make_assert_handler(self.assertTrue))
+        def on_error():
+            self.assertTrue(False, "Simulation finished due to an error")
+
+        log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
+        log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
+        sim.add_sync_process(make_logging_process(log_level, log_filter, on_error))
 
         res = sim.run()
 
