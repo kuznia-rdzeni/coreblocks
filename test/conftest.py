@@ -106,5 +106,9 @@ def pytest_runtest_setup(item: pytest.Item):
     if item.config.getoption("--coreblocks-profile", False):  # type: ignore
         os.environ["__TRANSACTRON_PROFILE"] = "1"
 
-    os.environ["__TRANSACTRON_LOG_FILTER"] = item.config.getoption("--coreblocks-log-filter", ".*")  # type: ignore
-    os.environ["__TRANSACTRON_LOG_LEVEL"] = item.config.getoption("--log-level", "WARNING")  # type: ignore
+    os.environ["__TRANSACTRON_LOG_FILTER"] = item.config.getoption("--coreblocks-log-filter", default=".*")  # type: ignore
+
+    log_level = item.config.getoption("--log-level")  # type: ignore
+    if log_level is None:
+        log_level = "WARNING"
+    os.environ["__TRANSACTRON_LOG_LEVEL"] = log_level
