@@ -32,7 +32,10 @@ def run_with_cocotb(test_name: str, traces: bool, output: str) -> bool:
     arglist += [f"OUTPUT={output}"]
 
     verilog_code = f"{parent}/core.v"
+    gen_info_path = f"{verilog_code}.json"
+
     arglist += [f"VERILOG_SOURCES={verilog_code}"]
+    arglist += [f"_COREBLOCKS_GEN_INFO={gen_info_path}"]
 
     if traces:
         arglist += ["TRACES=1"]

@@ -2,7 +2,7 @@ from functools import reduce
 import operator
 
 from amaranth import *
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 
 from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
@@ -52,7 +52,7 @@ class ICacheBypass(Elaboratable, CacheInterface):
             m.d.sync += req_addr.eq(addr)
             self.bus_master.request_read(
                 m,
-                addr=addr >> log2_int(self.params.word_width_bytes),
+                addr=addr >> exact_log2(self.params.word_width_bytes),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
@@ -350,7 +350,7 @@ class ICacheMemory(Elaboratable):
 
             # We address the data RAM using machine words, so we have to
             # discard a few least significant bits from the address.
-            redundant_offset_bits = log2_int(self.params.word_width_bytes)
+            redundant_offset_bits = exact_log2(self.params.word_width_bytes)
             rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
             wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
 

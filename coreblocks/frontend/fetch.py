@@ -38,9 +38,6 @@ class Fetch(Elaboratable):
         # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
-        # PC of the last fetched instruction. For now only used in tests.
-        self.pc = Signal(self.gen_params.isa.xlen)
-
     def elaborate(self, platform):
         m = TModule()
 
@@ -91,7 +88,6 @@ class Fetch(Elaboratable):
                     with m.If(unsafe_instr):
                         stall()
 
-                    m.d.sync += self.pc.eq(target.addr)
                     m.d.comb += instr.eq(res.instr)
 
                 self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
@@ -137,9 +133,6 @@ class UnalignedFetch(Elaboratable):
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
         self.perf_rvc = HwCounter("frontend.ifu.rvc", "Number of decompressed RVC instructions")
-
-        # PC of the last fetched instruction. For now only used in tests.
-        self.pc = Signal(self.gen_params.isa.xlen)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -231,7 +224,6 @@ class UnalignedFetch(Elaboratable):
                     m.d.sync += stalled_unsafe.eq(1)
                     m.d.sync += flushing.eq(1)
 
-                m.d.sync += self.pc.eq(current_pc)
                 with m.If(~cache_resp.error):
                     m.d.sync += current_pc.eq(current_pc + Mux(is_rvc, C(2, 3), C(4, 3)))
 

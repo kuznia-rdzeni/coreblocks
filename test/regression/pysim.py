@@ -1,13 +1,16 @@
 import re
+import os
 
 from amaranth.sim import Passive, Settle
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 from amaranth import *
+
+from transactron.core import TransactionManagerKey
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
-from transactron.testing import PysimSimulator, TestGen
+from transactron.testing import PysimSimulator, TestGen, profiler_process, Profile
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
@@ -40,7 +43,7 @@ class PySimulation(SimulationBackend):
                 word_width_bytes = self.gp.isa.xlen // 8
 
                 # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-                addr = (yield wb_ctrl.wb.adr) << log2_int(word_width_bytes)
+                addr = (yield wb_ctrl.wb.adr) << exact_log2(word_width_bytes)
                 sel = yield wb_ctrl.wb.sel
                 dat_w = yield wb_ctrl.wb.dat_w
 
@@ -142,6 +145,12 @@ class PySimulation(SimulationBackend):
             sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
             sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
 
+            profile = None
+            if "__TRANSACTRON_PROFILE" in os.environ:
+                transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
+                profile = Profile()
+                sim.add_sync_process(profiler_process(transaction_manager, profile))
+
             metric_values: dict[str, dict[str, int]] = {}
 
             def on_sim_finish():
@@ -160,7 +169,7 @@ class PySimulation(SimulationBackend):
             if self.verbose:
                 self.pretty_dump_metrics(metric_values)
 
-            return SimulationExecutionResult(success, metric_values)
+            return SimulationExecutionResult(success, metric_values, profile)
 
     def stop(self):
         self.running = False

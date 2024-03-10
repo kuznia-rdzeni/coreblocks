@@ -40,7 +40,9 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: "verilog-full-core"
-          path: core.v
+          path: |
+            core.v
+            core.v.json
 
 
   build-riscof-tests:
@@ -260,9 +262,6 @@ jobs:
         run: |
           . venv/bin/activate
           scripts/run_tests.py -a regression
-
-      - name: Check for test failure
-        run: ./scripts/check_test_results.py
 
   unit-test:
     name: Run unit tests

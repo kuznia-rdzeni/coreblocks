@@ -28,14 +28,14 @@ class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):
         AluFn.Fn.MAXU: ExecFn(OpType.BIT_MANIPULATION, Funct3.MAXU, Funct7.MAX),
         AluFn.Fn.MIN: ExecFn(OpType.BIT_MANIPULATION, Funct3.MIN, Funct7.MIN),
         AluFn.Fn.MINU: ExecFn(OpType.BIT_MANIPULATION, Funct3.MINU, Funct7.MIN),
-        AluFn.Fn.CPOP: ExecFn(OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP, Funct7.CPOP),
-        AluFn.Fn.SEXTB: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.SEXTB, Funct7.SEXTB),
-        AluFn.Fn.ZEXTH: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.ZEXTH, Funct7.ZEXTH),
-        AluFn.Fn.SEXTH: ExecFn(OpType.UNARY_BIT_MANIPULATION_2, Funct3.SEXTH, Funct7.SEXTH),
-        AluFn.Fn.ORCB: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.ORCB, Funct7.ORCB),
-        AluFn.Fn.REV8: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.REV8, Funct7.REV8),
-        AluFn.Fn.CLZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_3, Funct3.CLZ, Funct7.CLZ),
-        AluFn.Fn.CTZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_4, Funct3.CTZ, Funct7.CTZ),
+        AluFn.Fn.SEXTB: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.SEXTB),
+        AluFn.Fn.ZEXTH: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.ZEXTH),
+        AluFn.Fn.REV8: ExecFn(OpType.UNARY_BIT_MANIPULATION_1, Funct3.REV8),
+        AluFn.Fn.SEXTH: ExecFn(OpType.UNARY_BIT_MANIPULATION_2, Funct3.SEXTH),
+        AluFn.Fn.ORCB: ExecFn(OpType.UNARY_BIT_MANIPULATION_2, Funct3.ORCB),
+        AluFn.Fn.CLZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_3, Funct3.CLZ),
+        AluFn.Fn.CTZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_4, Funct3.CTZ),
+        AluFn.Fn.CPOP: ExecFn(OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP),
     }
 
     @staticmethod

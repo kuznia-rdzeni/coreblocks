@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Optional
 from .memory import CoreMemoryModel
+from transactron.profiler import Profile
 
 
 @dataclass
@@ -18,6 +20,7 @@ class SimulationExecutionResult:
 
     success: bool
     metric_values: dict[str, dict[str, int]] = field(default_factory=dict)
+    profile: Optional[Profile] = None
 
 
 class SimulationBackend(ABC):

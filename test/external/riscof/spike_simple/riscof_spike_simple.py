@@ -54,19 +54,14 @@ class spike_simple(pluginTemplate):
     def build(self, isa_yaml, platform_yaml):
         ispec = utils.load_yaml(isa_yaml)['hart0']
         self.xlen = ('64' if 64 in ispec['supported_xlen'] else '32')
-        self.isa = 'rv' + self.xlen
         if "64I" in ispec["ISA"]:
             self.compile_cmd = self.compile_cmd+' -mabi='+'lp64 '
         elif "32I" in ispec["ISA"]:
             self.compile_cmd = self.compile_cmd+' -mabi='+'ilp32 '
         elif "32E" in ispec["ISA"]:
             self.compile_cmd = self.compile_cmd+' -mabi='+'ilp32e '
-        if "I" in ispec["ISA"]:
-            self.isa += 'i'
-            if "M" in ispec["ISA"]:
-                self.isa += 'm'
-            if "C" in ispec["ISA"]:
-                self.isa += 'c'
+        self.isa = ispec["ISA"].lower()
+
         compiler = "riscv64-unknown-elf-gcc".format(self.xlen)
         if shutil.which(compiler) is None:
             logger.error(compiler+": executable not found. Please check environment setup.")

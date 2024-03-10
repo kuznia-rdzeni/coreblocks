@@ -1,10 +1,13 @@
 from enum import Enum
-from typing import Optional, TypeAlias, cast
+from typing import Optional, TypeAlias, cast, TYPE_CHECKING
 from collections.abc import Iterable, Mapping
 from amaranth import *
-from amaranth.hdl.ast import Assign, ArrayProxy
+from amaranth.hdl._ast import ArrayProxy
 from amaranth.lib import data
 from ._typing import ValueLike
+
+if TYPE_CHECKING:
+    from amaranth.hdl._ast import Assign
 
 __all__ = [
     "AssignType",
@@ -50,7 +53,7 @@ def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
 
 def assign(
     lhs: AssignArg, rhs: AssignArg, *, fields: AssignFields = AssignType.RHS, lhs_strict=False, rhs_strict=False
-) -> Iterable[Assign]:
+) -> Iterable["Assign"]:
     """Safe structured assignment.
 
     This function recursively generates assignment statements for

@@ -82,14 +82,14 @@ class AluFn(DecoderManager):
                 (self.Fn.MAXU, OpType.BIT_MANIPULATION, Funct3.MAXU, Funct7.MAX),
                 (self.Fn.MIN, OpType.BIT_MANIPULATION, Funct3.MIN, Funct7.MIN),
                 (self.Fn.MINU, OpType.BIT_MANIPULATION, Funct3.MINU, Funct7.MIN),
-                (self.Fn.ORCB, OpType.UNARY_BIT_MANIPULATION_1, Funct3.ORCB, Funct7.ORCB),
-                (self.Fn.REV8, OpType.UNARY_BIT_MANIPULATION_1, Funct3.REV8, Funct7.REV8),
-                (self.Fn.SEXTB, OpType.UNARY_BIT_MANIPULATION_1, Funct3.SEXTB, Funct7.SEXTB),
-                (self.Fn.ZEXTH, OpType.UNARY_BIT_MANIPULATION_1, Funct3.ZEXTH, Funct7.ZEXTH),
-                (self.Fn.CPOP, OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP, Funct7.CPOP),
-                (self.Fn.SEXTH, OpType.UNARY_BIT_MANIPULATION_2, Funct3.SEXTH, Funct7.SEXTH),
-                (self.Fn.CLZ, OpType.UNARY_BIT_MANIPULATION_3, Funct3.CLZ, Funct7.CLZ),
-                (self.Fn.CTZ, OpType.UNARY_BIT_MANIPULATION_4, Funct3.CTZ, Funct7.CTZ),
+                (self.Fn.REV8, OpType.UNARY_BIT_MANIPULATION_1, Funct3.REV8),
+                (self.Fn.SEXTB, OpType.UNARY_BIT_MANIPULATION_1, Funct3.SEXTB),
+                (self.Fn.ZEXTH, OpType.UNARY_BIT_MANIPULATION_1, Funct3.ZEXTH),
+                (self.Fn.ORCB, OpType.UNARY_BIT_MANIPULATION_2, Funct3.ORCB),
+                (self.Fn.SEXTH, OpType.UNARY_BIT_MANIPULATION_2, Funct3.SEXTH),
+                (self.Fn.CLZ, OpType.UNARY_BIT_MANIPULATION_3, Funct3.CLZ),
+                (self.Fn.CTZ, OpType.UNARY_BIT_MANIPULATION_4, Funct3.CTZ),
+                (self.Fn.CPOP, OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP),
             ]
             * self.zbb_enable
         )
