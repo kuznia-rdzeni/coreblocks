@@ -1,4 +1,5 @@
 import re
+import os
 from typing import Optional
 import pytest
 
@@ -13,6 +14,7 @@ def pytest_addoption(parser: pytest.Parser):
         help="Simulation backend for regression tests",
     )
     group.addoption("--coreblocks-traces", action="store_true", help="Generate traces from regression tests")
+    group.addoption("--coreblocks-profile", action="store_true", help="Write execution profiles")
     group.addoption("--coreblocks-list", action="store_true", help="List all tests in flatten format.")
     group.addoption(
         "--coreblocks-test-name",
@@ -90,3 +92,15 @@ def deselect_based_on_count(items: list[pytest.Item], config: pytest.Config) -> 
 def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Config) -> None:
     deselect_based_on_flatten_name(items, config)
     deselect_based_on_count(items, config)
+
+
+def pytest_runtest_setup(item: pytest.Item):
+    """
+    This function is called to perform the setup phase for every test, so
+    it is a perfect moment to set environment variables.
+    """
+    if item.config.getoption("--coreblocks-traces", False):  # type: ignore
+        os.environ["__TRANSACTRON_DUMP_TRACES"] = "1"
+
+    if item.config.getoption("--coreblocks-profile", False):  # type: ignore
+        os.environ["__TRANSACTRON_PROFILE"] = "1"
