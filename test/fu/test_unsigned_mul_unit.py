@@ -9,6 +9,7 @@ from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
 from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
+from coreblocks.fu.unsigned_multiplication.iterative_sequence import IterativeSequentialUnsignedMul
 
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
@@ -26,6 +27,10 @@ from coreblocks.params.configurations import test_core_config
         (
             "sequential_multiplier",
             SequentialUnsignedMul,
+        ),
+        (
+            "iterative_seuential_multiplier",
+            IterativeSequentialUnsignedMul,
         ),
         (
             "shift_multiplier",
