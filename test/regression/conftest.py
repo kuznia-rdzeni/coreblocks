@@ -2,7 +2,6 @@ from glob import glob
 from pathlib import Path
 import pytest
 import subprocess
-import sys
 
 test_dir = Path(__file__).parent.parent
 riscv_tests_dir = test_dir.joinpath("external/riscv-tests")
@@ -19,7 +18,6 @@ def load_regression_tests() -> list[str]:
         res = subprocess.run(["make", "-C", "test/external/riscv-tests"])
         if res.returncode != 0:
             print("Couldn't build regression tests")
-            sys.exit(1)
         all_tests = set(get_all_test_names())
 
     exclude = {"rv32ui-ma_data", "rv32ui-fence_i"}
@@ -28,19 +26,16 @@ def load_regression_tests() -> list[str]:
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc):
-    if not metafunc.config.getoption("coreblocks_regression"):
-        # Add regression to skiped tests
-        metafunc.parametrize(["test_name", "backend", "traces", "verbose"], [])
-        return
-
     all_tests = (
         load_regression_tests()
     )  # The list has to be always in the same order (e.g. sorted) to allow for parallel testing
-    traces = metafunc.config.getoption("coreblocks_traces")
-    backend = metafunc.config.getoption("coreblocks_backend")
-    verbose = bool(metafunc.config.getoption("verbose"))
-    if {"test_name", "backend", "traces", "verbose"}.issubset(metafunc.fixturenames):
+    if "test_name" in metafunc.fixturenames:
         metafunc.parametrize(
-            ["test_name", "backend", "traces", "verbose"],
-            [(test_name, backend, traces, verbose) for test_name in all_tests],
+            "test_name",
+            [test_name for test_name in all_tests],
         )
+
+
+def pytest_runtest_setup(item: pytest.Item):
+    if not item.config.getoption("--coreblocks-regression", default=False):  # type: ignore
+        pytest.skip("need --coreblocks-regression option to run this test")

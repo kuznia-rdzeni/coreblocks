@@ -81,11 +81,11 @@ def regression_body_with_cocotb(test_name: str, traces: bool):
     assert len(list(tree.iter("failure"))) == 0
 
 
-def regression_body_with_pysim(test_name: str, traces: bool, verbose: bool):
+def regression_body_with_pysim(test_name: str, traces: bool):
     traces_file = None
     if traces:
         traces_file = REGRESSION_TESTS_PREFIX + test_name
-    asyncio.run(run_test(PySimulation(verbose, traces_file=traces_file), test_name))
+    asyncio.run(run_test(PySimulation(verbose=False, traces_file=traces_file), test_name))
 
 
 @pytest.fixture(scope="session")
@@ -126,8 +126,18 @@ def verilate_model(worker_id, request: pytest.FixtureRequest):
         os.remove(counter_path)
 
 
-def test_entrypoint(test_name: str, backend: Literal["pysim", "cocotb"], traces: bool, verbose: bool, verilate_model):
-    if backend == "cocotb":
-        regression_body_with_cocotb(test_name, traces)
-    elif backend == "pysim":
-        regression_body_with_pysim(test_name, traces, verbose)
+@pytest.fixture
+def sim_backend(request: pytest.FixtureRequest):
+    return request.config.getoption("coreblocks_backend")
+
+
+@pytest.fixture
+def traces_enabled(request: pytest.FixtureRequest):
+    return request.config.getoption("coreblocks_traces")
+
+
+def test_entrypoint(test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_model):
+    if sim_backend == "cocotb":
+        regression_body_with_cocotb(test_name, traces_enabled)
+    elif sim_backend == "pysim":
+        regression_body_with_pysim(test_name, traces_enabled)
