@@ -14,14 +14,13 @@ from typing import (
     Any,
     TYPE_CHECKING,
 )
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
 from amaranth.lib.wiring import Flow, Member
 from amaranth.hdl import ShapeCastable, ValueCastable
-from amaranth.hdl.rec import Direction, Layout
 
 if TYPE_CHECKING:
     from amaranth.hdl._ast import Statement
@@ -33,7 +32,6 @@ __all__ = [
     "ValueLike",
     "ShapeLike",
     "StatementLike",
-    "LayoutLike",
     "SwitchKey",
     "SrcLoc",
     "MethodLayout",
@@ -60,9 +58,6 @@ FragmentLike: TypeAlias = Fragment | Elaboratable
 ValueLike: TypeAlias = Value | int | Enum | ValueCastable
 ShapeLike: TypeAlias = Shape | ShapeCastable | int | range | type[Enum]
 StatementLike: TypeAlias = Union["Statement", Iterable["StatementLike"]]
-LayoutLike: TypeAlias = (
-    Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
-)
 SwitchKey: TypeAlias = str | int | Enum
 SrcLoc: TypeAlias = tuple[str, int]
 
