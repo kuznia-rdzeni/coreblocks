@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.utils import *
 
-from transactron.utils.transactron_helpers import from_method_layout
+from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc
 from typing import Optional
@@ -23,7 +23,7 @@ class MemoryBank(Elaboratable):
         The read request method. Accepts an `addr` from which data should be read.
         Only ready if there is there is a place to buffer response.
     read_resp: Method
-        The read response method. Return `data_layout` Record which was saved on `addr` given by last
+        The read response method. Return `data_layout` View which was saved on `addr` given by last
         `read_req` method call. Only ready after `read_req` call.
     write: Method
         The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
@@ -33,7 +33,7 @@ class MemoryBank(Elaboratable):
     def __init__(
         self,
         *,
-        data_layout: MethodLayout,
+        data_layout: LayoutList,
         elem_count: int,
         granularity: Optional[int] = None,
         safe_writes: bool = True,
@@ -58,7 +58,7 @@ class MemoryBank(Elaboratable):
             Alternatively, the source location to use instead of the default.
         """
         self.src_loc = get_src_loc(src_loc)
-        self.data_layout = data_layout
+        self.data_layout = make_layout(*data_layout)
         self.elem_count = elem_count
         self.granularity = granularity
         self.width = from_method_layout(self.data_layout).size
@@ -66,9 +66,10 @@ class MemoryBank(Elaboratable):
         self.safe_writes = safe_writes
 
         self.read_req_layout: LayoutList = [("addr", self.addr_width)]
-        self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
         if self.granularity is not None:
-            self.write_layout.append(("mask", self.width // self.granularity))
+            write_layout.append(("mask", self.width // self.granularity))
+        self.write_layout = make_layout(*write_layout)
 
         self.read_req = Method(i=self.read_req_layout, src_loc=self.src_loc)
         self.read_resp = Method(o=self.data_layout, src_loc=self.src_loc)
@@ -85,8 +86,8 @@ class MemoryBank(Elaboratable):
         prev_read_addr = Signal(self.addr_width)
         write_pending = Signal()
         write_req = Signal()
-        write_args = Record(self.write_layout)
-        write_args_prev = Record(self.write_layout)
+        write_args = Signal(self.write_layout)
+        write_args_prev = Signal(self.write_layout)
         m.d.comb += read_port.addr.eq(prev_read_addr)
 
         zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
