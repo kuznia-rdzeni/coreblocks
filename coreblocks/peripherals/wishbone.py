@@ -215,7 +215,7 @@ class PipelinedWishboneMaster(Component):
 
     Attributes
     ----------
-    wb: Record (like WishboneLayout)
+    wb: WishboneInterface
         Wishbone bus output.
     request: Method
         Transactional method to start a new Wishbone request.
@@ -309,10 +309,10 @@ class WishboneMuxer(Component):
 
     Parameters
     ----------
-    master_wb: Record (like WishboneLayout)
-        Record of master inteface.
-    slaves: list[Record]
-        List of connected slaves' Wishbone Records (like WishboneLayout).
+    master_wb: WishboneInterface
+        Master inteface.
+    slaves: list of WishboneInterface
+        List of connected slaves' Wishbone interfaces.
     ssel_tga: Signal
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
@@ -383,10 +383,10 @@ class WishboneArbiter(Component):
 
     Parameters
     ----------
-    slave_wb: Record (like WishboneLayout)
-        Record of slave inteface.
-    masters: list[Record]
-        List of master interface Records.
+    slave_wb: WishboneInterface
+        Slave inteface.
+    masters: list of WishboneInterface
+        List of master interfaces.
     """
 
     slave_wb: WishboneInterface
@@ -465,8 +465,8 @@ class WishboneMemorySlave(Component):
 
     Attributes
     ----------
-    bus: Record (like WishboneLayout)
-        Wishbone bus record.
+    bus: WishboneInterface
+        Wishbone bus interface.
     """
 
     bus: WishboneInterface
