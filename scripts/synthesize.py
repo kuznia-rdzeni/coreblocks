@@ -7,6 +7,7 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth import *
+from amaranth.lib.wiring import Flow
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +27,7 @@ from coreblocks.fu.zbc import ZbcComponent
 from coreblocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
 from transactron.lib import AdapterBase, AdapterTrans
-from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
 from constants.ecp5_platforms import (
     ResourceBuilder,
     adapter_resources,
@@ -45,7 +46,7 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
 
 
 class WishboneConnector(Elaboratable):
-    def __init__(self, wb: WishboneBus, number: int):
+    def __init__(self, wb: WishboneInterface, number: int):
         self.wb = wb
         self.number = number
 
@@ -55,7 +56,12 @@ class WishboneConnector(Elaboratable):
         pins = platform.request("wishbone", self.number)
         assert isinstance(pins, Record)
 
-        m.d.comb += self.wb.connect(pins)
+        for name in self.wb.signature.members:
+            member = self.wb.signature.members[name]
+            if member.flow == Flow.In:
+                m.d.comb += getattr(pins, name).o.eq(getattr(self.wb, name))
+            else:
+                m.d.comb += getattr(self.wb, name).eq(getattr(pins, name).i)
 
         return m
 
@@ -93,14 +99,13 @@ UnitCore = Callable[[GenParams], tuple[ResourceBuilder, Elaboratable]]
 def unit_core(gen_params: GenParams):
     resources = wishbone_resources(gen_params.wb_params)
 
-    wb_instr = WishboneBus(gen_params.wb_params)
-    wb_data = WishboneBus(gen_params.wb_params)
+    wb_arbiter = WishboneArbiter(gen_params.wb_params, 2)
+    wb_instr = wb_arbiter.masters[0]
+    wb_data = wb_arbiter.masters[1]
+
+    wb_connector = WishboneConnector(wb_arbiter.slave_wb, 0)
 
     core = Core(gen_params=gen_params, wb_instr_bus=wb_instr, wb_data_bus=wb_data)
-
-    wb = WishboneBus(gen_params.wb_params)
-    wb_arbiter = WishboneArbiter(wb, [wb_instr, wb_data])
-    wb_connector = WishboneConnector(wb, 0)
 
     module = ModuleConnector(core=core, wb_arbiter=wb_arbiter, wb_connector=wb_connector)
 
