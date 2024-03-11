@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710173741748,
+  "lastUpdate": 1710174143064,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -8122,6 +8122,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.2707173800277587,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "04871936e2c20c9a2429a8543f72114ff36d62e9",
+          "message": "Add CI runs for #604 (#608)",
+          "timestamp": "2024-03-11T17:05:12+01:00",
+          "tree_id": "00ef27900a9f88e751212211fe0fa8ea797ac163",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/04871936e2c20c9a2429a8543f72114ff36d62e9"
+        },
+        "date": 1710174140752,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.16937939273068717,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.1814903648969226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.464452895145921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.24238811346240433,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2152619862603825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.3008663337319172,
             "unit": "Instructions Per Cycle"
           },
           {
