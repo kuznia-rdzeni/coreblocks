@@ -9,6 +9,7 @@ from .common import SimulationBackend
 test_dir = Path(__file__).parent.parent
 embench_dir = test_dir.joinpath("external/embench/build/src")
 results_dir = test_dir.joinpath("regression/benchmark_results")
+profile_dir = test_dir.joinpath("__profiles__")
 
 
 @dataclass_json
@@ -76,6 +77,10 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
     mem_model = CoreMemoryModel(mem_segments)
 
     result = await sim_backend.run(mem_model, timeout_cycles=2000000)
+
+    if result.profile is not None:
+        os.makedirs(profile_dir, exist_ok=True)
+        result.profile.encode(f"{profile_dir}/benchmark.{benchmark_name}.json")
 
     if not result.success:
         raise RuntimeError("Simulation timed out")

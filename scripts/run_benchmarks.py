@@ -144,6 +144,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--list", action="store_true", help="List all benchmarks")
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
+    parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
     parser.add_argument(
@@ -170,6 +171,9 @@ def main():
         if not benchmarks:
             print(f"Could not find benchmark '{args.benchmark_name}'")
             sys.exit(1)
+
+    if args.profile:
+        os.environ["__TRANSACTRON_PROFILE"] = "1"
 
     success = run_benchmarks(benchmarks, args.backend, args.trace, args.verbose)
     if not success:

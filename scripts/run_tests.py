@@ -33,12 +33,9 @@ def main():
     pytest_arguments = ["--max-worker-restart=1"]
 
     if args.trace:
-        os.environ["__COREBLOCKS_DUMP_TRACES"] = "1"
         pytest_arguments.append("--coreblocks-traces")
-
     if args.profile:
-        os.environ["__TRANSACTRON_PROFILE"] = "1"
-
+        pytest_arguments.append("--coreblocks-profile")
     if args.test_name:
         pytest_arguments += [f"--coreblocks-test-name={args.test_name}"]
     if args.count:
