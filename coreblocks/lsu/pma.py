@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 from amaranth import *
+from amaranth.lib import data
 
 from coreblocks.params import *
 from transactron.utils import HasElaborate
@@ -29,6 +30,11 @@ class PMARegion:
     mmio: bool = False
 
 
+class PMALayout(data.StructLayout):
+    def __init__(self):
+        super().__init__({"mmio": unsigned(1)})
+
+
 class PMAChecker(Elaboratable):
     """
     Implementation of physical memory attributes checker. It may or may not be a part of LSU.
@@ -38,21 +44,20 @@ class PMAChecker(Elaboratable):
     ----------
     addr : Signal
         Memory address, for which PMAs are requested.
-    result : Record
+    result : View
         PMAs for given address.
     """
 
     def __init__(self, gen_params: GenParams) -> None:
         # poor man's interval list
         self.segments = gen_params.pma
-        self.attr_layout = gen_params.get(PMALayouts).pma_attrs_layout
-        self.result = Record(self.attr_layout)
+        self.result = Signal(PMALayout())
         self.addr = Signal(gen_params.isa.xlen)
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
-        outputs = [Record(self.attr_layout) for _ in self.segments]
+        outputs = [Signal(PMALayout()) for _ in self.segments]
 
         # zero output if addr not in region, propagate value if addr in region
         for i, segment in enumerate(self.segments):

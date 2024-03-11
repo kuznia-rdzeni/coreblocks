@@ -3,6 +3,7 @@ from enum import IntFlag, auto
 from collections.abc import Sequence
 
 from amaranth import *
+from amaranth.lib import data
 
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
@@ -33,7 +34,7 @@ class DivFn(DecoderManager):
         ]
 
 
-def get_input(arg: Record) -> tuple[Value, Value]:
+def get_input(arg: data.View) -> tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
