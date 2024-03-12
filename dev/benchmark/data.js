@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710264558544,
+  "lastUpdate": 1710264940531,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -8255,6 +8255,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "58249da625a3b981af7d4bafab97b47b6e73f811",
+          "message": "Enable division and bit manipulation extensions in benchmarks (#616)",
+          "timestamp": "2024-03-12T18:21:11+01:00",
+          "tree_id": "20a2240852458b68d61a12a6267d73f3b6ede8e7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/58249da625a3b981af7d4bafab97b47b6e73f811"
+        },
+        "date": 1710264937205,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.23775978551326782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4158309618409448,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29204002838551374,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3246413600430343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21524395351898612,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115635899199292,
             "unit": "Instructions Per Cycle"
           }
         ]
