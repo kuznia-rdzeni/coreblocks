@@ -149,7 +149,7 @@ def escape_verilog_identifier(identifier: str) -> str:
     # The standard says how to escape a identifier, but not when. So this is
     # a non-exhaustive list of characters that Yosys escapes (it is used
     # by Amaranth when generating Verilog code).
-    characters_to_escape = [".", "$"]
+    characters_to_escape = [".", "$", "-"]
 
     for char in characters_to_escape:
         if char in identifier:
@@ -160,10 +160,7 @@ def escape_verilog_identifier(identifier: str) -> str:
 
 def get_signal_location(signal: Signal, name_map: "SignalDict") -> list[str]:
     raw_location = name_map[signal]
-
-    # Amaranth escapes identifiers when generating Verilog code, but returns non-escaped identifiers
-    # in the name map, so we need to escape it manually.
-    return [escape_verilog_identifier(component) for component in raw_location]
+    return raw_location
 
 
 def collect_metric_locations(name_map: "SignalDict") -> dict[str, MetricLocation]:
