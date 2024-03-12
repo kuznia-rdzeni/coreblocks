@@ -35,7 +35,7 @@ class AXILiteSignature(Signature):
         Patameters used to generate AXI-Lite signature
     """
 
-    def __init__(self, axil_params: AXILiteParameters, *, master: bool = True):
+    def __init__(self, axil_params: AXILiteParameters):
         write_address = Signature(
             {
                 "valid": Out(1),
