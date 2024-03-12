@@ -63,7 +63,7 @@ jobs:
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
-    container: ghcr.io/xthaid/riscv-toolchain:2024.03.12
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     steps:
       - name: Checkout
         uses: actions/checkout@v3
