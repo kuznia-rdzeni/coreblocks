@@ -48,7 +48,7 @@ jobs:
   build-riscof-tests:
     name: Build regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.11
+    container: ghcr.io/xthaid/riscv-toolchain:2024.03.12
     timeout-minutes: 10
     env:
       PYENV_ROOT: "/root/.pyenv"
@@ -180,7 +180,7 @@ jobs:
   build-regression-tests:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.11
+    container: ghcr.io/xthaid/riscv-toolchain:2024.03.12
     timeout-minutes: 10
     outputs:
         cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
