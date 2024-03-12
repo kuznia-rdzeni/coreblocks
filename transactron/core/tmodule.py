@@ -8,6 +8,7 @@ from transactron.utils import *
 
 __all__ = ["TModule"]
 
+
 class _AvoidingModuleBuilderDomain:
     """
     A wrapper over Amaranth domain to abstract away internal Amaranth implementation.
@@ -45,6 +46,7 @@ class _AvoidingModuleBuilderDomains:
 
     def __setitem__(self, name: str, value):
         return self.__setattr__(name, value)
+
 
 class EnterType(Enum):
     """Characterizes stack behavior of Amaranth's context managers for control structures."""
@@ -156,6 +158,7 @@ class CtrlPathBuilder:
     def build_ctrl_path(self):
         """Returns the current control path."""
         return CtrlPath(self.module, self.ctrl_path[:])
+
 
 class TModule(ModuleLike, Elaboratable):
     """Extended Amaranth module for use with transactions.

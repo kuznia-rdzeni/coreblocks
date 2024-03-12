@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 __all__ = ["Method"]
 
+
 class Method(TransactionBase):
     """Transactional method.
 
@@ -129,7 +130,7 @@ class Method(TransactionBase):
         """
         return Method(name=name, i=other.layout_in, o=other.layout_out, src_loc=get_src_loc(src_loc))
 
-    def proxy(self, m: 'TModule', method: "Method"):
+    def proxy(self, m: "TModule", method: "Method"):
         """Define as a proxy for another method.
 
         The calls to this method will be forwarded to `method`.
@@ -150,7 +151,7 @@ class Method(TransactionBase):
     @contextmanager
     def body(
         self,
-        m: 'TModule',
+        m: "TModule",
         *,
         ready: ValueLike = C(1),
         out: ValueLike = C(0, 0),
@@ -219,7 +220,7 @@ class Method(TransactionBase):
         return self.ready
 
     def __call__(
-        self, m: 'TModule', arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
+        self, m: "TModule", arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
     ) -> MethodStruct:
         """Call a method.
 

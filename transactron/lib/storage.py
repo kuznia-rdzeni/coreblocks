@@ -3,7 +3,7 @@ from amaranth.utils import *
 
 from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MethodLayout
 from typing import Optional
 from transactron.utils import assign, AssignType, LayoutList
 from .reqres import ArgumentsToResultsZipper

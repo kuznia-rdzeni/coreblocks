@@ -1,6 +1,6 @@
 from amaranth import *
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MethodLayout
 from .connectors import Forwarder, FIFO
 from transactron.lib import BasicFifo
 from amaranth.utils import *

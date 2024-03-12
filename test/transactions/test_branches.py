@@ -1,8 +1,6 @@
 from amaranth import *
 from itertools import product
 from transactron.core import (
-    CtrlPath,
-    MethodMap,
     TModule,
     Method,
     Transaction,
@@ -10,6 +8,8 @@ from transactron.core import (
     TransactionModule,
     def_method,
 )
+from transactron.core.tmodule import CtrlPath
+from transactron.core.manager import MethodMap
 from unittest import TestCase
 from transactron.testing import TestCaseWithSimulator
 from transactron.utils.dependencies import DependencyContext

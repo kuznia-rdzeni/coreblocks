@@ -10,10 +10,9 @@ from collections import deque
 
 from amaranth import *
 from transactron import *
-from transactron.core import RecordDict
 from transactron.lib import *
 from coreblocks.utils import *
-from transactron.utils._typing import ModuleLike, MethodStruct
+from transactron.utils._typing import ModuleLike, MethodStruct, RecordDict
 from transactron.utils import ModuleConnector
 from transactron.testing import (
     SimpleTestCircuit,

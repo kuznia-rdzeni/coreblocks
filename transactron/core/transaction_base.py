@@ -4,7 +4,6 @@ from enum import Enum, auto
 from itertools import count
 from typing import (
     ClassVar,
-    NoReturn,
     TypeAlias,
     TypedDict,
     Union,
@@ -16,7 +15,6 @@ from typing import (
     Iterator,
 )
 from amaranth import *
-from dataclasses import dataclass
 
 from .tmodule import TModule, CtrlPath
 from transactron.graph import Owned
@@ -25,16 +23,12 @@ from transactron.utils import *
 if TYPE_CHECKING:
     from .method import Method
     from .transaction import Transaction
-    from .manager import TransactionManager
 
-__all__ = ["TransactionBase", "TransactionManagerKey"]
+__all__ = ["TransactionBase", "Priority"]
 
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
 TransactionOrMethodBound = TypeVar("TransactionOrMethodBound", "Transaction", "Method")
 
-@dataclass(frozen=True)
-class TransactionManagerKey(SimpleKey[TransactionManager]):
-    pass
 
 class Priority(Enum):
     #: Conflicting transactions/methods don't have a priority order.
@@ -43,6 +37,7 @@ class Priority(Enum):
     LEFT = auto()
     #: Right transaction/method is prioritized over the left one.
     RIGHT = auto()
+
 
 class RelationBase(TypedDict):
     end: TransactionOrMethod
@@ -53,6 +48,7 @@ class RelationBase(TypedDict):
 
 class Relation(RelationBase):
     start: TransactionOrMethod
+
 
 @runtime_checkable
 class TransactionBase(Owned, Protocol):

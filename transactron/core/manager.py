@@ -2,7 +2,6 @@ from collections import defaultdict, deque
 from typing import Callable, Iterable, Sequence, TypeAlias, Tuple
 from os import environ
 from graphlib import TopologicalSorter
-from dataclasses import dataclass
 from amaranth import *
 from itertools import chain, filterfalse, product
 
@@ -12,17 +11,16 @@ from transactron.graph import OwnershipGraph, Direction
 
 from .transaction_base import TransactionBase, TransactionOrMethod, Priority, Relation
 from .method import Method
-from .transaction import Transaction
+from .transaction import Transaction, TransactionManagerKey
 from .tmodule import TModule
 from .schedulers import eager_deterministic_cc_scheduler
 
-__all__ =  ["MethodMap", "TransactionManager"] 
+__all__ = ["TransactionManager", "TransactionModule"]
 
 TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
-RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 
 class MethodMap:
@@ -68,6 +66,7 @@ class MethodMap:
     @property
     def methods_and_transactions(self) -> Iterable[TransactionOrMethod]:
         return chain(self.methods, self.transactions)
+
 
 class TransactionManager(Elaboratable):
     """Transaction manager
@@ -433,3 +432,55 @@ class TransactionManager(Elaboratable):
             "transactions": {t.name: transaction_debug(t) for t in method_map.transactions},
             "methods": {m.owned_name: method_debug(m) for m in method_map.methods},
         }
+
+
+class TransactionModule(Elaboratable):
+    """
+    `TransactionModule` is used as wrapper on `Elaboratable` classes,
+    which adds support for transactions. It creates a
+    `TransactionManager` which will handle transaction scheduling
+    and can be used in definition of `Method`\\s and `Transaction`\\s.
+    The `TransactionManager` is stored in a `DependencyManager`.
+    """
+
+    def __init__(
+        self,
+        elaboratable: HasElaborate,
+        dependency_manager: Optional[DependencyManager] = None,
+        transaction_manager: Optional[TransactionManager] = None,
+    ):
+        """
+        Parameters
+        ----------
+        elaboratable: HasElaborate
+            The `Elaboratable` which should be wrapped to add support for
+            transactions and methods.
+        dependency_manager: DependencyManager, optional
+            The `DependencyManager` to use inside the transaction module.
+            If omitted, a new one is created.
+        transaction_manager: TransactionManager, optional
+            The `TransactionManager` to use inside the transaction module.
+            If omitted, a new one is created.
+        """
+        if transaction_manager is None:
+            transaction_manager = TransactionManager()
+        if dependency_manager is None:
+            dependency_manager = DependencyManager()
+        self.manager = dependency_manager
+        self.manager.add_dependency(TransactionManagerKey(), transaction_manager)
+        self.elaboratable = elaboratable
+
+    def context(self) -> DependencyContext:
+        return DependencyContext(self.manager)
+
+    def elaborate(self, platform):
+        with silence_mustuse(self.manager.get_dependency(TransactionManagerKey())):
+            with self.context():
+                elaboratable = Fragment.get(self.elaboratable, platform)
+
+        m = Module()
+
+        m.submodules.main_module = elaboratable
+        m.submodules.transactionManager = self.manager.get_dependency(TransactionManagerKey())
+
+        return m

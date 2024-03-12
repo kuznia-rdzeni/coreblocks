@@ -1,17 +1,22 @@
 from transactron.utils import *
 from amaranth import *
 from amaranth import tracer
-from typing import Optional, Callable, Iterator, TYPE_CHECKING
+from typing import Optional, Iterator, TYPE_CHECKING
 from .transaction_base import *
-from .sugar import def_method
 from contextlib import contextmanager
-from transactron.utils.assign import AssignArg
+from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from .tmodule import TModule
     from .manager import TransactionManager
 
-__all__ = ["Transaction"]
+__all__ = ["Transaction", "TransactionManagerKey"]
+
+
+@dataclass(frozen=True)
+class TransactionManagerKey(SimpleKey["TransactionManager"]):
+    pass
+
 
 class Transaction(TransactionBase):
     """Transaction.
@@ -52,7 +57,7 @@ class Transaction(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, manager: Optional['TransactionManager'] = None, src_loc: int | SrcLoc = 0
+        self, *, name: Optional[str] = None, manager: Optional["TransactionManager"] = None, src_loc: int | SrcLoc = 0
     ):
         """
         Parameters
@@ -80,7 +85,7 @@ class Transaction(TransactionBase):
         self.grant = Signal(name=self.owned_name + "_grant")
 
     @contextmanager
-    def body(self, m: TModule, *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
+    def body(self, m: "TModule", *, request: ValueLike = C(1)) -> Iterator["Transaction"]:
         """Defines the `Transaction` body.
 
         This context manager allows to conveniently define the actions

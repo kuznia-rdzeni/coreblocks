@@ -2,8 +2,7 @@ from amaranth import *
 from amaranth.sim import Settle, Passive
 from typing import Optional, Callable
 from transactron.lib import AdapterBase
-from transactron.core import ValueLike, SignalBundle
-from transactron.utils import mock_def_helper
+from transactron.utils import ValueLike, SignalBundle, mock_def_helper
 from transactron.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
 from .functions import set_inputs, get_outputs, TestGen
 
