@@ -241,7 +241,7 @@ class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
         traces_file = None
-        if "__COREBLOCKS_DUMP_TRACES" in os.environ:
+        if "__TRANSACTRON_DUMP_TRACES" in os.environ:
             traces_file = unittest.TestCase.id(self)
 
         clk_period = 1e-6
