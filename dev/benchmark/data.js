@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710264940531,
+  "lastUpdate": 1710282444608,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21296,6 +21296,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 688,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 956,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6524,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "182c85a06a2e2370742cdc5104895823a55b0bb4",
+          "message": "Fix profiles on newer yosys version (#607)",
+          "timestamp": "2024-03-12T23:19:51+01:00",
+          "tree_id": "72dd9c91562c8ee417d89dca6b1b435af12588f8",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/182c85a06a2e2370742cdc5104895823a55b0bb4"
+        },
+        "date": 1710282441542,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.49,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 30970,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 720,
             "unit": "LUT"
           },
           {
