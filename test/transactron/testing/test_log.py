@@ -1,13 +1,12 @@
-from unittest.mock import patch
-from io import StringIO
-
 from amaranth import *
 
 from transactron import *
 from transactron.testing import TestCaseWithSimulator
 from transactron.lib import logging
 
-log = logging.HardwareLogger("test")
+LOGGER_NAME = "test_logger"
+
+log = logging.HardwareLogger(LOGGER_NAME)
 
 
 class LogTest(Elaboratable):
@@ -65,8 +64,7 @@ class AssertionTest(Elaboratable):
 
 
 class TestLog(TestCaseWithSimulator):
-    @patch("sys.stdout", new_callable=StringIO)
-    def test_log(self, stdout):
+    def test_log(self):
         m = LogTest()
 
         def proc():
@@ -74,39 +72,53 @@ class TestLog(TestCaseWithSimulator):
                 yield
                 yield m.input.eq(i)
 
-        with self.run_simulation(m) as sim:
-            sim.add_sync_process(proc)
+        with self.assertLogs(LOGGER_NAME) as logs:
+            with self.run_simulation(m) as sim:
+                sim.add_sync_process(proc)
 
-        self.assertIn("Log triggered under Amaranth If value+3=0x2d", stdout.getvalue())
+        self.assertIn(
+            "WARNING:test_logger:test/transactron/testing/test_log.py:21] Log triggered under Amaranth If value+3=0x2d",
+            logs.output,
+        )
         for i in range(0, 50, 2):
-            self.assertIn(f"Input is even! input={i}, counter={i + 2}", stdout.getvalue())
+            expected_msg = (
+                "WARNING:test_logger:test/transactron/testing/test_log.py:23] "
+                + f"Input is even! input={i}, counter={i + 2}"
+            )
+            self.assertIn(
+                expected_msg,
+                logs.output,
+            )
 
-    @patch("sys.stdout", new_callable=StringIO)
-    def test_error_log(self, stdout):
+    def test_error_log(self):
         m = ErrorLogTest()
 
         def proc():
             yield
             yield m.input.eq(1)
 
-        with self.assertRaises(AssertionError):
-            with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+        with self.assertLogs(LOGGER_NAME) as logs:
+            with self.assertRaises(AssertionError):
+                with self.run_simulation(m) as sim:
+                    sim.add_sync_process(proc)
 
-        extected_out = "Input is different than output! input=0x1 output=0x0"
-        self.assertIn(extected_out, stdout.getvalue())
+        extected_out = (
+            "ERROR:test_logger:test/transactron/testing/test_log.py:40] "
+            + "Input is different than output! input=0x1 output=0x0"
+        )
+        self.assertIn(extected_out, logs.output)
 
-    @patch("sys.stdout", new_callable=StringIO)
-    def test_assertion(self, stdout):
+    def test_assertion(self):
         m = AssertionTest()
 
         def proc():
             yield
             yield m.input.eq(1)
 
-        with self.assertRaises(AssertionError):
-            with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+        with self.assertLogs(LOGGER_NAME) as logs:
+            with self.assertRaises(AssertionError):
+                with self.run_simulation(m) as sim:
+                    sim.add_sync_process(proc)
 
-        extected_out = "Output differs"
-        self.assertIn(extected_out, stdout.getvalue())
+        extected_out = "ERROR:test_logger:test/transactron/testing/test_log.py:61] Output differs"
+        self.assertIn(extected_out, logs.output)
