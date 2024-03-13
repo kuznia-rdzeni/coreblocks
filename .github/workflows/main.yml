@@ -61,8 +61,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
+
+      - name: Get submodules HEAD hash
+        run: git submodules > .gitmodules-hash
 
       - name: Cache compiled and reference riscv-arch-test
         id: cache-riscv-arch-test
@@ -79,11 +80,17 @@ jobs:
               '**/test/external/riscof/coreblocks/**',
               '**/test/external/riscof/spike_simple/**',
               '**/test/external/riscof/config.ini',
-              '**/.git/modules/test/external/riscof/riscv-arch-test/HEAD',
+              '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
             ) }}
-          restore-keys: |
-            ${{ env.cache-name }}-${{ runner.os }}-
+
+          lookup-only: true
+
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Checkout with submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
         name: Setup PATH
@@ -112,7 +119,9 @@ jobs:
         name: Build tests for Coreblocks
         run: |
           MAKEFILE_PATH=riscof_work/Makefile.build-DUT-coreblocks ../../../ci/riscof_run_makefile.sh
+
       - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Upload compiled and reference tests artifact
         uses: actions/upload-artifact@v3
         with:
           name: "riscof-tests"
@@ -130,8 +139,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -146,11 +153,16 @@ jobs:
           python3 -m pip install -r requirements-dev.txt
 
       - uses: actions/download-artifact@v3
+        name: Download full verilog core
         with:
           name: "verilog-full-core"
           path: .
 
+      - name: Get submodules HEAD hash
+        run: git submodules > .gitmodules-hash
+
       - uses: actions/cache@v3
+        name: Download tests from cache
         env:
           cache-name: cache-riscv-arch-test
         with:
@@ -163,7 +175,7 @@ jobs:
               '**/test/external/riscof/coreblocks/**',
               '**/test/external/riscof/spike_simple/**',
               '**/test/external/riscof/config.ini',
-              '**/.git/modules/test/external/riscof/riscv-arch-test/HEAD',
+              '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
             ) }}
           fail-on-cache-miss: true
@@ -182,13 +194,12 @@ jobs:
     runs-on: ubuntu-latest
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     timeout-minutes: 10
-    outputs:
-        cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
+
+      - name: Get submodules HEAD hash
+        run: git submodules > .gitmodules-hash
 
       - name: Cache regression-tests
         id: cache-regression
@@ -201,11 +212,17 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
               '**/test/external/riscv-tests/Makefile',
-              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD',
+              '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
             ) }}
           restore-keys: |
             ${{ env.cache-name }}-${{ runner.os }}-
+
+      - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
+        name: Checkout with submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         run: cd test/external/riscv-tests && make
@@ -225,8 +242,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -241,11 +256,16 @@ jobs:
           python3 -m pip install -r requirements-dev.txt
 
       - uses: actions/download-artifact@v3
+        name: Download full verilog core
         with:
           name: "verilog-full-core"
           path: .
 
+      - name: Get submodules HEAD hash
+        run: git submodules > .gitmodules-hash
+
       - uses: actions/cache@v3
+        name: Download tests from cache
         env:
           cache-name: cache-regression-tests
         with:
@@ -253,7 +273,7 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
               '**/test/external/riscv-tests/environment/**',
               '**/test/external/riscv-tests/Makefile',
-              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD',
+              '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
               ) }}
           fail-on-cache-miss: true
