@@ -1,6 +1,8 @@
 import random
 from collections import deque
 
+from amaranth.lib.wiring import connect
+
 from coreblocks.peripherals.wishbone import *
 
 from transactron.lib import AdapterTrans
@@ -9,8 +11,8 @@ from transactron.testing import *
 
 
 class WishboneInterfaceWrapper:
-    def __init__(self, wishbone_record):
-        self.wb = wishbone_record
+    def __init__(self, wishbone_interface: WishboneInterface):
+        self.wb = wishbone_interface
 
     def master_set(self, addr, data, we):
         yield self.wb.dat_w.eq(data)
@@ -142,10 +144,10 @@ class TestWishboneMaster(TestCaseWithSimulator):
 
 class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
-        wb_master = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
         num_slaves = 4
-        slaves = [WishboneInterfaceWrapper(Record.like(wb_master.wb, name=f"sl{i}")) for i in range(num_slaves)]
-        mux = WishboneMuxer(wb_master.wb, [s.wb for s in slaves], Signal(num_slaves))
+        mux = WishboneMuxer(WishboneParameters(), num_slaves, Signal(num_slaves))
+        slaves = [WishboneInterfaceWrapper(slave) for slave in mux.slaves]
+        wb_master = WishboneInterfaceWrapper(mux.master_wb)
 
         def process():
             # check full communiaction
@@ -183,9 +185,9 @@ class TestWishboneMuxer(TestCaseWithSimulator):
 
 class TestWishboneAribiter(TestCaseWithSimulator):
     def test_manual(self):
-        slave = WishboneInterfaceWrapper(Record(WishboneLayout(WishboneParameters()).wb_layout))
-        masters = [WishboneInterfaceWrapper(Record.like(slave.wb, name=f"mst{i}")) for i in range(2)]
-        arb = WishboneArbiter(slave.wb, [m.wb for m in masters])
+        arb = WishboneArbiter(WishboneParameters(), 2)
+        slave = WishboneInterfaceWrapper(arb.slave_wb)
+        masters = [WishboneInterfaceWrapper(master) for master in arb.masters]
 
         def process():
             yield from masters[0].master_set(2, 3, 1)
@@ -319,7 +321,7 @@ class WishboneMemorySlaveCircuit(Elaboratable):
         m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
         m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
 
-        m.d.comb += self.mem_master.wb_master.connect(self.mem_slave.bus)
+        connect(m, self.mem_master.wb_master, self.mem_slave.bus)
 
         return m
 

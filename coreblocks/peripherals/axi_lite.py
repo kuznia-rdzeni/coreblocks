@@ -1,10 +1,12 @@
+from typing import Protocol, TypeAlias, runtime_checkable
 from amaranth import *
-from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+from amaranth.lib.wiring import Component, Signature, In, Out
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib.connectors import Forwarder
+from transactron.utils._typing import AbstractInterface, AbstractSignature
 
-__all__ = ["AXILiteParameters", "AXILiteMaster"]
+__all__ = ["AXILiteParameters", "AXILiteSignature", "AXILiteInterface", "AXILiteMaster"]
 
 
 class AXILiteParameters:
@@ -24,65 +26,116 @@ class AXILiteParameters:
         self.granularity = 8
 
 
-class AXILiteLayout:
-    """AXI-Lite bus layout generator
+class AXILiteSignature(Signature):
+    """AXI-Lite bus signature
 
     Parameters
     ----------
     axil_params: AXILiteParameters
-        Patameters used to generate AXI-Lite layout
-    master: Boolean
-        Whether the layout should be generated for master side
-        (if false it's generatd for the slave side)
-
-    Attributes
-    ----------
-    axil_layout: Record
-        Record of a AXI-Lite bus.
+        Patameters used to generate AXI-Lite signature
     """
 
-    def __init__(self, axil_params: AXILiteParameters, *, master: bool = True):
-        write_address = [
-            ("valid", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("rdy", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("addr", axil_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
-            ("prot", 3, DIR_FANOUT if master else DIR_FANIN),
-        ]
+    def __init__(self, axil_params: AXILiteParameters):
+        write_address = Signature(
+            {
+                "valid": Out(1),
+                "rdy": In(1),
+                "addr": Out(axil_params.addr_width),
+                "prot": Out(3),
+            }
+        )
 
-        write_data = [
-            ("valid", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("rdy", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("data", axil_params.data_width, DIR_FANOUT if master else DIR_FANIN),
-            ("strb", axil_params.data_width // 8, DIR_FANOUT if master else DIR_FANIN),
-        ]
+        write_data = Signature(
+            {
+                "valid": Out(1),
+                "rdy": In(1),
+                "data": Out(axil_params.data_width),
+                "strb": Out(axil_params.data_width // 8),
+            }
+        )
 
-        write_response = [
-            ("valid", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("rdy", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("resp", 2, DIR_FANIN if master else DIR_FANOUT),
-        ]
+        write_response = Signature(
+            {
+                "valid": In(1),
+                "rdy": Out(1),
+                "resp": In(2),
+            }
+        )
 
-        read_address = [
-            ("valid", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("rdy", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("addr", axil_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
-            ("prot", 3, DIR_FANOUT if master else DIR_FANIN),
-        ]
+        read_address = Signature(
+            {
+                "valid": Out(1),
+                "rdy": In(1),
+                "addr": Out(axil_params.addr_width),
+                "prot": Out(3),
+            }
+        )
 
-        read_data = [
-            ("valid", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("rdy", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("data", axil_params.data_width, DIR_FANIN if master else DIR_FANOUT),
-            ("resp", 2, DIR_FANIN if master else DIR_FANOUT),
-        ]
+        read_data = Signature(
+            {
+                "valid": In(1),
+                "rdy": Out(1),
+                "data": In(axil_params.data_width),
+                "resp": In(2),
+            }
+        )
 
-        self.axil_layout = [
-            ("write_address", write_address),
-            ("write_data", write_data),
-            ("write_response", write_response),
-            ("read_address", read_address),
-            ("read_data", read_data),
-        ]
+        super().__init__(
+            {
+                "write_address": Out(write_address),
+                "write_data": Out(write_data),
+                "write_response": Out(write_response),
+                "read_address": Out(read_address),
+                "read_data": Out(read_data),
+            }
+        )
+
+
+class AXILiteWriteAddressInterface(AbstractInterface[AbstractSignature], Protocol):
+    valid: Signal
+    rdy: Signal
+    addr: Signal
+    prot: Signal
+
+
+class AXILiteWriteDataInterface(AbstractInterface[AbstractSignature], Protocol):
+    valid: Signal
+    rdy: Signal
+    data: Signal
+    strb: Signal
+
+
+class AXILiteWriteResponseInterface(AbstractInterface[AbstractSignature], Protocol):
+    valid: Signal
+    rdy: Signal
+    resp: Signal
+
+
+class AXILiteReadAddressInterface(AbstractInterface[AbstractSignature], Protocol):
+    valid: Signal
+    rdy: Signal
+    addr: Signal
+    prot: Signal
+
+
+@runtime_checkable
+class AXILiteReadDataInterface(AbstractInterface[AbstractSignature], Protocol):
+    valid: Signal
+    rdy: Signal
+    data: Signal
+    resp: Signal
+
+
+class AXILiteInterface(AbstractInterface[AbstractSignature], Protocol):
+    write_address: AXILiteWriteAddressInterface
+    write_data: AXILiteWriteDataInterface
+    write_response: AXILiteWriteResponseInterface
+    read_address: AXILiteReadAddressInterface
+    read_data: AXILiteReadDataInterface
+
+
+AXILiteOutChannel: TypeAlias = AXILiteWriteAddressInterface | AXILiteWriteDataInterface | AXILiteReadAddressInterface
+AXILiteInChannel: TypeAlias = AXILiteWriteResponseInterface | AXILiteReadDataInterface
 
 
 class AXILiteMasterMethodLayouts:
@@ -137,7 +190,7 @@ class AXILiteMasterMethodLayouts:
         ]
 
 
-class AXILiteMaster(Elaboratable):
+class AXILiteMaster(Component):
     """AXI-Lite master interface.
 
     Parameters
@@ -173,10 +226,11 @@ class AXILiteMaster(Elaboratable):
         Returns response state as 'wr_response_layout'.
     """
 
+    axil_master: AXILiteInterface
+
     def __init__(self, axil_params: AXILiteParameters):
+        super().__init__({"axil_master": Out(AXILiteSignature(axil_params))})
         self.axil_params = axil_params
-        self.axil_layout = AXILiteLayout(self.axil_params).axil_layout
-        self.axil_master = Record(self.axil_layout)
 
         self.method_layouts = AXILiteMasterMethodLayouts(self.axil_params)
 
@@ -195,7 +249,7 @@ class AXILiteMaster(Elaboratable):
             m.d.sync += channel.strb.eq(arg.strb)
         m.d.sync += channel.valid.eq(1)
 
-    def state_machine_request(self, m: TModule, method: Method, *, channel: Record, request_signal: Signal):
+    def state_machine_request(self, m: TModule, method: Method, *, channel: AXILiteOutChannel, request_signal: Signal):
         with m.FSM("Idle"):
             with m.State("Idle"):
                 m.d.sync += channel.valid.eq(0)
@@ -212,11 +266,11 @@ class AXILiteMaster(Elaboratable):
                 with m.Else():
                     m.d.comb += request_signal.eq(0)
 
-    def result_handler(self, m: TModule, forwarder: Forwarder, *, data: bool, channel: Record):
+    def result_handler(self, m: TModule, forwarder: Forwarder, *, channel: AXILiteInChannel):
         with m.If(channel.rdy & channel.valid):
             m.d.sync += channel.rdy.eq(forwarder.read.run)
             with Transaction().body(m):
-                if data:
+                if isinstance(channel, AXILiteReadDataInterface):
                     forwarder.write(m, data=channel.data, resp=channel.resp)
                 else:
                     forwarder.write(m, resp=channel.resp)
@@ -245,7 +299,7 @@ class AXILiteMaster(Elaboratable):
             self.start_request_transaction(m, arg, channel=self.axil_master.read_address, is_address_channel=True)
 
         # read_data
-        self.result_handler(m, rd_forwarder, data=True, channel=self.axil_master.read_data)
+        self.result_handler(m, rd_forwarder, channel=self.axil_master.read_data)
 
         @def_method(m, self.rd_response)
         def _():
@@ -276,7 +330,7 @@ class AXILiteMaster(Elaboratable):
             self.start_request_transaction(m, arg, channel=self.axil_master.write_data, is_address_channel=False)
 
         # write_response
-        self.result_handler(m, wr_forwarder, data=False, channel=self.axil_master.write_response)
+        self.result_handler(m, wr_forwarder, channel=self.axil_master.write_response)
 
         @def_method(m, self.wr_response)
         def _():
