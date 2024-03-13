@@ -217,7 +217,7 @@ jobs:
         with:
           path: test/external/riscv-tests/test-*
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-tests/environment/**',
+              '**/test/external/riscv-tests/environment/custom/**',
               '**/test/external/riscv-tests/Makefile',
               '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
@@ -279,7 +279,7 @@ jobs:
         with:
           path: test/external/riscv-tests/test-*
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-tests/environment/**',
+              '**/test/external/riscv-tests/environment/custom/**',
               '**/test/external/riscv-tests/Makefile', 
               '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
