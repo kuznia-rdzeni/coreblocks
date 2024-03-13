@@ -63,11 +63,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Get submodules HEAD hash
+        working-directory: .
         run: |
+          # ownership workaround
           git config --global --add safe.directory /__w/coreblocks/coreblocks
-          git submodule > /__w/coreblocks/coreblocks/.gitmodules-hash
-          pwd
-          cat /__w/coreblocks/coreblocks/.gitmodules-hash
+          # paths in command are relative!
+          git submodule > .gitmodules-hash
 
       - name: Cache compiled and reference riscv-arch-test
         id: cache-riscv-arch-test
@@ -166,8 +167,6 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
-          pwd
-          cat /__w/coreblocks/coreblocks/.gitmodules-hash
 
       - uses: actions/cache@v3
         name: Download tests from cache
@@ -210,8 +209,6 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
-          cat .gitmodules-hash
-          pwd
 
       - name: Cache regression-tests
         id: cache-regression
@@ -227,8 +224,7 @@ jobs:
               '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
             ) }}
-          restore-keys: |
-            ${{ env.cache-name }}-${{ runner.os }}-
+          lookup-only: true
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         name: Checkout with submodules
@@ -285,11 +281,12 @@ jobs:
         with:
           path: test/external/riscv-tests/test-*
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/Makefile',
+              '**/test/external/riscof/coreblocks/**',
+              '**/test/external/riscof/spike_simple/**',
+              '**/test/external/riscof/config.ini',
               '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
-              ) }}
+            ) }}
           fail-on-cache-miss: true
 
       - name: Run tests
