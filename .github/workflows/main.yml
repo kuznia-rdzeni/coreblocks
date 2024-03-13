@@ -65,7 +65,7 @@ jobs:
       - name: Get submodules HEAD hash
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
-          git submodule > .gitmodules-hash
+          git submodule > /__w/coreblocks/coreblocks/.gitmodules-hash
 
       - name: Cache compiled and reference riscv-arch-test
         id: cache-riscv-arch-test
