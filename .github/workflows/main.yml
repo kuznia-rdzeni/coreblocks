@@ -86,7 +86,8 @@ jobs:
               '**/test/external/riscof/spike_simple/**',
               '**/test/external/riscof/config.ini',
               '**/.gitmodules-hash',
-              '**/docker/riscv-toolchain.Dockerfile'
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
             ) }}
           lookup-only: true
 
@@ -182,7 +183,8 @@ jobs:
               '**/test/external/riscof/spike_simple/**',
               '**/test/external/riscof/config.ini',
               '**/.gitmodules-hash',
-              '**/docker/riscv-toolchain.Dockerfile'
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
             ) }}
           fail-on-cache-miss: true
 
@@ -220,7 +222,8 @@ jobs:
               '**/test/external/riscv-tests/environment/custom/**',
               '**/test/external/riscv-tests/Makefile',
               '**/.gitmodules-hash',
-              '**/docker/riscv-toolchain.Dockerfile'
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
             ) }}
           lookup-only: true
 
@@ -282,7 +285,8 @@ jobs:
               '**/test/external/riscv-tests/environment/custom/**',
               '**/test/external/riscv-tests/Makefile', 
               '**/.gitmodules-hash',
-              '**/docker/riscv-toolchain.Dockerfile'
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
             ) }}
           fail-on-cache-miss: true
 
