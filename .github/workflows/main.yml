@@ -48,7 +48,7 @@ jobs:
   build-riscof-tests:
     name: Build regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     timeout-minutes: 10
     env:
       PYENV_ROOT: "/root/.pyenv"
@@ -180,7 +180,7 @@ jobs:
   build-regression-tests:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     timeout-minutes: 10
     outputs:
         cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
@@ -263,6 +263,12 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
+      - name: Check regression with pysim
+        run: |
+          . venv/bin/activate
+          ./scripts/run_tests.py -c 1 -a -b pysim regression
+
+
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
@@ -291,6 +297,9 @@ jobs:
 
       - name: Check traces and profiles
         run: ./scripts/run_tests.py -t -p -c 1 TestCore
+
+      - name: Check listing tests
+        run: ./scripts/run_tests.py -l
 
   lint:
     name: Check code formatting and typing
