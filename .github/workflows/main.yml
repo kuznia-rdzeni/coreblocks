@@ -66,6 +66,8 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > /__w/coreblocks/coreblocks/.gitmodules-hash
+          pwd
+          cat /__w/coreblocks/coreblocks/.gitmodules-hash
 
       - name: Cache compiled and reference riscv-arch-test
         id: cache-riscv-arch-test
@@ -164,6 +166,8 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
+          pwd
+          cat /__w/coreblocks/coreblocks/.gitmodules-hash
 
       - uses: actions/cache@v3
         name: Download tests from cache
@@ -206,6 +210,8 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
+          cat .gitmodules-hash
+          pwd
 
       - name: Cache regression-tests
         id: cache-regression
@@ -214,10 +220,10 @@ jobs:
           cache-name: cache-regression-tests
         with:
           path: test/external/riscv-tests/test-*
-
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/Makefile',
+              '**/test/external/riscof/coreblocks/**',
+              '**/test/external/riscof/spike_simple/**',
+              '**/test/external/riscof/config.ini',
               '**/.gitmodules-hash',
               '**/docker/riscv-toolchain.Dockerfile'
             ) }}
