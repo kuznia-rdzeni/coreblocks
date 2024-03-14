@@ -153,10 +153,9 @@ class CocotbSimulation(SimulationBackend):
                 # function instead of 'getattr' - this is required by cocotb.
                 obj = obj._id(component, extended=False)
             except AttributeError:
-                if component[0] == "\\" and component[-1] == " ":
-                    # workaround for cocotb/verilator weirdness
-                    # for some escaped names lookup fails, but works when unescaped
-                    obj = obj._id(component[1:-1], extended=False)
+                # Try with escaped name
+                if component[0] != "\\" and component[-1] != " ":
+                    obj = obj._id("\\" + component + " ", extended=False)
                 else:
                     raise
 

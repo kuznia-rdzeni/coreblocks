@@ -26,7 +26,7 @@ from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import full_core_config
-from coreblocks.peripherals.wishbone import WishboneBus
+from coreblocks.peripherals.wishbone import WishboneSignature
 
 
 class PySimulation(SimulationBackend):
@@ -133,8 +133,8 @@ class PySimulation(SimulationBackend):
 
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         with DependencyContext(DependencyManager()):
-            wb_instr_bus = WishboneBus(self.gp.wb_params)
-            wb_data_bus = WishboneBus(self.gp.wb_params)
+            wb_instr_bus = WishboneSignature(self.gp.wb_params).create()
+            wb_data_bus = WishboneSignature(self.gp.wb_params).create()
             core = Core(gen_params=self.gp, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
 
             wb_instr_ctrl = WishboneInterfaceWrapper(wb_instr_bus)
