@@ -410,14 +410,14 @@ class Repl(Value):
 
 class _SignalMeta(ABCMeta):
     @overload
-    def __call__(cls, shape: ShapeCastable[T], src_loc_at = ..., **kwargs) -> T:
+    def __call__(cls, shape: ShapeCastable[T], src_loc_at: int = ..., **kwargs) -> T:
         ...
     
     @overload
-    def __call__(cls, shape = ..., src_loc_at = ..., **kwargs) -> Signal:
+    def __call__(cls, shape: ShapeLike = ..., src_loc_at: int = ..., **kwargs) -> Signal:
         ...
     
-    def __call__(cls, shape = ..., src_loc_at = ..., **kwargs):
+    def __call__(cls, shape: ShapeLike = ..., src_loc_at: int = ..., **kwargs):
         ...
 
 

@@ -1,4 +1,5 @@
 from amaranth import Elaboratable, Module
+from amaranth.lib.wiring import connect
 
 from transactron.lib import AdapterTrans
 from transactron.utils import align_to_power_of_two, signed_to_int
@@ -8,7 +9,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO
 from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
-from coreblocks.peripherals.wishbone import WishboneBus, WishboneMemorySlave
+from coreblocks.peripherals.wishbone import WishboneSignature, WishboneMemorySlave
 
 from typing import Optional
 import random
@@ -33,8 +34,8 @@ class CoreTestElaboratable(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_instr_bus = WishboneBus(self.gen_params.wb_params)
-        wb_data_bus = WishboneBus(self.gen_params.wb_params)
+        wb_instr_bus = WishboneSignature(self.gen_params.wb_params).create()
+        wb_data_bus = WishboneSignature(self.gen_params.wb_params).create()
 
         # Align the size of the memory to the length of a cache line.
         instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.block_size_bits)
@@ -54,8 +55,8 @@ class CoreTestElaboratable(Elaboratable):
         m.submodules.io_in = self.io_in
         m.submodules.interrupt = self.interrupt
 
-        m.d.comb += wb_instr_bus.connect(self.wb_mem_slave.bus)
-        m.d.comb += wb_data_bus.connect(self.wb_mem_slave_data.bus)
+        connect(m, wb_instr_bus, self.wb_mem_slave.bus)
+        connect(m, wb_data_bus, self.wb_mem_slave_data.bus)
 
         return m
 
