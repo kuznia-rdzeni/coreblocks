@@ -126,6 +126,8 @@ class WishboneMaster(Component):
         Returns state of request (error or success) and data (in case of read request) as `result_layout`.
     """
 
+    wb_master: WishboneInterface
+
     def __init__(self, wb_params: WishboneParameters, name: str = ""):
         super().__init__({"wb_master": Out(WishboneSignature(wb_params))})
         self.name = name
