@@ -49,8 +49,8 @@ class Core(Elaboratable):
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus
 
-        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
-        self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
+        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
+        self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
         self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)

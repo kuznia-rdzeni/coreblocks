@@ -7,8 +7,8 @@ from typing import Sequence
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
+from transactron.lib import logging
 from transactron.utils import DependencyManager
-
 from coreblocks.params import *
 from coreblocks.params.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey
 from transactron.utils import OneHotSwitch
@@ -17,6 +17,9 @@ from coreblocks.utils.protocols import FuncUnit
 from coreblocks.fu.fu_decoder import DecoderManager
 
 __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
+
+
+log = logging.HardwareLogger("backend.fu.jumpbranch")
 
 
 class JumpBranchFn(DecoderManager):
@@ -209,6 +212,14 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             with m.If(~is_auipc):
                 self.fifo_branch_resolved.write(m, from_pc=jb.in_pc, next_pc=jump_result, misprediction=misprediction)
+                log.debug(
+                    m,
+                    True,
+                    "jumping from 0x{:08x} to 0x{:08x}; misprediction: {}",
+                    jb.in_pc,
+                    jump_result,
+                    misprediction,
+                )
 
         return m
 

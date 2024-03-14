@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
+from typing import TypeAlias
 
 from amaranth import *
 from amaranth.back import verilog
@@ -7,11 +8,10 @@ from amaranth.hdl import Fragment
 
 from transactron.core import TransactionManager, MethodMap, TransactionManagerKey
 from transactron.lib.metrics import HardwareMetricsManager
+from transactron.lib import logging
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.idgen import IdGenerator
 from transactron.profiler import ProfileData
-from transactron.utils._typing import SrcLoc
-from transactron.utils.assertion import assert_bits
 
 from typing import TYPE_CHECKING
 
@@ -21,10 +21,15 @@ if TYPE_CHECKING:
 
 __all__ = [
     "MetricLocation",
-    "AssertLocation",
+    "GeneratedLog",
     "GenerationInfo",
     "generate_verilog",
 ]
+
+SignalHandle: TypeAlias = list[str]
+"""The location of a signal is a list of Verilog identifiers that denote a path
+consisting of module names (and the signal name at the end) leading
+to the signal wire."""
 
 
 @dataclass_json
@@ -34,13 +39,11 @@ class MetricLocation:
 
     Attributes
     ----------
-    regs : dict[str, list[str]]
-        The location of each register of that metric. The location is a list of
-        Verilog identifiers that denote a path consiting of modules names
-        (and the signal name at the end) leading to the register wire.
+    regs : dict[str, SignalHandle]
+        The location of each register of that metric.
     """
 
-    regs: dict[str, list[str]] = field(default_factory=dict)
+    regs: dict[str, SignalHandle] = field(default_factory=dict)
 
 
 @dataclass_json
@@ -79,21 +82,19 @@ class MethodSignalsLocation:
 
 @dataclass_json
 @dataclass
-class AssertLocation:
-    """Information about an assert signal in the generated Verilog code.
+class GeneratedLog(logging.LogRecordInfo):
+    """Information about a log record in the generated Verilog code.
 
     Attributes
     ----------
-    location : list[str]
-        The location of the assert signal. The location is a list of Verilog
-        identifiers that denote a path consisting of module names (and the
-        signal name at the end) leading to the signal wire.
-    src_loc : SrcLoc
-        Source location of the assertion.
+    trigger_location : SignalHandle
+        The location of the trigger signal.
+    fields_location : list[SignalHandle]
+        Locations of the log fields.
     """
 
-    location: list[str]
-    src_loc: SrcLoc
+    trigger_location: SignalHandle
+    fields_location: list[SignalHandle]
 
 
 @dataclass_json
@@ -106,16 +107,15 @@ class GenerationInfo:
     metrics_location : dict[str, MetricInfo]
         Mapping from a metric name to an object storing Verilog locations
         of its registers.
-    asserts : list[AssertLocation]
-        Locations and metadata for assertion signals.
+    logs : list[GeneratedLog]
+        Locations and metadata for all log records.
     """
 
     metrics_location: dict[str, MetricLocation]
     transaction_signals_location: dict[int, TransactionSignalsLocation]
     method_signals_location: dict[int, MethodSignalsLocation]
     profile_data: ProfileData
-    metrics_location: dict[str, MetricLocation]
-    asserts: list[AssertLocation]
+    logs: list[GeneratedLog]
 
     def encode(self, file_name: str):
         """
@@ -158,7 +158,7 @@ def escape_verilog_identifier(identifier: str) -> str:
     return identifier
 
 
-def get_signal_location(signal: Signal, name_map: "SignalDict") -> list[str]:
+def get_signal_location(signal: Signal, name_map: "SignalDict") -> SignalHandle:
     raw_location = name_map[signal]
     return raw_location
 
@@ -204,13 +204,24 @@ def collect_transaction_method_signals(
     return (transaction_signals_location, method_signals_location)
 
 
-def collect_asserts(name_map: "SignalDict") -> list[AssertLocation]:
-    asserts: list[AssertLocation] = []
+def collect_logs(name_map: "SignalDict") -> list[GeneratedLog]:
+    logs: list[GeneratedLog] = []
 
-    for v, src_loc in assert_bits():
-        asserts.append(AssertLocation(get_signal_location(v, name_map), src_loc))
+    # Get all records.
+    for record in logging.get_log_records(0):
+        trigger_loc = get_signal_location(record.trigger, name_map)
+        fields_loc = [get_signal_location(field, name_map) for field in record.fields]
+        log = GeneratedLog(
+            logger_name=record.logger_name,
+            level=record.level,
+            format_str=record.format_str,
+            location=record.location,
+            trigger_location=trigger_loc,
+            fields_location=fields_loc,
+        )
+        logs.append(log)
 
-    return asserts
+    return logs
 
 
 def generate_verilog(
@@ -229,7 +240,7 @@ def generate_verilog(
         transaction_signals_location=transaction_signals,
         method_signals_location=method_signals,
         profile_data=profile_data,
-        asserts=collect_asserts(name_map),
+        logs=collect_logs(name_map),
     )
 
     return verilog_text, gen_info
