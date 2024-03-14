@@ -44,6 +44,14 @@ transactron.lib.fifo module
    :undoc-members:
    :show-inheritance:
 
+transactron.lib.logging module
+------------------------------
+
+.. automodule:: transactron.lib.logging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.lib.metrics module
 ------------------------------
 

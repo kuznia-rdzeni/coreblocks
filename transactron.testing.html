@@ -87,14 +87,6 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
-<div class="section" id="module-transactron.testing.assertion">
-<span id="transactron-testing-assertion-module"></span><h2>transactron.testing.assertion module<a class="headerlink" href="#module-transactron.testing.assertion" title="Permalink to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="transactron.testing.assertion.make_assert_handler">
-<span class="sig-prename descclassname"><span class="pre">transactron.testing.assertion.</span></span><span class="sig-name descname"><span class="pre">make_assert_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">my_assert</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.assertion.make_assert_handler" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</div>
 <div class="section" id="module-transactron.testing.functions">
 <span id="transactron-testing-functions-module"></span><h2>transactron.testing.functions module<a class="headerlink" href="#module-transactron.testing.functions" title="Permalink to this heading"></a></h2>
 <dl class="py function">
@@ -243,6 +235,23 @@ not have a method with the specified name.</p>
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.guard_nested_collection">
 <span class="sig-prename descclassname"><span class="pre">transactron.testing.infrastructure.</span></span><span class="sig-name descname"><span class="pre">guard_nested_collection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union[~T,</span> <span class="pre">list[ForwardRef('_T_nested_collection[T]')],</span> <span class="pre">dict[str,</span> <span class="pre">ForwardRef('_T_nested_collection[T]')]]]]]</span></span></span><a class="headerlink" href="#transactron.testing.infrastructure.guard_nested_collection" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+</div>
+<div class="section" id="module-transactron.testing.logging">
+<span id="transactron-testing-logging-module"></span><h2>transactron.testing.logging module<a class="headerlink" href="#module-transactron.testing.logging" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.logging.make_logging_process">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.logging.</span></span><span class="sig-name descname"><span class="pre">make_logging_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace_regexp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.logging.make_logging_process" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.logging.parse_logging_level">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.logging.</span></span><span class="sig-name descname"><span class="pre">parse_logging_level</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#transactron.testing.logging.parse_logging_level" title="Permalink to this definition"></a></dt>
+<dd><p>Parse the log level from a string.</p>
+<p>The level can be either a non-negative integer or a string representation
+of one of the predefined levels.</p>
+<p>Raises an exception if the level cannot be parsed.</p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-transactron.testing.profiler">
@@ -399,7 +408,7 @@ during function declaration.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:48 2024-03-14.
+      <span class="lastupdated">Last updated on 11:28 2024-03-14.
       </span></p>
   </div>
 
