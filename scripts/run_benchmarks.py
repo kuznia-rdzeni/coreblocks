@@ -74,10 +74,7 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     return res.returncode == 0
 
 
-def run_benchmarks_with_pysim(
-    benchmarks: list[str],
-    traces: bool,
-) -> bool:
+def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool) -> bool:
     suite = unittest.TestSuite()
 
     def _gen_test(test_name: str):
