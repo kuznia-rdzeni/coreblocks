@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710410084163,
+  "lastUpdate": 1710410476737,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -8511,6 +8511,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.21524395351898612,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f53c30e3ab7c81041d4e7bdd849f9d27dbaf94df",
+          "message": "Optimize submodule downloads in CI (#618)",
+          "timestamp": "2024-03-14T10:47:54+01:00",
+          "tree_id": "a36dfa3b6d0ea16f468d1bd764957fe5aa4b421f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f53c30e3ab7c81041d4e7bdd849f9d27dbaf94df"
+        },
+        "date": 1710410474297,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29204002838551374,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3246413600430343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4158309618409448,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21524395351898612,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115635899199292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23775978551326782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
             "unit": "Instructions Per Cycle"
           }
         ]
