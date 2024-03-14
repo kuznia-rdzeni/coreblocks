@@ -183,7 +183,7 @@ identify the failing assertion.</p>
 <span class="sig-prename descclassname"><span class="pre">transactron.utils.assign.</span></span><span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AssignArg</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AssignArg</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.utils.assign.AssignType" title="transactron.utils.assign.AssignType"><span class="pre">transactron.utils.assign.AssignType</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AssignFields</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">AssignType.RHS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lhs_strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhs_strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Assign</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.utils.assign.assign" title="Permalink to this definition"></a></dt>
 <dd><p>Safe structured assignment.</p>
 <p>This function recursively generates assignment statements for
-field-containing structures. This includes: Amaranth <cite>Record</cite>s,
+field-containing structures. This includes:
 Amaranth <cite>View</cite>s using <cite>StructLayout</cite>, Python <cite>dict</cite>s. In case of
 mismatching fields or bit widths, error is raised.</p>
 <p>When both <cite>lhs</cite> and <cite>rhs</cite> are field-containing, <cite>assign</cite> generates
@@ -192,16 +192,16 @@ If either of <cite>lhs</cite> or <cite>rhs</cite> is not field-containing, <cite
 the same bit width and generates a single assignment statement.</p>
 <p>The bit width check is performed if:</p>
 <ul class="simple">
-<li><p>Any of <cite>lhs</cite> or <cite>rhs</cite> is a <cite>Record</cite> or <cite>View</cite>.</p></li>
+<li><p>Any of <cite>lhs</cite> or <cite>rhs</cite> is a <cite>View</cite>.</p></li>
 <li><p>Both <cite>lhs</cite> and <cite>rhs</cite> have an explicitly defined shape (e.g. are a
-<cite>Signal</cite>, a field of a <cite>Record</cite> or a <cite>View</cite>).</p></li>
+<cite>Signal</cite>, a field of a <cite>View</cite>).</p></li>
 </ul>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
-<dt><strong>lhs</strong><span class="classifier">Record or View or Value-castable or dict</span></dt><dd><p>Record, signal or dict being assigned.</p>
+<dt><strong>lhs</strong><span class="classifier">View or Value-castable or dict</span></dt><dd><p>View, signal or dict being assigned.</p>
 </dd>
-<dt><strong>rhs</strong><span class="classifier">Record or View or Value-castable or dict</span></dt><dd><p>Record, signal or dict containing assigned values.</p>
+<dt><strong>rhs</strong><span class="classifier">View or Value-castable or dict</span></dt><dd><p>View, signal or dict containing assigned values.</p>
 </dd>
 <dt><strong>fields</strong><span class="classifier">AssignType or Iterable or Mapping, optional</span></dt><dd><p>Determines which fields will be assigned. Possible values:</p>
 <dl class="simple">
@@ -850,7 +850,7 @@ Verilog identifiers that denote a path consiting of modules names
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:58 2024-03-13.
+      <span class="lastupdated">Last updated on 09:21 2024-03-14.
       </span></p>
   </div>
 
