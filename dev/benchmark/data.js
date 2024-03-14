@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710409990704,
+  "lastUpdate": 1710410084163,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -27365,6 +27365,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 23352,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1476,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1096,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8538,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f53c30e3ab7c81041d4e7bdd849f9d27dbaf94df",
+          "message": "Optimize submodule downloads in CI (#618)",
+          "timestamp": "2024-03-14T10:47:54+01:00",
+          "tree_id": "a36dfa3b6d0ea16f468d1bd764957fe5aa4b421f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f53c30e3ab7c81041d4e7bdd849f9d27dbaf94df"
+        },
+        "date": 1710410082017,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.85,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23143,
             "unit": "LUT4"
           },
           {
