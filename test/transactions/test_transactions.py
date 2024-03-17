@@ -15,12 +15,9 @@ from transactron import *
 from transactron.lib import Adapter, AdapterTrans
 from transactron.utils import Scheduler
 
-from transactron.core import (
-    Priority,
-    TransactionScheduler,
-    trivial_roundrobin_cc_scheduler,
-    eager_deterministic_cc_scheduler,
-)
+from transactron.core import Priority
+from transactron.core.schedulers import trivial_roundrobin_cc_scheduler, eager_deterministic_cc_scheduler
+from transactron.core.manager import TransactionScheduler
 from transactron.utils.dependencies import DependencyContext
 
 

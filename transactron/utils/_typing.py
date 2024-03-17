@@ -44,6 +44,7 @@ __all__ = [
     "RecordIntDict",
     "RecordIntDictRet",
     "RecordValueDict",
+    "RecordDict",
     "ROGraph",
     "Graph",
     "GraphCC",
@@ -72,6 +73,7 @@ MethodStruct: TypeAlias = "View[StructLayout]"
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with
 RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
+RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 T = TypeVar("T")
 U = TypeVar("U")

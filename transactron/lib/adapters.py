@@ -2,8 +2,7 @@ from amaranth import *
 
 from ..utils import SrcLoc, get_src_loc, MethodStruct
 from ..core import *
-from ..core import SignalBundle
-from ..utils._typing import type_self_kwargs_as
+from ..utils._typing import type_self_kwargs_as, SignalBundle
 
 __all__ = [
     "AdapterBase",

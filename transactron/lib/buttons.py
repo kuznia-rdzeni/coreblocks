@@ -2,7 +2,7 @@ from amaranth import *
 
 from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MethodLayout
 
 __all__ = ["ClickIn", "ClickOut"]
 
