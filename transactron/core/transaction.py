@@ -3,19 +3,14 @@ from amaranth import *
 from amaranth import tracer
 from typing import Optional, Iterator, TYPE_CHECKING
 from .transaction_base import *
+from .keys import *
 from contextlib import contextmanager
-from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from .tmodule import TModule
     from .manager import TransactionManager
 
-__all__ = ["Transaction", "TransactionManagerKey"]
-
-
-@dataclass(frozen=True)
-class TransactionManagerKey(SimpleKey["TransactionManager"]):
-    pass
+__all__ = ["Transaction"]
 
 
 class Transaction(TransactionBase):

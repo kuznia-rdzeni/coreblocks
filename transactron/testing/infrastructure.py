@@ -17,7 +17,8 @@ from .assertion import make_assert_handler
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
-from transactron.core import TransactionManagerKey, TransactionModule
+from transactron.core.keys import TransactionManagerKey
+from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
