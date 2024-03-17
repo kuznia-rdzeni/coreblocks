@@ -1,5 +1,6 @@
 from decimal import Decimal
 import inspect
+import re
 import os
 from typing import Any
 from collections.abc import Coroutine
@@ -87,10 +88,6 @@ class WishboneSlave:
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
-                cocotb.logging.debug(
-                    f"Wishbone bus '{self.name}' write request: "
-                    f"addr=0x{addr:x} data=0x{int(sig_m.dat_w):x} sel={sig_m.sel}"
-                )
                 resp = self.model.write(
                     WriteRequest(
                         addr=addr,
@@ -100,7 +97,6 @@ class WishboneSlave:
                     )
                 )
             else:
-                cocotb.logging.debug(f"Wishbone bus '{self.name}' read request: addr=0x{addr:x} sel={sig_m.sel}")
                 resp = self.model.read(
                     ReadRequest(
                         addr=addr,
@@ -123,11 +119,6 @@ class WishboneSlave:
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
-            cocotb.logging.debug(
-                f"Wishbone bus '{self.name}' response: "
-                f"ack={sig_s.ack} err={sig_s.err} rty={sig_s.rty} data={int(sig_s.dat_r):x}"
-            )
-
             for _ in range(self.delay):
                 await clock_edge_event  # type: ignore
 
@@ -148,6 +139,11 @@ class CocotbSimulation(SimulationBackend):
 
         self.gen_info = GenerationInfo.decode(gen_info_path)
 
+        self.log_level = os.environ["__TRANSACTRON_LOG_LEVEL"]
+        self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
+
+        cocotb.logging.getLogger().setLevel(self.log_level)
+
     def get_cocotb_handle(self, path_components: list[str]) -> ModifiableObject:
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
@@ -157,10 +153,9 @@ class CocotbSimulation(SimulationBackend):
                 # function instead of 'getattr' - this is required by cocotb.
                 obj = obj._id(component, extended=False)
             except AttributeError:
-                if component[0] == "\\" and component[-1] == " ":
-                    # workaround for cocotb/verilator weirdness
-                    # for some escaped names lookup fails, but works when unescaped
-                    obj = obj._id(component[1:-1], extended=False)
+                # Try with escaped name
+                if component[0] != "\\" and component[-1] != " ":
+                    obj = obj._id("\\" + component + " ", extended=False)
                 else:
                     raise
 
@@ -189,14 +184,40 @@ class CocotbSimulation(SimulationBackend):
 
             await clock_edge_event  # type: ignore
 
-    async def assert_handler(self, clock):
+    async def logging_handler(self, clock):
         clock_edge_event = FallingEdge(clock)
 
+        log_level = cocotb.logging.getLogger().level
+
+        logs = [
+            (rec, self.get_cocotb_handle(rec.trigger_location))
+            for rec in self.gen_info.logs
+            if rec.level >= log_level and re.search(self.log_filter, rec.logger_name)
+        ]
+
         while True:
-            for assert_info in self.gen_info.asserts:
-                assert_val = self.get_cocotb_handle(assert_info.location)
-                n, i = assert_info.src_loc
-                assert assert_val.value, f"Assertion at {n}:{i}"
+            for rec, trigger_handle in logs:
+                if not trigger_handle.value:
+                    continue
+
+                values: list[int] = []
+                for field in rec.fields_location:
+                    values.append(int(self.get_cocotb_handle(field).value))
+
+                formatted_msg = rec.format(*values)
+
+                cocotb_log = cocotb.logging.getLogger(rec.logger_name)
+
+                cocotb_log.log(
+                    rec.level,
+                    "%s:%d] %s",
+                    rec.location[0],
+                    rec.location[1],
+                    formatted_msg,
+                )
+
+                if rec.level >= cocotb.logging.ERROR:
+                    assert False, f"Assertion failed at {rec.location[0], rec.location[1]}: {formatted_msg}"
 
             await clock_edge_event  # type: ignore
 
@@ -220,7 +241,7 @@ class CocotbSimulation(SimulationBackend):
             profile.transactions_and_methods = self.gen_info.profile_data.transactions_and_methods
             cocotb.start_soon(self.profile_handler(self.dut.clk, profile))
 
-        cocotb.start_soon(self.assert_handler(self.dut.clk))
+        cocotb.start_soon(self.logging_handler(self.dut.clk))
 
         success = True
         try:
@@ -237,7 +258,7 @@ class CocotbSimulation(SimulationBackend):
             for reg_name, reg_loc in metric_loc.regs.items():
                 value = int(self.get_cocotb_handle(reg_loc))
                 result.metric_values[metric_name][reg_name] = value
-                cocotb.logging.debug(f"Metric {metric_name}/{reg_name}={value}")
+                cocotb.logging.info(f"Metric {metric_name}/{reg_name}={value}")
 
         return result
 

@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.wiring import flipped, connect
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
@@ -27,7 +28,7 @@ from coreblocks.stages.backend import ResultAnnouncement
 from coreblocks.stages.retirement import Retirement
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.frontend.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
@@ -38,7 +39,7 @@ __all__ = ["Core"]
 
 
 class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
+    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneInterface, wb_data_bus: WishboneInterface):
         self.gen_params = gen_params
 
         dep_manager = DependencyContext.get()
@@ -48,8 +49,8 @@ class Core(Elaboratable):
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus
 
-        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
-        self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
+        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
+        self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
         self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
@@ -117,8 +118,8 @@ class Core(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.d.comb += self.wb_master_instr.wb_master.connect(self.wb_instr_bus)
-        m.d.comb += self.wb_master_data.wb_master.connect(self.wb_data_bus)
+        connect(m, flipped(self.wb_instr_bus), self.wb_master_instr.wb_master)
+        connect(m, flipped(self.wb_data_bus), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data

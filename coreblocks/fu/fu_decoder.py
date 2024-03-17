@@ -15,7 +15,7 @@ class Decoder(Elaboratable):
     Attributes
     ----------
     decode_fn: Signal
-    exec_fn: Record
+    exec_fn: View
     """
 
     def __init__(self, gen_params: GenParams, decode_fn: Type[IntFlag], ops: Sequence[tuple], check_optype: bool):

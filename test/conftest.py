@@ -28,6 +28,7 @@ def pytest_addoption(parser: pytest.Parser):
         type=int,
         help="Number of tests to start. If less than number of all selected tests, then starts only subset of them.",
     )
+    group.addoption("--coreblocks-log-filter", default=".*", action="store", help="Regexp used to filter out logs.")
 
 
 def generate_unittestname(item: pytest.Item) -> str:
@@ -104,3 +105,9 @@ def pytest_runtest_setup(item: pytest.Item):
 
     if item.config.getoption("--coreblocks-profile", False):  # type: ignore
         os.environ["__TRANSACTRON_PROFILE"] = "1"
+
+    log_filter = item.config.getoption("--coreblocks-log-filter")
+    os.environ["__TRANSACTRON_LOG_FILTER"] = ".*" if not isinstance(log_filter, str) else log_filter
+
+    log_level = item.config.getoption("--log-level")
+    os.environ["__TRANSACTRON_LOG_LEVEL"] = "WARNING" if not isinstance(log_level, str) else log_level

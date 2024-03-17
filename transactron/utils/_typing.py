@@ -14,13 +14,13 @@ from typing import (
     Any,
     TYPE_CHECKING,
 )
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
+from amaranth.lib.wiring import Flow, Member
 from amaranth.hdl import ShapeCastable, ValueCastable
-from amaranth.hdl.rec import Direction, Layout
 
 if TYPE_CHECKING:
     from amaranth.hdl._ast import Statement
@@ -32,7 +32,6 @@ __all__ = [
     "ValueLike",
     "ShapeLike",
     "StatementLike",
-    "LayoutLike",
     "SwitchKey",
     "SrcLoc",
     "MethodLayout",
@@ -60,9 +59,6 @@ FragmentLike: TypeAlias = Fragment | Elaboratable
 ValueLike: TypeAlias = Value | int | Enum | ValueCastable
 ShapeLike: TypeAlias = Shape | ShapeCastable | int | range | type[Enum]
 StatementLike: TypeAlias = Union["Statement", Iterable["StatementLike"]]
-LayoutLike: TypeAlias = (
-    Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
-)
 SwitchKey: TypeAlias = str | int | Enum
 SrcLoc: TypeAlias = tuple[str, int]
 
@@ -88,6 +84,7 @@ Graph: TypeAlias = dict[T, set[T]]
 GraphCC: TypeAlias = set[T]
 
 
+# Protocols for Amaranth classes
 class _ModuleBuilderDomainsLike(Protocol):
     def __getattr__(self, name: str) -> "_ModuleBuilderDomain":
         ...
@@ -143,6 +140,74 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
     @next.setter
     def next(self, name: str) -> None:
         ...
+
+
+class AbstractSignatureMembers(Protocol):
+    def flip(self) -> "AbstractSignatureMembers":
+        ...
+
+    def __eq__(self, other) -> bool:
+        ...
+
+    def __contains__(self, name: str) -> bool:
+        ...
+
+    def __getitem__(self, name: str) -> Member:
+        ...
+
+    def __setitem__(self, name: str, member: Member) -> NoReturn:
+        ...
+
+    def __delitem__(self, name: str) -> NoReturn:
+        ...
+
+    def __iter__(self) -> Iterator[str]:
+        ...
+
+    def __len__(self) -> int:
+        ...
+
+    def flatten(self, *, path: tuple[str | int, ...] = ...) -> Iterator[tuple[tuple[str | int, ...], Member]]:
+        ...
+
+    def create(self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...) -> dict[str, Any]:
+        ...
+
+    def __repr__(self) -> str:
+        ...
+
+
+class AbstractSignature(Protocol):
+    def flip(self) -> "AbstractSignature":
+        ...
+
+    @property
+    def members(self) -> AbstractSignatureMembers:
+        ...
+
+    def __eq__(self, other) -> bool:
+        ...
+
+    def flatten(self, obj) -> Iterator[tuple[tuple[str | int, ...], Flow, ValueLike]]:
+        ...
+
+    def is_compliant(self, obj, *, reasons: Optional[list[str]] = ..., path: tuple[str, ...] = ...) -> bool:
+        ...
+
+    def create(
+        self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...
+    ) -> "AbstractInterface[AbstractSignature]":
+        ...
+
+    def __repr__(self) -> str:
+        ...
+
+
+_T_AbstractSignature = TypeVar("_T_AbstractSignature", bound=AbstractSignature)
+
+
+class AbstractInterface(Protocol, Generic[_T_AbstractSignature]):
+    signature: _T_AbstractSignature
 
 
 class HasElaborate(Protocol):

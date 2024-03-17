@@ -1,15 +1,17 @@
 from amaranth import *
-from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+from amaranth.lib.wiring import PureInterface, Signature, In, Out, Component
 from functools import reduce
-from typing import List
+from typing import Protocol, cast
 import operator
 
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
 from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
+from transactron.utils._typing import AbstractInterface, AbstractSignature
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
+from transactron.lib import logging
 
 
 class WishboneParameters:
@@ -31,52 +33,45 @@ class WishboneParameters:
         self.granularity = granularity
 
 
-class WishboneLayout:
-    """Wishbone bus Layout generator.
+class WishboneSignature(Signature):
+    def __init__(self, wb_params: WishboneParameters):
+        super().__init__(
+            {
+                "dat_r": In(wb_params.data_width),
+                "dat_w": Out(wb_params.data_width),
+                "rst": Out(1),
+                "ack": In(1),
+                "adr": Out(wb_params.addr_width),
+                "cyc": Out(1),
+                "stall": In(1),
+                "err": In(1),
+                "lock": Out(1),
+                "rty": In(1),
+                "sel": Out(wb_params.data_width // wb_params.granularity),
+                "stb": Out(1),
+                "we": Out(1),
+            }
+        )
 
-    Parameters
-    ----------
-    wb_params: WishboneParameters
-        Parameters used to generate Wishbone layout
-    master: Boolean
-        Whether the layout should be generated for the master side
-        (otherwise it's generated for the slave side)
-
-    Attributes
-    ----------
-    wb_layout: Record
-        Record of a Wishbone bus.
-    """
-
-    def __init__(self, wb_params: WishboneParameters, master=True):
-        self.wb_layout = [
-            ("dat_r", wb_params.data_width, DIR_FANIN if master else DIR_FANOUT),
-            ("dat_w", wb_params.data_width, DIR_FANOUT if master else DIR_FANIN),
-            ("rst", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("ack", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("adr", wb_params.addr_width, DIR_FANOUT if master else DIR_FANIN),
-            ("cyc", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("stall", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("err", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("lock", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("rty", 1, DIR_FANIN if master else DIR_FANOUT),
-            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANOUT if master else DIR_FANIN),
-            ("stb", 1, DIR_FANOUT if master else DIR_FANIN),
-            ("we", 1, DIR_FANOUT if master else DIR_FANIN),
-        ]
+    def create(self, *, path: tuple[str | int, ...] = (), src_loc_at: int = 0):
+        """Create a WishboneInterface."""  # workaround for Sphinx problem with Amaranth docstring
+        return cast(WishboneInterface, PureInterface(self, path=path, src_loc_at=src_loc_at + 1))
 
 
-class WishboneBus(Record):
-    """Wishbone bus.
-
-    Parameters
-    ----------
-    wb_params: WishboneParameters
-        Parameters for bus generation.
-    """
-
-    def __init__(self, wb_params: WishboneParameters, **kwargs):
-        super().__init__(WishboneLayout(wb_params).wb_layout, **kwargs)
+class WishboneInterface(AbstractInterface[AbstractSignature], Protocol):
+    dat_r: Signal
+    dat_w: Signal
+    rst: Signal
+    ack: Signal
+    adr: Signal
+    cyc: Signal
+    stall: Signal
+    err: Signal
+    lock: Signal
+    rty: Signal
+    sel: Signal
+    stb: Signal
+    we: Signal
 
 
 class WishboneMasterMethodLayout:
@@ -107,17 +102,19 @@ class WishboneMasterMethodLayout:
         self.result_layout = make_layout(("data", wb_params.data_width), ("err", 1))
 
 
-class WishboneMaster(Elaboratable):
+class WishboneMaster(Component):
     """Wishbone bus master interface.
 
     Parameters
     ----------
     wb_params: WishboneParameters
         Parameters for bus generation.
+    name: str, optional
+        Name of this bus. Used for logging.
 
     Attributes
     ----------
-    wb_master: Record (like WishboneLayout)
+    wb_master: WishboneInterface
         Wishbone bus output.
     request: Method
         Transactional method to start a new Wishbone request.
@@ -129,10 +126,12 @@ class WishboneMaster(Elaboratable):
         Returns state of request (error or success) and data (in case of read request) as `result_layout`.
     """
 
-    def __init__(self, wb_params: WishboneParameters):
+    wb_master: WishboneInterface
+
+    def __init__(self, wb_params: WishboneParameters, name: str = ""):
+        super().__init__({"wb_master": Out(WishboneSignature(wb_params))})
+        self.name = name
         self.wb_params = wb_params
-        self.wb_layout = WishboneLayout(wb_params).wb_layout
-        self.wb_master = Record(self.wb_layout)
 
         self.method_layouts = WishboneMasterMethodLayout(wb_params)
 
@@ -141,6 +140,11 @@ class WishboneMaster(Elaboratable):
 
         # latched input signals
         self.txn_req = Signal(self.method_layouts.request_layout)
+
+        logger_name = "bus.wishbone"
+        if name != "":
+            logger_name += f".{name}"
+        self.log = logging.HardwareLogger(logger_name)
 
     def elaborate(self, platform):
         m = TModule()
@@ -194,7 +198,17 @@ class WishboneMaster(Elaboratable):
 
         @def_method(m, self.result)
         def _():
-            return result.read(m)
+            ret = result.read(m)
+
+            self.log.debug(
+                m,
+                True,
+                "response data=0x{:x} err={}",
+                ret.data,
+                ret.err,
+            )
+
+            return ret
 
         @def_method(m, self.request, ready=request_ready & result.write.ready)
         def _(arg):
@@ -202,13 +216,23 @@ class WishboneMaster(Elaboratable):
             # do WBCycStart state in the same clock cycle
             FSMWBCycStart(arg)
 
+            self.log.debug(
+                m,
+                True,
+                "request addr=0x{:x} data=0x{:x} sel=0x{:x} write={}",
+                arg.addr,
+                arg.data,
+                arg.sel,
+                arg.we,
+            )
+
         result.write.schedule_before(self.request)
         result.read.schedule_before(self.request)
 
         return m
 
 
-class PipelinedWishboneMaster(Elaboratable):
+class PipelinedWishboneMaster(Component):
     """Pipelined Wishbone bus master interface.
 
     Parameters
@@ -220,7 +244,7 @@ class PipelinedWishboneMaster(Elaboratable):
 
     Attributes
     ----------
-    wb: Record (like WishboneLayout)
+    wb: WishboneInterface
         Wishbone bus output.
     request: Method
         Transactional method to start a new Wishbone request.
@@ -234,7 +258,10 @@ class PipelinedWishboneMaster(Elaboratable):
         True, if there are no requests waiting for response
     """
 
+    wb: WishboneInterface
+
     def __init__(self, wb_params: WishboneParameters, *, max_req: int = 8):
+        super().__init__({"wb": Out(WishboneSignature(wb_params))})
         self.wb_params = wb_params
         self.max_req = max_req
 
@@ -243,9 +270,6 @@ class PipelinedWishboneMaster(Elaboratable):
         self.result = Method(o=self.result_out_layout)
 
         self.requests_finished = Signal()
-
-        self.wb_layout = WishboneLayout(wb_params).wb_layout
-        self.wb = Record(self.wb_layout)
 
     def generate_method_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
@@ -307,17 +331,17 @@ class PipelinedWishboneMaster(Elaboratable):
         return m
 
 
-class WishboneMuxer(Elaboratable):
+class WishboneMuxer(Component):
     """Wishbone Muxer.
 
     Connects one master to multiple slaves.
 
     Parameters
     ----------
-    master_wb: Record (like WishboneLayout)
-        Record of master inteface.
-    slaves: List[Record]
-        List of connected slaves' Wishbone Records (like WishboneLayout).
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+    num_slaves: int
+        Number of slave devices to multiplex.
     ssel_tga: Signal
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
@@ -326,15 +350,29 @@ class WishboneMuxer(Elaboratable):
         different `ssel_tga` value, all pending request have to be finished (and `stall` cleared) and
         there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
         requests should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
+
+    Attributes
+    ----------
+    master_wb: WishboneInterface
+        Master inteface.
+    slaves: list of WishboneInterface
+        List of connected slaves' Wishbone interfaces.
     """
 
-    def __init__(self, master_wb: Record, slaves: List[Record], ssel_tga: Signal):
-        self.master_wb = master_wb
-        self.slaves = slaves
+    master_wb: WishboneInterface
+    slaves: list[WishboneInterface]
+
+    def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
+        super().__init__(
+            {
+                "master_wb": Out(WishboneSignature(wb_params)),
+                "slaves": In(WishboneSignature(wb_params)).array(num_slaves),
+            }
+        )
         self.sselTGA = ssel_tga
 
         select_bits = ssel_tga.shape().width
-        assert select_bits == len(slaves)
+        assert select_bits == num_slaves
         self.txn_sel = Signal(select_bits)
         self.txn_sel_r = Signal(select_bits)
 
@@ -354,10 +392,9 @@ class WishboneMuxer(Elaboratable):
 
         for i in range(len(self.slaves)):
             # connect all M->S signals except stb
-            m.d.comb += self.master_wb.connect(
-                self.slaves[i],
-                include=["dat_w", "rst", "cyc", "lock", "adr", "we", "sel"],
-            )
+            # workaround for the lack of selective connecting in wiring
+            for n in ["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"]:
+                m.d.comb += getattr(self.slaves[i], n).eq(getattr(self.master_wb, n))
             # use stb as select
             m.d.comb += self.slaves[i].stb.eq(self.txn_sel[i] & self.master_wb.stb)
 
@@ -367,12 +404,14 @@ class WishboneMuxer(Elaboratable):
         m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
         for i in OneHotSwitchDynamic(m, self.txn_sel):
             # mux S->M data
-            m.d.comb += self.master_wb.connect(self.slaves[i], include=["dat_r", "stall"])
+            # workaround for the lack of selective connecting in wiring
+            for n in ["dat_r", "stall"]:
+                m.d.comb += getattr(self.master_wb, n).eq(getattr(self.slaves[i], n))
         return m
 
 
 # connects multiple masters to one slave
-class WishboneArbiter(Elaboratable):
+class WishboneArbiter(Component):
     """Wishbone Arbiter.
 
     Connects multiple masters to one slave.
@@ -380,20 +419,34 @@ class WishboneArbiter(Elaboratable):
 
     Parameters
     ----------
-    slave_wb: Record (like WishboneLayout)
-        Record of slave inteface.
-    masters: List[Record]
-        List of master interface Records.
+    wb_params: WishboneParameters
+        Parameters for bus generation.
+    num_slaves: int
+        Number of master devices.
+
+    Attributes
+    ----------
+    slave_wb: WishboneInterface
+        Slave inteface.
+    masters: list of WishboneInterface
+        List of master interfaces.
     """
 
-    def __init__(self, slave_wb: Record, masters: List[Record]):
-        self.slave_wb = slave_wb
-        self.masters = masters
+    slave_wb: WishboneInterface
+    masters: list[WishboneInterface]
+
+    def __init__(self, wb_params: WishboneParameters, num_masters: int):
+        super().__init__(
+            {
+                "slave_wb": In(WishboneSignature(wb_params)),
+                "masters": Out(WishboneSignature(wb_params)).array(num_masters),
+            }
+        )
 
         self.prev_cyc = Signal()
         # Amaranth round robin singals
         self.arb_enable = Signal()
-        self.req_signal = Signal(len(masters))
+        self.req_signal = Signal(num_masters)
 
     def elaborate(self, platform):
         m = TModule()
@@ -417,7 +470,9 @@ class WishboneArbiter(Elaboratable):
             m.d.comb += self.masters[i].err.eq((m.submodules.rr.grant == i) & self.slave_wb.err)
             m.d.comb += self.masters[i].rty.eq((m.submodules.rr.grant == i) & self.slave_wb.rty)
             # remaining S->M signals are shared, master will only accept response if bus termination signal is present
-            m.d.comb += self.masters[i].connect(self.slave_wb, include=["dat_r", "stall"])
+            # workaround for the lack of selective connecting in wiring
+            for n in ["dat_r", "stall"]:
+                m.d.comb += getattr(self.masters[i], n).eq(getattr(self.slave_wb, n))
 
         # combine reset singnal
         m.d.comb += self.slave_wb.rst.eq(reduce(operator.or_, [self.masters[i].rst for i in range(len(self.masters))]))
@@ -426,10 +481,9 @@ class WishboneArbiter(Elaboratable):
         with m.Switch(m.submodules.rr.grant):
             for i in range(len(self.masters)):
                 with m.Case(i):
-                    m.d.comb += self.masters[i].connect(
-                        self.slave_wb,
-                        include=["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"],
-                    )
+                    # workaround for the lack of selective connecting in wiring
+                    for n in ["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"]:
+                        m.d.comb += getattr(self.slave_wb, n).eq(getattr(self.masters[i], n))
 
         # Disable slave when round robin is not valid at start of new request
         # This prevents chaning grant and muxes during Wishbone cycle
@@ -439,7 +493,7 @@ class WishboneArbiter(Elaboratable):
         return m
 
 
-class WishboneMemorySlave(Elaboratable):
+class WishboneMemorySlave(Component):
     """Wishbone slave with memory
     Wishbone slave interface with addressable memory underneath.
 
@@ -454,11 +508,14 @@ class WishboneMemorySlave(Elaboratable):
 
     Attributes
     ----------
-    bus: Record (like WishboneLayout)
-        Wishbone bus record.
+    bus: WishboneInterface
+        Wishbone bus interface.
     """
 
+    bus: WishboneInterface
+
     def __init__(self, wb_params: WishboneParameters, **kwargs):
+        super().__init__({"bus": In(WishboneSignature(wb_params))})
         if "width" not in kwargs:
             kwargs["width"] = wb_params.data_width
         if kwargs["width"] not in (8, 16, 32, 64):
@@ -470,7 +527,6 @@ class WishboneMemorySlave(Elaboratable):
             raise RuntimeError("Granularity has to be one of: 8, 16, 32, 64")
 
         self.mem = Memory(**kwargs)
-        self.bus = Record(WishboneLayout(wb_params, master=False).wb_layout)
 
     def elaborate(self, platform):
         m = TModule()

@@ -1,5 +1,4 @@
 import sys
-import cocotb
 from pathlib import Path
 
 top_dir = Path(__file__).parent.parent.parent.parent
@@ -14,7 +13,6 @@ empty_testcase_name = "SKIP"
 
 
 async def do_test(dut, test_name):
-    cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
     if test_name == empty_testcase_name:
         return
     await run_test(CocotbSimulation(dut), test_name)
