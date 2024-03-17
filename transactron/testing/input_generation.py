@@ -1,11 +1,14 @@
 from amaranth import *
+from amaranth.lib.data import StructLayout
 import random
 from typing import Optional
 from hypothesis.strategies import composite, DrawFn, integers
-from transactron.utils import LayoutList
+from transactron.utils import MethodLayout
 
 @composite
-def generate_based_on_layout(draw : DrawFn, layout: LayoutList):
+def generate_based_on_layout(draw : DrawFn, layout: MethodLayout):
+    if isinstance(layout, StructLayout):
+        raise NotImplementedError("StructLayout is not supported in automatic value generation.")
     d = {}
     for name, sublayout in layout:
         if isinstance(sublayout, list):

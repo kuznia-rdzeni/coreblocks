@@ -163,7 +163,7 @@ class ContentAddressableMemory(Elaboratable):
         Inserts new data.
     """
 
-    def __init__(self, address_layout: MethodLayout, data_layout: LayoutList, entries_number: int):
+    def __init__(self, address_layout: MethodLayout, data_layout: MethodLayout, entries_number: int):
         """
         Parameters
         ----------

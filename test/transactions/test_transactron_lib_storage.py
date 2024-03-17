@@ -1,4 +1,4 @@
-from test.common import *
+from transactron.testing import *
 import random
 from transactron.lib.storage import ContentAddressableMemory
 

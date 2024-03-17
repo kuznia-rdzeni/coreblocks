@@ -1,4 +1,4 @@
-from test.common import *
+from transactron.testing import *
 import random
 from transactron.utils.amaranth_ext import MultiPriorityEncoder
 
