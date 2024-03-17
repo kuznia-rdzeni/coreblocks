@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1710681829929,
+  "lastUpdate": 1710682192960,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -8639,6 +8639,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "aha-mont64",
             "value": 0.3246413600430343,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "044b12533009ae5e9dff9a3f7c0176ce249cee9b",
+          "message": "Split transactron core (#617)",
+          "timestamp": "2024-03-17T14:16:49+01:00",
+          "tree_id": "5dbb450f71a1968ff98ca228ecb844919e89adee",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/044b12533009ae5e9dff9a3f7c0176ce249cee9b"
+        },
+        "date": 1710682190654,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "slre",
+            "value": 0.18115635899199292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23775978551326782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3246413600430343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4158309618409448,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21524395351898612,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29204002838551374,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
             "unit": "Instructions Per Cycle"
           }
         ]
