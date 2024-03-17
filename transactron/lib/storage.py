@@ -163,7 +163,7 @@ class ContentAddressableMemory(Elaboratable):
         Inserts new data.
     """
 
-    def __init__(self, address_layout: LayoutList, data_layout: LayoutList, entries_number: int):
+    def __init__(self, address_layout: MethodLayout, data_layout: LayoutList, entries_number: int):
         """
         Parameters
         ----------
@@ -174,8 +174,8 @@ class ContentAddressableMemory(Elaboratable):
         entries_number : int
             The number of slots to create in memory.
         """
-        self.address_layout = address_layout
-        self.data_layout = data_layout
+        self.address_layout = from_method_layout(address_layout)
+        self.data_layout = from_method_layout(data_layout)
         self.entries_number = entries_number
 
         self.pop = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])

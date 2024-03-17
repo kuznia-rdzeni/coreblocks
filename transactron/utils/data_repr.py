@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Mapping
-from ._typing import LayoutList, SimpleLayout, ShapeLike
+from ._typing import LayoutList, ShapeLike
 from typing import Any, Sized
 from statistics import fmean
 from amaranth.lib.data import StructLayout

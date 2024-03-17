@@ -33,7 +33,6 @@ __all__ = [
     "ValueLike",
     "ShapeLike",
     "StatementLike",
-    "SimpleLayout",
     "SwitchKey",
     "SrcLoc",
     "MethodLayout",
@@ -67,7 +66,6 @@ SrcLoc: TypeAlias = tuple[str, int]
 SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutListField: TypeAlias = tuple[str, "ShapeLike | LayoutList"]
 LayoutList: TypeAlias = list[LayoutListField]
-SimpleLayout = list[Tuple[str, Union[int, "SimpleLayout"]]]
 LayoutIterable: TypeAlias = Iterable[LayoutListField]
 MethodLayout: TypeAlias = StructLayout | LayoutIterable
 MethodStruct: TypeAlias = "View[StructLayout]"

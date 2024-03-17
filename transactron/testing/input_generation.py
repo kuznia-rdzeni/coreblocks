@@ -1,17 +1,29 @@
+from amaranth import *
 import random
 from typing import Optional
-from transactron.utils import SimpleLayout
+from hypothesis.strategies import composite, DrawFn, integers
+from transactron.utils import LayoutList
 
-
-def generate_based_on_layout(layout: SimpleLayout, *, max_bits: Optional[int] = None):
+@composite
+def generate_based_on_layout(draw : DrawFn, layout: LayoutList):
     d = {}
-    for elem in layout:
-        if isinstance(elem[1], int):
-            if max_bits is None:
-                max_val = 2 ** elem[1]
+    for name, sublayout in layout:
+        if isinstance(sublayout, list):
+            elem = draw(generate_based_on_layout(sublayout))
+        elif isinstance(sublayout, int):
+            elem = draw(integers(min_value=0, max_value=sublayout))
+        elif isinstance(sublayout, range):
+            elem = draw(integers(min_value=sublayout.start, max_value=sublayout.stop-1))
+        elif isinstance(sublayout, Shape):
+            if sublayout.signed:
+                min_value = -2**(sublayout.width-1)
+                max_value = 2**(sublayout.width-1)-1
             else:
-                max_val = 2 ** min(max_bits, elem[1])
-            d[elem[0]] = random.randrange(max_val)
+                min_value = 0
+                max_value = 2**sublayout.width
+            elem = draw(integers(min_value = min_value, max_value = max_value))
         else:
-            d[elem[0]] = generate_based_on_layout(elem[1])
+            # Currently type[Enum] and ShapeCastable
+            raise NotImplementedError("Passed LayoutList with syntax yet unsuported in automatic value generation.")
+        d[name] = elem
     return d
