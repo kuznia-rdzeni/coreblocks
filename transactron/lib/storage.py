@@ -138,7 +138,14 @@ class MemoryBank(Elaboratable):
 class ContentAddressableMemory(Elaboratable):
     """Content addresable memory
 
-    This module implements a transactorn interface for the content addressable memory.
+    This module implements a content-addressable memory (in short CAM) with Transactron interface. 
+    CAM is a type of memory where instead of predefined indexes there are used values feed in runtime
+    as keys (smimlar as in python dictionary). To insert new entry a pair `(key, value)` has to be
+    provided. Such pair takes an free slot which depends on internal implementation. To read value
+    a `key` has to be provided. It is compared with every valid key stored in CAM. If there is a hit,
+    a value is read. There can be many instances of the same key in CAM. In such case it is undefined
+    which value will be read.
+
 
     .. warning::
        Current implementation has critical path O(entries_number). If needed we can
@@ -174,8 +181,8 @@ class ContentAddressableMemory(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        address_array = Array([Record(self.address_layout) for _ in range(self.entries_number)])
-        data_array = Array([Record(self.data_layout) for _ in range(self.entries_number)])
+        address_array = Array([Signal(self.address_layout) for _ in range(self.entries_number)])
+        data_array = Array([Signal(self.data_layout) for _ in range(self.entries_number)])
         valids = Signal(self.entries_number, name="valids")
 
         m.submodules.encoder_addr = encoder_addr = MultiPriorityEncoder(self.entries_number, 1)
