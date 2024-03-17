@@ -7,6 +7,7 @@ from typing import Any, Generic, TypeVar
 __all__ = [
     "DependencyManager",
     "DependencyKey",
+    "DependencyContext",
     "SimpleKey",
     "ListKey"
 ]
@@ -61,9 +62,19 @@ class SimpleKey(Generic[T], DependencyKey[T, T]):
     Simple dependency keys are used when there is an one-to-one relation between
     keys and dependencies. If more than one dependency is added to a simple key,
     an error is raised.
+
+    Parameters
+    ----------
+    default_value: T
+        Specifies the default value returned when no dependencies are added. To
+        enable it `empty_valid` must be True.
     """
 
+    default_value: T
+
     def combine(self, data: list[T]) -> T:
+        if len(data) == 0:
+            return self.default_value
         if len(data) != 1:
             raise RuntimeError(f"Key {self} assigned {len(data)} values, expected 1")
         return data[0]
@@ -116,3 +127,24 @@ class DependencyManager:
             self.locked_dependencies.add(key)
 
         return key.combine(self.dependencies[key])
+
+
+class DependencyContext:
+    stack: list[DependencyManager] = []
+
+    def __init__(self, manager: DependencyManager):
+        self.manager = manager
+
+    def __enter__(self):
+        self.stack.append(self.manager)
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        top = self.stack.pop()
+        assert self.manager is top
+
+    @classmethod
+    def get(cls) -> DependencyManager:
+        if not cls.stack:
+            raise RuntimeError("DependencyContext stack is empty")
+        return cls.stack[-1]

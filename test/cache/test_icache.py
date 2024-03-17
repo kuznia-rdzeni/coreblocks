@@ -4,19 +4,21 @@ import random
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive, Settle
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 
 from transactron.lib import AdapterTrans, Adapter
-from coreblocks.frontend.icache import SimpleWBCacheRefiller, ICache, ICacheBypass, CacheRefillerInterface
+from coreblocks.cache.icache import ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams, ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
+from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
-from ..common import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, RecordIntDictRet
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
-class SimpleWBCacheRefillerTestCircuit(Elaboratable):
+class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.cp = self.gen_params.icache_params
@@ -29,18 +31,22 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
             addr_width=self.gen_params.isa.xlen,
         )
         self.wb_master = WishboneMaster(wb_params)
+        self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
 
-        self.refiller = SimpleWBCacheRefiller(self.gen_params.get(ICacheLayouts), self.cp, self.wb_master)
+        self.refiller = SimpleCommonBusCacheRefiller(
+            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
+        )
 
         self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
         self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
 
         m.submodules.wb_master = self.wb_master
+        m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.refiller = self.refiller
         m.submodules.start_refill = self.start_refill
         m.submodules.accept_refill = self.accept_refill
 
-        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
+        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -54,7 +60,7 @@ class SimpleWBCacheRefillerTestCircuit(Elaboratable):
         ("blk_size64B_rv32i", 32, 6),
     ],
 )
-class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
+class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
     isa_xlen: int
     block_size: int
 
@@ -63,7 +69,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
             test_core_config.replace(xlen=self.isa_xlen, icache_block_size_bits=self.block_size)
         )
         self.cp = self.gen_params.icache_params
-        self.test_module = SimpleWBCacheRefillerTestCircuit(self.gen_params)
+        self.test_module = SimpleCommonBusCacheRefillerTestCircuit(self.gen_params)
 
         random.seed(42)
 
@@ -92,7 +98,7 @@ class TestSimpleWBCacheRefiller(TestCaseWithSimulator):
             yield from self.test_module.wb_ctrl.slave_wait()
 
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = (yield self.test_module.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+            addr = (yield self.test_module.wb_ctrl.wb.adr) << exact_log2(self.cp.word_width_bytes)
 
             yield
             while random.random() < 0.5:
@@ -150,11 +156,14 @@ class ICacheBypassTestCircuit(Elaboratable):
         )
 
         m.submodules.wb_master = self.wb_master = WishboneMaster(wb_params)
-        m.submodules.bypass = self.bypass = ICacheBypass(self.gen_params.get(ICacheLayouts), self.cp, self.wb_master)
+        m.submodules.bus_master_adapter = self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
+        m.submodules.bypass = self.bypass = ICacheBypass(
+            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
+        )
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
 
-        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wbMaster)
+        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -204,7 +213,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             yield from self.m.wb_ctrl.slave_wait()
 
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = (yield self.m.wb_ctrl.wb.adr) << log2_int(self.cp.word_width_bytes)
+            addr = (yield self.m.wb_ctrl.wb.adr) << exact_log2(self.cp.word_width_bytes)
 
             while random.random() < 0.5:
                 yield
@@ -310,7 +319,7 @@ class TestICache(TestCaseWithSimulator):
             test_core_config.replace(
                 xlen=self.isa_xlen,
                 icache_ways=ways,
-                icache_sets_bits=log2_int(sets),
+                icache_sets_bits=exact_log2(sets),
                 icache_block_size_bits=self.block_size,
             )
         )

@@ -1,5 +1,6 @@
 import os
-import json
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 from pathlib import Path
 
 from .memory import *
@@ -8,6 +9,27 @@ from .common import SimulationBackend
 test_dir = Path(__file__).parent.parent
 embench_dir = test_dir.joinpath("external/embench/build/src")
 results_dir = test_dir.joinpath("regression/benchmark_results")
+profile_dir = test_dir.joinpath("__profiles__")
+
+
+@dataclass_json
+@dataclass
+class BenchmarkResult:
+    """Result of running a single benchmark.
+
+    Attributes
+    ----------
+    cycles: int
+        A number of cycles the benchmark took.
+    instr: int
+        A count of instructions commited during the benchmark.
+    metric_values: dict[str, dict[str, int]]
+        Values of the core metrics taken at the end of the simulation.
+    """
+
+    cycles: int
+    instr: int
+    metric_values: dict[str, dict[str, int]]
 
 
 class MMIO(RandomAccessMemory):
@@ -54,16 +76,20 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     mem_model = CoreMemoryModel(mem_segments)
 
-    success = await sim_backend.run(mem_model, timeout_cycles=5000000)
+    result = await sim_backend.run(mem_model, timeout_cycles=2000000)
 
-    if not success:
+    if result.profile is not None:
+        os.makedirs(profile_dir, exist_ok=True)
+        result.profile.encode(f"{profile_dir}/benchmark.{benchmark_name}.json")
+
+    if not result.success:
         raise RuntimeError("Simulation timed out")
 
     if mmio.return_code() != 0:
         raise RuntimeError("The benchmark exited with a non-zero return code: %d" % mmio.return_code())
 
-    results = {"cycle": mmio.cycle_cnt(), "instr": mmio.instr_cnt()}
+    bench_results = BenchmarkResult(cycles=mmio.cycle_cnt(), instr=mmio.instr_cnt(), metric_values=result.metric_values)
 
     os.makedirs(str(results_dir), exist_ok=True)
     with open(f"{str(results_dir)}/{benchmark_name}.json", "w") as outfile:
-        json.dump(results, outfile)
+        outfile.write(bench_results.to_json())  # type: ignore

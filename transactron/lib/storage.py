@@ -1,9 +1,11 @@
 from amaranth import *
 from amaranth.utils import *
+
+from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from ..core import *
 from ..utils import SrcLoc, get_src_loc, MultiPriorityEncoder
 from typing import Optional
-from transactron.utils import assign, AssignType, LayoutLike
+from transactron.utils import assign, AssignType, LayoutList
 from .reqres import ArgumentsToResultsZipper
 
 __all__ = ["MemoryBank", "ContentAddressableMemory"]
@@ -21,7 +23,7 @@ class MemoryBank(Elaboratable):
         The read request method. Accepts an `addr` from which data should be read.
         Only ready if there is there is a place to buffer response.
     read_resp: Method
-        The read response method. Return `data_layout` Record which was saved on `addr` given by last
+        The read response method. Return `data_layout` View which was saved on `addr` given by last
         `read_req` method call. Only ready after `read_req` call.
     write: Method
         The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
@@ -31,7 +33,7 @@ class MemoryBank(Elaboratable):
     def __init__(
         self,
         *,
-        data_layout: MethodLayout,
+        data_layout: LayoutList,
         elem_count: int,
         granularity: Optional[int] = None,
         safe_writes: bool = True,
@@ -40,12 +42,12 @@ class MemoryBank(Elaboratable):
         """
         Parameters
         ----------
-        data_layout: record layout
-            The format of records stored in the Memory.
+        data_layout: method layout
+            The format of structures stored in the Memory.
         elem_count: int
             Number of elements stored in Memory.
         granularity: Optional[int]
-            Granularity of write, forwarded to Amaranth. If `None` the whole record is always saved at once.
+            Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
         safe_writes: bool
             Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
@@ -56,17 +58,18 @@ class MemoryBank(Elaboratable):
             Alternatively, the source location to use instead of the default.
         """
         self.src_loc = get_src_loc(src_loc)
-        self.data_layout = data_layout
+        self.data_layout = make_layout(*data_layout)
         self.elem_count = elem_count
         self.granularity = granularity
-        self.width = len(Record(self.data_layout))
+        self.width = from_method_layout(self.data_layout).size
         self.addr_width = bits_for(self.elem_count - 1)
         self.safe_writes = safe_writes
 
-        self.read_req_layout = [("addr", self.addr_width)]
-        self.write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        self.read_req_layout: LayoutList = [("addr", self.addr_width)]
+        write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
         if self.granularity is not None:
-            self.write_layout.append(("mask", self.width // self.granularity))
+            write_layout.append(("mask", self.width // self.granularity))
+        self.write_layout = make_layout(*write_layout)
 
         self.read_req = Method(i=self.read_req_layout, src_loc=self.src_loc)
         self.read_resp = Method(o=self.data_layout, src_loc=self.src_loc)
@@ -83,8 +86,8 @@ class MemoryBank(Elaboratable):
         prev_read_addr = Signal(self.addr_width)
         write_pending = Signal()
         write_req = Signal()
-        write_args = Record(self.write_layout)
-        write_args_prev = Record(self.write_layout)
+        write_args = Signal(self.write_layout)
+        write_args_prev = Signal(self.write_layout)
         m.d.comb += read_port.addr.eq(prev_read_addr)
 
         zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
@@ -160,7 +163,7 @@ class ContentAddressableMemory(Elaboratable):
         Inserts new data.
     """
 
-    def __init__(self, address_layout: LayoutLike, data_layout: LayoutLike, entries_number: int):
+    def __init__(self, address_layout: LayoutList, data_layout: LayoutList, entries_number: int):
         """
         Parameters
         ----------

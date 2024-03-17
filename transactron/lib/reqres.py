@@ -45,16 +45,16 @@ class ArgumentsToResultsZipper(Elaboratable):
         Method to save results with `results_layout` in the Forwarder.
     read: Method
         Reads latest entries from the fifo and the forwarder and return them as
-        record with two fields: 'args' and 'results'.
+        a structure with two fields: 'args' and 'results'.
     """
 
     def __init__(self, args_layout: MethodLayout, results_layout: MethodLayout, src_loc: int | SrcLoc = 0):
         """
         Parameters
         ----------
-        args_layout: record layout
+        args_layout: method layout
             The format of arguments.
-        results_layout: record layout
+        results_layout: method layout
             The format of results.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
@@ -147,7 +147,7 @@ class Serializer(Elaboratable):
 
         self.depth = depth
 
-        self.id_layout = [("id", log2_int(self.port_count))]
+        self.id_layout = [("id", exact_log2(self.port_count))]
 
         self.clear = Method()
         self.serialize_in = [

@@ -12,8 +12,8 @@ RUN apt-get update && \
 
 RUN git clone --shallow-since=2023.05.01 https://github.com/riscv/riscv-gnu-toolchain && \
     cd riscv-gnu-toolchain && \
-    git checkout 2023.05.14 && \
-    ./configure --with-multilib-generator="rv32i-ilp32--a*zifence*zicsr;rv32im-ilp32--a*zifence*zicsr;rv32ic-ilp32--a*zifence*zicsr;rv32imc-ilp32--a*zifence*zicsr;rv32imfc-ilp32f--a*zifence;rv32i_zmmul-ilp32--a*zifence*zicsr;rv32ic_zmmul-ilp32--a*zifence*zicsr" && \
+    git checkout 2023.12.10 && \
+    ./configure --with-multilib-generator="rv32i-ilp32--a*zifence*zicsr;rv32im-ilp32--a*zifence*zicsr;rv32ic-ilp32--a*zifence*zicsr;rv32imc-ilp32--a*zifence*zicsr;rv32imfc-ilp32f--a*zifence;rv32imc_zba_zbb_zbc_zbs-ilp32--a*zifence*zicsr" && \
     make -j$(nproc) && \
     cd / && rm -rf riscv-gnu-toolchain
 

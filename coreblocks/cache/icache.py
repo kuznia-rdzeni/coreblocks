@@ -1,20 +1,24 @@
 from functools import reduce
 import operator
-from typing import Protocol
 
 from amaranth import *
-from amaranth.utils import log2_int
+from amaranth.lib.data import View
+from amaranth.utils import exact_log2
 
 from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheLayouts, ICacheParameters
 from transactron.utils import assign, OneHotSwitchDynamic
-from transactron.utils._typing import HasElaborate
 from transactron.lib import *
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
+from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
+from transactron.utils.transactron_helpers import make_layout
 
-__all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleWBCacheRefiller"]
+__all__ = [
+    "ICache",
+    "ICacheBypass",
+]
 
 
 def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, addr: Value):
@@ -31,45 +35,10 @@ def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, 
     return instr_out
 
 
-class ICacheInterface(HasElaborate, Protocol):
-    """
-    Instruction Cache Interface.
-
-    Parameters
-    ----------
-    issue_req : Method
-        A method that is used to issue a cache lookup request.
-    accept_res : Method
-        A method that is used to accept the result of a cache lookup request.
-    flush : Method
-        A method that is used to flush the whole cache.
-    """
-
-    issue_req: Method
-    accept_res: Method
-    flush: Method
-
-
-class CacheRefillerInterface(HasElaborate, Protocol):
-    """
-    Instruction Cache Refiller Interface.
-
-    Parameters
-    ----------
-    start_refill : Method
-        A method that is used to start a refill for a given cache line.
-    accept_refill : Method
-        A method that is used to accept one word from the requested cache line.
-    """
-
-    start_refill: Method
-    accept_refill: Method
-
-
-class ICacheBypass(Elaboratable, ICacheInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster) -> None:
+class ICacheBypass(Elaboratable, CacheInterface):
+    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
-        self.wb_master = wb_master
+        self.bus_master = bus_master
 
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
@@ -83,17 +52,15 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         @def_method(m, self.issue_req)
         def _(addr: Value) -> None:
             m.d.sync += req_addr.eq(addr)
-            self.wb_master.request(
+            self.bus_master.request_read(
                 m,
-                addr=addr >> log2_int(self.params.word_width_bytes),
-                data=0,
-                we=0,
-                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
+                addr=addr >> exact_log2(self.params.word_width_bytes),
+                sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
         @def_method(m, self.accept_res)
         def _():
-            res = self.wb_master.result(m)
+            res = self.bus_master.get_read_response(m)
             return {
                 "instr": extract_instr_from_word(m, self.params, res.data, req_addr),
                 "error": res.err,
@@ -106,7 +73,7 @@ class ICacheBypass(Elaboratable, ICacheInterface):
         return m
 
 
-class ICache(Elaboratable, ICacheInterface):
+class ICache(Elaboratable, CacheInterface):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
@@ -144,11 +111,20 @@ class ICache(Elaboratable, ICacheInterface):
         self.flush = Method()
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
 
-        self.addr_layout = [
+        self.addr_layout = make_layout(
             ("offset", self.params.offset_bits),
             ("index", self.params.index_bits),
             ("tag", self.params.tag_bits),
-        ]
+        )
+
+        self.perf_loads = HwCounter("frontend.icache.loads", "Number of requests to the L1 Instruction Cache")
+        self.perf_hits = HwCounter("frontend.icache.hits")
+        self.perf_misses = HwCounter("frontend.icache.misses")
+        self.perf_errors = HwCounter("frontend.icache.fetch_errors")
+        self.perf_flushes = HwCounter("frontend.icache.flushes")
+        self.req_latency = LatencyMeasurer(
+            "frontend.icache.req_latency", "Latencies of cache requests", slots_number=2, max_latency=500
+        )
 
     def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
         return {
@@ -157,11 +133,20 @@ class ICache(Elaboratable, ICacheInterface):
             "tag": raw_addr[-self.params.tag_bits :],
         }
 
-    def serialize_addr(self, addr: Record) -> Value:
+    def serialize_addr(self, addr: View) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
 
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [
+            self.perf_loads,
+            self.perf_hits,
+            self.perf_misses,
+            self.perf_errors,
+            self.perf_flushes,
+            self.req_latency,
+        ]
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
         m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
@@ -170,10 +155,14 @@ class ICache(Elaboratable, ICacheInterface):
         # State machine logic
         needs_refill = Signal()
         refill_finish = Signal()
+        refill_finish_last = Signal()
         refill_error = Signal()
 
         flush_start = Signal()
         flush_finish = Signal()
+
+        with Transaction().body(m):
+            self.perf_flushes.incr(m, cond=flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
             with m.State("FLUSH"):
@@ -199,7 +188,7 @@ class ICache(Elaboratable, ICacheInterface):
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
-        request_addr = Record(self.addr_layout)
+        request_addr = Signal(self.addr_layout)
 
         tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
@@ -208,25 +197,33 @@ class ICache(Elaboratable, ICacheInterface):
         for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
             m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
 
-        instr_out = extract_instr_from_word(m, self.params, mem_out, request_addr[:])
+        instr_out = extract_instr_from_word(m, self.params, mem_out, Value.cast(request_addr))
 
         refill_error_saved = Signal()
         m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
 
         with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_saved)):
+            self.perf_errors.incr(m, cond=refill_error_saved)
+            self.perf_misses.incr(m, cond=refill_finish_last)
+            self.perf_hits.incr(m, cond=~refill_finish_last)
+
             self.res_fwd.write(m, instr=instr_out, error=refill_error_saved)
             m.d.sync += refill_error_saved.eq(0)
 
         @def_method(m, self.accept_res)
         def _():
             self.req_fifo.read(m)
+            self.req_latency.stop(m)
             return self.res_fwd.read(m)
 
-        mem_read_addr = Record(self.addr_layout)
+        mem_read_addr = Signal(self.addr_layout)
         m.d.comb += assign(mem_read_addr, request_addr)
 
         @def_method(m, self.issue_req, ready=accepting_requests)
         def _(addr: Value) -> None:
+            self.perf_loads.incr(m)
+            self.req_latency.start(m)
+
             deserialized = self.deserialize_addr(addr)
             # Forward read address only if the method is called
             m.d.comb += assign(mem_read_addr, deserialized)
@@ -258,6 +255,8 @@ class ICache(Elaboratable, ICacheInterface):
             aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
             self.refiller.start_refill(m, addr=aligned_addr)
 
+        m.d.sync += refill_finish_last.eq(0)
+
         with Transaction().body(m):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
@@ -270,6 +269,7 @@ class ICache(Elaboratable, ICacheInterface):
 
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
+            m.d.sync += refill_finish_last.eq(1)
             m.d.comb += refill_error.eq(ret.error)
             m.d.sync += refill_error_saved.eq(ret.error)
 
@@ -306,21 +306,21 @@ class ICacheMemory(Elaboratable):
     def __init__(self, params: ICacheParameters) -> None:
         self.params = params
 
-        self.tag_data_layout = [("valid", 1), ("tag", self.params.tag_bits)]
+        self.tag_data_layout = make_layout(("valid", 1), ("tag", self.params.tag_bits))
 
         self.way_wr_en = Signal(self.params.num_of_ways)
 
         self.tag_rd_index = Signal(self.params.index_bits)
-        self.tag_rd_data = Array([Record(self.tag_data_layout) for _ in range(self.params.num_of_ways)])
+        self.tag_rd_data = Array([Signal(self.tag_data_layout) for _ in range(self.params.num_of_ways)])
         self.tag_wr_index = Signal(self.params.index_bits)
         self.tag_wr_en = Signal()
-        self.tag_wr_data = Record(self.tag_data_layout)
+        self.tag_wr_data = Signal(self.tag_data_layout)
 
-        self.data_addr_layout = [("index", self.params.index_bits), ("offset", self.params.offset_bits)]
+        self.data_addr_layout = make_layout(("index", self.params.index_bits), ("offset", self.params.offset_bits))
 
-        self.data_rd_addr = Record(self.data_addr_layout)
+        self.data_rd_addr = Signal(self.data_addr_layout)
         self.data_rd_data = Array([Signal(self.params.word_width) for _ in range(self.params.num_of_ways)])
-        self.data_wr_addr = Record(self.data_addr_layout)
+        self.data_wr_addr = Signal(self.data_addr_layout)
         self.data_wr_en = Signal()
         self.data_wr_data = Signal(self.params.word_width)
 
@@ -330,7 +330,7 @@ class ICacheMemory(Elaboratable):
         for i in range(self.params.num_of_ways):
             way_wr = self.way_wr_en[i]
 
-            tag_mem = Memory(width=len(self.tag_wr_data), depth=self.params.num_of_sets)
+            tag_mem = Memory(width=len(Value.cast(self.tag_wr_data)), depth=self.params.num_of_sets)
             tag_mem_rp = tag_mem.read_port()
             tag_mem_wp = tag_mem.write_port()
             m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
@@ -352,7 +352,7 @@ class ICacheMemory(Elaboratable):
 
             # We address the data RAM using machine words, so we have to
             # discard a few least significant bits from the address.
-            redundant_offset_bits = log2_int(self.params.word_width_bytes)
+            redundant_offset_bits = exact_log2(self.params.word_width_bytes)
             rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
             wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
 
@@ -363,68 +363,5 @@ class ICacheMemory(Elaboratable):
                 data_mem_wp.data.eq(self.data_wr_data),
                 data_mem_wp.en.eq(self.data_wr_en & way_wr),
             ]
-
-        return m
-
-
-class SimpleWBCacheRefiller(Elaboratable, CacheRefillerInterface):
-    def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, wb_master: WishboneMaster):
-        self.params = params
-        self.wb_master = wb_master
-
-        self.start_refill = Method(i=layouts.start_refill)
-        self.accept_refill = Method(o=layouts.accept_refill)
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        refill_address = Signal(self.params.word_width - self.params.offset_bits)
-        refill_active = Signal()
-        word_counter = Signal(range(self.params.words_in_block))
-
-        m.submodules.address_fwd = address_fwd = Forwarder(
-            [("word_counter", word_counter.shape()), ("refill_address", refill_address.shape())]
-        )
-
-        with Transaction().body(m):
-            address = address_fwd.read(m)
-            self.wb_master.request(
-                m,
-                addr=Cat(address["word_counter"], address["refill_address"]),
-                data=0,
-                we=0,
-                sel=C(1).replicate(self.wb_master.wb_params.data_width // self.wb_master.wb_params.granularity),
-            )
-
-        @def_method(m, self.start_refill, ready=~refill_active)
-        def _(addr) -> None:
-            address = addr[self.params.offset_bits :]
-            m.d.sync += refill_address.eq(address)
-            m.d.sync += refill_active.eq(1)
-            m.d.sync += word_counter.eq(0)
-
-            address_fwd.write(m, word_counter=0, refill_address=address)
-
-        @def_method(m, self.accept_refill, ready=refill_active)
-        def _():
-            fetched = self.wb_master.result(m)
-
-            last = (word_counter == (self.params.words_in_block - 1)) | fetched.err
-
-            next_word_counter = Signal.like(word_counter)
-            m.d.top_comb += next_word_counter.eq(word_counter + 1)
-
-            m.d.sync += word_counter.eq(next_word_counter)
-            with m.If(last):
-                m.d.sync += refill_active.eq(0)
-            with m.Else():
-                address_fwd.write(m, word_counter=next_word_counter, refill_address=refill_address)
-
-            return {
-                "addr": Cat(C(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
-                "data": fetched.data,
-                "error": fetched.err,
-                "last": last,
-            }
 
         return m

@@ -34,8 +34,8 @@ class ShiftUnitFn(DecoderManager):
             (self.Fn.SRL, OpType.SHIFT, Funct3.SR, Funct7.SL),
             (self.Fn.SRA, OpType.SHIFT, Funct3.SR, Funct7.SA),
         ] + [
-            (self.Fn.ROR, OpType.BIT_MANIPULATION, Funct3.ROR, Funct7.ROR),
-            (self.Fn.ROL, OpType.BIT_MANIPULATION, Funct3.ROL, Funct7.ROL),
+            (self.Fn.ROR, OpType.BIT_ROTATION, Funct3.ROR),
+            (self.Fn.ROL, OpType.BIT_ROTATION, Funct3.ROL),
         ] * self.zbb_enable
 
 

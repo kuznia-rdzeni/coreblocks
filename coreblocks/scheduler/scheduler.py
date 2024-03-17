@@ -47,7 +47,7 @@ class RegAllocation(Elaboratable):
         m = TModule()
 
         free_reg = Signal(self.gen_params.phys_regs_bits)
-        data_out = Record(self.output_layout)
+        data_out = Signal(self.output_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -95,7 +95,7 @@ class Renaming(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Record(self.output_layout)
+        data_out = Signal(self.output_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -152,7 +152,7 @@ class ROBAllocation(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Record(self.output_layout)
+        data_out = Signal(self.output_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -239,7 +239,7 @@ class RSSelection(Elaboratable):
             instr = self.get_instr(m)
             forwarder.write(m, instr)
 
-        data_out = Record(self.output_layout)
+        data_out = Signal(self.output_layout)
 
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
@@ -332,7 +332,7 @@ class RSInsertion(Elaboratable):
 
             for i, rs_insert in enumerate(self.rs_insert):
                 # connect only matching fields
-                arg = Record.like(rs_insert.data_in)
+                arg = Signal.like(rs_insert.data_in)
                 m.d.comb += assign(arg, data, fields=AssignType.COMMON)
                 # this assignment truncates signal width from max rs_entry_bits to target RS specific width
                 m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)

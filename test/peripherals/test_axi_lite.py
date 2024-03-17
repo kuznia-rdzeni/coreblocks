@@ -2,11 +2,11 @@ from coreblocks.peripherals.axi_lite import *
 from transactron import Method, def_method, TModule
 from transactron.lib import AdapterTrans
 
-from ..common import *
+from transactron.testing import *
 
 
 class AXILiteInterfaceWrapper:
-    def __init__(self, axi_lite_master: Record):
+    def __init__(self, axi_lite_master: AXILiteInterface):
         self.axi_lite = axi_lite_master
 
     def slave_ra_ready(self, rdy=1):

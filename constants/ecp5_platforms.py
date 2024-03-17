@@ -2,7 +2,7 @@ from collections.abc import Callable, Iterable
 from itertools import chain
 from typing import TypeAlias
 from amaranth.build.dsl import Subsignal
-from amaranth.vendor.lattice_ecp5 import LatticeECP5Platform
+from amaranth.vendor import LatticeECP5Platform
 from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
 
 from constants.ecp5_pinout import ecp5_bg756_pins, ecp5_bg756_pclk
@@ -97,8 +97,8 @@ def adapter_resources(adapter: AdapterBase, number: int):
                 number,
                 en=pins.p(),
                 done=pins.p(),
-                data_in=pins.p(adapter.data_in.shape().width),
-                data_out=pins.p(adapter.data_out.shape().width),
+                data_in=pins.p(adapter.data_in.shape().size),
+                data_out=pins.p(adapter.data_out.shape().size),
             )
         ]
 

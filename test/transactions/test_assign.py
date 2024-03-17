@@ -1,9 +1,9 @@
 from typing import Callable
 from amaranth import *
 from amaranth.lib import data
-from amaranth.hdl.ast import ArrayProxy, Slice
+from amaranth.hdl._ast import ArrayProxy, Slice
 
-from transactron.utils._typing import LayoutLike
+from transactron.utils._typing import MethodLayout
 from transactron.utils import AssignType, assign
 from transactron.utils.assign import AssignArg, AssignFields
 
@@ -24,7 +24,7 @@ params_build_wrap_extr = [
 
 
 def mkproxy(layout):
-    arr = Array([Record(layout) for _ in range(4)])
+    arr = Array([Signal(reclayout2datalayout(layout)) for _ in range(4)])
     sig = Signal(2)
     return arr[sig]
 
@@ -40,7 +40,6 @@ def mkstruct(layout):
 
 
 params_mk = [
-    ("rec", Record),
     ("proxy", mkproxy),
     ("struct", mkstruct),
 ]
@@ -55,15 +54,15 @@ params_mk = [
     ],
 )
 class TestAssign(TestCase):
-    # constructs `assign` arguments (records, proxies, dicts) which have an "inner" and "outer" part
-    # parameterized with a Record-like constructor and a layout of the inner part
-    build: Callable[[Callable[[LayoutLike], AssignArg], LayoutLike], AssignArg]
+    # constructs `assign` arguments (views, proxies, dicts) which have an "inner" and "outer" part
+    # parameterized with a constructor and a layout of the inner part
+    build: Callable[[Callable[[MethodLayout], AssignArg], MethodLayout], AssignArg]
     # constructs field specifications for `assign`, takes field specifications for the inner part
     wrap: Callable[[AssignFields], AssignFields]
     # extracts the inner part of the structure
-    extr: Callable[[AssignArg], Record | ArrayProxy]
-    # Record-like constructor, takes a record layout
-    mk: Callable[[LayoutLike], AssignArg]
+    extr: Callable[[AssignArg], ArrayProxy]
+    # constructor, takes a layout
+    mk: Callable[[MethodLayout], AssignArg]
 
     def test_rhs_exception(self):
         with self.assertRaises(KeyError):
@@ -100,7 +99,7 @@ class TestAssign(TestCase):
             ("list", layout_ab, layout_ab, ["a", "a"]),
         ]
     )
-    def test_assign_a(self, name, layout1: LayoutLike, layout2: LayoutLike, atype: AssignType):
+    def test_assign_a(self, name, layout1: MethodLayout, layout2: MethodLayout, atype: AssignType):
         lhs = self.build(self.mk, layout1)
         rhs = self.build(self.mk, layout2)
         alist = list(assign(lhs, rhs, fields=self.wrap(atype)))

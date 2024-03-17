@@ -1,6 +1,7 @@
 from amaranth import *
 from transactron import Method, def_method, TModule
 from coreblocks.params import RFLayouts, GenParams
+from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RegisterFile"]
 
@@ -9,9 +10,9 @@ class RegisterFile(Elaboratable):
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(RFLayouts)
-        self.internal_layout = [("reg_val", gen_params.isa.xlen), ("valid", 1)]
+        self.internal_layout = make_layout(("reg_val", gen_params.isa.xlen), ("valid", 1))
         self.read_layout = layouts.rf_read_out
-        self.entries = Array(Record(self.internal_layout) for _ in range(2**gen_params.phys_regs_bits))
+        self.entries = Array(Signal(self.internal_layout) for _ in range(2**gen_params.phys_regs_bits))
 
         self.read1 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
         self.read2 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)

@@ -7,12 +7,14 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth import *
+from amaranth.lib.wiring import Flow
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, parent)
 
 
+from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
@@ -25,7 +27,7 @@ from coreblocks.fu.zbc import ZbcComponent
 from coreblocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
 from transactron.lib import AdapterBase, AdapterTrans
-from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneBus
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
 from constants.ecp5_platforms import (
     ResourceBuilder,
     adapter_resources,
@@ -44,7 +46,7 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
 
 
 class WishboneConnector(Elaboratable):
-    def __init__(self, wb: WishboneBus, number: int):
+    def __init__(self, wb: WishboneInterface, number: int):
         self.wb = wb
         self.number = number
 
@@ -54,7 +56,12 @@ class WishboneConnector(Elaboratable):
         pins = platform.request("wishbone", self.number)
         assert isinstance(pins, Record)
 
-        m.d.comb += self.wb.connect(pins)
+        for name in self.wb.signature.members:
+            member = self.wb.signature.members[name]
+            if member.flow == Flow.In:
+                m.d.comb += getattr(pins, name).o.eq(getattr(self.wb, name))
+            else:
+                m.d.comb += getattr(self.wb, name).eq(getattr(pins, name).i)
 
         return m
 
@@ -92,14 +99,13 @@ UnitCore = Callable[[GenParams], tuple[ResourceBuilder, Elaboratable]]
 def unit_core(gen_params: GenParams):
     resources = wishbone_resources(gen_params.wb_params)
 
-    wb_instr = WishboneBus(gen_params.wb_params)
-    wb_data = WishboneBus(gen_params.wb_params)
+    wb_arbiter = WishboneArbiter(gen_params.wb_params, 2)
+    wb_instr = wb_arbiter.masters[0]
+    wb_data = wb_arbiter.masters[1]
+
+    wb_connector = WishboneConnector(wb_arbiter.slave_wb, 0)
 
     core = Core(gen_params=gen_params, wb_instr_bus=wb_instr, wb_data_bus=wb_data)
-
-    wb = WishboneBus(gen_params.wb_params)
-    wb_arbiter = WishboneArbiter(wb, [wb_instr, wb_data])
-    wb_connector = WishboneConnector(wb, 0)
 
     module = ModuleConnector(core=core, wb_arbiter=wb_arbiter, wb_connector=wb_connector)
 
@@ -117,7 +123,7 @@ def unit_fu(unit_params: FunctionalComponentParams):
 
         module = ModuleConnector(fu=fu, issue_connector=issue_connector, accept_connector=accept_connector)
 
-        return resources, TransactionModule(module)
+        return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 
     return unit
 
@@ -138,11 +144,12 @@ core_units = {
 
 
 def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
-    gen_params = GenParams(core_config)
-    resource_builder, module = core(gen_params)
+    with DependencyContext(DependencyManager()):
+        gen_params = GenParams(core_config)
+        resource_builder, module = core(gen_params)
 
-    if platform == "ecp5":
-        make_ecp5_platform(resource_builder)().build(module)
+        if platform == "ecp5":
+            make_ecp5_platform(resource_builder)().build(module)
 
 
 def main():
@@ -171,6 +178,12 @@ def main():
     )
 
     parser.add_argument(
+        "--strip-debug",
+        action="store_true",
+        help="Remove debugging signals. Default: %(default)s",
+    )
+
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -187,7 +200,11 @@ def main():
     if args.unit not in core_units:
         raise KeyError(f"Unknown core unit '{args.unit}'")
 
-    synthesize(str_to_coreconfig[args.config], args.platform, core_units[args.unit])
+    config = str_to_coreconfig[args.config]
+    if args.strip_debug:
+        config = config.replace(debug_signals=False)
+
+    synthesize(config, args.platform, core_units[args.unit])
 
 
 if __name__ == "__main__":
