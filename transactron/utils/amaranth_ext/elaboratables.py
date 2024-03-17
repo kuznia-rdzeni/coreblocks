@@ -262,7 +262,7 @@ class MultiPriorityEncoder(Elaboratable):
         Signals with selected indicies, sorted in ascending order,
         if the number of ready signals is less than `outputs_count`
         then valid signals are at the beginning of the list.
-    valids : list[Signals], out
+    valids : list[Signal], out
         One bit for each output signal, indicating whether the output is valid or not.
     """
 
