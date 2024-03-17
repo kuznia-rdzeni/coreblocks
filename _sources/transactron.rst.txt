@@ -7,20 +7,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   transactron.core
    transactron.lib
    transactron.testing
    transactron.utils
 
 Submodules
 ----------
-
-transactron.core module
------------------------
-
-.. automodule:: transactron.core
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 transactron.graph module
 ------------------------

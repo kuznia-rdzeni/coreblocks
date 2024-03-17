@@ -1,0 +1,77 @@
+transactron.core package
+========================
+
+Submodules
+----------
+
+transactron.core.keys module
+----------------------------
+
+.. automodule:: transactron.core.keys
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.manager module
+-------------------------------
+
+.. automodule:: transactron.core.manager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.method module
+------------------------------
+
+.. automodule:: transactron.core.method
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.schedulers module
+----------------------------------
+
+.. automodule:: transactron.core.schedulers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.sugar module
+-----------------------------
+
+.. automodule:: transactron.core.sugar
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.tmodule module
+-------------------------------
+
+.. automodule:: transactron.core.tmodule
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.transaction module
+-----------------------------------
+
+.. automodule:: transactron.core.transaction
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.core.transaction\_base module
+-----------------------------------------
+
+.. automodule:: transactron.core.transaction_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: transactron.core
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>transactron.core package &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="transactron.lib package" href="transactron.lib.html" />
+    <link rel="prev" title="transactron package" href="transactron.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Core verification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptions-summary.html">Summary of papers about interrupts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="api.html">API</a> &raquo;</li>
+          <li><a href="transactron.html">transactron package</a> &raquo;</li>
+      <li>transactron.core package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/transactron.core.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="transactron-core-package">
+<h1>transactron.core package<a class="headerlink" href="#transactron-core-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-transactron.core.keys">
+<span id="transactron-core-keys-module"></span><h2>transactron.core.keys module<a class="headerlink" href="#module-transactron.core.keys" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.keys.TransactionManagerKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.keys.</span></span><span class="sig-name descname"><span class="pre">TransactionManagerKey</span></span><a class="headerlink" href="#transactron.core.keys.TransactionManagerKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.SimpleKey" title="transactron.utils.dependencies.SimpleKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleKey</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionManager</span></code>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.keys.TransactionManagerKey.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.core.keys.TransactionManagerKey.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.manager">
+<span id="transactron-core-manager-module"></span><h2>transactron.core.manager module<a class="headerlink" href="#module-transactron.core.manager" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionManager">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.manager.</span></span><span class="sig-name descname"><span class="pre">TransactionManager</span></span><a class="headerlink" href="#transactron.core.manager.TransactionManager" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Transaction manager</p>
+<p>This module is responsible for granting <cite>Transaction</cite>s and running
+<cite>Method</cite>s. It takes care that two conflicting <cite>Transaction</cite>s
+are never granted in the same clock cycle.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">cc_scheduler:</span> <span class="pre">~typing.Callable[[~transactron.core.manager.MethodMap,</span> <span class="pre">dict[transactron.core.transaction.Transaction,</span> <span class="pre">set[transactron.core.transaction.Transaction]],</span> <span class="pre">set[transactron.core.transaction.Transaction],</span> <span class="pre">dict[transactron.core.transaction.Transaction,</span> <span class="pre">int]],</span> <span class="pre">~amaranth.hdl._dsl.Module]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">eager_deterministic_cc_scheduler&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.manager.TransactionManager.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionManager.add_transaction">
+<span class="sig-name descname"><span class="pre">add_transaction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transaction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">Transaction</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.manager.TransactionManager.add_transaction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionManager.debug_signals">
+<span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.manager.TransactionManager.debug_signals" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionManager.print_info">
+<span class="sig-name descname"><span class="pre">print_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cgr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">transactron.core.transaction.Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">transactron.core.transaction.Transaction</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">porder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">transactron.core.transaction.Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">set</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">transactron.core.transaction.Transaction</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MethodMap</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.manager.TransactionManager.print_info" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionManager.visual_graph">
+<span class="sig-name descname"><span class="pre">visual_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fragment</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.manager.TransactionManager.visual_graph" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.manager.</span></span><span class="sig-name descname"><span class="pre">TransactionModule</span></span><a class="headerlink" href="#transactron.core.manager.TransactionModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p><cite>TransactionModule</cite> is used as wrapper on <cite>Elaboratable</cite> classes,
+which adds support for transactions. It creates a
+<cite>TransactionManager</cite> which will handle transaction scheduling
+and can be used in definition of <cite>Method</cite>s and <cite>Transaction</cite>s.
+The <cite>TransactionManager</cite> is stored in a <cite>DependencyManager</cite>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elaboratable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HasElaborate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependency_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.DependencyManager" title="transactron.utils.dependencies.DependencyManager"><span class="pre">DependencyManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transaction_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.manager.TransactionManager" title="transactron.core.manager.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.manager.TransactionModule.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>elaboratable: HasElaborate</strong></dt><dd><p>The <cite>Elaboratable</cite> which should be wrapped to add support for
+transactions and methods.</p>
+</dd>
+<dt><strong>dependency_manager: DependencyManager, optional</strong></dt><dd><p>The <cite>DependencyManager</cite> to use inside the transaction module.
+If omitted, a new one is created.</p>
+</dd>
+<dt><strong>transaction_manager: TransactionManager, optional</strong></dt><dd><p>The <cite>TransactionManager</cite> to use inside the transaction module.
+If omitted, a new one is created.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionModule.context">
+<span class="sig-name descname"><span class="pre">context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.DependencyContext" title="transactron.utils.dependencies.DependencyContext"><span class="pre">DependencyContext</span></a></span></span><a class="headerlink" href="#transactron.core.manager.TransactionModule.context" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.method">
+<span id="transactron-core-method-module"></span><h2>transactron.core.method module<a class="headerlink" href="#module-transactron.core.method" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.method.Method">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.method.</span></span><span class="sig-name descname"><span class="pre">Method</span></span><a class="headerlink" href="#transactron.core.method.Method" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#transactron.core.transaction_base.TransactionBase" title="transactron.core.transaction_base.TransactionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></a></p>
+<p>Transactional method.</p>
+<p>A <cite>Method</cite> serves to interface a module with external <cite>Transaction</cite>s
+or <cite>Method</cite>s. It can be called by at most once in a given clock cycle.
+When a given <cite>Method</cite> is required by multiple <cite>Transaction</cite>s
+(either directly, or indirectly via another <cite>Method</cite>) simultenaously,
+at most one of them is granted by the <cite>TransactionManager</cite>, and the rest
+of them must wait. (Non-exclusive methods are an exception to this
+behavior.) Calling a <cite>Method</cite> always takes a single clock cycle.</p>
+<p>Data is combinationally transferred between to and from <cite>Method</cite>s
+using Amaranth structures (<cite>View</cite> with a <cite>StructLayout</cite>). The transfer
+can take place in both directions at the same time: from the called
+<cite>Method</cite> to the caller (<cite>data_out</cite>) and from the caller to the called
+<cite>Method</cite> (<cite>data_in</cite>).</p>
+<p>A module which defines a <cite>Method</cite> should use <cite>body</cite> or <cite>def_method</cite>
+to describe the method’s effect on the module state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name: str</strong></dt><dd><p>Name of this <cite>Method</cite>.</p>
+</dd>
+<dt><strong>ready: Signal, in</strong></dt><dd><p>Signals that the method is ready to run in the current cycle.
+Typically defined by calling <cite>body</cite>.</p>
+</dd>
+<dt><strong>run: Signal, out</strong></dt><dd><p>Signals that the method is called in the current cycle by some
+<cite>Transaction</cite>. Defined by the <cite>TransactionManager</cite>.</p>
+</dd>
+<dt><strong>data_in: MethodStruct, out</strong></dt><dd><p>Contains the data passed to the <cite>Method</cite> by the caller
+(a <cite>Transaction</cite> or another <cite>Method</cite>).</p>
+</dd>
+<dt><strong>data_out: MethodStruct, in</strong></dt><dd><p>Contains the data passed from the <cite>Method</cite> to the caller
+(a <cite>Transaction</cite> or another <cite>Method</cite>). Typically defined by
+calling <cite>body</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.method.Method.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span> <span class="pre">|</span> <span class="pre">collections.abc.Iterable[tuple[str,</span> <span class="pre">amaranth.hdl._ast.Shape</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ShapeCastable</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">range</span> <span class="pre">|</span> <span class="pre">type[enum.Enum]</span> <span class="pre">|</span> <span class="pre">list[tuple[str,</span> <span class="pre">ForwardRef('ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList')]]]]</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span> <span class="pre">|</span> <span class="pre">collections.abc.Iterable[tuple[str,</span> <span class="pre">amaranth.hdl._ast.Shape</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ShapeCastable</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">range</span> <span class="pre">|</span> <span class="pre">type[enum.Enum]</span> <span class="pre">|</span> <span class="pre">list[tuple[str,</span> <span class="pre">ForwardRef('ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList')]]]]</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonexclusive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">single_caller</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.method.Method.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <cite>Method</cite>. If <cite>None</cite> (default) the name is
+inferred from the variable name this <cite>Method</cite> is assigned to.</p>
+</dd>
+<dt><strong>i: method layout</strong></dt><dd><p>The format of <cite>data_in</cite>.</p>
+</dd>
+<dt><strong>o: method layout</strong></dt><dd><p>The format of <cite>data_out</cite>.</p>
+</dd>
+<dt><strong>nonexclusive: bool</strong></dt><dd><p>If true, the method is non-exclusive: it can be called by multiple
+transactions in the same clock cycle. If such a situation happens,
+the method still is executed only once, and each of the callers
+receive its output. Nonexclusive methods cannot have inputs.</p>
+</dd>
+<dt><strong>single_caller: bool</strong></dt><dd><p>If true, this method is intended to be called from a single
+transaction. An error will be thrown if called from multiple
+transactions.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.method.Method.body">
+<span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">m:</span> <span class="pre">TModule,</span> <span class="pre">*,</span> <span class="pre">ready:</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1),</span> <span class="pre">out:</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">0'd0),</span> <span class="pre">validate_arguments:</span> <span class="pre">~typing.Optional[~typing.Callable[[...],</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable]]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">View</span><span class="p"><span class="pre">[</span></span><span class="pre">StructLayout</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.method.Method.body" title="Permalink to this definition"></a></dt>
+<dd><p>Define method body</p>
+<p>The <cite>body</cite> context manager can be used to define the actions
+performed by a <cite>Method</cite> when it’s run. Each assignment added to
+a domain under <cite>body</cite> is guarded by the <cite>run</cite> signal.
+Combinational assignments which do not need to be guarded by <cite>run</cite>
+can be added to <cite>m.d.av_comb</cite> or <cite>m.d.top_comb</cite> instead of <cite>m.d.comb</cite>.
+<cite>Method</cite> calls can be performed under <cite>body</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">TModule</span></dt><dd><p>Module in which operations on signals should be executed,
+<cite>body</cite> uses the combinational domain only.</p>
+</dd>
+<dt><strong>ready</strong><span class="classifier">Signal, in</span></dt><dd><p>Signal to indicate if the method is ready to be run. By
+default it is <cite>Const(1)</cite>, so the method is always ready.
+Assigned combinationially to the <cite>ready</cite> attribute.</p>
+</dd>
+<dt><strong>out</strong><span class="classifier">Value, in</span></dt><dd><p>Data generated by the <cite>Method</cite>, which will be passed to
+the caller (a <cite>Transaction</cite> or another <cite>Method</cite>). Assigned
+combinationally to the <cite>data_out</cite> attribute.</p>
+</dd>
+<dt><strong>validate_arguments: Optional[Callable[…, ValueLike]]</strong></dt><dd><p>Function that takes input arguments used to call the method
+and checks whether the method can be called with those arguments.
+It instantiates a combinational circuit for each
+method caller. By default, there is no function, so all arguments
+are accepted.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>data_in</strong><span class="classifier">Record, out</span></dt><dd><p>Data passed from the caller (a <cite>Transaction</cite> or another
+<cite>Method</cite>) to this <cite>Method</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">Module</span><span class="p">()</span>
+<span class="n">my_sum_method</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="n">Layout</span><span class="p">([(</span><span class="s2">&quot;arg1&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">),(</span><span class="s2">&quot;arg2&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)]))</span>
+<span class="nb">sum</span> <span class="o">=</span> <span class="n">Signal</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">my_sum_method</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_in</span><span class="p">:</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">comb</span> <span class="o">+=</span> <span class="nb">sum</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">data_in</span><span class="o">.</span><span class="n">arg1</span> <span class="o">+</span> <span class="n">data_in</span><span class="o">.</span><span class="n">arg2</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.method.Method.debug_signals">
+<span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.method.Method.debug_signals" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="transactron.core.method.Method.layout_in">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">layout_in</span></span><a class="headerlink" href="#transactron.core.method.Method.layout_in" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="transactron.core.method.Method.layout_out">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">layout_out</span></span><a class="headerlink" href="#transactron.core.method.Method.layout_out" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.method.Method.like">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">like</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a></span></span><a class="headerlink" href="#transactron.core.method.Method.like" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs a new <cite>Method</cite> based on another.</p>
+<p>The returned <cite>Method</cite> has the same input/output data layouts as the
+<cite>other</cite> <cite>Method</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>other</strong><span class="classifier">Method</span></dt><dd><p>The <cite>Method</cite> which serves as a blueprint for the new <cite>Method</cite>.</p>
+</dd>
+<dt><strong>name</strong><span class="classifier">str, optional</span></dt><dd><p>Name of the new <cite>Method</cite>.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>Method</dt><dd><p>The freshly constructed <cite>Method</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.method.Method.proxy">
+<span class="sig-name descname"><span class="pre">proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.method.Method.proxy" title="Permalink to this definition"></a></dt>
+<dd><p>Define as a proxy for another method.</p>
+<p>The calls to this method will be forwarded to <cite>method</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m</strong><span class="classifier">TModule</span></dt><dd><p>Module in which operations on signals should be executed,
+<cite>proxy</cite> uses the combinational domain only.</p>
+</dd>
+<dt><strong>method</strong><span class="classifier">Method</span></dt><dd><p>Method for which this method is a proxy for.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.schedulers">
+<span id="transactron-core-schedulers-module"></span><h2>transactron.core.schedulers module<a class="headerlink" href="#module-transactron.core.schedulers" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.core.schedulers.eager_deterministic_cc_scheduler">
+<span class="sig-prename descclassname"><span class="pre">transactron.core.schedulers.</span></span><span class="sig-name descname"><span class="pre">eager_deterministic_cc_scheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.lib.html#transactron.lib.transformers.MethodMap" title="transactron.lib.transformers.MethodMap"><span class="pre">MethodMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TransactionGraph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TransactionGraphCC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">porder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PriorityOrder</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Module</span></span></span><a class="headerlink" href="#transactron.core.schedulers.eager_deterministic_cc_scheduler" title="Permalink to this definition"></a></dt>
+<dd><p>This function generates an eager scheduler for the transaction
+subsystem. It isn’t fair, because it starts transactions using
+transaction index in <cite>cc</cite> as a priority. Transaction with the lowest
+index has the highest priority.</p>
+<p>If there are two different transactions which have no conflicts then
+they will be started concurrently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>manager</strong><span class="classifier">TransactionManager</span></dt><dd><p>TransactionManager which uses this instance of scheduler for
+arbitrating which agent should get a grant signal.</p>
+</dd>
+<dt><strong>gr</strong><span class="classifier">TransactionGraph</span></dt><dd><p>Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.</p>
+</dd>
+<dt><strong>cc</strong><span class="classifier">Set[Transaction]</span></dt><dd><p>Connected components of the graph <cite>gr</cite> for which scheduler
+should be generated.</p>
+</dd>
+<dt><strong>porder</strong><span class="classifier">PriorityOrder</span></dt><dd><p>Linear ordering of transactions which is consistent with priority constraints.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.core.schedulers.trivial_roundrobin_cc_scheduler">
+<span class="sig-prename descclassname"><span class="pre">transactron.core.schedulers.</span></span><span class="sig-name descname"><span class="pre">trivial_roundrobin_cc_scheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.lib.html#transactron.lib.transformers.MethodMap" title="transactron.lib.transformers.MethodMap"><span class="pre">MethodMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TransactionGraph</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TransactionGraphCC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">porder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PriorityOrder</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Module</span></span></span><a class="headerlink" href="#transactron.core.schedulers.trivial_roundrobin_cc_scheduler" title="Permalink to this definition"></a></dt>
+<dd><p>This function generates a simple round-robin scheduler for the transaction
+subsystem. In a one cycle there will be at most one transaction granted
+(in a given connected component of the conflict graph), even if there is
+another ready, non-conflicting, transaction. It is mainly for testing
+purposes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>manager</strong><span class="classifier">TransactionManager</span></dt><dd><p>TransactionManager which uses this instance of scheduler for
+arbitrating which agent should get grant signal.</p>
+</dd>
+<dt><strong>gr</strong><span class="classifier">TransactionGraph</span></dt><dd><p>Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.</p>
+</dd>
+<dt><strong>cc</strong><span class="classifier">Set[Transaction]</span></dt><dd><p>Connected components of the graph <cite>gr</cite> for which scheduler
+should be generated.</p>
+</dd>
+<dt><strong>porder</strong><span class="classifier">PriorityOrder</span></dt><dd><p>Linear ordering of transactions which is consistent with priority constraints.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.sugar">
+<span id="transactron-core-sugar-module"></span><h2>transactron.core.sugar module<a class="headerlink" href="#module-transactron.core.sugar" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.core.sugar.def_method">
+<span class="sig-prename descclassname"><span class="pre">transactron.core.sugar.</span></span><span class="sig-name descname"><span class="pre">def_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">m:</span> <span class="pre">TModule,</span> <span class="pre">method:</span> <span class="pre">Method,</span> <span class="pre">ready:</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1),</span> <span class="pre">validate_arguments:</span> <span class="pre">~typing.Optional[~typing.Callable[[...],</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable]]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.sugar.def_method" title="Permalink to this definition"></a></dt>
+<dd><p>Define a method.</p>
+<p>This decorator allows to define transactional methods in an
+elegant way using Python’s <cite>def</cite> syntax. Internally, <cite>def_method</cite>
+uses <cite>Method.body</cite>.</p>
+<p>The decorated function should take keyword arguments corresponding to the
+fields of the method’s input layout. The <cite>**kwargs</cite> syntax is supported.
+Alternatively, it can take one argument named <cite>arg</cite>, which will be a
+structure with input signals.</p>
+<p>The returned value can be either a structure with the method’s output layout
+or a dictionary of outputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>Module in which operations on signals should be executed.</p>
+</dd>
+<dt><strong>method: Method</strong></dt><dd><p>The method whose body is going to be defined.</p>
+</dd>
+<dt><strong>ready: Signal</strong></dt><dd><p>Signal to indicate if the method is ready to be run. By
+default it is <cite>Const(1)</cite>, so the method is always ready.
+Assigned combinationally to the <cite>ready</cite> attribute.</p>
+</dd>
+<dt><strong>validate_arguments: Optional[Callable[…, ValueLike]]</strong></dt><dd><p>Function that takes input arguments used to call the method
+and checks whether the method can be called with those arguments.
+It instantiates a combinational circuit for each
+method caller. By default, there is no function, so all arguments
+are accepted.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">Module</span><span class="p">()</span>
+<span class="n">my_sum_method</span> <span class="o">=</span> <span class="n">Method</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;arg1&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">),(</span><span class="s2">&quot;arg2&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)],</span> <span class="n">o</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;res&quot;</span><span class="p">,</span><span class="mi">8</span><span class="p">)])</span>
+<span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">arg1</span> <span class="o">+</span> <span class="n">arg2</span>
+</pre></div>
+</div>
+<p>Alternative syntax (keyword args in dictionary):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;arg1&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;arg2&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Alternative syntax (arg structure):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@def_method</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">my_sum_method</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;res&quot;</span><span class="p">:</span> <span class="n">arg</span><span class="o">.</span><span class="n">arg1</span> <span class="o">+</span> <span class="n">arg</span><span class="o">.</span><span class="n">arg2</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.tmodule">
+<span id="transactron-core-tmodule-module"></span><h2>transactron.core.tmodule module<a class="headerlink" href="#module-transactron.core.tmodule" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.tmodule.</span></span><span class="sig-name descname"><span class="pre">TModule</span></span><a class="headerlink" href="#transactron.core.tmodule.TModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ModuleLike</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Extended Amaranth module for use with transactions.</p>
+<p>It includes three different combinational domains:</p>
+<ul class="simple">
+<li><p><cite>comb</cite> domain, works like the <cite>comb</cite> domain in plain Amaranth modules.
+Statements in <cite>comb</cite> are guarded by every condition, including
+<cite>AvoidedIf</cite>. This means they are guarded by transaction and method
+bodies: they don’t execute if the given transaction/method is not run.</p></li>
+<li><p><cite>av_comb</cite> is guarded by all conditions except <cite>AvoidedIf</cite>. This means
+they are not guarded by transaction and method bodies. This allows to
+reduce the amount of useless multplexers due to transaction use, while
+still allowing the use of conditions in transaction/method bodies.</p></li>
+<li><p><cite>top_comb</cite> is unguarded: statements added to this domain always
+execute. It can be used to reduce combinational path length due to
+multplexers while keeping related combinational and synchronous
+statements together.</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.AvoidedIf">
+<span class="sig-name descname"><span class="pre">AvoidedIf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.AvoidedIf" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.Case">
+<span class="sig-name descname"><span class="pre">Case</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">patterns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.Case" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.Default">
+<span class="sig-name descname"><span class="pre">Default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.Default" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.Elif">
+<span class="sig-name descname"><span class="pre">Elif</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cond</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.Elif" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.Else">
+<span class="sig-name descname"><span class="pre">Else</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.Else" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.FSM">
+<span class="sig-name descname"><span class="pre">FSM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sync'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'fsm'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.FSM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.If">
+<span class="sig-name descname"><span class="pre">If</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.If" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.State">
+<span class="sig-name descname"><span class="pre">State</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.State" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.Switch">
+<span class="sig-name descname"><span class="pre">Switch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.Switch" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.tmodule.TModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.ctrl_path">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ctrl_path</span></span><a class="headerlink" href="#transactron.core.tmodule.TModule.ctrl_path" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="transactron.core.tmodule.TModule.next">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">next</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">NoReturn</span></em><a class="headerlink" href="#transactron.core.tmodule.TModule.next" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.transaction">
+<span id="transactron-core-transaction-module"></span><h2>transactron.core.transaction module<a class="headerlink" href="#module-transactron.core.transaction" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.transaction.Transaction">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.transaction.</span></span><span class="sig-name descname"><span class="pre">Transaction</span></span><a class="headerlink" href="#transactron.core.transaction.Transaction" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#transactron.core.transaction_base.TransactionBase" title="transactron.core.transaction_base.TransactionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionBase</span></code></a></p>
+<p>Transaction.</p>
+<p>A <cite>Transaction</cite> represents a task which needs to be regularly done.
+Execution of a <cite>Transaction</cite> always lasts a single clock cycle.
+A <cite>Transaction</cite> signals readiness for execution by setting the
+<cite>request</cite> signal. If the conditions for its execution are met, it
+can be granted by the <cite>TransactionManager</cite>.</p>
+<p>A <cite>Transaction</cite> can, as part of its execution, call a number of
+<cite>Method</cite>s. A <cite>Transaction</cite> can be granted only if every <cite>Method</cite>
+it runs is ready.</p>
+<p>A <cite>Transaction</cite> cannot execute concurrently with another, conflicting
+<cite>Transaction</cite>. Conflicts between <cite>Transaction</cite>s are either explicit
+or implicit. An explicit conflict is added using the <cite>add_conflict</cite>
+method. Implicit conflicts arise between pairs of <cite>Transaction</cite>s
+which use the same <cite>Method</cite>.</p>
+<p>A module which defines a <cite>Transaction</cite> should use <cite>body</cite> to
+describe used methods and the transaction’s effect on the module state.
+The used methods should be called inside the <cite>body</cite>’s
+<cite>with</cite> block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name: str</strong></dt><dd><p>Name of this <cite>Transaction</cite>.</p>
+</dd>
+<dt><strong>request: Signal, in</strong></dt><dd><p>Signals that the transaction wants to run. If omitted, the transaction
+is always ready. Defined in the constructor.</p>
+</dd>
+<dt><strong>runnable: Signal, out</strong></dt><dd><p>Signals that all used methods are ready.</p>
+</dd>
+<dt><strong>grant: Signal, out</strong></dt><dd><p>Signals that the transaction is granted by the <cite>TransactionManager</cite>,
+and all used methods are called.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction.Transaction.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.manager.TransactionManager" title="transactron.core.manager.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.transaction.Transaction.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>name: str or None</strong></dt><dd><p>Name hint for this <cite>Transaction</cite>. If <cite>None</cite> (default) the name is
+inferred from the variable name this <cite>Transaction</cite> is assigned to.
+If the <cite>Transaction</cite> was not assigned, the name is inferred from
+the class name where the <cite>Transaction</cite> was constructed.</p>
+</dd>
+<dt><strong>manager: TransactionManager</strong></dt><dd><p>The <cite>TransactionManager</cite> controlling this <cite>Transaction</cite>.
+If omitted, the manager is received from <cite>TransactionContext</cite>.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction.Transaction.body">
+<span class="sig-name descname"><span class="pre">body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">TModule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request:</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.transaction.Transaction.body" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the <cite>Transaction</cite> body.</p>
+<p>This context manager allows to conveniently define the actions
+performed by a <cite>Transaction</cite> when it’s granted. Each assignment
+added to a domain under <cite>body</cite> is guarded by the <cite>grant</cite> signal.
+Combinational assignments which do not need to be guarded by
+<cite>grant</cite> can be added to <cite>m.d.top_comb</cite> or <cite>m.d.av_comb</cite> instead of
+<cite>m.d.comb</cite>. <cite>Method</cite> calls can be performed under <cite>body</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>The module where the <cite>Transaction</cite> is defined.</p>
+</dd>
+<dt><strong>request: Signal</strong></dt><dd><p>Indicates that the <cite>Transaction</cite> wants to be executed. By
+default it is <cite>Const(1)</cite>, so it wants to be executed in
+every clock cycle.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction.Transaction.debug_signals">
+<span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Signal</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._rec.Record</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.View</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">SignalBundle</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.transaction.Transaction.debug_signals" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core.transaction_base">
+<span id="transactron-core-transaction-base-module"></span><h2>transactron.core.transaction_base module<a class="headerlink" href="#module-transactron.core.transaction_base" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.Priority">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.transaction_base.</span></span><span class="sig-name descname"><span class="pre">Priority</span></span><a class="headerlink" href="#transactron.core.transaction_base.Priority" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.Priority.LEFT">
+<span class="sig-name descname"><span class="pre">LEFT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#transactron.core.transaction_base.Priority.LEFT" title="Permalink to this definition"></a></dt>
+<dd><p>Left transaction/method is prioritized over the right one.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.Priority.RIGHT">
+<span class="sig-name descname"><span class="pre">RIGHT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#transactron.core.transaction_base.Priority.RIGHT" title="Permalink to this definition"></a></dt>
+<dd><p>Right transaction/method is prioritized over the left one.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.Priority.UNDEFINED">
+<span class="sig-name descname"><span class="pre">UNDEFINED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#transactron.core.transaction_base.Priority.UNDEFINED" title="Permalink to this definition"></a></dt>
+<dd><p>Conflicting transactions/methods don’t have a priority order.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.transaction_base.</span></span><span class="sig-name descname"><span class="pre">TransactionBase</span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="transactron.html#transactron.graph.Owned" title="transactron.graph.Owned"><code class="xref py py-class docutils literal notranslate"><span class="pre">Owned</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.add_conflict">
+<span class="sig-name descname"><span class="pre">add_conflict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.transaction_base.Priority" title="transactron.core.transaction_base.Priority"><span class="pre">Priority</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Priority.UNDEFINED</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.add_conflict" title="Permalink to this definition"></a></dt>
+<dd><p>Registers a conflict.</p>
+<p>Record that that the given <cite>Transaction</cite> or <cite>Method</cite> cannot execute
+simultaneously with this <cite>Method</cite> or <cite>Transaction</cite>. Typical reason
+is using a common resource (register write or memory port).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>end: Transaction or Method</strong></dt><dd><p>The conflicting <cite>Transaction</cite> or <cite>Method</cite></p>
+</dd>
+<dt><strong>priority: Priority, optional</strong></dt><dd><p>Is one of conflicting <cite>Transaction</cite>s or <cite>Method</cite>s prioritized?
+Defaults to undefined priority relation.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.context">
+<span class="sig-name descname"><span class="pre">context</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">TransactionOrMethodBound</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.context" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.ctrl_path">
+<span class="sig-name descname"><span class="pre">ctrl_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">CtrlPath</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">CtrlPath(module=-1,</span> <span class="pre">path=[])</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.ctrl_path" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.def_counter">
+<span class="sig-name descname"><span class="pre">def_counter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">count</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">count(0)</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.def_counter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.def_order">
+<span class="sig-name descname"><span class="pre">def_order</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.def_order" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.defined">
+<span class="sig-name descname"><span class="pre">defined</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.defined" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.get">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.get" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.independent_list">
+<span class="sig-name descname"><span class="pre">independent_list</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list[typing.Union[ForwardRef('Transaction'),</span> <span class="pre">ForwardRef('Method')]]</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.independent_list" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.method_calls">
+<span class="sig-name descname"><span class="pre">method_calls</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">defaultdict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">transactron.core.tmodule.CtrlPath</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'View[StructLayout]'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.method_calls" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.method_uses">
+<span class="sig-name descname"><span class="pre">method_uses</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'Method'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'View[StructLayout]'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Signal</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.method_uses" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.owned_name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">owned_name</span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.owned_name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.peek">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">peek</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.peek" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.relations">
+<span class="sig-name descname"><span class="pre">relations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">transactron.core.transaction_base.RelationBase</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.relations" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.schedule_before">
+<span class="sig-name descname"><span class="pre">schedule_before</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.schedule_before" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a priority relation.</p>
+<p>Record that that the given <cite>Transaction</cite> or <cite>Method</cite> needs to be
+scheduled before this <cite>Method</cite> or <cite>Transaction</cite>, without adding
+a conflict. Typical reason is data forwarding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>end: Transaction or Method</strong></dt><dd><p>The other <cite>Transaction</cite> or <cite>Method</cite></p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.simultaneous">
+<span class="sig-name descname"><span class="pre">simultaneous</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">others</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.simultaneous" title="Permalink to this definition"></a></dt>
+<dd><p>Adds simultaneity relations.</p>
+<p>The given <cite>Transaction</cite>s or <cite>Method`</cite>s will execute simultaneously
+(in the same clock cycle) with this <cite>Transaction</cite> or <cite>Method</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*others: Transaction or Method</strong></dt><dd><p>The <cite>Transaction</cite>s or <cite>Method</cite>s to be executed simultaneously.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.simultaneous_alternatives">
+<span class="sig-name descname"><span class="pre">simultaneous_alternatives</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">others</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.transaction.Transaction" title="transactron.core.transaction.Transaction"><span class="pre">Transaction</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.simultaneous_alternatives" title="Permalink to this definition"></a></dt>
+<dd><p>Adds exclusive simultaneity relations.</p>
+<p>Each of the given <cite>Transaction</cite>s or <cite>Method`</cite>s will execute
+simultaneously (in the same clock cycle) with this <cite>Transaction</cite> or
+<cite>Method</cite>. However, each of the given <cite>Transaction</cite>s or <cite>Method</cite>s
+will be separately considered for execution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>*others: Transaction or Method</strong></dt><dd><p>The <cite>Transaction</cite>s or <cite>Method</cite>s to be executed simultaneously,
+but mutually exclusive, with this <cite>Transaction</cite> or <cite>Method</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.simultaneous_list">
+<span class="sig-name descname"><span class="pre">simultaneous_list</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list[typing.Union[ForwardRef('Transaction'),</span> <span class="pre">ForwardRef('Method')]]</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.simultaneous_list" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.src_loc">
+<span class="sig-name descname"><span class="pre">src_loc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.src_loc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.core.transaction_base.TransactionBase.stack">
+<span class="sig-name descname"><span class="pre">stack</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Union[ForwardRef('Transaction'),</span> <span class="pre">ForwardRef('Method')]]]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></em><a class="headerlink" href="#transactron.core.transaction_base.TransactionBase.stack" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-transactron.core">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-transactron.core" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="transactron.html" class="btn btn-neutral float-left" title="transactron package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="transactron.lib.html" class="btn btn-neutral float-right" title="transactron.lib package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2024.
+      <span class="lastupdated">Last updated on 13:17 2024-03-17.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
