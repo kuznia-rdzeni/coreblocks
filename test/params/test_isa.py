@@ -1,6 +1,6 @@
 import unittest
 
-from coreblocks.params.isa import Extension, ISA
+from coreblocks.params.isa_params import Extension, ISA
 
 
 class TestISA(unittest.TestCase):
