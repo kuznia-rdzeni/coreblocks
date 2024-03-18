@@ -1,10 +1,11 @@
 from coreblocks.interface.layouts import CoreInstructionCounterLayouts, ExceptionRegisterLayouts, FetchLayouts
-from coreblocks.stages.retirement import *
-from coreblocks.structs_common.csr_generic import GenericCSRRegisters
+from coreblocks.backend.retirement import *
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 
 from transactron.lib import FIFO, Adapter
-from coreblocks.structs_common.rat import FRAT, RRAT
-from coreblocks.params import ROBLayouts, RFLayouts, GenParams, LSULayouts, SchedulerLayouts
+from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import ROBLayouts, RFLayouts, LSULayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 
 from transactron.testing import *

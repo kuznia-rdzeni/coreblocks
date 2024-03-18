@@ -13,12 +13,14 @@ from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.structs_common.rf import RegisterFile
-from coreblocks.structs_common.rat import FRAT
-from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, OpType, Funct3, Funct7
+from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.core_structs.rat import FRAT
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import RSLayouts, DecodeLayouts, SchedulerLayouts
+from coreblocks.frontend.decoder import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
-from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.utils.protocols import FuncBlock
+from coreblocks.core_structs.rob import ReorderBuffer
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 

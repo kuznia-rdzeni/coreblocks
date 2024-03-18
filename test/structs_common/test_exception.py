@@ -1,9 +1,9 @@
 from amaranth import *
 from coreblocks.interface.layouts import ROBLayouts
 
-from coreblocks.structs_common.exception import ExceptionCauseRegister
+from coreblocks.priv.traps.exception import ExceptionCauseRegister
 from coreblocks.params import GenParams
-from coreblocks.params.isa import ExceptionCause
+from coreblocks.frontend.decoder import ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from transactron.lib import Adapter
 from transactron.utils import ModuleConnector
