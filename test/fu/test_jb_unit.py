@@ -5,7 +5,7 @@ from parameterized import parameterized_class
 from coreblocks.params import *
 from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
 from transactron import Method, def_method, TModule
-from coreblocks.params.layouts import FuncUnitLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.utils.protocols import FuncUnit
 
 from transactron.utils import signed_to_int
