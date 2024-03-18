@@ -4,18 +4,14 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.fu.fu_decoder import DecoderManager
-from coreblocks.params import (
-    Funct3,
-    OpType,
-    GenParams,
-    FuncUnitLayouts,
-    FunctionalComponentParams,
-)
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import Method, def_method, TModule
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 
 class ZbcFn(DecoderManager):

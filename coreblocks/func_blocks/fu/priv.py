@@ -1,6 +1,6 @@
 from amaranth import *
 
-from enum import IntFlag, auto
+from enum import IntFlag, auto, unique
 from typing import Sequence
 
 
@@ -9,10 +9,13 @@ from transactron.lib import BasicFifo
 from transactron.utils import DependencyManager
 
 from coreblocks.params import *
-from coreblocks.params.keys import MretKey
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7, ExceptionCause
+from coreblocks.interface.layouts import FuncUnitLayouts, RetirementLayouts, FetchLayouts
+from coreblocks.interface.keys import MretKey, AsyncInterruptInsertSignalKey, ExceptionReportKey, GenericCSRRegistersKey, InstructionPrecommitKey, FetchResumeKey
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 
 class PrivilegedFn(DecoderManager):

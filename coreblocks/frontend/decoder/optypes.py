@@ -1,7 +1,7 @@
 from enum import IntEnum, auto, unique
 
 from coreblocks.params import Extension
-from coreblocks.params.isa import extension_implications, extension_only_implies
+from coreblocks.params.isa_params import extension_implications, extension_only_implies
 
 
 @unique

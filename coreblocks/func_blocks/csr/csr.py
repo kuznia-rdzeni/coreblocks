@@ -8,10 +8,10 @@ from transactron.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
 from transactron.utils.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.frontend.decoder.isa import Funct3, ExceptionCause
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.structs_common.csr import *
+from coreblocks.priv.csr.csr_register import *
 
 
 class CSRUnit(FuncBlock, Elaboratable):

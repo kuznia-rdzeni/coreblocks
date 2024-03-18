@@ -1,6 +1,7 @@
 from amaranth import *
 from transactron import Method, def_method, TModule
-from coreblocks.params import RATLayouts, GenParams
+from coreblocks.interface.layouts import RATLayouts
+from coreblocks.params import GenParams
 
 __all__ = ["FRAT", "RRAT"]
 

@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.interfaces.layouts import RetirementLayouts
+from coreblocks.interface.layouts import RetirementLayouts
 
 from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
@@ -8,7 +8,7 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decoder.isa import ExceptionCause
-from coreblocks.interfaces.keys import CoreStateKey, GenericCSRRegistersKey
+from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 
 

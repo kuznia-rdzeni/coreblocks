@@ -1,7 +1,8 @@
 from amaranth import *
 from transactron import Method, def_method, TModule
 from transactron.lib.metrics import *
-from ..params import GenParams, ROBLayouts
+from coreblocks.interface.layouts import ROBLayouts
+from coreblocks.params import GenParams
 
 __all__ = ["ReorderBuffer"]
 

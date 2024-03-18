@@ -1,7 +1,7 @@
 from amaranth import *
 from coreblocks.cache.icache import CacheRefillerInterface
 from coreblocks.params import ICacheParameters
-from coreblocks.interfaces.layouts import ICacheLayouts
+from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from transactron.core import Transaction
 from transactron.lib import Forwarder, Method, TModule, def_method

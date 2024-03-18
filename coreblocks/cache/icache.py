@@ -8,7 +8,7 @@ from amaranth.utils import exact_log2
 from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheParameters
-from coreblocks.interfaces.layouts import ICacheLayouts
+from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.lib import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface

@@ -6,16 +6,18 @@ from amaranth import *
 from amaranth.lib import data
 
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 from transactron.utils import OneHotSwitch
-from coreblocks.utils.protocols import FuncUnit
-from coreblocks.fu.division.long_division import LongDivider
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.fu.division.long_division import LongDivider
 
 
 class DivFn(DecoderManager):

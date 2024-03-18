@@ -1,6 +1,7 @@
 from amaranth import *
 from transactron import Method, def_method, TModule
-from coreblocks.params import RFLayouts, GenParams
+from coreblocks.interface.layouts import RFLayouts
+from coreblocks.params import GenParams
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RegisterFile"]

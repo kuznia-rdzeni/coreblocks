@@ -6,10 +6,13 @@ from coreblocks.params import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from transactron.lib.connectors import Forwarder
 from transactron.utils import assign, ModuleLike, DependencyManager
-from coreblocks.utils.protocols import FuncBlock
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from transactron.lib.simultaneous import condition
 
-from coreblocks.lsu.pma import PMAChecker
+from coreblocks.frontend.decoder import *
+from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
+from coreblocks.func_blocks.lsu.pma import PMAChecker
+from coreblocks.interface.keys import ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
 __all__ = ["LSUDummy", "LSUBlockComponent"]
 

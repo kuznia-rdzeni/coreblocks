@@ -1,19 +1,20 @@
 from typing import Sequence
 from amaranth import *
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.params.isa import Funct3, ExceptionCause
 
 from transactron import *
 from transactron.lib import FIFO
 
-from coreblocks.params import OpType, GenParams, FuncUnitLayouts, FunctionalComponentParams
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7, ExceptionCause
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.interface.keys import ExceptionReportKey
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 __all__ = ["ExceptionFuncUnit", "ExceptionUnitComponent"]
 

@@ -1,10 +1,10 @@
 from amaranth import *
 
-from coreblocks.params.isa import Funct3
-from coreblocks.params.optypes import OpType
+from coreblocks.frontend.decoder.isa import Funct3
+from coreblocks.frontend.decoder.optypes import OpType
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
-from ..params import GenParams
+from coreblocks.params import GenParams
 from .instr_decoder import InstrDecoder
 from coreblocks.params import *
 

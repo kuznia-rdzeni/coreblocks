@@ -2,6 +2,8 @@ from dataclasses import KW_ONLY, dataclass
 from typing import Optional
 
 from coreblocks.params import *
+from .isa import *
+from .optypes import *
 
 
 @dataclass(frozen=True)

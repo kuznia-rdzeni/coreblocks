@@ -4,13 +4,16 @@ from amaranth import *
 from transactron import *
 from transactron.lib import FIFO
 
-from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
+from coreblocks.frontend.decoder.isa import Funct3, Funct7
+from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.interface.layouts import FuncUnitLayouts
+from coreblocks.params import GenParams, FunctionalComponentParams
 from transactron.utils import HasElaborate, OneHotSwitch
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 from transactron.utils import popcount, count_leading_zeros
 

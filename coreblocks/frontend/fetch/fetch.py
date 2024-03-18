@@ -3,9 +3,11 @@ from transactron.core import Priority
 from transactron.lib import BasicFifo, Semaphore
 from transactron.lib.metrics import *
 from coreblocks.cache.iface import CacheInterface
-from coreblocks.frontend.rvc import InstrDecompress, is_instr_compressed
+from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 from transactron import def_method, Method, Transaction, TModule
-from ..params import *
+from coreblocks.params import *
+from coreblocks.interface.layouts import *
+from coreblocks.frontend.decoder.isa import *
 
 
 class Fetch(Elaboratable):

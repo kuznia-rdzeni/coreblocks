@@ -4,13 +4,15 @@ from amaranth import *
 from transactron import *
 from transactron.lib import FIFO
 
-from coreblocks.params import OpType, Funct3, Funct7, GenParams, FuncUnitLayouts, FunctionalComponentParams
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 __all__ = ["ShiftFuncUnit", "ShiftUnitComponent"]
 

@@ -16,21 +16,21 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.isa import Extension
-from coreblocks.frontend.decode_stage import DecodeStage
-from coreblocks.structs_common.rat import FRAT, RRAT
-from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.structs_common.rf import RegisterFile
-from coreblocks.structs_common.csr_generic import GenericCSRRegisters
-from coreblocks.structs_common.exception import ExceptionCauseRegister
+from coreblocks.params.isa_params import Extension
+from coreblocks.frontend.decoder.decode_stage import DecodeStage
+from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.rob import ReorderBuffer
+from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.traps.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.stages.backend import ResultAnnouncement
-from coreblocks.stages.retirement import Retirement
+from coreblocks.backend.annoucement import ResultAnnouncement
+from coreblocks.backend.retirement import Retirement
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
-from coreblocks.frontend.fetch import Fetch, UnalignedFetch
+from coreblocks.frontend.fetch.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey

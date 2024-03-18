@@ -4,22 +4,24 @@ from dataclasses import KW_ONLY, dataclass
 
 from amaranth import *
 
-from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
-from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
-from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 
 __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
 
 from transactron.utils import OneHotSwitch
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 
 class MulFn(DecoderManager):

@@ -2,13 +2,15 @@ from enum import IntFlag, auto
 from typing import Sequence
 from amaranth import *
 
-from coreblocks.params import Funct3, GenParams, FuncUnitLayouts, OpType, Funct7, FunctionalComponentParams
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import Method, TModule, def_method
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
-from coreblocks.fu.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 
 class ZbsFunction(DecoderManager):

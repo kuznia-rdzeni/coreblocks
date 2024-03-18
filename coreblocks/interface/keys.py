@@ -8,7 +8,7 @@ from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
 if TYPE_CHECKING:
-    from coreblocks.structs_common.csr_generic import GenericCSRRegisters  # noqa: F401
+    from coreblocks.priv.csr.csr_instances import GenericCSRRegisters  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
