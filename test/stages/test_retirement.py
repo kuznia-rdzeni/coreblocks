@@ -1,4 +1,4 @@
-from coreblocks.params.layouts import CoreInstructionCounterLayouts, ExceptionRegisterLayouts, FetchLayouts
+from coreblocks.interface.layouts import CoreInstructionCounterLayouts, ExceptionRegisterLayouts, FetchLayouts
 from coreblocks.stages.retirement import *
 from coreblocks.structs_common.csr_generic import GenericCSRRegisters
 

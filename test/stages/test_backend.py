@@ -5,7 +5,7 @@ from functools import reduce
 from amaranth import *
 from transactron.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
 from coreblocks.stages.backend import ResultAnnouncement
-from coreblocks.params.layouts import *
+from coreblocks.interface.layouts import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from transactron.testing import TestCaseWithSimulator, TestbenchIO

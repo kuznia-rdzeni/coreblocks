@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.params.layouts import ROBLayouts
+from coreblocks.interface.layouts import ROBLayouts
 
 from coreblocks.structs_common.exception import ExceptionCauseRegister
 from coreblocks.params import GenParams

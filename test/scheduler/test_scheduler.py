@@ -6,7 +6,7 @@ from amaranth import *
 from amaranth.sim import Settle
 from parameterized import parameterized_class
 from coreblocks.params.keys import CoreStateKey
-from coreblocks.params.layouts import RetirementLayouts
+from coreblocks.interface.layouts import RetirementLayouts
 from coreblocks.stages.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
