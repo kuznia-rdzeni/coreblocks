@@ -1,6 +1,6 @@
 from amaranth import *
 from coreblocks.params import GenParams
-from coreblocks.params.layouts import DivUnitLayouts
+from coreblocks.interface.layouts import DivUnitLayouts
 from transactron.core import Method
 
 

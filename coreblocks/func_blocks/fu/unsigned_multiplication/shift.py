@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
+from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned
 from coreblocks.params import GenParams
 from transactron.core import def_method, TModule
 

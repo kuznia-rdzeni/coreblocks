@@ -1,6 +1,7 @@
 from amaranth import *
 
-from coreblocks.params import GenParams, UnsignedMulUnitLayouts
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import UnsignedMulUnitLayouts
 from transactron import *
 from transactron.core import def_method
 

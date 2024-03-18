@@ -2,11 +2,13 @@ from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
 from coreblocks.params import *
-from coreblocks.structs_common.rs import RS
+from .rs import RS
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from transactron import Method, TModule
-from coreblocks.utils.protocols import FuncUnit, FuncBlock
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import Collector
+from coreblocks.frontend.decoder import OpType
+from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 

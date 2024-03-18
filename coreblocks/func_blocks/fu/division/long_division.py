@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.params import GenParams
 from transactron import *
 from transactron.core import def_method
-from coreblocks.fu.division.common import DividerBase
+from coreblocks.func_blocks.fu.division.common import DividerBase
 
 """
 Algorithm - multi-cycle array divider

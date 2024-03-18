@@ -1,8 +1,9 @@
 from amaranth import *
 
 from coreblocks.params import *
-from coreblocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
-from coreblocks.params.isa import ExceptionCause
+from coreblocks.func_blocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
+from coreblocks.frontend.decoder.isa import ExceptionCause
+from coreblocks.frontend.decoder import OpType, Funct3, Funct7
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 

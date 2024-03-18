@@ -3,7 +3,9 @@ from typing import Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule
-from coreblocks.params import RSLayouts, GenParams, OpType
+from coreblocks.params import GenParams
+from coreblocks.frontend.decoder import OpType
+from coreblocks.interface.layouts import RSLayouts
 from transactron.utils import RecordDict
 from transactron.utils.transactron_helpers import make_layout
 

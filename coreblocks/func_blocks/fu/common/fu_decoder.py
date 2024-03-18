@@ -1,11 +1,12 @@
 from typing import Sequence, Type
 from amaranth import *
 
-from coreblocks.params import GenParams, CommonLayoutFields
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import CommonLayoutFields
 
 from enum import IntFlag
 
-from coreblocks.params.optypes import OpType
+from coreblocks.frontend.decoder.optypes import OpType
 
 
 class Decoder(Elaboratable):
