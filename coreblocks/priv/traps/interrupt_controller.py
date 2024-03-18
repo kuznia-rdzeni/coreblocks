@@ -1,7 +1,7 @@
 from amaranth import *
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.keys import AsyncInterruptInsertSignalKey, MretKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, MretKey
 
 from transactron.core import Method, TModule, def_method
 

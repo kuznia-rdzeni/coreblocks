@@ -4,11 +4,13 @@ from amaranth import *
 
 from transactron import Method, Transaction, TModule
 from transactron.lib import FIFO, Forwarder
-from coreblocks.params import SchedulerLayouts, GenParams, OpType
+from coreblocks.interface.layouts import SchedulerLayouts
+from coreblocks.params import GenParams
+from coreblocks.frontend.decoder.optypes import OpType
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.params.keys import CoreStateKey
-from coreblocks.utils.protocols import FuncBlock
+from coreblocks.interface.keys import CoreStateKey
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 
 
 __all__ = ["Scheduler"]

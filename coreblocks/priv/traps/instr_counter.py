@@ -1,6 +1,6 @@
 from amaranth import *
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.layouts import CoreInstructionCounterLayouts
+from coreblocks.interface.layouts import CoreInstructionCounterLayouts
 from transactron.core import Method, TModule, def_method
 
 

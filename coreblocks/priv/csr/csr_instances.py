@@ -4,7 +4,7 @@ from amaranth.lib.enum import IntEnum
 from typing import Optional
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.structs_common.csr import CSRRegister
+from coreblocks.priv.csr.csr_register import CSRRegister
 from transactron.core import Method, Transaction, def_method, TModule
 
 

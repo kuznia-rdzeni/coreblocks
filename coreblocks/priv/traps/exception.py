@@ -2,9 +2,9 @@ from amaranth import *
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
 
-from coreblocks.params.isa import ExceptionCause
-from coreblocks.params.layouts import ExceptionRegisterLayouts
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.frontend.decoder.isa import ExceptionCause
+from coreblocks.interface.layouts import ExceptionRegisterLayouts
+from coreblocks.interface.keys import ExceptionReportKey
 from transactron.core import TModule, def_method, Method
 from transactron.lib.connectors import ConnectTrans
 from transactron.lib.fifo import BasicFifo
