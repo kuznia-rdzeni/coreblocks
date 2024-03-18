@@ -1,12 +1,10 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth.lib.enum import IntEnum
-from dataclasses import dataclass
 
 from transactron import Method, def_method, Transaction, TModule
-from transactron.utils import assign, bits_from_int
+from transactron.utils import assign
 from coreblocks.params.genparams import GenParams
-from transactron.utils.dependencies import DependencyManager, ListKey
+from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
 from coreblocks.frontend.decoder.isa import Funct3, ExceptionCause

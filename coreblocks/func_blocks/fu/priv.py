@@ -10,9 +10,16 @@ from transactron.utils import DependencyManager
 
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import Funct3, OpType, Funct7, ExceptionCause
+from coreblocks.frontend.decoder import OpType, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts, RetirementLayouts, FetchLayouts
-from coreblocks.interface.keys import MretKey, AsyncInterruptInsertSignalKey, ExceptionReportKey, GenericCSRRegistersKey, InstructionPrecommitKey, FetchResumeKey
+from coreblocks.interface.keys import (
+    MretKey,
+    AsyncInterruptInsertSignalKey,
+    ExceptionReportKey,
+    GenericCSRRegistersKey,
+    InstructionPrecommitKey,
+    FetchResumeKey,
+)
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager

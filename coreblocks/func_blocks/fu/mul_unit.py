@@ -7,9 +7,8 @@ from amaranth import *
 from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
-from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.frontend.decoder import Funct3, OpType
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method

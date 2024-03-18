@@ -10,7 +10,7 @@ from transactron.lib import *
 from transactron.lib import logging
 from transactron.utils import DependencyManager
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.frontend.decoder import Funct3, OpType
 from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey
 from transactron.utils import OneHotSwitch

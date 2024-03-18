@@ -3,21 +3,11 @@ from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
 
-from transactron import Method, def_method, Transaction, TModule
-from transactron.utils import assign, bits_from_int
+from transactron import Method, def_method, TModule
+from transactron.utils import bits_from_int
 from coreblocks.params.genparams import GenParams
 from transactron.utils.dependencies import DependencyManager, ListKey
-from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
-from coreblocks.frontend.decoder.isa import Funct3, ExceptionCause
-from coreblocks.interface.keys import (
-    AsyncInterruptInsertSignalKey,
-    FetchResumeKey,
-    ExceptionReportKey,
-    InstructionPrecommitKey,
-)
-from coreblocks.frontend.decoder.optypes import OpType
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
+from coreblocks.interface.layouts import CSRLayouts
 from transactron.utils.transactron_helpers import from_method_layout
 
 
