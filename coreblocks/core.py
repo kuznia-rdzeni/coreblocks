@@ -2,13 +2,13 @@ from amaranth import *
 from amaranth.lib.wiring import flipped, connect
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
-from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.structs_common.instr_counter import CoreInstructionCounter
-from coreblocks.structs_common.interrupt_controller import InterruptController
+from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
+from coreblocks.priv.traps.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
-from coreblocks.params.layouts import *
-from coreblocks.params.keys import (
+from coreblocks.interface.layouts import *
+from coreblocks.interface.keys import (
     BranchVerifyKey,
     FetchResumeKey,
     GenericCSRRegistersKey,

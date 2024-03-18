@@ -14,7 +14,6 @@ from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.structs_common.csr import *
 
 
-
 class CSRUnit(FuncBlock, Elaboratable):
     """
     Unit for performing Control and Status Regitsters computations.

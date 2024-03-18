@@ -9,8 +9,6 @@ __all__ = [
 ]
 
 
-
-
 @unique
 class Extension(enum.IntFlag):
     """

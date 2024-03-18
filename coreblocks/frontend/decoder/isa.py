@@ -12,6 +12,7 @@ __all__ = [
     "Registers",
 ]
 
+
 @unique
 class InstrType(Enum):
     R = 0
