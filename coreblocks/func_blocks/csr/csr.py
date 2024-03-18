@@ -7,9 +7,15 @@ from coreblocks.params.genparams import GenParams
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
-from coreblocks.frontend.decoder.isa import Funct3, ExceptionCause
+from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.priv.csr.csr_register import *
+from coreblocks.interface.keys import (
+    FetchResumeKey,
+    InstructionPrecommitKey,
+    ExceptionReportKey,
+    AsyncInterruptInsertSignalKey,
+)
 
 
 class CSRUnit(FuncBlock, Elaboratable):

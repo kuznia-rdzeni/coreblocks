@@ -1,6 +1,5 @@
 from parameterized import parameterized_class
 
-from coreblocks.params import *
 from coreblocks.frontend.decoder import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.mul_unit import MulFn, MulComponent, MulType
 
