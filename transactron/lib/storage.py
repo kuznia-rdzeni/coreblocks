@@ -3,12 +3,12 @@ from amaranth.utils import *
 
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MultiPriorityEncoder
 from typing import Optional
 from transactron.utils import assign, AssignType, LayoutList
 from .reqres import ArgumentsToResultsZipper
 
-__all__ = ["MemoryBank"]
+__all__ = ["MemoryBank", "ContentAddressableMemory"]
 
 
 class MemoryBank(Elaboratable):
@@ -134,5 +134,85 @@ class MemoryBank(Elaboratable):
             else:
                 m.d.comb += write_req.eq(1)
             m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
+
+        return m
+
+
+class ContentAddressableMemory(Elaboratable):
+    """Content addresable memory
+
+    This module implements a content-addressable memory (in short CAM) with Transactron interface. 
+    CAM is a type of memory where instead of predefined indexes there are used values feed in runtime
+    as keys (smimlar as in python dictionary). To insert new entry a pair `(key, value)` has to be
+    provided. Such pair takes an free slot which depends on internal implementation. To read value
+    a `key` has to be provided. It is compared with every valid key stored in CAM. If there is a hit,
+    a value is read. There can be many instances of the same key in CAM. In such case it is undefined
+    which value will be read.
+
+
+    .. warning::
+       Current implementation has critical path O(entries_number). If needed we can
+       optimise it in future to have O(log(entries_number)).
+
+
+    Attributes
+    ----------
+    pop : Method
+        Looks for the data in memory and, if found, returns it and removes it.
+    push : Method
+        Inserts new data.
+    """
+
+    def __init__(self, address_layout: MethodLayout, data_layout: MethodLayout, entries_number: int):
+        """
+        Parameters
+        ----------
+        address_layout : LayoutLike
+            The layout of the address records.
+        data_layout : LayoutLike
+            The layout of the data.
+        entries_number : int
+            The number of slots to create in memory.
+        """
+        self.address_layout = from_method_layout(address_layout)
+        self.data_layout = from_method_layout(data_layout)
+        self.entries_number = entries_number
+
+        self.pop = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        address_array = Array([Signal(self.address_layout) for _ in range(self.entries_number)])
+        data_array = Array([Signal(self.data_layout) for _ in range(self.entries_number)])
+        valids = Signal(self.entries_number, name="valids")
+
+        m.submodules.encoder_addr = encoder_addr = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_valids = encoder_valids = MultiPriorityEncoder(self.entries_number, 1)
+        m.d.comb += encoder_valids.input.eq(~valids)
+
+        @def_method(m, self.push, ready=~valids.all())
+        def _(addr, data):
+            id = Signal(range(self.entries_number), name="id_push")
+            m.d.comb += id.eq(encoder_valids.outputs[0])
+            m.d.sync += address_array[id].eq(addr)
+            m.d.sync += data_array[id].eq(data)
+            m.d.sync += valids.bit_select(id, 1).eq(1)
+
+        if_addr = Signal(self.entries_number, name="if_addr")
+        data_to_send = Record(self.data_layout)
+
+        @def_method(m, self.pop)
+        def _(addr):
+            m.d.top_comb += if_addr.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            id = encoder_addr.outputs[0]
+            with m.If(if_addr.any()):
+                m.d.comb += data_to_send.eq(data_array[id])
+                m.d.sync += valids.bit_select(id, 1).eq(0)
+
+            return {"data": data_to_send, "not_found": ~if_addr.any()}
+
+        m.d.comb += encoder_addr.input.eq(if_addr)
 
         return m

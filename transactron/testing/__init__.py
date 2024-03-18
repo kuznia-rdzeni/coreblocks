@@ -1,3 +1,4 @@
+from .input_generation import *  # noqa: F401
 from .functions import *  # noqa: F401
 from .infrastructure import *  # noqa: F401
 from .sugar import *  # noqa: F401
