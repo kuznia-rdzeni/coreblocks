@@ -303,11 +303,6 @@ class Method(TransactionBase):
             raise RuntimeError(f"Method '{self.name}' can't be called twice from the same caller '{caller.name}'")
         caller.method_calls[self].append(MethodCall(m.ctrl_path, arg_rec, enable_sig, False))
 
-        if self not in caller.method_uses:
-            arg_rec_use = Signal(self.layout_in)
-            arg_rec_enable_sig = Signal()
-            caller.method_uses[self] = (arg_rec_use, arg_rec_enable_sig)
-
         return self.data_out
 
     def __repr__(self) -> str:

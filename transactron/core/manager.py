@@ -9,7 +9,7 @@ from transactron.utils import *
 from transactron.utils.transactron_helpers import _graph_ccs
 from transactron.graph import OwnershipGraph, Direction
 
-from .transaction_base import TransactionBase, TransactionOrMethod, Priority, Relation
+from .transaction_base import MethodCall, TransactionBase, TransactionOrMethod, Priority, Relation
 from .method import Method
 from .transaction import Transaction, TransactionManagerKey
 from .tmodule import CtrlPath, TModule
@@ -27,14 +27,12 @@ class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
-        self.readiness_by_method_and_transaction = dict[tuple[Transaction, Method], ValueLike]()
         self.method_parents = defaultdict[Method, list[TransactionBase]](list)
 
         def rec(transaction: Transaction, source: TransactionBase):
-            for method, (arg_rec, _) in source.method_uses.items():
+            for method in source.method_calls.keys():
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
-                self.readiness_by_method_and_transaction[(transaction, method)] = method._validate_arguments(arg_rec)
                 rec(transaction, method)
 
         for transaction in transactions:
@@ -43,7 +41,7 @@ class MethodMap:
             rec(transaction, transaction)
 
         for transaction_or_method in self.methods_and_transactions:
-            for method in transaction_or_method.method_uses.keys():
+            for method in transaction_or_method.method_calls.keys():
                 self.method_parents[method].append(transaction_or_method)
 
     def _check(self, transaction: "Transaction"):
@@ -198,38 +196,58 @@ class TransactionManager(Elaboratable):
 
     @staticmethod
     def _method_enables(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", ValueLike]]:
-        method_enables = defaultdict[Transaction, dict[Method, ValueLike]](dict)
+        method_enables = defaultdict[Transaction, defaultdict[Method, list[ValueLike]]](lambda: defaultdict(list))
         enables: list[ValueLike] = []
 
         def rec(transaction: Transaction, source: TransactionOrMethod):
-            for method, (_, enable) in source.method_uses.items():
-                enables.append(enable)
+            for method, calls in source.method_calls.items():
+                enables.append(Cat(call.enable for call in calls).any())
                 rec(transaction, method)
-                method_enables[transaction][method] = Cat(*enables).all()
+                method_enables[transaction][method].append(Cat(*enables).all())
                 enables.pop()
 
         for transaction in method_map.transactions:
             rec(transaction, transaction)
 
-        return method_enables
+        return {tr: {met: Cat(*enables).any() for met, enables in d.items()} for tr, d in method_enables.items()}
 
     @staticmethod
-    def _method_calls(
+    def _method_args_runs(
         m: Module, method_map: MethodMap
     ) -> tuple[Mapping["Method", Sequence[MethodStruct]], Mapping["Method", Sequence[Value]]]:
+        call_srcs = defaultdict[Method, defaultdict[TransactionOrMethod, list[MethodCall]]](lambda: defaultdict(list))
+
+        for source in method_map.methods_and_transactions:
+            for method, calls in source.method_calls.items():
+                for call in calls:
+                    call_srcs[method][source].append(call)
+
         args = defaultdict[Method, list[MethodStruct]](list)
         runs = defaultdict[Method, list[Value]](list)
 
-        for source in method_map.methods_and_transactions:
-            if isinstance(source, Method):
-                run_val = Cat(transaction.grant for transaction in method_map.transactions_by_method[source]).any()
-                run = Signal()
-                m.d.comb += run.eq(run_val)
-            else:
-                run = source.grant
-            for method, (arg, _) in source.method_uses.items():
-                args[method].append(arg)
-                runs[method].append(run)
+        for method, d in call_srcs.items():
+            for source, calls in d.items():
+                source_runs = list[ValueLike]()
+                for call in calls:
+                    if isinstance(source, Transaction):
+                        source_runs.append(source.grant)
+                    else:
+                        # TODO
+                        source_runs.append(
+                            Cat(transaction.grant for transaction in method_map.transactions_by_method[source]).any()
+                        )
+                if len(calls) == 1:
+                    args[method].append(calls[0].arg)
+                else:
+                    call_ens = Cat([call.enable for call in calls])
+                    arg = Signal.like(calls[0].arg)
+
+                    for i in OneHotSwitchDynamic(m, call_ens):
+                        m.d.comb += arg.eq(calls[i].arg)
+
+                    args[method].append(arg)
+
+                runs[method].append(Cat(source_runs).any())
 
         return (args, runs)
 
@@ -306,7 +324,6 @@ class TransactionManager(Elaboratable):
             method.run = transaction.grant
             method.defined = transaction.defined
             method.method_calls = transaction.method_calls
-            method.method_uses = transaction.method_uses
             method.relations = transaction.relations
             method.def_order = transaction.def_order
             method.ctrl_path = transaction.ctrl_path
@@ -342,12 +359,11 @@ class TransactionManager(Elaboratable):
         m = Module()
         m.submodules.merge_manager = merge_manager
 
-        for elem in method_map.methods_and_transactions:
-            elem._set_method_uses(m)
-
         for transaction in self.transactions:
             ready = [
-                method_map.readiness_by_method_and_transaction[transaction, method]
+                # TODO
+                # method_map.readiness_by_method_and_transaction[transaction, method]
+                method.ready
                 for method in method_map.methods_by_transaction[transaction]
             ]
             m.d.comb += transaction.runnable.eq(Cat(ready).all())
@@ -363,9 +379,10 @@ class TransactionManager(Elaboratable):
             granted = Cat(transaction.grant & method_enables[transaction][method] for transaction in transactions)
             m.d.comb += method.run.eq(granted.any())
 
-        (method_args, method_runs) = self._method_calls(m, method_map)
+        (method_args, method_runs) = self._method_args_runs(m, method_map)
 
         for method in method_map.methods:
+            print(method, method_args[method])
             if len(method_args[method]) == 1:
                 m.d.comb += method.data_in.eq(method_args[method][0])
             else:
