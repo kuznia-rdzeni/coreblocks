@@ -58,7 +58,7 @@ class MethodMap:
             for method, calls in thing.method_calls.items():
                 if not method.defined:
                     raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
-                curr_paths[thing] = [ctrl_path for ctrl_path, _, _ in calls]
+                curr_paths[thing] = [call.ctrl_path for call in calls]
                 for other_paths in method_paths[method]:
                     common = [t for t in curr_paths if t in other_paths]
                     if all(not exclusive(curr_paths[t], other_paths[t]) for t in common):
