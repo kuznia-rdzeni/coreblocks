@@ -8,6 +8,8 @@ from .sugar import def_method
 from contextlib import contextmanager
 from transactron.utils.assign import AssignArg
 
+from .transaction_base import MethodCall
+
 if TYPE_CHECKING:
     from .tmodule import TModule
 
@@ -297,9 +299,9 @@ class Method(TransactionBase):
         m.d.top_comb += assign(arg_rec, arg, fields=AssignType.ALL)
 
         caller = TransactionBase.get()
-        if not all(ctrl_path.exclusive_with(m.ctrl_path) for ctrl_path, _, _ in caller.method_calls[self]):
+        if not all(call.ctrl_path.exclusive_with(m.ctrl_path) for call in caller.method_calls[self]):
             raise RuntimeError(f"Method '{self.name}' can't be called twice from the same caller '{caller.name}'")
-        caller.method_calls[self].append((m.ctrl_path, arg_rec, enable_sig))
+        caller.method_calls[self].append(MethodCall(m.ctrl_path, arg_rec, enable_sig, False))
 
         if self not in caller.method_uses:
             arg_rec_use = Signal(self.layout_in)

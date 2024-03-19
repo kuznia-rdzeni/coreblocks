@@ -1,5 +1,6 @@
 from collections import defaultdict
 from contextlib import contextmanager
+from dataclasses import dataclass
 from enum import Enum, auto
 from itertools import count
 from typing import (
@@ -50,6 +51,14 @@ class Relation(RelationBase):
     start: TransactionOrMethod
 
 
+@dataclass
+class MethodCall:
+    ctrl_path: CtrlPath
+    arg: MethodStruct
+    enable: ValueLike
+    finegrained: bool
+
+
 @runtime_checkable
 class TransactionBase(Owned, Protocol):
     stack: ClassVar[list[Union["Transaction", "Method"]]] = []
@@ -59,7 +68,7 @@ class TransactionBase(Owned, Protocol):
     name: str
     src_loc: SrcLoc
     method_uses: dict["Method", tuple[MethodStruct, Signal]]
-    method_calls: defaultdict["Method", list[tuple[CtrlPath, MethodStruct, ValueLike]]]
+    method_calls: defaultdict["Method", list[MethodCall]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
     independent_list: list[TransactionOrMethod]
@@ -177,13 +186,13 @@ class TransactionBase(Owned, Protocol):
         for method, calls in self.method_calls.items():
             arg_rec, enable_sig = self.method_uses[method]
             if len(calls) == 1:
-                m.d.comb += arg_rec.eq(calls[0][1])
-                m.d.comb += enable_sig.eq(calls[0][2])
+                m.d.comb += arg_rec.eq(calls[0].arg)
+                m.d.comb += enable_sig.eq(calls[0].enable)
             else:
-                call_ens = Cat([en for _, _, en in calls])
+                call_ens = Cat([call.enable for call in calls])
 
                 for i in OneHotSwitchDynamic(m, call_ens):
-                    m.d.comb += arg_rec.eq(calls[i][1])
+                    m.d.comb += arg_rec.eq(calls[i].arg)
                     m.d.comb += enable_sig.eq(1)
 
     @classmethod
