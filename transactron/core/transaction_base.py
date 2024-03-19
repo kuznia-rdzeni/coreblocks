@@ -67,7 +67,6 @@ class TransactionBase(Owned, Protocol):
     defined: bool = False
     name: str
     src_loc: SrcLoc
-    method_uses: dict["Method", tuple[MethodStruct, Signal]]
     method_calls: defaultdict["Method", list[MethodCall]]
     relations: list[RelationBase]
     simultaneous_list: list[TransactionOrMethod]
@@ -76,7 +75,6 @@ class TransactionBase(Owned, Protocol):
 
     def __init__(self, *, src_loc: int | SrcLoc):
         self.src_loc = get_src_loc(src_loc)
-        self.method_uses = {}
         self.method_calls = defaultdict(list)
         self.relations = []
         self.simultaneous_list = []
@@ -181,19 +179,6 @@ class TransactionBase(Owned, Protocol):
         finally:
             TransactionBase.stack.pop()
             self.defined = True
-
-    def _set_method_uses(self, m: ModuleLike):
-        for method, calls in self.method_calls.items():
-            arg_rec, enable_sig = self.method_uses[method]
-            if len(calls) == 1:
-                m.d.comb += arg_rec.eq(calls[0].arg)
-                m.d.comb += enable_sig.eq(calls[0].enable)
-            else:
-                call_ens = Cat([call.enable for call in calls])
-
-                for i in OneHotSwitchDynamic(m, call_ens):
-                    m.d.comb += arg_rec.eq(calls[i].arg)
-                    m.d.comb += enable_sig.eq(1)
 
     @classmethod
     def get(cls) -> Self:
