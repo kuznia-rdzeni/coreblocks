@@ -392,13 +392,16 @@ class ICacheLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.error: LayoutListField = ("last", 1)
+        self.last: LayoutListField = ("last", 1)
         """This is the last cache refill result."""
+
+        self.fetch_block: LayoutListField = ("fetch_block", gen_params.fetch_block_bytes * 8)
+        """The block of data the fetch unit operates on."""
 
         self.issue_req = make_layout(fields.addr)
 
         self.accept_res = make_layout(
-            fields.instr,
+            self.fetch_block,
             fields.error,
         )
 
@@ -408,9 +411,9 @@ class ICacheLayouts:
 
         self.accept_refill = make_layout(
             fields.addr,
-            fields.data,
+            self.fetch_block,
             fields.error,
-            self.error,
+            self.last,
         )
 
 
