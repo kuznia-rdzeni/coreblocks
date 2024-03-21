@@ -1,5 +1,5 @@
-from coreblocks.params import Funct3, Funct7, OpType
-from coreblocks.fu.alu import AluFn, ALUComponent
+from coreblocks.frontend.decoder import Funct3, Funct7, OpType
+from coreblocks.func_blocks.fu.alu import AluFn, ALUComponent
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 

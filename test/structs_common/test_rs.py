@@ -2,9 +2,10 @@ from amaranth.sim import Settle
 
 from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
-from coreblocks.structs_common.rs import RS
+from coreblocks.func_blocks.fu.common.rs import RS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
+from coreblocks.frontend.decoder import OpType
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:

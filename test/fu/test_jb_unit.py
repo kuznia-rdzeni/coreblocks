@@ -3,10 +3,11 @@ from amaranth.lib.data import StructLayout
 from parameterized import parameterized_class
 
 from coreblocks.params import *
-from coreblocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
+from coreblocks.func_blocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
 from transactron import Method, def_method, TModule
-from coreblocks.params.layouts import FuncUnitLayouts
-from coreblocks.utils.protocols import FuncUnit
+from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.frontend.decoder import Funct3, OpType, ExceptionCause
 
 from transactron.utils import signed_to_int
 

@@ -1,14 +1,14 @@
 from amaranth import *
 
 from transactron.lib import Adapter
-from coreblocks.structs_common.csr import CSRUnit, CSRRegister
+from coreblocks.func_blocks.csr.csr import CSRUnit
+from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params import GenParams
-from coreblocks.params.isa import Funct3, ExceptionCause
+from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
-from coreblocks.params.layouts import ExceptionRegisterLayouts
-from coreblocks.params.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
+from coreblocks.interface.layouts import ExceptionRegisterLayouts
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.params.optypes import OpType
 
 from transactron.testing import *
 

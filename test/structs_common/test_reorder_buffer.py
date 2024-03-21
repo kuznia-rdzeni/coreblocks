@@ -2,7 +2,7 @@ from amaranth.sim import Passive, Settle
 
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
-from coreblocks.structs_common.rob import ReorderBuffer
+from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 

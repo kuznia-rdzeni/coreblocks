@@ -4,7 +4,8 @@ from transactron.testing import TestCaseWithSimulator
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.frontend.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
+from coreblocks.frontend.decoder.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
+from coreblocks.frontend.decoder import *
 from unittest import TestCase
 from typing import Optional
 

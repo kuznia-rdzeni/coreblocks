@@ -1,5 +1,5 @@
-from coreblocks.params import Funct3, Funct7, OpType
-from coreblocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
+from coreblocks.frontend.decoder import Funct3, Funct7, OpType
+from coreblocks.func_blocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
