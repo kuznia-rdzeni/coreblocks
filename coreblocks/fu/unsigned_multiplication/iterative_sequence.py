@@ -5,7 +5,7 @@ from amaranth.sim import Simulator, Delay
 # from coreblocks.params import GenParams
 # from transactron import *
 # from transactron.core import def_method
-
+import random  
 __all__ = ["IterativeSequenceMul"]
 
 
@@ -31,36 +31,51 @@ class IterativeSequenceMul(Elaboratable):
                 chunk_i2 = self.i2[i*self.dsp_width:(i+1)*self.dsp_width]
                 m.d.sync += self.pipeline_array[0][j][i].eq(chunk_i1*chunk_i2)
 
-        for i in range(1, self.n):
-            for j in range(self.n-1):
-                for k in range(self.n-1):
-                    ll = self.pipeline_array[i-1][j][k]
-                    lu = self.pipeline_array[i-1][j][k+1]
-                    ul = self.pipeline_array[i-1][j+1][k]
-                    uu = self.pipeline_array[i-1][j+1][k+1]
-                    m.d.sync += self.pipeline_array[i][j][k].eq(ll+((ul+lu) << self.n // 2) + (uu << self.n))
-        result_lvl = int(math.log(self.n - self.dsp_width, 2))
+        for i in range(1, int(math.log(number_of_chunks, 2))+1):
+            for j in range(number_of_chunks >> i):
+                for k in range(number_of_chunks >> i):
+                    ll = self.pipeline_array[i-1][2*j][2*k]
+                    lu = self.pipeline_array[i-1][2*j][2*k+1]
+                    ul = self.pipeline_array[i-1][2*j+1][2*k]
+                    uu = self.pipeline_array[i-1][2*j+1][2*k+1]
+                    m.d.sync += self.pipeline_array[i][j][k].eq(ll+((ul+lu) << (self.dsp_width * (1<<(i-1)))) + (uu << (self.dsp_width * 2 *  (1<<(i-1))) ))
+        result_lvl = int(math.log(number_of_chunks, 2)) 
         m.d.sync += self.result.eq(self.pipeline_array[result_lvl][0][0])
         return m
-
-# Basic test works
+# Tests pipelining of the module - works
 def testbench():
-    dsp_width = 4  
-    n = 16  
-    mul_module = IterativeSequenceMul(dsp_width=dsp_width, n=n)  
-    sim = Simulator(mul_module)  
+    dsp_width = 4
+    n = 16
+    mul_module = IterativeSequenceMul(dsp_width=dsp_width, n=n)
+    sim = Simulator(mul_module)
     sim.add_clock(1e-6)  
     def process():
-        test_val1 = 3
-        test_val2 = 4
-        yield mul_module.i1.eq(test_val1)
-        yield mul_module.i2.eq(test_val2)
-        for _ in range(6): 
-        	yield Delay(1e-6)
-        result = yield mul_module.result
-        assert result == test_val1 * test_val2, f"Expected {test_val1 * test_val2}, got {result}"
-    sim.add_sync_process(process)  
-    sim.run()  
+  
+        test_cases = [
+            (7200, 100, 720000),
+            (100, 200, 20000),
+            (60000,60000, 3600000000),
+         
+        ]
+        module_latency = int(math.log2(n / dsp_width)) + 3
+
+        for test_idx in range(len(test_cases) + module_latency):
+            if test_idx < len(test_cases):
+                test_val1, test_val2, _ = test_cases[test_idx]
+                yield mul_module.i1.eq(test_val1)
+                yield mul_module.i2.eq(test_val2)
+            
+            if test_idx >= module_latency:
+                expected_idx = test_idx - module_latency
+                expected = test_cases[expected_idx][2]
+                result = yield mul_module.result
+                assert result == expected, f"Test case {expected_idx} failed: Expected {expected}, got {result}"
+                print(f"Test case {expected_idx}: Expected = {expected}, got {result}")
+
+            yield  
+
+    sim.add_sync_process(process)
+    sim.run()
 
 if __name__ == "__main__":
     testbench()
