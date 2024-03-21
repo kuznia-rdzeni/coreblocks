@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1711033592260,
+  "lastUpdate": 1711033888234,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -8693,6 +8693,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.21524395351898612,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29204002838551374,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "074ff6bef5a0c5b530ccdb918874e10d1022b9cd",
+          "message": "Spring cleanup - coreblocks (#620)",
+          "timestamp": "2024-03-21T15:57:39+01:00",
+          "tree_id": "21db1e537f5c8ca4b486ad35ab93838a0ba1367c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/074ff6bef5a0c5b530ccdb918874e10d1022b9cd"
+        },
+        "date": 1711033884916,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.3246413600430343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4158309618409448,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115635899199292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23775978551326782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21524395351898612,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
             "unit": "Instructions Per Cycle"
           },
           {
