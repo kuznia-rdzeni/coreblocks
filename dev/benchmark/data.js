@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1711058754198,
+  "lastUpdate": 1711059006610,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -8767,6 +8767,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b7df72a83350d118afa2f7087da686e9380a2bdb",
+          "message": "Update GH actions (#622)",
+          "timestamp": "2024-03-21T22:57:08+01:00",
+          "tree_id": "a2159df04c35e4c9371290b9d5143b5c0a6caf6a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b7df72a83350d118afa2f7087da686e9380a2bdb"
+        },
+        "date": 1711059003888,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "ud",
+            "value": 0.29204002838551374,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4158309618409448,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23775978551326782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.3246413600430343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115635899199292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.21524395351898612,
             "unit": "Instructions Per Cycle"
           }
         ]
