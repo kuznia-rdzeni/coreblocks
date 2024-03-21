@@ -15,6 +15,7 @@ SIM_BUILD = build/signature
 # Yosys/Amaranth borkedness workaround
 ifeq ($(SIM),verilator)
   EXTRA_ARGS += -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
+  BUILD_ARGS += -j`nproc`
 endif
 
 ifeq ($(TRACES),1)
