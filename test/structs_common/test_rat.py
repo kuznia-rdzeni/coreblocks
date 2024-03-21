@@ -1,6 +1,6 @@
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
-from coreblocks.structs_common.rat import FRAT, RRAT
+from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 

@@ -4,7 +4,8 @@ from amaranth.hdl import ValueCastable
 from amaranth import *
 
 from transactron.utils import ValueLike
-from coreblocks.params.isa import *
+from coreblocks.params.isa_params import *
+from coreblocks.frontend.decoder.isa import *
 
 
 __all__ = [
