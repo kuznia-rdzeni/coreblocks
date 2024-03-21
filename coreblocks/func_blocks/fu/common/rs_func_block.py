@@ -73,7 +73,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
-        m.submodules.collector = collector = Collector([func_unit.accept for func_unit, _ in self.func_units])
+        m.submodules.collector = collector = Collector(
+            [self.rs.accept] + [func_unit.accept for func_unit, _ in self.func_units]
+        )
 
         self.insert.proxy(m, self.rs.insert)
         self.select.proxy(m, self.rs.select)

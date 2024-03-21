@@ -5,8 +5,11 @@ from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, def_method, TModule
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import OpType
-from coreblocks.interface.layouts import RSLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, RSLayouts
+from coreblocks.interface.keys import CoreStateKey
+from transactron.core.transaction import Transaction
 from transactron.utils import RecordDict
+from transactron.utils.dependencies import DependencyManager
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RS"]
@@ -32,6 +35,9 @@ class RS(Elaboratable):
         self.update = Method(i=self.layouts.rs.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
 
+        # The accept method acts as a FU bypass for RS flushing
+        self.accept = Method(o=gen_params.get(FuncUnitLayouts).accept)
+
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
@@ -40,6 +46,11 @@ class RS(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
+
+        core_state = self.gen_params.get(DependencyManager).get_dependency(CoreStateKey())
+
+        with Transaction().body(m):
+            flushing = core_state(m).flushing
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
@@ -53,6 +64,9 @@ class RS(Elaboratable):
 
         take_vector = Cat(self.data_ready[i] & record.rec_full for i, record in enumerate(self.data))
         take_possible = take_vector.any()
+
+        accept_vector = Cat(record.rec_full for record in self.data)
+        accept_possible = accept_vector.any()
 
         ready_lists: list[Value] = []
         for op_list in self.ready_for:
@@ -84,7 +98,7 @@ class RS(Elaboratable):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
                         m.d.sync += record.rs_data.s2_val.eq(reg_val)
 
-        @def_method(m, self.take, ready=take_possible)
+        @def_method(m, self.take, ready=take_possible & ~flushing)
         def _(rs_entry_id: Value) -> RecordDict:
             record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
@@ -98,6 +112,19 @@ class RS(Elaboratable):
                 "imm": record.rs_data.imm,
                 "pc": record.rs_data.pc,
             }
+
+        @def_method(m, self.accept, ready=accept_possible & flushing)
+        def _() -> RecordDict:
+            last = Signal(range(self.rs_entries))
+            for i in range(self.rs_entries):
+                with m.If(accept_vector[i]):
+                    m.d.comb += last.eq(i)
+
+            record = self.data[last]
+            m.d.sync += record.rec_reserved.eq(0)
+            m.d.sync += record.rec_full.eq(0)
+
+            return {"rob_id": record.rs_data.rob_id, "result": 0, "rp_dst": record.rs_data.rp_dst, "exception": 0}
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
