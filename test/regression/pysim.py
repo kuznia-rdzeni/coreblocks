@@ -6,7 +6,7 @@ from amaranth.sim import Passive, Settle
 from amaranth.utils import exact_log2
 from amaranth import *
 
-from transactron.core import TransactionManagerKey
+from transactron.core.keys import TransactionManagerKey
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult

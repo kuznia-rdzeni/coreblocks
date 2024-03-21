@@ -2,11 +2,19 @@ from amaranth import *
 
 from transactron.utils.transactron_helpers import get_src_loc
 from ..core import *
-from ..core import RecordDict
 from ..utils import SrcLoc
 from typing import Optional, Protocol
 from collections.abc import Callable
-from transactron.utils import ValueLike, assign, AssignType, ModuleLike, MethodStruct, HasElaborate
+from transactron.utils import (
+    ValueLike,
+    assign,
+    AssignType,
+    ModuleLike,
+    MethodStruct,
+    HasElaborate,
+    MethodLayout,
+    RecordDict,
+)
 from .connectors import Forwarder, ManyToOneConnectTrans, ConnectTrans
 from .simultaneous import condition
 

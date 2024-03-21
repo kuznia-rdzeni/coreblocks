@@ -4,7 +4,8 @@ from typing import Optional
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 from transactron.utils import SrcLoc, IdGenerator
-from transactron.core import MethodMap, TransactionManager
+from transactron.core import TransactionManager
+from transactron.core.manager import MethodMap
 
 
 __all__ = [

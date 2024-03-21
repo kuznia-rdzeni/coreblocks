@@ -6,7 +6,9 @@ from amaranth import *
 from amaranth.back import verilog
 from amaranth.hdl import Fragment
 
-from transactron.core import TransactionManager, MethodMap, TransactionManagerKey
+from transactron.core import TransactionManager
+from transactron.core.keys import TransactionManagerKey
+from transactron.core.manager import MethodMap
 from transactron.lib.metrics import HardwareMetricsManager
 from transactron.lib import logging
 from transactron.utils.dependencies import DependencyContext
