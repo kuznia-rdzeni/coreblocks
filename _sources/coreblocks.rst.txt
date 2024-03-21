@@ -7,16 +7,15 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   coreblocks.backend
    coreblocks.cache
+   coreblocks.core_structs
    coreblocks.frontend
-   coreblocks.fu
-   coreblocks.lsu
+   coreblocks.func_blocks
    coreblocks.params
    coreblocks.peripherals
+   coreblocks.priv
    coreblocks.scheduler
-   coreblocks.stages
-   coreblocks.structs_common
-   coreblocks.utils
 
 Submodules
 ----------

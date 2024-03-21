@@ -1,0 +1,29 @@
+coreblocks.backend package
+==========================
+
+Submodules
+----------
+
+coreblocks.backend.annoucement module
+-------------------------------------
+
+.. automodule:: coreblocks.backend.annoucement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.backend.retirement module
+------------------------------------
+
+.. automodule:: coreblocks.backend.retirement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.backend
+   :members:
+   :undoc-members:
+   :show-inheritance:

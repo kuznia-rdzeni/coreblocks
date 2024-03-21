@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>coreblocks.priv.csr package &mdash; Coreblocks documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+        <script>mermaid.initialize({startOnLoad:true});</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="coreblocks.priv.traps package" href="coreblocks.priv.traps.html" />
+    <link rel="prev" title="coreblocks.priv package" href="coreblocks.priv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> Coreblocks documentation
+            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="home.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assumptions.html">List of assumptions made during development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transactions.html">Documentation for Coreblocks transaction framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
+<li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
+<li class="toctree-l1"><a class="reference internal" href="problem-checklist.html">Problem checklist</a></li>
+<li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Core verification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components/icache.html">Instruction Cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellany/exceptions-summary.html">Summary of papers about interrupts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Coreblocks documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="api.html">API</a> &raquo;</li>
+          <li><a href="coreblocks.html">coreblocks package</a> &raquo;</li>
+          <li><a href="coreblocks.priv.html">coreblocks.priv package</a> &raquo;</li>
+      <li>coreblocks.priv.csr package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/coreblocks.priv.csr.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="coreblocks-priv-csr-package">
+<h1>coreblocks.priv.csr package<a class="headerlink" href="#coreblocks-priv-csr-package" title="Permalink to this heading"></a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.priv.csr.csr_instances">
+<span id="coreblocks-priv-csr-csr-instances-module"></span><h2>coreblocks.priv.csr.csr_instances module<a class="headerlink" href="#module-coreblocks.priv.csr.csr_instances" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_instances.</span></span><span class="sig-name descname"><span class="pre">CSRAddress</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.CYCLE">
+<span class="sig-name descname"><span class="pre">CYCLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3072</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.CYCLE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.CYCLEH">
+<span class="sig-name descname"><span class="pre">CYCLEH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3200</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.CYCLEH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.INSTRET">
+<span class="sig-name descname"><span class="pre">INSTRET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3074</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.INSTRET" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.INSTRETH">
+<span class="sig-name descname"><span class="pre">INSTRETH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3202</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.INSTRETH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.MCAUSE">
+<span class="sig-name descname"><span class="pre">MCAUSE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">834</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.MCAUSE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.MEPC">
+<span class="sig-name descname"><span class="pre">MEPC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">833</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.MEPC" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.MTVEC">
+<span class="sig-name descname"><span class="pre">MTVEC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">773</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.MTVEC" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.TIME">
+<span class="sig-name descname"><span class="pre">TIME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3073</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.TIME" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.TIMEH">
+<span class="sig-name descname"><span class="pre">TIMEH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3201</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.TIMEH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.CSRAddress.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.CSRAddress.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.DoubleCounterCSR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_instances.</span></span><span class="sig-name descname"><span class="pre">DoubleCounterCSR</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.DoubleCounterCSR" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>DoubleCounterCSR
+Groups two <cite>CSRRegisters</cite> to form counter with double <cite>isa.xlen</cite> width.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>increment: Method</strong></dt><dd><p>Increments the counter by 1. At overflow, counter value is set to 0.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.DoubleCounterCSR.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">low_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.csr.csr_instances.CSRAddress" title="coreblocks.priv.csr.csr_instances.CSRAddress"><span class="pre">CSRAddress</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">high_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.priv.csr.csr_instances.CSRAddress" title="coreblocks.priv.csr.csr_instances.CSRAddress"><span class="pre">CSRAddress</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.DoubleCounterCSR.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>low_addr: CSRAddress</strong></dt><dd><p>Address of the CSR register representing lower part of the counter (bits <cite>[isa.xlen-1 : 0]</cite>).</p>
+</dd>
+<dt><strong>high_addr: CSRAddress or None, optional</strong></dt><dd><p>Address of the CSR register representing higher part of the counter (bits <cite>[2*isa.xlen-1 : isa.xlen]</cite>).
+If high_addr is None or not provided, then higher CSR is not synthetised and only the width of
+low_addr CSR is available to the counter.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.GenericCSRRegisters">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_instances.</span></span><span class="sig-name descname"><span class="pre">GenericCSRRegisters</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.GenericCSRRegisters" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.GenericCSRRegisters.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.GenericCSRRegisters.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_instances.</span></span><span class="sig-name descname"><span class="pre">MachineModeCSRRegisters</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.priv.csr.csr_register">
+<span id="coreblocks-priv-csr-csr-register-module"></span><h2>coreblocks.priv.csr.csr_register module<a class="headerlink" href="#module-coreblocks.priv.csr.csr_register" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRListKey">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">CSRListKey</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRListKey" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.ListKey" title="transactron.utils.dependencies.ListKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListKey</span></code></a>[<a class="reference internal" href="#coreblocks.priv.csr.csr_register.CSRRegister" title="coreblocks.priv.csr.csr_register.CSRRegister"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSRRegister</span></code></a>]</p>
+<p>DependencyManager key collecting CSR registers globally as a list.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRListKey.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRListKey.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRRegister">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">CSRRegister</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRRegister" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>CSR Register
+Used to define a CSR register and specify its behaviour.
+<cite>CSRRegisters</cite> are automatically assigned to <cite>CSRListKey</cite> dependency key, to be accessed from <cite>CSRUnits</cite>.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Timer register that increments on each cycle and resets if read by CSR instruction</span>
+<span class="n">csr</span> <span class="o">=</span> <span class="n">CSRRegister</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gen_params</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">Transaction</span><span class="o">.</span><span class="n">body</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="n">csr_val</span> <span class="o">=</span> <span class="n">csr</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">m</span><span class="o">.</span><span class="n">If</span><span class="p">(</span><span class="n">csr_val</span><span class="o">.</span><span class="n">read</span><span class="p">):</span>
+        <span class="n">csr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">m</span><span class="o">.</span><span class="n">Else</span><span class="p">():</span>
+        <span class="n">csr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">csr_val</span><span class="o">.</span><span class="n">data</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>Reads register value and side effect status.
+Side effect fields <cite>read</cite> and <cite>written</cite> are set if register was accessed by _fu_read or _fu_write
+methods (by CSR instruction) in a current cycle; they can be used to trigger other actions.
+Always ready.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>Updates register value.
+Always ready. If _fu_write is called simultaneously, this call is ignored.</p>
+</dd>
+<dt><strong>_fu_read: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Reads register value.</p>
+</dd>
+<dt><strong>_fu_write: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Updates register value.
+Always ready. Has priority over <cite>write</cite> method.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRRegister.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ro_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRRegister.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>csr_number: int</strong></dt><dd><p>Address of this CSR Register.</p>
+</dd>
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
+</dd>
+<dt><strong>ro_bits: int</strong></dt><dd><p>Bit mask of read-only bits in register.
+Writes from _fu_write (instructions) to those bits are ignored.
+Note that this parameter is only required if there are some read-only
+bits in read-write register. Writes to read-only registers specified
+by upper 2 bits of CSR address set to <cite>0b11</cite> are discarded by <cite>CSRUnit</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">PrivilegeLevel</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.MACHINE">
+<span class="sig-name descname"><span class="pre">MACHINE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.MACHINE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.SUPERVISOR">
+<span class="sig-name descname"><span class="pre">SUPERVISOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.SUPERVISOR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.USER">
+<span class="sig-name descname"><span class="pre">USER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.USER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.csr_access_privilege">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">csr_access_privilege</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel" title="coreblocks.priv.csr.csr_register.PrivilegeLevel"><span class="pre">coreblocks.priv.csr.csr_register.PrivilegeLevel</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.csr_access_privilege" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-coreblocks.priv.csr">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.priv.csr" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="coreblocks.priv.html" class="btn btn-neutral float-left" title="coreblocks.priv package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coreblocks.priv.traps.html" class="btn btn-neutral float-right" title="coreblocks.priv.traps package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Kuźnia Rdzeni, 2024.
+      <span class="lastupdated">Last updated on 14:58 2024-03-21.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

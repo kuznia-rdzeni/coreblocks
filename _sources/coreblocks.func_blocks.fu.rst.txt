@@ -1,0 +1,93 @@
+coreblocks.func\_blocks.fu package
+==================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   coreblocks.func_blocks.fu.unsigned_multiplication
+
+Submodules
+----------
+
+coreblocks.func\_blocks.fu.alu module
+-------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.alu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.div\_unit module
+-------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.div_unit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.exception module
+-------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.exception
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.jumpbranch module
+--------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.jumpbranch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.mul\_unit module
+-------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.mul_unit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.priv module
+--------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.priv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.shift\_unit module
+---------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.shift_unit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.zbc module
+-------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.zbc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.zbs module
+-------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.zbs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.func_blocks.fu
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,19 @@
+coreblocks.priv package
+=======================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   coreblocks.priv.csr
+   coreblocks.priv.traps
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.priv
+   :members:
+   :undoc-members:
+   :show-inheritance:

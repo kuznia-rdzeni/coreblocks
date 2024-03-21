@@ -1,0 +1,29 @@
+coreblocks.func\_blocks.interface package
+=========================================
+
+Submodules
+----------
+
+coreblocks.func\_blocks.interface.func\_blocks\_unifier module
+--------------------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.interface.func_blocks_unifier
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.interface.func\_protocols module
+--------------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.interface.func_protocols
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.func_blocks.interface
+   :members:
+   :undoc-members:
+   :show-inheritance:

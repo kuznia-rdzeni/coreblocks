@@ -1,0 +1,29 @@
+coreblocks.priv.csr package
+===========================
+
+Submodules
+----------
+
+coreblocks.priv.csr.csr\_instances module
+-----------------------------------------
+
+.. automodule:: coreblocks.priv.csr.csr_instances
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.priv.csr.csr\_register module
+----------------------------------------
+
+.. automodule:: coreblocks.priv.csr.csr_register
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.priv.csr
+   :members:
+   :undoc-members:
+   :show-inheritance:

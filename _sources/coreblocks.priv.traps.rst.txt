@@ -1,0 +1,37 @@
+coreblocks.priv.traps package
+=============================
+
+Submodules
+----------
+
+coreblocks.priv.traps.exception module
+--------------------------------------
+
+.. automodule:: coreblocks.priv.traps.exception
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.priv.traps.instr\_counter module
+-------------------------------------------
+
+.. automodule:: coreblocks.priv.traps.instr_counter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.priv.traps.interrupt\_controller module
+--------------------------------------------------
+
+.. automodule:: coreblocks.priv.traps.interrupt_controller
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.priv.traps
+   :members:
+   :undoc-members:
+   :show-inheritance:

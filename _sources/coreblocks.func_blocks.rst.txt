@@ -1,0 +1,20 @@
+coreblocks.func\_blocks package
+===============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   coreblocks.func_blocks.fu
+   coreblocks.func_blocks.interface
+   coreblocks.func_blocks.lsu
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.func_blocks
+   :members:
+   :undoc-members:
+   :show-inheritance:
