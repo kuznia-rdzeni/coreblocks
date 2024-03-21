@@ -1,6 +1,7 @@
 from amaranth import *
 
-from coreblocks.params import GenParams, FuncUnitLayouts
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import assign, AssignType
 from transactron.core import *
 
