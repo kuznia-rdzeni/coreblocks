@@ -42,41 +42,39 @@ class IterativeSequenceMul(Elaboratable):
         result_lvl = int(math.log(number_of_chunks, 2)) 
         m.d.sync += self.result.eq(self.pipeline_array[result_lvl][0][0])
         return m
-# Tests pipelining of the module - works
-def testbench():
+        
+# Random pipelining test of the module - works
+def testbench(t):
     dsp_width = 4
     n = 16
     mul_module = IterativeSequenceMul(dsp_width=dsp_width, n=n)
     sim = Simulator(mul_module)
-    sim.add_clock(1e-6)  
+    sim.add_clock(1e-6)
+
     def process():
-  
-        test_cases = [
-            (7200, 100, 720000),
-            (100, 200, 20000),
-            (60000,60000, 3600000000),
-         
-        ]
+
+        test_cases = [(random.randint(1, 0xFFFF), random.randint(1, 0xFFFF)) for _ in range(t)]
+        expected_results = [(a * b) for a, b in test_cases]
+
         module_latency = int(math.log2(n / dsp_width)) + 3
 
-        for test_idx in range(len(test_cases) + module_latency):
-            if test_idx < len(test_cases):
-                test_val1, test_val2, _ = test_cases[test_idx]
-                yield mul_module.i1.eq(test_val1)
-                yield mul_module.i2.eq(test_val2)
-            
-            if test_idx >= module_latency:
-                expected_idx = test_idx - module_latency
-                expected = test_cases[expected_idx][2]
-                result = yield mul_module.result
-                assert result == expected, f"Test case {expected_idx} failed: Expected {expected}, got {result}"
-                print(f"Test case {expected_idx}: Expected = {expected}, got {result}")
+        for test_idx, (test_val1, test_val2) in enumerate(test_cases + [(0, 0)] * module_latency):
+           
+            yield mul_module.i1.eq(test_val1)
+            yield mul_module.i2.eq(test_val2)
 
-            yield  
+            if test_idx >= module_latency:
+                expected = expected_results[test_idx - module_latency]
+                result = yield mul_module.result
+                assert result == expected, f"Test case {test_idx - module_latency} failed: Expected {expected}, got {result}"
+                print(f"Test case {test_idx - module_latency}: Expected = {expected}, got {result}")
+            yield
 
     sim.add_sync_process(process)
     sim.run()
 
 if __name__ == "__main__":
-    testbench()
+    t = 100  
+    testbench(t)
+
 
