@@ -49,8 +49,12 @@ class RS(Elaboratable):
 
         core_state = self.gen_params.get(DependencyManager).get_dependency(CoreStateKey())
 
+        flushing = Signal()
         with Transaction().body(m):
-            flushing = core_state(m).flushing
+            # The flushing signal is registered to cut a critical path.
+            # This should be safe, because the first RS insertions
+            # happen a few cycles after the flushing ends.
+            m.d.sync += flushing.eq(core_state(m).flushing)
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
