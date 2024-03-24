@@ -58,11 +58,6 @@ class CoreTestElaboratable(Elaboratable):
 
         return m
 
-from riscvmodel.insn import (
-    InstructionADDI,
-    InstructionLUI,
-)
-import logging
 
 class TestCoreBase(TestCaseWithSimulator):
     gen_params: GenParams
@@ -83,22 +78,6 @@ class TestCoreBase(TestCaseWithSimulator):
         # handle addi sign extension, see: https://stackoverflow.com/a/59546567
         if val & 0x800:
             lui_imm = (lui_imm + 1) & (0xFFFFF)
-
-
-        lui_org = InstructionLUI(reg_id, lui_imm).encode()
-        lui_my = UTypeInstr.encode(Opcode.LUI, reg_id, lui_imm)
-        #logging.debug(lui_my)
-        if (lui_org != lui_my):
-            logging.error("LUI")
-            assert False
-        addi_org = InstructionADDI(reg_id, reg_id, addi_imm).encode()
-        addi_my = ITypeInstr.encode(Opcode.OP_IMM, reg_id, Funct3.ADD, reg_id, addi_imm)
-        if (addi_org != addi_my):
-            logging.error("MY")
-            logging.error(addi_imm)
-            logging.error(f"{addi_my:032b}")
-            logging.error(f"{addi_org:032b}")
-            assert False
 
         yield from self.push_instr(UTypeInstr.encode(Opcode.LUI, reg_id, lui_imm))
         yield from self.push_instr(ITypeInstr.encode(Opcode.OP_IMM, reg_id, Funct3.ADD, reg_id, addi_imm))
