@@ -3,7 +3,6 @@ black==24.3.0
 docutils==0.15.2
 flake8==6.0.0
 pep8-naming==0.13.3
-git+https://github.com/kristopher38/riscv-python-model@b5d0737#riscv-model
 markupsafe==2.0.1
 myst-parser==0.18.0
 numpydoc==1.5.0
