@@ -173,9 +173,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 self.exception_queue.append(
                     {
                         "rob_id": rob_id,
-                        "cause": ExceptionCause.LOAD_ADDRESS_MISALIGNED
-                        if misaligned
-                        else ExceptionCause.LOAD_ACCESS_FAULT,
+                        "cause": (
+                            ExceptionCause.LOAD_ADDRESS_MISALIGNED if misaligned else ExceptionCause.LOAD_ACCESS_FAULT
+                        ),
                         "pc": 0,
                     }
                 )
