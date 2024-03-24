@@ -60,8 +60,7 @@ class Transformer(HasElaborate, Protocol):
 class Unifier(Transformer, Protocol):
     method: Method
 
-    def __init__(self, targets: list[Method]):
-        ...
+    def __init__(self, targets: list[Method]): ...
 
 
 class MethodMap(Elaboratable, Transformer):
