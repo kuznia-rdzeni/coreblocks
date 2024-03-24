@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from amaranth.hdl import ValueCastable
 from amaranth import *
 
-from transactron.utils import ValueLike
+from transactron.utils import ValueLike, int_to_signed
 from coreblocks.params.isa_params import *
 from coreblocks.frontend.decoder.isa import *
 
@@ -71,6 +71,7 @@ class ITypeInstr(RISCVInstr):
 
     @staticmethod
     def encode(opcode: int, rd: int, funct3: int, rs1: int, imm: int):
+        imm = int_to_signed(imm, 12)
         return int(f"{imm:012b}{rs1:05b}{funct3:03b}{rd:05b}{opcode:05b}11", 2)
 
 
@@ -87,6 +88,7 @@ class STypeInstr(RISCVInstr):
 
     @staticmethod
     def encode(opcode: int, imm: int, funct3: int, rs1: int, rs2: int):
+        imm = int_to_signed(imm, 12)
         imm_str = f"{imm:012b}"
         return int(f"{imm_str[5:12]:07b}{rs2:05b}{rs1:05b}{funct3:03b}{imm_str[0:5]:05b}{opcode:05b}11", 2)
 
@@ -114,6 +116,7 @@ class BTypeInstr(RISCVInstr):
 
     @staticmethod
     def encode(opcode: int, imm: int, funct3: int, rs1: int, rs2: int):
+        imm = int_to_signed(imm, 13)
         imm_str = f"{imm:013b}"
         return int(
             f"{imm_str[12]:01b}{imm_str[5:11]:06b}{rs2:05b}{rs1:05b}{funct3:03b}{imm_str[1:5]:04b}"
@@ -133,6 +136,7 @@ class UTypeInstr(RISCVInstr):
 
     @staticmethod
     def encode(opcode: int, rd: int, imm: int):
+        imm = int_to_signed(imm, 20)
         return int(f"{imm:020b}{rd:05b}{opcode:05b}11", 2)
 
 
@@ -147,6 +151,7 @@ class JTypeInstr(RISCVInstr):
 
     @staticmethod
     def encode(opcode: int, rd: int, imm: int):
+        imm = int_to_signed(imm, 21)
         imm_str = f"{imm:021b}"
         return int(
             f"{imm_str[20]:01b}{imm_str[1:11]:010b}{imm_str[11]:01b}{imm_str[12:20]:08b}{rd:05b}{opcode:05b}11", 2
