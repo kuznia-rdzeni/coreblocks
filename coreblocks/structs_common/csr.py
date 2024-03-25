@@ -64,9 +64,13 @@ class CSRRegister(Elaboratable):
     ----------
     read: Method
         Reads register value and side effect status.
-        Side effect fields `read` and `written` are set if register was accessed by _fu_read or _fu_write
+        Side effect fields `read` and `written` are set if register was accessed by `_fu_read` or `_fu_write`
         methods (by CSR instruction) in a current cycle; they can be used to trigger other actions.
         Always ready.
+    read_comb: Method
+        Reads register value or value submitted by `_fu_write`(instruction write) combinationally.
+        Note that returned value ignores priority setting. It allows for `_fu_write -> read_comb -> write` operation
+        in single cycle. Always ready.
     write: Method
         Updates register value.
         Always ready. If _fu_write is called simultaneously, this call is ignored.
@@ -105,16 +109,28 @@ class CSRRegister(Elaboratable):
         """
         Parameters
         ----------
-        csr_number: int
+        csr_number: Optional[int]
             Address of this CSR Register.
+            If `None` is given, CSR is virtual - not automatically connected to CSRUnit.
         gen_params: GenParams
             Core generation parameters.
+        width: Optional[int]
+            Width of CSR register. Defaults to `xlen`.
         ro_bits: int
             Bit mask of read-only bits in register.
-            Writes from _fu_write (instructions) to those bits are ignored.
+            Writes from `_fu_write` (instructions) to those bits are ignored.
             Note that this parameter is only required if there are some read-only
             bits in read-write register. Writes to read-only registers specified
             by upper 2 bits of CSR address set to `0b11` are discarded by `CSRUnit`.
+        fu_write_priority: bool
+            Priority of CSR instruction write over `write` method, if both are actived at the same cycle.
+            If `ro_bits` are set, both operations will be performed, respecting priority on writeable bits.
+            Deafults to True.
+        fu_write_filtermap: function (TModule, Value) -> (Value, Dict)
+            Filter + map on CSR writes from instruction. First Value in returned tuple signals if write should be
+            performed, second is modified input data.
+        fu_read_map: function (TModule, Value) -> (Value)
+            Map on CSR reads from instructions. Maps value returned from CSR.
         """
         self.gen_params = gen_params
         self.csr_number = csr_number
@@ -133,9 +149,9 @@ class CSRRegister(Elaboratable):
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
         self._internal_fu_write = Method(i=csr_layouts._fu_write)
         self.fu_write_map = MethodMap(
-            self._internal_fu_write, i_transform=(csr_layouts._fu_write, lambda tm, ms: (fu_write_filtermap(tm, ms)[1]))
+            self._internal_fu_write, i_transform=(csr_layouts._fu_write, lambda tm, ms: fu_write_filtermap(tm, ms)[1])
         )
-        self.fu_write_filter = MethodFilter(self.fu_write_map.method, (lambda tm, ms: fu_write_filtermap(tm, ms)[0]))
+        self.fu_write_filter = MethodFilter(self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms)[0])
         self.fu_read_map = MethodMap(self._internal_fu_read, o_transform=(csr_layouts._fu_read, fu_read_map))
 
         # Methods connected autatically by CSRUnit
