@@ -8,7 +8,8 @@ from amaranth.utils import exact_log2
 
 from transactron.lib import AdapterTrans, Adapter
 from coreblocks.cache.icache import ICache, ICacheBypass, CacheRefillerInterface
-from coreblocks.params import GenParams, ICacheLayouts
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config

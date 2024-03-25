@@ -1,14 +1,14 @@
 from amaranth.sim import Settle
-from coreblocks.lsu.pma import PMAChecker, PMARegion
+from coreblocks.func_blocks.lsu.pma import PMAChecker, PMARegion
 
 from transactron.lib import Adapter
-from coreblocks.params import OpType, GenParams
-from coreblocks.lsu.dummyLsu import LSUDummy
+from coreblocks.params import GenParams
+from coreblocks.func_blocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
-from coreblocks.params.isa import *
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.frontend.decoder import *
+from coreblocks.interface.keys import ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
 from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter

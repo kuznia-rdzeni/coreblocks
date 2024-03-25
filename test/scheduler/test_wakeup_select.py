@@ -8,9 +8,10 @@ from enum import Enum
 from inspect import isclass
 import random
 
-from coreblocks.params import GenParams, RSLayouts
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import RSLayouts
 from coreblocks.params.configurations import test_core_config
-from coreblocks.stages.rs_func_block import RSBlockComponent
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *

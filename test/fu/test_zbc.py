@@ -1,7 +1,7 @@
 from parameterized import parameterized_class
 
-from coreblocks.fu.zbc import ZbcFn, ZbcComponent
-from coreblocks.params import *
+from coreblocks.func_blocks.fu.zbc import ZbcFn, ZbcComponent
+from coreblocks.frontend.decoder import Funct3, Funct7, OpType
 from coreblocks.params.configurations import test_core_config
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
