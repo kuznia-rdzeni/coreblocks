@@ -164,9 +164,9 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     config = CoreConfiguration()
     if flags_raw & P_FLAGS.PF_X:
         # align instruction section to full icache lines
-        align_bits = config.icache_line_size_bits
+        align_bits = config.icache_line_bytes_log
         # workaround for fetching/stalling issue
-        extend_end = 2**config.icache_line_size_bits
+        extend_end = 2**config.icache_line_bytes_log
     else:
         align_bits = 0
         extend_end = 0

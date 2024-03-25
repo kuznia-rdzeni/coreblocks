@@ -70,7 +70,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
     def setUp(self) -> None:
         self.gen_params = GenParams(
             test_core_config.replace(
-                xlen=self.isa_xlen, icache_line_size_bits=self.line_size, fetch_block_bytes_log=self.fetch_block
+                xlen=self.isa_xlen, icache_line_bytes_log=self.line_size, fetch_block_bytes_log=self.fetch_block
             )
         )
         self.cp = self.gen_params.icache_params
@@ -340,7 +340,7 @@ class TestICache(TestCaseWithSimulator):
                 xlen=self.isa_xlen,
                 icache_ways=ways,
                 icache_sets_bits=exact_log2(sets),
-                icache_line_size_bits=self.line_size,
+                icache_line_bytes_log=self.line_size,
                 fetch_block_bytes_log=self.fetch_block,
             )
         )

@@ -44,7 +44,7 @@ class GenParams(DependentCache):
             fetch_block_bytes_log=cfg.fetch_block_bytes_log,
             num_of_ways=cfg.icache_ways,
             num_of_sets_bits=cfg.icache_sets_bits,
-            line_size_bits=cfg.icache_line_size_bits,
+            line_bytes_log=cfg.icache_line_bytes_log,
             enable=cfg.icache_enable,
         )
 
