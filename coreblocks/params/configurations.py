@@ -1,13 +1,12 @@
 from collections.abc import Collection
-
 import dataclasses
 from dataclasses import dataclass, field
-from coreblocks.func_blocks.lsu.pma import PMARegion
 
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
+from coreblocks.func_blocks.lsu.pma import PMARegion
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.alu import ALUComponent
 from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
@@ -97,7 +96,7 @@ class CoreConfiguration:
     icache_sets_bits: int = 7
     icache_line_bytes_log: int = 5
 
-    fetch_block_bytes_log: int = 2
+    fetch_block_bytes_log: int = 4
 
     allow_partial_extensions: bool = False
 

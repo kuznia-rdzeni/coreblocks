@@ -144,6 +144,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.perf_misaligned = HwCounter(
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
         )
+        self.perf_mispredictions = HwCounter("backend.fu.jumpbranch.mispredictions", "Number of branch mispredictions")
 
     def elaborate(self, platform):
         m = TModule()
@@ -151,6 +152,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         m.submodules += [
             self.perf_instr,
             self.perf_misaligned,
+            self.perf_mispredictions,
         ]
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
@@ -172,7 +174,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.top_comb += jb.in_pc.eq(arg.pc)
             m.d.top_comb += jb.in_imm.eq(arg.imm)
 
-            m.d.top_comb += jb.in_rvc.eq(arg.exec_fn.funct7)
+            funct7_info = Signal(from_method_layout(self.gen_params.get(JumpBranchLayouts).funct7_info))
+            m.d.top_comb += funct7_info.eq(arg.exec_fn.funct7)
+
+            m.d.top_comb += jb.in_rvc.eq(funct7_info.rvc)
 
             is_auipc = decoder.decode_fn == JumpBranchFn.Fn.AUIPC
 
@@ -189,9 +194,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 AsyncInterruptInsertSignalKey()
             )
 
-            # TODO: Update with branch prediction support.
-            # Temporarily there is no jump prediction, jumps don't stall fetch and pc+4 is always fetched to pipeline
-            misprediction = ~is_auipc & jb.taken
+            # Assume that the frontend always respects JAL instructions.
+            misprediction = Signal()
+            m.d.av_comb += misprediction.eq(~(is_auipc | (jb.taken == funct7_info.predicted_taken)))
+            self.perf_mispredictions.incr(m, cond=misprediction)
 
             with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
                 self.perf_misaligned.incr(m)

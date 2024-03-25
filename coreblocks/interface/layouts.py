@@ -1,6 +1,6 @@
 from amaranth.lib.data import StructLayout
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import ExceptionCause, OpType, Funct7, Funct3
+from coreblocks.frontend.decoder import ExceptionCause, OpType, Funct7, Funct3, CfiType
 from transactron.utils import LayoutList, LayoutListField, layout_subset
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 
@@ -111,6 +111,12 @@ class CommonLayoutFields:
 
         self.side_fx: LayoutListField = ("side_fx", 1)
         """Side effects are enabled."""
+
+        self.rvc: LayoutListField = ("rvc", 1)
+        """Instruction is a compressed (two-byte) one."""
+
+        self.predicted_taken: LayoutListField = ("predicted_taken", 1)
+        """If the branch was predicted taken."""
 
 
 class SchedulerLayouts:
@@ -426,14 +432,12 @@ class FetchLayouts:
         self.access_fault: LayoutListField = ("access_fault", 1)
         """Instruction fetch failed."""
 
-        self.rvc: LayoutListField = ("rvc", 1)
-        """Instruction is a compressed (two-byte) one."""
-
         self.raw_instr = make_layout(
             fields.instr,
             fields.pc,
             self.access_fault,
-            self.rvc,
+            fields.rvc,
+            fields.predicted_taken,
         )
 
         self.resume = make_layout(("pc", gen_params.isa.xlen), ("resume_from_exception", 1))
@@ -508,10 +512,18 @@ class DivUnitLayouts:
 
 class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.verify_branch = make_layout(
             ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
         )
         """ Hint for Branch Predictor about branch result """
+
+        self.funct7_info = make_layout(
+            fields.rvc,
+            fields.predicted_taken,
+        )
+        """Information passed from the frontend to the jumpbranch unit. Encoded in the funct7 field."""
 
 
 class LSULayouts:
