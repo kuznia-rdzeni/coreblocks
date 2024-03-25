@@ -291,6 +291,16 @@ class StableSelectingNetwork(Elaboratable):
     The circuit will return:
     a, d, e, 0, 0, 0, 0
 
+    The circuit uses a divide and conquer algorithm.
+    The recursive call takes two bit vectors and each of them
+    is already properly sorted, for example:
+    v1 = [a, b, 0, 0]; v2 = [c, d, e, 0]
+
+    Now by shifting left v2 and merging it with v1, we get the result:
+    v = [a, b, c, d, e, 0, 0, 0]
+
+    Thus, the network has depth log_2(n).
+
     """
 
     def __init__(self, n: int, layout: MethodLayout):
@@ -311,10 +321,7 @@ class StableSelectingNetwork(Elaboratable):
             current_level.append((Array([self.inputs[i]]), self.valids[i]))
 
         # Create the network using the bottom-up approach.
-        while True:
-            if len(current_level) == 1:
-                break
-
+        while len(current_level) >= 2:
             next_level = []
             while len(current_level) >= 2:
                 a, cnt_a = current_level.pop(0)
