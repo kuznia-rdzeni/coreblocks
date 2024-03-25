@@ -7,7 +7,9 @@ from transactron.utils import align_to_power_of_two, signed_to_int
 from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
+from coreblocks.frontend.decoder import Opcode, Funct3
 from coreblocks.params import GenParams
+from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
 from coreblocks.peripherals.wishbone import WishboneSignature, WishboneMemorySlave
 
@@ -16,10 +18,6 @@ import random
 import subprocess
 import tempfile
 from parameterized import parameterized_class
-from riscvmodel.insn import (
-    InstructionADDI,
-    InstructionLUI,
-)
 
 
 class CoreTestElaboratable(Elaboratable):
@@ -81,8 +79,8 @@ class TestCoreBase(TestCaseWithSimulator):
         if val & 0x800:
             lui_imm = (lui_imm + 1) & (0xFFFFF)
 
-        yield from self.push_instr(InstructionLUI(reg_id, lui_imm).encode())
-        yield from self.push_instr(InstructionADDI(reg_id, reg_id, addi_imm).encode())
+        yield from self.push_instr(UTypeInstr.encode(Opcode.LUI, reg_id, lui_imm))
+        yield from self.push_instr(ITypeInstr.encode(Opcode.OP_IMM, reg_id, Funct3.ADD, reg_id, addi_imm))
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
