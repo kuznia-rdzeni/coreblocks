@@ -194,7 +194,6 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 AsyncInterruptInsertSignalKey()
             )
 
-            # Assume that the frontend always respects JAL instructions.
             misprediction = Signal()
             m.d.av_comb += misprediction.eq(~(is_auipc | (jb.taken == funct7_info.predicted_taken)))
             self.perf_mispredictions.incr(m, cond=misprediction)
