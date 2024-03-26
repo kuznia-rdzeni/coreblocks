@@ -90,7 +90,7 @@ class CoreConfiguration:
     icache_sets_bits: int = 7
     icache_line_bytes_log: int = 5
 
-    fetch_block_bytes_log: int = 4
+    fetch_block_bytes_log: int = 2
 
     allow_partial_extensions: bool = False
 
@@ -143,6 +143,7 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    fetch_block_bytes_log=4,
 )
 
 # Core configuration used in internal testbenches
