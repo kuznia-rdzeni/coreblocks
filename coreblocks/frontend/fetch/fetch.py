@@ -1,7 +1,6 @@
 from amaranth import *
 from amaranth.utils import exact_log2
 from amaranth.lib.coding import PriorityEncoder
-
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging
 from transactron.lib.metrics import *
 from transactron.utils import MethodLayout, popcount
@@ -21,8 +20,7 @@ log = logging.HardwareLogger("frontend.fetch")
 
 class FetchUnit(Elaboratable):
     """
-    Simple fetch unit. It has a PC inside and increments it by `isa.ilen_bytes`
-    after each fetch.
+    TODO(jurb)
     """
 
     def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
