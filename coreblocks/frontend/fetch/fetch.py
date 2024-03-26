@@ -63,9 +63,9 @@ class FetchUnit(Elaboratable):
 
         m.submodules.cache_requests = cache_requests = BasicFifo(layout=[("addr", self.gen_params.isa.xlen)], depth=2)
 
-        # This limits number of fetch blocks the fetch unit can process at the
-        # same time. We start counting when sending a request to the cache and
-        # stop when pushing a fetch block out of the fetch unit.
+        # This limits number of fetch blocks the fetch unit can process
+        # at a time. We start counting when sending a request to the cache and
+        # stop when pushing a fetch packet out of the fetch unit.
         m.submodules.req_counter = req_counter = Semaphore(4)
         flushing_counter = Signal.like(req_counter.count)
 
@@ -82,6 +82,7 @@ class FetchUnit(Elaboratable):
 
         #
         # Fetch - stage 0
+        # ================
         # - send a request to the instruction cache
         #
         with Transaction(name="Fetch_Stage0").body(m, request=~stalled):
@@ -98,10 +99,11 @@ class FetchUnit(Elaboratable):
         #
         # State passed between stage 1 and stage 2
         #
-        m.submodules.s1_s2_pipe = s1_s2_pipe = Register(
+        m.submodules.s1_s2_pipe = s1_s2_pipe = Pipe(
             [
                 ("fetch_block_addr", self.gen_params.isa.xlen),
                 ("instr_valid", fetch_width),
+                ("access_fault", 1),
                 ("rvc", fetch_width),
                 ("instr_block", self.gen_params.isa.ilen * fetch_width),
                 ("instr_block_cross", 1),
@@ -110,11 +112,19 @@ class FetchUnit(Elaboratable):
 
         #
         # Fetch - stage 1
+        # ================
+        # - read the response from the cache
+        # - expand compressed instructions (if applicable)
+        # - find where each instruction begins
+        # - handle instructions that cross a fetch boundary
         #
         rvc_expanders = [InstrDecompress(self.gen_params) for _ in range(fetch_width)]
         for n, module in enumerate(rvc_expanders):
             m.submodules[f"rvc_expander_{n}"] = module
 
+        # With the C extension enabled, a single instruction can
+        # be located on a boundary of two fetch blocks. Hence,
+        # this requires some statefulness of the stage 1.
         prev_half = Signal(16)
         prev_half_addr = Signal(self.gen_params.isa.xlen)
         prev_half_v = Signal()
@@ -132,11 +142,13 @@ class FetchUnit(Elaboratable):
             ]
 
             #
-            # Expand compressed instructions the fetch block.
+            # Expand compressed instructions from the fetch block.
             #
             expanded_instr = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
             is_rvc = Signal(fetch_width)
 
+            # Whether in this cycle we have a fetch block that contains
+            # an instruction that crosses a fetch boundary
             instr_block_cross = Signal()
             m.d.av_comb += instr_block_cross.eq(
                 prev_half_v
@@ -225,7 +237,11 @@ class FetchUnit(Elaboratable):
 
         #
         # Fetch - stage 2
-        #
+        # ================
+        # - predecode instructions
+        # - check if any of instructions redirects the frontend
+        # - check if any of instructions stalls the frontend
+        # - enqueue a packet of instructions
         predecoders = [Predecoder(self.gen_params) for _ in range(fetch_width)]
         for n, module in enumerate(predecoders):
             m.submodules[f"predecoder_{n}"] = module
@@ -238,15 +254,9 @@ class FetchUnit(Elaboratable):
             instr_valid = s1_data.instr_valid
             log.debug(m, True, "[STAGE 2] instrs {:x} cross: {}", s1_data.instr_block, s1_data.instr_block_cross)
 
-            #
             # Predecode instructions
-            #
             for i in range(fetch_width):
                 m.d.av_comb += predecoders[i].instr_in.eq(instrs[i])
-
-            #
-            # Check if any of the instructions redirects or stalls the frontend.
-            #
 
             # Is the instruction unsafe (i.e. stalls the frontend until the backend resumes it).
             instr_unsafe = [Signal() for _ in range(fetch_width)]
@@ -257,8 +267,6 @@ class FetchUnit(Elaboratable):
             redirection_offset = Array(Signal(signed(21)) for _ in range(fetch_width))
 
             for i in range(fetch_width):
-                redirect = Signal()
-
                 m.d.av_comb += redirection_offset[i].eq(predecoders[i].jump_offset)
 
                 # Predict backward branches as taken
@@ -269,12 +277,12 @@ class FetchUnit(Elaboratable):
 
                 m.d.av_comb += instr_unsafe[i].eq(predecoders[i].is_unsafe)
 
-            m.submodules.redirection_prio_encoder = redirect_prio_encoder = PriorityEncoder(fetch_width)
-            m.d.av_comb += redirect_prio_encoder.i.eq((Cat(instr_unsafe) | Cat(instr_redirects)) & instr_valid)
+            m.submodules.prio_encoder = prio_encoder = PriorityEncoder(fetch_width)
+            m.d.av_comb += prio_encoder.i.eq((Cat(instr_unsafe) | Cat(instr_redirects)) & instr_valid)
 
-            redirect_or_unsafe_idx = redirect_prio_encoder.o
+            redirect_or_unsafe_idx = prio_encoder.o
             redirect_or_unsafe = Signal()
-            m.d.av_comb += redirect_or_unsafe.eq(~redirect_prio_encoder.n)
+            m.d.av_comb += redirect_or_unsafe.eq(~prio_encoder.n)
 
             redirect = Signal()
             m.d.av_comb += redirect.eq(redirect_or_unsafe & Array(instr_redirects)[redirect_or_unsafe_idx])
@@ -282,13 +290,16 @@ class FetchUnit(Elaboratable):
             unsafe_stall = Signal()
             m.d.av_comb += unsafe_stall.eq(redirect_or_unsafe & Array(instr_unsafe)[redirect_or_unsafe_idx])
 
-            redirection_mask = Signal(fetch_width)
+            # This mask denotes what prefix of instructions we should enqueue.
+            valid_instr_prefix = Signal(fetch_width)
             with m.If(cache_resp.error):
-                m.d.av_comb += redirection_mask.eq(1 << redirect_or_unsafe_idx)
+                m.d.av_comb += valid_instr_prefix.eq(1 << redirect_or_unsafe_idx)
             with m.Elif(redirect_or_unsafe):
-                m.d.av_comb += redirection_mask.eq((1 << (redirect_or_unsafe_idx + 1)) - 1)
+                # If there is an instruction that redirects or stalls the frontend, enqueue
+                # instructions only up to that instruction.
+                m.d.av_comb += valid_instr_prefix.eq((1 << (redirect_or_unsafe_idx + 1)) - 1)
             with m.Else():
-                m.d.av_comb += redirection_mask.eq(C(1).replicate(fetch_width))
+                m.d.av_comb += valid_instr_prefix.eq(C(1).replicate(fetch_width))
 
             log.info(
                 m,
@@ -299,17 +310,23 @@ class FetchUnit(Elaboratable):
                 predecoders[0].jump_offset,
             )
 
+            # The ultimate mask that tells which instructions should be sent to the backend.
             fetch_mask = Signal(fetch_width)
-            m.d.av_comb += fetch_mask.eq(instr_valid & redirection_mask)
+            m.d.av_comb += fetch_mask.eq(instr_valid & valid_instr_prefix)
 
+            # If the frontend needs to be redirected, to which PC?
             redirection_instr_pc = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += redirection_instr_pc.eq(
                 fetch_block_addr | (redirect_or_unsafe_idx << exact_log2(self.gen_params.min_instr_width_bytes))
             )
+
             if Extension.C in self.gen_params.isa.extensions:
-                with m.If(s1_data.instr_block_cross & (redirect_or_unsafe_idx == 0) & redirect_or_unsafe):
+                # Special case - the first instruction may have a different pc due to
+                # a fetch boundary crossing.
+                with m.If(s1_data.instr_block_cross & (redirect_or_unsafe_idx == 0)):
                     m.d.av_comb += redirection_instr_pc.eq(fetch_block_addr - 2)
 
+            # Aggregate all signals that will be sent out of the fetch unit.
             raw_instrs = [Signal(self.layouts.raw_instr) for _ in range(fetch_width)]
             for i in range(fetch_width):
                 m.d.av_comb += [
@@ -345,7 +362,7 @@ class FetchUnit(Elaboratable):
 
         @def_method(m, self.resume, ready=(stalled & (flushing_counter == 0)))
         def _(pc: Value, resume_from_exception: Value):
-            log.debug(m, True, "Resuming from exception {:x}", pc)
+            log.debug(m, True, "Resuming from exception new_pc=0x{:x}", pc)
             m.d.sync += current_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
@@ -361,10 +378,10 @@ class FetchUnit(Elaboratable):
         return m
 
 
-class Register(Elaboratable):
+class Pipe(Elaboratable):
     """
-    This module implements a `Register`. It is a halfway between
-    `Forwarder` and `2-FIFO`. In the `Register` data is always
+    This module implements a `Pipe`. It is a halfway between
+    `Forwarder` and `2-FIFO`. In the `Pipe` data is always
     stored localy, so the critical path of the data is cut, but there is a
     combinational path between the control signals of the `read` and
     the `write` methods. For comparison:
