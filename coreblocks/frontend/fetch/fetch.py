@@ -199,9 +199,9 @@ class FetchUnit(Elaboratable):
             if Extension.C in self.gen_params.isa.extensions:
                 valid_instr_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
-                cache_resp_valid = (flushing_counter <= 1) & (cache_resp.error == 0)
-
-                m.d.sync += prev_half_v.eq(cache_resp_valid & ~is_rvc[-1] & instr_start[-1])
+                m.d.sync += prev_half_v.eq(
+                    (flushing_counter <= 1) & (cache_resp.error == 0) & ~is_rvc[-1] & instr_start[-1]
+                )
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
                 m.d.sync += prev_half_addr.eq(fetch_block_addr)
             else:
@@ -230,6 +230,7 @@ class FetchUnit(Elaboratable):
                 m,
                 fetch_block_addr=fetch_block_addr,
                 instr_valid=valid_instr_mask,
+                access_fault=cache_resp.error,
                 rvc=is_rvc,
                 instr_block=Cat(expanded_instr),
                 instr_block_cross=instr_block_cross,
@@ -249,9 +250,12 @@ class FetchUnit(Elaboratable):
         with Transaction(name="Fetch_Stage2").body(m):
             req_counter.release(m)
             s1_data = s1_s2_pipe.read(m)
+
             instrs = [s1_data.instr_block[i * 32 : (i + 1) * 32] for i in range(fetch_width)]
             fetch_block_addr = s1_data.fetch_block_addr
             instr_valid = s1_data.instr_valid
+            access_fault = s1_data.access_fault
+
             log.debug(m, True, "[STAGE 2] instrs {:x} cross: {}", s1_data.instr_block, s1_data.instr_block_cross)
 
             # Predecode instructions
@@ -275,7 +279,8 @@ class FetchUnit(Elaboratable):
                     | ((predecoders[i].cfi_type == CfiType.BRANCH) & (predecoders[i].jump_offset < 0))
                 )
 
-                m.d.av_comb += instr_unsafe[i].eq(predecoders[i].is_unsafe)
+                # If there was an access fault, just mark every instruction as unsafe
+                m.d.av_comb += instr_unsafe[i].eq(predecoders[i].is_unsafe | access_fault)
 
             m.submodules.prio_encoder = prio_encoder = PriorityEncoder(fetch_width)
             m.d.av_comb += prio_encoder.i.eq((Cat(instr_unsafe) | Cat(instr_redirects)) & instr_valid)
@@ -292,9 +297,7 @@ class FetchUnit(Elaboratable):
 
             # This mask denotes what prefix of instructions we should enqueue.
             valid_instr_prefix = Signal(fetch_width)
-            with m.If(cache_resp.error):
-                m.d.av_comb += valid_instr_prefix.eq(1 << redirect_or_unsafe_idx)
-            with m.Elif(redirect_or_unsafe):
+            with m.If(redirect_or_unsafe):
                 # If there is an instruction that redirects or stalls the frontend, enqueue
                 # instructions only up to that instruction.
                 m.d.av_comb += valid_instr_prefix.eq((1 << (redirect_or_unsafe_idx + 1)) - 1)
@@ -332,7 +335,7 @@ class FetchUnit(Elaboratable):
                 m.d.av_comb += [
                     raw_instrs[i].instr.eq(instrs[i]),
                     raw_instrs[i].pc.eq(fetch_block_addr | (i << exact_log2(self.gen_params.min_instr_width_bytes))),
-                    raw_instrs[i].access_fault.eq(cache_resp.error),
+                    raw_instrs[i].access_fault.eq(access_fault),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
                     raw_instrs[i].predicted_taken.eq(instr_redirects[i]),
                 ]
@@ -342,7 +345,7 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += raw_instrs[0].pc.eq(fetch_block_addr - 2)
 
             with m.If(flushing_counter == 0):
-                with m.If(cache_resp.error | unsafe_stall):
+                with m.If(access_fault | unsafe_stall):
                     # TODO: Raise different code for page fault when supported
                     flush()
                     m.d.sync += stalled_unsafe.eq(1)
@@ -362,7 +365,7 @@ class FetchUnit(Elaboratable):
 
         @def_method(m, self.resume, ready=(stalled & (flushing_counter == 0)))
         def _(pc: Value, resume_from_exception: Value):
-            log.debug(m, True, "Resuming from exception new_pc=0x{:x}", pc)
+            log.info(m, True, "Resuming from exception new_pc=0x{:x}", pc)
             m.d.sync += current_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
@@ -370,7 +373,7 @@ class FetchUnit(Elaboratable):
 
         @def_method(m, self.stall_exception)
         def _():
-            log.debug(m, True, "Stalling the fetch unit because of an exception")
+            log.info(m, True, "Stalling the fetch unit because of an exception")
             serializer.clean(m)
             m.d.sync += stalled_exception.eq(1)
             flush()
