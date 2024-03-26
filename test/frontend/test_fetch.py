@@ -83,7 +83,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         random.seed(41)
 
-    def add_instr(self, data: int, jumps: bool, jump_offset: int = 0, branch_taken: bool = False):
+    def add_instr(self, data: int, jumps: bool, jump_offset: int = 0, branch_taken: bool = False) -> int:
         rvc = (data & 0b11) != 0b11
         if rvc:
             self.mem[self.pc] = data
@@ -108,18 +108,21 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         print(f"adding instr pc=0x{self.pc:x} 0x{data:x}, rvc: {rvc}, jumps: {jumps}, next_pc: {next_pc:x}")
 
+        instr_pc = self.pc
         self.pc = next_pc
 
-    def gen_non_branch_instr(self, rvc: bool):
+        return instr_pc
+
+    def gen_non_branch_instr(self, rvc: bool) -> int:
         if rvc:
             data = (random.randrange(2**11) << 2) | 0b01
         else:
             data = random.randrange(2**32) & ~0b1111111
             data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
 
-        self.add_instr(data, False)
+        return self.add_instr(data, False)
 
-    def gen_jal(self, offset: int, rvc: bool = False):
+    def gen_jal(self, offset: int, rvc: bool = False) -> int:
         if rvc:
             data = 0x2025
         else:
@@ -127,14 +130,14 @@ class TestFetchUnit(TestCaseWithSimulator):
             # data = JTypeInstr.encode(opcode=Opcode.JAL, rd=0, imm=offset)
             # assert data == data2
 
-        self.add_instr(data, True, jump_offset=offset, branch_taken=True)
+        return self.add_instr(data, True, jump_offset=offset, branch_taken=True)
 
     def gen_branch(self, offset: int, taken: bool):
         data = InstructionBEQ(rs1=0, rs2=0, imm=offset).encode()
         # data = BTypeInstr.encode(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0)
         # assert data == data2
 
-        self.add_instr(data, True, jump_offset=offset, branch_taken=taken)
+        return self.add_instr(data, True, jump_offset=offset, branch_taken=taken)
 
     def gen_random_instr_seq(self, count: int):
         pc = self.gen_params.start_pc
@@ -223,22 +226,20 @@ class TestFetchUnit(TestCaseWithSimulator):
 
             print(f"fetch out {instr['pc']:x}", instr["branch_taken"])
 
-            instr_error = (instr["pc"] & (~0b11)) in self.memerr or (instr["pc"] & (~0b11)) + 2 in self.memerr
-            if instr["pc"] & 2 and not instr["rvc"]:
-                instr_error |= ((instr["pc"] + 2) & (~0b11)) in self.memerr or (
-                    (instr["pc"] + 2) & (~0b11)
-                ) + 2 in self.memerr
+            access_fault = instr["pc"] in self.memerr
+            if not instr["rvc"]:
+                access_fault |= instr["pc"] + 2 in self.memerr
 
             v = yield from self.io_out.call()
 
             self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["access_fault"], instr_error)
+            self.assertEqual(v["access_fault"], access_fault)
 
             instr_data = instr["instr"]
             if (instr_data & 0b11) == 0b11:
                 self.assertEqual(v["instr"], instr_data)
 
-            if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or instr_error:
+            if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 print("redirecting!!!!", v["predicted_taken"])
                 yield from self.random_wait(5)
                 yield from self.fetch_stall_exception.call()
@@ -251,8 +252,15 @@ class TestFetchUnit(TestCaseWithSimulator):
 
                 print("cleaned")
 
+                resume_pc = instr["next_pc"]
+                if access_fault:
+                    # Resume from the next fetch block
+                    resume_pc = (
+                        instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
+                    ) + self.gen_params.fetch_block_bytes
+
                 # Resume the fetch unit
-                while (yield from self.fetch_resume.call_try(pc=instr["next_pc"], resume_from_exception=1)) is None:
+                while (yield from self.fetch_resume.call_try(pc=resume_pc, resume_from_exception=1)) is None:
                     pass
 
                 print("resumed")
@@ -315,8 +323,7 @@ class TestFetchUnit(TestCaseWithSimulator):
             self.gen_non_branch_instr(rvc=False)
 
         # Jump to the next fetch block, but fill the block with other jump instructions
-        block_pc = self.pc
-        self.gen_jal(self.gen_params.fetch_block_bytes)
+        block_pc = self.gen_jal(self.gen_params.fetch_block_bytes)
         for i in range(self.gen_params.fetch_block_bytes // 4 - 1):
             data = InstructionJAL(rd=0, imm=-8).encode()
             self.mem[block_pc + (i + 1) * 4] = data & 0xFFFF
@@ -398,6 +405,31 @@ class TestFetchUnit(TestCaseWithSimulator):
         # Chain a few branches
         for i in range(10):
             self.gen_branch(offset=1028, taken=(i % 2 == 0))
+
+        self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_access_fault(self):
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Access fault at the beginning of the fetch block
+        pc = self.gen_non_branch_instr(rvc=False)
+        self.memerr.add(pc)
+
+        # We will resume from the next fetch block
+        self.pc = pc + self.gen_params.fetch_block_bytes
+
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Access fault in a block with a jump
+        pc = self.gen_jal(2 * self.gen_params.fetch_block_bytes)
+        self.memerr.add(pc)
+
+        # We will resume from the next fetch block
+        self.pc = pc + self.gen_params.fetch_block_bytes
 
         self.gen_non_branch_instr(rvc=False)
 
