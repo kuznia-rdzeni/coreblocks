@@ -193,7 +193,12 @@ class TestFetchUnit(TestCaseWithSimulator):
             req_addr = self.input_q.popleft() & ~(self.gen_params.fetch_block_bytes - 1)
 
             def load_or_gen_mem(addr):
-                return self.mem[addr] if addr in self.mem else random.randrange(2**16)
+                if addr in self.mem:
+                    return self.mem[addr]
+
+                # Make sure to generate a compressed instruction to avoid
+                # random cross boundary instructions.
+                return random.randrange(2**16) & ~(0b11)
 
             fetch_block = 0
             bad_addr = False
@@ -238,13 +243,10 @@ class TestFetchUnit(TestCaseWithSimulator):
                 yield from self.random_wait(5)
                 yield from self.fetch_stall_exception.call()
                 yield from self.random_wait(5)
-                print("about to clean")
 
                 # Empty the pipeline
                 yield from self.clean_fifo.call_try()
                 yield
-
-                print("cleaned")
 
                 resume_pc = instr["next_pc"]
                 if access_fault:
@@ -256,8 +258,6 @@ class TestFetchUnit(TestCaseWithSimulator):
                 # Resume the fetch unit
                 while (yield from self.fetch_resume.call_try(pc=resume_pc, resume_from_exception=1)) is None:
                     pass
-
-                print("resumed")
 
     def run_sim(self):
         with self.run_simulation(self.m) as sim:

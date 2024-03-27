@@ -67,7 +67,12 @@ class FetchUnit(Elaboratable):
         m.submodules.req_counter = req_counter = Semaphore(4)
         flushing_counter = Signal.like(req_counter.count)
 
+        flush_now = Signal()
+
         def flush():
+            m.d.comb += flush_now.eq(1)
+
+        with m.If(flush_now):
             m.d.sync += flushing_counter.eq(req_counter.count_next)
 
         current_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
@@ -205,7 +210,14 @@ class FetchUnit(Elaboratable):
             else:
                 valid_instr_mask = Cat(instr_start)
 
-            log.debug(m, True, "[STAGE 1] half_valid: {}, half_addr: 0x{:x}", prev_half_v, prev_half_addr)
+            log.debug(
+                m,
+                True,
+                "[STAGE 1] half_valid: {}, half_addr: 0x{:x} cross: {}",
+                prev_half_v,
+                prev_half_addr,
+                instr_block_cross,
+            )
             log.debug(
                 m,
                 True,
@@ -234,6 +246,10 @@ class FetchUnit(Elaboratable):
                 instr_block_cross=instr_block_cross,
             )
 
+        # Make sure to clean the state
+        with m.If(flush_now):
+            m.d.sync += prev_half_v.eq(1)
+
         #
         # Fetch - stage 2
         # ================
@@ -254,7 +270,14 @@ class FetchUnit(Elaboratable):
             instr_valid = s1_data.instr_valid
             access_fault = s1_data.access_fault
 
-            log.debug(m, True, "[STAGE 2] instrs {:x} cross: {}", s1_data.instr_block, s1_data.instr_block_cross)
+            log.debug(
+                m,
+                True,
+                "[STAGE 2] fetch_blk_addr=0x{:x} instrs {:x} cross: {}",
+                fetch_block_addr,
+                s1_data.instr_block,
+                s1_data.instr_block_cross,
+            )
 
             # Predecode instructions
             for i in range(fetch_width):
