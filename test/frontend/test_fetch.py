@@ -2,8 +2,6 @@ from collections import deque
 from parameterized import parameterized_class
 import random
 
-from riscvmodel.insn import InstructionJAL, InstructionBEQ
-
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 
@@ -124,16 +122,12 @@ class TestFetchUnit(TestCaseWithSimulator):
         if rvc:
             data = 0x2025
         else:
-            data = InstructionJAL(rd=0, imm=offset).encode()
-            # data = JTypeInstr.encode(opcode=Opcode.JAL, rd=0, imm=offset)
-            # assert data == data2
+            data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
 
         return self.add_instr(data, True, jump_offset=offset, branch_taken=True)
 
     def gen_branch(self, offset: int, taken: bool):
-        data = InstructionBEQ(rs1=0, rs2=0, imm=offset).encode()
-        # data = BTypeInstr.encode(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0)
-        # assert data == data2
+        data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
 
         return self.add_instr(data, True, jump_offset=offset, branch_taken=taken)
 
@@ -313,7 +307,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         # Jump to the next fetch block, but fill the block with other jump instructions
         block_pc = self.gen_jal(self.gen_params.fetch_block_bytes)
         for i in range(self.gen_params.fetch_block_bytes // 4 - 1):
-            data = InstructionJAL(rd=0, imm=-8).encode()
+            data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=-8).encode()
             self.mem[block_pc + (i + 1) * 4] = data & 0xFFFF
             self.mem[block_pc + (i + 1) * 4 + 2] = data >> 16
 
