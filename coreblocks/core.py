@@ -1,13 +1,14 @@
 from amaranth import *
+from amaranth.lib.wiring import flipped, connect
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
-from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.structs_common.instr_counter import CoreInstructionCounter
-from coreblocks.structs_common.interrupt_controller import InterruptController
+from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
+from coreblocks.priv.traps.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
-from coreblocks.params.layouts import *
-from coreblocks.params.keys import (
+from coreblocks.interface.layouts import *
+from coreblocks.interface.keys import (
     BranchVerifyKey,
     FetchResumeKey,
     GenericCSRRegistersKey,
@@ -15,21 +16,21 @@ from coreblocks.params.keys import (
     CommonBusDataKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.isa import Extension
-from coreblocks.frontend.decode_stage import DecodeStage
-from coreblocks.structs_common.rat import FRAT, RRAT
-from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.structs_common.rf import RegisterFile
-from coreblocks.structs_common.csr_generic import GenericCSRRegisters
-from coreblocks.structs_common.exception import ExceptionCauseRegister
+from coreblocks.params.isa_params import Extension
+from coreblocks.frontend.decoder.decode_stage import DecodeStage
+from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.rob import ReorderBuffer
+from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.traps.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.stages.backend import ResultAnnouncement
-from coreblocks.stages.retirement import Retirement
+from coreblocks.backend.annoucement import ResultAnnouncement
+from coreblocks.backend.retirement import Retirement
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneBus
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
-from coreblocks.frontend.fetch import Fetch, UnalignedFetch
+from coreblocks.frontend.fetch.fetch import Fetch, UnalignedFetch
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey
@@ -38,7 +39,7 @@ __all__ = ["Core"]
 
 
 class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneBus, wb_data_bus: WishboneBus):
+    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneInterface, wb_data_bus: WishboneInterface):
         self.gen_params = gen_params
 
         dep_manager = DependencyContext.get()
@@ -48,8 +49,8 @@ class Core(Elaboratable):
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus
 
-        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params)
-        self.wb_master_data = WishboneMaster(self.gen_params.wb_params)
+        self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
+        self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
         self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
@@ -117,8 +118,8 @@ class Core(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.d.comb += self.wb_master_instr.wb_master.connect(self.wb_instr_bus)
-        m.d.comb += self.wb_master_data.wb_master.connect(self.wb_data_bus)
+        connect(m, flipped(self.wb_instr_bus), self.wb_master_instr.wb_master)
+        connect(m, flipped(self.wb_data_bus), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data

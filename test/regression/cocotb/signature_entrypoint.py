@@ -12,8 +12,6 @@ from test.regression.signature import run_test  # noqa: E402
 
 @cocotb.test()
 async def do_test(dut):
-    cocotb.logging.getLogger().setLevel(cocotb.logging.INFO)
-
     test_name = os.environ["TESTNAME"]
     if test_name is None:
         raise RuntimeError("No ELF file provided")

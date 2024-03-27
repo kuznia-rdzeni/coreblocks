@@ -1,5 +1,4 @@
 from amaranth import *
-from amaranth.hdl.ast import Statement
 from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.sim.core import Command
 from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
@@ -7,11 +6,12 @@ from transactron.utils._typing import RecordValueDict, RecordIntDict
 
 
 if TYPE_CHECKING:
+    from amaranth.hdl._ast import Statement
     from .infrastructure import CoreblocksCommand
 
 
 T = TypeVar("T")
-TestGen: TypeAlias = Generator[Union[Command, Value, Statement, "CoreblocksCommand", None], Any, T]
+TestGen: TypeAlias = Generator[Union[Command, Value, "Statement", "CoreblocksCommand", None], Any, T]
 
 
 def set_inputs(values: RecordValueDict, field: View) -> TestGen[None]:

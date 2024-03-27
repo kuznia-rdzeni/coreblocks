@@ -3,7 +3,7 @@ import amaranth.lib.fifo
 
 from transactron.utils.transactron_helpers import from_method_layout
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MethodLayout
 
 __all__ = [
     "FIFO",
@@ -60,8 +60,6 @@ class FIFO(Elaboratable):
         m = TModule()
 
         m.submodules.fifo = fifo = self.fifoType(width=self.width, depth=self.depth)
-
-        assert fifo.fwft  # the read method requires FWFT behavior
 
         @def_method(m, self.write, ready=fifo.w_rdy)
         def _(arg):

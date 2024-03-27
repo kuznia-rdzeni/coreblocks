@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 40
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set ownership (Github Actions workaround)
         run: |
@@ -24,7 +24,7 @@ jobs:
           chown -R $(id -u):$(id -g) $PWD
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -63,17 +63,17 @@ jobs:
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Build embench
         run: cd test/external/embench && make
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "embench"
           path: |
@@ -87,7 +87,7 @@ jobs:
     needs: build-perf-benchmarks
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set ownership (Github Actions workaround)
         run: |
@@ -95,7 +95,7 @@ jobs:
           chown -R $(id -u):$(id -g) $PWD
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -111,7 +111,7 @@ jobs:
           . venv/bin/activate
           PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 ./scripts/gen_verilog.py --verbose --config full
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: "embench"
           path: test/external/embench/build

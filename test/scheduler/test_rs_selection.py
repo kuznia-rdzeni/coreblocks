@@ -4,7 +4,9 @@ import random
 from amaranth import *
 from amaranth.sim import Settle, Passive
 
-from coreblocks.params import GenParams, RSLayouts, SchedulerLayouts, OpType, Funct3, Funct7
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
+from coreblocks.frontend.decoder import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from transactron.lib import FIFO, Adapter, AdapterTrans

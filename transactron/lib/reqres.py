@@ -1,6 +1,6 @@
 from amaranth import *
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MethodLayout
 from .connectors import Forwarder, FIFO
 from transactron.lib import BasicFifo
 from amaranth.utils import *
@@ -147,7 +147,7 @@ class Serializer(Elaboratable):
 
         self.depth = depth
 
-        self.id_layout = [("id", log2_int(self.port_count))]
+        self.id_layout = [("id", exact_log2(self.port_count))]
 
         self.clear = Method()
         self.serialize_in = [

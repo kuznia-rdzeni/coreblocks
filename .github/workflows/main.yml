@@ -18,10 +18,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
             python-version: '3.11'
 
@@ -37,16 +37,18 @@ jobs:
           . venv/bin/activate
           PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 ./scripts/gen_verilog.py --verbose --config full
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "verilog-full-core"
-          path: core.v
+          path: |
+            core.v
+            core.v.json
 
 
   build-riscof-tests:
     name: Build regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     timeout-minutes: 10
     env:
       PYENV_ROOT: "/root/.pyenv"
@@ -55,35 +57,77 @@ jobs:
     defaults:
       run:
         working-directory: test/external/riscof/
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup PATH
+      - name: Get submodules HEAD hash
+        working-directory: .
+        run: |
+          # ownership workaround
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          # paths in command are relative!
+          git submodule > .gitmodules-hash
+
+      - name: Cache compiled and reference riscv-arch-test
+        id: cache-riscv-arch-test
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-riscv-arch-test
+        with:
+          path: |
+            test/external/riscof/riscv-arch-test/**/*.elf
+            test/external/riscof/riscof_work/**/*.signature
+            test/external/riscof/**/*Makefile*
+
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscof/coreblocks/**',
+              '**/test/external/riscof/spike_simple/**',
+              '**/test/external/riscof/config.ini',
+              '**/.gitmodules-hash',
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
+            ) }}
+          lookup-only: true
+
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Setup PATH
         run: echo "/.pyenv/bin" >> $GITHUB_PATH
 
-      - name: Setup pyenv python
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Setup pyenv python
         run: |
           eval "$(pyenv init --path)"
           pyenv global 3.6.15
           . /venv3.6/bin/activate
 
-      - name: Setup arch test suite
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Setup arch test suite
         run: |
           . /venv3.6/bin/activate
-          riscof --verbose info arch-test --clone
           riscof testlist --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
 
-      - name: Build and run tests on reference and generate Makefiles
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Build and run tests on reference and generate Makefiles
         run: |
           . /venv3.6/bin/activate
           riscof run --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
 
-      - name: Build tests for Coreblocks
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Build tests for Coreblocks
         run: |
           MAKEFILE_PATH=riscof_work/Makefile.build-DUT-coreblocks ../../../ci/riscof_run_makefile.sh
 
-      - uses: actions/upload-artifact@v3
+      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
+        name: Upload compiled and reference tests artifact
+        uses: actions/upload-artifact@v4
         with:
           name: "riscof-tests"
           path: |
@@ -99,10 +143,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
             python-version: '3.11'
 
@@ -113,15 +157,36 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
+        name: Download full verilog core
         with:
           name: "verilog-full-core"
           path: .
 
-      - uses: actions/download-artifact@v3
+      - name: Get submodules HEAD hash
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - uses: actions/cache@v4
+        name: Download tests from cache
+        env:
+          cache-name: cache-riscv-arch-test
         with:
-          name: "riscof-tests"
-          path: test/external/riscof/
+          path: |
+            test/external/riscof/riscv-arch-test/**/*.elf
+            test/external/riscof/riscof_work/**/*.signature
+            test/external/riscof/**/*Makefile*
+
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscof/coreblocks/**',
+              '**/test/external/riscof/spike_simple/**',
+              '**/test/external/riscof/config.ini',
+              '**/.gitmodules-hash',
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
+            ) }}
+          fail-on-cache-miss: true
 
       - name: Run tests on Coreblocks
         run: |
@@ -135,39 +200,45 @@ jobs:
   build-regression-tests:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     timeout-minutes: 10
-    outputs:
-        cache_hit: ${{ steps.cache-regression.outputs.cache-hit }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+        uses: actions/checkout@v4
+
+      - name: Get submodules HEAD hash
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
 
       - name: Cache regression-tests
         id: cache-regression
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: cache-regression-tests
         with:
           path: test/external/riscv-tests/test-*
-
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-tests/environment/**',
+              '**/test/external/riscv-tests/environment/custom/**',
               '**/test/external/riscv-tests/Makefile',
-              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD',
-              '**/docker/riscv-toolchain.Dockerfile'
+              '**/.gitmodules-hash',
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
             ) }}
-          restore-keys: |
-            ${{ env.cache-name }}-${{ runner.os }}-
+          lookup-only: true
+
+      - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
+        name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         run: cd test/external/riscv-tests && make
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         name: Upload riscv-tests
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: test/external/riscv-tests
 
@@ -179,12 +250,10 @@ jobs:
     needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -195,22 +264,30 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
+        name: Download full verilog core
         with:
           name: "verilog-full-core"
           path: .
 
-      - uses: actions/cache@v3
+      - name: Get submodules HEAD hash
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - uses: actions/cache@v4
+        name: Download tests from cache
         env:
           cache-name: cache-regression-tests
         with:
           path: test/external/riscv-tests/test-*
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-tests/environment/**',
-              '**/test/external/riscv-tests/Makefile',
-              '**/.git/modules/test/external/riscv-tests/riscv-tests/HEAD',
-              '**/docker/riscv-toolchain.Dockerfile'
-              ) }}
+              '**/test/external/riscv-tests/environment/custom/**',
+              '**/test/external/riscv-tests/Makefile', 
+              '**/.gitmodules-hash',
+              '**/docker/riscv-toolchain.Dockerfile',
+              '**/.github/workflows/main.yml'
+            ) }}
           fail-on-cache-miss: true
 
       - name: Run tests
@@ -218,8 +295,11 @@ jobs:
           . venv/bin/activate
           scripts/run_tests.py -a regression
 
-      - name: Check for test failure
-        run: ./scripts/check_test_results.py
+      - name: Check regression with pysim
+        run: |
+          . venv/bin/activate
+          ./scripts/run_tests.py -c 1 -a -b pysim regression
+
 
   unit-test:
     name: Run unit tests
@@ -227,10 +307,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -245,10 +325,13 @@ jobs:
           sudo apt-get install -y binutils-riscv64-unknown-elf
 
       - name: Run tests
-        run: ./scripts/run_tests.py --verbose
+        run: ./scripts/run_tests.py -v
 
       - name: Check traces and profiles
         run: ./scripts/run_tests.py -t -p -c 1 TestCore
+
+      - name: Check listing tests
+        run: ./scripts/run_tests.py -l
 
   lint:
     name: Check code formatting and typing
@@ -256,10 +339,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'

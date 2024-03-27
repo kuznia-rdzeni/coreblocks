@@ -1,10 +1,13 @@
 from enum import Enum
-from typing import Optional, TypeAlias, cast
+from typing import Optional, TypeAlias, cast, TYPE_CHECKING
 from collections.abc import Iterable, Mapping
 from amaranth import *
-from amaranth.hdl.ast import Assign, ArrayProxy
+from amaranth.hdl._ast import ArrayProxy
 from amaranth.lib import data
 from ._typing import ValueLike
+
+if TYPE_CHECKING:
+    from amaranth.hdl._ast import Assign
 
 __all__ = [
     "AssignType",
@@ -38,8 +41,6 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
 def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
     if isinstance(val, ArrayProxy):
         return arrayproxy_fields(val)
-    elif isinstance(val, Record):
-        return set(val.fields)
     elif isinstance(val, data.View):
         layout = val.shape()
         if isinstance(layout, data.StructLayout):
@@ -50,11 +51,11 @@ def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
 
 def assign(
     lhs: AssignArg, rhs: AssignArg, *, fields: AssignFields = AssignType.RHS, lhs_strict=False, rhs_strict=False
-) -> Iterable[Assign]:
+) -> Iterable["Assign"]:
     """Safe structured assignment.
 
     This function recursively generates assignment statements for
-    field-containing structures. This includes: Amaranth `Record`\\s,
+    field-containing structures. This includes:
     Amaranth `View`\\s using `StructLayout`, Python `dict`\\s. In case of
     mismatching fields or bit widths, error is raised.
 
@@ -65,16 +66,16 @@ def assign(
 
     The bit width check is performed if:
 
-    - Any of `lhs` or `rhs` is a `Record` or `View`.
+    - Any of `lhs` or `rhs` is a `View`.
     - Both `lhs` and `rhs` have an explicitly defined shape (e.g. are a
-      `Signal`, a field of a `Record` or a `View`).
+      `Signal`, a field of a `View`).
 
     Parameters
     ----------
-    lhs : Record or View or Value-castable or dict
-        Record, signal or dict being assigned.
-    rhs : Record or View or Value-castable or dict
-        Record, signal or dict containing assigned values.
+    lhs : View or Value-castable or dict
+        View, signal or dict being assigned.
+    rhs : View or Value-castable or dict
+        View, signal or dict containing assigned values.
     fields : AssignType or Iterable or Mapping, optional
         Determines which fields will be assigned. Possible values:
 
@@ -106,18 +107,8 @@ def assign(
 
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
-        assert (
-            isinstance(lhs, Record)
-            or isinstance(lhs, ArrayProxy)
-            or isinstance(lhs, Mapping)
-            or isinstance(lhs, data.View)
-        )
-        assert (
-            isinstance(rhs, Record)
-            or isinstance(rhs, ArrayProxy)
-            or isinstance(rhs, Mapping)
-            or isinstance(rhs, data.View)
-        )
+        assert isinstance(lhs, ArrayProxy) or isinstance(lhs, Mapping) or isinstance(lhs, data.View)
+        assert isinstance(rhs, ArrayProxy) or isinstance(rhs, Mapping) or isinstance(rhs, data.View)
 
         if fields is AssignType.COMMON:
             names = lhs_fields & rhs_fields
@@ -163,9 +154,7 @@ def assign(
             return isinstance(val, Signal) or isinstance(val, ArrayProxy)
 
         if (
-            isinstance(lhs, Record)
-            or isinstance(rhs, Record)
-            or isinstance(lhs, data.View)
+            isinstance(lhs, data.View)
             or isinstance(rhs, data.View)
             or (lhs_strict or has_explicit_shape(lhs))
             and (rhs_strict or has_explicit_shape(rhs))

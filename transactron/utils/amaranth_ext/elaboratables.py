@@ -44,7 +44,7 @@ def OneHotSwitch(m: ModuleLike, test: Value):
     @contextmanager
     def case(n: Optional[int] = None):
         if n is None:
-            with m.Case():
+            with m.Default():
                 yield
         else:
             # find the index of the least significant bit set
@@ -59,13 +59,11 @@ def OneHotSwitch(m: ModuleLike, test: Value):
 
 
 @overload
-def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]:
-    ...
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[True]) -> Iterable[Optional[int]]: ...
 
 
 @overload
-def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[False] = False) -> Iterable[int]:
-    ...
+def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: Literal[False] = False) -> Iterable[int]: ...
 
 
 def OneHotSwitchDynamic(m: ModuleLike, test: Value, *, default: bool = False) -> Iterable[Optional[int]]:

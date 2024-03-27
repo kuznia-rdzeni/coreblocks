@@ -1,10 +1,12 @@
+from amaranth import *
 from coreblocks.cache.icache import CacheRefillerInterface
-from coreblocks.params import ICacheLayouts, ICacheParameters
+from coreblocks.params import ICacheParameters
+from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from transactron.core import Transaction
-from transactron.lib import C, Cat, Elaboratable, Forwarder, Method, Signal, TModule, def_method
+from transactron.lib import Forwarder, Method, TModule, def_method
 
-from amaranth.utils import log2_int
+from amaranth.utils import exact_log2
 
 
 __all__ = ["SimpleCommonBusCacheRefiller"]
@@ -62,7 +64,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
                 address_fwd.write(m, word_counter=next_word_counter, refill_address=refill_address)
 
             return {
-                "addr": Cat(C(0, log2_int(self.params.word_width_bytes)), word_counter, refill_address),
+                "addr": Cat(C(0, exact_log2(self.params.word_width_bytes)), word_counter, refill_address),
                 "data": fetched.data,
                 "error": fetched.err,
                 "last": last,

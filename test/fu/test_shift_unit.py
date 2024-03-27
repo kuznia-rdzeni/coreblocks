@@ -1,5 +1,5 @@
-from coreblocks.params import Funct3, Funct7, OpType
-from coreblocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
+from coreblocks.frontend.decoder import Funct3, Funct7, OpType
+from coreblocks.func_blocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
 
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
@@ -12,8 +12,8 @@ class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
         ShiftUnitFn.Fn.SLL: ExecFn(OpType.SHIFT, Funct3.SLL),
         ShiftUnitFn.Fn.SRL: ExecFn(OpType.SHIFT, Funct3.SR, Funct7.SL),
         ShiftUnitFn.Fn.SRA: ExecFn(OpType.SHIFT, Funct3.SR, Funct7.SA),
-        ShiftUnitFn.Fn.ROL: ExecFn(OpType.BIT_MANIPULATION, Funct3.ROL, Funct7.ROL),
-        ShiftUnitFn.Fn.ROR: ExecFn(OpType.BIT_MANIPULATION, Funct3.ROR, Funct7.ROR),
+        ShiftUnitFn.Fn.ROL: ExecFn(OpType.BIT_ROTATION, Funct3.ROL, Funct7.ROL),
+        ShiftUnitFn.Fn.ROR: ExecFn(OpType.BIT_ROTATION, Funct3.ROR, Funct7.ROR),
     }
 
     @staticmethod

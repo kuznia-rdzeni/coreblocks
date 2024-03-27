@@ -2,23 +2,23 @@ from collections.abc import Collection
 
 import dataclasses
 from dataclasses import dataclass, field
-from coreblocks.lsu.pma import PMARegion
+from coreblocks.func_blocks.lsu.pma import PMARegion
 
-from coreblocks.params.isa import Extension
+from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.stages.rs_func_block import RSBlockComponent
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
-from coreblocks.fu.alu import ALUComponent
-from coreblocks.fu.shift_unit import ShiftUnitComponent
-from coreblocks.fu.jumpbranch import JumpComponent
-from coreblocks.fu.mul_unit import MulComponent, MulType
-from coreblocks.fu.div_unit import DivComponent
-from coreblocks.fu.zbc import ZbcComponent
-from coreblocks.fu.zbs import ZbsComponent
-from coreblocks.fu.exception import ExceptionUnitComponent
-from coreblocks.fu.priv import PrivilegedUnitComponent
-from coreblocks.lsu.dummyLsu import LSUBlockComponent
-from coreblocks.structs_common.csr import CSRBlockComponent
+from coreblocks.func_blocks.fu.alu import ALUComponent
+from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
+from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
+from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.func_blocks.fu.div_unit import DivComponent
+from coreblocks.func_blocks.fu.zbc import ZbcComponent
+from coreblocks.func_blocks.fu.zbs import ZbsComponent
+from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
+from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
+from coreblocks.func_blocks.lsu.dummyLsu import LSUBlockComponent
+from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
 

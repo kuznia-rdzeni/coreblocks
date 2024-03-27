@@ -6,13 +6,13 @@ from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
 from transactron.utils import int_to_signed, signed_to_int
-from coreblocks.params import OpType, GenParams
-from coreblocks.lsu.dummyLsu import LSUDummy
+from coreblocks.params import GenParams
+from coreblocks.func_blocks.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
-from coreblocks.params.isa import *
-from coreblocks.params.keys import ExceptionReportKey
+from coreblocks.frontend.decoder import *
+from coreblocks.interface.keys import ExceptionReportKey
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.params.layouts import ExceptionRegisterLayouts
+from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.peripherals.wishbone import *
 from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
@@ -173,9 +173,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 self.exception_queue.append(
                     {
                         "rob_id": rob_id,
-                        "cause": ExceptionCause.LOAD_ADDRESS_MISALIGNED
-                        if misaligned
-                        else ExceptionCause.LOAD_ACCESS_FAULT,
+                        "cause": (
+                            ExceptionCause.LOAD_ADDRESS_MISALIGNED if misaligned else ExceptionCause.LOAD_ACCESS_FAULT
+                        ),
                         "pc": 0,
                     }
                 )

@@ -12,22 +12,26 @@ from typing import (
     runtime_checkable,
     Union,
     Any,
+    TYPE_CHECKING,
 )
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import AbstractContextManager
 from enum import Enum
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
-from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
-from amaranth.hdl.dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain, FSM
-from amaranth.hdl.rec import Direction, Layout
+from amaranth.lib.wiring import Flow, Member
+from amaranth.hdl import ShapeCastable, ValueCastable
+
+if TYPE_CHECKING:
+    from amaranth.hdl._ast import Statement
+    from amaranth.hdl._dsl import _ModuleBuilderSubmodules, _ModuleBuilderDomainSet, _ModuleBuilderDomain
+    import amaranth.hdl._dsl
 
 __all__ = [
     "FragmentLike",
     "ValueLike",
     "ShapeLike",
     "StatementLike",
-    "LayoutLike",
     "SwitchKey",
     "SrcLoc",
     "MethodLayout",
@@ -40,6 +44,7 @@ __all__ = [
     "RecordIntDict",
     "RecordIntDictRet",
     "RecordValueDict",
+    "RecordDict",
     "ROGraph",
     "Graph",
     "GraphCC",
@@ -53,10 +58,7 @@ __all__ = [
 FragmentLike: TypeAlias = Fragment | Elaboratable
 ValueLike: TypeAlias = Value | int | Enum | ValueCastable
 ShapeLike: TypeAlias = Shape | ShapeCastable | int | range | type[Enum]
-StatementLike: TypeAlias = Statement | Iterable["StatementLike"]
-LayoutLike: TypeAlias = (
-    Layout | Sequence[tuple[str, "ShapeLike | LayoutLike"] | tuple[str, "ShapeLike | LayoutLike", Direction]]
-)
+StatementLike: TypeAlias = Union["Statement", Iterable["StatementLike"]]
 SwitchKey: TypeAlias = str | int | Enum
 SrcLoc: TypeAlias = tuple[str, int]
 
@@ -71,6 +73,7 @@ MethodStruct: TypeAlias = "View[StructLayout]"
 RecordIntDict: TypeAlias = Mapping[str, Union[int, "RecordIntDict"]]
 RecordIntDictRet: TypeAlias = Mapping[str, Any]  # full typing hard to work with
 RecordValueDict: TypeAlias = Mapping[str, Union[ValueLike, "RecordValueDict"]]
+RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -81,26 +84,23 @@ Graph: TypeAlias = dict[T, set[T]]
 GraphCC: TypeAlias = set[T]
 
 
+# Protocols for Amaranth classes
 class _ModuleBuilderDomainsLike(Protocol):
-    def __getattr__(self, name: str) -> _ModuleBuilderDomain:
-        ...
+    def __getattr__(self, name: str) -> "_ModuleBuilderDomain": ...
 
-    def __getitem__(self, name: str) -> _ModuleBuilderDomain:
-        ...
+    def __getitem__(self, name: str) -> "_ModuleBuilderDomain": ...
 
-    def __setattr__(self, name: str, value: _ModuleBuilderDomain) -> None:
-        ...
+    def __setattr__(self, name: str, value: "_ModuleBuilderDomain") -> None: ...
 
-    def __setitem__(self, name: str, value: _ModuleBuilderDomain) -> None:
-        ...
+    def __setitem__(self, name: str, value: "_ModuleBuilderDomain") -> None: ...
 
 
 _T_ModuleBuilderDomains = TypeVar("_T_ModuleBuilderDomains", bound=_ModuleBuilderDomainsLike)
 
 
 class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
-    submodules: _ModuleBuilderSubmodules
-    domains: _ModuleBuilderDomainSet
+    submodules: "_ModuleBuilderSubmodules"
+    domains: "_ModuleBuilderDomainSet"
     d: _T_ModuleBuilderDomains
 
     def If(self, cond: ValueLike) -> AbstractContextManager[None]:  # noqa: N802
@@ -123,30 +123,75 @@ class ModuleLike(Protocol, Generic[_T_ModuleBuilderDomains]):
 
     def FSM(  # noqa: N802
         self, reset: Optional[str] = ..., domain: str = ..., name: str = ...
-    ) -> AbstractContextManager[FSM]:
-        ...
+    ) -> AbstractContextManager["amaranth.hdl._dsl.FSM"]: ...
 
     def State(self, name: str) -> AbstractContextManager[None]:  # noqa: N802
         ...
 
     @property
-    def next(self) -> NoReturn:
-        ...
+    def next(self) -> NoReturn: ...
 
     @next.setter
-    def next(self, name: str) -> None:
-        ...
+    def next(self, name: str) -> None: ...
+
+
+class AbstractSignatureMembers(Protocol):
+    def flip(self) -> "AbstractSignatureMembers": ...
+
+    def __eq__(self, other) -> bool: ...
+
+    def __contains__(self, name: str) -> bool: ...
+
+    def __getitem__(self, name: str) -> Member: ...
+
+    def __setitem__(self, name: str, member: Member) -> NoReturn: ...
+
+    def __delitem__(self, name: str) -> NoReturn: ...
+
+    def __iter__(self) -> Iterator[str]: ...
+
+    def __len__(self) -> int: ...
+
+    def flatten(self, *, path: tuple[str | int, ...] = ...) -> Iterator[tuple[tuple[str | int, ...], Member]]: ...
+
+    def create(self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...) -> dict[str, Any]: ...
+
+    def __repr__(self) -> str: ...
+
+
+class AbstractSignature(Protocol):
+    def flip(self) -> "AbstractSignature": ...
+
+    @property
+    def members(self) -> AbstractSignatureMembers: ...
+
+    def __eq__(self, other) -> bool: ...
+
+    def flatten(self, obj) -> Iterator[tuple[tuple[str | int, ...], Flow, ValueLike]]: ...
+
+    def is_compliant(self, obj, *, reasons: Optional[list[str]] = ..., path: tuple[str, ...] = ...) -> bool: ...
+
+    def create(
+        self, *, path: tuple[str | int, ...] = ..., src_loc_at: int = ...
+    ) -> "AbstractInterface[AbstractSignature]": ...
+
+    def __repr__(self) -> str: ...
+
+
+_T_AbstractSignature = TypeVar("_T_AbstractSignature", bound=AbstractSignature)
+
+
+class AbstractInterface(Protocol, Generic[_T_AbstractSignature]):
+    signature: _T_AbstractSignature
 
 
 class HasElaborate(Protocol):
-    def elaborate(self, platform) -> "HasElaborate":
-        ...
+    def elaborate(self, platform) -> "HasElaborate": ...
 
 
 @runtime_checkable
 class HasDebugSignals(Protocol):
-    def debug_signals(self) -> SignalBundle:
-        ...
+    def debug_signals(self) -> SignalBundle: ...
 
 
 def type_self_kwargs_as(as_func: Callable[Concatenate[Any, P], Any]):

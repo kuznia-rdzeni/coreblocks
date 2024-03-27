@@ -5,10 +5,10 @@ from typing import Type
 from amaranth.sim import Settle
 from parameterized import parameterized_class
 
-from coreblocks.fu.unsigned_multiplication.common import MulBaseUnsigned
-from coreblocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
-from coreblocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
-from coreblocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned
+from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 

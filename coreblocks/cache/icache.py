@@ -2,16 +2,19 @@ from functools import reduce
 import operator
 
 from amaranth import *
-from amaranth.utils import log2_int
+from amaranth.lib.data import View
+from amaranth.utils import exact_log2
 
 from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
-from coreblocks.params import ICacheLayouts, ICacheParameters
+from coreblocks.params import ICacheParameters
+from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.lib import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
+from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
     "ICache",
@@ -52,7 +55,7 @@ class ICacheBypass(Elaboratable, CacheInterface):
             m.d.sync += req_addr.eq(addr)
             self.bus_master.request_read(
                 m,
-                addr=addr >> log2_int(self.params.word_width_bytes),
+                addr=addr >> exact_log2(self.params.word_width_bytes),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
@@ -109,11 +112,11 @@ class ICache(Elaboratable, CacheInterface):
         self.flush = Method()
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
 
-        self.addr_layout = [
+        self.addr_layout = make_layout(
             ("offset", self.params.offset_bits),
             ("index", self.params.index_bits),
             ("tag", self.params.tag_bits),
-        ]
+        )
 
         self.perf_loads = HwCounter("frontend.icache.loads", "Number of requests to the L1 Instruction Cache")
         self.perf_hits = HwCounter("frontend.icache.hits")
@@ -131,7 +134,7 @@ class ICache(Elaboratable, CacheInterface):
             "tag": raw_addr[-self.params.tag_bits :],
         }
 
-    def serialize_addr(self, addr: Record) -> Value:
+    def serialize_addr(self, addr: View) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
 
     def elaborate(self, platform):
@@ -186,7 +189,7 @@ class ICache(Elaboratable, CacheInterface):
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
-        request_addr = Record(self.addr_layout)
+        request_addr = Signal(self.addr_layout)
 
         tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
@@ -195,7 +198,7 @@ class ICache(Elaboratable, CacheInterface):
         for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
             m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
 
-        instr_out = extract_instr_from_word(m, self.params, mem_out, request_addr[:])
+        instr_out = extract_instr_from_word(m, self.params, mem_out, Value.cast(request_addr))
 
         refill_error_saved = Signal()
         m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
@@ -214,7 +217,7 @@ class ICache(Elaboratable, CacheInterface):
             self.req_latency.stop(m)
             return self.res_fwd.read(m)
 
-        mem_read_addr = Record(self.addr_layout)
+        mem_read_addr = Signal(self.addr_layout)
         m.d.comb += assign(mem_read_addr, request_addr)
 
         @def_method(m, self.issue_req, ready=accepting_requests)
@@ -304,21 +307,21 @@ class ICacheMemory(Elaboratable):
     def __init__(self, params: ICacheParameters) -> None:
         self.params = params
 
-        self.tag_data_layout = [("valid", 1), ("tag", self.params.tag_bits)]
+        self.tag_data_layout = make_layout(("valid", 1), ("tag", self.params.tag_bits))
 
         self.way_wr_en = Signal(self.params.num_of_ways)
 
         self.tag_rd_index = Signal(self.params.index_bits)
-        self.tag_rd_data = Array([Record(self.tag_data_layout) for _ in range(self.params.num_of_ways)])
+        self.tag_rd_data = Array([Signal(self.tag_data_layout) for _ in range(self.params.num_of_ways)])
         self.tag_wr_index = Signal(self.params.index_bits)
         self.tag_wr_en = Signal()
-        self.tag_wr_data = Record(self.tag_data_layout)
+        self.tag_wr_data = Signal(self.tag_data_layout)
 
-        self.data_addr_layout = [("index", self.params.index_bits), ("offset", self.params.offset_bits)]
+        self.data_addr_layout = make_layout(("index", self.params.index_bits), ("offset", self.params.offset_bits))
 
-        self.data_rd_addr = Record(self.data_addr_layout)
+        self.data_rd_addr = Signal(self.data_addr_layout)
         self.data_rd_data = Array([Signal(self.params.word_width) for _ in range(self.params.num_of_ways)])
-        self.data_wr_addr = Record(self.data_addr_layout)
+        self.data_wr_addr = Signal(self.data_addr_layout)
         self.data_wr_en = Signal()
         self.data_wr_data = Signal(self.params.word_width)
 
@@ -328,7 +331,7 @@ class ICacheMemory(Elaboratable):
         for i in range(self.params.num_of_ways):
             way_wr = self.way_wr_en[i]
 
-            tag_mem = Memory(width=len(self.tag_wr_data), depth=self.params.num_of_sets)
+            tag_mem = Memory(width=len(Value.cast(self.tag_wr_data)), depth=self.params.num_of_sets)
             tag_mem_rp = tag_mem.read_port()
             tag_mem_wp = tag_mem.write_port()
             m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
@@ -350,7 +353,7 @@ class ICacheMemory(Elaboratable):
 
             # We address the data RAM using machine words, so we have to
             # discard a few least significant bits from the address.
-            redundant_offset_bits = log2_int(self.params.word_width_bytes)
+            redundant_offset_bits = exact_log2(self.params.word_width_bytes)
             rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
             wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
 
