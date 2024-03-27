@@ -198,7 +198,6 @@ class AsyncMemoryBank(Elaboratable):
         @def_method(m, self.read)
         def _(addr):
             m.d.comb += read_port.addr.eq(addr)
-            m.d.comb += read_port.en.eq(1)
             return read_port.data
 
         @def_method(m, self.write)

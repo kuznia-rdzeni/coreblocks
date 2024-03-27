@@ -543,11 +543,11 @@ class IndexedLatencyMeasurer(Elaboratable):
 
         @def_method(m, self._start)
         def _(slot):
-            self.slots.write(m, slot, epoch)
+            self.slots.write(m, addr=slot, data=epoch)
 
         @def_method(m, self._stop)
         def _(slot):
-            ret = self.slots.read(m, slot)
+            ret = self.slots.read(m, addr=slot)
             # The result of substracting two unsigned n-bit is a signed (n+1)-bit value,
             # so we need to cast the result and discard the most significant bit.
             duration = (epoch - ret.epoch).as_unsigned()[:-1]
