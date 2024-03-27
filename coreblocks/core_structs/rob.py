@@ -27,8 +27,8 @@ class ReorderBuffer(Elaboratable):
         self.perf_rob_size = HwExpHistogram(
             "backend.rob.size",
             description="Number of instructions in ROB",
-            bucket_count=gen_params.rob_entries_bits,
-            sample_width=gen_params.rob_entries_bits + 1
+            bucket_count=gen_params.rob_entries_bits + 1,
+            sample_width=gen_params.rob_entries_bits,
         )
 
     def elaborate(self, platform):
@@ -77,8 +77,8 @@ class ReorderBuffer(Elaboratable):
             return {"start": start_idx, "end": end_idx}
 
         if self.perf_rob_size.metrics_enabled():
-            rob_size = Signal(self.params.rob_entries_bits + 1)
-            m.d.comb += rob_size.eq(end_idx - start_idx)
+            rob_size = Signal(self.params.rob_entries_bits)
+            m.d.comb += rob_size.eq((end_idx - start_idx)[0 : self.params.rob_entries_bits])
             with Transaction(name="perf").body(m):
                 self.perf_rob_size.add(m, rob_size)
 

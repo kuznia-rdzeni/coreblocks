@@ -26,7 +26,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
-        rs_number=0
+        rs_number=0,
     ),
     LSUBlockComponent(),
     CSRBlockComponent(),
@@ -129,7 +129,7 @@ full_core_config = CoreConfiguration(
                 PrivilegedUnitComponent(),
             ],
             rs_entries=4,
-            rs_number=0
+            rs_number=0,
         ),
         RSBlockComponent(
             [
@@ -137,7 +137,7 @@ full_core_config = CoreConfiguration(
                 DivComponent(),
             ],
             rs_entries=2,
-            rs_number=1
+            rs_number=1,
         ),
         LSUBlockComponent(),
         CSRBlockComponent(),

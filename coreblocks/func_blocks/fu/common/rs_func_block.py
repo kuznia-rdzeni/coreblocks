@@ -31,7 +31,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         layout described by `FuncUnitLayouts`.
     """
 
-    def __init__(self, gen_params: GenParams, func_units: Iterable[tuple[FuncUnit, set[OpType]]], rs_entries: int, rs_number: int):
+    def __init__(
+        self, gen_params: GenParams, func_units: Iterable[tuple[FuncUnit, set[OpType]]], rs_entries: int, rs_number: int
+    ):
         """
         Parameters
         ----------
@@ -95,7 +97,9 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
-        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries, rs_number=self.rs_number)
+        rs_unit = RSFuncBlock(
+            gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries, rs_number=self.rs_number
+        )
         return rs_unit
 
     def get_optypes(self) -> set[OpType]:

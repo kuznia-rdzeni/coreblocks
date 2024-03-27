@@ -17,7 +17,11 @@ __all__ = ["RS"]
 
 class RS(Elaboratable):
     def __init__(
-        self, gen_params: GenParams, rs_entries: int, rs_number: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
+        self,
+        gen_params: GenParams,
+        rs_entries: int,
+        rs_number: int,
+        ready_for: Optional[Iterable[Iterable[OpType]]] = None,
     ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
@@ -44,8 +48,8 @@ class RS(Elaboratable):
         self.perf_num_full = HwExpHistogram(
             f"fu.block_{rs_number}.rs.num_full",
             description=f"Number of full entries in RS {rs_number}",
-            bucket_count=self.rs_entries_bits,
-            sample_width=self.rs_entries_bits + 1
+            bucket_count=self.rs_entries_bits + 1,
+            sample_width=self.rs_entries_bits + 1,
         )
 
     def elaborate(self, platform):
@@ -118,7 +122,9 @@ class RS(Elaboratable):
 
         if self.perf_num_full.metrics_enabled():
             num_full = Signal(self.rs_entries_bits + 1)
-            m.d.comb += num_full.eq(reduce(operator.add, (self.data[entry_id].rec_full for entry_id in range(self.rs_entries))))
+            m.d.comb += num_full.eq(
+                reduce(operator.add, (self.data[entry_id].rec_full for entry_id in range(self.rs_entries)))
+            )
             with Transaction(name="perf").body(m):
                 self.perf_num_full.add(m, num_full)
 

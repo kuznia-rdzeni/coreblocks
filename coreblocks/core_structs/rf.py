@@ -24,13 +24,15 @@ class RegisterFile(Elaboratable):
         self.free = Method(i=layouts.rf_free)
 
         self.perf_num_valid = HwExpHistogram(
-            "struct.rf.num_valid", description="Number of valid registers in RF", bucket_count=gen_params.phys_regs_bits,
-            sample_width=gen_params.phys_regs_bits + 1
+            "struct.rf.num_valid",
+            description="Number of valid registers in RF",
+            bucket_count=gen_params.phys_regs_bits + 1,
+            sample_width=gen_params.phys_regs_bits + 1,
         )
 
     def elaborate(self, platform):
         m = TModule()
-        
+
         m.submodules += [self.perf_num_valid]
 
         being_written = Signal(self.gen_params.phys_regs_bits)
@@ -74,9 +76,11 @@ class RegisterFile(Elaboratable):
 
         if self.perf_num_valid.metrics_enabled():
             num_valid = Signal(self.gen_params.phys_regs_bits + 1)
-            m.d.comb += num_valid.eq(reduce(
-                operator.add, (self.entries[reg_id].valid for reg_id in range(2**self.gen_params.phys_regs_bits))
-            ))
+            m.d.comb += num_valid.eq(
+                reduce(
+                    operator.add, (self.entries[reg_id].valid for reg_id in range(2**self.gen_params.phys_regs_bits))
+                )
+            )
             with Transaction(name="perf").body(m):
                 self.perf_num_valid.add(m, num_valid)
 
