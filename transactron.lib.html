@@ -458,6 +458,32 @@ Alternatively, the source location to use instead of the default.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.StableSelectingNetwork">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">StableSelectingNetwork</span></span><a class="headerlink" href="#transactron.lib.connectors.StableSelectingNetwork" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>A network that groups inputs with a valid bit set.</p>
+<p>The circuit takes <cite>n</cite> inputs with a valid signal each and
+on the output returns a grouped and consecutive sequence of the provided
+input signals. The order of valid inputs is preserved.</p>
+<p>For example for input (0 is an invalid input):
+0, a, 0, d, 0, 0, e</p>
+<p>The circuit will return:
+a, d, e, 0, 0, 0, 0</p>
+<p>The circuit uses a divide and conquer algorithm.
+The recursive call takes two bit vectors and each of them
+is already properly sorted, for example:
+v1 = [a, b, 0, 0]; v2 = [c, d, e, 0]</p>
+<p>Now by shifting left v2 and merging it with v1, we get the result:
+v = [a, b, c, d, e, 0, 0, 0]</p>
+<p>Thus, the network has depth log_2(n).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.StableSelectingNetwork.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.StableSelectingNetwork.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-transactron.lib.dependencies">
 <span id="transactron-lib-dependencies-module"></span><h2>transactron.lib.dependencies module<a class="headerlink" href="#module-transactron.lib.dependencies" title="Permalink to this heading"></a></h2>
@@ -1916,7 +1942,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 22:06 2024-03-24.
+      <span class="lastupdated">Last updated on 15:57 2024-03-27.
       </span></p>
   </div>
 
