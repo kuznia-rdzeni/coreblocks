@@ -49,8 +49,17 @@ class FetchUnit(Elaboratable):
         # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
+        # histogram for stalls length
+        self.perf_fetch_utilization = TaggedCounter(
+            "frontend.fetch.fetch_block_util",
+            "Number of valid instructions in fetch blocks",
+            tags=range(self.gen_params.fetch_width + 1),
+        )
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.perf_fetch_utilization]
 
         fetch_width = self.gen_params.fetch_width
 
@@ -221,10 +230,11 @@ class FetchUnit(Elaboratable):
             log.debug(
                 m,
                 True,
-                "[STAGE 1] pc=0x{:x}, fetch_block_addr=0x{:x} offset= {} fetch_block=0x{:x}",
+                "[STAGE 1] pc=0x{:x}, fetch_block_addr=0x{:x} offset= {} cache_err={} fetch_block=0x{:x}",
                 target.addr,
                 fetch_block_addr,
                 fetch_block_offset,
+                cache_resp.error,
                 cache_resp.fetch_block,
             )
 
@@ -248,7 +258,7 @@ class FetchUnit(Elaboratable):
 
         # Make sure to clean the state
         with m.If(flush_now):
-            m.d.sync += prev_half_v.eq(1)
+            m.d.sync += prev_half_v.eq(0)
 
         #
         # Fetch - stage 2
@@ -273,10 +283,11 @@ class FetchUnit(Elaboratable):
             log.debug(
                 m,
                 True,
-                "[STAGE 2] fetch_blk_addr=0x{:x} instrs {:x} cross: {}",
+                "[STAGE 2] fetch_blk_addr=0x{:x} instrs {:x} cross: {} access_fault: {}",
                 fetch_block_addr,
                 s1_data.instr_block,
                 s1_data.instr_block_cross,
+                access_fault,
             )
 
             # Predecode instructions
@@ -328,9 +339,10 @@ class FetchUnit(Elaboratable):
             log.info(
                 m,
                 True,
-                "[STAGE 2] Valid mask: {:08b} redirection mask: {:08b} jump_offset: {}",
+                "[STAGE 2] Valid mask: {:08b} redirection mask: {:08b} prefix: {:08b} jump_offset: {}",
                 instr_valid,
                 Cat(instr_redirects),
+                valid_instr_prefix,
                 predecoders[0].jump_offset,
             )
 
@@ -378,6 +390,8 @@ class FetchUnit(Elaboratable):
                     flush()
                     m.d.sync += current_pc.eq(new_pc)
 
+                self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+
                 slots = {f"slot_{i}": raw_instrs[i] for i in range(fetch_width)}
                 # Make sure this is called only once to avoid a huge mux on arguments
                 serializer.write(m, valid_mask=fetch_mask, **slots)
@@ -391,9 +405,13 @@ class FetchUnit(Elaboratable):
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)
+            #   self.perf_stall_exception.stop(m)
 
         @def_method(m, self.stall_exception)
         def _():
+            # with m.If(~stalled_exception):
+            # self.perf_stall_exception.start(m)
+
             log.info(m, True, "Stalling the fetch unit because of an exception")
             serializer.clean(m)
             m.d.sync += stalled_exception.eq(1)
