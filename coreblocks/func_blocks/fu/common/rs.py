@@ -1,11 +1,14 @@
+import operator
+from functools import reduce
 from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
-from transactron import Method, def_method, TModule
+from transactron import Method, Transaction, def_method, TModule
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import OpType
 from coreblocks.interface.layouts import RSLayouts
+from transactron.lib.metrics import HwExpHistogram
 from transactron.utils import RecordDict
 from transactron.utils.transactron_helpers import make_layout
 
@@ -14,7 +17,7 @@ __all__ = ["RS"]
 
 class RS(Elaboratable):
     def __init__(
-        self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
+        self, gen_params: GenParams, rs_entries: int, rs_number: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
     ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
@@ -38,10 +41,18 @@ class RS(Elaboratable):
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
 
+        self.perf_num_full = HwExpHistogram(
+            f"fu.block_{rs_number}.rs.num_full",
+            description=f"Number of full entries in RS {rs_number}",
+            bucket_count=self.rs_entries_bits,
+            sample_width=self.rs_entries_bits + 1
+        )
+
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
+        m.submodules += [self.perf_num_full]
 
         for i, record in enumerate(self.data):
             m.d.comb += self.data_ready[i].eq(
@@ -104,5 +115,11 @@ class RS(Elaboratable):
             @def_method(m, get_ready_list, ready=ready_list.any())
             def _() -> RecordDict:
                 return {"ready_list": ready_list}
+
+        if self.perf_num_full.metrics_enabled():
+            num_full = Signal(self.rs_entries_bits + 1)
+            m.d.comb += num_full.eq(reduce(operator.add, (self.data[entry_id].rec_full for entry_id in range(self.rs_entries))))
+            with Transaction(name="perf").body(m):
+                self.perf_num_full.add(m, num_full)
 
         return m

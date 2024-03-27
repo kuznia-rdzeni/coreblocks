@@ -31,7 +31,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         layout described by `FuncUnitLayouts`.
     """
 
-    def __init__(self, gen_params: GenParams, func_units: Iterable[tuple[FuncUnit, set[OpType]]], rs_entries: int):
+    def __init__(self, gen_params: GenParams, func_units: Iterable[tuple[FuncUnit, set[OpType]]], rs_entries: int, rs_number: int):
         """
         Parameters
         ----------
@@ -41,10 +41,13 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             Functional units to be used by this module.
         rs_entries: int
             Number of entries in RS.
+        rs_number: int
+            The number of this RS block. Used for debugging.
         """
         self.gen_params = gen_params
         self.rs_entries = rs_entries
         self.rs_entries_bits = (rs_entries - 1).bit_length()
+        self.rs_number = rs_number
         self.rs_layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
@@ -60,6 +63,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         m.submodules.rs = self.rs = RS(
             gen_params=self.gen_params,
             rs_entries=self.rs_entries,
+            rs_number=self.rs_number,
             ready_for=(optypes for _, optypes in self.func_units),
         )
 
@@ -87,10 +91,11 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 class RSBlockComponent(BlockComponentParams):
     func_units: Collection[FunctionalComponentParams]
     rs_entries: int
+    rs_number: int
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
-        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
+        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries, rs_number=self.rs_number)
         return rs_unit
 
     def get_optypes(self) -> set[OpType]:

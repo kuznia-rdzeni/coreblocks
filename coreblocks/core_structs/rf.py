@@ -1,7 +1,10 @@
+import operator
 from amaranth import *
-from transactron import Method, def_method, TModule
+from functools import reduce
+from transactron import Method, Transaction, def_method, TModule
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
+from transactron.lib.metrics import HwExpHistogram
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RegisterFile"]
@@ -20,8 +23,15 @@ class RegisterFile(Elaboratable):
         self.write = Method(i=layouts.rf_write)
         self.free = Method(i=layouts.rf_free)
 
+        self.perf_num_valid = HwExpHistogram(
+            "struct.rf.num_valid", description="Number of valid registers in RF", bucket_count=gen_params.phys_regs_bits,
+            sample_width=gen_params.phys_regs_bits + 1
+        )
+
     def elaborate(self, platform):
         m = TModule()
+        
+        m.submodules += [self.perf_num_valid]
 
         being_written = Signal(self.gen_params.phys_regs_bits)
         written_value = Signal(self.gen_params.isa.xlen)
@@ -61,5 +71,13 @@ class RegisterFile(Elaboratable):
         def _(reg_id: Value):
             with m.If(reg_id != 0):
                 m.d.sync += self.entries[reg_id].valid.eq(0)
+
+        if self.perf_num_valid.metrics_enabled():
+            num_valid = Signal(self.gen_params.phys_regs_bits + 1)
+            m.d.comb += num_valid.eq(reduce(
+                operator.add, (self.entries[reg_id].valid for reg_id in range(2**self.gen_params.phys_regs_bits))
+            ))
+            with Transaction(name="perf").body(m):
+                self.perf_num_valid.add(m, num_valid)
 
         return m
