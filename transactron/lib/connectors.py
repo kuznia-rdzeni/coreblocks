@@ -11,6 +11,7 @@ __all__ = [
     "Connect",
     "ConnectTrans",
     "ManyToOneConnectTrans",
+    "StableSelectingNetwork",
 ]
 
 
@@ -273,5 +274,84 @@ class ManyToOneConnectTrans(Elaboratable):
             m.submodules[f"ManyToOneConnectTrans_input_{i}"] = ConnectTrans(
                 self.m_put_result, self.get_results[i], src_loc=self.src_loc
             )
+
+        return m
+
+
+class StableSelectingNetwork(Elaboratable):
+    """A network that groups inputs with a valid bit set.
+
+    The circuit takes `n` inputs with a valid signal each and
+    on the output returns a grouped and consecutive sequence of the provided
+    input signals. The order of valid inputs is preserved.
+
+    For example for input (0 is an invalid input):
+    0, a, 0, d, 0, 0, e
+
+    The circuit will return:
+    a, d, e, 0, 0, 0, 0
+
+    The circuit uses a divide and conquer algorithm.
+    The recursive call takes two bit vectors and each of them
+    is already properly sorted, for example:
+    v1 = [a, b, 0, 0]; v2 = [c, d, e, 0]
+
+    Now by shifting left v2 and merging it with v1, we get the result:
+    v = [a, b, c, d, e, 0, 0, 0]
+
+    Thus, the network has depth log_2(n).
+
+    """
+
+    def __init__(self, n: int, layout: MethodLayout):
+        self.n = n
+        self.layout = from_method_layout(layout)
+
+        self.inputs = [Signal(self.layout) for _ in range(n)]
+        self.valids = [Signal() for _ in range(n)]
+
+        self.outputs = [Signal(self.layout) for _ in range(n)]
+        self.output_cnt = Signal(range(n + 1))
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        current_level = []
+        for i in range(self.n):
+            current_level.append((Array([self.inputs[i]]), self.valids[i]))
+
+        # Create the network using the bottom-up approach.
+        while len(current_level) >= 2:
+            next_level = []
+            while len(current_level) >= 2:
+                a, cnt_a = current_level.pop(0)
+                b, cnt_b = current_level.pop(0)
+
+                total_cnt = Signal(max(len(cnt_a), len(cnt_b)) + 1)
+                m.d.comb += total_cnt.eq(cnt_a + cnt_b)
+
+                total_len = len(a) + len(b)
+                merged = Array(Signal(self.layout) for _ in range(total_len))
+
+                for i in range(len(a)):
+                    m.d.comb += merged[i].eq(Mux(cnt_a <= i, b[i - cnt_a], a[i]))
+                for i in range(len(b)):
+                    m.d.comb += merged[len(a) + i].eq(Mux(len(a) + i - cnt_a >= len(b), 0, b[len(a) + i - cnt_a]))
+
+                next_level.append((merged, total_cnt))
+
+            # If we had an odd number of elements on the current level,
+            # move the item left to the next level.
+            if len(current_level) == 1:
+                next_level.append(current_level.pop(0))
+
+            current_level = next_level
+
+        last_level, total_cnt = current_level.pop(0)
+
+        for i in range(self.n):
+            m.d.comb += self.outputs[i].eq(last_level[i])
+
+        m.d.comb += self.output_cnt.eq(total_cnt)
 
         return m
