@@ -123,7 +123,7 @@ class ICache(Elaboratable, CacheInterface):
         self.perf_misses = HwCounter("frontend.icache.misses")
         self.perf_errors = HwCounter("frontend.icache.fetch_errors")
         self.perf_flushes = HwCounter("frontend.icache.flushes")
-        self.req_latency = LatencyMeasurer(
+        self.req_latency = FIFOLatencyMeasurer(
             "frontend.icache.req_latency", "Latencies of cache requests", slots_number=2, max_latency=500
         )
 

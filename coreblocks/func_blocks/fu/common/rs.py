@@ -8,7 +8,7 @@ from transactron import Method, Transaction, def_method, TModule
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import OpType
 from coreblocks.interface.layouts import RSLayouts
-from transactron.lib.metrics import HwExpHistogram
+from transactron.lib.metrics import HwExpHistogram, IndexedLatencyMeasurer
 from transactron.utils import RecordDict
 from transactron.utils.transactron_helpers import make_layout
 
@@ -45,6 +45,12 @@ class RS(Elaboratable):
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
 
+        self.perf_rs_wait_time = IndexedLatencyMeasurer(
+            f"fu.block_{rs_number}.rs.valid_time",
+            description=f"Distribution of time instructions wait in RS {rs_number}",
+            slots_number=2**self.rs_entries_bits,
+            max_latency=1000,
+        )
         self.perf_num_full = HwExpHistogram(
             f"fu.block_{rs_number}.rs.num_full",
             description=f"Number of full entries in RS {rs_number}",
@@ -56,7 +62,7 @@ class RS(Elaboratable):
         m = TModule()
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
-        m.submodules += [self.perf_num_full]
+        m.submodules += [self.perf_rs_wait_time, self.perf_num_full]
 
         for i, record in enumerate(self.data):
             m.d.comb += self.data_ready[i].eq(
@@ -86,6 +92,7 @@ class RS(Elaboratable):
             m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
             m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
             m.d.sync += self.data[rs_entry_id].rec_reserved.eq(1)
+            self.perf_rs_wait_time.start(m, slot=rs_entry_id)
 
         @def_method(m, self.update)
         def _(reg_id: Value, reg_val: Value) -> None:
@@ -104,6 +111,7 @@ class RS(Elaboratable):
             record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
+            self.perf_rs_wait_time.stop(m, slot=rs_entry_id)
             return {
                 "s1_val": record.rs_data.s1_val,
                 "s2_val": record.rs_data.s2_val,

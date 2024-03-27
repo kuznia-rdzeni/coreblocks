@@ -18,7 +18,7 @@ class ReorderBuffer(Elaboratable):
         self.data = Array(Signal(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
-        self.perf_rob_wait_time = LatencyMeasurer(
+        self.perf_rob_wait_time = FIFOLatencyMeasurer(
             "backend.rob.wait_time",
             description="Distribution of time instructions spend in ROB",
             slots_number=(2**gen_params.rob_entries_bits + 1),

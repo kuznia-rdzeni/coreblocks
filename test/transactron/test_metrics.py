@@ -237,14 +237,14 @@ class TestHwHistogram(TestCaseWithSimulator):
         (5, 5),
     ],
 )
-class TestLatencyMeasurer(TestCaseWithSimulator):
+class TestFIFOLatencyMeasurer(TestCaseWithSimulator):
     slots_number: int
     expected_consumer_wait: float
 
     def test_latency_measurer(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(LatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
+        m = SimpleTestCircuit(FIFOLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         latencies: list[int] = []
