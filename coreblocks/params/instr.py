@@ -176,7 +176,7 @@ class BTypeInstr(InstructionFunct3Type):
 
 class UTypeInstr(RISCVInstr):
     field_rd = Field(name="rd", base=7, size=5)
-    field_imm = Field(name="imm", base=12, size=20, offset=12, signed=False)
+    field_imm = Field(name="imm", base=12, size=20, offset=12, signed=True)
 
     def __init__(self, opcode: ValueLike, **kwargs):
         super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
