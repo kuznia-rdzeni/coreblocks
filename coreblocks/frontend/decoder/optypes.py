@@ -47,6 +47,18 @@ class OpType(IntEnum):
     EXCEPTION = auto()
 
 
+@unique
+class CfiType(IntEnum):
+    """
+    Types of control flow instructions.
+    """
+
+    INVALID = auto()  # Not a CFI. Needs to be first.
+    BRANCH = auto()
+    JAL = auto()  # Jump and Link
+    JALR = auto()  # Jump and Link Register
+
+
 #
 # Operation types grouped by extensions
 # Note that this list provides 1:1 mappings and extension implications (like M->Zmmul) need to be resolved externally.

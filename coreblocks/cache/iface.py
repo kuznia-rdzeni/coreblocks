@@ -35,7 +35,7 @@ class CacheRefillerInterface(HasElaborate, Protocol):
     start_refill : Method
         A method that is used to start a refill for a given cache line.
     accept_refill : Method
-        A method that is used to accept one word from the requested cache line.
+        A method that is used to accept one fetch block from the requested cache line.
     """
 
     start_refill: Method

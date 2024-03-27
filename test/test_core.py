@@ -36,7 +36,7 @@ class CoreTestElaboratable(Elaboratable):
         wb_data_bus = WishboneSignature(self.gen_params.wb_params).create()
 
         # Align the size of the memory to the length of a cache line.
-        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.block_size_bits)
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
         self.wb_mem_slave = WishboneMemorySlave(
             wb_params=self.gen_params.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
@@ -74,13 +74,11 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def push_register_load_imm(self, reg_id, val):
         addi_imm = signed_to_int(val & 0xFFF, 12)
-        lui_imm = (val & 0xFFFFF000) >> 12
-        # handle addi sign extension, see: https://stackoverflow.com/a/59546567
-        if val & 0x800:
-            lui_imm = (lui_imm + 1) & (0xFFFFF)
 
-        yield from self.push_instr(UTypeInstr.encode(Opcode.LUI, reg_id, lui_imm))
-        yield from self.push_instr(ITypeInstr.encode(Opcode.OP_IMM, reg_id, Funct3.ADD, reg_id, addi_imm))
+        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=val).encode())
+        yield from self.push_instr(
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=reg_id, funct3=Funct3.ADD, rs1=reg_id, imm=addi_imm).encode()
+        )
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
@@ -132,8 +130,8 @@ class TestCoreAsmSourceBase(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 1200 * 2, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 610 * 2, {3: 55}, basic_core_config),
+        ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, basic_core_config),
+        ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("exception", "exception.asm", 200 * 2, {1: 1, 2: 2}, basic_core_config),
         ("exception_mem", "exception_mem.asm", 200 * 2, {1: 1, 2: 2}, basic_core_config),

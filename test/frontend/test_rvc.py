@@ -25,17 +25,17 @@ COMMON_TESTS = [
     # c.addi x2, -28
     (
         0x1111,
-        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X2, funct3=Funct3.ADD, rs1=Registers.X2, imm=C(-28, 12)),
+        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X2, funct3=Funct3.ADD, rs1=Registers.X2, imm=-28),
     ),
     # c.li x31, -7
     (
         0x5FE5,
-        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X31, funct3=Funct3.ADD, rs1=Registers.ZERO, imm=C(-7, 12)),
+        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X31, funct3=Funct3.ADD, rs1=Registers.ZERO, imm=-7),
     ),
     # c.addi16sp 496
     (0x617D, ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.SP, funct3=Funct3.ADD, rs1=Registers.SP, imm=496)),
     # c.lui x7, -3
-    (0x73F5, UTypeInstr(opcode=Opcode.LUI, rd=Registers.X7, imm=C(-3, 20) << 12)),
+    (0x73F5, UTypeInstr(opcode=Opcode.LUI, rd=Registers.X7, imm=Cat(C(0, 12), C(-3, 20)))),
     # c.srli x10, 3
     (
         0x810D,
@@ -44,7 +44,7 @@ COMMON_TESTS = [
             rd=Registers.X10,
             funct3=Funct3.SR,
             rs1=Registers.X10,
-            rs2=C(3, 5),
+            rs2=Registers.X3,
             funct7=Funct7.SL,
         ),
     ),
@@ -56,7 +56,7 @@ COMMON_TESTS = [
             rd=Registers.X12,
             funct3=Funct3.SR,
             rs1=Registers.X12,
-            rs2=C(8, 5),
+            rs2=Registers.X8,
             funct7=Funct7.SA,
         ),
     ),
@@ -111,16 +111,16 @@ COMMON_TESTS = [
         ),
     ),
     # c.j 2012
-    (0xAFF1, JTypeInstr(opcode=Opcode.JAL, rd=Registers.ZERO, imm=C(2012, 21))),
+    (0xAFF1, JTypeInstr(opcode=Opcode.JAL, rd=Registers.ZERO, imm=2012)),
     # c.beqz x8, -6
     (
         0xDC6D,
-        BTypeInstr(opcode=Opcode.BRANCH, imm=C(-6, 13), funct3=Funct3.BEQ, rs1=Registers.X8, rs2=Registers.ZERO),
+        BTypeInstr(opcode=Opcode.BRANCH, imm=-6, funct3=Funct3.BEQ, rs1=Registers.X8, rs2=Registers.ZERO),
     ),
     # c.bnez x15, 20
     (
         0xEB91,
-        BTypeInstr(opcode=Opcode.BRANCH, imm=C(20, 13), funct3=Funct3.BNE, rs1=Registers.X15, rs2=Registers.ZERO),
+        BTypeInstr(opcode=Opcode.BRANCH, imm=20, funct3=Funct3.BNE, rs1=Registers.X15, rs2=Registers.ZERO),
     ),
     # c.slli x13, 31
     (
@@ -130,18 +130,16 @@ COMMON_TESTS = [
             rd=Registers.X13,
             funct3=Funct3.SLL,
             rs1=Registers.X13,
-            rs2=C(31, 5),
+            rs2=Registers.X31,
             funct7=Funct7.SL,
         ),
     ),
     # c.lwsp x2, 4
-    (0x4112, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X2, funct3=Funct3.W, rs1=Registers.SP, imm=C(4, 12))),
+    (0x4112, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X2, funct3=Funct3.W, rs1=Registers.SP, imm=4)),
     # c.jr x30
     (
         0x8F02,
-        ITypeInstr(
-            opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=Registers.X30, imm=C(0).replicate(12)
-        ),
+        ITypeInstr(opcode=Opcode.JALR, rd=Registers.ZERO, funct3=Funct3.JALR, rs1=Registers.X30, imm=0),
     ),
     # c.mv x2, x26
     (
@@ -170,7 +168,7 @@ COMMON_TESTS = [
         ),
     ),
     # c.swsp x31, 20
-    (0xCA7E, STypeInstr(opcode=Opcode.STORE, imm=C(20, 12), funct3=Funct3.W, rs1=Registers.SP, rs2=Registers.X31)),
+    (0xCA7E, STypeInstr(opcode=Opcode.STORE, imm=20, funct3=Funct3.W, rs1=Registers.SP, rs2=Registers.X31)),
 ]
 
 RV32_TESTS = [
@@ -179,9 +177,9 @@ RV32_TESTS = [
     # c.sd x14, 0(x13)
     (0xE298, IllegalInstr()),
     # c.jal 40
-    (0x2025, JTypeInstr(opcode=Opcode.JAL, rd=Registers.RA, imm=C(40, 21))),
+    (0x2025, JTypeInstr(opcode=Opcode.JAL, rd=Registers.RA, imm=40)),
     # c.jal -412
-    (0x3595, JTypeInstr(opcode=Opcode.JAL, rd=Registers.RA, imm=C(-412, 21))),
+    (0x3595, JTypeInstr(opcode=Opcode.JAL, rd=Registers.RA, imm=-412)),
     # c.srli x10, 32
     (0x9101, IllegalInstr()),
     # c.srai x12, 40
@@ -196,13 +194,13 @@ RV32_TESTS = [
 
 RV64_TESTS = [
     # c.ld x8, 8(x9)
-    (0x6480, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X8, funct3=Funct3.D, rs1=Registers.X9, imm=C(8, 12))),
+    (0x6480, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X8, funct3=Funct3.D, rs1=Registers.X9, imm=8)),
     # c.sd x14, 0(x13)
-    (0xE298, STypeInstr(opcode=Opcode.STORE, imm=C(0, 12), funct3=Funct3.D, rs1=Registers.X13, rs2=Registers.X14)),
+    (0xE298, STypeInstr(opcode=Opcode.STORE, imm=0, funct3=Funct3.D, rs1=Registers.X13, rs2=Registers.X14)),
     # c.addiw x13, -12,
     (
         0x36D1,
-        ITypeInstr(opcode=Opcode.OP_IMM_32, rd=Registers.X13, funct3=Funct3.ADD, rs1=Registers.X13, imm=C(-12, 12)),
+        ITypeInstr(opcode=Opcode.OP_IMM_32, rd=Registers.X13, funct3=Funct3.ADD, rs1=Registers.X13, imm=-12),
     ),
     # c.srli x10, 32
     (
@@ -212,7 +210,7 @@ RV64_TESTS = [
             rd=Registers.X10,
             funct3=Funct3.SR,
             rs1=Registers.X10,
-            rs2=C(0, 5),
+            rs2=Registers.X0,
             funct7=Funct7.SL | 1,
         ),
     ),
@@ -224,7 +222,7 @@ RV64_TESTS = [
             rd=Registers.X12,
             funct3=Funct3.SR,
             rs1=Registers.X12,
-            rs2=C(8, 5),
+            rs2=Registers.X8,
             funct7=Funct7.SA | 1,
         ),
     ),
@@ -260,14 +258,14 @@ RV64_TESTS = [
             rd=Registers.X13,
             funct3=Funct3.SLL,
             rs1=Registers.X13,
-            rs2=C(31, 5),
+            rs2=Registers.X31,
             funct7=Funct7.SL | 1,
         ),
     ),
     # c.ldsp x29, 40
-    (0x7EA2, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X29, funct3=Funct3.D, rs1=Registers.SP, imm=C(40, 12))),
+    (0x7EA2, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X29, funct3=Funct3.D, rs1=Registers.SP, imm=40)),
     # c.sdsp x4, 8
-    (0xE412, STypeInstr(opcode=Opcode.STORE, imm=C(8, 12), funct3=Funct3.D, rs1=Registers.SP, rs2=Registers.X4)),
+    (0xE412, STypeInstr(opcode=Opcode.STORE, imm=8, funct3=Funct3.D, rs1=Registers.SP, rs2=Registers.X4)),
 ]
 
 
@@ -280,7 +278,9 @@ class TestInstrDecompress(TestCaseWithSimulator):
     test_cases: list[tuple[int, ValueLike]]
 
     def test(self):
-        self.gen_params = GenParams(test_core_config.replace(compressed=True, xlen=self.isa_xlen))
+        self.gen_params = GenParams(
+            test_core_config.replace(compressed=True, xlen=self.isa_xlen, fetch_block_bytes_log=3)
+        )
         self.m = InstrDecompress(self.gen_params)
 
         def process():
