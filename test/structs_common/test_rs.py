@@ -49,7 +49,16 @@ def create_data_list(gen_params: GenParams, count: int):
 
 @parameterized_class(
     ("name", "rs_elaboratable"),
-    [("RS", RS,), ("FifoRS", FifoRS,)]
+    [
+        (
+            "RS",
+            RS,
+        ),
+        (
+            "FifoRS",
+            FifoRS,
+        ),
+    ],
 )
 class TestRS(TestCaseWithSimulator):
     rs_elaboratable: type[RSBase]
