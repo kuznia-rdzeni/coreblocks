@@ -40,6 +40,7 @@ class Opcode(IntEnum, shape=5):
     JALR = 0b11001
     JAL = 0b11011
     SYSTEM = 0b11100
+    RESERVED = 0b11111
 
 
 class Funct3(IntEnum, shape=3):
