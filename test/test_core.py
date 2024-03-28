@@ -74,8 +74,12 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def push_register_load_imm(self, reg_id, val):
         addi_imm = signed_to_int(val & 0xFFF, 12)
+        lui_imm = (val & 0xFFFFF000) >> 12
+        # handle addi sign extension, see: https://stackoverflow.com/a/59546567
+        if val & 0x800:
+            lui_imm = (lui_imm + 1) & (0xFFFFF)
 
-        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=val).encode())
+        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=lui_imm << 12).encode())
         yield from self.push_instr(
             ITypeInstr(opcode=Opcode.OP_IMM, rd=reg_id, funct3=Funct3.ADD, rs1=reg_id, imm=addi_imm).encode()
         )
