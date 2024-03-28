@@ -305,6 +305,105 @@ class TestFIFOLatencyMeasurer(TestCaseWithSimulator):
             sim.add_sync_process(ticker)
 
 
+@parameterized_class(
+    ("slots_number", "expected_consumer_wait"),
+    [
+        (2, 5),
+        (2, 10),
+        (5, 10),
+        (10, 1),
+        (10, 10),
+        (5, 5),
+    ],
+)
+class TestIndexedLatencyMeasurer(TestCaseWithSimulator):
+    slots_number: int
+    expected_consumer_wait: float
+
+    def test_latency_measurer(self):
+        random.seed(42)
+
+        m = SimpleTestCircuit(IndexedLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
+
+        latencies: list[int] = []
+
+        events = list(0 for _ in range(self.slots_number))
+        free_slots = list(k for k in range(self.slots_number))
+        used_slots: list[int] = []
+
+        time = 0
+
+        def ticker():
+            nonlocal time
+
+            yield Passive()
+
+            while True:
+                yield
+                time += 1
+
+        finish = False
+
+        def producer():
+            nonlocal finish
+
+            for _ in range(200):
+                if not free_slots:
+                    yield
+                    continue
+
+                slot_id = random.choice(free_slots)
+                yield from m._start.call(slot=slot_id)
+
+                # Make sure that the time is updated first.
+                yield Settle()
+
+                events[slot_id] = time
+                free_slots.remove(slot_id)
+                used_slots.append(slot_id)
+
+                yield from self.random_wait_geom(0.8)
+
+            finish = True
+
+        def consumer():
+            while not finish:
+                if not used_slots:
+                    yield
+                    continue
+
+                slot_id = random.choice(used_slots)
+
+                yield from m._stop.call(slot=slot_id)
+
+                # Make sure that the time is updated first.
+                yield Settle()
+
+                latencies.append(time - events[slot_id])
+                used_slots.remove(slot_id)
+                free_slots.append(slot_id)
+
+                yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
+
+            self.assertEqual(min(latencies), (yield m._dut.histogram.min.value))
+            self.assertEqual(max(latencies), (yield m._dut.histogram.max.value))
+            self.assertEqual(sum(latencies), (yield m._dut.histogram.sum.value))
+            self.assertEqual(len(latencies), (yield m._dut.histogram.count.value))
+
+            for i in range(m._dut.histogram.bucket_count):
+                bucket_start = 0 if i == 0 else 2 ** (i - 1)
+                bucket_end = 1e10 if i == m._dut.histogram.bucket_count - 1 else 2**i
+
+                count = sum(1 for x in latencies if bucket_start <= x < bucket_end)
+                self.assertEqual(count, (yield m._dut.histogram.buckets[i].value))
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(producer)
+            sim.add_sync_process(consumer)
+            sim.add_sync_process(ticker)
+
+
 class MetricManagerTestCircuit(Elaboratable):
     def __init__(self):
         self.incr_counters = Method(i=[("counter1", 1), ("counter2", 1), ("counter3", 1)])
