@@ -8,7 +8,7 @@ from typing import Optional
 from transactron.utils import assign, AssignType, LayoutList
 from .reqres import ArgumentsToResultsZipper
 
-__all__ = ["MemoryBank"]
+__all__ = ["MemoryBank", "AsyncMemoryBank"]
 
 
 class MemoryBank(Elaboratable):
@@ -134,5 +134,79 @@ class MemoryBank(Elaboratable):
             else:
                 m.d.comb += write_req.eq(1)
             m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
+
+        return m
+
+
+class AsyncMemoryBank(Elaboratable):
+    """AsyncMemoryBank module.
+
+    Provides a transactional interface to asynchronous Amaranth Memory with one
+    read and one write port. It supports optionally writing with given granularity.
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts an `addr` from which data should be read.
+        The read response method. Return `data_layout` View which was saved on `addr` given by last
+        `read_req` method call.
+    write: Method
+        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
+        and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
+    """
+
+    def __init__(
+        self, *, data_layout: LayoutList, elem_count: int, granularity: Optional[int] = None, src_loc: int | SrcLoc = 0
+    ):
+        """
+        Parameters
+        ----------
+        data_layout: method layout
+            The format of structures stored in the Memory.
+        elem_count: int
+            Number of elements stored in Memory.
+        granularity: Optional[int]
+            Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
+            If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
+        """
+        self.src_loc = get_src_loc(src_loc)
+        self.data_layout = make_layout(*data_layout)
+        self.elem_count = elem_count
+        self.granularity = granularity
+        self.width = from_method_layout(self.data_layout).size
+        self.addr_width = bits_for(self.elem_count - 1)
+
+        self.read_req_layout: LayoutList = [("addr", self.addr_width)]
+        write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
+        if self.granularity is not None:
+            write_layout.append(("mask", self.width // self.granularity))
+        self.write_layout = make_layout(*write_layout)
+
+        self.read = Method(i=self.read_req_layout, o=self.data_layout, src_loc=self.src_loc)
+        self.write = Method(i=self.write_layout, src_loc=self.src_loc)
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        mem = Memory(width=self.width, depth=self.elem_count)
+        m.submodules.read_port = read_port = mem.read_port(domain="comb")
+        m.submodules.write_port = write_port = mem.write_port()
+
+        @def_method(m, self.read)
+        def _(addr):
+            m.d.comb += read_port.addr.eq(addr)
+            return read_port.data
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.comb += write_port.addr.eq(arg.addr)
+            m.d.comb += write_port.data.eq(arg.data)
+            if self.granularity is None:
+                m.d.comb += write_port.en.eq(1)
+            else:
+                m.d.comb += write_port.en.eq(arg.mask)
 
         return m

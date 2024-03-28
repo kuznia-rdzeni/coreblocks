@@ -1,5 +1,5 @@
 from amaranth import *
-from transactron import Method, def_method, TModule
+from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.params import GenParams
@@ -18,17 +18,23 @@ class ReorderBuffer(Elaboratable):
         self.data = Array(Signal(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
-        self.perf_rob_wait_time = LatencyMeasurer(
+        self.perf_rob_wait_time = FIFOLatencyMeasurer(
             "backend.rob.wait_time",
             description="Distribution of time instructions spend in ROB",
             slots_number=(2**gen_params.rob_entries_bits + 1),
             max_latency=1000,
         )
+        self.perf_rob_size = HwExpHistogram(
+            "backend.rob.size",
+            description="Number of instructions in ROB",
+            bucket_count=gen_params.rob_entries_bits + 1,
+            sample_width=gen_params.rob_entries_bits,
+        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_rob_wait_time]
+        m.submodules += [self.perf_rob_wait_time, self.perf_rob_size]
 
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)
@@ -69,5 +75,11 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.get_indices)
         def _():
             return {"start": start_idx, "end": end_idx}
+
+        if self.perf_rob_size.metrics_enabled():
+            rob_size = Signal(self.params.rob_entries_bits)
+            m.d.comb += rob_size.eq((end_idx - start_idx)[0 : self.params.rob_entries_bits])
+            with Transaction(name="perf").body(m):
+                self.perf_rob_size.add(m, rob_size)
 
         return m
