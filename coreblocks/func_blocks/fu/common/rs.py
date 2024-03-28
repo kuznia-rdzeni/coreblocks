@@ -7,12 +7,14 @@ from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import OpType
 from coreblocks.interface.layouts import RSLayouts
 from transactron.utils import RecordDict
+from transactron.utils import assign
+from transactron.utils.assign import AssignType
 from transactron.utils.transactron_helpers import make_layout
 
-__all__ = ["RS"]
+__all__ = ["RSBase", "RS"]
 
 
-class RS(Elaboratable):
+class RSBase(Elaboratable):
     def __init__(
         self, gen_params: GenParams, rs_entries: int, ready_for: Optional[Iterable[Iterable[OpType]]] = None
     ) -> None:
@@ -38,33 +40,23 @@ class RS(Elaboratable):
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
 
-    def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
-
+    def _elaborate(
+        self, m: TModule, selected_id: Value, select_possible: Value, take_possible: Value, take_vector: Value
+    ):
         for i, record in enumerate(self.data):
             m.d.comb += self.data_ready[i].eq(
                 ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
             )
-
-        select_vector = Cat(~record.rec_reserved for record in self.data)
-        select_possible = select_vector.any()
-
-        take_vector = Cat(self.data_ready[i] & record.rec_full for i, record in enumerate(self.data))
-        take_possible = take_vector.any()
 
         ready_lists: list[Value] = []
         for op_list in self.ready_for:
             op_vector = Cat(Cat(record.rs_data.exec_fn.op_type == op for op in op_list).any() for record in self.data)
             ready_lists.append(take_vector & op_vector)
 
-        m.d.comb += m.submodules.enc_select.i.eq(select_vector)
-
         @def_method(m, self.select, ready=select_possible)
-        def _() -> Signal:
-            m.d.sync += self.data[m.submodules.enc_select.o].rec_reserved.eq(1)
-            return m.submodules.enc_select.o
+        def _() -> RecordDict:
+            m.d.sync += self.data[selected_id].rec_reserved.eq(1)
+            return {"rs_entry_id": selected_id}
 
         @def_method(m, self.insert)
         def _(rs_entry_id: Value, rs_data: Value) -> None:
@@ -89,20 +81,31 @@ class RS(Elaboratable):
             record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
-            return {
-                "s1_val": record.rs_data.s1_val,
-                "s2_val": record.rs_data.s2_val,
-                "rp_dst": record.rs_data.rp_dst,
-                "rob_id": record.rs_data.rob_id,
-                "exec_fn": record.rs_data.exec_fn,
-                "imm": record.rs_data.imm,
-                "pc": record.rs_data.pc,
-            }
+            out = Signal(self.layouts.take_out)
+            m.d.av_comb += assign(out, record.rs_data, fields=AssignType.COMMON)
+            return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
             @def_method(m, get_ready_list, ready=ready_list.any())
             def _() -> RecordDict:
                 return {"ready_list": ready_list}
+
+
+class RS(RSBase):
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.enc_select = enc_select = PriorityEncoder(width=self.rs_entries)
+
+        select_vector = Cat(~record.rec_reserved for record in self.data)
+        select_possible = select_vector.any()
+
+        take_vector = Cat(self.data_ready[i] & record.rec_full for i, record in enumerate(self.data))
+        take_possible = take_vector.any()
+
+        m.d.comb += enc_select.i.eq(select_vector)
+
+        self._elaborate(m, enc_select.o, select_possible, take_possible, take_vector)
 
         return m
