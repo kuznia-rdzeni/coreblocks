@@ -1,11 +1,11 @@
 from amaranth import *
 from transactron import TModule
-from coreblocks.func_blocks.fu.common.rs import RS
+from coreblocks.func_blocks.fu.common.rs import RSBase
 
 __all__ = ["FifoRS"]
 
 
-class FifoRS(RS):
+class FifoRS(RSBase):
     def elaborate(self, platform):
         m = TModule()
 
