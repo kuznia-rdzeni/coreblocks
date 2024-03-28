@@ -555,10 +555,9 @@ class IndexedLatencyMeasurer(Elaboratable):
 
         return m
 
-    def start(self, m: TModule, slot: ValueLike):
+    def start(self, m: TModule, *, slot: ValueLike):
         """
-        Registers the start of an event. Can be called before the previous events
-        finish. If there are no slots available, the method will be blocked.
+        Registers the start of an event for a given slot index.
 
         Should be called in the body of either a transaction or a method.
 
@@ -566,6 +565,8 @@ class IndexedLatencyMeasurer(Elaboratable):
         ----------
         m: TModule
             Transactron module
+        slot: ValueLike
+            The slot index of the event.
         """
 
         if not self.metrics_enabled():
@@ -573,10 +574,9 @@ class IndexedLatencyMeasurer(Elaboratable):
 
         self._start(m, slot)
 
-    def stop(self, m: TModule, slot: ValueLike):
+    def stop(self, m: TModule, *, slot: ValueLike):
         """
-        Registers the end of the oldest event (the FIFO order). If there are no
-        started events in the queue, the method will block.
+        Registers the end of the event for a given slot index.
 
         Should be called in the body of either a transaction or a method.
 
@@ -584,6 +584,8 @@ class IndexedLatencyMeasurer(Elaboratable):
         ----------
         m: TModule
             Transactron module
+        slot: ValueLike
+            The slot index of the event.
         """
 
         if not self.metrics_enabled():
