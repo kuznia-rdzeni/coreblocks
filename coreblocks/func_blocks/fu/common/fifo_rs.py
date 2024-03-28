@@ -12,7 +12,7 @@ class FifoRS(RS):
         front = Signal(self.rs_entries_bits)
         back = Signal(self.rs_entries_bits)
 
-        select_possible = self.data[back].rec_reserved
+        select_possible = ~self.data[back].rec_reserved
 
         take_possible = self.data_ready.bit_select(front, 1) & self.data[front].rec_full
         take_vector = take_possible << front
@@ -23,6 +23,6 @@ class FifoRS(RS):
             m.d.sync += back.eq(back + 1)
 
         with m.If(self.take.run):
-            m.d.sync += back.eq(back + 1)
+            m.d.sync += front.eq(front + 1)
 
         return m

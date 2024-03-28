@@ -1,11 +1,13 @@
 import random
 from collections import deque
+from parameterized import parameterized_class
 
 from amaranth.sim import Settle
 
 from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
-from coreblocks.func_blocks.fu.common.rs import RS
+from coreblocks.func_blocks.fu.common.rs import RS, RSBase
+from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import OpType
@@ -45,12 +47,18 @@ def create_data_list(gen_params: GenParams, count: int):
     return data_list
 
 
+@parameterized_class(
+    ("name", "rs_elaboratable"),
+    [("RS", RS,), ("FifoRS", FifoRS,)]
+)
 class TestRS(TestCaseWithSimulator):
+    rs_elaboratable: type[RSBase]
+
     def test_rs(self):
         random.seed(42)
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, None))
+        self.m = SimpleTestCircuit(self.rs_elaboratable(self.gen_params, 2**self.rs_entries_bits, None))
         self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits)
         self.select_queue: deque[int] = deque()
         self.regs_to_update: set[int] = set()
