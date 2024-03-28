@@ -30,9 +30,8 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(kw_only=True)
 class Field:
-    name: str
     base: int | list[int]
     size: int | list[int]
 
@@ -40,46 +39,31 @@ class Field:
     offset: int = 0
     static_value: Optional[Value] = None
 
-    def get_base(self) -> list[int]:
-        if isinstance(self.base, int):
-            return [self.base]
-        return self.base
+    _name: str = ""
 
-    def get_size(self) -> list[int]:
-        if isinstance(self.size, int):
-            return [self.size]
-        return self.size
+    def bases(self) -> list[int]:
+        return [self.base] if isinstance(self.base, int) else self.base
 
+    def sizes(self) -> list[int]:
+        return [self.size] if isinstance(self.size, int) else self.size
 
-class RISCVInstr(ABC, ValueCastable):
-    field_opcode = Field(name="opcode", base=0, size=7)
+    def width(self) -> int:
+        return sum(self.sizes())
 
-    def __init__(self, **kwargs):
-        for field in kwargs:
-            fname = "field_" + field
-            assert fname in dir(self), "Invalid field {} for {}".format(fname, self.__name__)
-            setattr(self, field, kwargs[field])
+    def __set_name__(self, owner, name):
+        self._name = name
 
-    @classmethod
-    def get_fields(cls) -> list[Field]:
-        return [getattr(cls, member) for member in dir(cls) if member.startswith("field_")]
+    def __get__(self, obj, objtype=None) -> Value:
+        if self.static_value is not None:
+            return self.static_value
 
-    def encode(self) -> int:
-        const = Const.cast(self.as_value())
-        return const.value  # type: ignore
+        return obj.__dict__.get(self._name, C(0, Shape(self.width(), self.signed)))
 
-    def __setattr__(self, key, value):
-        fname = "field_{}".format(key)
-
-        if fname not in dir(self):
-            super().__setattr__(key, value)
-            return
-
-        field = getattr(self, fname)
-        if field.static_value is not None:
+    def __set__(self, obj, value) -> None:
+        if self.static_value is not None:
             raise AttributeError("Can't overwrite the static value of a field.")
 
-        expected_shape = Shape(width=sum(field.get_size()) + field.offset, signed=field.signed)
+        expected_shape = Shape(width=sum(self.sizes()) + self.offset, signed=self.signed)
 
         field_val: Value = C(0)
         if isinstance(value, Enum):
@@ -98,21 +82,41 @@ class RISCVInstr(ABC, ValueCastable):
                     f"Expected signedness of the value: {expected_shape.signed}, given: {field_val.shape().signed}"
                 )
 
-        self.__dict__[key] = field_val
+        obj.__dict__[self._name] = field_val
+
+
+def _get_fields(cls: type) -> list[Field]:
+    fields = [cls.__dict__[member] for member in vars(cls) if isinstance(cls.__dict__[member], Field)]
+    field_ids = set([id(field) for field in fields])
+    for base in cls.__bases__:
+        for field in _get_fields(base):
+            if id(field) in field_ids:
+                continue
+            fields.append(field)
+            field_ids.add(id(field))
+
+    return fields
+
+
+class RISCVInstr(ABC, ValueCastable):
+    opcode = Field(base=0, size=7)
+
+    def __init__(self, opcode: Opcode):
+        self.opcode = Cat(C(0b11, 2), opcode)
+
+    def encode(self) -> int:
+        const = Const.cast(self.as_value())
+        return const.value  # type: ignore
 
     @ValueCastable.lowermethod
     def as_value(self) -> Value:
         parts: list[tuple[int, Value]] = []
 
-        for field in self.get_fields():
-            value: Value = C(0)
-            if field.static_value is not None:
-                value = field.static_value
-            else:
-                value = getattr(self, field.name)
+        for field in _get_fields(type(self)):
+            value = field.__get__(self, type(self))
 
-            base = field.get_base()
-            size = field.get_size()
+            base = field.bases()
+            size = field.sizes()
 
             offset = field.offset
             for i in range(len(base)):
@@ -127,74 +131,93 @@ class RISCVInstr(ABC, ValueCastable):
 
 
 class InstructionFunct3Type(RISCVInstr):
-    field_funct3 = Field(name="funct3", base=12, size=3)
-
-
-class InstructionFunct5Type(RISCVInstr):
-    field_funct5 = Field(name="funct5", base=27, size=5)
+    funct3 = Field(base=12, size=3)
 
 
 class InstructionFunct7Type(RISCVInstr):
-    field_funct7 = Field(name="funct7", base=25, size=7)
+    funct7 = Field(base=25, size=7)
 
 
 class RTypeInstr(InstructionFunct3Type, InstructionFunct7Type):
-    field_rd = Field(name="rd", base=7, size=5)
-    field_rs1 = Field(name="rs1", base=15, size=5)
-    field_rs2 = Field(name="rs2", base=20, size=5)
+    rd = Field(base=7, size=5)
+    rs1 = Field(base=15, size=5)
+    rs2 = Field(base=20, size=5)
 
-    def __init__(self, opcode: ValueLike, **kwargs):
-        super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
+    def __init__(
+        self, opcode: Opcode, funct3: ValueLike, funct7: ValueLike, rd: ValueLike, rs1: ValueLike, rs2: ValueLike
+    ):
+        super().__init__(opcode)
+        self.funct3 = funct3
+        self.funct7 = funct7
+        self.rd = rd
+        self.rs1 = rs1
+        self.rs2 = rs2
 
 
 class ITypeInstr(InstructionFunct3Type):
-    field_rd = Field(name="rd", base=7, size=5)
-    field_rs1 = Field(name="rs1", base=15, size=5)
-    field_imm = Field(name="imm", base=20, size=12, signed=True)
+    rd = Field(base=7, size=5)
+    rs1 = Field(base=15, size=5)
+    imm = Field(base=20, size=12, signed=True)
 
-    def __init__(self, opcode: ValueLike, **kwargs):
-        super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
+    def __init__(self, opcode: Opcode, funct3: ValueLike, rd: ValueLike, rs1: ValueLike, imm: ValueLike):
+        super().__init__(opcode)
+        self.funct3 = funct3
+        self.rd = rd
+        self.rs1 = rs1
+        self.imm = imm
 
 
 class STypeInstr(InstructionFunct3Type):
-    field_rs1 = Field(name="rs1", base=15, size=5)
-    field_rs2 = Field(name="rs2", base=20, size=5)
-    field_imm = Field(name="imm", base=[7, 25], size=[5, 7], signed=True)
+    rs1 = Field(base=15, size=5)
+    rs2 = Field(base=20, size=5)
+    imm = Field(base=[7, 25], size=[5, 7], signed=True)
 
-    def __init__(self, opcode: ValueLike, **kwargs):
-        super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
+    def __init__(self, opcode: Opcode, funct3: ValueLike, rs1: ValueLike, rs2: ValueLike, imm: ValueLike):
+        super().__init__(opcode)
+        self.funct3 = funct3
+        self.rs1 = rs1
+        self.rs2 = rs2
+        self.imm = imm
 
 
 class BTypeInstr(InstructionFunct3Type):
-    field_rs1 = Field(name="rs1", base=15, size=5)
-    field_rs2 = Field(name="rs2", base=20, size=5)
-    field_imm = Field(name="imm", base=[8, 25, 7, 31], size=[4, 6, 1, 1], offset=1, signed=True)
+    rs1 = Field(base=15, size=5)
+    rs2 = Field(base=20, size=5)
+    imm = Field(base=[8, 25, 7, 31], size=[4, 6, 1, 1], offset=1, signed=True)
 
-    def __init__(self, opcode: ValueLike, **kwargs):
-        super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
+    def __init__(self, opcode: Opcode, funct3: ValueLike, rs1: ValueLike, rs2: ValueLike, imm: ValueLike):
+        super().__init__(opcode)
+        self.funct3 = funct3
+        self.rs1 = rs1
+        self.rs2 = rs2
+        self.imm = imm
 
 
 class UTypeInstr(RISCVInstr):
-    field_rd = Field(name="rd", base=7, size=5)
-    field_imm = Field(name="imm", base=12, size=20, offset=12, signed=True)
+    rd = Field(base=7, size=5)
+    imm = Field(base=12, size=20, offset=12, signed=True)
 
-    def __init__(self, opcode: ValueLike, **kwargs):
-        super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
+    def __init__(self, opcode: Opcode, rd: ValueLike, imm: ValueLike):
+        super().__init__(opcode)
+        self.rd = rd
+        self.imm = imm
 
 
 class JTypeInstr(RISCVInstr):
-    field_rd = Field(name="rd", base=7, size=5)
-    field_imm = Field(name="imm", base=[21, 20, 12, 31], size=[10, 1, 8, 1], offset=1, signed=True)
+    rd = Field(base=7, size=5)
+    imm = Field(base=[21, 20, 12, 31], size=[10, 1, 8, 1], offset=1, signed=True)
 
-    def __init__(self, opcode: ValueLike, **kwargs):
-        super().__init__(opcode=Cat(C(0b11, 2), opcode), **kwargs)
+    def __init__(self, opcode: Opcode, rd: ValueLike, imm: ValueLike):
+        super().__init__(opcode)
+        self.rd = rd
+        self.imm = imm
 
 
 class IllegalInstr(RISCVInstr):
-    field_illegal = Field(name="illegal", base=7, size=25, static_value=Cat(1).replicate(25))
+    illegal = Field(base=7, size=25, static_value=Cat(1).replicate(25))
 
     def __init__(self):
-        super().__init__(opcode=0b1111111)
+        super().__init__(opcode=Opcode.RESERVED)
 
 
 class EBreakInstr(ITypeInstr):
