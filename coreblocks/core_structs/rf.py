@@ -1,10 +1,9 @@
-import operator
 from amaranth import *
-from functools import reduce
 from transactron import Method, Transaction, def_method, TModule
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
 from transactron.lib.metrics import HwExpHistogram, IndexedLatencyMeasurer
+from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RegisterFile"]
@@ -85,9 +84,7 @@ class RegisterFile(Elaboratable):
         if self.perf_num_valid.metrics_enabled():
             num_valid = Signal(self.gen_params.phys_regs_bits + 1)
             m.d.comb += num_valid.eq(
-                reduce(
-                    operator.add, (self.entries[reg_id].valid for reg_id in range(2**self.gen_params.phys_regs_bits))
-                )
+                popcount(Cat(self.entries[reg_id].valid for reg_id in range(2**self.gen_params.phys_regs_bits)))
             )
             with Transaction(name="perf").body(m):
                 self.perf_num_valid.add(m, num_valid)

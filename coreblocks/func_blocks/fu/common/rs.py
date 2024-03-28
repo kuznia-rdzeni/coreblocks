@@ -1,5 +1,3 @@
-import operator
-from functools import reduce
 from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
@@ -10,6 +8,7 @@ from coreblocks.frontend.decoder import OpType
 from coreblocks.interface.layouts import RSLayouts
 from transactron.lib.metrics import HwExpHistogram, IndexedLatencyMeasurer
 from transactron.utils import RecordDict
+from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RS"]
@@ -130,9 +129,7 @@ class RS(Elaboratable):
 
         if self.perf_num_full.metrics_enabled():
             num_full = Signal(self.rs_entries_bits + 1)
-            m.d.comb += num_full.eq(
-                reduce(operator.add, (self.data[entry_id].rec_full for entry_id in range(self.rs_entries)))
-            )
+            m.d.comb += num_full.eq(popcount(Cat(self.data[entry_id].rec_full for entry_id in range(self.rs_entries))))
             with Transaction(name="perf").body(m):
                 self.perf_num_full.add(m, num_full)
 
