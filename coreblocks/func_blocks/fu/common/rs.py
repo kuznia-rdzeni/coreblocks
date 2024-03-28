@@ -40,9 +40,7 @@ class RSBase(Elaboratable):
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
 
-    def _elaborate(
-        self, m: TModule, selected_id: Value, select_possible: Value, take_possible: Value, take_vector: Value
-    ):
+    def _elaborate(self, m: TModule, selected_id: Value, select_possible: Value, take_vector: Value):
         for i, record in enumerate(self.data):
             m.d.comb += self.data_ready[i].eq(
                 ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
@@ -76,7 +74,7 @@ class RSBase(Elaboratable):
                         m.d.sync += record.rs_data.rp_s2.eq(0)
                         m.d.sync += record.rs_data.s2_val.eq(reg_val)
 
-        @def_method(m, self.take, ready=take_possible)
+        @def_method(m, self.take)
         def _(rs_entry_id: Value) -> RecordDict:
             record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
@@ -102,10 +100,9 @@ class RS(RSBase):
         select_possible = select_vector.any()
 
         take_vector = Cat(self.data_ready[i] & record.rec_full for i, record in enumerate(self.data))
-        take_possible = take_vector.any()
 
         m.d.comb += enc_select.i.eq(select_vector)
 
-        self._elaborate(m, enc_select.o, select_possible, take_possible, take_vector)
+        self._elaborate(m, enc_select.o, select_possible, take_vector)
 
         return m

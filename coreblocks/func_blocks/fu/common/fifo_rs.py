@@ -17,7 +17,7 @@ class FifoRS(RS):
         take_possible = self.data_ready.bit_select(front, 1) & self.data[front].rec_full
         take_vector = take_possible << front
 
-        self._elaborate(m, back, select_possible, take_possible, take_vector)
+        self._elaborate(m, back, select_possible, take_vector)
 
         with m.If(self.select.run):
             m.d.sync += back.eq(back + 1)
