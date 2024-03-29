@@ -229,7 +229,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         # Memory loads can be issued speculatively.
         pmas = pma_checker.result
         can_reorder = is_load & ~pmas["mmio"]
-        want_issue = ~is_fence & (rob_id_match | can_reorder)
+        want_issue = rob_id_match | can_reorder
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, request=do_issue):
@@ -255,7 +255,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, request=flush):
             requests.read(m)
-            issued.read(m)
+            results.write(m, data=0, exception=0, cause=0)
 
         with Transaction().body(m):
             res = requester.accept(m)  # can happen only after issue
