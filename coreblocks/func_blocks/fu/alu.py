@@ -3,6 +3,7 @@ from amaranth import *
 
 from transactron import *
 from transactron.lib import FIFO
+from transactron.lib.metrics import *
 
 from coreblocks.frontend.decoder.isa import Funct3, Funct7
 from coreblocks.frontend.decoder.optypes import OpType
@@ -219,8 +220,16 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
+        self.perf_instr = TaggedCounter(
+            "backend.fu.alu.instr",
+            "Counts of instructions executed by the jumpbranch unit",
+            tags=AluFn.Fn,
+        )
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.perf_instr]
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
         m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
@@ -237,6 +246,8 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
             m.d.comb += alu.in1.eq(arg.s1_val)
             m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
+
+            self.perf_instr.incr(m, decoder.decode_fn)
 
             fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 
