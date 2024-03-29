@@ -206,7 +206,6 @@ class LSUDummy(FuncUnit, Elaboratable):
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
         rob_id_match = Signal()
-        is_fence = Signal()
         is_load = Signal()
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
