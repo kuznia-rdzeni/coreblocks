@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from amaranth import *
 
 from transactron import Method, def_method, Transaction, TModule
-from transactron.lib.connectors import Forwarder
+from transactron.lib.connectors import FIFO, Forwarder
 from transactron.utils import ModuleLike, DependencyManager
 from transactron.lib.simultaneous import condition
 
@@ -213,8 +213,8 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
-        m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
-        m.submodules.issued = issued = Forwarder(self.fu_layouts.issue)
+        m.submodules.results = results = self.forwarder = FIFO(self.lsu_layouts.accept, 2)
+        m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -257,14 +257,15 @@ class LSUDummy(FuncUnit, Elaboratable):
             requests.read(m)
             results.write(m, data=0, exception=0, cause=0)
 
-        with Transaction().body(m):
-            res = requester.accept(m)  # can happen only after issue
-            results.write(m, res)
-
         @def_method(m, self.accept)
         def _():
             arg = issued.read(m)
-            res = results.read(m)
+            res = Signal(self.lsu_layouts.accept)
+            with condition(m) as branch:
+                with branch(True):
+                    m.d.comb += res.eq(requester.accept(m))
+                with branch(True):
+                    m.d.comb += res.eq(results.read(m))
 
             with m.If(res["exception"]):
                 self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"])
