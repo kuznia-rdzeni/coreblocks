@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1711880318805,
+  "lastUpdate": 1711880495692,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9087,6 +9087,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.29959791363234617,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "30b55cd8bba332b1faf93ff9993e42bd8c3fc99b",
+          "message": "Support for superscalarity in the instruction cache (#624)",
+          "timestamp": "2024-03-31T12:11:06+02:00",
+          "tree_id": "f4fa2ed9bc5a14dd65203455d4ddd3959aa8e0ac",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/30b55cd8bba332b1faf93ff9993e42bd8c3fc99b"
+        },
+        "date": 1711880492842,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.4157024568037011,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26364980854813985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115279947341015,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2920382721023797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.215236226126083,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.32463975052119354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23774923210766472,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2929462601180695,
             "unit": "Instructions Per Cycle"
           }
         ]
