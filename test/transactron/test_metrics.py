@@ -9,6 +9,7 @@ from amaranth.sim import Passive, Settle
 from transactron.lib.metrics import *
 from transactron import *
 from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.testing.infrastructure import Now
 from transactron.utils.dependencies import DependencyContext
 
 
@@ -332,32 +333,21 @@ class TestIndexedLatencyMeasurer(TestCaseWithSimulator):
         free_slots = list(k for k in range(self.slots_number))
         used_slots: list[int] = []
 
-        time = 0
-
-        def ticker():
-            nonlocal time
-
-            yield Passive()
-
-            while True:
-                yield
-                time += 1
-
         finish = False
 
         def producer():
             nonlocal finish
 
             for _ in range(200):
-                if not free_slots:
+                while not free_slots:
                     yield
                     continue
+                yield Settle()
 
                 slot_id = random.choice(free_slots)
                 yield from m._start.call(slot=slot_id)
 
-                # Make sure that the time is updated first.
-                yield Settle()
+                time = (yield Now())
 
                 events[slot_id] = time
                 free_slots.remove(slot_id)
@@ -369,7 +359,7 @@ class TestIndexedLatencyMeasurer(TestCaseWithSimulator):
 
         def consumer():
             while not finish:
-                if not used_slots:
+                while not used_slots:
                     yield
                     continue
 
@@ -377,7 +367,9 @@ class TestIndexedLatencyMeasurer(TestCaseWithSimulator):
 
                 yield from m._stop.call(slot=slot_id)
 
-                # Make sure that the time is updated first.
+                time = (yield Now())
+
+                yield Settle()
                 yield Settle()
 
                 latencies.append(time - events[slot_id])
@@ -401,7 +393,6 @@ class TestIndexedLatencyMeasurer(TestCaseWithSimulator):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
-            sim.add_sync_process(ticker)
 
 
 class MetricManagerTestCircuit(Elaboratable):
