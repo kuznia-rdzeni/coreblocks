@@ -104,7 +104,6 @@ class Field:
 
         obj.__dict__[self._name] = field_val
 
-
     def get_parts(self, value: Value) -> list[Value]:
         base = self.bases()
         size = self.sizes()
@@ -114,7 +113,7 @@ class Field:
         for i in range(len(base)):
             ret.append(value[offset : offset + size[i]])
             offset += size[i]
-        
+
         return ret
 
 
