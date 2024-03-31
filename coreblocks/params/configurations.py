@@ -26,7 +26,6 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
-        rs_number=0,
     ),
     LSUBlockComponent(),
     CSRBlockComponent(),
@@ -73,6 +72,12 @@ class CoreConfiguration:
         Definitions of PMAs per contiguous segments of memory.
     """
 
+    def __post_init__(self):
+        self.func_units_config = [
+            dataclasses.replace(conf, rs_number=k) if hasattr(conf, "rs_number") else conf
+            for k, conf in enumerate(self.func_units_config)
+        ]
+
     xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
@@ -107,7 +112,7 @@ basic_core_config = CoreConfiguration()
 tiny_core_config = CoreConfiguration(
     embedded=True,
     func_units_config=(
-        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2, rs_number=0),
+        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
         LSUBlockComponent(),
     ),
     phys_regs_bits=basic_core_config.phys_regs_bits - 1,
@@ -129,7 +134,6 @@ full_core_config = CoreConfiguration(
                 PrivilegedUnitComponent(),
             ],
             rs_entries=4,
-            rs_number=0,
         ),
         RSBlockComponent(
             [
@@ -137,7 +141,6 @@ full_core_config = CoreConfiguration(
                 DivComponent(),
             ],
             rs_entries=2,
-            rs_number=1,
         ),
         LSUBlockComponent(),
         CSRBlockComponent(),
@@ -147,7 +150,7 @@ full_core_config = CoreConfiguration(
 
 # Core configuration used in internal testbenches
 test_core_config = CoreConfiguration(
-    func_units_config=tuple(RSBlockComponent([], rs_entries=4, rs_number=k) for k in range(2)),
+    func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
     rob_entries_bits=7,
     phys_regs_bits=7,
     _implied_extensions=Extension.I,

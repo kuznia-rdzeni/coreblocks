@@ -93,7 +93,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 class RSBlockComponent(BlockComponentParams):
     func_units: Collection[FunctionalComponentParams]
     rs_entries: int
-    rs_number: int
+    rs_number: int = -1  # overwritten by CoreConfiguration
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
