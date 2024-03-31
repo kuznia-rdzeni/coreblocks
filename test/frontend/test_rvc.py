@@ -278,7 +278,9 @@ class TestInstrDecompress(TestCaseWithSimulator):
     test_cases: list[tuple[int, ValueLike]]
 
     def test(self):
-        self.gen_params = GenParams(test_core_config.replace(compressed=True, xlen=self.isa_xlen))
+        self.gen_params = GenParams(
+            test_core_config.replace(compressed=True, xlen=self.isa_xlen, fetch_block_bytes_log=3)
+        )
         self.m = InstrDecompress(self.gen_params)
 
         def process():

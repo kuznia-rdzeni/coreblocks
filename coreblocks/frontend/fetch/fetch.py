@@ -40,6 +40,9 @@ class Fetch(Elaboratable):
         # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
+        # For now assume that the fetch block is 4 bytes long (a machine word).
+        assert self.gen_params.fetch_block_bytes == 4
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -74,7 +77,7 @@ class Fetch(Elaboratable):
             target = self.fetch_target_queue.read(m)
             res = self.icache.accept_res(m)
 
-            opcode = res.instr[2:7]
+            opcode = res.fetch_block[2:7]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
             unsafe_instr = opcode == Opcode.SYSTEM
 
@@ -90,7 +93,7 @@ class Fetch(Elaboratable):
                     with m.If(unsafe_instr):
                         stall()
 
-                    m.d.comb += instr.eq(res.instr)
+                    m.d.comb += instr.eq(res.fetch_block)
 
                 self.cont(m, instr=instr, pc=target.addr, access_fault=fetch_error, rvc=0)
 
@@ -136,6 +139,9 @@ class UnalignedFetch(Elaboratable):
 
         self.perf_rvc = HwCounter("frontend.ifu.rvc", "Number of decompressed RVC instructions")
 
+        # For now assume that the fetch block is 4 bytes long (a machine word).
+        assert self.gen_params.fetch_block_bytes == 4
+
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
@@ -175,8 +181,8 @@ class UnalignedFetch(Elaboratable):
                 req_limiter.release(m)
 
             is_unaligned = current_pc[1]
-            resp_upper_half = cache_resp.instr[16:]
-            resp_lower_half = cache_resp.instr[:16]
+            resp_upper_half = cache_resp.fetch_block[16:]
+            resp_lower_half = cache_resp.fetch_block[:16]
             resp_first_half = Mux(is_unaligned, resp_upper_half, resp_lower_half)
             resp_valid = ~flushing & (cache_resp.error == 0)
             is_resp_upper_rvc = Signal()
@@ -188,7 +194,7 @@ class UnalignedFetch(Elaboratable):
 
             is_rvc = is_instr_compressed(instr_lo_half)
 
-            full_instr = Mux(half_instr_buff_v, Cat(half_instr_buff, resp_lower_half), cache_resp.instr)
+            full_instr = Mux(half_instr_buff_v, Cat(half_instr_buff, resp_lower_half), cache_resp.fetch_block)
 
             instr = Signal(32)
             m.d.top_comb += instr.eq(Mux(is_rvc, decompress.instr_out, full_instr))

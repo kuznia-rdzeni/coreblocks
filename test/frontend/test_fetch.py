@@ -84,7 +84,7 @@ class TestFetch(TestCaseWithSimulator):
                 data |= 0b1100000
                 data &= ~0b0010000  # but not system
 
-            self.output_q.append({"instr": data, "error": 0})
+            self.output_q.append({"fetch_block": data, "error": 0})
 
             # Speculative fetch. Skip, because this instruction shouldn't be executed.
             if addr != next_pc:
@@ -229,7 +229,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
             data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
 
             err = (req_addr in self.memerr) or (req_addr + 2 in self.memerr)
-            self.output_q.append({"instr": data, "error": err})
+            self.output_q.append({"fetch_block": data, "error": err})
 
     @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
     def issue_req_mock(self, addr):
