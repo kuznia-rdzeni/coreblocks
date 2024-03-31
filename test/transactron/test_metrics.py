@@ -1,6 +1,7 @@
 import json
 import random
 import queue
+from typing import Type
 from enum import IntFlag, IntEnum, auto, Enum
 
 from parameterized import parameterized_class
@@ -153,7 +154,7 @@ class PlainIntEnum(IntEnum):
 
 
 class TaggedCounterCircuit(Elaboratable):
-    def __init__(self, tags: range | Enum | list[int]):
+    def __init__(self, tags: range | Type[Enum] | list[int]):
         self.counter = TaggedCounter("counter", "", tags=tags)
 
         self.cond = Signal()
@@ -174,7 +175,7 @@ class TestTaggedCounter(TestCaseWithSimulator):
     def setUp(self) -> None:
         random.seed(42)
 
-    def do_test_enum(self, tags: range | Enum | list[int], tag_values: list[int]):
+    def do_test_enum(self, tags: range | Type[Enum] | list[int], tag_values: list[int]):
         m = TaggedCounterCircuit(tags)
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 

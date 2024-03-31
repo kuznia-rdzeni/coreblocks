@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
-from typing import Optional
+from typing import Optional, Type
 from abc import ABC
 from enum import Enum
 
@@ -257,7 +257,7 @@ class TaggedCounter(Elaboratable, HwMetric):
         fully_qualified_name: str,
         description: str = "",
         *,
-        tags: range | Enum | list[int],
+        tags: range | Type[Enum] | list[int],
         registers_width: int = 32,
     ):
         """
@@ -267,7 +267,7 @@ class TaggedCounter(Elaboratable, HwMetric):
             The fully qualified name of the metric.
         description: str
             A human-readable description of the metric's functionality.
-        tags: range | Enum | list[int]
+        tags: range | Type[Enum] | list[int]
             Tag values.
         registers_width: int
             Width of the underlying registers. Defaults to 32 bits.
@@ -275,16 +275,17 @@ class TaggedCounter(Elaboratable, HwMetric):
 
         super().__init__(fully_qualified_name, description)
 
-        self.tag_width = max(bits_for(max(tags)), bits_for(min(tags)))
-
         if isinstance(tags, range) or isinstance(tags, list):
             counters_meta = [(i, f"{i}") for i in tags]
         else:
             counters_meta = [(i.value, i.name) for i in tags]
 
+        values = [value for value, _ in counters_meta]
+        self.tag_width = max(bits_for(max(values)), bits_for(min(values)))
+
         self.one_hot = True
         negative_values = False
-        for value, _ in counters_meta:
+        for value in values:
             if value < 0:
                 self.one_hot = False
                 negative_values = True
@@ -298,7 +299,7 @@ class TaggedCounter(Elaboratable, HwMetric):
 
         self.counters: dict[int, HwMetricRegister] = {}
         for tag_value, name in counters_meta:
-            value_str = ("1<<" + str(exact_log2(tag_value))) if self.one_hot else str(value)
+            value_str = ("1<<" + str(exact_log2(tag_value))) if self.one_hot else str(tag_value)
             description = f"the counter for tag {name} (value={value_str})"
 
             self.counters[tag_value] = HwMetricRegister(
@@ -307,7 +308,7 @@ class TaggedCounter(Elaboratable, HwMetric):
                 description,
             )
 
-        self.add_registers(self.counters.values())
+        self.add_registers(list(self.counters.values()))
 
     def elaborate(self, platform):
         if not self.metrics_enabled():
