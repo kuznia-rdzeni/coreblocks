@@ -715,6 +715,30 @@ class TestICache(TestCaseWithSimulator):
             yield from self.expect_resp(wait=True)
             yield
             yield from self.m.accept_res.disable()
+            yield
+
+            # The second request will cause an error
+            yield from self.send_req(addr=0x00021004)
+            yield from self.send_req(addr=0x00030000)
+
+            yield from self.tick(10)
+
+            # Accept the first response
+            yield from self.m.accept_res.enable()
+            yield from self.expect_resp(wait=True)
+            yield
+
+            # Wait before accepting the second response
+            yield from self.m.accept_res.disable()
+            yield from self.tick(10)
+            yield from self.m.accept_res.enable()
+            yield from self.expect_resp(wait=True)
+
+            yield
+
+            # This request should not cause an error
+            yield from self.send_req(addr=0x00011000)
+            yield from self.expect_resp(wait=True)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(cache_process)
