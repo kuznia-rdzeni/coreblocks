@@ -252,17 +252,6 @@ class TestFIFOLatencyMeasurer(TestCaseWithSimulator):
 
         event_queue = queue.Queue()
 
-        time = 0
-
-        def ticker():
-            nonlocal time
-
-            yield Passive()
-
-            while True:
-                yield
-                time += 1
-
         finish = False
 
         def producer():
@@ -273,6 +262,7 @@ class TestFIFOLatencyMeasurer(TestCaseWithSimulator):
 
                 # Make sure that the time is updated first.
                 yield Settle()
+                time = (yield Now())
                 event_queue.put(time)
                 yield from self.random_wait_geom(0.8)
 
@@ -284,6 +274,7 @@ class TestFIFOLatencyMeasurer(TestCaseWithSimulator):
 
                 # Make sure that the time is updated first.
                 yield Settle()
+                time = (yield Now())
                 latencies.append(time - event_queue.get())
 
                 yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
@@ -303,7 +294,6 @@ class TestFIFOLatencyMeasurer(TestCaseWithSimulator):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
-            sim.add_sync_process(ticker)
 
 
 @parameterized_class(
