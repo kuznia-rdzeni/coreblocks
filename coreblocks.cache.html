@@ -98,10 +98,10 @@
 we select the next way we write to (we keep one global counter for selecting the next way).</p>
 <p>Refilling a cache line is abstracted away from this module. ICache module needs two methods
 from the refiller <cite>refiller_start</cite>, which is called whenever we need to refill a cache line.
-<cite>refiller_accept</cite> should be ready to be called whenever the refiller has another word ready
-to be written to cache. <cite>refiller_accept</cite> should set <cite>last</cite> bit when either an error occurs
-or the transfer is over. After issuing <cite>last</cite> bit, <cite>refiller_accept</cite> shouldn’t be ready until
-the next transfer is started.</p>
+<cite>refiller_accept</cite> should be ready to be called whenever the refiller has another fetch block
+ready to be written to cache. <cite>refiller_accept</cite> should set <cite>last</cite> bit when either an error
+occurs or the transfer is over. After issuing <cite>last</cite> bit, <cite>refiller_accept</cite> shouldn’t be ready
+until the next transfer is started.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.cache.icache.ICache.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ICacheLayouts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters" title="coreblocks.params.icache_params.ICacheParameters"><span class="pre">ICacheParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">refiller</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.cache.iface.CacheRefillerInterface" title="coreblocks.cache.iface.CacheRefillerInterface"><span class="pre">CacheRefillerInterface</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.cache.icache.ICache.__init__" title="Permalink to this definition"></a></dt>
@@ -192,7 +192,7 @@ the cache.</p>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>start_refill</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to start a refill for a given cache line.</p>
 </dd>
-<dt><strong>accept_refill</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to accept one word from the requested cache line.</p>
+<dt><strong>accept_refill</strong><span class="classifier">Method</span></dt><dd><p>A method that is used to accept one fetch block from the requested cache line.</p>
 </dd>
 </dl>
 </dd>
@@ -241,7 +241,7 @@ the cache.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 15:57 2024-03-27.
+      <span class="lastupdated">Last updated on 10:11 2024-03-31.
       </span></p>
   </div>
 
