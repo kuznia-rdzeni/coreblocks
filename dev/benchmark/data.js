@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1711966788347,
+  "lastUpdate": 1711967071483,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9215,6 +9215,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.18115279947341015,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cc02760c3955695c4710cd25ce5ee64a5a126884",
+          "message": "Fix instruction cache refilling bug (#636)",
+          "timestamp": "2024-04-01T12:13:13+02:00",
+          "tree_id": "ac9fb36898008bc960221ba947425112832095fd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cc02760c3955695c4710cd25ce5ee64a5a126884"
+        },
+        "date": 1711967068128,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nettle-sha256",
+            "value": 0.4157024568037011,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115576572918168,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23776400713784746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.215236226126083,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.292077015030431,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2920382721023797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.32463975052119354,
             "unit": "Instructions Per Cycle"
           }
         ]
