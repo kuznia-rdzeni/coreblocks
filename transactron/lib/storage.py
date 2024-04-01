@@ -201,7 +201,7 @@ class ContentAddressableMemory(Elaboratable):
             m.d.sync += valids.bit_select(id, 1).eq(1)
 
         if_addr = Signal(self.entries_number, name="if_addr")
-        data_to_send = Record(self.data_layout)
+        data_to_send = Signal(self.data_layout)
 
         @def_method(m, self.pop)
         def _(addr):

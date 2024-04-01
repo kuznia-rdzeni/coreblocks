@@ -3,6 +3,8 @@ import os
 import random
 import unittest
 import functools
+import hypothesis as hp
+import hypothesis.strategies as hpst
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
 from abc import ABC
@@ -201,14 +203,13 @@ class PysimSimulator(Simulator):
         return not self.advance()
 
 
-class TestCaseWithSimulator(unittest.TestCase):
+class TestCaseWithSimulator():
     dependency_manager: DependencyManager
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    def manual_setup_method(self):
         self.dependency_manager = DependencyManager()
 
+        print("init")
         def wrap(f: Callable[[], None]):
             @functools.wraps(f)
             def wrapper():
@@ -241,8 +242,9 @@ class TestCaseWithSimulator(unittest.TestCase):
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
         traces_file = None
-        if "__TRANSACTRON_DUMP_TRACES" in os.environ:
-            traces_file = unittest.TestCase.id(self)
+# TODO: fix
+#        if "__TRANSACTRON_DUMP_TRACES" in os.environ:
+#            traces_file = unittest.TestCase.id(self)
 
         clk_period = 1e-6
         sim = PysimSimulator(
@@ -264,21 +266,22 @@ class TestCaseWithSimulator(unittest.TestCase):
             )
 
         def on_error():
-            self.assertTrue(False, "Simulation finished due to an error")
+            assert False, "Simulation finished due to an error"
 
         log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
         sim.add_sync_process(make_logging_process(log_level, log_filter, on_error))
 
         res = sim.run()
+        print("res", res)
+# TODO fix
+#        if profile is not None:
+#            profile_dir = "test/__profiles__"
+#            profile_file = unittest.TestCase.id(self)
+#            os.makedirs(profile_dir, exist_ok=True)
+#            profile.encode(f"{profile_dir}/{profile_file}.json")
 
-        if profile is not None:
-            profile_dir = "test/__profiles__"
-            profile_file = unittest.TestCase.id(self)
-            os.makedirs(profile_dir, exist_ok=True)
-            profile.encode(f"{profile_dir}/{profile_file}.json")
-
-        self.assertTrue(res, "Simulation time limit exceeded")
+        assert res, "Simulation time limit exceeded"
 
     def tick(self, cycle_cnt: int = 1):
         """
@@ -300,3 +303,28 @@ class TestCaseWithSimulator(unittest.TestCase):
         """
         while random.random() > prob:
             yield
+
+class TransactronHypothesis():
+    def init_transactron_hypothesis(self, hp_data : hpst.DataObject):
+        self.hp_data = hp_data
+
+    def shrinkable_loop(self, iter_count, hp_data):
+        """
+        Trick based on https://github.com/HypothesisWorks/hypothesis/blob/6867da71beae0e4ed004b54b92ef7c74d0722815/hypothesis-python/src/hypothesis/stateful.py#L143
+        """
+        if iter_count == 0:
+            return
+        i = 0
+        force_val = None
+        while True:
+            b = hp_data.draw(hpst.booleans())
+            #b = self.hp_data.conjecture_data.draw_boolean(p=2**-16, forced = force_val)
+            print("shr loop", b)
+            if not b:
+                break
+            yield i
+            i += 1
+            if i == iter_count:
+                force_val = False
+
+        

@@ -3,10 +3,10 @@ from amaranth.lib.data import StructLayout
 import random
 from typing import Optional
 from hypothesis.strategies import composite, DrawFn, integers
-from transactron.utils import MethodLayout
+from transactron.utils import MethodLayout, RecordIntDict
 
 @composite
-def generate_based_on_layout(draw : DrawFn, layout: MethodLayout):
+def generate_based_on_layout(draw : DrawFn, layout: MethodLayout) -> RecordIntDict:
     if isinstance(layout, StructLayout):
         raise NotImplementedError("StructLayout is not supported in automatic value generation.")
     d = {}
