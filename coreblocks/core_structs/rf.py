@@ -2,7 +2,7 @@ from amaranth import *
 from transactron import Method, Transaction, def_method, TModule
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
-from transactron.lib.metrics import HwExpHistogram, IndexedLatencyMeasurer
+from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 
@@ -22,7 +22,7 @@ class RegisterFile(Elaboratable):
         self.write = Method(i=layouts.rf_write)
         self.free = Method(i=layouts.rf_free)
 
-        self.perf_rf_valid_time = IndexedLatencyMeasurer(
+        self.perf_rf_valid_time = TaggedLatencyMeasurer(
             "struct.rf.valid_time",
             description="Distribution of time registers are valid in RF",
             slots_number=2**gen_params.phys_regs_bits,

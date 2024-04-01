@@ -319,7 +319,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
     def test_latency_measurer(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(IndexedLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
+        m = SimpleTestCircuit(TaggedLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         latencies: list[int] = []

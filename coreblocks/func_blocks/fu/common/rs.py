@@ -6,7 +6,7 @@ from transactron import Method, Transaction, def_method, TModule
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import OpType
 from coreblocks.interface.layouts import RSLayouts
-from transactron.lib.metrics import HwExpHistogram, IndexedLatencyMeasurer
+from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.utils import RecordDict
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
@@ -44,7 +44,7 @@ class RS(Elaboratable):
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
 
-        self.perf_rs_wait_time = IndexedLatencyMeasurer(
+        self.perf_rs_wait_time = TaggedLatencyMeasurer(
             f"fu.block_{rs_number}.rs.valid_time",
             description=f"Distribution of time instructions wait in RS {rs_number}",
             slots_number=2**self.rs_entries_bits,

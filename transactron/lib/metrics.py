@@ -19,7 +19,7 @@ __all__ = [
     "HwCounter",
     "HwExpHistogram",
     "FIFOLatencyMeasurer",
-    "IndexedLatencyMeasurer",
+    "TaggedLatencyMeasurer",
     "HardwareMetricsManager",
     "HwMetricsEnabledKey",
 ]
@@ -474,12 +474,12 @@ class FIFOLatencyMeasurer(Elaboratable):
         return DependencyContext.get().get_dependency(HwMetricsEnabledKey())
 
 
-class IndexedLatencyMeasurer(Elaboratable):
+class TaggedLatencyMeasurer(Elaboratable):
     """
     Measures duration between two events, e.g. request processing latency.
     It can track multiple events at the same time, i.e. the second event can
     be registered as started, before the first finishes. However, each event
-    needs to have an unique slot index.
+    needs to have an unique slot tag.
 
     The module exposes an exponential histogram of the measured latencies.
     """
@@ -571,7 +571,7 @@ class IndexedLatencyMeasurer(Elaboratable):
 
     def start(self, m: TModule, *, slot: ValueLike):
         """
-        Registers the start of an event for a given slot index.
+        Registers the start of an event for a given slot tag.
 
         Should be called in the body of either a transaction or a method.
 
@@ -580,7 +580,7 @@ class IndexedLatencyMeasurer(Elaboratable):
         m: TModule
             Transactron module
         slot: ValueLike
-            The slot index of the event.
+            The slot tag of the event.
         """
 
         if not self.metrics_enabled():
@@ -590,7 +590,7 @@ class IndexedLatencyMeasurer(Elaboratable):
 
     def stop(self, m: TModule, *, slot: ValueLike):
         """
-        Registers the end of the event for a given slot index.
+        Registers the end of the event for a given slot tag.
 
         Should be called in the body of either a transaction or a method.
 
@@ -599,7 +599,7 @@ class IndexedLatencyMeasurer(Elaboratable):
         m: TModule
             Transactron module
         slot: ValueLike
-            The slot index of the event.
+            The slot tag of the event.
         """
 
         if not self.metrics_enabled():
