@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
-from typing import Optional
+from typing import Optional, Type
 from abc import ABC
+from enum import Enum
 
 from amaranth import *
-from amaranth.utils import bits_for
+from amaranth.utils import bits_for, ceil_log2, exact_log2
 
-from transactron.utils import ValueLike
+from transactron.utils import ValueLike, OneHotSwitchDynamic, SignalBundle
 from transactron import Method, def_method, TModule
-from transactron.utils import SignalBundle
 from transactron.lib import FIFO
 from transactron.utils.dependencies import ListKey, DependencyContext, SimpleKey
 
@@ -17,6 +17,7 @@ __all__ = [
     "MetricModel",
     "HwMetric",
     "HwCounter",
+    "TaggedCounter",
     "HwExpHistogram",
     "LatencyMeasurer",
     "HardwareMetricsManager",
@@ -228,6 +229,127 @@ class HwCounter(Elaboratable, HwMetric):
 
         with m.If(cond):
             self._incr(m)
+
+
+class TaggedCounter(Elaboratable, HwMetric):
+    """Hardware Tagged Counter
+
+    Like HwCounter, but contains multiple counters, each with its own tag.
+    At a time a single counter can be increased and the value of the tag
+    can be provided dynamically. The type of the tag can be either an int
+    enum, a range or a list of integers (negative numbers are ok).
+
+    Internally, it detects if tag values can be one-hot encoded and if so,
+    it generates more optimized circuit.
+
+    Attributes
+    ----------
+    tag_width: int
+        The length of the signal holding a tag value.
+    one_hot: bool
+        Whether tag values can be one-hot encoded.
+    counters: dict[int, HwMetricRegisters]
+        Mapping from a tag value to a register holding a counter for that tag.
+    """
+
+    def __init__(
+        self,
+        fully_qualified_name: str,
+        description: str = "",
+        *,
+        tags: range | Type[Enum] | list[int],
+        registers_width: int = 32,
+    ):
+        """
+        Parameters
+        ----------
+        fully_qualified_name: str
+            The fully qualified name of the metric.
+        description: str
+            A human-readable description of the metric's functionality.
+        tags: range | Type[Enum] | list[int]
+            Tag values.
+        registers_width: int
+            Width of the underlying registers. Defaults to 32 bits.
+        """
+
+        super().__init__(fully_qualified_name, description)
+
+        if isinstance(tags, range) or isinstance(tags, list):
+            counters_meta = [(i, f"{i}") for i in tags]
+        else:
+            counters_meta = [(i.value, i.name) for i in tags]
+
+        values = [value for value, _ in counters_meta]
+        self.tag_width = max(bits_for(max(values)), bits_for(min(values)))
+
+        self.one_hot = True
+        negative_values = False
+        for value in values:
+            if value < 0:
+                self.one_hot = False
+                negative_values = True
+                break
+
+            log = ceil_log2(value)
+            if 2**log != value:
+                self.one_hot = False
+
+        self._incr = Method(i=[("tag", Shape(self.tag_width, signed=negative_values))])
+
+        self.counters: dict[int, HwMetricRegister] = {}
+        for tag_value, name in counters_meta:
+            value_str = ("1<<" + str(exact_log2(tag_value))) if self.one_hot else str(tag_value)
+            description = f"the counter for tag {name} (value={value_str})"
+
+            self.counters[tag_value] = HwMetricRegister(
+                name,
+                registers_width,
+                description,
+            )
+
+        self.add_registers(list(self.counters.values()))
+
+    def elaborate(self, platform):
+        if not self.metrics_enabled():
+            return TModule()
+
+        m = TModule()
+
+        @def_method(m, self._incr)
+        def _(tag):
+            if self.one_hot:
+                sorted_tags = sorted(list(self.counters.keys()))
+                for i in OneHotSwitchDynamic(m, tag):
+                    counter = self.counters[sorted_tags[i]]
+                    m.d.sync += counter.value.eq(counter.value + 1)
+            else:
+                for tag_value, counter in self.counters.items():
+                    with m.If(tag == tag_value):
+                        m.d.sync += counter.value.eq(counter.value + 1)
+
+        return m
+
+    def incr(self, m: TModule, tag: ValueLike, *, cond: ValueLike = C(1)):
+        """
+        Increases the counter of a given tag by 1.
+
+        Should be called in the body of either a transaction or a method.
+
+        Parameters
+        ----------
+        m: TModule
+            Transactron module
+        tag: ValueLike
+            The tag of the counter.
+        cond: ValueLike
+            When set to high, the counter will be increased. By default set to high.
+        """
+        if not self.metrics_enabled():
+            return
+
+        with m.If(cond):
+            self._incr(m, tag)
 
 
 class HwExpHistogram(Elaboratable, HwMetric):

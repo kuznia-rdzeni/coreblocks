@@ -1,6 +1,9 @@
 import json
 import random
 import queue
+from typing import Type
+from enum import IntFlag, IntEnum, auto, Enum
+
 from parameterized import parameterized_class
 
 from amaranth import *
@@ -136,6 +139,85 @@ class TestHwCounter(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(test_process)
+
+
+class OneHotEnum(IntFlag):
+    ADD = auto()
+    XOR = auto()
+    OR = auto()
+
+
+class PlainIntEnum(IntEnum):
+    TEST_1 = auto()
+    TEST_2 = auto()
+    TEST_3 = auto()
+
+
+class TaggedCounterCircuit(Elaboratable):
+    def __init__(self, tags: range | Type[Enum] | list[int]):
+        self.counter = TaggedCounter("counter", "", tags=tags)
+
+        self.cond = Signal()
+        self.tag = Signal(self.counter.tag_width)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.counter = self.counter
+
+        with Transaction().body(m):
+            self.counter.incr(m, self.tag, cond=self.cond)
+
+        return m
+
+
+class TestTaggedCounter(TestCaseWithSimulator):
+    def setUp(self) -> None:
+        random.seed(42)
+
+    def do_test_enum(self, tags: range | Type[Enum] | list[int], tag_values: list[int]):
+        m = TaggedCounterCircuit(tags)
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
+
+        counts: dict[int, int] = {}
+        for i in tag_values:
+            counts[i] = 0
+
+        def test_process():
+            for _ in range(200):
+                for i in tag_values:
+                    self.assertEqual(counts[i], (yield m.counter.counters[i].value))
+
+                tag = random.choice(list(tag_values))
+
+                yield m.cond.eq(1)
+                yield m.tag.eq(tag)
+                yield
+                yield m.cond.eq(0)
+                yield
+
+                counts[tag] += 1
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(test_process)
+
+    def test_one_hot_enum(self):
+        self.do_test_enum(OneHotEnum, [e.value for e in OneHotEnum])
+
+    def test_plain_int_enum(self):
+        self.do_test_enum(PlainIntEnum, [e.value for e in PlainIntEnum])
+
+    def test_negative_range(self):
+        r = range(-10, 15, 3)
+        self.do_test_enum(r, list(r))
+
+    def test_positive_range(self):
+        r = range(0, 30, 2)
+        self.do_test_enum(r, list(r))
+
+    def test_value_list(self):
+        values = [-2137, 2, 4, 8, 42]
+        self.do_test_enum(values, values)
 
 
 class ExpHistogramCircuit(Elaboratable):
