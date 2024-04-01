@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1711966040797,
+  "lastUpdate": 1711966256727,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9151,6 +9151,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nsichneu",
             "value": 0.2929462601180695,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8ec353dabd3137d4e01acd345e0a8b3d0c68a129",
+          "message": "Refactor RISC-V instruction models (#631)",
+          "timestamp": "2024-04-01T11:59:30+02:00",
+          "tree_id": "4f19fd46dc5c047e9944475deb54c0c9880bf327",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8ec353dabd3137d4e01acd345e0a8b3d0c68a129"
+        },
+        "date": 1711966253020,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.23774923210766472,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2920382721023797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26364980854813985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.2929462601180695,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.215236226126083,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4157024568037011,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.32463975052119354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115279947341015,
             "unit": "Instructions Per Cycle"
           }
         ]
