@@ -209,7 +209,6 @@ class TestCaseWithSimulator():
     def manual_setup_method(self):
         self.dependency_manager = DependencyManager()
 
-        print("init")
         def wrap(f: Callable[[], None]):
             @functools.wraps(f)
             def wrapper():
@@ -273,7 +272,6 @@ class TestCaseWithSimulator():
         sim.add_sync_process(make_logging_process(log_level, log_filter, on_error))
 
         res = sim.run()
-        print("res", res)
 # TODO fix
 #        if profile is not None:
 #            profile_dir = "test/__profiles__"
