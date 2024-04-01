@@ -240,7 +240,7 @@ class TaggedCounter(Elaboratable, HwMetric):
     enum, a range or a list of integers (negative numbers are ok).
 
     Internally, it detects if tag values can be one-hot encoded and if so,
-    itgenerates more optimized circuit.
+    it generates more optimized circuit.
 
     Attributes
     ----------
