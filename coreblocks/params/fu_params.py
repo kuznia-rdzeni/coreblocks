@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from collections.abc import Collection, Iterable
 
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
@@ -20,6 +21,7 @@ __all__ = [
 ]
 
 
+@dataclass(frozen=True)
 class BlockComponentParams(ABC):
     @abstractmethod
     def get_module(self, gen_params: "GenParams") -> FuncBlock:

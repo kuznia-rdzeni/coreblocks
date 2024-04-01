@@ -9,7 +9,7 @@ from amaranth.utils import bits_for, ceil_log2, exact_log2
 
 from transactron.utils import ValueLike, OneHotSwitchDynamic, SignalBundle
 from transactron import Method, def_method, TModule
-from transactron.lib import FIFO
+from transactron.lib import FIFO, AsyncMemoryBank, logging
 from transactron.utils.dependencies import ListKey, DependencyContext, SimpleKey
 
 __all__ = [
@@ -19,7 +19,8 @@ __all__ = [
     "HwCounter",
     "TaggedCounter",
     "HwExpHistogram",
-    "LatencyMeasurer",
+    "FIFOLatencyMeasurer",
+    "TaggedLatencyMeasurer",
     "HardwareMetricsManager",
     "HwMetricsEnabledKey",
 ]
@@ -476,7 +477,7 @@ class HwExpHistogram(Elaboratable, HwMetric):
         self._add(m, sample)
 
 
-class LatencyMeasurer(Elaboratable):
+class FIFOLatencyMeasurer(Elaboratable):
     """
     Measures duration between two events, e.g. request processing latency.
     It can track multiple events at the same time, i.e. the second event can
@@ -501,7 +502,7 @@ class LatencyMeasurer(Elaboratable):
             The fully qualified name of the metric.
         description: str
             A human-readable description of the metric's functionality.
-        slots_number: str
+        slots_number: int
             A number of events that the module can track simultaneously.
         max_latency: int
             The maximum latency of an event. Used to set signal widths and
@@ -590,6 +591,143 @@ class LatencyMeasurer(Elaboratable):
             return
 
         self._stop(m)
+
+    def metrics_enabled(self) -> bool:
+        return DependencyContext.get().get_dependency(HwMetricsEnabledKey())
+
+
+class TaggedLatencyMeasurer(Elaboratable):
+    """
+    Measures duration between two events, e.g. request processing latency.
+    It can track multiple events at the same time, i.e. the second event can
+    be registered as started, before the first finishes. However, each event
+    needs to have an unique slot tag.
+
+    The module exposes an exponential histogram of the measured latencies.
+    """
+
+    def __init__(
+        self,
+        fully_qualified_name: str,
+        description: str = "",
+        *,
+        slots_number: int,
+        max_latency: int,
+    ):
+        """
+        Parameters
+        ----------
+        fully_qualified_name: str
+            The fully qualified name of the metric.
+        description: str
+            A human-readable description of the metric's functionality.
+        slots_number: int
+            A number of events that the module can track simultaneously.
+        max_latency: int
+            The maximum latency of an event. Used to set signal widths and
+            number of buckets in the histogram. If a latency turns to be
+            bigger than the maximum, it will overflow and result in a false
+            measurement.
+        """
+        self.fully_qualified_name = fully_qualified_name
+        self.description = description
+        self.slots_number = slots_number
+        self.max_latency = max_latency
+
+        self._start = Method(i=[("slot", range(0, slots_number))])
+        self._stop = Method(i=[("slot", range(0, slots_number))])
+
+        # This bucket count gives us the best possible granularity.
+        bucket_count = bits_for(self.max_latency) + 1
+        self.histogram = HwExpHistogram(
+            self.fully_qualified_name,
+            self.description,
+            bucket_count=bucket_count,
+            sample_width=bits_for(self.max_latency),
+        )
+
+        self.log = logging.HardwareLogger(fully_qualified_name)
+
+    def elaborate(self, platform):
+        if not self.metrics_enabled():
+            return TModule()
+
+        m = TModule()
+
+        epoch_width = bits_for(self.max_latency)
+
+        m.submodules.slots = self.slots = AsyncMemoryBank(
+            data_layout=[("epoch", epoch_width)], elem_count=self.slots_number
+        )
+        m.submodules.histogram = self.histogram
+
+        slots_taken = Signal(self.slots_number)
+        slots_taken_start = Signal.like(slots_taken)
+        slots_taken_stop = Signal.like(slots_taken)
+
+        m.d.comb += slots_taken_start.eq(slots_taken)
+        m.d.comb += slots_taken_stop.eq(slots_taken_start)
+        m.d.sync += slots_taken.eq(slots_taken_stop)
+
+        epoch = Signal(epoch_width)
+
+        m.d.sync += epoch.eq(epoch + 1)
+
+        @def_method(m, self._start)
+        def _(slot: Value):
+            m.d.comb += slots_taken_start.eq(slots_taken | (1 << slot))
+            self.log.error(m, (slots_taken & (1 << slot)).any(), "taken slot {} taken again", slot)
+            self.slots.write(m, addr=slot, data=epoch)
+
+        @def_method(m, self._stop)
+        def _(slot: Value):
+            m.d.comb += slots_taken_stop.eq(slots_taken_start & ~(C(1, self.slots_number) << slot))
+            self.log.error(m, ~(slots_taken & (1 << slot)).any(), "free slot {} freed again", slot)
+            ret = self.slots.read(m, addr=slot)
+            # The result of substracting two unsigned n-bit is a signed (n+1)-bit value,
+            # so we need to cast the result and discard the most significant bit.
+            duration = (epoch - ret.epoch).as_unsigned()[:-1]
+            self.histogram.add(m, duration)
+
+        return m
+
+    def start(self, m: TModule, *, slot: ValueLike):
+        """
+        Registers the start of an event for a given slot tag.
+
+        Should be called in the body of either a transaction or a method.
+
+        Parameters
+        ----------
+        m: TModule
+            Transactron module
+        slot: ValueLike
+            The slot tag of the event.
+        """
+
+        if not self.metrics_enabled():
+            return
+
+        self._start(m, slot)
+
+    def stop(self, m: TModule, *, slot: ValueLike):
+        """
+        Registers the end of the event for a given slot tag.
+
+        Should be called in the body of either a transaction or a method.
+
+        Parameters
+        ----------
+        m: TModule
+            Transactron module
+        slot: ValueLike
+            The slot tag of the event.
+        """
+
+        if not self.metrics_enabled():
+            return
+
+        self._stop(m, slot)
 
     def metrics_enabled(self) -> bool:
         return DependencyContext.get().get_dependency(HwMetricsEnabledKey())

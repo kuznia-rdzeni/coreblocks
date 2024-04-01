@@ -7,11 +7,12 @@ from enum import IntFlag, IntEnum, auto, Enum
 from parameterized import parameterized_class
 
 from amaranth import *
-from amaranth.sim import Passive, Settle
+from amaranth.sim import Settle
 
 from transactron.lib.metrics import *
 from transactron import *
 from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.testing.infrastructure import Now
 from transactron.utils.dependencies import DependencyContext
 
 
@@ -308,6 +309,21 @@ class TestHwHistogram(TestCaseWithSimulator):
             sim.add_sync_process(test_process)
 
 
+class TestLatencyMeasurerBase(TestCaseWithSimulator):
+    def check_latencies(self, m: SimpleTestCircuit, latencies: list[int]):
+        self.assertEqual(min(latencies), (yield m._dut.histogram.min.value))
+        self.assertEqual(max(latencies), (yield m._dut.histogram.max.value))
+        self.assertEqual(sum(latencies), (yield m._dut.histogram.sum.value))
+        self.assertEqual(len(latencies), (yield m._dut.histogram.count.value))
+
+        for i in range(m._dut.histogram.bucket_count):
+            bucket_start = 0 if i == 0 else 2 ** (i - 1)
+            bucket_end = 1e10 if i == m._dut.histogram.bucket_count - 1 else 2**i
+
+            count = sum(1 for x in latencies if bucket_start <= x < bucket_end)
+            self.assertEqual(count, (yield m._dut.histogram.buckets[i].value))
+
+
 @parameterized_class(
     ("slots_number", "expected_consumer_wait"),
     [
@@ -319,30 +335,19 @@ class TestHwHistogram(TestCaseWithSimulator):
         (5, 5),
     ],
 )
-class TestLatencyMeasurer(TestCaseWithSimulator):
+class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
     slots_number: int
     expected_consumer_wait: float
 
     def test_latency_measurer(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(LatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
+        m = SimpleTestCircuit(FIFOLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         latencies: list[int] = []
 
         event_queue = queue.Queue()
-
-        time = 0
-
-        def ticker():
-            nonlocal time
-
-            yield Passive()
-
-            while True:
-                yield
-                time += 1
 
         finish = False
 
@@ -354,6 +359,7 @@ class TestLatencyMeasurer(TestCaseWithSimulator):
 
                 # Make sure that the time is updated first.
                 yield Settle()
+                time = yield Now()
                 event_queue.put(time)
                 yield from self.random_wait_geom(0.8)
 
@@ -365,26 +371,95 @@ class TestLatencyMeasurer(TestCaseWithSimulator):
 
                 # Make sure that the time is updated first.
                 yield Settle()
+                time = yield Now()
                 latencies.append(time - event_queue.get())
 
                 yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
 
-            self.assertEqual(min(latencies), (yield m._dut.histogram.min.value))
-            self.assertEqual(max(latencies), (yield m._dut.histogram.max.value))
-            self.assertEqual(sum(latencies), (yield m._dut.histogram.sum.value))
-            self.assertEqual(len(latencies), (yield m._dut.histogram.count.value))
-
-            for i in range(m._dut.histogram.bucket_count):
-                bucket_start = 0 if i == 0 else 2 ** (i - 1)
-                bucket_end = 1e10 if i == m._dut.histogram.bucket_count - 1 else 2**i
-
-                count = sum(1 for x in latencies if bucket_start <= x < bucket_end)
-                self.assertEqual(count, (yield m._dut.histogram.buckets[i].value))
+            self.check_latencies(m, latencies)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(producer)
             sim.add_sync_process(consumer)
-            sim.add_sync_process(ticker)
+
+
+@parameterized_class(
+    ("slots_number", "expected_consumer_wait"),
+    [
+        (2, 5),
+        (2, 10),
+        (5, 10),
+        (10, 1),
+        (10, 10),
+        (5, 5),
+    ],
+)
+class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
+    slots_number: int
+    expected_consumer_wait: float
+
+    def test_latency_measurer(self):
+        random.seed(42)
+
+        m = SimpleTestCircuit(TaggedLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
+        DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
+
+        latencies: list[int] = []
+
+        events = list(0 for _ in range(self.slots_number))
+        free_slots = list(k for k in range(self.slots_number))
+        used_slots: list[int] = []
+
+        finish = False
+
+        def producer():
+            nonlocal finish
+
+            for _ in range(200):
+                while not free_slots:
+                    yield
+                    continue
+                yield Settle()
+
+                slot_id = random.choice(free_slots)
+                yield from m._start.call(slot=slot_id)
+
+                time = yield Now()
+
+                events[slot_id] = time
+                free_slots.remove(slot_id)
+                used_slots.append(slot_id)
+
+                yield from self.random_wait_geom(0.8)
+
+            finish = True
+
+        def consumer():
+            while not finish:
+                while not used_slots:
+                    yield
+                    continue
+
+                slot_id = random.choice(used_slots)
+
+                yield from m._stop.call(slot=slot_id)
+
+                time = yield Now()
+
+                yield Settle()
+                yield Settle()
+
+                latencies.append(time - events[slot_id])
+                used_slots.remove(slot_id)
+                free_slots.append(slot_id)
+
+                yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
+
+            self.check_latencies(m, latencies)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(producer)
+            sim.add_sync_process(consumer)
 
 
 class MetricManagerTestCircuit(Elaboratable):

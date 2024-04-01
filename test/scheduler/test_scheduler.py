@@ -127,7 +127,7 @@ class TestScheduler(TestCaseWithSimulator):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
             test_core_config.replace(
-                func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count))
+                func_units_config=tuple(RSBlockComponent([], rs_entries=4, rs_number=k) for k in range(self.rs_count))
             )
         )
         self.expected_rename_queue = deque()

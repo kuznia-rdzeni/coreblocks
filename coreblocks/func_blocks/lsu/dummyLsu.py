@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from amaranth import *
 from amaranth.lib.data import View
 
@@ -320,6 +321,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class LSUBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)
