@@ -986,6 +986,76 @@ will be processed.</p>
 <div class="section" id="module-transactron.lib.metrics">
 <span id="transactron-lib-metrics-module"></span><h2>transactron.lib.metrics module<a class="headerlink" href="#module-transactron.lib.metrics" title="Permalink to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.metrics.FIFOLatencyMeasurer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.metrics.</span></span><span class="sig-name descname"><span class="pre">FIFOLatencyMeasurer</span></span><a class="headerlink" href="#transactron.lib.metrics.FIFOLatencyMeasurer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Measures duration between two events, e.g. request processing latency.
+It can track multiple events at the same time, i.e. the second event can
+be registered as started, before the first finishes. However, they must be
+processed in the FIFO order.</p>
+<p>The module exposes an exponential histogram of the measured latencies.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.FIFOLatencyMeasurer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fully_qualified_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slots_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_latency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.FIFOLatencyMeasurer.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fully_qualified_name: str</strong></dt><dd><p>The fully qualified name of the metric.</p>
+</dd>
+<dt><strong>description: str</strong></dt><dd><p>A human-readable description of the metric’s functionality.</p>
+</dd>
+<dt><strong>slots_number: int</strong></dt><dd><p>A number of events that the module can track simultaneously.</p>
+</dd>
+<dt><strong>max_latency: int</strong></dt><dd><p>The maximum latency of an event. Used to set signal widths and
+number of buckets in the histogram. If a latency turns to be
+bigger than the maximum, it will overflow and result in a false
+measurement.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.FIFOLatencyMeasurer.metrics_enabled">
+<span class="sig-name descname"><span class="pre">metrics_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#transactron.lib.metrics.FIFOLatencyMeasurer.metrics_enabled" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.FIFOLatencyMeasurer.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.FIFOLatencyMeasurer.start" title="Permalink to this definition"></a></dt>
+<dd><p>Registers the start of an event. Can be called before the previous events
+finish. If there are no slots available, the method will be blocked.</p>
+<p>Should be called in the body of either a transaction or a method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.FIFOLatencyMeasurer.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.FIFOLatencyMeasurer.stop" title="Permalink to this definition"></a></dt>
+<dd><p>Registers the end of the oldest event (the FIFO order). If there are no
+started events in the queue, the method will block.</p>
+<p>Should be called in the body of either a transaction or a method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.lib.metrics.HardwareMetricsManager">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.metrics.</span></span><span class="sig-name descname"><span class="pre">HardwareMetricsManager</span></span><a class="headerlink" href="#transactron.lib.metrics.HardwareMetricsManager" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
@@ -1198,76 +1268,6 @@ none of theirs signals will be synthesized.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="transactron.lib.metrics.LatencyMeasurer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.metrics.</span></span><span class="sig-name descname"><span class="pre">LatencyMeasurer</span></span><a class="headerlink" href="#transactron.lib.metrics.LatencyMeasurer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>Measures duration between two events, e.g. request processing latency.
-It can track multiple events at the same time, i.e. the second event can
-be registered as started, before the first finishes. However, they must be
-processed in the FIFO order.</p>
-<p>The module exposes an exponential histogram of the measured latencies.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.lib.metrics.LatencyMeasurer.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fully_qualified_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slots_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_latency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.LatencyMeasurer.__init__" title="Permalink to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>fully_qualified_name: str</strong></dt><dd><p>The fully qualified name of the metric.</p>
-</dd>
-<dt><strong>description: str</strong></dt><dd><p>A human-readable description of the metric’s functionality.</p>
-</dd>
-<dt><strong>slots_number: str</strong></dt><dd><p>A number of events that the module can track simultaneously.</p>
-</dd>
-<dt><strong>max_latency: int</strong></dt><dd><p>The maximum latency of an event. Used to set signal widths and
-number of buckets in the histogram. If a latency turns to be
-bigger than the maximum, it will overflow and result in a false
-measurement.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.lib.metrics.LatencyMeasurer.metrics_enabled">
-<span class="sig-name descname"><span class="pre">metrics_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#transactron.lib.metrics.LatencyMeasurer.metrics_enabled" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.lib.metrics.LatencyMeasurer.start">
-<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.LatencyMeasurer.start" title="Permalink to this definition"></a></dt>
-<dd><p>Registers the start of an event. Can be called before the previous events
-finish. If there are no slots available, the method will be blocked.</p>
-<p>Should be called in the body of either a transaction or a method.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="transactron.lib.metrics.LatencyMeasurer.stop">
-<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.LatencyMeasurer.stop" title="Permalink to this definition"></a></dt>
-<dd><p>Registers the end of the oldest event (the FIFO order). If there are no
-started events in the queue, the method will block.</p>
-<p>Should be called in the body of either a transaction or a method.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="transactron.lib.metrics.MetricModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.metrics.</span></span><span class="sig-name descname"><span class="pre">MetricModel</span></span><a class="headerlink" href="#transactron.lib.metrics.MetricModel" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
@@ -1464,6 +1464,78 @@ it generates more optimized circuit.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedLatencyMeasurer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.metrics.</span></span><span class="sig-name descname"><span class="pre">TaggedLatencyMeasurer</span></span><a class="headerlink" href="#transactron.lib.metrics.TaggedLatencyMeasurer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Measures duration between two events, e.g. request processing latency.
+It can track multiple events at the same time, i.e. the second event can
+be registered as started, before the first finishes. However, each event
+needs to have an unique slot tag.</p>
+<p>The module exposes an exponential histogram of the measured latencies.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedLatencyMeasurer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fully_qualified_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slots_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_latency</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.TaggedLatencyMeasurer.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fully_qualified_name: str</strong></dt><dd><p>The fully qualified name of the metric.</p>
+</dd>
+<dt><strong>description: str</strong></dt><dd><p>A human-readable description of the metric’s functionality.</p>
+</dd>
+<dt><strong>slots_number: int</strong></dt><dd><p>A number of events that the module can track simultaneously.</p>
+</dd>
+<dt><strong>max_latency: int</strong></dt><dd><p>The maximum latency of an event. Used to set signal widths and
+number of buckets in the histogram. If a latency turns to be
+bigger than the maximum, it will overflow and result in a false
+measurement.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedLatencyMeasurer.metrics_enabled">
+<span class="sig-name descname"><span class="pre">metrics_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#transactron.lib.metrics.TaggedLatencyMeasurer.metrics_enabled" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedLatencyMeasurer.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.TaggedLatencyMeasurer.start" title="Permalink to this definition"></a></dt>
+<dd><p>Registers the start of an event for a given slot tag.</p>
+<p>Should be called in the body of either a transaction or a method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
+</dd>
+<dt><strong>slot: ValueLike</strong></dt><dd><p>The slot tag of the event.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedLatencyMeasurer.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.TaggedLatencyMeasurer.stop" title="Permalink to this definition"></a></dt>
+<dd><p>Registers the end of the event for a given slot tag.</p>
+<p>Should be called in the body of either a transaction or a method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
+</dd>
+<dt><strong>slot: ValueLike</strong></dt><dd><p>The slot tag of the event.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-transactron.lib.reqres">
 <span id="transactron-lib-reqres-module"></span><h2>transactron.lib.reqres module<a class="headerlink" href="#module-transactron.lib.reqres" title="Permalink to this heading"></a></h2>
@@ -1623,6 +1695,49 @@ transactions.</p>
 </div>
 <div class="section" id="module-transactron.lib.storage">
 <span id="transactron-lib-storage-module"></span><h2>transactron.lib.storage module<a class="headerlink" href="#module-transactron.lib.storage" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.storage.AsyncMemoryBank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.storage.</span></span><span class="sig-name descname"><span class="pre">AsyncMemoryBank</span></span><a class="headerlink" href="#transactron.lib.storage.AsyncMemoryBank" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>AsyncMemoryBank module.</p>
+<p>Provides a transactional interface to asynchronous Amaranth Memory with one
+read and one write port. It supports optionally writing with given granularity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>The read method. Accepts an <cite>addr</cite> from which data should be read.
+The read response method. Return <cite>data_layout</cite> View which was saved on <cite>addr</cite> given by last
+<cite>read_req</cite> method call.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>The write method. Accepts <cite>addr</cite> where data should be saved, <cite>data</cite> in form of <cite>data_layout</cite>
+and optionally <cite>mask</cite> if <cite>granularity</cite> is not None. <cite>1</cite> in mask means that appropriate part should be written.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.storage.AsyncMemoryBank.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">granularity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.storage.AsyncMemoryBank.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_layout: method layout</strong></dt><dd><p>The format of structures stored in the Memory.</p>
+</dd>
+<dt><strong>elem_count: int</strong></dt><dd><p>Number of elements stored in Memory.</p>
+</dd>
+<dt><strong>granularity: Optional[int]</strong></dt><dd><p>Granularity of write, forwarded to Amaranth. If <cite>None</cite> the whole structure is always saved at once.
+If not, the width of <cite>data_layout</cite> is split into <cite>granularity</cite> parts, which can be saved independently.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="transactron.lib.storage.MemoryBank">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.storage.</span></span><span class="sig-name descname"><span class="pre">MemoryBank</span></span><a class="headerlink" href="#transactron.lib.storage.MemoryBank" title="Permalink to this definition"></a></dt>
@@ -2010,7 +2125,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 10:39 2024-04-01.
+      <span class="lastupdated">Last updated on 14:50 2024-04-01.
       </span></p>
   </div>
 
