@@ -1401,6 +1401,69 @@ registers of a specific metric).</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedCounter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.metrics.</span></span><span class="sig-name descname"><span class="pre">TaggedCounter</span></span><a class="headerlink" href="#transactron.lib.metrics.TaggedCounter" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#transactron.lib.metrics.HwMetric" title="transactron.lib.metrics.HwMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">HwMetric</span></code></a></p>
+<p>Hardware Tagged Counter</p>
+<p>Like HwCounter, but contains multiple counters, each with its own tag.
+At a time a single counter can be increased and the value of the tag
+can be provided dynamically. The type of the tag can be either an int
+enum, a range or a list of integers (negative numbers are ok).</p>
+<p>Internally, it detects if tag values can be one-hot encoded and if so,
+it generates more optimized circuit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tag_width: int</strong></dt><dd><p>The length of the signal holding a tag value.</p>
+</dd>
+<dt><strong>one_hot: bool</strong></dt><dd><p>Whether tag values can be one-hot encoded.</p>
+</dd>
+<dt><strong>counters: dict[int, HwMetricRegisters]</strong></dt><dd><p>Mapping from a tag value to a register holding a counter for that tag.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedCounter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fully_qualified_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">range</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Enum</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">registers_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.TaggedCounter.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fully_qualified_name: str</strong></dt><dd><p>The fully qualified name of the metric.</p>
+</dd>
+<dt><strong>description: str</strong></dt><dd><p>A human-readable description of the metric’s functionality.</p>
+</dd>
+<dt><strong>tags: range | Type[Enum] | list[int]</strong></dt><dd><p>Tag values.</p>
+</dd>
+<dt><strong>registers_width: int</strong></dt><dd><p>Width of the underlying registers. Defaults to 32 bits.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.metrics.TaggedCounter.incr">
+<span class="sig-name descname"><span class="pre">incr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m:</span> <span class="pre">~transactron.core.tmodule.TModule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag:</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cond:</span> <span class="pre">amaranth.hdl._ast.Value</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">enum.Enum</span> <span class="pre">|</span> <span class="pre">amaranth.hdl._ast.ValueCastable</span> <span class="pre">=</span> <span class="pre">(const</span> <span class="pre">1'd1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.metrics.TaggedCounter.incr" title="Permalink to this definition"></a></dt>
+<dd><p>Increases the counter of a given tag by 1.</p>
+<p>Should be called in the body of either a transaction or a method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: TModule</strong></dt><dd><p>Transactron module</p>
+</dd>
+<dt><strong>tag: ValueLike</strong></dt><dd><p>The tag of the counter.</p>
+</dd>
+<dt><strong>cond: ValueLike</strong></dt><dd><p>When set to high, the counter will be increased. By default set to high.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-transactron.lib.reqres">
 <span id="transactron-lib-reqres-module"></span><h2>transactron.lib.reqres module<a class="headerlink" href="#module-transactron.lib.reqres" title="Permalink to this heading"></a></h2>
@@ -1947,7 +2010,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 10:13 2024-04-01.
+      <span class="lastupdated">Last updated on 10:39 2024-04-01.
       </span></p>
   </div>
 
