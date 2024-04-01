@@ -55,11 +55,14 @@ class FetchUnit(Elaboratable):
             "Number of valid instructions in fetch blocks",
             tags=range(self.gen_params.fetch_width + 1),
         )
+        self.perf_fetch_redirects = HwCounter(
+            "frontend.fetch.fetch_redirects", "How many the fetch unit has redirected itself"
+        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_fetch_utilization]
+        m.submodules += [self.perf_fetch_utilization, self.perf_fetch_redirects]
 
         fetch_width = self.gen_params.fetch_width
 
@@ -383,6 +386,7 @@ class FetchUnit(Elaboratable):
                     flush()
                     m.d.sync += stalled_unsafe.eq(1)
                 with m.Elif(redirect):
+                    self.perf_fetch_redirects.incr(m)
                     new_pc = Signal.like(current_pc)
                     m.d.av_comb += new_pc.eq(redirection_instr_pc + redirection_offset[redirect_or_unsafe_idx])
 
@@ -405,13 +409,9 @@ class FetchUnit(Elaboratable):
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)
-            #   self.perf_stall_exception.stop(m)
 
         @def_method(m, self.stall_exception)
         def _():
-            # with m.If(~stalled_exception):
-            # self.perf_stall_exception.start(m)
-
             log.info(m, True, "Stalling the fetch unit because of an exception")
             serializer.clean(m)
             m.d.sync += stalled_exception.eq(1)
