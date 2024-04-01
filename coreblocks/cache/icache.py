@@ -142,14 +142,13 @@ class ICache(Elaboratable, CacheInterface):
         ]
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
-        m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
-        m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.layouts.accept_res)
+        m.submodules.req_zipper = req_zipper = ArgumentsToResultsZipper(self.addr_layout, self.layouts.accept_res)
 
         # State machine logic
         needs_refill = Signal()
         refill_finish = Signal()
-        refill_finish_last = Signal()
         refill_error = Signal()
+        refill_error_saved = Signal()
 
         flush_start = Signal()
         flush_finish = Signal()
@@ -158,6 +157,7 @@ class ICache(Elaboratable, CacheInterface):
             self.perf_flushes.incr(m, cond=flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
+
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"
@@ -180,35 +180,44 @@ class ICache(Elaboratable, CacheInterface):
             m.d.sync += way_selector.eq(way_selector.rotate_left(1))
 
         # Fast path - read requests
-        request_valid = self.req_fifo.read.ready
-        request_addr = Signal(self.addr_layout)
+        mem_read_addr = Signal(self.addr_layout)
+        prev_mem_read_addr = Signal(self.addr_layout)
+        m.d.comb += assign(mem_read_addr, prev_mem_read_addr)
 
-        tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
-        tag_hit_any = reduce(operator.or_, tag_hit)
+        mem_read_output_valid = Signal()
+        with Transaction(name="MemRead").body(
+            m, request=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
+        ):
+            req_addr = req_zipper.peek_arg(m)
 
-        mem_out = Signal(self.params.fetch_block_bytes * 8)
-        for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
-            m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
+            tag_hit = [tag_data.valid & (tag_data.tag == req_addr.tag) for tag_data in self.mem.tag_rd_data]
+            tag_hit_any = reduce(operator.or_, tag_hit)
 
-        refill_error_saved = Signal()
-        m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
+            with m.If(tag_hit_any | refill_error_saved):
+                self.perf_hits.incr(m, cond=tag_hit_any)
+                mem_out = Signal(self.params.fetch_block_bytes * 8)
+                for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
+                    m.d.av_comb += mem_out.eq(self.mem.data_rd_data[i])
 
-        with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_saved)):
-            self.perf_errors.incr(m, cond=refill_error_saved)
-            self.perf_misses.incr(m, cond=refill_finish_last)
-            self.perf_hits.incr(m, cond=~refill_finish_last)
+                req_zipper.write_results(m, fetch_block=mem_out, error=refill_error_saved)
+                m.d.sync += refill_error_saved.eq(0)
+                m.d.sync += mem_read_output_valid.eq(0)
+            with m.Else():
+                self.perf_misses.incr(m)
 
-            self.res_fwd.write(m, fetch_block=mem_out, error=refill_error_saved)
-            m.d.sync += refill_error_saved.eq(0)
+                m.d.comb += needs_refill.eq(1)
+
+                # Align to the beginning of the cache line
+                aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
+                log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
+                self.refiller.start_refill(m, addr=aligned_addr)
 
         @def_method(m, self.accept_res)
         def _():
-            self.req_fifo.read(m)
             self.req_latency.stop(m)
-            return self.res_fwd.read(m)
 
-        mem_read_addr = Signal(self.addr_layout)
-        m.d.comb += assign(mem_read_addr, request_addr)
+            output = req_zipper.read(m)
+            return output.results
 
         @def_method(m, self.issue_req, ready=accepting_requests)
         def _(addr: Value) -> None:
@@ -216,11 +225,11 @@ class ICache(Elaboratable, CacheInterface):
             self.req_latency.start(m)
 
             deserialized = self.deserialize_addr(addr)
-            # Forward read address only if the method is called
             m.d.comb += assign(mem_read_addr, deserialized)
-            m.d.sync += assign(request_addr, deserialized)
+            m.d.sync += assign(prev_mem_read_addr, deserialized)
+            req_zipper.write_args(m, deserialized)
 
-            self.req_fifo.write(m, deserialized)
+            m.d.sync += mem_read_output_valid.eq(1)
 
         m.d.comb += [
             self.mem.tag_rd_index.eq(mem_read_addr.index),
@@ -242,17 +251,11 @@ class ICache(Elaboratable, CacheInterface):
         m.d.comb += flush_finish.eq(flush_index == self.params.num_of_sets - 1)
 
         # Slow path - data refilling
-        with Transaction().body(m, request=fsm.ongoing("LOOKUP") & needs_refill):
-            # Align to the beginning of the cache line
-            aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
-            log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
-            self.refiller.start_refill(m, addr=aligned_addr)
-
-        m.d.sync += refill_finish_last.eq(0)
-
         with Transaction().body(m):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
+
+            self.perf_errors.incr(m, cond=ret.error)
 
             m.d.top_comb += [
                 self.mem.data_wr_addr.index.eq(deserialized["index"]),
@@ -262,9 +265,9 @@ class ICache(Elaboratable, CacheInterface):
 
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
-            m.d.sync += refill_finish_last.eq(1)
             m.d.comb += refill_error.eq(ret.error)
-            m.d.sync += refill_error_saved.eq(ret.error)
+            with m.If(ret.error):
+                m.d.sync += refill_error_saved.eq(1)
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
@@ -277,9 +280,9 @@ class ICache(Elaboratable, CacheInterface):
         with m.Else():
             m.d.comb += [
                 self.mem.way_wr_en.eq(way_selector),
-                self.mem.tag_wr_index.eq(request_addr.index),
+                self.mem.tag_wr_index.eq(mem_read_addr.index),
                 self.mem.tag_wr_data.valid.eq(~refill_error),
-                self.mem.tag_wr_data.tag.eq(request_addr.tag),
+                self.mem.tag_wr_data.tag.eq(mem_read_addr.tag),
                 self.mem.tag_wr_en.eq(refill_finish),
             ]
 
