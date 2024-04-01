@@ -79,8 +79,10 @@ class TestCoreBase(TestCaseWithSimulator):
         if val & 0x800:
             lui_imm = (lui_imm + 1) & (0xFFFFF)
 
-        yield from self.push_instr(UTypeInstr.encode(Opcode.LUI, reg_id, lui_imm))
-        yield from self.push_instr(ITypeInstr.encode(Opcode.OP_IMM, reg_id, Funct3.ADD, reg_id, addi_imm))
+        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=lui_imm << 12).encode())
+        yield from self.push_instr(
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=reg_id, funct3=Funct3.ADD, rs1=reg_id, imm=addi_imm).encode()
+        )
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
