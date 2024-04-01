@@ -39,6 +39,8 @@ class ArgumentsToResultsZipper(Elaboratable):
 
     Attributes
     ----------
+    peek_arg: Method
+        A nonexclusive method to read (but not delete) the head of the arg queue.
     write_args: Method
         Method to write arguments with `args_layout` format to 2-FIFO.
     write_results: Method

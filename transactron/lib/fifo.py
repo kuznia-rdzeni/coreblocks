@@ -13,6 +13,9 @@ class BasicFifo(Elaboratable):
     read: Method
         Reads from the FIFO. Accepts an empty argument, returns a structure.
         Ready only if the FIFO is not empty.
+    peek: Method
+        Returns the element at the front (but not delete). Ready only if the FIFO
+        is not empty. The method is nonexclusive.
     write: Method
         Writes to the FIFO. Accepts a structure, returns empty result.
         Ready only if the FIFO is not full.
