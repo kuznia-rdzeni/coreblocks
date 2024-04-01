@@ -315,24 +315,94 @@ Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
 </div>
 <div class="section" id="module-coreblocks.params.instr">
 <span id="coreblocks-params-instr-module"></span><h2>coreblocks.params.instr module<a class="headerlink" href="#module-coreblocks.params.instr" title="Permalink to this heading"></a></h2>
+<p>Based on riscv-python-model by Stefan Wallentowitz
+<a class="reference external" href="https://github.com/wallento/riscv-python-model">https://github.com/wallento/riscv-python-model</a></p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">BTypeInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionFunct3Type</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.encode" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr.imm">
+<span class="sig-name descname"><span class="pre">imm</span></span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.imm" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.pack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr.rs1">
+<span class="sig-name descname"><span class="pre">rs1</span></span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.rs1" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.BTypeInstr.rs2">
+<span class="sig-name descname"><span class="pre">rs2</span></span><a class="headerlink" href="#coreblocks.params.instr.BTypeInstr.rs2" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -350,41 +420,104 @@ Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">ITypeInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionFunct3Type</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.encode" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr.imm">
+<span class="sig-name descname"><span class="pre">imm</span></span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.imm" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.pack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr.rd">
+<span class="sig-name descname"><span class="pre">rd</span></span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.rd" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.ITypeInstr.rs1">
+<span class="sig-name descname"><span class="pre">rs1</span></span><a class="headerlink" href="#coreblocks.params.instr.ITypeInstr.rs1" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.IllegalInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">IllegalInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.IllegalInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.instr.RISCVInstr" title="coreblocks.params.instr.RISCVInstr"><code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.IllegalInstr.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.IllegalInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.IllegalInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.IllegalInstr.encode" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.IllegalInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.IllegalInstr.pack" title="Permalink to this definition"></a></dt>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.IllegalInstr.illegal">
+<span class="sig-name descname"><span class="pre">illegal</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(cat</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1))</span> <span class="pre">(cat</span> <span class="pre">(const</span> <span class="pre">1'd1)))</span></em><a class="headerlink" href="#coreblocks.params.instr.IllegalInstr.illegal" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -392,20 +525,114 @@ Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.JTypeInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">JTypeInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.instr.RISCVInstr" title="coreblocks.params.instr.RISCVInstr"><code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.JTypeInstr.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.JTypeInstr.imm">
+<span class="sig-name descname"><span class="pre">imm</span></span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr.imm" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.JTypeInstr.rd">
+<span class="sig-name descname"><span class="pre">rd</span></span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr.rd" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RISCVInstr">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">RISCVInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.RISCVInstr" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueCastable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RISCVInstr.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.RISCVInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.JTypeInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr.encode" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.instr.RISCVInstr.as_value">
+<span class="sig-name descname"><span class="pre">as_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.RISCVInstr.as_value" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.JTypeInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.JTypeInstr.pack" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.params.instr.RISCVInstr.encode">
+<span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#coreblocks.params.instr.RISCVInstr.encode" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RISCVInstr.opcode">
+<span class="sig-name descname"><span class="pre">opcode</span></span><a class="headerlink" href="#coreblocks.params.instr.RISCVInstr.opcode" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RISCVInstr.shape">
+<span class="sig-name descname"><span class="pre">shape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Shape</span></span></span><a class="headerlink" href="#coreblocks.params.instr.RISCVInstr.shape" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -413,63 +640,241 @@ Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">RTypeInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionFunct3Type</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionFunct7Type</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct7</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct7</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct7</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.encode" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr.rd">
+<span class="sig-name descname"><span class="pre">rd</span></span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.rd" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.pack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr.rs1">
+<span class="sig-name descname"><span class="pre">rs1</span></span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.rs1" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.RTypeInstr.rs2">
+<span class="sig-name descname"><span class="pre">rs2</span></span><a class="headerlink" href="#coreblocks.params.instr.RTypeInstr.rs2" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">STypeInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructionFunct3Type</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funct3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.encode" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr.imm">
+<span class="sig-name descname"><span class="pre">imm</span></span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.imm" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.pack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr.rs1">
+<span class="sig-name descname"><span class="pre">rs1</span></span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.rs1" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.STypeInstr.rs2">
+<span class="sig-name descname"><span class="pre">rs2</span></span><a class="headerlink" href="#coreblocks.params.instr.STypeInstr.rs2" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.instr.UTypeInstr">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.instr.</span></span><span class="sig-name descname"><span class="pre">UTypeInstr</span></span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.params.instr.RISCVInstr" title="coreblocks.params.instr.RISCVInstr"><code class="xref py py-class docutils literal notranslate"><span class="pre">RISCVInstr</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.instr.UTypeInstr.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode" title="coreblocks.frontend.decoder.isa.Opcode"><span class="pre">Opcode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.UTypeInstr.encode">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr.encode" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.UTypeInstr.imm">
+<span class="sig-name descname"><span class="pre">imm</span></span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr.imm" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.instr.UTypeInstr.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr.pack" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.instr.UTypeInstr.rd">
+<span class="sig-name descname"><span class="pre">rd</span></span><a class="headerlink" href="#coreblocks.params.instr.UTypeInstr.rd" title="Permalink to this definition"></a></dt>
+<dd><p>Information about a field in a RISC-V instruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>base: int | list[int]</strong></dt><dd><p>A bit position (or a list of positions) where this field (or parts of the field)
+would map in the instruction.</p>
+</dd>
+<dt><strong>size: int | list[int]</strong></dt><dd><p>Size (or sizes of the parts) of the field</p>
+</dd>
+<dt><strong>signed: bool</strong></dt><dd><p>Whether this field encodes a signed value.</p>
+</dd>
+<dt><strong>offset: int</strong></dt><dd><p>How many bits of this field should be skipped when encoding the instruction.
+For example, the immediate of the jump instruction always skips the least
+significant bit. This only affects encoding procedures, so externally (for example
+when creating an instance of a instruction) full-size values should be always used.</p>
+</dd>
+<dt><strong>static_value: Optional[Value]</strong></dt><dd><p>Whether the field should have a static value for a given type of an instruction.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -761,7 +1166,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 10:11 2024-03-31.
+      <span class="lastupdated">Last updated on 10:00 2024-04-01.
       </span></p>
   </div>
 
