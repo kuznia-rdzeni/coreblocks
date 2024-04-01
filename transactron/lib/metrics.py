@@ -9,7 +9,7 @@ from amaranth.utils import bits_for
 from transactron.utils import ValueLike
 from transactron import Method, def_method, TModule
 from transactron.utils import SignalBundle
-from transactron.lib import FIFO, AsyncMemoryBank
+from transactron.lib import FIFO, AsyncMemoryBank, logging
 from transactron.utils.dependencies import ListKey, DependencyContext, SimpleKey
 
 __all__ = [
@@ -524,6 +524,8 @@ class IndexedLatencyMeasurer(Elaboratable):
             sample_width=bits_for(self.max_latency),
         )
 
+        self.log = logging.HardwareLogger(fully_qualified_name)
+
     def elaborate(self, platform):
         if not self.metrics_enabled():
             return TModule()
@@ -537,16 +539,28 @@ class IndexedLatencyMeasurer(Elaboratable):
         )
         m.submodules.histogram = self.histogram
 
+        slots_taken = Signal(self.slots_number)
+        slots_taken_start = Signal.like(slots_taken)
+        slots_taken_stop = Signal.like(slots_taken)
+
+        m.d.comb += slots_taken_start.eq(slots_taken)
+        m.d.comb += slots_taken_stop.eq(slots_taken_start)
+        m.d.sync += slots_taken.eq(slots_taken_stop)
+
         epoch = Signal(epoch_width)
 
         m.d.sync += epoch.eq(epoch + 1)
 
         @def_method(m, self._start)
-        def _(slot):
+        def _(slot: Value):
+            m.d.comb += slots_taken_start.eq(slots_taken | (1 << slot))
+            self.log.error(m, (slots_taken & (1 << slot)).any(), "taken slot {} taken again", slot)
             self.slots.write(m, addr=slot, data=epoch)
 
         @def_method(m, self._stop)
-        def _(slot):
+        def _(slot: Value):
+            m.d.comb += slots_taken_stop.eq(slots_taken_start & ~(C(1, self.slots_number) << slot))
+            self.log.error(m, ~(slots_taken & (1 << slot)).any(), "free slot {} freed again", slot)
             ret = self.slots.read(m, addr=slot)
             # The result of substracting two unsigned n-bit is a signed (n+1)-bit value,
             # so we need to cast the result and discard the most significant bit.
