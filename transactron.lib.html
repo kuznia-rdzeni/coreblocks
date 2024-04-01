@@ -657,6 +657,9 @@ for different kinds of keys.</p>
 <dt><strong>read: Method</strong></dt><dd><p>Reads from the FIFO. Accepts an empty argument, returns a structure.
 Ready only if the FIFO is not empty.</p>
 </dd>
+<dt><strong>peek: Method</strong></dt><dd><p>Returns the element at the front (but not delete). Ready only if the FIFO
+is not empty. The method is nonexclusive.</p>
+</dd>
 <dt><strong>write: Method</strong></dt><dd><p>Writes to the FIFO. Accepts a structure, returns empty result.
 Ready only if the FIFO is not full.</p>
 </dd>
@@ -1427,6 +1430,8 @@ the callee should provide results as long as they aren’t correctly received.</
         </div><dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
+<dt><strong>peek_arg: Method</strong></dt><dd><p>A nonexclusive method to read (but not delete) the head of the arg queue.</p>
+</dd>
 <dt><strong>write_args: Method</strong></dt><dd><p>Method to write arguments with <cite>args_layout</cite> format to 2-FIFO.</p>
 </dd>
 <dt><strong>write_results: Method</strong></dt><dd><p>Method to save results with <cite>results_layout</cite> in the Forwarder.</p>
@@ -1942,7 +1947,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 10:00 2024-04-01.
+      <span class="lastupdated">Last updated on 10:13 2024-04-01.
       </span></p>
   </div>
 
