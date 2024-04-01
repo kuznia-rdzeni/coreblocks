@@ -1,7 +1,7 @@
 from amaranth import *
 from ..core import *
 from ..utils import SrcLoc, get_src_loc, MethodLayout
-from .connectors import Forwarder, FIFO
+from .connectors import Forwarder
 from transactron.lib import BasicFifo
 from amaranth.utils import *
 
@@ -39,6 +39,8 @@ class ArgumentsToResultsZipper(Elaboratable):
 
     Attributes
     ----------
+    peek_arg: Method
+        A nonexclusive method to read (but not delete) the head of the arg queue.
     write_args: Method
         Method to write arguments with `args_layout` format to 2-FIFO.
     write_results: Method
@@ -65,6 +67,7 @@ class ArgumentsToResultsZipper(Elaboratable):
         self.args_layout = args_layout
         self.output_layout = [("args", self.args_layout), ("results", results_layout)]
 
+        self.peek_arg = Method(o=self.args_layout, nonexclusive=True, src_loc=self.src_loc)
         self.write_args = Method(i=self.args_layout, src_loc=self.src_loc)
         self.write_results = Method(i=self.results_layout, src_loc=self.src_loc)
         self.read = Method(o=self.output_layout, src_loc=self.src_loc)
@@ -72,7 +75,7 @@ class ArgumentsToResultsZipper(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        fifo = FIFO(self.args_layout, depth=2, src_loc=self.src_loc)
+        fifo = BasicFifo(self.args_layout, depth=2, src_loc=self.src_loc)
         forwarder = Forwarder(self.results_layout, src_loc=self.src_loc)
 
         m.submodules.fifo = fifo
@@ -91,6 +94,8 @@ class ArgumentsToResultsZipper(Elaboratable):
             args = fifo.read(m)
             results = forwarder.read(m)
             return {"args": args, "results": results}
+
+        self.peek_arg.proxy(m, fifo.peek)
 
         return m
 
