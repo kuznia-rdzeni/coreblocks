@@ -7,7 +7,9 @@ from transactron.utils import align_to_power_of_two, signed_to_int
 from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
+from coreblocks.frontend.decoder import Opcode, Funct3
 from coreblocks.params import GenParams
+from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
 from coreblocks.peripherals.wishbone import WishboneSignature, WishboneMemorySlave
 
@@ -16,10 +18,6 @@ import random
 import subprocess
 import tempfile
 from parameterized import parameterized_class
-from riscvmodel.insn import (
-    InstructionADDI,
-    InstructionLUI,
-)
 
 
 class CoreTestElaboratable(Elaboratable):
@@ -38,7 +36,7 @@ class CoreTestElaboratable(Elaboratable):
         wb_data_bus = WishboneSignature(self.gen_params.wb_params).create()
 
         # Align the size of the memory to the length of a cache line.
-        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.block_size_bits)
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
         self.wb_mem_slave = WishboneMemorySlave(
             wb_params=self.gen_params.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
@@ -81,8 +79,10 @@ class TestCoreBase(TestCaseWithSimulator):
         if val & 0x800:
             lui_imm = (lui_imm + 1) & (0xFFFFF)
 
-        yield from self.push_instr(InstructionLUI(reg_id, lui_imm).encode())
-        yield from self.push_instr(InstructionADDI(reg_id, reg_id, addi_imm).encode())
+        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=lui_imm << 12).encode())
+        yield from self.push_instr(
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=reg_id, funct3=Funct3.ADD, rs1=reg_id, imm=addi_imm).encode()
+        )
 
 
 class TestCoreAsmSourceBase(TestCoreBase):

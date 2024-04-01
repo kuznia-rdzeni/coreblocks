@@ -62,8 +62,10 @@ class CoreConfiguration:
         Associativity of the instruction cache.
     icache_sets_bits: int
         Log of the number of sets of the instruction cache.
-    icache_block_size_bits: int
+    icache_line_bytes_log: int
         Log of the cache line size (in bytes).
+    fetch_block_bytes_log: int
+        Log of the size of the fetch block (in bytes).
     allow_partial_extensions: bool
         Allow partial support of extensions.
     _implied_extensions: Extenstion
@@ -93,7 +95,9 @@ class CoreConfiguration:
     icache_enable: bool = True
     icache_ways: int = 2
     icache_sets_bits: int = 7
-    icache_block_size_bits: int = 5
+    icache_line_bytes_log: int = 5
+
+    fetch_block_bytes_log: int = 2
 
     allow_partial_extensions: bool = False
 
