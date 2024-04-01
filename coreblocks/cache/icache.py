@@ -172,8 +172,6 @@ class ICache(Elaboratable, CacheInterface):
                 with m.If(refill_finish):
                     m.next = "LOOKUP"
 
-        accepting_requests = fsm.ongoing("LOOKUP") & ~needs_refill
-
         # Replacement policy
         way_selector = Signal(self.params.num_of_ways, reset=1)
         with m.If(refill_finish):
@@ -185,6 +183,9 @@ class ICache(Elaboratable, CacheInterface):
         m.d.comb += assign(mem_read_addr, prev_mem_read_addr)
 
         mem_read_output_valid = Signal()
+        forwarding_response_now = Signal()
+        accepting_requests = ~mem_read_output_valid | forwarding_response_now
+
         with Transaction(name="MemRead").body(
             m, request=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
         ):
@@ -194,6 +195,7 @@ class ICache(Elaboratable, CacheInterface):
             tag_hit_any = reduce(operator.or_, tag_hit)
 
             with m.If(tag_hit_any | refill_error_saved):
+                m.d.comb += forwarding_response_now.eq(1)
                 self.perf_hits.incr(m, cond=tag_hit_any)
                 mem_out = Signal(self.params.fetch_block_bytes * 8)
                 for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
