@@ -74,6 +74,12 @@ class CoreConfiguration:
         Definitions of PMAs per contiguous segments of memory.
     """
 
+    def __post_init__(self):
+        self.func_units_config = [
+            dataclasses.replace(conf, rs_number=k) if hasattr(conf, "rs_number") else conf
+            for k, conf in enumerate(self.func_units_config)
+        ]
+
     xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 

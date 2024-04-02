@@ -32,7 +32,7 @@ class RevConnect(Elaboratable):
         return self.connect
 
 
-FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect
+FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect | Pipe
 
 
 class TestFifoBase(TestCaseWithSimulator):
@@ -128,6 +128,15 @@ class TestForwarder(TestFifoBase):
             sim.add_sync_process(process)
 
 
+class TestPipe(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Pipe, writer_rand=writer_rand, reader_rand=reader_rand)
+
+    def test_pipelining(self):
+        self.do_test_fifo(Pipe, writer_rand=0, reader_rand=0)
+
+
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
 
@@ -142,7 +151,7 @@ class TestMemoryBank(TestCaseWithSimulator):
             MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=safe_writes)
         )
 
-        data_dict: dict[int, int] = dict((i, 0) for i in range(max_addr))
+        data: list[int] = list(0 for _ in range(max_addr))
         read_req_queue = deque()
         addr_queue = deque()
 
@@ -155,7 +164,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 yield from m.write.call(data=d, addr=a)
                 for _ in range(2):
                     yield Settle()
-                data_dict[a] = d
+                data[a] = d
                 yield from self.random_wait(writer_rand, min_cycle_cnt=1)
 
         def reader_req():
@@ -165,7 +174,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 for _ in range(1):
                     yield Settle()
                 if safe_writes:
-                    d = data_dict[a]
+                    d = data[a]
                     read_req_queue.append(d)
                 else:
                     addr_queue.append((cycle, a))
@@ -188,7 +197,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 else:
                     yield
                     continue
-                d = data_dict[a]
+                d = data[a]
                 # check when internal method has been run to capture
                 # memory state for tests purposes
                 if (yield m._dut._internal_read_resp_trans.grant):
@@ -230,6 +239,43 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
+
+
+class TestAsyncMemoryBank(TestCaseWithSimulator):
+    @parameterized.expand([(9, 3, 3, 14), (16, 1, 1, 15), (16, 1, 1, 16), (12, 3, 1, 17)])
+    def test_mem(self, max_addr, writer_rand, reader_rand, seed):
+        test_count = 200
+
+        data_width = 6
+        m = SimpleTestCircuit(AsyncMemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+
+        data: list[int] = list(0 for i in range(max_addr))
+
+        random.seed(seed)
+
+        def writer():
+            for cycle in range(test_count):
+                d = random.randrange(2**data_width)
+                a = random.randrange(max_addr)
+                yield from m.write.call(data=d, addr=a)
+                for _ in range(2):
+                    yield Settle()
+                data[a] = d
+                yield from self.random_wait(writer_rand, min_cycle_cnt=1)
+
+        def reader():
+            for cycle in range(test_count):
+                a = random.randrange(max_addr)
+                d = yield from m.read.call(addr=a)
+                for _ in range(1):
+                    yield Settle()
+                expected_d = data[a]
+                self.assertEqual(d["data"], expected_d)
+                yield from self.random_wait(reader_rand, min_cycle_cnt=1)
+
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(reader)
+            sim.add_sync_process(writer)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
