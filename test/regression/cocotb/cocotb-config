@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ ! -f "cocotb-config.cache" ]; then
+    cocotb-config --python-bin >> cocotb-config.cache
+    cocotb-config --prefix >> cocotb-config.cache
+    cocotb-config --makefiles >> cocotb-config.cache
+    cocotb-config --lib-dir >> cocotb-config.cache
+    cocotb-config --libpython >> cocotb-config.cache
+fi
+
+case $1 in
+    "--python-bin") N=1 ;;
+    "--prefix") N=2 ;;
+    "--makefiles") N=3 ;;
+    "--lib-dir") N=4 ;;
+    "--libpython") N=5 ;;
+esac
+
+sed "${N}q;d" cocotb-config.cache
+
