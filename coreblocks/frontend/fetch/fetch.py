@@ -20,8 +20,16 @@ log = logging.HardwareLogger("frontend.fetch")
 
 
 class FetchUnit(Elaboratable):
-    """
-    TODO(jurb)
+    """Superscalar Fetch Unit
+
+    This module is responsible for retrieving instructions from memory and forwarding them to the decode stage.
+
+    It works with 'fetch blocks', chunks of data it handles at a time. The size of these blocks
+    depends on GenParams.fetch_block_bytes and is related to how many instructions the unit can
+    handle at once, which can vary if extension C is on.
+
+    The unit also deals with expanding compressed instructions and managing instructions that aren't aligned to
+    4-byte boundaries.
     """
 
     def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
@@ -34,7 +42,7 @@ class FetchUnit(Elaboratable):
         icache : CacheInterface
             Instruction Cache
         cont : Method
-            Method which should be invoked to send fetched data to the next step.
+            Method which should be invoked to send fetched instruction to the next step.
             It has layout as described by `FetchLayout`.
         """
         self.gen_params = gen_params
@@ -50,7 +58,6 @@ class FetchUnit(Elaboratable):
         # ExceptionCauseRegister uses separate Transaction for it, so performace is not affected.
         self.stall_exception.add_conflict(self.resume, Priority.LEFT)
 
-        # histogram for stalls length
         self.perf_fetch_utilization = TaggedCounter(
             "frontend.fetch.fetch_block_util",
             "Number of valid instructions in fetch blocks",
@@ -420,6 +427,16 @@ class FetchUnit(Elaboratable):
 
 
 class Serializer(Elaboratable):
+    """Many-to-one serializer
+
+    Serializes many elements one-by-one in order and dispatches it to the consumer.
+    The module accepts a new batch of elements only if the previous batch was fully
+    consumed.
+
+    It is a temporary workaround for a fetch buffer until the rest of the core becomes
+    superscalar.
+    """
+
     def __init__(self, width: int, elem_layout: MethodLayout) -> None:
         self.width = width
         self.elem_layout = elem_layout
@@ -473,6 +490,15 @@ class Serializer(Elaboratable):
 
 
 class Predecoder(Elaboratable):
+    """Instruction predecoder
+
+    The module performs basic analysis on instructions. It identifies if an instruction
+    is a jump instruction, determines the type of jump, and finds the jump's target.
+
+    Its role is to give quick feedback to the fetch unit and potentially the branch predictor
+    about the fetched instruction. This helps in redirecting the fetch unit promptly if needed.
+    """
+
     def __init__(self, gen_params: GenParams) -> None:
         """
         Parameters
@@ -486,7 +512,7 @@ class Predecoder(Elaboratable):
         # Input ports
         #
 
-        self.instr_in = Signal(self.gen_params.isa.xlen)
+        self.instr_in = Signal(self.gen_params.isa.ilen)
 
         #
         # Output ports

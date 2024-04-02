@@ -176,7 +176,6 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             funct7_info = Signal(from_method_layout(self.gen_params.get(JumpBranchLayouts).funct7_info))
             m.d.top_comb += funct7_info.eq(arg.exec_fn.funct7)
-
             m.d.top_comb += jb.in_rvc.eq(funct7_info.rvc)
 
             is_auipc = decoder.decode_fn == JumpBranchFn.Fn.AUIPC
