@@ -21,11 +21,11 @@ class AssignType(Enum):
     ALL = 3
 
 
-AssignFields: TypeAlias = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
-AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"]
+AssignFields: TypeAlias = AssignType | Iterable[str | int] | Mapping[str | int, "AssignFields"]
+AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"] | Mapping[int, "AssignArg"]
 
 
-def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
+def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str | int]]:
     def flatten_elems(proxy: ArrayProxy):
         for elem in proxy.elems:
             if isinstance(elem, ArrayProxy):
@@ -38,13 +38,15 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
         return set.intersection(*[set(cast(data.View, el).shape().members.keys()) for el in elems])
 
 
-def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
+def assign_arg_fields(val: AssignArg) -> Optional[set[str | int]]:
     if isinstance(val, ArrayProxy):
         return arrayproxy_fields(val)
     elif isinstance(val, data.View):
         layout = val.shape()
         if isinstance(layout, data.StructLayout):
             return set(k for k in layout.members)
+        if isinstance(layout, data.ArrayLayout):
+            return set(range(layout.length))
     elif isinstance(val, dict):
         return set(val.keys())
 
@@ -135,8 +137,8 @@ def assign(
                 subfields = AssignType.ALL
 
             yield from assign(
-                lhs[name],
-                rhs[name],
+                lhs[name],  # type: ignore
+                rhs[name],  # type: ignore
                 fields=subfields,
                 lhs_strict=not isinstance(lhs, Mapping),
                 rhs_strict=not isinstance(rhs, Mapping),
