@@ -32,7 +32,7 @@ class RevConnect(Elaboratable):
         return self.connect
 
 
-FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect
+FIFO_Like: TypeAlias = FIFO | Forwarder | Connect | RevConnect | Pipe
 
 
 class TestFifoBase(TestCaseWithSimulator):
@@ -126,6 +126,15 @@ class TestForwarder(TestFifoBase):
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
+
+
+class TestPipe(TestFifoBase):
+    @parameterized.expand([(0, 0), (2, 0), (0, 2), (1, 1)])
+    def test_fifo(self, writer_rand, reader_rand):
+        self.do_test_fifo(Pipe, writer_rand=writer_rand, reader_rand=reader_rand)
+
+    def test_pipelining(self):
+        self.do_test_fifo(Pipe, writer_rand=0, reader_rand=0)
 
 
 class TestMemoryBank(TestCaseWithSimulator):
