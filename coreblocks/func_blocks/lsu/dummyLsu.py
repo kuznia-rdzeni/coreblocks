@@ -5,6 +5,7 @@ from transactron import Method, def_method, Transaction, TModule
 from transactron.lib.connectors import FIFO, Forwarder
 from transactron.utils import ModuleLike, DependencyManager
 from transactron.lib.simultaneous import condition
+from transactron.lib.logging import HardwareLogger
 
 from coreblocks.params import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
@@ -46,6 +47,8 @@ class LSURequester(Elaboratable):
 
         self.issue = Method(i=lsu_layouts.issue, o=lsu_layouts.issue_out)
         self.accept = Method(o=lsu_layouts.accept)
+
+        self.log = HardwareLogger("backend.lsu.requester")
 
     def prepare_bytes_mask(self, m: ModuleLike, funct3: Value, addr: Value) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.params.granularity
@@ -119,6 +122,17 @@ class LSURequester(Elaboratable):
             bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
             bus_data = self.prepare_data_to_save(m, funct3, data, addr)
 
+            self.log.debug(
+                m,
+                1,
+                "issue addr=0x{:08x} data=0x{:08x} funct3={} store={} aligned={}",
+                addr,
+                data,
+                funct3,
+                store,
+                aligned,
+            )
+
             with condition(m, nonblocking=False, priority=False) as branch:
                 with branch(aligned & store):
                     self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
@@ -147,14 +161,16 @@ class LSURequester(Elaboratable):
             cause = Signal(ExceptionCause)
             err = Signal()
 
+            self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
+
             with condition(m, nonblocking=False, priority=False) as branch:
                 with branch(store_reg):
                     fetched = self.bus.get_write_response(m)
-                    err = fetched.err
+                    m.d.comb += err.eq(fetched.err)
                 with branch(~store_reg):
                     fetched = self.bus.get_read_response(m)
-                    err = fetched.err
-                    data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
+                    m.d.comb += err.eq(fetched.err)
+                    m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))
 
             m.d.sync += request_sent.eq(0)
 
