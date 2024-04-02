@@ -20,6 +20,8 @@ params_build_wrap_extr = [
     ("normal", lambda mk, lay: mk(lay), lambda x: x, lambda r: r),
     ("rec", lambda mk, lay: mk([("x", lay)]), lambda x: {"x": x}, lambda r: r.x),
     ("dict", lambda mk, lay: {"x": mk(lay)}, lambda x: {"x": x}, lambda r: r["x"]),
+    ("list", lambda mk, lay: [mk(lay)], lambda x: {0: x}, lambda r: r[0]),
+    ("array", lambda mk, lay: Signal(data.ArrayLayout(reclayout2datalayout(lay), 1)), lambda x: {0: x}, lambda r: r[0]),
 ]
 
 
