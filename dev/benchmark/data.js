@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712067367685,
+  "lastUpdate": 1712067681342,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9407,6 +9407,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.215236226126083,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5add6267487ec2b54ddf6ac6b08dd78b2d7c64c6",
+          "message": "Add Pipe module (#639)",
+          "timestamp": "2024-04-02T16:08:43+02:00",
+          "tree_id": "7f21a6398dbf505116777d4bafa8602b2df5da00",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5add6267487ec2b54ddf6ac6b08dd78b2d7c64c6"
+        },
+        "date": 1712067678960,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.215236226126083,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2920382721023797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.32463975052119354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23776400713784746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.292077015030431,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115576572918168,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4157024568037011,
             "unit": "Instructions Per Cycle"
           }
         ]
