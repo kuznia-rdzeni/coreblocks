@@ -12,6 +12,7 @@ __all__ = [
     "ConnectTrans",
     "ManyToOneConnectTrans",
     "StableSelectingNetwork",
+    "Pipe",
 ]
 
 
@@ -142,6 +143,70 @@ class Forwarder(Elaboratable):
             return read_value
 
         @def_method(m, self.clear)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+
+        return m
+
+
+class Pipe(Elaboratable):
+    """
+    This module implements a `Pipe`. It is a halfway between
+    `Forwarder` and `2-FIFO`. In the `Pipe` data is always
+    stored localy, so the critical path of the data is cut, but there is a
+    combinational path between the control signals of the `read` and
+    the `write` methods. For comparison:
+    - in `Forwarder` there is both a data and a control combinational path
+    - in `2-FIFO` there are no combinational paths
+
+    The `read` method is scheduled before the `write`.
+
+    Attributes
+    ----------
+    read: Method
+        Reads from the pipe. Accepts an empty argument, returns a structure.
+        Ready only if the pipe is not empty.
+    write: Method
+        Writes to the pipe. Accepts a structure, returns empty result.
+        Ready only if the pipe is not full.
+    clean: Method
+        Cleans the pipe. Has priority over `read` and `write` methods.
+    """
+
+    def __init__(self, layout: MethodLayout):
+        """
+        Parameters
+        ----------
+        layout: record layout
+            The format of records forwarded.
+        """
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+        self.clean = Method()
+        self.head = Signal.like(self.read.data_out)
+
+        self.clean.add_conflict(self.read, Priority.LEFT)
+        self.clean.add_conflict(self.write, Priority.LEFT)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        reg = Signal.like(self.read.data_out)
+        reg_valid = Signal()
+
+        self.read.schedule_before(self.write)  # to avoid combinational loops
+
+        @def_method(m, self.read, ready=reg_valid)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+            return reg
+
+        @def_method(m, self.write, ready=~reg_valid | self.read.run)
+        def _(arg):
+            m.d.sync += reg.eq(arg)
+            m.d.sync += reg_valid.eq(1)
+
+        @def_method(m, self.clean)
         def _():
             m.d.sync += reg_valid.eq(0)
 
