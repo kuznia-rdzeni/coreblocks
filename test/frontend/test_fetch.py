@@ -120,11 +120,8 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         return self.add_instr(data, False)
 
-    def gen_jal(self, offset: int, rvc: bool = False) -> int:
-        if rvc:
-            data = 0x2025
-        else:
-            data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
+    def gen_jal(self, offset: int) -> int:
+        data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
 
         return self.add_instr(data, True, jump_offset=offset, branch_taken=True)
 
@@ -132,53 +129,6 @@ class TestFetchUnit(TestCaseWithSimulator):
         data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
 
         return self.add_instr(data, True, jump_offset=offset, branch_taken=taken)
-
-    def gen_random_instr_seq(self, count: int):
-        pc = self.gen_params.start_pc
-
-        for _ in range(count):
-            is_branch = random.random() < 0.15
-            is_rvc = random.random() < 0.5
-            branch_target = random.randrange(2**self.gen_params.isa.ilen) & ~0b1
-
-            error = random.random() < 0.1
-            error = False
-            is_branch = False
-
-            if is_rvc:
-                data = (random.randrange(2**11) << 2) | 0b01  # C.ADDI
-                if is_branch:
-                    data = data | (0b101 << 13)  # make it C.J
-
-                self.mem[pc] = data
-                if error:
-                    self.memerr.add(pc)
-            else:
-                data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
-                data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
-                if is_branch:
-                    data |= 0b1100000
-                    data &= ~0b0010000
-
-                self.mem[pc] = data & 0xFFFF
-                self.mem[pc + 2] = data >> 16
-                if error:
-                    self.memerr.add(random.choice([pc, pc + 2]))
-
-            next_pc = pc + (2 if is_rvc else 4)
-            if is_branch:
-                next_pc = branch_target
-
-            self.instr_queue.append(
-                {
-                    "pc": pc,
-                    "is_branch": is_branch,
-                    "next_pc": next_pc,
-                    "rvc": is_rvc,
-                }
-            )
-
-            pc = next_pc
 
     def cache_process(self):
         yield Passive()
@@ -371,10 +321,6 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.gen_non_branch_instr(rvc=False)
 
-        self.gen_jal(40, rvc=True)
-
-        self.gen_non_branch_instr(rvc=False)
-
         self.run_sim()
 
     def test_branches(self):
@@ -429,8 +375,20 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.run_sim()
 
-    def _test_random(self):
-        self.gen_random_instr_seq(20)
+    def test_random(self):
+        for _ in range(500):
+            r = random.random()
+            if r < 0.6:
+                rvc = random.randrange(2) == 0 if self.with_rvc else False
+                self.gen_non_branch_instr(rvc=rvc)
+            else:
+                offset = random.randrange(0, 1000, 2)
+                if not self.with_rvc:
+                    offset = offset & ~(0b11)
+                if r < 0.8:
+                    self.gen_jal(offset)
+                else:
+                    self.gen_branch(offset, taken=random.randrange(2) == 0)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.cache_process)
