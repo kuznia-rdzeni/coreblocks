@@ -104,8 +104,6 @@ class TestFetchUnit(TestCaseWithSimulator):
             }
         )
 
-        print(f"adding instr pc=0x{self.pc:x} 0x{data:x}, rvc: {rvc}, jumps: {jumps}, next_pc: {next_pc:x}")
-
         instr_pc = self.pc
         self.pc = next_pc
 
@@ -157,8 +155,6 @@ class TestFetchUnit(TestCaseWithSimulator):
                 if req_addr + i in self.memerr:
                     bad_addr = True
 
-            print(f"Cache process request: 0x{req_addr:x} error:{bad_addr}, block={fetch_block:x}")
-
             self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
 
     @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
@@ -172,8 +168,6 @@ class TestFetchUnit(TestCaseWithSimulator):
     def fetch_out_check(self):
         while self.instr_queue:
             instr = self.instr_queue.popleft()
-
-            print(f"fetch out {instr['pc']:x}", instr["branch_taken"])
 
             access_fault = instr["pc"] in self.memerr
             if not instr["rvc"]:
@@ -189,7 +183,6 @@ class TestFetchUnit(TestCaseWithSimulator):
                 self.assertEqual(v["instr"], instr_data)
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
-                print("redirecting!!!!", v["predicted_taken"])
                 yield from self.random_wait(5)
                 yield from self.fetch_stall_exception.call()
                 yield from self.random_wait(5)

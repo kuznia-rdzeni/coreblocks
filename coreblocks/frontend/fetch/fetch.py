@@ -109,7 +109,6 @@ class FetchUnit(Elaboratable):
         # - send a request to the instruction cache
         #
         with Transaction(name="Fetch_Stage0").body(m, request=~stalled):
-            log.debug(m, True, "Sending request to cache for addr=0x{:x}", current_pc)
             req_counter.acquire(m)
             self.icache.issue_req(m, addr=current_pc)
             cache_requests.write(m, addr=current_pc)
@@ -230,33 +229,6 @@ class FetchUnit(Elaboratable):
             else:
                 valid_instr_mask = Cat(instr_start)
 
-            log.debug(
-                m,
-                True,
-                "[STAGE 1] half_valid: {}, half_addr: 0x{:x} cross: {}",
-                prev_half_v,
-                prev_half_addr,
-                instr_block_cross,
-            )
-            log.debug(
-                m,
-                True,
-                "[STAGE 1] pc=0x{:x}, fetch_block_addr=0x{:x} offset= {} cache_err={} fetch_block=0x{:x}",
-                target.addr,
-                fetch_block_addr,
-                fetch_block_offset,
-                cache_resp.error,
-                cache_resp.fetch_block,
-            )
-
-            log.debug(
-                m,
-                True,
-                "[STAGE 1] Valid instr: {:08b}, rvc_mask: {:08b}",
-                valid_instr_mask,
-                is_rvc,
-            )
-
             s1_s2_pipe.write(
                 m,
                 fetch_block_addr=fetch_block_addr,
@@ -290,15 +262,6 @@ class FetchUnit(Elaboratable):
             fetch_block_addr = s1_data.fetch_block_addr
             instr_valid = s1_data.instr_valid
             access_fault = s1_data.access_fault
-
-            log.debug(
-                m,
-                True,
-                "[STAGE 2] fetch_blk_addr=0x{:x} cross: {} access_fault: {}",
-                fetch_block_addr,
-                s1_data.instr_block_cross,
-                access_fault,
-            )
 
             # Predecode instructions
             for i in range(fetch_width):
@@ -346,16 +309,6 @@ class FetchUnit(Elaboratable):
             with m.Else():
                 m.d.av_comb += valid_instr_prefix.eq(C(1).replicate(fetch_width))
 
-            log.info(
-                m,
-                True,
-                "[STAGE 2] Valid mask: {:08b} redirection mask: {:08b} prefix: {:08b} jump_offset: {}",
-                instr_valid,
-                Cat(instr_redirects),
-                valid_instr_prefix,
-                predecoders[0].jump_offset,
-            )
-
             # The ultimate mask that tells which instructions should be sent to the backend.
             fetch_mask = Signal(fetch_width)
             m.d.av_comb += fetch_mask.eq(instr_valid & valid_instr_prefix)
@@ -397,7 +350,7 @@ class FetchUnit(Elaboratable):
                     new_pc = Signal.like(current_pc)
                     m.d.av_comb += new_pc.eq(redirection_instr_pc + redirection_offset[redirect_or_unsafe_idx])
 
-                    log.debug(m, True, "Fetch redirected to pc 0x{:x}. Flushing...", new_pc)
+                    log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
                     flush()
                     m.d.sync += current_pc.eq(new_pc)
 
@@ -469,14 +422,10 @@ class Serializer(Elaboratable):
         @def_method(m, self.read, ready=~prio_encoder.n)
         def _():
             m.d.sync += valids.eq(valids & ~(1 << prio_encoder.o))
-            log.info(
-                m, True, "Pushing out pc=0x{:x} instr=0x{:x}", buffer[prio_encoder.o].pc, buffer[prio_encoder.o].instr
-            )
             return buffer[prio_encoder.o]
 
         @def_method(m, self.write, ready=prio_encoder.n | ((count == 1) & self.read.run))
         def _(valid_mask, slots):
-            log.info(m, True, "Serializing, mask: {:08b}", valid_mask)
             m.d.sync += valids.eq(valid_mask)
 
             for i in range(self.width):
