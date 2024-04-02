@@ -164,7 +164,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     }
                 )
 
-            print(f"addr:0x{addr:08x} misaligned:{misaligned} bus_err:{bus_err}")
             self.exception_result.appendleft(
                 misaligned or bus_err,
             )
