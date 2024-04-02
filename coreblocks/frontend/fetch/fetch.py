@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.utils import exact_log2
 from amaranth.lib.coding import PriorityEncoder
-from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging
+from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.utils import MethodLayout, popcount
 from transactron.utils.transactron_helpers import from_method_layout
@@ -416,67 +416,6 @@ class FetchUnit(Elaboratable):
             serializer.clean(m)
             m.d.sync += stalled_exception.eq(1)
             flush()
-
-        return m
-
-
-class Pipe(Elaboratable):
-    """
-    This module implements a `Pipe`. It is a halfway between
-    `Forwarder` and `2-FIFO`. In the `Pipe` data is always
-    stored localy, so the critical path of the data is cut, but there is a
-    combinational path between the control signals of the `read` and
-    the `write` methods. For comparison:
-    - in `Forwarder` there is both a data and a control combinational path
-    - in `2-FIFO` there are no combinational paths
-
-    The `read` method is scheduled before the `write`.
-
-    Attributes
-    ----------
-    read: Method
-        The read method. Accepts an empty argument, returns a `Record`.
-    write: Method
-        The write method. Accepts a `Record`, returns empty result.
-    """
-
-    def __init__(self, layout: MethodLayout):
-        """
-        Parameters
-        ----------
-        layout: record layout
-            The format of records forwarded.
-        """
-        self.read = Method(o=layout)
-        self.write = Method(i=layout)
-        self.clear = Method()
-        self.head = Signal.like(self.read.data_out)
-
-        self.clear.add_conflict(self.read, Priority.LEFT)
-        self.clear.add_conflict(self.write, Priority.LEFT)
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        reg = Signal.like(self.read.data_out)
-        reg_valid = Signal()
-        m.d.top_comb += self.head.eq(reg)
-
-        self.read.schedule_before(self.write)  # to avoid combinational loops
-
-        @def_method(m, self.read, ready=reg_valid)
-        def _():
-            m.d.sync += reg_valid.eq(0)
-            return reg
-
-        @def_method(m, self.write, ready=~reg_valid | self.read.run)
-        def _(arg):
-            m.d.sync += reg.eq(arg)
-            m.d.sync += reg_valid.eq(1)
-
-        @def_method(m, self.clear)
-        def _():
-            m.d.sync += reg_valid.eq(0)
 
         return m
 
