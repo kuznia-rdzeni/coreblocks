@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import ArrayLayout
 from amaranth.utils import exact_log2
 from amaranth.lib.coding import PriorityEncoder
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
@@ -120,7 +121,7 @@ class FetchUnit(Elaboratable):
                 ("instr_valid", fetch_width),
                 ("access_fault", 1),
                 ("rvc", fetch_width),
-                ("instr_block", self.gen_params.isa.ilen * fetch_width),
+                ("instrs", ArrayLayout(self.gen_params.isa.ilen, fetch_width)),
                 ("instr_block_cross", 1),
             ]
         )
@@ -255,7 +256,7 @@ class FetchUnit(Elaboratable):
                 instr_valid=valid_instr_mask,
                 access_fault=cache_resp.error,
                 rvc=is_rvc,
-                instr_block=Cat(expanded_instr),
+                instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
             )
 
@@ -278,7 +279,7 @@ class FetchUnit(Elaboratable):
             req_counter.release(m)
             s1_data = s1_s2_pipe.read(m)
 
-            instrs = [s1_data.instr_block[i * 32 : (i + 1) * 32] for i in range(fetch_width)]
+            instrs = s1_data.instrs
             fetch_block_addr = s1_data.fetch_block_addr
             instr_valid = s1_data.instr_valid
             access_fault = s1_data.access_fault
@@ -286,9 +287,8 @@ class FetchUnit(Elaboratable):
             log.debug(
                 m,
                 True,
-                "[STAGE 2] fetch_blk_addr=0x{:x} instrs {:x} cross: {} access_fault: {}",
+                "[STAGE 2] fetch_blk_addr=0x{:x} cross: {} access_fault: {}",
                 fetch_block_addr,
-                s1_data.instr_block,
                 s1_data.instr_block_cross,
                 access_fault,
             )
@@ -396,9 +396,8 @@ class FetchUnit(Elaboratable):
 
                 self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
-                slots = {f"slot_{i}": raw_instrs[i] for i in range(fetch_width)}
                 # Make sure this is called only once to avoid a huge mux on arguments
-                serializer.write(m, valid_mask=fetch_mask, **slots)
+                serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
             with m.Else():
                 m.d.sync += flushing_counter.eq(flushing_counter - 1)
 
@@ -421,14 +420,14 @@ class FetchUnit(Elaboratable):
 
 
 class Serializer(Elaboratable):
-    def __init__(self, width: int, layout: MethodLayout) -> None:
+    def __init__(self, width: int, elem_layout: MethodLayout) -> None:
         self.width = width
-        self.layout = layout
+        self.elem_layout = elem_layout
 
         self.write = Method(
-            i=[("valid_mask", self.width)] + [(f"slot_{i}", from_method_layout(self.layout)) for i in range(self.width)]
+            i=[("valid_mask", self.width), ("slots", ArrayLayout(from_method_layout(self.elem_layout), self.width))]
         )
-        self.read = Method(o=layout)
+        self.read = Method(o=elem_layout)
         self.clean = Method()
 
         self.clean.add_conflict(self.write, Priority.LEFT)
@@ -439,7 +438,7 @@ class Serializer(Elaboratable):
 
         m.submodules.prio_encoder = prio_encoder = PriorityEncoder(self.width)
 
-        buffer = Array(Signal(from_method_layout(self.layout)) for _ in range(self.width))
+        buffer = Array(Signal(from_method_layout(self.elem_layout)) for _ in range(self.width))
         valids = Signal(self.width)
 
         m.d.comb += prio_encoder.i.eq(valids)
@@ -459,12 +458,12 @@ class Serializer(Elaboratable):
             return buffer[prio_encoder.o]
 
         @def_method(m, self.write, ready=prio_encoder.n | ((count == 1) & self.read.run))
-        def _(**kwargs):
-            log.info(m, True, "Serializing, mask: {:08b}", kwargs["valid_mask"])
-            m.d.sync += valids.eq(kwargs["valid_mask"])
+        def _(valid_mask, slots):
+            log.info(m, True, "Serializing, mask: {:08b}", valid_mask)
+            m.d.sync += valids.eq(valid_mask)
 
             for i in range(self.width):
-                m.d.sync += buffer[i].eq(kwargs[f"slot_{i}"])
+                m.d.sync += buffer[i].eq(slots[i])
 
         @def_method(m, self.clean)
         def _():
