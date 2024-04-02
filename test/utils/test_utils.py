@@ -73,7 +73,7 @@ class PopcountTestCircuit(Elaboratable):
 class TestPopcount(TestCaseWithSimulator):
     size: int
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(14)
         self.test_number = 40
         self.m = PopcountTestCircuit(self.size)
@@ -82,7 +82,7 @@ class TestPopcount(TestCaseWithSimulator):
         yield self.m.sig_in.eq(n)
         yield Settle()
         out_popcount = yield self.m.sig_out
-        self.assertEqual(out_popcount, n.bit_count(), f"{n:x}")
+        assert out_popcount==n.bit_count(), f"{n:x}"
 
     def process(self):
         for i in range(self.test_number):

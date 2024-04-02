@@ -96,4 +96,4 @@ class TestExclusiveConflictRemoval(TestCaseWithSimulator):
         cgr, _, _ = tm._conflict_graph(MethodMap(tm.transactions))
 
         for s in cgr.values():
-            self.assertFalse(s)
+            assert not s
