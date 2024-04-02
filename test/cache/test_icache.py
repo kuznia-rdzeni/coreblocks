@@ -330,6 +330,8 @@ class TestICache(TestCaseWithSimulator):
         self.refill_requests = deque()
         self.issued_requests = deque()
 
+        self.accept_refill_request = True
+
         self.refill_in_fly = False
         self.refill_word_cnt = 0
         self.refill_addr = 0
@@ -347,7 +349,7 @@ class TestICache(TestCaseWithSimulator):
         self.cp = self.gen_params.icache_params
         self.m = ICacheTestCircuit(self.gen_params)
 
-    @def_method_mock(lambda self: self.m.refiller.start_refill_mock)
+    @def_method_mock(lambda self: self.m.refiller.start_refill_mock, enable=lambda self: self.accept_refill_request)
     def start_refill_mock(self, addr):
         self.refill_requests.append(addr)
         self.refill_block_cnt = 0
@@ -631,11 +633,21 @@ class TestICache(TestCaseWithSimulator):
             # Schedule two requests and then flush
             yield from self.send_req(0x00000000 + self.cp.line_size_bytes)
             yield from self.send_req(0x00010000)
-            yield from self.m.flush_cache.call()
-            self.mem[0x00010000] = random.randrange(2**self.gen_params.isa.ilen)
 
-            # And accept the results
+            yield from self.m.flush_cache.call_init()
+            yield
+            # We cannot flush until there are two pending requests
+            self.assertFalse((yield from self.m.flush_cache.done()))
+            yield
+            yield from self.m.flush_cache.disable()
+            yield
+
+            # Accept the first response
             self.assert_resp((yield from self.m.accept_res.call()))
+
+            yield from self.m.flush_cache.call()
+
+            # And accept the second response ensuring that we got old data
             self.assert_resp((yield from self.m.accept_res.call()))
             self.expect_refill(0x00000000 + self.cp.line_size_bytes)
 
@@ -753,6 +765,16 @@ class TestICache(TestCaseWithSimulator):
             if random.random() < 0.05:
                 self.add_bad_addr(i)
 
+        def refiller_ctrl():
+            yield Passive()
+
+            while True:
+                yield from self.random_wait_geom(0.4)
+                self.accept_refill_request = False
+
+                yield from self.random_wait_geom(0.7)
+                self.accept_refill_request = True
+
         def sender():
             for _ in range(iterations):
                 yield from self.send_req(random.randrange(0, max_addr, 4))
@@ -773,3 +795,4 @@ class TestICache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(sender)
             sim.add_sync_process(receiver)
+            sim.add_sync_process(refiller_ctrl)
