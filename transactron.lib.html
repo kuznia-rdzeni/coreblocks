@@ -459,6 +459,47 @@ Alternatively, the source location to use instead of the default.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.connectors.Pipe">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">Pipe</span></span><a class="headerlink" href="#transactron.lib.connectors.Pipe" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>This module implements a <cite>Pipe</cite>. It is a halfway between
+<cite>Forwarder</cite> and <cite>2-FIFO</cite>. In the <cite>Pipe</cite> data is always
+stored localy, so the critical path of the data is cut, but there is a
+combinational path between the control signals of the <cite>read</cite> and
+the <cite>write</cite> methods. For comparison:
+- in <cite>Forwarder</cite> there is both a data and a control combinational path
+- in <cite>2-FIFO</cite> there are no combinational paths</p>
+<p>The <cite>read</cite> method is scheduled before the <cite>write</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read: Method</strong></dt><dd><p>Reads from the pipe. Accepts an empty argument, returns a structure.
+Ready only if the pipe is not empty.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>Writes to the pipe. Accepts a structure, returns empty result.
+Ready only if the pipe is not full.</p>
+</dd>
+<dt><strong>clean: Method</strong></dt><dd><p>Cleans the pipe. Has priority over <cite>read</cite> and <cite>write</cite> methods.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.connectors.Pipe.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.connectors.Pipe.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>layout: record layout</strong></dt><dd><p>The format of records forwarded.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.lib.connectors.StableSelectingNetwork">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.connectors.</span></span><span class="sig-name descname"><span class="pre">StableSelectingNetwork</span></span><a class="headerlink" href="#transactron.lib.connectors.StableSelectingNetwork" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -2125,7 +2166,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 14:50 2024-04-01.
+      <span class="lastupdated">Last updated on 14:09 2024-04-02.
       </span></p>
   </div>
 
