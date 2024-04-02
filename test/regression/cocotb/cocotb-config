@@ -1,11 +1,13 @@
 #!/bin/bash
 
+COCOTB_CONFIG=`which -a cocotb-config | tail -n 1`
+
 if [ ! -f "cocotb-config.cache" ]; then
-    cocotb-config --python-bin >> cocotb-config.cache
-    cocotb-config --prefix >> cocotb-config.cache
-    cocotb-config --makefiles >> cocotb-config.cache
-    cocotb-config --lib-dir >> cocotb-config.cache
-    cocotb-config --libpython >> cocotb-config.cache
+    $COCOTB_CONFIG --python-bin >> cocotb-config.cache
+    $COCOTB_CONFIG --prefix >> cocotb-config.cache
+    $COCOTB_CONFIG --makefiles >> cocotb-config.cache
+    $COCOTB_CONFIG --lib-dir >> cocotb-config.cache
+    $COCOTB_CONFIG --libpython >> cocotb-config.cache
 fi
 
 case $1 in
