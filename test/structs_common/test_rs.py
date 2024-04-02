@@ -1,8 +1,13 @@
+import random
+from collections import deque
+from parameterized import parameterized_class
+
 from amaranth.sim import Settle
 
 from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
-from coreblocks.func_blocks.fu.common.rs import RS
+from coreblocks.func_blocks.fu.common.rs import RS, RSBase
+from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import OpType
@@ -18,6 +23,123 @@ def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dic
         check_list[entry_id]["rec_reserved"] = 1
 
     return check_list
+
+
+def create_data_list(gen_params: GenParams, count: int):
+    data_list = [
+        {
+            "rp_s1": random.randrange(1, 2**gen_params.phys_regs_bits) * random.randrange(2),
+            "rp_s2": random.randrange(1, 2**gen_params.phys_regs_bits) * random.randrange(2),
+            "rp_dst": random.randrange(2**gen_params.phys_regs_bits),
+            "rob_id": k,
+            "exec_fn": {
+                "op_type": 1,
+                "funct3": 2,
+                "funct7": 3,
+            },
+            "s1_val": k,
+            "s2_val": k,
+            "imm": k,
+            "pc": k,
+        }
+        for k in range(count)
+    ]
+    return data_list
+
+
+@parameterized_class(
+    ("name", "rs_elaboratable"),
+    [
+        (
+            "RS",
+            RS,
+        ),
+        (
+            "FifoRS",
+            FifoRS,
+        ),
+    ],
+)
+class TestRS(TestCaseWithSimulator):
+    rs_elaboratable: type[RSBase]
+
+    def test_rs(self):
+        random.seed(42)
+        self.gen_params = GenParams(test_core_config)
+        self.rs_entries_bits = self.gen_params.max_rs_entries_bits
+        self.m = SimpleTestCircuit(self.rs_elaboratable(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits)
+        self.select_queue: deque[int] = deque()
+        self.regs_to_update: set[int] = set()
+        self.rs_entries: dict[int, int] = {}
+        self.finished = False
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.select_process)
+            sim.add_sync_process(self.insert_process)
+            sim.add_sync_process(self.update_process)
+            sim.add_sync_process(self.take_process)
+
+    def select_process(self):
+        for k in range(len(self.data_list)):
+            rs_entry_id = (yield from self.m.select.call())["rs_entry_id"]
+            self.select_queue.appendleft(rs_entry_id)
+            self.rs_entries[rs_entry_id] = k
+
+    def insert_process(self):
+        for data in self.data_list:
+            yield Settle()  # so that select_process can insert into the queue
+            while not self.select_queue:
+                yield
+                yield Settle()
+            rs_entry_id = self.select_queue.pop()
+            yield from self.m.insert.call({"rs_entry_id": rs_entry_id, "rs_data": data})
+            if data["rp_s1"]:
+                self.regs_to_update.add(data["rp_s1"])
+            if data["rp_s2"]:
+                self.regs_to_update.add(data["rp_s2"])
+
+    def update_process(self):
+        while not self.finished:
+            yield Settle()  # so that insert_process can insert into the set
+            if not self.regs_to_update:
+                yield
+                continue
+            reg_id = random.choice(list(self.regs_to_update))
+            self.regs_to_update.discard(reg_id)
+            reg_val = random.randrange(1000)
+            for rs_entry_id, k in self.rs_entries.items():
+                if self.data_list[k]["rp_s1"] == reg_id:
+                    self.data_list[k]["rp_s1"] = 0
+                    self.data_list[k]["s1_val"] = reg_val
+                if self.data_list[k]["rp_s2"] == reg_id:
+                    self.data_list[k]["rp_s2"] = 0
+                    self.data_list[k]["s2_val"] = reg_val
+            yield from self.m.update.call(reg_id=reg_id, reg_val=reg_val)
+
+    def take_process(self):
+        taken: set[int] = set()
+        yield from self.m.get_ready_list[0].call_init()
+        yield Settle()
+        for k in range(len(self.data_list)):
+            yield Settle()
+            while not (yield from self.m.get_ready_list[0].done()):
+                yield
+            ready_list = (yield from self.m.get_ready_list[0].call_result())["ready_list"]
+            possible_ids = [i for i in range(2**self.rs_entries_bits) if ready_list & (1 << i)]
+            if not possible_ids:
+                yield
+                continue
+            rs_entry_id = random.choice(possible_ids)
+            k = self.rs_entries[rs_entry_id]
+            taken.add(k)
+            test_data = dict(self.data_list[k])
+            del test_data["rp_s1"]
+            del test_data["rp_s2"]
+            data = yield from self.m.take.call(rs_entry_id=rs_entry_id)
+            self.assertEqual(data, test_data)
+        self.assertEqual(taken, set(range(len(self.data_list))))
+        self.finished = True
 
 
 class TestRSMethodInsert(TestCaseWithSimulator):
@@ -261,24 +383,24 @@ class TestRSMethodTake(TestCaseWithSimulator):
             self.assertEqual(expected, (yield from get_outputs(record)))
 
         # Take first instruction
-        self.assertEqual((yield self.m._dut.take.ready), 1)
+        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
         data = yield from self.m.take.call(rs_entry_id=0)
         for key in data:
             self.assertEqual(data[key], self.check_list[0]["rs_data"][key])
         yield Settle()
-        self.assertEqual((yield self.m._dut.take.ready), 0)
+        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 0)
 
         # Update second instuction and take it
         reg_id = 2
         value_spx = 1
         yield from self.m.update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
-        self.assertEqual((yield self.m._dut.take.ready), 1)
+        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
         data = yield from self.m.take.call(rs_entry_id=1)
         for key in data:
             self.assertEqual(data[key], self.check_list[1]["rs_data"][key])
         yield Settle()
-        self.assertEqual((yield self.m._dut.take.ready), 0)
+        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 0)
 
         # Insert two new ready instructions and take them
         reg_id = 0
@@ -302,20 +424,20 @@ class TestRSMethodTake(TestCaseWithSimulator):
         for index in range(2):
             yield from self.m.insert.call(rs_entry_id=index, rs_data=entry_data)
             yield Settle()
-            self.assertEqual((yield self.m._dut.take.ready), 1)
+            self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
             self.assertEqual((yield self.m._dut.data_ready[index]), 1)
 
         data = yield from self.m.take.call(rs_entry_id=0)
         for key in data:
             self.assertEqual(data[key], entry_data[key])
         yield Settle()
-        self.assertEqual((yield self.m._dut.take.ready), 1)
+        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
 
         data = yield from self.m.take.call(rs_entry_id=1)
         for key in data:
             self.assertEqual(data[key], entry_data[key])
         yield Settle()
-        self.assertEqual((yield self.m._dut.take.ready), 0)
+        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 0)
 
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
