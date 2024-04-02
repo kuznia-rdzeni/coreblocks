@@ -64,7 +64,7 @@ class FetchUnit(Elaboratable):
             tags=range(self.gen_params.fetch_width + 1),
         )
         self.perf_fetch_redirects = HwCounter(
-            "frontend.fetch.fetch_redirects", "How many the fetch unit has redirected itself"
+            "frontend.fetch.fetch_redirects", "How many times the fetch unit redirected itself"
         )
 
     def elaborate(self, platform):
@@ -250,6 +250,8 @@ class FetchUnit(Elaboratable):
         # - check if any of instructions redirects the frontend
         # - check if any of instructions stalls the frontend
         # - enqueue a packet of instructions
+        #
+
         predecoders = [Predecoder(self.gen_params) for _ in range(fetch_width)]
         for n, module in enumerate(predecoders):
             m.submodules[f"predecoder_{n}"] = module
@@ -284,7 +286,7 @@ class FetchUnit(Elaboratable):
                     | ((predecoders[i].cfi_type == CfiType.BRANCH) & (predecoders[i].jump_offset < 0))
                 )
 
-                # If there was an access fault, just mark every instruction as unsafe
+                # If there was an access fault, mark every instruction as unsafe
                 m.d.av_comb += instr_unsafe[i].eq(predecoders[i].is_unsafe | access_fault)
 
             m.submodules.prio_encoder = prio_encoder = PriorityEncoder(fetch_width)
