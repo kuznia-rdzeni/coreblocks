@@ -12,7 +12,7 @@ from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
-from coreblocks.func_blocks.lsu.pma import PMAChecker
+from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.interface.keys import ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
 __all__ = ["LSUDummy", "LSUComponent"]

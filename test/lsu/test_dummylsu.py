@@ -6,7 +6,7 @@ from amaranth.sim import Settle, Passive
 from transactron.lib import Adapter
 from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import GenParams
-from coreblocks.func_blocks.lsu.dummyLsu import LSUDummy
+from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.keys import ExceptionReportKey

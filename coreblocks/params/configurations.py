@@ -2,7 +2,7 @@ from collections.abc import Collection
 
 import dataclasses
 from dataclasses import dataclass, field
-from coreblocks.func_blocks.lsu.pma import PMARegion
+from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -18,7 +18,7 @@ from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
-from coreblocks.func_blocks.lsu.dummyLsu import LSUComponent
+from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
