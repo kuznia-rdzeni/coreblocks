@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712131810331,
+  "lastUpdate": 1712132144869,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9727,6 +9727,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "minver",
             "value": 0.23776400713784746,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "61f9ae8b3f58d64c8f677fc9fc3d4d8158952867",
+          "message": "Fix typo in assign.py (#643)",
+          "timestamp": "2024-04-03T10:03:01+02:00",
+          "tree_id": "c339908bab02c5b9bc54ca11869b67e8f8dfb0ea",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/61f9ae8b3f58d64c8f677fc9fc3d4d8158952867"
+        },
+        "date": 1712132130274,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.215236226126083,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.4157024568037011,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18115576572918168,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.292077015030431,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.23776400713784746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.2920382721023797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.32463975052119354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.26365515005807827,
             "unit": "Instructions Per Cycle"
           }
         ]
