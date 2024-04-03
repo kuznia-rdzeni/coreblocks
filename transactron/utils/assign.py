@@ -120,7 +120,7 @@ def assign(
         assert (
             isinstance(rhs, ArrayProxy)
             or isinstance(rhs, Mapping)
-            or isinstance(lhs, Sequence)
+            or isinstance(rhs, Sequence)
             or isinstance(rhs, data.View)
         )
 
