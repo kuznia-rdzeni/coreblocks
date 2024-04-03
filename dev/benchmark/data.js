@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712137049637,
+  "lastUpdate": 1712137286443,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -30620,6 +30620,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8587,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bfdfea01ef0f8e7f8c139be617d70019596b6267",
+          "message": "DummyLSU as a FU (#635)\n\n* Refactor RS, implement FifoRS\r\n\r\n* New RS test\r\n\r\n* Test FifoRS and fix bugs\r\n\r\n* Lint\r\n\r\n* Derive from RSBase\r\n\r\n* Workaround for Amaranth issue with Signal(range(1))\r\n\r\n* First try\r\n\r\n* Fix bug\r\n\r\n* Try to break up critical path\r\n\r\n* Lint\r\n\r\n* LSU test, fix buuuugs\r\n\r\n* Fix PMA test\r\n\r\n* Move LSU\r\n\r\n* Remove debug print\r\n\r\n---------\r\n\r\nCo-authored-by: lekcyjna123 <34948061+lekcyjna123@users.noreply.github.com>",
+          "timestamp": "2024-04-03T11:30:54+02:00",
+          "tree_id": "eae4bd38b76d0bd1e812ea7123c9c66845aa1d91",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bfdfea01ef0f8e7f8c139be617d70019596b6267"
+        },
+        "date": 1712137283621,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.7,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 28999,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1444,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1220,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9214,
             "unit": "LUT"
           }
         ]
