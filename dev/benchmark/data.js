@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712137286443,
+  "lastUpdate": 1712137399893,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9791,6 +9791,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "crc32",
             "value": 0.26365515005807827,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bfdfea01ef0f8e7f8c139be617d70019596b6267",
+          "message": "DummyLSU as a FU (#635)\n\n* Refactor RS, implement FifoRS\r\n\r\n* New RS test\r\n\r\n* Test FifoRS and fix bugs\r\n\r\n* Lint\r\n\r\n* Derive from RSBase\r\n\r\n* Workaround for Amaranth issue with Signal(range(1))\r\n\r\n* First try\r\n\r\n* Fix bug\r\n\r\n* Try to break up critical path\r\n\r\n* Lint\r\n\r\n* LSU test, fix buuuugs\r\n\r\n* Fix PMA test\r\n\r\n* Move LSU\r\n\r\n* Remove debug print\r\n\r\n---------\r\n\r\nCo-authored-by: lekcyjna123 <34948061+lekcyjna123@users.noreply.github.com>",
+          "timestamp": "2024-04-03T11:30:54+02:00",
+          "tree_id": "eae4bd38b76d0bd1e812ea7123c9c66845aa1d91",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bfdfea01ef0f8e7f8c139be617d70019596b6267"
+        },
+        "date": 1712137397341,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.2437939792267849,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18830806309955814,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29316662943800825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.27916937796305963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.38398161016601284,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.31428496807135303,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2551784802224618,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.5642657981099021,
             "unit": "Instructions Per Cycle"
           }
         ]
