@@ -1,7 +1,7 @@
 from coreblocks.frontend.decoder import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.alu import AluFn, ALUComponent
 
-from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
+from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 from transactron.utils import signed_to_int
 

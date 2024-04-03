@@ -11,7 +11,7 @@ from coreblocks.frontend.decoder import Funct3, OpType, ExceptionCause
 
 from transactron.utils import signed_to_int
 
-from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
+from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class JumpBranchWrapper(Elaboratable):
