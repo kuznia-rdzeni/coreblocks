@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   coreblocks.func_blocks.fu.lsu
    coreblocks.func_blocks.fu.unsigned_multiplication
 
 Submodules

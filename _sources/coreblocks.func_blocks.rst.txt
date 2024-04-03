@@ -9,7 +9,6 @@ Subpackages
 
    coreblocks.func_blocks.fu
    coreblocks.func_blocks.interface
-   coreblocks.func_blocks.lsu
 
 Module contents
 ---------------
