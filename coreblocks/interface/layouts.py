@@ -519,26 +519,6 @@ class LSULayouts:
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
-        data = gen_params.get(RSFullDataLayout)
-
-        data_layout = layout_subset(
-            data.data_layout,
-            fields={
-                "rp_s1",
-                "rp_s2",
-                "rp_dst",
-                "rob_id",
-                "exec_fn",
-                "s1_val",
-                "s2_val",
-                "imm",
-                "pc",
-            },
-        )
-
-        self.rs_entries_bits = 0
-
-        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
 
         retirement = gen_params.get(RetirementLayouts)
 

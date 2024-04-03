@@ -2,11 +2,12 @@ from collections.abc import Collection
 
 import dataclasses
 from dataclasses import dataclass, field
-from coreblocks.func_blocks.lsu.pma import PMARegion
+from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
+from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 
 from coreblocks.func_blocks.fu.alu import ALUComponent
 from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
@@ -17,7 +18,7 @@ from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
-from coreblocks.func_blocks.lsu.dummyLsu import LSUBlockComponent
+from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
@@ -27,7 +28,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
     ),
-    LSUBlockComponent(),
+    RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
 )
 
@@ -117,7 +118,7 @@ tiny_core_config = CoreConfiguration(
     embedded=True,
     func_units_config=(
         RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
-        LSUBlockComponent(),
+        RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     ),
     phys_regs_bits=basic_core_config.phys_regs_bits - 1,
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
@@ -146,7 +147,7 @@ full_core_config = CoreConfiguration(
             ],
             rs_entries=2,
         ),
-        LSUBlockComponent(),
+        RSBlockComponent([LSUComponent()], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
     ),
     compressed=True,
