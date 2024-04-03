@@ -191,7 +191,7 @@ jobs:
       - name: Run tests on Coreblocks
         run: |
           . venv/bin/activate
-          MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks NPROC=1 ./ci/riscof_run_makefile.sh
+          MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks ./ci/riscof_run_makefile.sh
 
       - name: Compare signatures (test results)
         run: MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks ./ci/riscof_compare.sh

@@ -13,10 +13,11 @@ echo "> Running for $target_cnt Makefile targets"
 
 targets=""
 
-for i in $(seq 0 $target_cnt)
+for i in $(seq 1 $target_cnt)
 do
     targets="$targets TARGET$i"
 done
 
-echo "Starting for targets: $targets"
+echo "Starting for targets: TARGET0 $targets"
+make -f $MAKEFILE_PATH -i -j 1 TARGET0
 make -f $MAKEFILE_PATH -i -j $NPROC $targets
