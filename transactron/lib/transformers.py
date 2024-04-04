@@ -353,13 +353,16 @@ class Collector(Elaboratable, Unifier):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.forwarder = forwarder = Forwarder(self.method.layout_out, src_loc=self.src_loc)
+        if len(self.method_list) == 1:
+            self.method.proxy(m, self.method_list[0])
+        else:
+            m.submodules.forwarder = forwarder = Forwarder(self.method.layout_out, src_loc=self.src_loc)
 
-        m.submodules.connect = ManyToOneConnectTrans(
-            get_results=[get for get in self.method_list], put_result=forwarder.write, src_loc=self.src_loc
-        )
+            m.submodules.connect = ManyToOneConnectTrans(
+                get_results=[get for get in self.method_list], put_result=forwarder.write, src_loc=self.src_loc
+            )
 
-        self.method.proxy(m, forwarder.read)
+            self.method.proxy(m, forwarder.read)
 
         return m
 
