@@ -1,50 +1,60 @@
 from amaranth import *
+from amaranth.lib.enum import IntEnum
+
 from coreblocks.frontend.decoder.isa import PrivilegeLevel
 from coreblocks.priv.csr.csr_register import CSRRegister
-from transactron.core.transaction import Transaction
-from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, MretKey
 
 from transactron.core import Method, TModule, def_method
+from transactron.core.transaction import Transaction
+from transactron.utils.dependencies import DependencyManager
 
-### TODO: upgrade to component
+
+class InterruptCauseNumber(IntEnum):
+    SSI = 1
+    MSI = 3
+    STI = 5
+    MTI = 7
+    SEI = 9
+    MEI = 11
+
+
+# TODO: upgrade to component
 class InternalInterruptController(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         dm = gen_params.get(DependencyManager)
-       
-        self.mstatus_mie = CSRRegister(None, gen_params, width=1) # MIE bit - global interrupt enable - part of mstatus CSR
-        self.mstatus_mpie = CSRRegister(None, gen_params, width=1) # MPIE bit - previous MIE - part of mstatus
-        self.mstatus_mpp = CSRRegister(None, gen_params, width=2, ro_bits=0b11, reset=PrivilegeLevel.MACHINE) # MPP bit - previous priv mode - part of mstatus
-        # TODO: filter xpp for only legal modes (when not read-only)
 
-        # TODO NOW: SPP must be read only 0
-        # TODO NOW: set fu/priority
-        # TODO: NMI
+        # export only bits mxlen-1:16
+        self.edge_report_interrupt = Signal(gen_params.isa.xlen)
+        self.level_report_interrupt = Signal(gen_params.isa.xlen)
+        self.edge_reported_mask = 0
+        self.num_custom_interrupts = 0
+        if self.num_custom_interrupts > gen_params.isa.xlen - 16:
+            raise RuntimeError("Too many custom interrupts")
 
-        self.mie = CSRRegister(69, gen_params) # set to read only
-        self.mip = CSRRegister(70, gen_params)
+        # MIE bit - global interrupt enable - part of mstatus CSR
+        self.mstatus_mie = CSRRegister(None, gen_params, width=1)
+        # MPIE bit - previous MIE - part of mstatus
+        self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
+        # MPP bit - previous priv mode - part of mstatus
+        self.mstatus_mpp = CSRRegister(None, gen_params, width=2, ro_bits=0b11, reset=PrivilegeLevel.MACHINE)
+        # TODO: filter xPP for only legal modes (when not read-only)
+
+        mie_writeable = (
+            # (1 << InterruptCauseNumber.MSI)
+            # (1 << InterruptCauseNumber.MTI)
+            (1 << InterruptCauseNumber.MEI)
+            | (((1 << self.num_custom_interrupts) - 1) << 16)
+        )
+        self.mie = CSRRegister(69, gen_params, ro_bits=~mie_writeable)
+        self.mip = CSRRegister(70, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
 
         self.interrupt_insert = Signal()
         dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
-        
-        # export only bits mxlen-1:16
-        self.edge_report_interrupt = Signal()
-        self.level_report_interrupt = Signal()
-        self.edge_reported_mask = 0
-        self.non_maskable_interrupt = Signal() # in standard riscv it is not recoverable
 
-        ## wait registers have specific
-        ## lower part is read only and needs direct access in mip
-        ## report only for custom
-        ## no - direct singals -> this is external interface
-        ## it should be parametrized if clearable or direct
-
-        ## TODO: priority + mcause + vector (
-        ## MAYBE LATCHING? WHEN TO REPORT CAUSE??
-        ## latch on laszt interrupt insert
-        ## o co jak zniknie od czasu reportu w fu do retirementu
+        self.interrupt_cause = Signal(gen_params.isa.xlen)
 
         self.mret = Method()
         dm.add_dependency(MretKey(), self.mret)
@@ -61,19 +71,19 @@ class InternalInterruptController(Elaboratable):
         m.d.comb += self.interrupt_insert.eq(interrupt_pending & interrupt_enable)
 
         with Transaction().body(m):
-            # ok, treat sequence as 1.csr read modify write 2. apply new edge interrupts. (not standarized by spec)
-            # so edge interrupts are not missed and can be catched between read and clear instructions
+            # 1. Get MIP CSR write from instruction or previous value
+            mip_value = self.mip.read_comb(m).data
 
-            edge_disabled = self.mip.read(m).data & ~self.mip.read_comb(m).data & self.edge_reported_mask
-            value = self.mip.read(m).data & self.edge_reported_mask
-            value |= self.level_report_interrupt | self.edge_reported_mask
-            # because of ro_bits set in CSR, level reported interrupts are not ignored with writes
-            
-            # or should read_comb be used???
-            # ok needs to be -> what if cleared and reported at the same time but other is not?
-            self.mip.write(m, value)
+            # 2. Apply new egde interrupts (after the FU read-modify-write cycle)
+            # This is not standardised by the spec, but makes sense to enforce independent
+            # order and don't miss interrupts that happen in the cycle of FU write
+            mip_value |= self.edge_report_interrupt
 
-            
+            # 3. Mask with FU read-only level reported interrupts
+            mip_value &= self.edge_reported_mask
+            mip_value |= self.level_report_interrupt & ~self.edge_report_interrupt
+
+            self.mip.write(m, mip_value)
 
         @def_method(m, self.mret)
         def _():
@@ -81,11 +91,34 @@ class InternalInterruptController(Elaboratable):
             self.mstatus_mpie.write(m, 1)
             # TODO: Set mpp when other privilege modes are implemented
 
-        # TODO NOW: mret / entry conflict priority emm how?? 
-
+        # mret/entry conflict cannot happen, mret is called under precommit
         @def_method(m, self.entry)
         def _():
             self.mstatus_mie.write(m, 0)
             self.mstatus_mpie.write(m, self.mie.read(m).data)
+
+        interrupt_priority = [
+            InterruptCauseNumber.MEI,
+            InterruptCauseNumber.MSI,
+            InterruptCauseNumber.MTI,
+            InterruptCauseNumber.SEI,
+            InterruptCauseNumber.SSI,
+            InterruptCauseNumber.STI,
+        ] + [
+            i for i in range(16, self.gen_params.isa.xlen)
+        ]  # custom use range
+
+        top_interrupt = Signal(range(self.gen_params.isa.xlen))
+        for bit in reversed(interrupt_priority):
+            with m.If(self.mip.read(m).data[bit]):
+                m.d.comb += top_interrupt.eq(bit)
+
+        # Level-triggered interrupts can disappear after insertion to the instruction core,
+        # but they cannot be canceled at this point. Latch last interrupt cause reason that makes
+        # sense, in case of every interrupt becoming disabled before reaching the retirement
+        # NOTE2: we depend on the fact that writes to xIE stall the fetcher. In other case
+        # interrupt could be explicitly disabled, after being irrecoverably inserted to the core.
+        with m.If(self.interrupt_insert):
+            m.d.sync += self.interrupt_cause.eq(top_interrupt)
 
         return m
