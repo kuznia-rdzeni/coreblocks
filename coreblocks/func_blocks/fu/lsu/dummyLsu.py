@@ -1,21 +1,21 @@
 from dataclasses import dataclass
 from amaranth import *
-from amaranth.lib.data import View
 
 from transactron import Method, def_method, Transaction, TModule
+from transactron.lib.connectors import FIFO, Forwarder
+from transactron.utils import ModuleLike, DependencyManager
+from transactron.lib.simultaneous import condition
+from transactron.lib.logging import HardwareLogger
+
 from coreblocks.params import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from transactron.lib.connectors import Forwarder
-from transactron.utils import assign, ModuleLike, DependencyManager
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from transactron.lib.simultaneous import condition
-
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
-from coreblocks.func_blocks.lsu.pma import PMAChecker
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.interface.keys import ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
-__all__ = ["LSUDummy", "LSUBlockComponent"]
+__all__ = ["LSUDummy", "LSUComponent"]
 
 
 class LSURequester(Elaboratable):
@@ -47,6 +47,8 @@ class LSURequester(Elaboratable):
 
         self.issue = Method(i=lsu_layouts.issue, o=lsu_layouts.issue_out)
         self.accept = Method(o=lsu_layouts.accept)
+
+        self.log = HardwareLogger("backend.lsu.requester")
 
     def prepare_bytes_mask(self, m: ModuleLike, funct3: Value, addr: Value) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.params.granularity
@@ -120,6 +122,17 @@ class LSURequester(Elaboratable):
             bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
             bus_data = self.prepare_data_to_save(m, funct3, data, addr)
 
+            self.log.debug(
+                m,
+                1,
+                "issue addr=0x{:08x} data=0x{:08x} funct3={} store={} aligned={}",
+                addr,
+                data,
+                funct3,
+                store,
+                aligned,
+            )
+
             with condition(m, nonblocking=False, priority=False) as branch:
                 with branch(aligned & store):
                     self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
@@ -148,14 +161,16 @@ class LSURequester(Elaboratable):
             cause = Signal(ExceptionCause)
             err = Signal()
 
+            self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
+
             with condition(m, nonblocking=False, priority=False) as branch:
                 with branch(store_reg):
                     fetched = self.bus.get_write_response(m)
-                    err = fetched.err
+                    m.d.comb += err.eq(fetched.err)
                 with branch(~store_reg):
                     fetched = self.bus.get_read_response(m)
-                    err = fetched.err
-                    data = self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg)
+                    m.d.comb += err.eq(fetched.err)
+                    m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))
 
             m.d.sync += request_sent.eq(0)
 
@@ -170,27 +185,11 @@ class LSURequester(Elaboratable):
         return m
 
 
-class LSUDummy(FuncBlock, Elaboratable):
+class LSUDummy(FuncUnit, Elaboratable):
     """
     Very simple LSU, which serializes all stores and loads.
     It isn't fully compliant with RiscV spec. Doesn't support checking if
     address is in correct range. Addresses have to be aligned.
-
-    It uses the same interface as RS.
-
-    Attributes
-    ----------
-    select : Method
-        Used to reserve a place for intruction in LSU.
-    insert : Method
-        Used to put instruction into a reserved place.
-    update : Method
-        Used to receive the announcement that calculations of a new value have ended
-        and we have a value which can be used in further computations.
-    get_result : Method
-        To put load/store results to the next stage of pipeline.
-    precommit : Method
-        Used to inform LSU that new instruction is ready to be retired.
     """
 
     def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
@@ -210,120 +209,102 @@ class LSUDummy(FuncBlock, Elaboratable):
         dependency_manager = self.gen_params.get(DependencyManager)
         self.report = dependency_manager.get_dependency(ExceptionReportKey())
 
-        self.insert = Method(i=self.lsu_layouts.rs.insert_in)
-        self.select = Method(o=self.lsu_layouts.rs.select_out)
-        self.update = Method(i=self.lsu_layouts.rs.update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
+        self.issue = Method(i=self.fu_layouts.issue, single_caller=True)
+        self.accept = Method(o=self.fu_layouts.accept)
         self.precommit = Method(i=self.lsu_layouts.precommit)
 
         self.bus = bus
 
     def elaborate(self, platform):
         m = TModule()
-        reserved = Signal()  # current_instr is reserved
-        valid = Signal()  # current_instr is valid
-        precommiting = Signal()  # start execution
-        issued = Signal()  # instruction was issued to the bus
         flush = Signal()  # exception handling, requests are not issued
-        current_instr = Signal(self.lsu_layouts.rs.data_layout)
+
+        # Signals for handling issue logic
+        request_rob_id = Signal(self.gen_params.rob_entries_bits)
+        rob_id_match = Signal()
+        is_load = Signal()
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
-        m.submodules.results = results = self.forwarder = Forwarder(self.lsu_layouts.accept)
+        m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
+        m.submodules.results = results = self.forwarder = FIFO(self.lsu_layouts.accept, 2)
+        m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
 
-        instr_ready = (current_instr.rp_s1 == 0) & (current_instr.rp_s2 == 0) & valid
-
-        instr_is_fence = Signal()
-        m.d.comb += instr_is_fence.eq(current_instr.exec_fn.op_type == OpType.FENCE)
-
-        instr_is_load = Signal()
-        m.d.comb += instr_is_load.eq(current_instr.exec_fn.op_type == OpType.LOAD)
-
-        addr = Signal(self.gen_params.isa.xlen)
-        m.d.comb += addr.eq(current_instr.s1_val + current_instr.imm)
-
-        m.d.comb += pma_checker.addr.eq(addr)
-        pmas = pma_checker.result
-
-        @def_method(m, self.select, ~reserved)
-        def _():
-            # We always return 0, because we have only one place in instruction storage.
-            m.d.sync += reserved.eq(1)
-            return {"rs_entry_id": 0}
-
-        @def_method(m, self.insert)
-        def _(rs_data: View, rs_entry_id: Value):
-            m.d.sync += assign(current_instr, rs_data)
-            m.d.sync += valid.eq(1)
-
-        @def_method(m, self.update)
-        def _(reg_id: Value, reg_val: Value):
-            with m.If(current_instr.rp_s1 == reg_id):
-                m.d.sync += current_instr.s1_val.eq(reg_val)
-                m.d.sync += current_instr.rp_s1.eq(0)
-            with m.If(current_instr.rp_s2 == reg_id):
-                m.d.sync += current_instr.s2_val.eq(reg_val)
-                m.d.sync += current_instr.rp_s2.eq(0)
+        @def_method(m, self.issue)
+        def _(arg):
+            issued.write(m, arg)
+            is_fence = arg.exec_fn.op_type == OpType.FENCE
+            with m.If(~is_fence):
+                requests.write(m, arg)
+            with m.Else():
+                results.write(m, data=0, exception=0, cause=0)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
-        can_reorder = instr_is_load & ~pmas["mmio"]
-        want_issue = ~instr_is_fence & (precommiting | can_reorder)
-        do_issue = ~issued & instr_ready & ~flush & want_issue
+        pmas = pma_checker.result
+        can_reorder = is_load & ~pmas["mmio"]
+        want_issue = rob_id_match | can_reorder
+
+        do_issue = ~flush & want_issue
         with Transaction().body(m, request=do_issue):
-            m.d.sync += issued.eq(1)
+            arg = requests.read(m)
+
+            addr = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
+            m.d.av_comb += pma_checker.addr.eq(addr)
+            m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
+            m.d.av_comb += request_rob_id.eq(arg.rob_id)
+
             res = requester.issue(
                 m,
                 addr=addr,
-                data=current_instr.s2_val,
-                funct3=current_instr.exec_fn.funct3,
-                store=~instr_is_load,
+                data=arg.s2_val,
+                funct3=arg.exec_fn.funct3,
+                store=~is_load,
             )
+
             with m.If(res["exception"]):
                 results.write(m, data=0, exception=res["exception"], cause=res["cause"])
 
-        # Handles FENCE and flushed instructions as a no-op.
-        do_skip = ~issued & (instr_ready & ~flush & instr_is_fence | valid & flush)
-        with Transaction().body(m, request=do_skip):
-            m.d.sync += issued.eq(1)
+        # Handles flushed instructions as a no-op.
+        with Transaction().body(m, request=flush):
+            requests.read(m)
             results.write(m, data=0, exception=0, cause=0)
 
-        with Transaction().body(m):
-            res = requester.accept(m)  # can happen only after issue
-            results.write(m, res)
-
-        @def_method(m, self.get_result)
+        @def_method(m, self.accept)
         def _():
-            res = results.read(m)
+            arg = issued.read(m)
+            res = Signal(self.lsu_layouts.accept)
+            with condition(m) as branch:
+                with branch(True):
+                    m.d.comb += res.eq(requester.accept(m))
+                with branch(True):
+                    m.d.comb += res.eq(results.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=current_instr.rob_id, cause=res["cause"], pc=current_instr.pc)
-
-            m.d.sync += issued.eq(0)
-            m.d.sync += valid.eq(0)
-            m.d.sync += reserved.eq(0)
+                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"])
 
             return {
-                "rob_id": current_instr.rob_id,
-                "rp_dst": current_instr.rp_dst,
+                "rob_id": arg["rob_id"],
+                "rp_dst": arg["rp_dst"],
                 "result": res["data"],
                 "exception": res["exception"],
             }
 
         @def_method(m, self.precommit)
         def _(rob_id: Value, side_fx: Value):
+            with m.If(rob_id == request_rob_id):
+                m.d.comb += rob_id_match.eq(1)
             with m.If(~side_fx):
                 m.d.comb += flush.eq(1)
-            with m.Elif(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
-                m.d.comb += precommiting.eq(1)
 
         return m
 
 
 @dataclass(frozen=True)
-class LSUBlockComponent(BlockComponentParams):
-    def get_module(self, gen_params: GenParams) -> FuncBlock:
+class LSUComponent(FunctionalComponentParams):
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
         connections = gen_params.get(DependencyManager)
         bus_master = connections.get_dependency(CommonBusDataKey())
         unit = LSUDummy(gen_params, bus_master)
@@ -332,6 +313,3 @@ class LSUBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.LOAD, OpType.STORE, OpType.FENCE}
-
-    def get_rs_entry_count(self) -> int:
-        return 1
