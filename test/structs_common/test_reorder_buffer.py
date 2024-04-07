@@ -52,7 +52,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 yield from self.m.retire.call()
                 phys_reg = results["rob_data"]["rp_dst"]
                 assert rob_id_exp== results["rob_id"]
-                self.assertIn(phys_reg, self.executed_list)
+                assert phys_reg in self.executed_list
                 self.executed_list.remove(phys_reg)
 
                 yield Settle()

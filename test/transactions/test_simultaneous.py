@@ -1,3 +1,4 @@
+import pytest
 from itertools import product
 from typing import Optional
 from amaranth import *
@@ -165,7 +166,7 @@ class TransitivityTest(TestCaseWithSimulator):
                 else:
                     assert call_result is not None
                     possibles = reqv1 * [data ^ 1] + reqv2 * [data ^ 2]
-                    self.assertIn(result, possibles)
+                    assert result in possibles
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)

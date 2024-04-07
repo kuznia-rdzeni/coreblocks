@@ -99,7 +99,7 @@ class TestRSSelect(TestCaseWithSimulator):
         def mock():
             random_entry = random.randrange(self.gen_params.max_rs_entries)
             expected = self.instr_in.popleft()
-            self.assertIn(expected["exec_fn"]["op_type"], rs_optypes)
+            assert expected["exec_fn"]["op_type"] in rs_optypes
             expected["rs_entry_id"] = random_entry
             expected["rs_selected"] = rs_id
             self.expected_out.append(expected)

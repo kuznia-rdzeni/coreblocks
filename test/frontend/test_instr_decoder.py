@@ -398,4 +398,4 @@ class TestEncodingUniqueness(TestCase):
 
             for instruction in ext_collisions:
                 code = instruction_code(instruction)
-                self.assertIn(code, known_codes, f"Instruction is not colliding: OpType={ext} I={instruction}")
+                assert code in known_codes, f"Instruction is not colliding: OpType={ext} I={instruction}"

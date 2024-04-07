@@ -1,3 +1,4 @@
+import pytest
 from amaranth import *
 
 from transactron import *
@@ -64,7 +65,7 @@ class AssertionTest(Elaboratable):
 
 
 class TestLog(TestCaseWithSimulator):
-    def test_log(self):
+    def test_log(self, caplog):
         m = LogTest()
 
         def proc():
@@ -72,53 +73,44 @@ class TestLog(TestCaseWithSimulator):
                 yield
                 yield m.input.eq(i)
 
-        with self.assertLogs(LOGGER_NAME) as logs:
-            with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+        with self.run_simulation(m) as sim:
+            sim.add_sync_process(proc)
 
-        self.assertIn(
-            "WARNING:test_logger:test/transactron/testing/test_log.py:21] Log triggered under Amaranth If value+3=0x2d",
-            logs.output,
-        )
+        assert "WARNING:test_logger:test/transactron/testing/test_log.py:21] Log triggered under Amaranth If value+3=0x2d" in caplog.text
         for i in range(0, 50, 2):
             expected_msg = (
                 "WARNING:test_logger:test/transactron/testing/test_log.py:23] "
                 + f"Input is even! input={i}, counter={i + 2}"
             )
-            self.assertIn(
-                expected_msg,
-                logs.output,
-            )
+            assert expected_msg in caplog.text
 
-    def test_error_log(self):
+    def test_error_log(self, caplog):
         m = ErrorLogTest()
 
         def proc():
             yield
             yield m.input.eq(1)
 
-        with self.assertLogs(LOGGER_NAME) as logs:
-            with pytest.raises(AssertionError):
-                with self.run_simulation(m) as sim:
-                    sim.add_sync_process(proc)
+        with pytest.raises(AssertionError):
+            with self.run_simulation(m) as sim:
+                sim.add_sync_process(proc)
 
         extected_out = (
             "ERROR:test_logger:test/transactron/testing/test_log.py:40] "
             + "Input is different than output! input=0x1 output=0x0"
         )
-        self.assertIn(extected_out, logs.output)
+        assert extected_out in caplog.text
 
-    def test_assertion(self):
+    def test_assertion(self, caplog):
         m = AssertionTest()
 
         def proc():
             yield
             yield m.input.eq(1)
 
-        with self.assertLogs(LOGGER_NAME) as logs:
-            with pytest.raises(AssertionError):
-                with self.run_simulation(m) as sim:
-                    sim.add_sync_process(proc)
+        with pytest.raises(AssertionError):
+            with self.run_simulation(m) as sim:
+                sim.add_sync_process(proc)
 
         extected_out = "ERROR:test_logger:test/transactron/testing/test_log.py:61] Output differs"
-        self.assertIn(extected_out, logs.output)
+        assert extected_out in caplog.text
