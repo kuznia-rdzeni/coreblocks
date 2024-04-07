@@ -1,3 +1,4 @@
+import pytest
 from typing import Callable
 from amaranth import *
 from amaranth.lib import data

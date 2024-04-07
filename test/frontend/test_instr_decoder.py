@@ -194,27 +194,27 @@ class TestDecoder(TestCaseWithSimulator):
 
                 if test.funct3 is not None:
                     assert (yield self.decoder.funct3)== test.funct3
-                assert (yield self.decoder.funct3_v)== test.funct3 is not None
+                assert (yield self.decoder.funct3_v)== (test.funct3 is not None)
 
                 if test.funct7 is not None:
                     assert (yield self.decoder.funct7)== test.funct7
-                assert (yield self.decoder.funct7_v)== test.funct7 is not None
+                assert (yield self.decoder.funct7_v)== (test.funct7 is not None)
 
                 if test.funct12 is not None:
                     assert (yield self.decoder.funct12)== test.funct12
-                assert (yield self.decoder.funct12_v)== test.funct12 is not None
+                assert (yield self.decoder.funct12_v)== (test.funct12 is not None)
 
                 if test.rd is not None:
                     assert (yield self.decoder.rd)== test.rd
-                assert (yield self.decoder.rd_v)== test.rd is not None
+                assert (yield self.decoder.rd_v)== (test.rd is not None)
 
                 if test.rs1 is not None:
                     assert (yield self.decoder.rs1)== test.rs1
-                assert (yield self.decoder.rs1_v)== test.rs1 is not None
+                assert (yield self.decoder.rs1_v)== (test.rs1 is not None)
 
                 if test.rs2 is not None:
                     assert (yield self.decoder.rs2)== test.rs2
-                assert (yield self.decoder.rs2_v)== test.rs2 is not None
+                assert (yield self.decoder.rs2_v)== (test.rs2 is not None)
 
                 if test.imm is not None:
                     assert (yield self.decoder.imm.as_signed())== test.imm
@@ -329,7 +329,7 @@ class TestEncodingUniqueness(TestCase):
                         encoding = known_codes[prefix]
 
                         # prefix of instruction can not be equal to code of any other isntruction
-                        assert encoding, f"Instruction is not unique: I1 = {encoding} I2 = {instruction}" is None
+                        assert encoding is None, f"Instruction is not unique: I1 = {encoding} I2 = {instruction}"
 
                     known_codes[prefix] = None
 
