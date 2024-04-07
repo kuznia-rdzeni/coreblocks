@@ -160,10 +160,10 @@ class TransitivityTest(TestCaseWithSimulator):
                 call_result = yield from source.call_try(data=data)
 
                 if not reqv1 and not reqv2:
-                    self.assertIsNone(call_result)
-                    self.assertIsNone(result)
+                    assert call_result is None
+                    assert result is None
                 else:
-                    self.assertIsNotNone(call_result)
+                    assert call_result is not None
                     possibles = reqv1 * [data ^ 1] + reqv2 * [data ^ 2]
                     self.assertIn(result, possibles)
 

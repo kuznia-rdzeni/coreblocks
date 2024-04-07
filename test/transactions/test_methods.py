@@ -1,3 +1,4 @@
+import pytest
 import random
 from amaranth import *
 from amaranth.sim import *

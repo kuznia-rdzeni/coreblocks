@@ -91,7 +91,7 @@ class TestForwarder(TestFifoBase):
             yield from m.write.call_init(data=x)
             yield Settle()
             assert (yield from m.read.call_result())== {"data": x}
-            self.assertIsNotNone((yield from m.write.call_result()))
+            assert (yield from m.write.call_result()) is not None
             yield
 
         def process():
@@ -103,13 +103,13 @@ class TestForwarder(TestFifoBase):
             yield from m.read.disable()
             yield from m.write.call_init(data=42)
             yield Settle()
-            self.assertIsNotNone((yield from m.write.call_result()))
+            assert (yield from m.write.call_result()) is not None
             yield
 
             # writes are not possible now
             yield from m.write.call_init(data=84)
             yield Settle()
-            self.assertIsNone((yield from m.write.call_result()))
+            assert (yield from m.write.call_result()) is None
             yield
 
             # read from the overflow buffer, writes still blocked
@@ -117,7 +117,7 @@ class TestForwarder(TestFifoBase):
             yield from m.write.call_init(data=111)
             yield Settle()
             assert (yield from m.read.call_result())== {"data": 42}
-            self.assertIsNone((yield from m.write.call_result()))
+            assert (yield from m.write.call_result()) is None
             yield
 
             # forwarding now works again
@@ -355,7 +355,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         while reduce(and_, self.producer_end, True):
             result = yield from self.m.output.call_do()
 
-            self.assertIsNotNone(result)
+            assert result is not None
 
             # this is needed to make the typechecker happy
             if result is None:
@@ -578,7 +578,7 @@ class TestMethodProduct(TestCaseWithSimulator):
                     method_en[k] = bool(i & (1 << k))
 
                 yield
-                self.assertIsNone((yield from m.method.call_try(data=0)))
+                assert (yield from m.method.call_try(data=0)) is None
 
             # otherwise, the call succeeds
             for k in range(targets):
@@ -788,10 +788,10 @@ class ConditionTest(TestCaseWithSimulator):
                 res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
 
                 if catchall or nonblocking:
-                    self.assertIsNotNone(res)
+                    assert res is not None
 
                 if res is None:
-                    self.assertIsNone(selection)
+                    assert selection is None
                     assert not catchall or nonblocking
                     assert (c1== c2, c3), (0, 0, 0)
                 elif selection is None:

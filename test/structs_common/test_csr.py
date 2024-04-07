@@ -188,7 +188,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert res["exception"]== 1
             report = yield from self.dut.exception_report.call_result()
             assert report is not None
-            assert {"rob_id": rob_id== "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0}, report
+            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0}== report
 
     def test_exception(self):
         self.gen_params = GenParams(test_core_config)
@@ -248,7 +248,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             )
 
             read_result = yield from self.dut.read.call_result()
-            self.assertIsNotNone(read_result)
+            assert read_result is not None
             previous_data = read_result["data"]  # type: ignore
 
             yield from self.dut._fu_read.disable()

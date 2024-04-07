@@ -329,7 +329,7 @@ class TestEncodingUniqueness(TestCase):
                         encoding = known_codes[prefix]
 
                         # prefix of instruction can not be equal to code of any other isntruction
-                        self.assertIsNone(encoding, f"Instruction is not unique: I1 = {encoding} I2 = {instruction}")
+                        assert encoding, f"Instruction is not unique: I1 = {encoding} I2 = {instruction}" is None
 
                     known_codes[prefix] = None
 

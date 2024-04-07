@@ -100,7 +100,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             if take_position is not None:
                 take_position = cast(int, take_position["rs_entry_id"])
                 entry = rs[take_position]
-                self.assertIsNotNone(entry)
+                assert entry is not None
                 entry = cast(RecordIntDict, entry)  # for type checking
 
                 self.taken.append(entry)

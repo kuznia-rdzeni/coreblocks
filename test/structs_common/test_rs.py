@@ -491,7 +491,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
         yield from self.m.take.call(rs_entry_id=1)
         yield Settle()
         option_ready_list = yield from self.m.get_ready_list[0].call_try()
-        self.assertIsNone(option_ready_list)
+        assert option_ready_list is None
 
 
 class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
@@ -542,7 +542,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
                 if masks[j]:
                     assert ready_list== {"ready_list": masks[j]}
                 else:
-                    self.assertIsNone(ready_list)
+                    assert ready_list is None
 
             # Take a record
             if i == self.m._dut.rs_entries:
