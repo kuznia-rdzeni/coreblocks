@@ -36,7 +36,7 @@ from coreblocks.params.configurations import test_core_config
 class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
     mul_unit: Type[MulBaseUnsigned]
 
-    def setUp(self):
+    def setup_method(self):
         self.gen_params = GenParams(test_core_config)
         self.m = SimpleTestCircuit(self.mul_unit(self.gen_params))
         self.waiting_time = 10
@@ -67,7 +67,7 @@ class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
             while self.responses:
                 expected = self.responses.pop()
                 result = yield from self.m.accept.call()
-                self.assertDictEqual(expected, result)
+                assert expected== result
                 yield from self.random_wait(self.waiting_time)
 
         def producer():

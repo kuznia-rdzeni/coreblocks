@@ -52,12 +52,12 @@ class TestExclusivePath(TestCase):
         def pairwise_not_exclusive(cps1: list[CtrlPath], cps2: list[CtrlPath]):
             return all(not cpa.exclusive_with(cpb) for cpa, cpb in product(cps1, cps2))
 
-        self.assertTrue(mutually_exclusive(cp0, cp1, cp2))
-        self.assertTrue(mutually_exclusive(cp0a0, cp0a1, cp0a2))
-        self.assertTrue(mutually_exclusive(cp0b0, cp0b1))
-        self.assertTrue(mutually_exclusive(cp10, cp11))
-        self.assertTrue(pairwise_exclusive([cp0, cp0a0, cp0a1, cp0a2, cp0b0, cp0b1], [cp1, cp10, cp11]))
-        self.assertTrue(pairwise_not_exclusive([cp0, cp0a0, cp0a1, cp0a2], [cp0, cp0b0, cp0b1]))
+        assert mutually_exclusive(cp0, cp1, cp2)
+        assert mutually_exclusive(cp0a0, cp0a1, cp0a2)
+        assert mutually_exclusive(cp0b0, cp0b1)
+        assert mutually_exclusive(cp10, cp11)
+        assert pairwise_exclusive([cp0, cp0a0, cp0a1, cp0a2, cp0b0, cp0b1], [cp1, cp10, cp11])
+        assert pairwise_not_exclusive([cp0, cp0a0, cp0a1, cp0a2], [cp0, cp0b0, cp0b1])
 
 
 class ExclusiveConflictRemovalCircuit(Elaboratable):

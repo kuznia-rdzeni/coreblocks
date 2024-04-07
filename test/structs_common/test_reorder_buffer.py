@@ -45,18 +45,18 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 self.m.retire.enable()
                 yield
                 is_ready = yield self.m.retire.adapter.done
-                self.assertEqual(is_ready, 0)  # transaction should not be ready if there is nothing to retire
+                assert is_ready== 0  # transaction should not be ready if there is nothing to retire
             else:
                 regs, rob_id_exp = self.retire_queue.get()
                 results = yield from self.m.peek.call()
                 yield from self.m.retire.call()
                 phys_reg = results["rob_data"]["rp_dst"]
-                self.assertEqual(rob_id_exp, results["rob_id"])
+                assert rob_id_exp== results["rob_id"]
                 self.assertIn(phys_reg, self.executed_list)
                 self.executed_list.remove(phys_reg)
 
                 yield Settle()
-                self.assertEqual(results["rob_data"], regs)
+                assert results["rob_data"]== regs
                 self.regs_left_queue.put(phys_reg)
 
                 cnt += 1
@@ -115,7 +115,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
         yield from self.m.retire.enable()
         yield
         res = yield self.m.retire.adapter.done
-        self.assertEqual(res, 0)  # should be disabled, since we have read all elements
+        assert res== 0  # should be disabled, since we have read all elements
 
     def test_single(self):
         self.rand = Random(0)

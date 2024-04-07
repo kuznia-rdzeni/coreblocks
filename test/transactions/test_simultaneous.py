@@ -56,13 +56,13 @@ class SimultaneousDiamondTest(TestCaseWithSimulator):
                     dones[n] = bool((yield from methods[n].done()))
                 for n in methods:
                     if not enables[n]:
-                        self.assertFalse(dones[n])
+                        assert not dones[n]
                 if enables["l"] and enables["r"] and (enables["u"] or enables["d"]):
-                    self.assertTrue(dones["l"])
-                    self.assertTrue(dones["r"])
-                    self.assertTrue(dones["u"] or dones["d"])
+                    assert dones["l"]
+                    assert dones["r"]
+                    assert dones["u"] or dones["d"]
                 else:
-                    self.assertFalse(any(dones.values()))
+                    assert not any(dones.values())
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -92,7 +92,7 @@ class UnsatisfiableTriangleTest(TestCaseWithSimulator):
     def test_unsatisfiable(self):
         circ = SimpleTestCircuit(UnsatisfiableTriangleTestCircuit())
 
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             with self.run_simulation(circ) as _:
                 pass
 

@@ -12,7 +12,7 @@ class EmptyCircuit(Elaboratable):
 
 
 class TestNow(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.test_cycles = 10
         self.m = SimpleTestCircuit(EmptyCircuit())
 

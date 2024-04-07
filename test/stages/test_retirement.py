@@ -81,7 +81,7 @@ class RetirementTestCircuit(Elaboratable):
 
 
 class RetirementTest(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.gen_params = GenParams(test_core_config)
         self.rf_exp_q = deque()
         self.rat_map_q = deque()
@@ -121,7 +121,7 @@ class RetirementTest(TestCaseWithSimulator):
     def free_reg_process(self):
         while self.rf_exp_q:
             reg = yield from self.retc.free_rf_adapter.call()
-            self.assertEqual(reg["reg_id"], self.rf_exp_q.popleft())
+            assert reg["reg_id"]== self.rf_exp_q.popleft()
 
     def rat_process(self):
         while self.rat_map_q:
@@ -133,19 +133,19 @@ class RetirementTest(TestCaseWithSimulator):
                 if wait_cycles >= self.cycles + 10:
                     self.fail("RAT entry was not updated")
                 yield
-        self.assertFalse(self.submit_q)
-        self.assertFalse(self.rf_free_q)
+        assert not self.submit_q
+        assert not self.rf_free_q
 
     @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
     def rf_free_process(self, reg_id):
-        self.assertEqual(reg_id, self.rf_free_q.popleft())
+        assert reg_id== self.rf_free_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_precommit, sched_prio=2)
     def precommit_process(self, rob_id, side_fx):
-        self.assertTrue(side_fx)
+        assert side_fx
         if self.precommit_q[0] != rob_id:
             self.precommit_q.popleft()
-            self.assertEqual(rob_id, self.precommit_q[0])
+            assert rob_id== self.precommit_q[0]
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):

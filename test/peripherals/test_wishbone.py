@@ -94,19 +94,19 @@ class TestWishboneMaster(TestCaseWithSimulator):
 
         def result_process():
             resp = yield from twbm.resultAdapter.call()
-            self.assertEqual(resp["data"], 8)
-            self.assertFalse(resp["err"])
+            assert resp["data"]== 8
+            assert not resp["err"]
 
             resp = yield from twbm.resultAdapter.call()
-            self.assertEqual(resp["data"], 3)
-            self.assertFalse(resp["err"])
+            assert resp["data"]== 3
+            assert not resp["err"]
 
             resp = yield from twbm.resultAdapter.call()
-            self.assertFalse(resp["err"])
+            assert not resp["err"]
 
             resp = yield from twbm.resultAdapter.call()
-            self.assertEqual(resp["data"], 1)
-            self.assertTrue(resp["err"])
+            assert resp["data"]== 1
+            assert resp["err"]
 
         def slave():
             wwb = WishboneInterfaceWrapper(twbm.wbm.wb_master)
@@ -272,8 +272,8 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
 
                 result = yield from pwbm.result.call()
                 cres = res_queue.pop()
-                self.assertEqual(result["data"], cres)
-                self.assertFalse(result["err"])
+                assert result["data"]== cres
+                assert not result["err"]
 
         def slave_process():
             yield Passive()
@@ -281,13 +281,13 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
             wbw = pwbm._dut.wb
             while True:
                 if (yield wbw.cyc) and (yield wbw.stb):
-                    self.assertFalse((yield wbw.stall))
-                    self.assertTrue(req_queue)
+                    assert not (yield wbw.stall)
+                    assert req_queue
                     c_req = req_queue.pop()
-                    self.assertEqual((yield wbw.adr), c_req["addr"])
-                    self.assertEqual((yield wbw.dat_w), c_req["data"])
-                    self.assertEqual((yield wbw.we), c_req["we"])
-                    self.assertEqual((yield wbw.sel), c_req["sel"])
+                    assert (yield wbw.adr)== c_req["addr"]
+                    assert (yield wbw.dat_w)== c_req["data"]
+                    assert (yield wbw.we)== c_req["we"]
+                    assert (yield wbw.sel)== c_req["sel"]
 
                     slave_queue.appendleft((yield wbw.dat_w))
                     res_queue.appendleft((yield wbw.dat_w))
@@ -327,7 +327,7 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
 
 class TestWishboneMemorySlave(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.memsize = 43  # test some weird depth
         self.iters = 300
 
@@ -368,7 +368,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 req = req_queue.pop()
 
                 if not req["we"]:
-                    self.assertEqual(res["data"], mem_state[req["addr"]])
+                    assert res["data"]== mem_state[req["addr"]]
 
         def write_process():
             wwb = WishboneInterfaceWrapper(self.m.mem_master.wb_master)
@@ -386,7 +386,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 yield
 
                 if req["we"]:
-                    self.assertEqual((yield self.m.mem_slave.mem[req["addr"]]), mem_state[req["addr"]])
+                    assert (yield self.m.mem_slave.mem[req["addr"]])== mem_state[req["addr"]]
 
         with self.run_simulation(self.m, max_cycles=3000) as sim:
             sim.add_sync_process(request_process)

@@ -153,7 +153,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
             yield
 
         for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+            assert (yield from self.get_arch_reg_val(reg_id))== val
 
     def test_asm_source(self):
         self.gen_params = GenParams(self.configuration)
@@ -184,7 +184,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     lo: int
     hi: int
 
-    def setUp(self):
+    def setup_method(self):
         self.configuration = full_core_config
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
@@ -227,9 +227,9 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             while (yield self.m.core.interrupt_controller.interrupts_enabled) == 0:
                 yield
 
-        self.assertEqual((yield from self.get_arch_reg_val(30)), int_count)
+        assert (yield from self.get_arch_reg_val(30))== int_count
         for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+            assert (yield from self.get_arch_reg_val(reg_id))== val
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)

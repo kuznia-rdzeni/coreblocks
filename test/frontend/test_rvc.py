@@ -290,7 +290,7 @@ class TestInstrDecompress(TestCaseWithSimulator):
                 yield expected.eq(instr_out)
                 yield Settle()
 
-                self.assertEqual((yield self.m.instr_out), (yield expected))
+                assert (yield self.m.instr_out)== (yield expected)
                 yield
 
         with self.run_simulation(self.m) as sim:

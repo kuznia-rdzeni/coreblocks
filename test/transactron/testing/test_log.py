@@ -98,7 +98,7 @@ class TestLog(TestCaseWithSimulator):
             yield m.input.eq(1)
 
         with self.assertLogs(LOGGER_NAME) as logs:
-            with self.assertRaises(AssertionError):
+            with pytest.raises(AssertionError):
                 with self.run_simulation(m) as sim:
                     sim.add_sync_process(proc)
 
@@ -116,7 +116,7 @@ class TestLog(TestCaseWithSimulator):
             yield m.input.eq(1)
 
         with self.assertLogs(LOGGER_NAME) as logs:
-            with self.assertRaises(AssertionError):
+            with pytest.raises(AssertionError):
                 with self.run_simulation(m) as sim:
                     sim.add_sync_process(proc)
 

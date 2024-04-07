@@ -127,7 +127,7 @@ class TransactionConflictTestCircuit(Elaboratable):
 class TestTransactionConflict(TestCaseWithSimulator):
     scheduler: TransactionScheduler
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     def make_process(
@@ -271,7 +271,7 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
 class TestTransactionPriorities(TestCaseWithSimulator):
     circuit: type[PriorityTestCircuit]
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
@@ -357,7 +357,7 @@ class NestedMethodsTestCircuit(SchedulingTestCircuit):
 class TestNested(TestCaseWithSimulator):
     circuit: type[SchedulingTestCircuit]
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     def test_scheduling(self):
@@ -403,7 +403,7 @@ class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
 
 
 class TestScheduleBefore(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     def test_schedule_before(self):

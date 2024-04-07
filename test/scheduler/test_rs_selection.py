@@ -48,7 +48,7 @@ class RSSelector(Elaboratable):
 
 
 class TestRSSelect(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.gen_params = GenParams(test_core_config)
         self.m = RSSelector(self.gen_params)
         self.expected_out = deque()
@@ -124,7 +124,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
                 yield from self.random_wait(random_wait)
                 yield Settle()
-                self.assertEqual(result, outputs)
+                assert result== outputs
 
         return process
 

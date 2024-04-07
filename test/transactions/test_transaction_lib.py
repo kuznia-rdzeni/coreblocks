@@ -52,7 +52,7 @@ class TestFifoBase(TestCaseWithSimulator):
 
         def reader():
             for i in range(2**iosize):
-                self.assertEqual((yield from m.read.call()), {"data": i})
+                assert (yield from m.read.call())== {"data": i}
                 yield from self.random_wait(reader_rand)
 
         with self.run_simulation(m) as sim:
@@ -90,7 +90,7 @@ class TestForwarder(TestFifoBase):
             yield from m.read.call_init()
             yield from m.write.call_init(data=x)
             yield Settle()
-            self.assertEqual((yield from m.read.call_result()), {"data": x})
+            assert (yield from m.read.call_result())== {"data": x}
             self.assertIsNotNone((yield from m.write.call_result()))
             yield
 
@@ -116,7 +116,7 @@ class TestForwarder(TestFifoBase):
             yield from m.read.enable()
             yield from m.write.call_init(data=111)
             yield Settle()
-            self.assertEqual((yield from m.read.call_result()), {"data": 42})
+            assert (yield from m.read.call_result())== {"data": 42}
             self.assertIsNone((yield from m.write.call_result()))
             yield
 
@@ -185,7 +185,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 while not read_req_queue:
                     yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
                 d = read_req_queue.popleft()
-                self.assertEqual((yield from m.read_resp.call()), {"data": d})
+                assert (yield from m.read_resp.call())== {"data": d}
                 yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
 
         def internal_reader_resp():
@@ -232,10 +232,10 @@ class TestMemoryBank(TestCaseWithSimulator):
             yield from m.write.disable()
             yield from m.read_req.disable()
             ret_d1 = (yield from m.read_resp.call_result())["data"]
-            self.assertEqual(d1, ret_d1)
+            assert d1== ret_d1
             yield
             ret_d2 = (yield from m.read_resp.call_result())["data"]
-            self.assertEqual(d2, ret_d2)
+            assert d2== ret_d2
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
@@ -270,7 +270,7 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
                 for _ in range(1):
                     yield Settle()
                 expected_d = data[a]
-                self.assertEqual(d["data"], expected_d)
+                assert d["data"]== expected_d
                 yield from self.random_wait(reader_rand, min_cycle_cnt=1)
 
         with self.run_simulation(m) as sim:
@@ -454,7 +454,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
         for i in range(2**self.m.iosize):
             v = yield from self.m.source.call(data=i)
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
-            self.assertEqual(v["data"], (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1))
+            assert v["data"]== (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1)
 
     @def_method_mock(lambda self: self.m.target)
     def target(self, data):
@@ -488,9 +488,9 @@ class TestMethodFilter(TestCaseWithSimulator):
         for i in range(2**self.iosize):
             v = yield from self.tc.method.call(data=i)
             if i & 1:
-                self.assertEqual(v["data"], (i + 1) & ((1 << self.iosize) - 1))
+                assert v["data"]== (i + 1) & ((1 << self.iosize) - 1)
             else:
-                self.assertEqual(v["data"], 0)
+                assert v["data"]== 0
 
     @def_method_mock(lambda self: self.target, sched_prio=2)
     def target_mock(self, data):
@@ -588,9 +588,9 @@ class TestMethodProduct(TestCaseWithSimulator):
             data = random.randint(0, (1 << iosize) - 1)
             val = (yield from m.method.call(data=data))["data"]
             if add_combiner:
-                self.assertEqual(val, (targets * data + (targets - 1) * targets // 2) & ((1 << iosize) - 1))
+                assert val== (targets * data + (targets - 1) * targets // 2) & ((1 << iosize) - 1)
             else:
-                self.assertEqual(val, data)
+                assert val== data
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(method_process)
@@ -599,7 +599,7 @@ class TestMethodProduct(TestCaseWithSimulator):
 
 
 class TestSerializer(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.test_count = 100
 
         self.port_count = 2
@@ -654,7 +654,7 @@ class TestSerializer(TestCaseWithSimulator):
         def f():
             for _ in range(self.test_count):
                 data_out = yield from self.test_circuit.serialize_out[i].call()
-                self.assertEqual(self.port_data[i].popleft(), data_out["field"])
+                assert self.port_data[i].popleft()== data_out["field"]
                 yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
 
         return f
@@ -696,9 +696,9 @@ class TestMethodTryProduct(TestCaseWithSimulator):
                 val = yield from m.method.call(data=data)
                 if add_combiner:
                     adds = sum(k * method_en[k] for k in range(targets))
-                    self.assertEqual(val, {"data": (active_targets * data + adds) & ((1 << iosize) - 1)})
+                    assert val== {"data": (active_targets * data + adds) & ((1 << iosize) - 1)}
                 else:
-                    self.assertEqual(val, {})
+                    assert val== {}
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(method_process)
@@ -792,13 +792,13 @@ class ConditionTest(TestCaseWithSimulator):
 
                 if res is None:
                     self.assertIsNone(selection)
-                    self.assertFalse(catchall or nonblocking)
-                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                    assert not catchall or nonblocking
+                    assert (c1== c2, c3), (0, 0, 0)
                 elif selection is None:
-                    self.assertTrue(nonblocking)
-                    self.assertEqual((c1, c2, c3), (0, 0, 0))
+                    assert nonblocking
+                    assert (c1== c2, c3), (0, 0, 0)
                 elif priority:
-                    self.assertEqual(selection, c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1))
+                    assert selection== c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1)
                 else:
                     self.assertIn(selection, [c1, 2 * c2, 3 * c3])
 

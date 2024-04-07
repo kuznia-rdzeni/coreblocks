@@ -32,7 +32,7 @@ class TestConfigurationsISAString(TestCase):
     def test_isa_str_gp(self):
         for test in self.TEST_CASES:
             gp = GenParams(test.core_config)
-            self.assertEqual(gp.isa_str, test.gp_str)
+            assert gp.isa_str== test.gp_str
 
     def test_isa_str_raw(self):
         for test in self.TEST_CASES:
@@ -43,5 +43,5 @@ class TestConfigurationsISAString(TestCase):
             partial = gen_isa_string(partial, 32)
             full = gen_isa_string(full, 32)
 
-            self.assertEqual(partial, test.partial_str)
-            self.assertEqual(full, test.full_str)
+            assert partial== test.partial_str
+            assert full== test.full_str
