@@ -495,37 +495,28 @@ class TestMetricsManager(TestCaseWithSimulator):
         with self.run_simulation(m):
             pass
 
-        self.assertEqual(
-            metrics_manager.get_metrics()["foo.counter1"].to_json(),  # type: ignore
-            json.dumps(
+        assert metrics_manager.get_metrics()["foo.counter1"].to_json() ==  json.dumps( # type: ignore
                 {
                     "fully_qualified_name": "foo.counter1",
                     "description": "this is the description",
                     "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
                 }
-            ),
-        )
+            )
 
-        self.assertEqual(
-            metrics_manager.get_metrics()["bar.baz.counter2"].to_json(),  # type: ignore
-            json.dumps(
+        assert metrics_manager.get_metrics()["bar.baz.counter2"].to_json() == json.dumps(  # type: ignore
                 {
                     "fully_qualified_name": "bar.baz.counter2",
                     "description": "",
                     "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
                 }
-            ),
         )
 
-        self.assertEqual(
-            metrics_manager.get_metrics()["bar.baz.counter3"].to_json(),  # type: ignore
-            json.dumps(
+        assert metrics_manager.get_metrics()["bar.baz.counter3"].to_json() == json.dumps( # type: ignore
                 {
                     "fully_qualified_name": "bar.baz.counter3",
                     "description": "yet another description",
                     "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
                 }
-            ),
         )
 
     def test_returned_reg_values(self):

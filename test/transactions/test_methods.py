@@ -542,9 +542,9 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
                 yield circ.data.eq(x)
                 yield Settle()
 
-                assert bool((yield circ.running))== (t1en or t2en) and mrdy
-                assert bool((yield from circ.t1.done()))== t1en and mrdy
-                assert bool((yield from circ.t2.done()))== t2en and mrdy
+                assert bool((yield circ.running))== ((t1en or t2en) and mrdy)
+                assert bool((yield from circ.t1.done()))== (t1en and mrdy)
+                assert bool((yield from circ.t2.done()))== (t2en and mrdy)
 
                 if t1en and mrdy:
                     assert (yield from circ.t1.get_outputs())== {"data": x}
