@@ -1,3 +1,4 @@
+import pytest
 from collections import deque
 
 import random
@@ -145,7 +146,8 @@ class TestFetch(TestCaseWithSimulator):
 
 
 class TestUnalignedFetch(TestCaseWithSimulator):
-    def setup_method(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
         self.instr_queue = deque()
         self.instructions = 500

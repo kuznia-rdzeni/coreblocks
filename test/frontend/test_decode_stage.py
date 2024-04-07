@@ -1,3 +1,4 @@
+import pytest
 from transactron.lib import AdapterTrans, FIFO
 
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, ModuleConnector
@@ -10,7 +11,8 @@ from coreblocks.params.configurations import test_core_config
 
 
 class TestDecode(TestCaseWithSimulator):
-    def setup_method(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
         self.gen_params = GenParams(test_core_config.replace(start_pc=24))
 
         fifo_in = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
