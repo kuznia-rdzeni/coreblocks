@@ -4,7 +4,7 @@ from coreblocks.func_blocks.fu.zbs import ZbsFunction, ZbsComponent
 from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
-class ZbsUnitTest(FunctionalUnitTestCase[ZbsFunction.Fn]):
+class TestZbsUnit(FunctionalUnitTestCase[ZbsFunction.Fn]):
     func_unit = ZbsComponent()
     zero_imm = False
 

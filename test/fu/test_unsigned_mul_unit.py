@@ -33,7 +33,7 @@ from coreblocks.params.configurations import test_core_config
         ),
     ],
 )
-class UnsignedMultiplicationTestUnit(TestCaseWithSimulator):
+class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
     mul_unit: Type[MulBaseUnsigned]
 
     def setup_method(self):

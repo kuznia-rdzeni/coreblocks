@@ -80,7 +80,7 @@ class RetirementTestCircuit(Elaboratable):
         return m
 
 
-class RetirementTest(TestCaseWithSimulator):
+class TestRetirement(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
         self.rf_exp_q = deque()
@@ -131,7 +131,7 @@ class RetirementTest(TestCaseWithSimulator):
             while (yield self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
-                    self.fail("RAT entry was not updated")
+                    assert False, "RAT entry was not updated"
                 yield
         assert not self.submit_q
         assert not self.rf_free_q

@@ -1,3 +1,4 @@
+import pytest
 from itertools import product
 import random
 import itertools
@@ -764,8 +765,10 @@ class ConditionTestCircuit(Elaboratable):
         return m
 
 
-class ConditionTest(TestCaseWithSimulator):
-    @parameterized.expand(product([False, True], [False, True], [False, True]))
+class TestCondition(TestCaseWithSimulator):
+    @pytest.mark.parametrize("nonblocking", [False, True])
+    @pytest.mark.parametrize("priority", [False, True])
+    @pytest.mark.parametrize("catchall", [False, True])
     def test_condition(self, nonblocking: bool, priority: bool, catchall: bool):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 

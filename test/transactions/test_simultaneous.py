@@ -40,7 +40,7 @@ class SimultaneousDiamondTestCircuit(Elaboratable):
         return m
 
 
-class SimultaneousDiamondTest(TestCaseWithSimulator):
+class TestSimultaneousDiamond(TestCaseWithSimulator):
     def test_diamond(self):
         circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit())
 
@@ -89,7 +89,7 @@ class UnsatisfiableTriangleTestCircuit(Elaboratable):
         return m
 
 
-class UnsatisfiableTriangleTest(TestCaseWithSimulator):
+class TestUnsatisfiableTriangle(TestCaseWithSimulator):
     def test_unsatisfiable(self):
         circ = SimpleTestCircuit(UnsatisfiableTriangleTestCircuit())
 
@@ -136,7 +136,7 @@ class TransitivityTestCircuit(Elaboratable):
         return m
 
 
-class TransitivityTest(TestCaseWithSimulator):
+class TestTransitivity(TestCaseWithSimulator):
     def test_transitivity(self):
         target = TestbenchIO(Adapter(i=[("data", 2)]))
         req1 = Signal()
