@@ -238,14 +238,11 @@ class TestCSRRegister(TestCaseWithSimulator):
             if fu_read:  # in CSRUnit this call is called before write and returns previous result
                 assert (yield from self.dut._fu_read.call_result())== {"data": exp_read_data}
 
-            self.assertEqual(
-                (yield from self.dut.read.call_result()),
-                {
+            assert (yield from self.dut.read.call_result()) == {
                     "data": exp_read_data,
                     "read": int(fu_read),
                     "written": int(fu_write),
-                },
-            )
+                }
 
             read_result = yield from self.dut.read.call_result()
             assert read_result is not None

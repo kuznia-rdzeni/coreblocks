@@ -362,7 +362,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 continue
 
             t = (result["field1"], result["field2"])
-            self.assertIn(t, self.expected_output)
+            assert t in self.expected_output
             if self.expected_output[t] == 1:
                 del self.expected_output[t]
             else:
@@ -793,14 +793,14 @@ class ConditionTest(TestCaseWithSimulator):
                 if res is None:
                     assert selection is None
                     assert not catchall or nonblocking
-                    assert (c1== c2, c3), (0, 0, 0)
+                    assert (c1, c2, c3) == (0, 0, 0)
                 elif selection is None:
                     assert nonblocking
-                    assert (c1== c2, c3), (0, 0, 0)
+                    assert (c1, c2, c3) == (0, 0, 0)
                 elif priority:
                     assert selection== c1 + 2 * c2 * (1 - c1) + 3 * c3 * (1 - c2) * (1 - c1)
                 else:
-                    self.assertIn(selection, [c1, 2 * c2, 3 * c3])
+                    assert selection in [c1, 2 * c2, 3 * c3]
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)

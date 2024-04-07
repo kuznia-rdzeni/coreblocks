@@ -140,7 +140,7 @@ class AdapterCircuit(Elaboratable):
 
 class TestInvalidMethods(TestCase):
     def assert_re(self, msg, m):
-        with pytest.raisesRegex(RuntimeError, msg):
+        with pytest.raises(RuntimeError, match=msg):
             Fragment.get(TransactionModule(m), platform=None)
 
     def test_twice(self):
