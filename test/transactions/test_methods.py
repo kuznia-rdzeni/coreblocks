@@ -14,7 +14,7 @@ from unittest import TestCase
 
 
 class TestDefMethod(TestCaseWithSimulator):
-    class TestModule(Elaboratable):
+    class CircuitTestModule(Elaboratable):
         def __init__(self, method_definition):
             self.method = Method(
                 i=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
@@ -32,7 +32,7 @@ class TestDefMethod(TestCaseWithSimulator):
             return m
 
     def do_test_definition(self, definer):
-        with self.run_simulation(TestDefMethod.TestModule(definer)):
+        with self.run_simulation(TestDefMethod.CircuitTestModule(definer)):
             pass
 
     def test_fields_valid1(self):
