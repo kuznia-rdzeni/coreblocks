@@ -73,7 +73,10 @@ def regression_body_with_cocotb(test_name: str, traces: bool):
     if traces:
         arglist += ["TRACES=1"]
 
-    res = subprocess.run(arglist)
+    my_env = dict(os.environ)
+    my_env["PATH"] = os.path.join(os.getcwd(), "test/regression/cocotb") + ":" + my_env["PATH"]
+
+    res = subprocess.run(arglist, env=my_env)
 
     assert res.returncode == 0
 

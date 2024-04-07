@@ -1,13 +1,12 @@
 import random
 from collections import deque
-from typing import Optional
 
 from amaranth.sim import Settle, Passive
 
 from transactron.lib import Adapter
 from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import GenParams
-from coreblocks.func_blocks.lsu.dummyLsu import LSUDummy
+from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.keys import ExceptionReportKey
@@ -19,18 +18,8 @@ from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
-def generate_register(max_reg_val: int, phys_regs_bits: int) -> tuple[int, int, Optional[dict[str, int]], int]:
-    if random.randint(0, 1):
-        rp = random.randint(1, 2**phys_regs_bits - 1)
-        val = 0
-        real_val = random.randint(0, max_reg_val // 4) * 4
-        ann_data = {"reg_id": rp, "reg_val": real_val}
-    else:
-        rp = 0
-        val = random.randint(0, max_reg_val // 4) * 4
-        real_val = val
-        ann_data = None
-    return rp, val, ann_data, real_val
+def generate_aligned_addr(max_reg_val: int) -> int:
+    return random.randint(0, max_reg_val // 4) * 4
 
 
 def generate_random_op(ops: dict[str, tuple[OpType, Funct3]]) -> tuple[tuple[OpType, Funct3], int, bool]:
@@ -97,10 +86,8 @@ class DummyLSUTestCircuit(Elaboratable):
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
-        m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
-        m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
-        m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
-        m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
+        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
+        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus_master_adapter = self.bus_master_adapter
@@ -126,9 +113,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 # generate opcode
                 (op, mask, signess) = generate_random_op(ops)
                 # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data, addr = generate_register(max_reg_val, self.gen_params.phys_regs_bits)
+                s1_val = generate_aligned_addr(max_reg_val)
                 imm = generate_imm(max_imm_val)
-                addr += imm
+                addr = s1_val + imm
 
                 if check_align(addr, op):
                     break
@@ -137,18 +124,15 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     misaligned = True
                     break
 
-            self.announce_queue.append(ann_data)
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
 
             # calculate word address and mask
             mask = shift_mask_based_on_addr(mask, addr)
-            addr = addr >> 2
+            word_addr = addr >> 2
 
             rp_dst = random.randint(0, 2**self.gen_params.phys_regs_bits - 1)
             rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
             instr = {
-                "rp_s1": rp_s1,
-                "rp_s2": 0,
                 "rp_dst": rp_dst,
                 "rob_id": rob_id,
                 "exec_fn": exec_fn,
@@ -157,10 +141,10 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 "imm": imm,
                 "pc": 0,
             }
-            self.instr_queue.append(instr)
-            self.mem_data_queue.append(
+            self.instr_queue.appendleft(instr)
+            self.mem_data_queue.appendleft(
                 {
-                    "addr": addr,
+                    "addr": word_addr,
                     "mask": mask,
                     "sign": signess,
                     "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
@@ -170,7 +154,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             )
 
             if misaligned or bus_err:
-                self.exception_queue.append(
+                self.exception_queue.appendleft(
                     {
                         "rob_id": rob_id,
                         "cause": (
@@ -180,7 +164,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     }
                 )
 
-            self.exception_result.append(
+            self.exception_result.appendleft(
                 misaligned or bus_err,
             )
 
@@ -190,7 +174,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
-        self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.returned_data = deque()
         self.exception_queue = deque()
@@ -223,24 +206,19 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             if sign:
                 data = int_to_signed(signed_to_int(data, size), 32)
             if not generated_data["err"]:
-                self.returned_data.append(data)
+                self.returned_data.appendleft(data)
             yield from self.test_module.io_in.slave_respond(resp_data, err=generated_data["err"])
             yield Settle()
 
     def inserter(self):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
-            ret = yield from self.test_module.select.call()
-            self.assertEqual(ret["rs_entry_id"], 0)
-            yield from self.test_module.insert.call(rs_data=req, rs_entry_id=1)
-            announc = self.announce_queue.pop()
-            if announc is not None:
-                yield from self.test_module.update.call(announc)
+            yield from self.test_module.issue.call(req)
             yield from self.random_wait(self.max_wait)
 
     def consumer(self):
         for i in range(self.tests_number):
-            v = yield from self.test_module.get_result.call()
+            v = yield from self.test_module.accept.call()
             exc = self.exception_result.pop()
             if not exc:
                 self.assertEqual(v["result"], self.returned_data.pop())
@@ -268,14 +246,13 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
         exec_fn = {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0}
         instr = {
-            "rp_s1": 0,
-            "rp_s2": 0,
             "rp_dst": rp_dst,
             "rob_id": rob_id,
             "exec_fn": exec_fn,
             "s1_val": s1_val,
             "s2_val": 0,
             "imm": imm,
+            "pc": 0,
         }
 
         wish_data = {
@@ -293,9 +270,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
     def one_instr_test(self):
         instr, wish_data = self.generate_instr(2**7, 2**7)
 
-        ret = yield from self.test_module.select.call()
-        self.assertEqual(ret["rs_entry_id"], 0)
-        yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
+        yield from self.test_module.issue.call(instr)
         yield from self.test_module.io_in.slave_wait()
 
         mask = wish_data["mask"]
@@ -305,7 +280,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         yield from self.test_module.io_in.slave_respond(data)
         yield Settle()
 
-        v = yield from self.test_module.get_result.call()
+        v = yield from self.test_module.accept.call()
         self.assertEqual(v["result"], data)
 
     def test(self):
@@ -328,22 +303,14 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             while True:
                 # generate opcode
                 (op, mask, _) = generate_random_op(ops)
-                # generate rp1, val1 which create addr
-                rp_s1, s1_val, ann_data1, addr = generate_register(max_reg_val, self.gen_params.phys_regs_bits)
+                # generate address
+                s1_val = generate_aligned_addr(max_reg_val)
                 imm = generate_imm(max_imm_val)
-                addr += imm
+                addr = s1_val + imm
                 if check_align(addr, op):
                     break
 
-            rp_s2, s2_val, ann_data2, data = generate_register(0xFFFFFFFF, self.gen_params.phys_regs_bits)
-            if rp_s1 == rp_s2 and ann_data1 is not None and ann_data2 is not None:
-                ann_data2 = None
-                data = ann_data1["reg_val"]
-            # decide in which order we would get announcments
-            if random.randint(0, 1):
-                self.announce_queue.append((ann_data1, ann_data2))
-            else:
-                self.announce_queue.append((ann_data2, ann_data1))
+            data = s2_val = generate_aligned_addr(0xFFFFFFFF)
 
             exec_fn = {"op_type": op[0], "funct3": op[1], "funct7": 0}
 
@@ -353,17 +320,16 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
             rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
             instr = {
-                "rp_s1": rp_s1,
-                "rp_s2": rp_s2,
                 "rp_dst": 0,
                 "rob_id": rob_id,
                 "exec_fn": exec_fn,
                 "s1_val": s1_val,
                 "s2_val": s2_val,
                 "imm": imm,
+                "pc": 0,
             }
-            self.instr_queue.append(instr)
-            self.mem_data_queue.append({"addr": addr, "mask": mask, "data": bytes.fromhex(f"{data:08x}")})
+            self.instr_queue.appendleft(instr)
+            self.mem_data_queue.appendleft({"addr": addr, "mask": mask, "data": bytes.fromhex(f"{data:08x}")})
 
     def setUp(self) -> None:
         random.seed(14)
@@ -371,7 +337,6 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
-        self.announce_queue = deque()
         self.mem_data_queue = deque()
         self.get_result_data = deque()
         self.precommit_data = deque()
@@ -402,20 +367,13 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
             self.get_result_data.appendleft(req["rob_id"])
-            ret = yield from self.test_module.select.call()
-            self.assertEqual(ret["rs_entry_id"], 0)
-            yield from self.test_module.insert.call(rs_data=req, rs_entry_id=0)
+            yield from self.test_module.issue.call(req)
             self.precommit_data.appendleft(req["rob_id"])
-            announc = self.announce_queue.pop()
-            for j in range(2):
-                if announc[j] is not None:
-                    yield from self.random_wait(self.max_wait)
-                    yield from self.test_module.update.call(announc[j])
             yield from self.random_wait(self.max_wait)
 
     def get_resulter(self):
         for i in range(self.tests_number):
-            v = yield from self.test_module.get_result.call()
+            v = yield from self.test_module.accept.call()
             rob_id = self.get_result_data.pop()
             self.assertEqual(v["rob_id"], rob_id)
             self.assertEqual(v["rp_dst"], 0)
@@ -444,26 +402,16 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
 class TestDummyLSUFence(TestCaseWithSimulator):
     def get_instr(self, exec_fn):
-        return {
-            "rp_s1": 0,
-            "rp_s2": 0,
-            "rp_dst": 1,
-            "rob_id": 1,
-            "exec_fn": exec_fn,
-            "s1_val": 4,
-            "s2_val": 1,
-            "imm": 8,
-        }
+        return {"rp_dst": 1, "rob_id": 1, "exec_fn": exec_fn, "s1_val": 4, "s2_val": 1, "imm": 8, "pc": 0}
 
     def push_one_instr(self, instr):
-        yield from self.test_module.select.call()
-        yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
+        yield from self.test_module.issue.call(instr)
 
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
             yield from self.test_module.io_in.slave_wait()
             yield from self.test_module.io_in.slave_respond(1)
             yield Settle()
-        v = yield from self.test_module.get_result.call()
+        v = yield from self.test_module.accept.call()
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
             self.assertEqual(v["result"], 1)
 
