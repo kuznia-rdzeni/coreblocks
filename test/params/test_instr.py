@@ -10,7 +10,7 @@ from coreblocks.frontend.decoder.isa import *
 class InstructionTest(unittest.TestCase):
     def do_run(self, test_cases: Sequence[tuple[RISCVInstr, int]]):
         for instr, raw_instr in test_cases:
-            assert instr.encode()== raw_instr
+            assert instr.encode() == raw_instr
 
     def test_r_type(self):
         test_cases = [

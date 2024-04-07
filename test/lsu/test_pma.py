@@ -21,7 +21,7 @@ class TestPMADirect(TestCaseWithSimulator):
             yield self.test_module.addr.eq(i)
             yield Settle()
             mmio = yield self.test_module.result["mmio"]
-            assert mmio== region.mmio
+            assert mmio == region.mmio
 
     def process(self):
         for r in self.pma_regions:
@@ -95,7 +95,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
                 wb = self.test_module.io_in.wb
                 for i in range(100):  # 100 cycles is more than enough
                     wb_requested = (yield wb.stb) and (yield wb.cyc)
-                    assert wb_requested== False
+                    assert not wb_requested
 
                 yield from self.test_module.precommit.call(rob_id=1, side_fx=1)
 
@@ -103,7 +103,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
             yield from self.test_module.io_in.slave_respond((addr << (addr % 4) * 8))
             yield Settle()
             v = yield from self.test_module.accept.call()
-            assert v["result"]== addr
+            assert v["result"] == addr
 
     def process(self):
         for region in self.pma_regions:

@@ -354,7 +354,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
         def process():
             for n in range(1 << (WIDTH - 2)):
                 out = yield from circ.tb.call(data=n)
-                assert out["data"]== n * 4
+                assert out["data"] == n * 4
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -542,15 +542,15 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
                 yield circ.data.eq(x)
                 yield Settle()
 
-                assert bool((yield circ.running))== ((t1en or t2en) and mrdy)
-                assert bool((yield from circ.t1.done()))== (t1en and mrdy)
-                assert bool((yield from circ.t2.done()))== (t2en and mrdy)
+                assert bool((yield circ.running)) == ((t1en or t2en) and mrdy)
+                assert bool((yield from circ.t1.done())) == (t1en and mrdy)
+                assert bool((yield from circ.t2.done())) == (t2en and mrdy)
 
                 if t1en and mrdy:
-                    assert (yield from circ.t1.get_outputs())== {"data": x}
+                    assert (yield from circ.t1.get_outputs()) == {"data": x}
 
                 if t2en and mrdy:
-                    assert (yield from circ.t2.get_outputs())== {"data": x}
+                    assert (yield from circ.t2.get_outputs()) == {"data": x}
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -619,15 +619,15 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 out_t2 = yield self.circ.out_t2
 
                 if not m_ready or (not req_t1 or in1 == self.bad_number) and (not req_t2 or in2 == self.bad_number):
-                    assert out_m== 0
-                    assert out_t1== 0
-                    assert out_t2== 0
+                    assert out_m == 0
+                    assert out_t1 == 0
+                    assert out_t2 == 0
                     continue
                 # Here method global ready signal is high and we requested one of the transactions
                 # we also know that one of the transactions request correct input data
 
-                assert out_m== 1
-                assert out_t1 ^ out_t2== 1
+                assert out_m == 1
+                assert out_t1 ^ out_t2 == 1
                 # inX == self.bad_number implies out_tX==0
                 assert in1 != self.bad_number or not out_t1
                 assert in2 != self.bad_number or not out_t2

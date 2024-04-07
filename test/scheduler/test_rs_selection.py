@@ -124,7 +124,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
                 yield from self.random_wait(random_wait)
                 yield Settle()
-                assert result== outputs
+                assert result == outputs
 
         return process
 

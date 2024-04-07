@@ -56,7 +56,7 @@ class TestFuDecoder(TestCaseWithSimulator):
                 returned = yield from self.handle_signals(decoder, exec_fn)
                 expected = self.expected_results(instructions, op_type_dependent, exec_fn)
 
-                assert returned== expected
+                assert returned == expected
 
         test_circuit = SimpleTestCircuit(decoder)
 

@@ -67,7 +67,7 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
 
                 new_state = yield from self.dut.get.call()
 
-                assert new_state== expected | {"valid": 1}  # type: ignore
+                assert new_state == expected | {"valid": 1}  # type: ignore
 
                 saved_entry = new_state
 

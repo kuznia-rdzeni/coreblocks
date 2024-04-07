@@ -39,7 +39,7 @@ class TestAssign(TestCaseWithSimulator):
             for i in range(len(circuit.input)):
                 yield circuit.input.eq(1 << i)
                 yield Settle()
-                assert (yield circuit.output)== i
+                assert (yield circuit.output) == i
 
         with self.run_simulation(circuit) as sim:
             sim.add_process(switch_test_proc)
@@ -51,7 +51,7 @@ class TestAssign(TestCaseWithSimulator):
             for i in range(len(circuit.input)):
                 yield circuit.input.eq(1 << i)
                 yield Settle()
-                assert (yield circuit.output)== i
+                assert (yield circuit.output) == i
                 assert not (yield circuit.zero)
 
             yield circuit.input.eq(0)

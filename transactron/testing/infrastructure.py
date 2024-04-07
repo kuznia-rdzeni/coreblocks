@@ -202,7 +202,7 @@ class PysimSimulator(Simulator):
         return not self.advance()
 
 
-class TestCaseWithSimulator():
+class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
     @pytest.fixture(autouse=True)
@@ -233,16 +233,16 @@ class TestCaseWithSimulator():
             traces_file = ".".join(request.node.nodeid.split("/"))
         self._transactron_infrastructure_traces_file = traces_file
 
-
     @pytest.fixture(autouse=True)
     def fixture_sim_processes_to_add(self):
         # By default return empty lists, it will be updated by other fixtures based on needs
-        self._transactron_sim_processes_to_add : list[Callable[[], Optional[Callable]]] = []
+        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
 
     @pytest.fixture(autouse=True)
     def configure_profiles(self, request, fixture_sim_processes_to_add, configure_dependency_context):
-        profile=None
+        profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
+
             def f():
                 nonlocal profile
                 try:
@@ -271,7 +271,6 @@ class TestCaseWithSimulator():
         log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
         self._transactron_sim_processes_to_add.append(lambda: make_logging_process(log_level, log_filter, on_error))
-
 
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):

@@ -51,7 +51,7 @@ class TestAdapterTrans(TestCaseWithSimulator):
             yield from self.consumer.action.call()
         for expected in [4, 1, 0]:
             obtained = (yield from self.echo.action.call(data=expected))["data"]
-            assert expected== obtained
+            assert expected == obtained
 
     def test_single(self):
         self.echo = SimpleTestCircuit(Echo())

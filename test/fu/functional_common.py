@@ -151,7 +151,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         while self.responses:
             expected = self.responses.pop()
             result = yield from self.m.accept.call()
-            assert expected== result
+            assert expected == result
             yield from self.random_wait(self.max_wait)
 
     def producer(self):
@@ -164,7 +164,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         while self.exceptions:
             expected = self.exceptions.pop()
             result = yield from self.report_mock.call()
-            assert expected== result
+            assert expected == result
             yield from self.random_wait(self.max_wait)
 
         # keep partialy dependent tests from hanging up and detect extra calls
@@ -176,7 +176,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         yield Passive()
         while True:
             assert (yield self.m.issue.adapter.iface.ready)
-            assert (yield self.m.issue.adapter.en)== (yield self.m.issue.adapter.done)
+            assert (yield self.m.issue.adapter.en) == (yield self.m.issue.adapter.done)
             yield
 
     def run_standard_fu_test(self, pipeline_test=False):

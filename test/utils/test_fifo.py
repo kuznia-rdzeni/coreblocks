@@ -70,7 +70,7 @@ class TestBasicFifo(TestCaseWithSimulator):
 
                 v = yield from fifoc.fifo_read.call_result()
                 if v is not None:
-                    assert v["data"]==expq.pop()
+                    assert v["data"] == expq.pop()
 
                 yield from fifoc.fifo_read.disable()
 

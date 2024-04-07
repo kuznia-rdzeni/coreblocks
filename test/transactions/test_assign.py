@@ -106,7 +106,7 @@ class TestAssign(TestCase):
         lhs = self.build(self.mk, layout1)
         rhs = self.build(self.mk, layout2)
         alist = list(assign(lhs, rhs, fields=self.wrap(atype)))
-        assert len(alist)== 1
+        assert len(alist) == 1
         self.assertIs_AP(alist[0].lhs, self.extr(lhs).a)
         self.assertIs_AP(alist[0].rhs, self.extr(rhs).a)
 
@@ -114,12 +114,12 @@ class TestAssign(TestCase):
         if isinstance(expr1, ArrayProxy) and isinstance(expr2, ArrayProxy):
             # new proxies are created on each index, structural equality is needed
             self.assertIs(expr1.index, expr2.index)
-            assert len(expr1.elems)== len(expr2.elems)
+            assert len(expr1.elems) == len(expr2.elems)
             for x, y in zip(expr1.elems, expr2.elems):
                 self.assertIs_AP(x, y)
         elif isinstance(expr1, Slice) and isinstance(expr2, Slice):
             self.assertIs_AP(expr1.value, expr2.value)
-            assert expr1.start== expr2.start
-            assert expr1.stop== expr2.stop
+            assert expr1.start == expr2.start
+            assert expr1.stop == expr2.stop
         else:
             self.assertIs(expr1, expr2)

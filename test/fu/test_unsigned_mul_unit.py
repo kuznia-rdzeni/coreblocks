@@ -67,7 +67,7 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
             while self.responses:
                 expected = self.responses.pop()
                 result = yield from self.m.accept.call()
-                assert expected== result
+                assert expected == result
                 yield from self.random_wait(self.waiting_time)
 
         def producer():

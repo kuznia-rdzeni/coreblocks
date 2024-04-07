@@ -133,10 +133,10 @@ class TestISA(unittest.TestCase):
     def do_test(self, test):
         def _do_test():
             isa = ISA(test.isa_str)
-            assert isa.xlen== test.xlen
-            assert isa.reg_cnt== test.reg_cnt
-            assert isa.extensions== test.extensions
-            assert isa.ilen== 32
+            assert isa.xlen == test.xlen
+            assert isa.reg_cnt == test.reg_cnt
+            assert isa.extensions == test.extensions
+            assert isa.ilen == 32
 
         if not test.valid:
             with pytest.raises(RuntimeError):

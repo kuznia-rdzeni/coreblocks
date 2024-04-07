@@ -221,15 +221,15 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             v = yield from self.test_module.accept.call()
             exc = self.exception_result.pop()
             if not exc:
-                assert v["result"]== self.returned_data.pop()
-            assert v["exception"]== exc
+                assert v["result"] == self.returned_data.pop()
+            assert v["exception"] == exc
 
             yield from self.random_wait(self.max_wait)
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            assert arg== self.exception_queue.pop()
+            assert arg == self.exception_queue.pop()
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.wishbone_slave)
@@ -281,7 +281,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         yield Settle()
 
         v = yield from self.test_module.accept.call()
-        assert v["result"]== data
+        assert v["result"] == data
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -375,8 +375,8 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         for i in range(self.tests_number):
             v = yield from self.test_module.accept.call()
             rob_id = self.get_result_data.pop()
-            assert v["rob_id"]== rob_id
-            assert v["rp_dst"]== 0
+            assert v["rob_id"] == rob_id
+            assert v["rp_dst"] == 0
             yield from self.random_wait(self.max_wait)
             self.precommit_data.pop()  # retire
 
@@ -413,7 +413,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             yield Settle()
         v = yield from self.test_module.accept.call()
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
-            assert v["result"]== 1
+            assert v["result"] == 1
 
     def process(self):
         # just tests if FENCE doens't hang up the LSU

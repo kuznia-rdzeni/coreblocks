@@ -24,8 +24,8 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
             res = yield from self.m.rename.call(
                 rl_dst=to_execute["rl"], rp_dst=to_execute["rp"], rl_s1=to_execute["rl_s1"], rl_s2=to_execute["rl_s2"]
             )
-            assert res["rp_s1"]== self.expected_entries[to_execute["rl_s1"]]
-            assert res["rp_s2"]== self.expected_entries[to_execute["rl_s2"]]
+            assert res["rp_s1"] == self.expected_entries[to_execute["rl_s1"]]
+            assert res["rp_s2"] == self.expected_entries[to_execute["rl_s2"]]
 
             self.expected_entries[to_execute["rl"]] = to_execute["rp"]
 
@@ -61,8 +61,8 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
             yield from self.m.peek.call_init(rl_dst=to_execute["rl"])
             res = yield from self.m.commit.call(rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
             peek_res = yield from self.m.peek.call_do()
-            assert res["old_rp_dst"]== self.expected_entries[to_execute["rl"]]
-            assert peek_res["old_rp_dst"]== res["old_rp_dst"]
+            assert res["old_rp_dst"] == self.expected_entries[to_execute["rl"]]
+            assert peek_res["old_rp_dst"] == res["old_rp_dst"]
 
             self.expected_entries[to_execute["rl"]] = to_execute["rp"]
 

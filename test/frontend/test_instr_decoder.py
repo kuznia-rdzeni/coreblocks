@@ -186,52 +186,52 @@ class TestDecoder(TestCaseWithSimulator):
                 yield self.decoder.instr.eq(test.encoding)
                 yield Settle()
 
-                assert (yield self.decoder.illegal)== test.illegal
+                assert (yield self.decoder.illegal) == test.illegal
                 if test.illegal:
                     return
 
-                assert (yield self.decoder.opcode)== test.opcode
+                assert (yield self.decoder.opcode) == test.opcode
 
                 if test.funct3 is not None:
-                    assert (yield self.decoder.funct3)== test.funct3
-                assert (yield self.decoder.funct3_v)== (test.funct3 is not None)
+                    assert (yield self.decoder.funct3) == test.funct3
+                assert (yield self.decoder.funct3_v) == (test.funct3 is not None)
 
                 if test.funct7 is not None:
-                    assert (yield self.decoder.funct7)== test.funct7
-                assert (yield self.decoder.funct7_v)== (test.funct7 is not None)
+                    assert (yield self.decoder.funct7) == test.funct7
+                assert (yield self.decoder.funct7_v) == (test.funct7 is not None)
 
                 if test.funct12 is not None:
-                    assert (yield self.decoder.funct12)== test.funct12
-                assert (yield self.decoder.funct12_v)== (test.funct12 is not None)
+                    assert (yield self.decoder.funct12) == test.funct12
+                assert (yield self.decoder.funct12_v) == (test.funct12 is not None)
 
                 if test.rd is not None:
-                    assert (yield self.decoder.rd)== test.rd
-                assert (yield self.decoder.rd_v)== (test.rd is not None)
+                    assert (yield self.decoder.rd) == test.rd
+                assert (yield self.decoder.rd_v) == (test.rd is not None)
 
                 if test.rs1 is not None:
-                    assert (yield self.decoder.rs1)== test.rs1
-                assert (yield self.decoder.rs1_v)== (test.rs1 is not None)
+                    assert (yield self.decoder.rs1) == test.rs1
+                assert (yield self.decoder.rs1_v) == (test.rs1 is not None)
 
                 if test.rs2 is not None:
-                    assert (yield self.decoder.rs2)== test.rs2
-                assert (yield self.decoder.rs2_v)== (test.rs2 is not None)
+                    assert (yield self.decoder.rs2) == test.rs2
+                assert (yield self.decoder.rs2_v) == (test.rs2 is not None)
 
                 if test.imm is not None:
-                    assert (yield self.decoder.imm.as_signed())== test.imm
+                    assert (yield self.decoder.imm.as_signed()) == test.imm
 
                 if test.succ is not None:
-                    assert (yield self.decoder.succ)== test.succ
+                    assert (yield self.decoder.succ) == test.succ
 
                 if test.pred is not None:
-                    assert (yield self.decoder.pred)== test.pred
+                    assert (yield self.decoder.pred) == test.pred
 
                 if test.fm is not None:
-                    assert (yield self.decoder.fm)== test.fm
+                    assert (yield self.decoder.fm) == test.fm
 
                 if test.csr is not None:
-                    assert (yield self.decoder.csr)== test.csr
+                    assert (yield self.decoder.csr) == test.csr
 
-                assert (yield self.decoder.optype)== test.op
+                assert (yield self.decoder.optype) == test.op
 
         with self.run_simulation(self.decoder) as sim:
             sim.add_process(process)
@@ -280,7 +280,7 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
             for encoding, illegal in self.E_TEST:
                 yield self.decoder.instr.eq(encoding)
                 yield Settle()
-                assert (yield self.decoder.illegal)== illegal
+                assert (yield self.decoder.illegal) == illegal
 
         with self.run_simulation(self.decoder) as sim:
             sim.add_process(process)

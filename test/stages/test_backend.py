@@ -139,8 +139,8 @@ class TestBackend(TestCaseWithSimulator):
             if rf_result is None or rs_result is None or rob_result is None:
                 continue
 
-            assert rf_result["reg_val"]== rs_result["value"]
-            assert rf_result["reg_id"]== rs_result["reg_id"]
+            assert rf_result["reg_val"] == rs_result["value"]
+            assert rf_result["reg_id"] == rs_result["reg_id"]
 
             t = (rob_result["rob_id"], rf_result["reg_val"], rf_result["reg_id"])
             assert t in self.expected_output

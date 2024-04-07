@@ -126,8 +126,8 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
             instr = self.instr_queue.popleft()
-            assert v["pc"]== instr["pc"]
-            assert v["instr"]== instr["instr"]
+            assert v["pc"] == instr["pc"]
+            assert v["instr"] == instr["instr"]
 
             if instr["is_branch"]:
                 # branches on mispredict will stall fetch because of exception and then resume with new pc
@@ -258,8 +258,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                     v = yield from self.io_out.call()
                 discard_mispredict = False
 
-            assert v["pc"]== instr["pc"]
-            assert v["access_fault"]== instr_error
+            assert v["pc"] == instr["pc"]
+            assert v["access_fault"] == instr_error
 
             if instr["is_branch"] or instr_error:
                 yield from self.random_wait(5)

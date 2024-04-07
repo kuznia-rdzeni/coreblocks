@@ -130,22 +130,22 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
                 cur_addr = req_addr + i * self.cp.fetch_block_bytes
 
-                assert ret["addr"]== cur_addr
+                assert ret["addr"] == cur_addr
 
                 if cur_addr in self.bad_fetch_blocks:
-                    assert ret["error"]== 1
-                    assert ret["last"]== 1
+                    assert ret["error"] == 1
+                    assert ret["last"] == 1
                     break
 
                 fetch_block = ret["fetch_block"]
                 for j in range(self.cp.words_in_fetch_block):
                     word = (fetch_block >> (j * self.cp.word_width)) & (2**self.cp.word_width - 1)
-                    assert word== self.mem[cur_addr + j * self.cp.word_width_bytes]
+                    assert word == self.mem[cur_addr + j * self.cp.word_width_bytes]
 
-                assert ret["error"]== 0
+                assert ret["error"] == 0
 
                 last = 1 if i == self.cp.fetch_blocks_in_line - 1 else 0
-                assert ret["last"]== last
+                assert ret["last"] == last
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:
@@ -260,7 +260,7 @@ class TestICacheBypass(TestCaseWithSimulator):
                 data = self.mem[req_addr]
                 if self.gen_params.isa.xlen == 64:
                     data |= self.mem[req_addr + 4] << 32
-                assert ret["fetch_block"]== data
+                assert ret["fetch_block"] == data
 
             while random.random() < 0.5:
                 yield
@@ -412,10 +412,10 @@ class TestICache(TestCaseWithSimulator):
             for i in range(0, self.cp.fetch_block_bytes, 4):
                 fetch_block |= self.mem[addr + i] << (8 * i)
 
-            assert resp["fetch_block"]== fetch_block
+            assert resp["fetch_block"] == fetch_block
 
     def expect_refill(self, addr: int):
-        assert self.refill_requests.popleft()== addr
+        assert self.refill_requests.popleft() == addr
 
     def call_cache(self, addr: int):
         yield from self.send_req(addr)
@@ -435,7 +435,7 @@ class TestICache(TestCaseWithSimulator):
             # Accesses to the same cache line shouldn't cause a cache miss
             for i in range(self.cp.fetch_blocks_in_line):
                 yield from self.call_cache(0x00010000 + i * self.cp.fetch_block_bytes)
-                assert len(self.refill_requests)== 0
+                assert len(self.refill_requests) == 0
 
             # Now go beyond the first cache line
             yield from self.call_cache(0x00010000 + self.cp.line_size_bytes)
@@ -456,7 +456,7 @@ class TestICache(TestCaseWithSimulator):
             # Now do some accesses within the cached memory
             for i in range(50):
                 yield from self.call_cache(random.randrange(0, self.cp.line_size_bytes * self.cp.num_of_sets, 4))
-            assert len(self.refill_requests)== 0
+            assert len(self.refill_requests) == 0
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(cache_user_process)
@@ -474,7 +474,7 @@ class TestICache(TestCaseWithSimulator):
             # And now both lines should be in the cache
             yield from self.call_cache(0x00010004)
             yield from self.call_cache(0x00020004)
-            assert len(self.refill_requests)== 0
+            assert len(self.refill_requests) == 0
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(cache_process)
@@ -592,7 +592,7 @@ class TestICache(TestCaseWithSimulator):
                     addr = w * 0x00010000 + s * self.cp.line_size_bytes
                     yield from self.call_cache(addr)
 
-            assert len(self.refill_requests)== 0
+            assert len(self.refill_requests) == 0
 
             yield from self.m.flush_cache.call()
 

@@ -33,27 +33,27 @@ class TestNames(TestCase):
                 Transaction(manager=mgr)
 
         T()
-        assert mgr.transactions[0].name== "T"
+        assert mgr.transactions[0].name == "T"
 
         t = Transaction(name="x", manager=mgr)
-        assert t.name== "x"
+        assert t.name == "x"
 
         t = Transaction(manager=mgr)
-        assert t.name== "t"
+        assert t.name == "t"
 
         m = Method(name="x")
-        assert m.name== "x"
+        assert m.name == "x"
 
         m = Method()
-        assert m.name== "m"
+        assert m.name == "m"
 
 
 class TestScheduler(TestCaseWithSimulator):
     def count_test(self, sched, cnt):
-        assert sched.count== cnt
-        assert len(sched.requests)== cnt
-        assert len(sched.grant)== cnt
-        assert len(sched.valid)== 1
+        assert sched.count == cnt
+        assert len(sched.requests) == cnt
+        assert len(sched.grant) == cnt
+        assert len(sched.valid) == 1
 
     def sim_step(self, sched, request, expected_grant):
         yield sched.requests.eq(request)
@@ -62,7 +62,7 @@ class TestScheduler(TestCaseWithSimulator):
         if request == 0:
             assert not (yield sched.valid)
         else:
-            assert (yield sched.grant)== expected_grant
+            assert (yield sched.grant) == expected_grant
             assert (yield sched.valid)
 
     def test_single(self):
@@ -148,7 +148,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             self.out1_expected.append(x)
 
         def chk(x: int):
-            assert x== self.in_expected.popleft()
+            assert x == self.in_expected.popleft()
 
         return self.make_process(self.m.in1, prob, self.in1_stream, tgt, chk)
 
@@ -157,7 +157,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             self.out2_expected.append(x)
 
         def chk(x: int):
-            assert x== self.in_expected.popleft()
+            assert x == self.in_expected.popleft()
 
         return self.make_process(self.m.in2, prob, self.in2_stream, tgt, chk)
 
@@ -285,7 +285,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield Settle()
-                assert (yield m.t1)!= (yield m.t2)
+                assert (yield m.t1) != (yield m.t2)
                 if r1 == 1 and r2 == 1:
                     if priority == Priority.LEFT:
                         assert (yield m.t1)
@@ -370,8 +370,8 @@ class TestNested(TestCaseWithSimulator):
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield
-                assert (yield m.t1)== r1
-                assert (yield m.t2)== r1 * r2
+                assert (yield m.t1) == r1
+                assert (yield m.t2) == r1 * r2
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
@@ -416,7 +416,7 @@ class TestScheduleBefore(TestCaseWithSimulator):
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield
-                assert (yield m.t1)== r1
+                assert (yield m.t1) == r1
                 assert not (yield m.t2)
 
         with self.run_simulation(m) as sim:

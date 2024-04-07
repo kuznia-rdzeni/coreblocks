@@ -111,11 +111,11 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
                 issued = yield from self.m.issue_mock.call_result()
                 if issued is not None:
-                    assert issued== self.taken.popleft()
+                    assert issued == self.taken.popleft()
                     issued_count += 1
             yield
-        assert inserted_count!= 0
-        assert inserted_count== issued_count
+        assert inserted_count != 0
+        assert inserted_count == issued_count
 
     def test(self):
         with self.run_simulation(self.m) as sim:
