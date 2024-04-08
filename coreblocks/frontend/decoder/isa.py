@@ -153,3 +153,11 @@ class ExceptionCause(IntEnum, shape=5):
     STORE_PAGE_FAULT = 15
     _COREBLOCKS_ASYNC_INTERRUPT = 16
     _COREBLOCKS_MISPREDICTION = 17
+
+
+# move to priv isa params
+@unique
+class PrivilegeLevel(IntEnum, shape=2):
+    USER = 0b00
+    SUPERVISOR = 0b01
+    MACHINE = 0b11

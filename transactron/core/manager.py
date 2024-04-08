@@ -33,9 +33,13 @@ class MethodMap:
         def rec(transaction: Transaction, source: TransactionBase):
             for method, (arg_rec, _) in source.method_uses.items():
                 if not method.defined:
-                    raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
+                    raise RuntimeError(
+                        f"Trying to use method '{method.name}' at {method.src_loc} which is not defined yet (call from={transaction.src_loc} {source.src_loc})"
+                    )  # add wrapper for preety prining?
                 if method in self.methods_by_transaction[transaction]:
-                    raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
+                    raise RuntimeError(
+                        f"Method '{method.name}' at {method.src_loc} can't be called twice from the same transaction"
+                    )
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
                 self.readiness_by_method_and_transaction[(transaction, method)] = method._validate_arguments(arg_rec)

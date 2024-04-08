@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
+from coreblocks.frontend.decoder.isa import PrivilegeLevel
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign
 from coreblocks.params.genparams import GenParams
@@ -19,12 +19,6 @@ from coreblocks.interface.keys import (
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
 )
-
-
-class PrivilegeLevel(IntEnum, shape=2):
-    USER = 0b00
-    SUPERVISOR = 0b01
-    MACHINE = 0b11
 
 
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:

@@ -30,6 +30,7 @@ class Retirement(Elaboratable):
         fetch_continue: Method,
         instr_decrement: Method,
         trap_entry: Method,
+        async_interrupt_cause: Method,
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -45,6 +46,7 @@ class Retirement(Elaboratable):
         self.fetch_continue = fetch_continue
         self.instr_decrement = instr_decrement
         self.trap_entry = trap_entry
+        self.async_interrupt_cause = async_interrupt_cause
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
@@ -134,9 +136,10 @@ class Retirement(Elaboratable):
                             # Instruction that reported interrupt is the last one that is commited.
                             m.d.av_comb += commit.eq(1)
 
-                            # TODO: set correct interrupt id from InterruptController
                             # Set MSB - the Interrupt bit
-                            m.d.av_comb += cause_entry.eq(1 << (self.gen_params.isa.xlen - 1))
+                            m.d.av_comb += cause_entry.eq(
+                                (1 << (self.gen_params.isa.xlen - 1)) | self.async_interrupt_cause(m).cause
+                            )
                         with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
                             # Branch misprediction - commit jump, flush core and continue from correct pc.
                             m.d.av_comb += commit.eq(1)

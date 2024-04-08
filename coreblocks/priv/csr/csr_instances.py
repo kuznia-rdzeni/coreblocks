@@ -2,16 +2,20 @@ from amaranth import *
 from amaranth.lib.enum import IntEnum
 
 from typing import Optional
-
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.alias import AliasedCSR
 from transactron.core import Method, Transaction, def_method, TModule
 
 
 class CSRAddress(IntEnum, shape=12):
+    MSTATUS = 0x300
+    MIE = 0x304
     MTVEC = 0x305
+
     MEPC = 0x341
     MCAUSE = 0x342
+    MIP = 0x344
 
     CYCLE = 0xC00
     TIME = 0xC01
@@ -19,6 +23,8 @@ class CSRAddress(IntEnum, shape=12):
     CYCLEH = 0xC80
     TIMEH = 0xC81
     INSTRETH = 0xC82
+
+    COREBLOCKS_TEST_CSR = 0x7FF
 
 
 class DoubleCounterCSR(Elaboratable):
@@ -72,6 +78,8 @@ class DoubleCounterCSR(Elaboratable):
 
 class MachineModeCSRRegisters(Elaboratable):
     def __init__(self, gen_params: GenParams):
+        self.mstatus = AliasedCSR(CSRAddress.MSTATUS, gen_params)
+
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
         # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
@@ -84,6 +92,7 @@ class MachineModeCSRRegisters(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        m.submodules.mstatus = self.mstatus
         m.submodules.mcause = self.mcause
         m.submodules.mtvec = self.mtvec
         m.submodules.mepc = self.mepc
@@ -93,11 +102,16 @@ class MachineModeCSRRegisters(Elaboratable):
 
 class GenericCSRRegisters(Elaboratable):
     def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+
         self.m_mode = MachineModeCSRRegisters(gen_params)
 
         self.csr_cycle = DoubleCounterCSR(gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH)
         # TODO: CYCLE should be alias to TIME
         self.csr_time = DoubleCounterCSR(gen_params, CSRAddress.TIME, CSRAddress.TIMEH)
+
+        if gen_params._generate_test_hardware:
+            self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
 
     def elaborate(self, platform):
         m = TModule()
@@ -106,6 +120,8 @@ class GenericCSRRegisters(Elaboratable):
 
         m.submodules.csr_cycle = self.csr_cycle
         m.submodules.csr_time = self.csr_time
+        if self.gen_params._generate_test_hardware:
+            m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
 
         with Transaction().body(m):
             self.csr_cycle.increment(m)

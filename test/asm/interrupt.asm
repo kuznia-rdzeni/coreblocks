@@ -3,6 +3,9 @@
     csrw mtvec, x1
     li x30, 0     # interrupt count
     li x31, 0xde  # branch guard
+    csrsi mstatus, 0x8 # machine interrupt enable
+    li x8, 0x30000
+    csrw mie, x8 # enable custom interrupt 0 and 1
     li x1, 0
     li x2, 1
     li x5, 4
@@ -21,7 +24,22 @@ int_handler:
     mv x9, x1
     mv x10, x2
     mv x11, x3
-    addi x30, x30, 1
+
+    # clear interrupts
+    csrr x1, mip
+    andi x2, x1, 0x1
+    beqz x2, skip_clear_edge
+        csrci mip, 0x1 # clear edge reported interrupt
+        addi x30, x30, 1
+    skip_clear_edge:
+    andi x2, x1, 0x1
+    beqz x2, skip_clear_level
+        csrwi 0x7ff, 1 # clear level reported interrupt via custom csr
+        addi x30, x30, 1
+    skip_clear_level:
+
+    # todo: mie interrupts randomly
+
     # load state
     mv x1, x5
     mv x2, x6

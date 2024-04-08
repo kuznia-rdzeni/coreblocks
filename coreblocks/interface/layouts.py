@@ -595,6 +595,14 @@ class ExceptionRegisterLayouts:
         self.get = StructLayout(self.report.members | make_layout(self.valid).members)
 
 
+class InternalInterruptControllerLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.cause: LayoutListField = ("cause", gen_params.isa.xlen)
+        """ Async interrupt cause code """
+
+        self.interrupt_cause = make_layout(self.cause)
+
+
 class CoreInstructionCounterLayouts:
     def __init__(self, gen_params: GenParams):
         self.decrement = [("empty", 1)]

@@ -4,7 +4,7 @@ from amaranth.lib.wiring import flipped, connect
 from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
-from coreblocks.priv.traps.interrupt_controller import InterruptController
+from coreblocks.priv.traps.interrupt_controller import InternalInterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
 from coreblocks.interface.layouts import *
@@ -113,10 +113,10 @@ class Core(Elaboratable):
             rf_write=self.RF.write,
         )
 
-        self.interrupt_controller = InterruptController(self.gen_params)
-
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+
+        self.interrupt_controller = InternalInterruptController(self.gen_params)
 
     def elaborate(self, platform):
         m = TModule()
@@ -135,6 +135,9 @@ class Core(Elaboratable):
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
+
+        m.submodules.csr_generic = self.csr_generic
+        m.submodules.interrupt_controller = self.interrupt_controller
 
         if self.icache_refiller:
             m.submodules.icache_refiller = self.icache_refiller
@@ -185,11 +188,8 @@ class Core(Elaboratable):
             fetch_continue=self.fetch.resume,
             instr_decrement=self.core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
+            async_interrupt_cause=self.interrupt_controller.interrupt_cause,
         )
-
-        m.submodules.interrupt_controller = self.interrupt_controller
-
-        m.submodules.csr_generic = self.csr_generic
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)

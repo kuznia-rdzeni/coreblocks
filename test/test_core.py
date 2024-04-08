@@ -1,5 +1,6 @@
-from amaranth import Elaboratable, Module
+from amaranth import Elaboratable, Module, Signal
 from amaranth.lib.wiring import connect
+from amaranth.sim import Passive
 
 from transactron.lib import AdapterTrans
 from transactron.utils import align_to_power_of_two, signed_to_int
@@ -45,13 +46,17 @@ class CoreTestElaboratable(Elaboratable):
         )
         self.core = Core(gen_params=self.gen_params, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
         self.io_in = TestbenchIO(AdapterTrans(self.core.fetch_continue.method))
-        self.interrupt = TestbenchIO(AdapterTrans(self.core.interrupt_controller.report_interrupt))
+
+        self.interrupt_level = Signal()
+        self.interrupt_edge = Signal()
+
+        m.d.comb += self.core.interrupt_controller.custom_report_edge.eq(self.interrupt_edge)
+        m.d.comb += self.core.interrupt_controller.custom_report_level.eq(self.interrupt_level << 1)
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
         m.submodules.io_in = self.io_in
-        m.submodules.interrupt = self.interrupt
 
         connect(m, wb_instr_bus, self.wb_mem_slave.bus)
         connect(m, wb_data_bus, self.wb_mem_slave_data.bus)
@@ -185,20 +190,49 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     hi: int
 
     def setup_method(self):
-        self.configuration = full_core_config
+        self.configuration = full_core_config.replace(
+            _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
+        )
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
 
-    def run_with_interrupt(self):
+    def clear_level_interrupt_procsess(self):
+        yield Passive()
+
+        while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
+            yield
+
+        yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
+        yield self.m.interrupt_level.eq(0)
+        yield
+
+    def timeout_process(self):
+        yield from self.tick(1000)
+
+    def run_with_interrupt_process(self):
+        yield Passive()
         main_cycles = 0
         int_count = 0
 
         # set up fibonacci max numbers
         for reg_id, val in self.start_regvals.items():
             yield from self.push_register_load_imm(reg_id, val)
-        # wait for caches to fill up so that mtvec is written - very important
-        # TODO: replace with interrupt enable via CSR
-        yield from self.tick(200)
+
+        # wait for interrupt enable
+        while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
+            yield
+
+        def do_interrupt():
+            count = 0
+            if random.random() < 0.5:
+                yield self.m.interrupt_edge.eq(1)
+                count += 1
+            if random.random() < 0.5 and (yield self.m.interrupt_level) == 0:
+                yield self.m.interrupt_level.eq(1)
+                count += 1
+            yield
+            yield self.m.interrupt_edge.eq(0)
+            return count
 
         early_interrupt = False
         while main_cycles < self.main_cycle_count or early_interrupt:
@@ -208,23 +242,19 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 main_cycles += c
                 yield from self.tick(c)
                 # trigger an interrupt
-                yield from self.m.interrupt.call()
-                yield
-                int_count += 1
+                int_count += do_interrupt()
 
             # wait for the interrupt to get registered
-            while (yield self.m.core.interrupt_controller.interrupts_enabled) == 1:
+            while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 1:
                 yield
 
             # trigger interrupt during execution of ISR handler (blocked-pending) with some chance
             early_interrupt = random.random() < 0.4
             if early_interrupt:
-                yield from self.m.interrupt.call()
-                yield
-                int_count += 1
+                int_count += do_interrupt()
 
             # wait until ISR returns
-            while (yield self.m.core.interrupt_controller.interrupts_enabled) == 0:
+            while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
                 yield
 
         assert (yield from self.get_arch_reg_val(30)) == int_count
@@ -235,4 +265,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         bin_src = self.prepare_source(self.source_file)
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src)
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.run_with_interrupt)
+            sim.add_sync_process(self.run_with_interrupt_process)
+            sim.add_sync_process(self.clear_level_interrupt_procsess)
+            sim.add_sync_process(self.timeout_process)

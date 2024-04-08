@@ -71,4 +71,8 @@ class GenParams(DependentCache):
             raise ValueError("Fetch block must be not smaller than the machine word.")
         self.fetch_block_bytes = 2**self.fetch_block_bytes_log
 
+        self.interrupt_custom_count = cfg.interrupt_custom_count
+        self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask
+
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
+        self._generate_test_hardware = cfg._generate_test_hardware
