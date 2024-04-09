@@ -158,7 +158,7 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
         m = TModule()
 
         bus_serializer = Serializer(
-            port_count=2, serialized_req_method=self.bus.request, serialized_resp_method=self.bus.result
+            port_count=2, serialized_req_method=self.bus.request, serialized_resp_method=self.bus.result, depth=1
         )
         m.submodules.bus_serializer = bus_serializer
 
