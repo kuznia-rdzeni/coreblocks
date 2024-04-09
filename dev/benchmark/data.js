@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712682907476,
+  "lastUpdate": 1712683069824,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -9919,6 +9919,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.29316662943800825,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4ba656455c74b8ad9bc081f39f2498a646533d0d",
+          "message": "Fix LSU FENCE issue (#647)",
+          "timestamp": "2024-04-09T19:05:29+02:00",
+          "tree_id": "7e30370fcc80475028c9a08f22313805b6e3985e",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4ba656455c74b8ad9bc081f39f2498a646533d0d"
+        },
+        "date": 1712683066747,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "slre",
+            "value": 0.18830806309955814,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2551784802224618,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29316662943800825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.27916937796305963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.38398161016601284,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.2437939792267849,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.31428496807135303,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.5642657981099021,
             "unit": "Instructions Per Cycle"
           }
         ]
