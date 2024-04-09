@@ -196,23 +196,31 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
 
+    def calc_fib(self, n: int):
+        if n <= 1:
+            return n
+        else:
+            return self.calc_fib(n - 1) + self.calc_fib(n - 2)
+
     def clear_level_interrupt_procsess(self):
         yield Passive()
+        while True:
+            while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
+                yield
 
-        while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
+            yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
+            yield self.m.interrupt_level.eq(0)
             yield
 
-        yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
-        yield self.m.interrupt_level.eq(0)
-        yield
-
-    def timeout_process(self):
-        yield from self.tick(1000)
+    #    def timeout_process(self):
+    #        yield from self.tick(3000)
+    #        assert False
 
     def run_with_interrupt_process(self):
-        yield Passive()
+        # yield Passive()
         main_cycles = 0
         int_count = 0
+        handler_count = 1
 
         # set up fibonacci max numbers
         for reg_id, val in self.start_regvals.items():
@@ -222,13 +230,18 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
             yield
 
+        print("lt")
+
         def do_interrupt():
             count = 0
-            if random.random() < 0.5:
+            trig = random.randint(1, 3)
+            if trig & 1:
                 yield self.m.interrupt_edge.eq(1)
+                print("trig edge")
                 count += 1
-            if random.random() < 0.5 and (yield self.m.interrupt_level) == 0:
+            if trig & 2 and (yield self.m.interrupt_level) == 0:
                 yield self.m.interrupt_level.eq(1)
+                print("trig lelel")
                 count += 1
             yield
             yield self.m.interrupt_edge.eq(0)
@@ -242,7 +255,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 main_cycles += c
                 yield from self.tick(c)
                 # trigger an interrupt
-                int_count += do_interrupt()
+                int_count += yield from do_interrupt()
 
             # wait for the interrupt to get registered
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 1:
@@ -251,13 +264,22 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             # trigger interrupt during execution of ISR handler (blocked-pending) with some chance
             early_interrupt = random.random() < 0.4
             if early_interrupt:
-                int_count += do_interrupt()
+                # wait until interrupts are cleared, so it won't be missed
+                while (yield self.m.core.interrupt_controller.mip.value) != 0:
+                    yield
+
+                int_count += yield from do_interrupt()
+
+            handler_count += 1
 
             # wait until ISR returns
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
                 yield
 
+            print("exit")
+
         assert (yield from self.get_arch_reg_val(30)) == int_count
+
         for reg_id, val in self.expected_regvals.items():
             assert (yield from self.get_arch_reg_val(reg_id)) == val
 
@@ -267,4 +289,3 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt_process)
             sim.add_sync_process(self.clear_level_interrupt_procsess)
-            sim.add_sync_process(self.timeout_process)

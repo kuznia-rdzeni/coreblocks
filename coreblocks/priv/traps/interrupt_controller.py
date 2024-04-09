@@ -11,6 +11,7 @@ from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRR
 
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
+from transactron.core.transaction_base import Priority
 from transactron.utils.dependencies import DependencyManager
 
 
@@ -127,15 +128,22 @@ class InternalInterruptController(Component):
 
         @def_method(m, self.mret)
         def _():
-            self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
-            self.mstatus_mpie.write(m, {"data": 1})
-            # TODO: Set mpp when other privilege modes are implemented
+            pass
 
-        # mret/entry conflict cannot happen, mret is called under precommit
         @def_method(m, self.entry)
         def _():
-            self.mstatus_mie.write(m, {"data": 0})
-            self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
+            pass
+
+        # mret/entry conflict cannot happen (mret under precommit)
+        # comment here
+        with Transaction().body(m):
+            with m.If(self.entry.run):
+                self.mstatus_mie.write(m, {"data": 0})
+                self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
+            with m.Elif(self.mret.run):
+                self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
+                self.mstatus_mpie.write(m, {"data": 1})
+                # TODO: Set mpp when other privilege modes are implemented
 
         interrupt_priority = [
             InterruptCauseNumber.MEI,
