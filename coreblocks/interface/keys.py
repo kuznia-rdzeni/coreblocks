@@ -65,3 +65,8 @@ class MretKey(SimpleKey[Method]):
 @dataclass(frozen=True)
 class CoreStateKey(SimpleKey[Method]):
     pass
+
+
+@dataclass(frozen=True)
+class FlushICacheKey(SimpleKey[Method]):
+    pass
