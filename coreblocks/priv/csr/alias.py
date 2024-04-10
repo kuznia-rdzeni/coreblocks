@@ -11,7 +11,7 @@ from transactron.core.tmodule import TModule
 from transactron.utils.dependencies import DependencyManager
 
 
-class AliasedCSR(Elaboratable):  # todo csr protocol ??
+class AliasedCSR(CSRRegister):  # todo csr protocol?
     def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
         self.gen_params = gen_params
         self.csr_number = csr_number

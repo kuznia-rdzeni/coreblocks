@@ -3,7 +3,6 @@ from amaranth import *
 from enum import IntFlag, auto, unique
 from typing import Sequence
 
-
 from transactron import *
 from transactron.lib import BasicFifo, logging
 from transactron.lib.metrics import TaggedCounter

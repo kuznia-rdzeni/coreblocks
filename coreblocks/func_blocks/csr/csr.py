@@ -1,17 +1,18 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
 from dataclasses import dataclass
-from coreblocks.frontend.decoder.isa import PrivilegeLevel
+
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign
-from coreblocks.params.genparams import GenParams
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyManager
+
+from coreblocks.frontend.decoder.isa import PrivilegeLevel, Funct3, ExceptionCause
+from coreblocks.frontend.decoder import OpType
+from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
-from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.priv.csr.csr_register import *
+from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
     FetchResumeKey,

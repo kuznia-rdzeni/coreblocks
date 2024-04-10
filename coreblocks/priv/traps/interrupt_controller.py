@@ -11,7 +11,6 @@ from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRR
 
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
-from transactron.core.transaction_base import Priority
 from transactron.utils.dependencies import DependencyManager
 
 

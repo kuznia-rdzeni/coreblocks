@@ -34,8 +34,9 @@ class MethodMap:
             for method, (arg_rec, _) in source.method_uses.items():
                 if not method.defined:
                     raise RuntimeError(
-                        f"Trying to use method '{method.name}' at {method.src_loc} which is not defined yet (call from={transaction.src_loc} {source.src_loc})"
-                    )  # add wrapper for preety prining?
+                        f"Trying to use method '{method.name}' at {method.src_loc} which \
+                                is not defined yet (call from={transaction.src_loc} {source.src_loc})"
+                    )
                 if method in self.methods_by_transaction[transaction]:
                     raise RuntimeError(
                         f"Method '{method.name}' at {method.src_loc} can't be called twice from the same transaction"
