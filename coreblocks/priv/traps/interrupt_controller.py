@@ -158,7 +158,7 @@ class InternalInterruptController(Component):
 
         top_interrupt = Signal(range(self.gen_params.isa.xlen))
         for bit in reversed(interrupt_priority):
-            with m.If(mip[bit]):
+            with m.If(mip[bit] & mie[bit]):
                 m.d.comb += top_interrupt.eq(bit)
 
         # Level-triggered interrupts can disappear after insertion to the instruction core,

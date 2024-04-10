@@ -208,13 +208,12 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
                 yield
 
+            if (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 2:
+                assert False, "`fail` called"
+
             yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
             yield self.m.interrupt_level.eq(0)
             yield
-
-    #    def timeout_process(self):
-    #        yield from self.tick(3000)
-    #        assert False
 
     def run_with_interrupt_process(self):
         # yield Passive()
@@ -235,11 +234,12 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         def do_interrupt():
             count = 0
             trig = random.randint(1, 3)
-            if trig & 1:
+            mie = (yield self.m.core.interrupt_controller.mie.value) >> 16
+            if mie != 0b11 or trig & 1:
                 yield self.m.interrupt_edge.eq(1)
                 print("trig edge")
                 count += 1
-            if trig & 2 and (yield self.m.interrupt_level) == 0:
+            if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0:
                 yield self.m.interrupt_level.eq(1)
                 print("trig lelel")
                 count += 1
