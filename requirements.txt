@@ -1,3 +1,3 @@
-amaranth-yosys==0.35.0.0.post81
-git+https://github.com/amaranth-lang/amaranth@115954b4d957b4ba642ad056ab1670bf5d185fb6
+amaranth-yosys==0.39.0.165.post92
+git+https://github.com/amaranth-lang/amaranth@890e099ec3450306bc841311365d09e932d1b46f
 dataclasses-json==0.6.3
