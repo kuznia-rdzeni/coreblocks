@@ -2,7 +2,9 @@ from collections.abc import Collection
 
 import dataclasses
 from dataclasses import dataclass, field
-from coreblocks.func_blocks.fu.lsu.pma import PMARegion
+
+from typing import Self, cast
+from transactron.utils._typing import type_self_kwargs_as
 
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -19,6 +21,7 @@ from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
+from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
@@ -34,7 +37,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
 
 
 @dataclass(kw_only=True)
-class CoreConfiguration:
+class _CoreConfigurationDataClass:
     """
     Core configuration parameters.
 
@@ -106,8 +109,11 @@ class CoreConfiguration:
 
     pma: list[PMARegion] = field(default_factory=list)
 
-    def replace(self, **kwargs):
-        return dataclasses.replace(self, **kwargs)
+
+class CoreConfiguration(_CoreConfigurationDataClass):
+    @type_self_kwargs_as(_CoreConfigurationDataClass.__init__)
+    def replace(self, **kwargs) -> Self:
+        return cast(Self, dataclasses.replace(super(), **kwargs))
 
 
 # Default core configuration
