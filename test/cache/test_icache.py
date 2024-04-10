@@ -187,7 +187,7 @@ class ICacheBypassTestCircuit(Elaboratable):
     ],
 )
 class TestICacheBypass(TestCaseWithSimulator):
-    isa_xlen: str
+    isa_xlen: int
     fetch_block: int
 
     def setUp(self) -> None:
