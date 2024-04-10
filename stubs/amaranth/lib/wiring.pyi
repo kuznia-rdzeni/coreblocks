@@ -32,14 +32,14 @@ class Flow(enum.Enum):
         """
         ...
     
-    def __call__(self, description: Signature | ShapeLike, *, reset=...) -> Member:
+    def __call__(self, description: Signature | ShapeLike, *, init=...) -> Member:
         """Create a :class:`Member` with this data flow and the provided description and
         reset value.
 
         Returns
         -------
         :class:`Member`
-            :pc:`Member(self, description, reset=reset)`
+            :pc:`Member(self, description, init=reset)`
         """
         ...
     
@@ -74,7 +74,7 @@ class Member:
     Although instances can be created directly, most often they will be created through
     :data:`In` and :data:`Out`, e.g. :pc:`In(unsigned(1))` or :pc:`Out(stream.Signature(RGBPixel))`.
     """
-    def __init__(self, flow: Flow, description: Signature | ShapeLike, *, reset=..., _dimensions=...) -> None:
+    def __init__(self, flow: Flow, description: Signature | ShapeLike, *, init=..., _dimensions=...) -> None:
         ...
     
     def flip(self) -> Member:

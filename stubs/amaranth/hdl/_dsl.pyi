@@ -158,7 +158,7 @@ class Module(_ModuleBuilderRoot, Elaboratable):
         ...
     
     @contextmanager
-    def FSM(self, reset: Optional[str] = ..., domain: str = ..., name: str = ...) -> Iterator[FSM]:
+    def FSM(self, init: Optional[str] = ..., domain: str = ..., name: str = ...) -> Iterator[FSM]:
         ...
     
     @contextmanager
