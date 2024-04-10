@@ -121,7 +121,7 @@ class PrivilegedFuncUnit(Elaboratable):
                     m.d.av_comb += ret_pc.eq(csr.m_mode.mepc.read(m).data)
                     m.d.av_comb += handle_interrupts_now.eq(1)
                 with OneHotCase(PrivilegedFn.Fn.FENCEI):
-                    # FENCE.I can't be compressed, to the next instruction is always pc+4
+                    # FENCE.I can't be compressed, so the next instruction is always pc+4
                     m.d.av_comb += ret_pc.eq(instr_pc + 4)
                     m.d.av_comb += handle_interrupts_now.eq(0)
 
