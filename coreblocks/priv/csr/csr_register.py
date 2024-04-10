@@ -5,7 +5,7 @@ from amaranth.lib.data import StructLayout
 
 from transactron import Method, def_method, TModule
 from coreblocks.params.genparams import GenParams
-from coreblocks.interface.layouts import CSRLayouts
+from coreblocks.interface.layouts import CSRRegisterLayouts
 from coreblocks.func_blocks.csr.csr import CSRListKey
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyManager

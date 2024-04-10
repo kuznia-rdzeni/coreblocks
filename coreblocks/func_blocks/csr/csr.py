@@ -8,7 +8,7 @@ from coreblocks.params.genparams import GenParams
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.priv.csr.csr_register import *
@@ -87,7 +87,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
 
         # Standard RS interface
-        self.csr_layouts = gen_params.get(CSRLayouts)
+        self.csr_layouts = gen_params.get(CSRUnitLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.select = Method(o=self.csr_layouts.rs.select_out)
         self.insert = Method(i=self.csr_layouts.rs.insert_in)
