@@ -555,7 +555,7 @@ class LSULayouts:
 class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
-    def __init__(self, gen_params: GenParams, *, data_width:Optional[int] = None):
+    def __init__(self, gen_params: GenParams, *, data_width: Optional[int] = None):
         data_width = data_width if data_width is not None else gen_params.isa.xlen
 
         self.data: LayoutListField = ("data", data_width)
@@ -570,6 +570,7 @@ class CSRRegisterLayouts:
 
         self._fu_read = make_layout(self.data)
         self._fu_write = make_layout(self.data)
+
 
 class CSRUnitLayouts:
     """Layouts used in the control and status functional unit."""

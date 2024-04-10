@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from transactron.lib.dependencies import SimpleKey, UnifierKey
+from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
 from transactron import Method
 from transactron.lib import MethodTryProduct, Collector
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
@@ -9,6 +9,7 @@ from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import GenericCSRRegisters  # noqa: F401
+    from coreblocks.priv.csr.csr_register import CSRRegister  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -19,6 +20,8 @@ __all__ = [
     "GenericCSRRegistersKey",
     "AsyncInterruptInsertSignalKey",
     "MretKey",
+    "CoreStateKey",
+    "CSRListKey",
 ]
 
 
@@ -64,4 +67,11 @@ class MretKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class CoreStateKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class CSRListKey(ListKey["CSRRegister"]):
+    """DependencyManager key collecting CSR registers globally as a list."""
+
     pass

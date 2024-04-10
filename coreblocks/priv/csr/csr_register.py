@@ -6,14 +6,14 @@ from typing import Optional
 from collections.abc import Callable
 
 from coreblocks.params.genparams import GenParams
+from coreblocks.interface.keys import CSRListKey
 from coreblocks.interface.layouts import CSRRegisterLayouts
-from coreblocks.func_blocks.csr.csr import CSRListKey
 
 from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyManager
 from transactron.utils.transactron_helpers import from_method_layout
-from transactron.utils._typing import MethodStruct, RecordDict, ValueLike
+from transactron.utils._typing import ValueLike
 
 
 class CSRRegister(Elaboratable):
@@ -65,8 +65,8 @@ class CSRRegister(Elaboratable):
         ro_bits: int = 0,
         reset: int | Enum = 0,
         fu_write_priority: bool = True,
-        fu_write_filtermap: Optional[Callable[[TModule, MethodStruct], tuple[ValueLike, RecordDict]]] = None,
-        fu_read_map: Optional[Callable[[TModule, MethodStruct], RecordDict]] = None,
+        fu_write_filtermap: Optional[Callable[[TModule, Value], tuple[ValueLike, ValueLike]]] = None,
+        fu_read_map: Optional[Callable[[TModule, Value], ValueLike]] = None,
     ):
         """
         Parameters
@@ -113,13 +113,19 @@ class CSRRegister(Elaboratable):
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
         self._internal_fu_write = Method(i=csr_layouts._fu_write)
         self.fu_write_map = MethodMap(
-            self._internal_fu_write, i_transform=(csr_layouts._fu_write, lambda tm, ms: fu_write_filtermap(tm, ms)[1])
+            self._internal_fu_write,
+            i_transform=(csr_layouts._fu_write, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
         )
-        self.fu_write_filter = MethodFilter(self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms)[0])
-        self.fu_read_map = MethodMap(self._internal_fu_read, o_transform=(csr_layouts._fu_read, fu_read_map))
+        self.fu_write_filter = MethodFilter(
+            self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms["data"])[0]
+        )
+        self.fu_read_map = MethodMap(
+            self._internal_fu_read,
+            o_transform=(csr_layouts._fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
+        )
 
         # Methods connected autatically by CSRUnit
-        self._fu_read = self._internal_fu_read  # FIXME:self.fu_read_map.method
+        self._fu_read = self.fu_read_map.method
         self._fu_write = self.fu_write_filter.method
 
         self.value = Signal(self.width, reset=reset)

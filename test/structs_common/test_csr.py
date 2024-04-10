@@ -1,6 +1,8 @@
 from amaranth import *
+from random import random
 
 from transactron.lib import Adapter
+from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params import GenParams
@@ -11,8 +13,6 @@ from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionRe
 from transactron.utils.dependencies import DependencyManager
 
 from transactron.testing import *
-
-import random
 
 
 class CSRUnitTestCircuit(Elaboratable):
@@ -201,7 +201,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
 
 class TestCSRRegister(TestCaseWithSimulator):
-    def process_test(self):
+    def randomized_process_test(self):
         # always enabled
         yield from self.dut.read.enable()
 
@@ -265,10 +265,61 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_test)
+            sim.add_sync_process(self.randomized_process_test)
+
+    def filtermap_process_test(self):
+        prev_value = 0
+        for _ in range(50):
+            input = random.randrange(0, 2**34)
+
+            yield from self.dut._fu_write.call({"data": input})
+            output = (yield from self.dut._fu_read.call())["data"]
+
+            expected = prev_value
+            if input & 1:
+                expected = input
+                if input & 2:
+                    expected += 3
+
+                expected &= ~(2**32)
+
+                expected <<= 1
+                expected &= 2**34 - 1
+
+            print(input, expected, output)
+            assert output == expected
+
+            prev_value = output
 
     def test_filtermap(self):
-        pass
+        gen_params = GenParams(test_core_config)
+
+        # todo: add logic for intret
+        def write_filtermap(m: TModule, v: Value):
+            res = Signal(34)
+            write = Signal()
+            m.d.comb += res.eq(v)
+            with m.If(v & 1):
+                m.d.comb += write.eq(1)
+            with m.If(v & 2):
+                m.d.comb += res.eq(v + 3)
+            return (write, res)
+
+        random.seed(4325)
+
+        self.dut = SimpleTestCircuit(
+            CSRRegister(
+                None,
+                gen_params,
+                width=34,
+                ro_bits=(1 << 32),
+                fu_read_map=lambda _, v: v << 1,
+                fu_write_filtermap=write_filtermap,
+            )
+        )
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_sync_process(self.filtermap_process_test)
 
     def test_priority(self):
         pass
