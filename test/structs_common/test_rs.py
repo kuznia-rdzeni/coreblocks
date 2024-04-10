@@ -137,8 +137,8 @@ class TestRS(TestCaseWithSimulator):
             del test_data["rp_s1"]
             del test_data["rp_s2"]
             data = yield from self.m.take.call(rs_entry_id=rs_entry_id)
-            self.assertEqual(data, test_data)
-        self.assertEqual(taken, set(range(len(self.data_list))))
+            assert data == test_data
+        assert taken == set(range(len(self.data_list)))
         self.finished = True
 
 
@@ -176,15 +176,15 @@ class TestRSMethodInsert(TestCaseWithSimulator):
     def simulation_process(self):
         # After each insert, entry should be marked as full
         for index, record in enumerate(self.insert_list):
-            self.assertEqual((yield self.m._dut.data[index].rec_full), 0)
+            assert (yield self.m._dut.data[index].rec_full) == 0
             yield from self.m.insert.call(record)
             yield Settle()
-            self.assertEqual((yield self.m._dut.data[index].rec_full), 1)
+            assert (yield self.m._dut.data[index].rec_full) == 1
         yield Settle()
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m._dut.data):
-            self.assertEqual(expected, (yield from get_outputs(record)))
+            assert expected == (yield from get_outputs(record))
 
 
 class TestRSMethodSelect(TestCaseWithSimulator):
@@ -221,33 +221,33 @@ class TestRSMethodSelect(TestCaseWithSimulator):
     def simulation_process(self):
         # In the beginning the select method should be ready and id should be selectable
         for index, record in enumerate(self.insert_list):
-            self.assertEqual((yield self.m._dut.select.ready), 1)
-            self.assertEqual((yield from self.m.select.call())["rs_entry_id"], index)
+            assert (yield self.m._dut.select.ready) == 1
+            assert (yield from self.m.select.call())["rs_entry_id"] == index
             yield Settle()
-            self.assertEqual((yield self.m._dut.data[index].rec_reserved), 1)
+            assert (yield self.m._dut.data[index].rec_reserved) == 1
             yield from self.m.insert.call(record)
         yield Settle()
 
         # Check if RS state is as expected
         for expected, record in zip(self.check_list, self.m._dut.data):
-            self.assertEqual((yield record.rec_full), expected["rec_full"])
-            self.assertEqual((yield record.rec_reserved), expected["rec_reserved"])
+            assert (yield record.rec_full) == expected["rec_full"]
+            assert (yield record.rec_reserved) == expected["rec_reserved"]
 
         # Reserve the last entry, then select ready should be false
-        self.assertEqual((yield self.m._dut.select.ready), 1)
-        self.assertEqual((yield from self.m.select.call())["rs_entry_id"], 3)
+        assert (yield self.m._dut.select.ready) == 1
+        assert (yield from self.m.select.call())["rs_entry_id"] == 3
         yield Settle()
-        self.assertEqual((yield self.m._dut.select.ready), 0)
+        assert (yield self.m._dut.select.ready) == 0
 
         # After take, select ready should be true, with 0 index returned
         yield from self.m.take.call()
         yield Settle()
-        self.assertEqual((yield self.m._dut.select.ready), 1)
-        self.assertEqual((yield from self.m.select.call())["rs_entry_id"], 0)
+        assert (yield self.m._dut.select.ready) == 1
+        assert (yield from self.m.select.call())["rs_entry_id"] == 0
 
         # After reservation, select is false again
         yield Settle()
-        self.assertEqual((yield self.m._dut.select.ready), 0)
+        assert (yield self.m._dut.select.ready) == 0
 
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
@@ -289,24 +289,24 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m._dut.data):
-            self.assertEqual(expected, (yield from get_outputs(record)))
+            assert expected == (yield from get_outputs(record))
 
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
-        self.assertEqual((yield self.m._dut.data_ready[1]), 0)
+        assert (yield self.m._dut.data_ready[1]) == 0
         yield from self.m.update.call(reg_id=2, reg_val=value_sp1)
         yield Settle()
-        self.assertEqual((yield self.m._dut.data[1].rs_data.rp_s1), 0)
-        self.assertEqual((yield self.m._dut.data[1].rs_data.s1_val), value_sp1)
-        self.assertEqual((yield self.m._dut.data_ready[1]), 0)
+        assert (yield self.m._dut.data[1].rs_data.rp_s1) == 0
+        assert (yield self.m._dut.data[1].rs_data.s1_val) == value_sp1
+        assert (yield self.m._dut.data_ready[1]) == 0
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
         yield from self.m.update.call(reg_id=3, reg_val=value_sp2)
         yield Settle()
-        self.assertEqual((yield self.m._dut.data[1].rs_data.rp_s2), 0)
-        self.assertEqual((yield self.m._dut.data[1].rs_data.s2_val), value_sp2)
-        self.assertEqual((yield self.m._dut.data_ready[1]), 1)
+        assert (yield self.m._dut.data[1].rs_data.rp_s2) == 0
+        assert (yield self.m._dut.data[1].rs_data.s2_val) == value_sp2
+        assert (yield self.m._dut.data_ready[1]) == 1
 
         # Insert new instruction to entries 0 and 1, check if update of multiple registers works
         reg_id = 4
@@ -329,16 +329,16 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         for index in range(2):
             yield from self.m.insert.call(rs_entry_id=index, rs_data=data)
             yield Settle()
-            self.assertEqual((yield self.m._dut.data_ready[index]), 0)
+            assert (yield self.m._dut.data_ready[index]) == 0
 
         yield from self.m.update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
         for index in range(2):
-            self.assertEqual((yield self.m._dut.data[index].rs_data.rp_s1), 0)
-            self.assertEqual((yield self.m._dut.data[index].rs_data.rp_s2), 0)
-            self.assertEqual((yield self.m._dut.data[index].rs_data.s1_val), value_spx)
-            self.assertEqual((yield self.m._dut.data[index].rs_data.s2_val), value_spx)
-            self.assertEqual((yield self.m._dut.data_ready[index]), 1)
+            assert (yield self.m._dut.data[index].rs_data.rp_s1) == 0
+            assert (yield self.m._dut.data[index].rs_data.rp_s2) == 0
+            assert (yield self.m._dut.data[index].rs_data.s1_val) == value_spx
+            assert (yield self.m._dut.data[index].rs_data.s2_val) == value_spx
+            assert (yield self.m._dut.data_ready[index]) == 1
 
 
 class TestRSMethodTake(TestCaseWithSimulator):
@@ -380,27 +380,27 @@ class TestRSMethodTake(TestCaseWithSimulator):
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m._dut.data):
-            self.assertEqual(expected, (yield from get_outputs(record)))
+            assert expected == (yield from get_outputs(record))
 
         # Take first instruction
-        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
+        assert (yield self.m._dut.get_ready_list[0].ready) == 1
         data = yield from self.m.take.call(rs_entry_id=0)
         for key in data:
-            self.assertEqual(data[key], self.check_list[0]["rs_data"][key])
+            assert data[key] == self.check_list[0]["rs_data"][key]
         yield Settle()
-        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 0)
+        assert (yield self.m._dut.get_ready_list[0].ready) == 0
 
         # Update second instuction and take it
         reg_id = 2
         value_spx = 1
         yield from self.m.update.call(reg_id=reg_id, reg_val=value_spx)
         yield Settle()
-        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
+        assert (yield self.m._dut.get_ready_list[0].ready) == 1
         data = yield from self.m.take.call(rs_entry_id=1)
         for key in data:
-            self.assertEqual(data[key], self.check_list[1]["rs_data"][key])
+            assert data[key] == self.check_list[1]["rs_data"][key]
         yield Settle()
-        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 0)
+        assert (yield self.m._dut.get_ready_list[0].ready) == 0
 
         # Insert two new ready instructions and take them
         reg_id = 0
@@ -424,20 +424,20 @@ class TestRSMethodTake(TestCaseWithSimulator):
         for index in range(2):
             yield from self.m.insert.call(rs_entry_id=index, rs_data=entry_data)
             yield Settle()
-            self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
-            self.assertEqual((yield self.m._dut.data_ready[index]), 1)
+            assert (yield self.m._dut.get_ready_list[0].ready) == 1
+            assert (yield self.m._dut.data_ready[index]) == 1
 
         data = yield from self.m.take.call(rs_entry_id=0)
         for key in data:
-            self.assertEqual(data[key], entry_data[key])
+            assert data[key] == entry_data[key]
         yield Settle()
-        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 1)
+        assert (yield self.m._dut.get_ready_list[0].ready) == 1
 
         data = yield from self.m.take.call(rs_entry_id=1)
         for key in data:
-            self.assertEqual(data[key], entry_data[key])
+            assert data[key] == entry_data[key]
         yield Settle()
-        self.assertEqual((yield self.m._dut.get_ready_list[0].ready), 0)
+        assert (yield self.m._dut.get_ready_list[0].ready) == 0
 
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
@@ -479,19 +479,19 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
 
         # Check ready vector integrity
         ready_list = (yield from self.m.get_ready_list[0].call())["ready_list"]
-        self.assertEqual(ready_list, 0b0011)
+        assert ready_list == 0b0011
 
         # Take first record and check ready vector integrity
         yield from self.m.take.call(rs_entry_id=0)
         yield Settle()
         ready_list = (yield from self.m.get_ready_list[0].call())["ready_list"]
-        self.assertEqual(ready_list, 0b0010)
+        assert ready_list == 0b0010
 
         # Take second record and check ready vector integrity
         yield from self.m.take.call(rs_entry_id=1)
         yield Settle()
         option_ready_list = yield from self.m.get_ready_list[0].call_try()
-        self.assertIsNone(option_ready_list)
+        assert option_ready_list is None
 
 
 class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
@@ -540,9 +540,9 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
             for j in range(2):
                 ready_list = yield from self.m.get_ready_list[j].call_try()
                 if masks[j]:
-                    self.assertEqual(ready_list, {"ready_list": masks[j]})
+                    assert ready_list == {"ready_list": masks[j]}
                 else:
-                    self.assertIsNone(ready_list)
+                    assert ready_list is None
 
             # Take a record
             if i == self.m._dut.rs_entries:

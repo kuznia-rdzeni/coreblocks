@@ -14,7 +14,7 @@ from enum import IntFlag, auto
 
 
 class TestFuDecoder(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         self.gen_params = GenParams(test_core_config)
 
     # calculates expected decoder output
@@ -56,7 +56,7 @@ class TestFuDecoder(TestCaseWithSimulator):
                 returned = yield from self.handle_signals(decoder, exec_fn)
                 expected = self.expected_results(instructions, op_type_dependent, exec_fn)
 
-                self.assertEqual(returned, expected)
+                assert returned == expected
 
         test_circuit = SimpleTestCircuit(decoder)
 
