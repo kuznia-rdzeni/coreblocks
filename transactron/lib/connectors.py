@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 import amaranth.lib.fifo
 
 from transactron.utils.transactron_helpers import from_method_layout
@@ -50,7 +51,8 @@ class FIFO(Elaboratable):
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
         """
-        self.width = from_method_layout(layout).size
+        self.layout = from_method_layout(layout)
+        self.width = self.layout.size
         self.depth = depth
         self.fifoType = fifo_type
 
@@ -71,7 +73,7 @@ class FIFO(Elaboratable):
         @def_method(m, self.read, ready=fifo.r_rdy)
         def _():
             m.d.comb += fifo.r_en.eq(1)
-            return fifo.r_data
+            return View(self.layout, fifo.r_data)  # remove View after Amaranth upgrade
 
         return m
 
