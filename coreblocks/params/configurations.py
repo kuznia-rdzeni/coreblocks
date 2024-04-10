@@ -113,7 +113,7 @@ class _CoreConfigurationDataClass:
 class CoreConfiguration(_CoreConfigurationDataClass):
     @type_self_kwargs_as(_CoreConfigurationDataClass.__init__)
     def replace(self, **kwargs) -> Self:
-        return cast(Self, dataclasses.replace(super(), **kwargs))
+        return cast(Self, dataclasses.replace(self, **kwargs))
 
 
 # Default core configuration
