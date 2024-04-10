@@ -1,12 +1,15 @@
-from collections.abc import Callable
-from typing import Optional
 from amaranth import *
 from amaranth.lib.data import StructLayout
+from amaranth.lib.enum import Enum
 
-from transactron import Method, def_method, TModule
+from typing import Optional
+from collections.abc import Callable
+
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import CSRRegisterLayouts
 from coreblocks.func_blocks.csr.csr import CSRListKey
+
+from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyManager
 from transactron.utils.transactron_helpers import from_method_layout
@@ -60,6 +63,7 @@ class CSRRegister(Elaboratable):
         *,
         width: Optional[int] = None,
         ro_bits: int = 0,
+        reset: int | Enum = 0,
         fu_write_priority: bool = True,
         fu_write_filtermap: Optional[Callable[[TModule, MethodStruct], tuple[ValueLike, RecordDict]]] = None,
         fu_read_map: Optional[Callable[[TModule, MethodStruct], RecordDict]] = None,
@@ -80,6 +84,8 @@ class CSRRegister(Elaboratable):
             Note that this parameter is only required if there are some read-only
             bits in read-write register. Writes to read-only registers specified
             by upper 2 bits of CSR address set to `0b11` are discarded by `CSRUnit`.
+        reset: int | Enum
+            Reset value of CSR.
         fu_write_priority: bool
             Priority of CSR instruction write over `write` method, if both are actived at the same cycle.
             If `ro_bits` are set, both operations will be performed, respecting priority on writeable bits.
@@ -92,16 +98,16 @@ class CSRRegister(Elaboratable):
         """
         self.gen_params = gen_params
         self.csr_number = csr_number
-        self.width = width if width else gen_params.isa.xlen
+        self.width = width if width is not None else gen_params.isa.xlen
         self.ro_bits = ro_bits
         self.fu_write_priority = fu_write_priority
         fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
         fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
 
-        csr_layouts = gen_params.get(CSRLayouts)
+        csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
 
-        self.read = Method(o=csr_layouts.read)
-        self.read_comb = Method(o=csr_layouts.read)
+        self.read = Method(o=csr_layouts.read, nonexclusive=True)
+        self.read_comb = Method(o=csr_layouts.read, nonexclusive=True)
         self.write = Method(i=csr_layouts.write)
 
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
@@ -113,10 +119,10 @@ class CSRRegister(Elaboratable):
         self.fu_read_map = MethodMap(self._internal_fu_read, o_transform=(csr_layouts._fu_read, fu_read_map))
 
         # Methods connected autatically by CSRUnit
-        self._fu_read = self.fu_read_map.method
+        self._fu_read = self._internal_fu_read  # FIXME:self.fu_read_map.method
         self._fu_write = self.fu_write_filter.method
 
-        self.value = Signal(self.width)
+        self.value = Signal(self.width, reset=reset)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list
@@ -126,8 +132,6 @@ class CSRRegister(Elaboratable):
 
         if csr_number and self.width != gen_params.isa.xlen:
             raise RuntimeError(f"Width of public CSR register is different than {gen_params.isa.xlen}")
-        if self.width > gen_params.isa.xlen:
-            raise RuntimeError("CSR width is greater than layout accessible width")
 
     def elaborate(self, platform):
         m = TModule()
