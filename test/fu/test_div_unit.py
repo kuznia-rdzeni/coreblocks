@@ -12,7 +12,7 @@ from transactron.utils import signed_to_int, int_to_signed
     ("name", "func_unit"),
     [("ipc" + str(s), DivComponent(ipc=s)) for s in [3, 4, 5, 8]],
 )
-class DivisionUnitTest(FunctionalUnitTestCase[DivFn.Fn]):
+class TestDivisionUnit(FunctionalUnitTestCase[DivFn.Fn]):
     ops = {
         DivFn.Fn.DIVU: ExecFn(OpType.DIV_REM, Funct3.DIVU, Funct7.MULDIV),
         DivFn.Fn.DIV: ExecFn(OpType.DIV_REM, Funct3.DIV, Funct7.MULDIV),

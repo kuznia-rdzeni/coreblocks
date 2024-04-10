@@ -33,7 +33,7 @@ class TestAlignToPowerOfTwo(unittest.TestCase):
 
         for num, power, expected in test_cases:
             out = align_to_power_of_two(num, power)
-            self.assertEqual(expected, out)
+            assert expected == out
 
     def test_align_down_to_power_of_two(self):
         test_cases = [
@@ -50,7 +50,7 @@ class TestAlignToPowerOfTwo(unittest.TestCase):
 
         for num, power, expected in test_cases:
             out = align_down_to_power_of_two(num, power)
-            self.assertEqual(expected, out)
+            assert expected == out
 
 
 class PopcountTestCircuit(Elaboratable):
@@ -73,7 +73,7 @@ class PopcountTestCircuit(Elaboratable):
 class TestPopcount(TestCaseWithSimulator):
     size: int
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(14)
         self.test_number = 40
         self.m = PopcountTestCircuit(self.size)
@@ -82,7 +82,7 @@ class TestPopcount(TestCaseWithSimulator):
         yield self.m.sig_in.eq(n)
         yield Settle()
         out_popcount = yield self.m.sig_out
-        self.assertEqual(out_popcount, n.bit_count(), f"{n:x}")
+        assert out_popcount == n.bit_count(), f"{n:x}"
 
     def process(self):
         for i in range(self.test_number):
@@ -119,7 +119,7 @@ class CLZTestCircuit(Elaboratable):
 class TestCountLeadingZeros(TestCaseWithSimulator):
     size: int
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(14)
         self.test_number = 40
         self.m = CLZTestCircuit(self.size)
@@ -128,7 +128,7 @@ class TestCountLeadingZeros(TestCaseWithSimulator):
         yield self.m.sig_in.eq(n)
         yield Settle()
         out_clz = yield self.m.sig_out
-        self.assertEqual(out_clz, (2**self.size) - n.bit_length(), f"{n:x}")
+        assert out_clz == (2**self.size) - n.bit_length(), f"{n:x}"
 
     def process(self):
         for i in range(self.test_number):
@@ -165,7 +165,7 @@ class CTZTestCircuit(Elaboratable):
 class TestCountTrailingZeros(TestCaseWithSimulator):
     size: int
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(14)
         self.test_number = 40
         self.m = CTZTestCircuit(self.size)
@@ -183,7 +183,7 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
                 expected += 1
                 n >>= 1
 
-        self.assertEqual(out_ctz, expected, f"{n:x}")
+        assert out_ctz == expected, f"{n:x}"
 
     def process(self):
         for i in range(self.test_number):
