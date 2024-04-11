@@ -19,6 +19,7 @@ __all__ = [
     "GenericCSRRegistersKey",
     "AsyncInterruptInsertSignalKey",
     "MretKey",
+    "FlushICacheKey",
 ]
 
 

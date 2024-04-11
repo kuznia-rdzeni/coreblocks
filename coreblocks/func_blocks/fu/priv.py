@@ -114,19 +114,16 @@ class PrivilegedFuncUnit(Elaboratable):
             m.d.sync += finished.eq(0)
 
             ret_pc = Signal(self.gp.isa.xlen)
-            handle_interrupts_now = Signal()
 
             with OneHotSwitch(m, instr_fn) as OneHotCase:
                 with OneHotCase(PrivilegedFn.Fn.MRET):
                     m.d.av_comb += ret_pc.eq(csr.m_mode.mepc.read(m).data)
-                    m.d.av_comb += handle_interrupts_now.eq(1)
                 with OneHotCase(PrivilegedFn.Fn.FENCEI):
                     # FENCE.I can't be compressed, so the next instruction is always pc+4
                     m.d.av_comb += ret_pc.eq(instr_pc + 4)
-                    m.d.av_comb += handle_interrupts_now.eq(0)
 
             exception = Signal()
-            with m.If(async_interrupt_active & handle_interrupts_now):
+            with m.If(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
                 # mret() method is called from precommit() that was executed at least one cycle earlier (because
