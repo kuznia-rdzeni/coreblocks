@@ -90,7 +90,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
     def _create_regfile(self):
-        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` depenecy.
+        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
         for csr in self.dependency_manager.get_dependency(CSRListKey()):
             if csr.csr_number in self.regfile:
                 raise RuntimeError(f"CSR number {csr.csr_number} already registered")

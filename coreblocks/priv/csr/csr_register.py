@@ -31,15 +31,13 @@ class CSRRegister(Elaboratable):
     read_comb: Method
         Reads register value or value submitted by `_fu_write`(instruction write) combinationally.
         Note that returned value ignores priority setting. It allows for `_fu_write -> read_comb -> write` operation
-        in single cycle. Always ready.
+        in single cycle. Note that if `_fu_write` is called, it returns call value ignoring `ro_bits`. Always ready.
     write: Method
-        Updates register value.
-        Always ready. If _fu_write is called simultaneously, this call is ignored.
+        Updates register value. Always ready.
     _fu_read: Method
         Method connected automatically by `CSRUnit`. Reads register value.
     _fu_write: Method
-        Method connected automatically by `CSRUnit`. Updates register value.
-        Always ready. Has priority over `write` method.
+        Method connected automatically by `CSRUnit`. Updates register value. Always ready.
 
     Examples
     --------
@@ -87,7 +85,7 @@ class CSRRegister(Elaboratable):
         reset: int | Enum
             Reset value of CSR.
         fu_write_priority: bool
-            Priority of CSR instruction write over `write` method, if both are actived at the same cycle.
+            Priority of CSR instruction write over `write` method, if both are called at the same cycle.
             If `ro_bits` are set, both operations will be performed, respecting priority on writeable bits.
             Deafults to True.
         fu_write_filtermap: function (TModule, Value) -> (Value, Dict)

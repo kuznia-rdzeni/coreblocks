@@ -294,7 +294,6 @@ class TestCSRRegister(TestCaseWithSimulator):
     def test_filtermap(self):
         gen_params = GenParams(test_core_config)
 
-        # todo: add logic for intret
         def write_filtermap(m: TModule, v: Value):
             res = Signal(34)
             write = Signal()
@@ -321,8 +320,44 @@ class TestCSRRegister(TestCaseWithSimulator):
         with self.run_simulation(self.dut) as sim:
             sim.add_sync_process(self.filtermap_process_test)
 
-    def test_priority(self):
-        pass
+    def comb_process_test(self):
+        yield from self.dut.read.enable()
+        yield from self.dut.read_comb.enable()
+        yield from self.dut._fu_read.enable()
 
-    def test_readcomb(self):
-        pass
+        yield from self.dut._fu_write.call_init({"data": 0xFFFF})
+        yield from self.dut._fu_write.call_do()
+        assert (yield from self.dut.read_comb.call_result())["data"] == 0xFFFF
+        assert (yield from self.dut._fu_read.call_result())["data"] == 0xAB
+        yield
+        assert (yield from self.dut.read.call_result())["data"] == 0xFFFB
+        assert (yield from self.dut._fu_read.call_result())["data"] == 0xFFFB
+        yield
+
+        yield from self.dut._fu_write.call_init({"data": 0x0FFF})
+        yield from self.dut.write.call_init({"data": 0xAAAA})
+        yield from self.dut._fu_write.call_do()
+        yield from self.dut.write.call_do()
+        assert (yield from self.dut.read_comb.call_result()) == {"data": 0x0FFF, "read": 1, "written": 1}
+        yield
+        assert (yield from self.dut._fu_read.call_result())["data"] == 0xAAAA
+        yield
+
+        # single cycle
+        yield from self.dut._fu_write.call_init({"data": 0x0BBB})
+        yield from self.dut._fu_write.call_do()
+        update_val = (yield from self.dut.read_comb.call_result())["data"] | 0xD000
+        yield from self.dut.write.call_init({"data": update_val})
+        yield from self.dut.write.call_do()
+        yield
+        assert (yield from self.dut._fu_read.call_result())["data"] == 0xDBBB
+
+    def test_comb(self):
+        gen_params = GenParams(test_core_config)
+
+        random.seed(4326)
+
+        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, reset=0xAB))
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_sync_process(self.comb_process_test)
