@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1712874716447,
+  "lastUpdate": 1712874959980,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -10047,6 +10047,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "nettle-sha256",
             "value": 0.5642657981099021,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f7b2ea518bda0b5506808c2c3e648f28d44291fa",
+          "message": "Add support for 'fence.i' instruction (#649)",
+          "timestamp": "2024-04-12T00:23:34+02:00",
+          "tree_id": "0d7888775e8d7276a05d0a5db59ca74df5e0a1f2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f7b2ea518bda0b5506808c2c3e648f28d44291fa"
+        },
+        "date": 1712874957372,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "minver",
+            "value": 0.2437939792267849,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.29316662943800825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.2551784802224618,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.5642657981099021,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.18830806309955814,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.31428496807135303,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.27916937796305963,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.38398161016601284,
             "unit": "Instructions Per Cycle"
           }
         ]
