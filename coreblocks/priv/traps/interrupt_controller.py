@@ -38,6 +38,33 @@ class InternalInterruptControllerSignature(Signature):
 
 
 class InternalInterruptController(Component):
+    """Core Internal Interrupt Controller
+    Compatiblie with RISC-V privileged specification.
+    Operates on CSR registers xIE, xIP, and parts of xSTATUS.
+    Interrups are reported via plain signals in Component interface.
+
+    Attributes
+    ----------
+    internal_report_level: In, 16
+        Level-triggered input for interrupts with numbers 0-15, assigned by spec for standard interrupts (internal use)
+    custom_report_level: In, interrupt_custom_count
+        Level-triggered input for reporting custom/local interrupts starting with number 16.
+        Each custom interrupt can be either level-triggered or edge-triggered, configured by `CoreConfigration`.
+        Bits for interrupts that are configured as edge-triggered are ignored.
+        See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfigration`.
+    custom_report_edge: In, interrupt_custom_count
+        Edge-triggered input for reporting custom/local interrupts starting with number 16.
+        See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfigration`.
+    interrupt_insert: Out, 1
+        Internal interface, signals pending interrupt.
+    entry: Method
+        Internal interface, changes state to interrupt handler entry.
+    mret: Method
+        Internal interface, changes state to interrupt handler exit.
+    interrupt_cause: Method
+        Internal interface, provides number of the most prioritized interrupt that caused current interrupt insertion.
+    """
+
     internal_report_level: Signal
     custom_report_level: Signal
     custom_report_edge: Signal
@@ -65,8 +92,8 @@ class InternalInterruptController(Component):
         mstatus.add_field(11, self.mstatus_mpp)
 
         mie_writeable = (
-            # (1 << InterruptCauseNumber.MSI)
-            # (1 << InterruptCauseNumber.MTI)
+            # (1 << InterruptCauseNumber.MSI) TODO: CLINT
+            # (1 << InterruptCauseNumber.MTI) TODO: CLINT
             (1 << InterruptCauseNumber.MEI)
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
@@ -123,7 +150,7 @@ class InternalInterruptController(Component):
             mip_value &= self.edge_reported_mask
             mip_value |= level_report_interrupt & ~self.edge_reported_mask
 
-            self.mip.write(m, {"data": mip_value})  # ????
+            self.mip.write(m, {"data": mip_value})
 
         @def_method(m, self.mret)
         def _():
@@ -133,8 +160,8 @@ class InternalInterruptController(Component):
         def _():
             pass
 
-        # mret/entry conflict cannot happen (mret under precommit)
-        # comment here
+        # mret/entry conflict cannot happen in real conditons - mret is called under precommit
+        # it is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
         with Transaction().body(m):
             with m.If(self.entry.run):
                 self.mstatus_mie.write(m, {"data": 0})

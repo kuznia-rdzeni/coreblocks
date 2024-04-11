@@ -174,7 +174,14 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 @parameterized_class(
     ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi"),
     [
-        ("interrupt.asm", 400 * 4, {4: 2971215073, 8: 29}, {2: 2971215073, 7: 29, 31: 0xDE}, 300, 500),
+        (
+            "interrupt.asm",
+            400 * 4,
+            {4: 2971215073, 8: 29},
+            {2: 2971215073, 7: 29, 29: 2**3 | 2**11 | 2**12, 31: 0xDE},
+            300,
+            500,
+        ),
         ("interrupt.asm", 700 * 4, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
         ("interrupt.asm", 600 * 4, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
         # interrupts are only inserted on branches, we always have some forward progression. 15 for trigger variantion.
@@ -216,7 +223,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             yield
 
     def run_with_interrupt_process(self):
-        # yield Passive()
         main_cycles = 0
         int_count = 0
         handler_count = 1
@@ -229,19 +235,15 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
             yield
 
-        print("lt")
-
         def do_interrupt():
             count = 0
             trig = random.randint(1, 3)
             mie = (yield self.m.core.interrupt_controller.mie.value) >> 16
             if mie != 0b11 or trig & 1:
                 yield self.m.interrupt_edge.eq(1)
-                print("trig edge")
                 count += 1
             if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0:
                 yield self.m.interrupt_level.eq(1)
-                print("trig lelel")
                 count += 1
             yield
             yield self.m.interrupt_edge.eq(0)
@@ -275,8 +277,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             # wait until ISR returns
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
                 yield
-
-            print("exit")
 
         assert (yield from self.get_arch_reg_val(30)) == int_count
 

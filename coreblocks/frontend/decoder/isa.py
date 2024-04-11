@@ -155,7 +155,6 @@ class ExceptionCause(IntEnum, shape=5):
     _COREBLOCKS_MISPREDICTION = 17
 
 
-# move to priv isa params
 @unique
 class PrivilegeLevel(IntEnum, shape=2):
     USER = 0b00

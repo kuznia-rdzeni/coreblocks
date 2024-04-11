@@ -4,6 +4,7 @@
     li x30, 0     # interrupt count
     li x31, 0xde  # branch guard
     csrsi mstatus, 0x8 # machine interrupt enable
+    csrr x29, mstatus
     li x1, 0x30000
     csrw mie, x1 # enable custom interrupt 0 and 1
     li x1, 0

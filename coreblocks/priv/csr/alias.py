@@ -11,7 +11,12 @@ from transactron.core.tmodule import TModule
 from transactron.utils.dependencies import DependencyManager
 
 
-class AliasedCSR(CSRRegister):  # todo csr protocol?
+class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
+    """
+    Temporary simple support for CSR aliasing for InternalInterruptController. Will be replaced with more complete
+    implemantation soon.
+    """
+
     def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
         self.gen_params = gen_params
         self.csr_number = csr_number
@@ -29,14 +34,13 @@ class AliasedCSR(CSRRegister):  # todo csr protocol?
             dm = gen_params.get(DependencyManager)
             dm.add_dependency(CSRListKey(), self)
 
-        # TODO: Warl mode
+        # TODO: WPRI defult mode
 
     def add_field(self, bit_position: int, csr: CSRRegister):
         assert not self.elaborated
+        assert csr.csr_number is None  # TODO: support for instuction accessible units
         self.fields.append((bit_position, csr))
-        # verify interleaving and virtual
-        # oh.... for csr may not be virtual - access from both float
-        # check if fits in width
+        # TODO: verify bounds
 
     def elaborate(self, platform):
         m = TModule()
