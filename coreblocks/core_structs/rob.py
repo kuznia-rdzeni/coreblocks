@@ -42,6 +42,8 @@ class ReorderBuffer(Elaboratable):
         peek_possible = start_idx != end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
+        done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
+
         @def_method(m, self.peek, ready=peek_possible)
         def _():
             return {
@@ -50,17 +52,17 @@ class ReorderBuffer(Elaboratable):
                 "exception": self.data[start_idx].exception,
             }
 
-        @def_method(m, self.retire, ready=self.data[start_idx].done)
+        @def_method(m, self.retire, ready=done[start_idx])
         def _():
             self.perf_rob_wait_time.stop(m)
             m.d.sync += start_idx.eq(start_idx + 1)
-            m.d.sync += self.data[start_idx].done.eq(0)
+            m.d.sync += done[start_idx].eq(0)
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):
             self.perf_rob_wait_time.start(m)
             m.d.sync += self.data[end_idx].rob_data.eq(arg)
-            m.d.sync += self.data[end_idx].done.eq(0)
+            m.d.sync += done[end_idx].eq(0)
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
 
@@ -69,7 +71,7 @@ class ReorderBuffer(Elaboratable):
         # could mark fields in ROB as done when they shouldn't.
         @def_method(m, self.mark_done)
         def _(rob_id: Value, exception):
-            m.d.sync += self.data[rob_id].done.eq(1)
+            m.d.sync += done[rob_id].eq(1)
             m.d.sync += self.data[rob_id].exception.eq(exception)
 
         @def_method(m, self.get_indices)

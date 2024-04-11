@@ -260,7 +260,6 @@ class ROBLayouts:
 
         self.internal_layout = make_layout(
             self.rob_data,
-            self.done,
             fields.exception,
         )
 
