@@ -3,10 +3,11 @@ import random
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
+from amaranth.lib.data import View
 from amaranth.sim import Settle
 from parameterized import parameterized_class
 from coreblocks.interface.keys import CoreStateKey
-from coreblocks.interface.layouts import RetirementLayouts
+from coreblocks.interface.layouts import ROBLayouts, RetirementLayouts
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
@@ -267,7 +268,9 @@ class TestScheduler(TestCaseWithSimulator):
 
     def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(got, expected):
-            rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
+            rl_dst = yield View(
+                self.gen_params.get(ROBLayouts).data_layout, self.m.rob.data[got["rs_data"]["rob_id"]]
+            ).rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
 
