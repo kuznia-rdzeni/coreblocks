@@ -1,4 +1,7 @@
 from amaranth import *
+
+import operator
+from functools import reduce
 from typing import Optional
 
 from coreblocks.interface.layouts import CSRRegisterLayouts
@@ -52,9 +55,12 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
                 csr._fu_write(m, data.bit_select(start, csr.width))
 
         @def_method(m, self._fu_read)
-        def _():
-            data = Signal(self.width)
+        def _() -> Value:
+            read_data = []  # amaranth doesn't support assigning to bit_select
             for start, csr in self.fields:
-                m.d.comb += data.bit_select(start, csr.width).eq(csr._fu_read(m))
+                local_data = Signal(self.width)
+                m.d.comb += local_data.eq(csr._fu_read(m)["data"] << start)
+                read_data.append(local_data)
+            return reduce(operator.or_, read_data)
 
         return m

@@ -1,5 +1,5 @@
 # fibonacci spiced with interrupt handler (also with fibonacci)
-    li x1, 0x100
+    li x1, 0x200
     csrw mtvec, x1
     li x30, 0     # interrupt count
     li x31, 0xde  # branch guard
@@ -25,7 +25,9 @@ int_handler:
     mv x9, x1
     mv x10, x2
     mv x11, x3
-    
+
+    csrr x28, mstatus
+
     # check cause
     csrr x1, mip
     csrr x2, mie
@@ -38,11 +40,11 @@ int_handler:
     not_0b10:
     csrr x3, mcause
     bne x2, x3, fail
-    
+
     # generate new mie mask
     andi x2, x30, 0x3
     bnez x2, fill_skip
-    li x2, 0x3 
+    li x2, 0x3
     fill_skip:
     slli x2, x2, 16
     csrw mie, x2
@@ -86,8 +88,8 @@ skip:
 fail:
     csrwi 0x7ff, 2
     j fail
-    
 
-.org 0x100
+
+.org 0x200
     j int_handler
     li x31, 0xae  # should never happen
