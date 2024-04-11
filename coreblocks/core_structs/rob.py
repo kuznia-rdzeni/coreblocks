@@ -17,7 +17,7 @@ class ReorderBuffer(Elaboratable):
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
-        self.data = Array(Signal(layouts.data_layout) for _ in range(2**gen_params.rob_entries_bits))
+        self.data = Memory(width=layouts.data_layout.size, depth=2**self.params.rob_entries_bits)
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
@@ -44,10 +44,15 @@ class ReorderBuffer(Elaboratable):
         peek_possible = start_idx != end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
+        m.submodules.read_port = read_port = self.data.read_port()
+        m.submodules.write_port = write_port = self.data.write_port()
+
+        m.d.comb += read_port.addr.eq(start_idx)
+
         @def_method(m, self.peek, ready=peek_possible)
         def _():
             return {
-                "rob_data": self.data[start_idx],
+                "rob_data": read_port.data,
                 "rob_id": start_idx,
                 "exception": self.exception[start_idx],
             }
@@ -56,12 +61,15 @@ class ReorderBuffer(Elaboratable):
         def _():
             self.perf_rob_wait_time.stop(m)
             m.d.sync += start_idx.eq(start_idx + 1)
+            m.d.comb += read_port.addr.eq(start_idx + 1)
             m.d.sync += self.done[start_idx].eq(0)
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):
             self.perf_rob_wait_time.start(m)
-            m.d.sync += self.data[end_idx].eq(arg)
+            m.d.av_comb += write_port.addr.eq(end_idx)
+            m.d.av_comb += write_port.data.eq(arg)
+            m.d.comb += write_port.en.eq(1)
             m.d.sync += self.done[end_idx].eq(0)
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
