@@ -70,7 +70,6 @@ class ReorderBuffer(Elaboratable):
             m.d.av_comb += write_port.addr.eq(end_idx)
             m.d.av_comb += write_port.data.eq(arg)
             m.d.comb += write_port.en.eq(1)
-            m.d.sync += self.done[end_idx].eq(0)
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
 
