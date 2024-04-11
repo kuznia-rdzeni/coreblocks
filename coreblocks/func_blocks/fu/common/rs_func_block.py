@@ -2,7 +2,7 @@ from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
 from coreblocks.params import *
-from .rs import RS
+from .rs import RS, RSBase
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from transactron import Method, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
@@ -31,7 +31,14 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         layout described by `FuncUnitLayouts`.
     """
 
-    def __init__(self, gen_params: GenParams, func_units: Iterable[tuple[FuncUnit, set[OpType]]], rs_entries: int):
+    def __init__(
+        self,
+        gen_params: GenParams,
+        func_units: Iterable[tuple[FuncUnit, set[OpType]]],
+        rs_entries: int,
+        rs_number: int,
+        rs_type: type[RSBase],
+    ):
         """
         Parameters
         ----------
@@ -41,10 +48,16 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             Functional units to be used by this module.
         rs_entries: int
             Number of entries in RS.
+        rs_number: int
+            The number of this RS block. Used for debugging.
+        rs_type: type[RSBase]
+            The RS type to use.
         """
         self.gen_params = gen_params
         self.rs_entries = rs_entries
+        self.rs_type = rs_type
         self.rs_entries_bits = (rs_entries - 1).bit_length()
+        self.rs_number = rs_number
         self.rs_layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
@@ -57,9 +70,10 @@ class RSFuncBlock(FuncBlock, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.rs = self.rs = RS(
+        m.submodules.rs = self.rs = self.rs_type(
             gen_params=self.gen_params,
             rs_entries=self.rs_entries,
+            rs_number=self.rs_number,
             ready_for=(optypes for _, optypes in self.func_units),
         )
 
@@ -87,10 +101,18 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 class RSBlockComponent(BlockComponentParams):
     func_units: Collection[FunctionalComponentParams]
     rs_entries: int
+    rs_number: int = -1  # overwritten by CoreConfiguration
+    rs_type: type[RSBase] = RS
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
-        rs_unit = RSFuncBlock(gen_params=gen_params, func_units=modules, rs_entries=self.rs_entries)
+        rs_unit = RSFuncBlock(
+            gen_params=gen_params,
+            func_units=modules,
+            rs_entries=self.rs_entries,
+            rs_number=self.rs_number,
+            rs_type=self.rs_type,
+        )
         return rs_unit
 
     def get_optypes(self) -> set[OpType]:

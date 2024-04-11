@@ -43,7 +43,7 @@ class WakeupSelect(Elaboratable):
         with Transaction().body(m):
             ready = self.get_ready(m)
             ready_width = ready.shape().size
-            last = Signal(range(ready_width))
+            last = Signal((ready_width - 1).bit_length())
             for i in range(ready_width):
                 with m.If(ready.ready_list[i]):
                     m.d.comb += last.eq(i)

@@ -36,7 +36,7 @@ class CoreTestElaboratable(Elaboratable):
         wb_data_bus = WishboneSignature(self.gen_params.wb_params).create()
 
         # Align the size of the memory to the length of a cache line.
-        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.block_size_bits)
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
         self.wb_mem_slave = WishboneMemorySlave(
             wb_params=self.gen_params.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
         )
@@ -79,8 +79,10 @@ class TestCoreBase(TestCaseWithSimulator):
         if val & 0x800:
             lui_imm = (lui_imm + 1) & (0xFFFFF)
 
-        yield from self.push_instr(UTypeInstr.encode(Opcode.LUI, reg_id, lui_imm))
-        yield from self.push_instr(ITypeInstr.encode(Opcode.OP_IMM, reg_id, Funct3.ADD, reg_id, addi_imm))
+        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=lui_imm << 12).encode())
+        yield from self.push_instr(
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=reg_id, funct3=Funct3.ADD, rs1=reg_id, imm=addi_imm).encode()
+        )
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
@@ -151,7 +153,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
             yield
 
         for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+            assert (yield from self.get_arch_reg_val(reg_id)) == val
 
     def test_asm_source(self):
         self.gen_params = GenParams(self.configuration)
@@ -182,7 +184,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     lo: int
     hi: int
 
-    def setUp(self):
+    def setup_method(self):
         self.configuration = full_core_config
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
@@ -225,9 +227,9 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             while (yield self.m.core.interrupt_controller.interrupts_enabled) == 0:
                 yield
 
-        self.assertEqual((yield from self.get_arch_reg_val(30)), int_count)
+        assert (yield from self.get_arch_reg_val(30)) == int_count
         for reg_id, val in self.expected_regvals.items():
-            self.assertEqual((yield from self.get_arch_reg_val(reg_id)), val)
+            assert (yield from self.get_arch_reg_val(reg_id)) == val
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)

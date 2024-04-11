@@ -1,9 +1,9 @@
 from amaranth.sim import Settle
-from coreblocks.func_blocks.lsu.pma import PMAChecker, PMARegion
+from coreblocks.func_blocks.fu.lsu.pma import PMAChecker, PMARegion
 
 from transactron.lib import Adapter
 from coreblocks.params import GenParams
-from coreblocks.func_blocks.lsu.dummyLsu import LSUDummy
+from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.keys import ExceptionReportKey
@@ -21,7 +21,7 @@ class TestPMADirect(TestCaseWithSimulator):
             yield self.test_module.addr.eq(i)
             yield Settle()
             mmio = yield self.test_module.result["mmio"]
-            self.assertEqual(mmio, region.mmio)
+            assert mmio == region.mmio
 
     def process(self):
         for r in self.pma_regions:
@@ -66,10 +66,8 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
-        m.submodules.select_mock = self.select = TestbenchIO(AdapterTrans(func_unit.select))
-        m.submodules.insert_mock = self.insert = TestbenchIO(AdapterTrans(func_unit.insert))
-        m.submodules.update_mock = self.update = TestbenchIO(AdapterTrans(func_unit.update))
-        m.submodules.get_result_mock = self.get_result = TestbenchIO(AdapterTrans(func_unit.get_result))
+        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
+        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
         m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus = self.bus
@@ -80,34 +78,32 @@ class PMAIndirectTestCircuit(Elaboratable):
 class TestPMAIndirect(TestCaseWithSimulator):
     def get_instr(self, addr):
         return {
-            "rp_s1": 0,
-            "rp_s2": 0,
             "rp_dst": 1,
             "rob_id": 1,
             "exec_fn": {"op_type": OpType.LOAD, "funct3": Funct3.B, "funct7": 0},
             "s1_val": 0,
             "s2_val": 1,
             "imm": addr,
+            "pc": 0,
         }
 
     def verify_region(self, region: PMARegion):
         for addr in range(region.start, region.end + 1):
             instr = self.get_instr(addr)
-            yield from self.test_module.select.call()
-            yield from self.test_module.insert.call(rs_data=instr, rs_entry_id=1)
+            yield from self.test_module.issue.call(instr)
             if region.mmio is True:
                 wb = self.test_module.io_in.wb
                 for i in range(100):  # 100 cycles is more than enough
                     wb_requested = (yield wb.stb) and (yield wb.cyc)
-                    self.assertEqual(wb_requested, False)
+                    assert not wb_requested
 
                 yield from self.test_module.precommit.call(rob_id=1, side_fx=1)
 
             yield from self.test_module.io_in.slave_wait()
             yield from self.test_module.io_in.slave_respond((addr << (addr % 4) * 8))
             yield Settle()
-            v = yield from self.test_module.get_result.call()
-            self.assertEqual(v["result"], addr)
+            v = yield from self.test_module.accept.call()
+            assert v["result"] == addr
 
     def process(self):
         for region in self.pma_regions:
@@ -124,7 +120,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            self.assertTrue(False)
+            assert False
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_sync_process(self.process)

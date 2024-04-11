@@ -1,3 +1,4 @@
+import pytest
 import unittest
 
 from coreblocks.params.isa_params import Extension, ISA
@@ -132,13 +133,13 @@ class TestISA(unittest.TestCase):
     def do_test(self, test):
         def _do_test():
             isa = ISA(test.isa_str)
-            self.assertEqual(isa.xlen, test.xlen)
-            self.assertEqual(isa.reg_cnt, test.reg_cnt)
-            self.assertEqual(isa.extensions, test.extensions)
-            self.assertEqual(isa.ilen, 32)
+            assert isa.xlen == test.xlen
+            assert isa.reg_cnt == test.reg_cnt
+            assert isa.extensions == test.extensions
+            assert isa.ilen == 32
 
         if not test.valid:
-            with self.assertRaises(RuntimeError):
+            with pytest.raises(RuntimeError):
                 _do_test()
         else:
             _do_test()

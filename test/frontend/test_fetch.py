@@ -1,3 +1,4 @@
+import pytest
 from collections import deque
 
 import random
@@ -37,7 +38,7 @@ class MockedICache(Elaboratable, CacheInterface):
 
 
 class TestFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
 
         self.icache = MockedICache(self.gen_params)
@@ -84,7 +85,7 @@ class TestFetch(TestCaseWithSimulator):
                 data |= 0b1100000
                 data &= ~0b0010000  # but not system
 
-            self.output_q.append({"instr": data, "error": 0})
+            self.output_q.append({"fetch_block": data, "error": 0})
 
             # Speculative fetch. Skip, because this instruction shouldn't be executed.
             if addr != next_pc:
@@ -125,8 +126,8 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
             instr = self.instr_queue.popleft()
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["instr"], instr["instr"])
+            assert v["pc"] == instr["pc"]
+            assert v["instr"] == instr["instr"]
 
             if instr["is_branch"]:
                 # branches on mispredict will stall fetch because of exception and then resume with new pc
@@ -145,7 +146,8 @@ class TestFetch(TestCaseWithSimulator):
 
 
 class TestUnalignedFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
         self.instr_queue = deque()
         self.instructions = 500
@@ -229,7 +231,7 @@ class TestUnalignedFetch(TestCaseWithSimulator):
             data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
 
             err = (req_addr in self.memerr) or (req_addr + 2 in self.memerr)
-            self.output_q.append({"instr": data, "error": err})
+            self.output_q.append({"fetch_block": data, "error": err})
 
     @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
     def issue_req_mock(self, addr):
@@ -256,8 +258,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                     v = yield from self.io_out.call()
                 discard_mispredict = False
 
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["access_fault"], instr_error)
+            assert v["pc"] == instr["pc"]
+            assert v["access_fault"] == instr_error
 
             if instr["is_branch"] or instr_error:
                 yield from self.random_wait(5)

@@ -11,6 +11,7 @@ from coreblocks.params import ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.lib import *
+from transactron.lib import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
@@ -21,19 +22,7 @@ __all__ = [
     "ICacheBypass",
 ]
 
-
-def extract_instr_from_word(m: TModule, params: ICacheParameters, word: Signal, addr: Value):
-    instr_out = Signal(params.instr_width)
-    if len(word) == 32:
-        m.d.comb += instr_out.eq(word)
-    elif len(word) == 64:
-        with m.If(addr[2] == 0):
-            m.d.comb += instr_out.eq(word[:32])  # Take lower 4 bytes
-        with m.Else():
-            m.d.comb += instr_out.eq(word[32:])  # Take upper 4 bytes
-    else:
-        raise RuntimeError("Word size different than 32 and 64 is not supported")
-    return instr_out
+log = logging.HardwareLogger("frontend.icache")
 
 
 class ICacheBypass(Elaboratable, CacheInterface):
@@ -44,6 +33,9 @@ class ICacheBypass(Elaboratable, CacheInterface):
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
         self.flush = Method()
+
+        if params.words_in_fetch_block != 1:
+            raise ValueError("ICacheBypass only supports fetch block size equal to the word size.")
 
     def elaborate(self, platform):
         m = TModule()
@@ -63,7 +55,7 @@ class ICacheBypass(Elaboratable, CacheInterface):
         def _():
             res = self.bus_master.get_read_response(m)
             return {
-                "instr": extract_instr_from_word(m, self.params, res.data, req_addr),
+                "fetch_block": res.data,
                 "error": res.err,
             }
 
@@ -82,10 +74,10 @@ class ICache(Elaboratable, CacheInterface):
 
     Refilling a cache line is abstracted away from this module. ICache module needs two methods
     from the refiller `refiller_start`, which is called whenever we need to refill a cache line.
-    `refiller_accept` should be ready to be called whenever the refiller has another word ready
-    to be written to cache. `refiller_accept` should set `last` bit when either an error occurs
-    or the transfer is over. After issuing `last` bit, `refiller_accept` shouldn't be ready until
-    the next transfer is started.
+    `refiller_accept` should be ready to be called whenever the refiller has another fetch block
+    ready to be written to cache. `refiller_accept` should set `last` bit when either an error
+    occurs or the transfer is over. After issuing `last` bit, `refiller_accept` shouldn't be ready
+    until the next transfer is started.
     """
 
     def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, refiller: CacheRefillerInterface) -> None:
@@ -123,7 +115,7 @@ class ICache(Elaboratable, CacheInterface):
         self.perf_misses = HwCounter("frontend.icache.misses")
         self.perf_errors = HwCounter("frontend.icache.fetch_errors")
         self.perf_flushes = HwCounter("frontend.icache.flushes")
-        self.req_latency = LatencyMeasurer(
+        self.req_latency = FIFOLatencyMeasurer(
             "frontend.icache.req_latency", "Latencies of cache requests", slots_number=2, max_latency=500
         )
 
@@ -150,14 +142,13 @@ class ICache(Elaboratable, CacheInterface):
         ]
 
         m.submodules.mem = self.mem = ICacheMemory(self.params)
-        m.submodules.req_fifo = self.req_fifo = FIFO(layout=self.addr_layout, depth=2)
-        m.submodules.res_fwd = self.res_fwd = Forwarder(layout=self.layouts.accept_res)
+        m.submodules.req_zipper = req_zipper = ArgumentsToResultsZipper(self.addr_layout, self.layouts.accept_res)
 
         # State machine logic
         needs_refill = Signal()
         refill_finish = Signal()
-        refill_finish_last = Signal()
         refill_error = Signal()
+        refill_error_saved = Signal()
 
         flush_start = Signal()
         flush_finish = Signal()
@@ -166,6 +157,7 @@ class ICache(Elaboratable, CacheInterface):
             self.perf_flushes.incr(m, cond=flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
+
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"
@@ -180,45 +172,54 @@ class ICache(Elaboratable, CacheInterface):
                 with m.If(refill_finish):
                     m.next = "LOOKUP"
 
-        accepting_requests = fsm.ongoing("LOOKUP") & ~needs_refill
-
         # Replacement policy
         way_selector = Signal(self.params.num_of_ways, reset=1)
         with m.If(refill_finish):
             m.d.sync += way_selector.eq(way_selector.rotate_left(1))
 
         # Fast path - read requests
-        request_valid = self.req_fifo.read.ready
-        request_addr = Signal(self.addr_layout)
+        mem_read_addr = Signal(self.addr_layout)
+        prev_mem_read_addr = Signal(self.addr_layout)
+        m.d.comb += assign(mem_read_addr, prev_mem_read_addr)
 
-        tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
-        tag_hit_any = reduce(operator.or_, tag_hit)
+        mem_read_output_valid = Signal()
+        forwarding_response_now = Signal()
+        accepting_requests = ~mem_read_output_valid | forwarding_response_now
 
-        mem_out = Signal(self.params.word_width)
-        for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
-            m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
+        with Transaction(name="MemRead").body(
+            m, request=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
+        ):
+            req_addr = req_zipper.peek_arg(m)
 
-        instr_out = extract_instr_from_word(m, self.params, mem_out, Value.cast(request_addr))
+            tag_hit = [tag_data.valid & (tag_data.tag == req_addr.tag) for tag_data in self.mem.tag_rd_data]
+            tag_hit_any = reduce(operator.or_, tag_hit)
 
-        refill_error_saved = Signal()
-        m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
+            with m.If(tag_hit_any | refill_error_saved):
+                m.d.comb += forwarding_response_now.eq(1)
+                self.perf_hits.incr(m, cond=tag_hit_any)
+                mem_out = Signal(self.params.fetch_block_bytes * 8)
+                for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
+                    m.d.av_comb += mem_out.eq(self.mem.data_rd_data[i])
 
-        with Transaction().body(m, request=request_valid & fsm.ongoing("LOOKUP") & (tag_hit_any | refill_error_saved)):
-            self.perf_errors.incr(m, cond=refill_error_saved)
-            self.perf_misses.incr(m, cond=refill_finish_last)
-            self.perf_hits.incr(m, cond=~refill_finish_last)
+                req_zipper.write_results(m, fetch_block=mem_out, error=refill_error_saved)
+                m.d.sync += refill_error_saved.eq(0)
+                m.d.sync += mem_read_output_valid.eq(0)
+            with m.Else():
+                self.perf_misses.incr(m)
 
-            self.res_fwd.write(m, instr=instr_out, error=refill_error_saved)
-            m.d.sync += refill_error_saved.eq(0)
+                m.d.comb += needs_refill.eq(1)
+
+                # Align to the beginning of the cache line
+                aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
+                log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
+                self.refiller.start_refill(m, addr=aligned_addr)
 
         @def_method(m, self.accept_res)
         def _():
-            self.req_fifo.read(m)
             self.req_latency.stop(m)
-            return self.res_fwd.read(m)
 
-        mem_read_addr = Signal(self.addr_layout)
-        m.d.comb += assign(mem_read_addr, request_addr)
+            output = req_zipper.read(m)
+            return output.results
 
         @def_method(m, self.issue_req, ready=accepting_requests)
         def _(addr: Value) -> None:
@@ -226,11 +227,11 @@ class ICache(Elaboratable, CacheInterface):
             self.req_latency.start(m)
 
             deserialized = self.deserialize_addr(addr)
-            # Forward read address only if the method is called
             m.d.comb += assign(mem_read_addr, deserialized)
-            m.d.sync += assign(request_addr, deserialized)
+            m.d.sync += assign(prev_mem_read_addr, deserialized)
+            req_zipper.write_args(m, deserialized)
 
-            self.req_fifo.write(m, deserialized)
+            m.d.sync += mem_read_output_valid.eq(1)
 
         m.d.comb += [
             self.mem.tag_rd_index.eq(mem_read_addr.index),
@@ -245,34 +246,30 @@ class ICache(Elaboratable, CacheInterface):
 
         @def_method(m, self.flush, ready=accepting_requests)
         def _() -> None:
+            log.info(m, True, "Flushing the cache...")
             m.d.sync += flush_index.eq(0)
             m.d.comb += flush_start.eq(1)
 
         m.d.comb += flush_finish.eq(flush_index == self.params.num_of_sets - 1)
 
         # Slow path - data refilling
-        with Transaction().body(m, request=fsm.ongoing("LOOKUP") & needs_refill):
-            # Align to the beginning of the cache line
-            aligned_addr = self.serialize_addr(request_addr) & ~((1 << self.params.offset_bits) - 1)
-            self.refiller.start_refill(m, addr=aligned_addr)
-
-        m.d.sync += refill_finish_last.eq(0)
-
         with Transaction().body(m):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
 
+            self.perf_errors.incr(m, cond=ret.error)
+
             m.d.top_comb += [
                 self.mem.data_wr_addr.index.eq(deserialized["index"]),
                 self.mem.data_wr_addr.offset.eq(deserialized["offset"]),
-                self.mem.data_wr_data.eq(ret.data),
+                self.mem.data_wr_data.eq(ret.fetch_block),
             ]
 
             m.d.comb += self.mem.data_wr_en.eq(1)
             m.d.comb += refill_finish.eq(ret.last)
-            m.d.sync += refill_finish_last.eq(1)
             m.d.comb += refill_error.eq(ret.error)
-            m.d.sync += refill_error_saved.eq(ret.error)
+            with m.If(ret.error):
+                m.d.sync += refill_error_saved.eq(1)
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
@@ -285,9 +282,9 @@ class ICache(Elaboratable, CacheInterface):
         with m.Else():
             m.d.comb += [
                 self.mem.way_wr_en.eq(way_selector),
-                self.mem.tag_wr_index.eq(request_addr.index),
+                self.mem.tag_wr_index.eq(mem_read_addr.index),
                 self.mem.tag_wr_data.valid.eq(~refill_error),
-                self.mem.tag_wr_data.tag.eq(request_addr.tag),
+                self.mem.tag_wr_data.tag.eq(mem_read_addr.tag),
                 self.mem.tag_wr_en.eq(refill_finish),
             ]
 
@@ -301,7 +298,7 @@ class ICacheMemory(Elaboratable):
     Writes are multiplexed using one-hot `way_wr_en` signal. Read data lines from all
     ways are separately exposed (as an array).
 
-    The data memory is addressed using a machine word.
+    The data memory is addressed using fetch blocks.
     """
 
     def __init__(self, params: ICacheParameters) -> None:
@@ -319,11 +316,13 @@ class ICacheMemory(Elaboratable):
 
         self.data_addr_layout = make_layout(("index", self.params.index_bits), ("offset", self.params.offset_bits))
 
+        self.fetch_block_bits = params.fetch_block_bytes * 8
+
         self.data_rd_addr = Signal(self.data_addr_layout)
-        self.data_rd_data = Array([Signal(self.params.word_width) for _ in range(self.params.num_of_ways)])
+        self.data_rd_data = Array([Signal(self.fetch_block_bits) for _ in range(self.params.num_of_ways)])
         self.data_wr_addr = Signal(self.data_addr_layout)
         self.data_wr_en = Signal()
-        self.data_wr_data = Signal(self.params.word_width)
+        self.data_wr_data = Signal(self.fetch_block_bits)
 
     def elaborate(self, platform):
         m = TModule()
@@ -345,17 +344,18 @@ class ICacheMemory(Elaboratable):
                 tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
-            data_mem = Memory(width=self.params.word_width, depth=self.params.num_of_sets * self.params.words_in_block)
+            data_mem = Memory(
+                width=self.fetch_block_bits, depth=self.params.num_of_sets * self.params.fetch_blocks_in_line
+            )
             data_mem_rp = data_mem.read_port()
             data_mem_wp = data_mem.write_port()
             m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
             m.submodules[f"data_mem_{i}_wp"] = data_mem_wp
 
-            # We address the data RAM using machine words, so we have to
+            # We address the data RAM using fetch blocks, so we have to
             # discard a few least significant bits from the address.
-            redundant_offset_bits = exact_log2(self.params.word_width_bytes)
-            rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[redundant_offset_bits:]
-            wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[redundant_offset_bits:]
+            rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[self.params.fetch_block_bytes_log :]
+            wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[self.params.fetch_block_bytes_log :]
 
             m.d.comb += [
                 self.data_rd_data[i].eq(data_mem_rp.data),

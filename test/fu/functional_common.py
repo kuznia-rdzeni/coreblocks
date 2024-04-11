@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass
 from itertools import product
 import random
+import pytest
 from collections import deque
 from typing import Generic, TypeVar
 
@@ -93,7 +94,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         """
         raise NotImplementedError
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
         self.gen_params = GenParams(test_core_config)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
@@ -149,7 +151,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         while self.responses:
             expected = self.responses.pop()
             result = yield from self.m.accept.call()
-            self.assertDictEqual(expected, result)
+            assert expected == result
             yield from self.random_wait(self.max_wait)
 
     def producer(self):
@@ -162,19 +164,19 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         while self.exceptions:
             expected = self.exceptions.pop()
             result = yield from self.report_mock.call()
-            self.assertDictEqual(expected, result)
+            assert expected == result
             yield from self.random_wait(self.max_wait)
 
         # keep partialy dependent tests from hanging up and detect extra calls
         yield Passive()
         result = yield from self.report_mock.call()
-        self.assertFalse(True, "unexpected report call")
+        assert not True, "unexpected report call"
 
     def pipeline_verifier(self):
         yield Passive()
         while True:
-            self.assertTrue((yield self.m.issue.adapter.iface.ready))
-            self.assertEqual((yield self.m.issue.adapter.en), (yield self.m.issue.adapter.done))
+            assert (yield self.m.issue.adapter.iface.ready)
+            assert (yield self.m.issue.adapter.en) == (yield self.m.issue.adapter.done)
             yield
 
     def run_standard_fu_test(self, pipeline_test=False):

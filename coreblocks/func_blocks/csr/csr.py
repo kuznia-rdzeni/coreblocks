@@ -258,6 +258,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         connections = gen_params.get(DependencyManager)

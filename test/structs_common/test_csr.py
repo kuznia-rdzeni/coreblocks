@@ -132,12 +132,12 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
 
-            self.assertTrue(self.dut.fetch_resume.done())
-            self.assertEqual(res["rp_dst"], op["exp"]["exp_read"]["rp_dst"])
+            assert self.dut.fetch_resume.done()
+            assert res["rp_dst"] == op["exp"]["exp_read"]["rp_dst"]
             if op["exp"]["exp_read"]["rp_dst"]:
-                self.assertEqual(res["result"], op["exp"]["exp_read"]["result"])
-            self.assertEqual((yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value), op["exp"]["exp_write"]["value"])
-            self.assertEqual(res["exception"], 0)
+                assert res["result"] == op["exp"]["exp_read"]["result"]
+            assert (yield self.dut.csr[op["exp"]["exp_write"]["csr"]].value) == op["exp"]["exp_write"]["value"]
+            assert res["exception"] == 0
 
     def test_randomized(self):
         self.gen_params = GenParams(test_core_config)
@@ -185,10 +185,10 @@ class TestCSRUnit(TestCaseWithSimulator):
             yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
 
-            self.assertEqual(res["exception"], 1)
+            assert res["exception"] == 1
             report = yield from self.dut.exception_report.call_result()
             assert report is not None
-            self.assertDictEqual({"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0}, report)
+            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report
 
     def test_exception(self):
         self.gen_params = GenParams(test_core_config)
@@ -236,19 +236,16 @@ class TestCSRRegister(TestCaseWithSimulator):
             exp_read_data = exp_write_data if fu_write or write else previous_data
 
             if fu_read:  # in CSRUnit this call is called before write and returns previous result
-                self.assertEqual((yield from self.dut._fu_read.call_result()), {"data": exp_read_data})
+                assert (yield from self.dut._fu_read.call_result()) == {"data": exp_read_data}
 
-            self.assertEqual(
-                (yield from self.dut.read.call_result()),
-                {
-                    "data": exp_read_data,
-                    "read": int(fu_read),
-                    "written": int(fu_write),
-                },
-            )
+            assert (yield from self.dut.read.call_result()) == {
+                "data": exp_read_data,
+                "read": int(fu_read),
+                "written": int(fu_write),
+            }
 
             read_result = yield from self.dut.read.call_result()
-            self.assertIsNotNone(read_result)
+            assert read_result is not None
             previous_data = read_result["data"]  # type: ignore
 
             yield from self.dut._fu_read.disable()
