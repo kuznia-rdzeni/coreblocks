@@ -258,11 +258,6 @@ class ROBLayouts:
 
         self.id_layout = make_layout(fields.rob_id)
 
-        self.internal_layout = make_layout(
-            self.rob_data,
-            fields.exception,
-        )
-
         self.mark_done_layout = make_layout(
             fields.rob_id,
             fields.exception,
