@@ -1,10 +1,10 @@
 import sys
+import pytest
 import os
 import random
-import unittest
 import functools
 from contextlib import contextmanager, nullcontext
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
+from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
@@ -202,27 +202,14 @@ class PysimSimulator(Simulator):
         return not self.advance()
 
 
-class TestCaseWithSimulator(unittest.TestCase):
+class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
+    @pytest.fixture(autouse=True)
+    def configure_dependency_context(self, request):
         self.dependency_manager = DependencyManager()
-
-        def wrap(f: Callable[[], None]):
-            @functools.wraps(f)
-            def wrapper():
-                with DependencyContext(self.dependency_manager):
-                    f()
-
-            return wrapper
-
-        for k in dir(self):
-            if k.startswith("test") or k == "setUp":
-                f = getattr(self, k)
-                if isinstance(f, Callable):
-                    setattr(self, k, wrap(getattr(self, k)))
+        with DependencyContext(self.dependency_manager):
+            yield
 
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
@@ -239,47 +226,73 @@ class TestCaseWithSimulator(unittest.TestCase):
         self.add_class_mocks(sim)
         self.add_local_mocks(sim, frame_locals)
 
-    @contextmanager
-    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
+    @pytest.fixture(autouse=True)
+    def configure_traces(self, request):
         traces_file = None
         if "__TRANSACTRON_DUMP_TRACES" in os.environ:
-            traces_file = unittest.TestCase.id(self)
+            traces_file = ".".join(request.node.nodeid.split("/"))
+        self._transactron_infrastructure_traces_file = traces_file
 
+    @pytest.fixture(autouse=True)
+    def fixture_sim_processes_to_add(self):
+        # By default return empty lists, it will be updated by other fixtures based on needs
+        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
+
+    @pytest.fixture(autouse=True)
+    def configure_profiles(self, request, fixture_sim_processes_to_add, configure_dependency_context):
+        profile = None
+        if "__TRANSACTRON_PROFILE" in os.environ:
+
+            def f():
+                nonlocal profile
+                try:
+                    transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
+                    profile = Profile()
+                    return profiler_process(transaction_manager, profile)
+                except KeyError:
+                    pass
+                return None
+
+            self._transactron_sim_processes_to_add.append(f)
+
+        yield
+
+        if profile is not None:
+            profile_dir = "test/__profiles__"
+            profile_file = ".".join(request.node.nodeid.split("/"))
+            os.makedirs(profile_dir, exist_ok=True)
+            profile.encode(f"{profile_dir}/{profile_file}.json")
+
+    @pytest.fixture(autouse=True)
+    def configure_logging(self, fixture_sim_processes_to_add):
+        def on_error():
+            assert False, "Simulation finished due to an error"
+
+        log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
+        log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
+        self._transactron_sim_processes_to_add.append(lambda: make_logging_process(log_level, log_filter, on_error))
+
+    @contextmanager
+    def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
         clk_period = 1e-6
         sim = PysimSimulator(
             module,
             max_cycles=max_cycles,
             add_transaction_module=add_transaction_module,
-            traces_file=traces_file,
+            traces_file=self._transactron_infrastructure_traces_file,
             clk_period=clk_period,
         )
         self.add_all_mocks(sim, sys._getframe(2).f_locals)
 
         yield sim
 
-        profile = None
-        if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
-            profile = Profile()
-            sim.add_sync_process(
-                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile)
-            )
-
-        def on_error():
-            self.assertTrue(False, "Simulation finished due to an error")
-
-        log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
-        log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
-        sim.add_sync_process(make_logging_process(log_level, log_filter, on_error))
+        for f in self._transactron_sim_processes_to_add:
+            ret = f()
+            if ret is not None:
+                sim.add_sync_process(ret)
 
         res = sim.run()
-
-        if profile is not None:
-            profile_dir = "test/__profiles__"
-            profile_file = unittest.TestCase.id(self)
-            os.makedirs(profile_dir, exist_ok=True)
-            profile.encode(f"{profile_dir}/{profile_file}.json")
-
-        self.assertTrue(res, "Simulation time limit exceeded")
+        assert res, "Simulation time limit exceeded"
 
     def tick(self, cycle_cnt: int = 1):
         """

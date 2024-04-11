@@ -50,7 +50,7 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
         ),
     ],
 )
-class ZbcUnitTest(FunctionalUnitTestCase[ZbcFn.Fn]):
+class TestZbcUnit(FunctionalUnitTestCase[ZbcFn.Fn]):
     ops = {
         ZbcFn.Fn.CLMUL: ExecFn(OpType.CLMUL, Funct3.CLMUL, Funct7.CLMUL),
         ZbcFn.Fn.CLMULH: ExecFn(OpType.CLMUL, Funct3.CLMULH, Funct7.CLMUL),

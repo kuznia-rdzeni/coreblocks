@@ -1,3 +1,4 @@
+import pytest
 from collections import deque
 
 import random
@@ -37,7 +38,7 @@ class MockedICache(Elaboratable, CacheInterface):
 
 
 class TestFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
 
         self.icache = MockedICache(self.gen_params)
@@ -125,8 +126,8 @@ class TestFetch(TestCaseWithSimulator):
                 yield
 
             instr = self.instr_queue.popleft()
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["instr"], instr["instr"])
+            assert v["pc"] == instr["pc"]
+            assert v["instr"] == instr["instr"]
 
             if instr["is_branch"]:
                 # branches on mispredict will stall fetch because of exception and then resume with new pc
@@ -145,7 +146,8 @@ class TestFetch(TestCaseWithSimulator):
 
 
 class TestUnalignedFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
         self.gen_params = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
         self.instr_queue = deque()
         self.instructions = 500
@@ -256,8 +258,8 @@ class TestUnalignedFetch(TestCaseWithSimulator):
                     v = yield from self.io_out.call()
                 discard_mispredict = False
 
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["access_fault"], instr_error)
+            assert v["pc"] == instr["pc"]
+            assert v["access_fault"] == instr_error
 
             if instr["is_branch"] or instr_error:
                 yield from self.random_wait(5)
