@@ -1,6 +1,7 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import IntEnum
+from dataclasses import dataclass
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign
 from coreblocks.params.genparams import GenParams
