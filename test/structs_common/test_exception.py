@@ -63,11 +63,11 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
                 yield from self.dut.report.call(report_arg)
                 yield  # additional FIFO delay
 
-                self.assertTrue((yield from self.fetch_stall_mock.done()))
+                assert (yield from self.fetch_stall_mock.done())
 
                 new_state = yield from self.dut.get.call()
 
-                self.assertDictEqual(new_state, expected | {"valid": 1})  # type: ignore
+                assert new_state == expected | {"valid": 1}  # type: ignore
 
                 saved_entry = new_state
 

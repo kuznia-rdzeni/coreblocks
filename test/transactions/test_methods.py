@@ -1,3 +1,4 @@
+import pytest
 import random
 from amaranth import *
 from amaranth.sim import *
@@ -14,7 +15,7 @@ from unittest import TestCase
 
 
 class TestDefMethod(TestCaseWithSimulator):
-    class TestModule(Elaboratable):
+    class CircuitTestModule(Elaboratable):
         def __init__(self, method_definition):
             self.method = Method(
                 i=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
@@ -32,7 +33,7 @@ class TestDefMethod(TestCaseWithSimulator):
             return m
 
     def do_test_definition(self, definer):
-        with self.run_simulation(TestDefMethod.TestModule(definer)):
+        with self.run_simulation(TestDefMethod.CircuitTestModule(definer)):
             pass
 
     def test_fields_valid1(self):
@@ -83,42 +84,42 @@ class TestDefMethod(TestCaseWithSimulator):
         def definition(arg):
             return {"foo1": Signal(3), "baz": Signal(4)}
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             self.do_test_definition(definition)
 
     def test_fields_invalid2(self):
         def definition(arg):
             return {"foo1": Signal(3)}
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             self.do_test_definition(definition)
 
     def test_fields_invalid3(self):
         def definition(arg):
             return {"foo1": {"baz1": Signal(), "baz2": Signal()}, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.do_test_definition(definition)
 
     def test_fields_invalid4(self):
         def definition(arg: Value):
             return arg
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.do_test_definition(definition)
 
     def test_fields_invalid5(self):
         def definition(foo):
             return foo
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.do_test_definition(definition)
 
     def test_fields_invalid6(self):
         def definition(foo1):
             return {"foo1": foo1, "foo2": {"bar1": Signal(4), "bar2": Signal(6)}}
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.do_test_definition(definition)
 
 
@@ -139,7 +140,7 @@ class AdapterCircuit(Elaboratable):
 
 class TestInvalidMethods(TestCase):
     def assert_re(self, msg, m):
-        with self.assertRaisesRegex(RuntimeError, msg):
+        with pytest.raises(RuntimeError, match=msg):
             Fragment.get(TransactionModule(m), platform=None)
 
     def test_twice(self):
@@ -353,7 +354,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
         def process():
             for n in range(1 << (WIDTH - 2)):
                 out = yield from circ.tb.call(data=n)
-                self.assertEqual(out["data"], n * 4)
+                assert out["data"] == n * 4
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -445,24 +446,24 @@ class TestConditionals(TestCaseWithSimulator):
             yield from circ.out.disable()
             yield from circ.tb.call_init(data=0)
             yield Settle()
-            self.assertFalse((yield from circ.out.done()))
-            self.assertFalse((yield from circ.tb.done()))
+            assert not (yield from circ.out.done())
+            assert not (yield from circ.tb.done())
 
             yield from circ.out.enable()
             yield Settle()
-            self.assertFalse((yield from circ.out.done()))
-            self.assertTrue((yield from circ.tb.done()))
+            assert not (yield from circ.out.done())
+            assert (yield from circ.tb.done())
 
             yield from circ.tb.call_init(data=1)
             yield Settle()
-            self.assertTrue((yield from circ.out.done()))
-            self.assertTrue((yield from circ.tb.done()))
+            assert (yield from circ.out.done())
+            assert (yield from circ.tb.done())
 
             # the argument is still 1 but the method is not called
             yield from circ.tb.disable()
             yield Settle()
-            self.assertFalse((yield from circ.out.done()))
-            self.assertFalse((yield from circ.tb.done()))
+            assert not (yield from circ.out.done())
+            assert not (yield from circ.tb.done())
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -482,11 +483,11 @@ class TestConditionals(TestCaseWithSimulator):
             yield from circ.tb.enable()
             yield circ.ready.eq(0)
             yield Settle()
-            self.assertFalse((yield from circ.tb.done()))
+            assert not (yield from circ.tb.done())
 
             yield circ.ready.eq(1)
             yield Settle()
-            self.assertTrue((yield from circ.tb.done()))
+            assert (yield from circ.tb.done())
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -541,15 +542,15 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
                 yield circ.data.eq(x)
                 yield Settle()
 
-                self.assertEqual(bool((yield circ.running)), (t1en or t2en) and mrdy)
-                self.assertEqual(bool((yield from circ.t1.done())), t1en and mrdy)
-                self.assertEqual(bool((yield from circ.t2.done())), t2en and mrdy)
+                assert bool((yield circ.running)) == ((t1en or t2en) and mrdy)
+                assert bool((yield from circ.t1.done())) == (t1en and mrdy)
+                assert bool((yield from circ.t2.done())) == (t2en and mrdy)
 
                 if t1en and mrdy:
-                    self.assertEqual((yield from circ.t1.get_outputs()), {"data": x})
+                    assert (yield from circ.t1.get_outputs()) == {"data": x}
 
                 if t2en and mrdy:
-                    self.assertEqual((yield from circ.t2.get_outputs()), {"data": x})
+                    assert (yield from circ.t2.get_outputs()) == {"data": x}
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -589,7 +590,7 @@ class DataDependentConditionalCircuit(Elaboratable):
 
 
 class TestDataDependentConditionalMethod(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.test_number = 200
         self.bad_number = 3
         self.n = 2
@@ -618,18 +619,18 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 out_t2 = yield self.circ.out_t2
 
                 if not m_ready or (not req_t1 or in1 == self.bad_number) and (not req_t2 or in2 == self.bad_number):
-                    self.assertEqual(out_m, 0)
-                    self.assertEqual(out_t1, 0)
-                    self.assertEqual(out_t2, 0)
+                    assert out_m == 0
+                    assert out_t1 == 0
+                    assert out_t2 == 0
                     continue
                 # Here method global ready signal is high and we requested one of the transactions
                 # we also know that one of the transactions request correct input data
 
-                self.assertEqual(out_m, 1)
-                self.assertEqual(out_t1 ^ out_t2, 1)
+                assert out_m == 1
+                assert out_t1 ^ out_t2 == 1
                 # inX == self.bad_number implies out_tX==0
-                self.assertTrue(in1 != self.bad_number or not out_t1)
-                self.assertTrue(in2 != self.bad_number or not out_t2)
+                assert in1 != self.bad_number or not out_t1
+                assert in2 != self.bad_number or not out_t2
 
                 yield
 

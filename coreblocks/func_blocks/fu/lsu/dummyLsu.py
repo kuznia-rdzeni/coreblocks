@@ -228,7 +228,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
-        m.submodules.results_noop = results_noop = self.forwarder = FIFO(self.lsu_layouts.accept, 2)
+        m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
 

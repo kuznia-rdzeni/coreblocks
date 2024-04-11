@@ -1,3 +1,4 @@
+import pytest
 from collections import deque
 from parameterized import parameterized_class
 import random
@@ -53,7 +54,8 @@ class TestFetchUnit(TestCaseWithSimulator):
     fetch_block_log: int
     with_rvc: bool
 
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
         self.pc = 0
         self.gen_params = GenParams(
             test_core_config.replace(
@@ -175,12 +177,12 @@ class TestFetchUnit(TestCaseWithSimulator):
 
             v = yield from self.io_out.call()
 
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["access_fault"], access_fault)
+            assert v["pc"] == instr["pc"]
+            assert v["access_fault"] == access_fault
 
             instr_data = instr["instr"]
             if (instr_data & 0b11) == 0b11:
-                self.assertEqual(v["instr"], instr_data)
+                assert v["instr"] == instr_data
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 yield from self.random_wait(5)

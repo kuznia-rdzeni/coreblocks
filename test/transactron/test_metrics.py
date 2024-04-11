@@ -67,7 +67,7 @@ class CounterWithoutMethodCircuit(Elaboratable):
 
 
 class TestHwCounter(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         random.seed(42)
 
     def test_counter_in_method(self):
@@ -86,7 +86,7 @@ class TestHwCounter(TestCaseWithSimulator):
 
                 # Note that it takes one cycle to update the register value, so here
                 # we are comparing the "previous" values.
-                self.assertEqual(called_cnt, (yield m._dut.counter.count.value))
+                assert called_cnt == (yield m._dut.counter.count.value)
 
                 if call_now:
                     called_cnt += 1
@@ -111,7 +111,7 @@ class TestHwCounter(TestCaseWithSimulator):
 
                 # Note that it takes one cycle to update the register value, so here
                 # we are comparing the "previous" values.
-                self.assertEqual(called_cnt, (yield m._dut.counter.count.value))
+                assert called_cnt == (yield m._dut.counter.count.value)
 
                 if call_now and condition == 1:
                     called_cnt += 1
@@ -133,7 +133,7 @@ class TestHwCounter(TestCaseWithSimulator):
 
                 # Note that it takes one cycle to update the register value, so here
                 # we are comparing the "previous" values.
-                self.assertEqual(called_cnt, (yield m.counter.count.value))
+                assert called_cnt == (yield m.counter.count.value)
 
                 if condition == 1:
                     called_cnt += 1
@@ -173,7 +173,7 @@ class TaggedCounterCircuit(Elaboratable):
 
 
 class TestTaggedCounter(TestCaseWithSimulator):
-    def setUp(self) -> None:
+    def setup_method(self) -> None:
         random.seed(42)
 
     def do_test_enum(self, tags: range | Type[Enum] | list[int], tag_values: list[int]):
@@ -187,7 +187,7 @@ class TestTaggedCounter(TestCaseWithSimulator):
         def test_process():
             for _ in range(200):
                 for i in tag_values:
-                    self.assertEqual(counts[i], (yield m.counter.counters[i].value))
+                    assert counts[i] == (yield m.counter.counters[i].value)
 
                 tag = random.choice(list(tag_values))
 
@@ -290,20 +290,20 @@ class TestHwHistogram(TestCaseWithSimulator):
                 histogram = m._dut.histogram
                 # Skip the assertion if the min is still uninitialized
                 if min != max_sample_value + 1:
-                    self.assertEqual(min, (yield histogram.min.value))
+                    assert min == (yield histogram.min.value)
 
-                self.assertEqual(max, (yield histogram.max.value))
-                self.assertEqual(sum, (yield histogram.sum.value))
-                self.assertEqual(count, (yield histogram.count.value))
+                assert max == (yield histogram.max.value)
+                assert sum == (yield histogram.sum.value)
+                assert count == (yield histogram.count.value)
 
                 total_count = 0
                 for i in range(self.bucket_count):
                     bucket_value = yield histogram.buckets[i].value
                     total_count += bucket_value
-                    self.assertEqual(buckets[i], bucket_value)
+                    assert buckets[i] == bucket_value
 
                 # Sanity check if all buckets sum up to the total count value
-                self.assertEqual(total_count, (yield histogram.count.value))
+                assert total_count == (yield histogram.count.value)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(test_process)
@@ -311,17 +311,17 @@ class TestHwHistogram(TestCaseWithSimulator):
 
 class TestLatencyMeasurerBase(TestCaseWithSimulator):
     def check_latencies(self, m: SimpleTestCircuit, latencies: list[int]):
-        self.assertEqual(min(latencies), (yield m._dut.histogram.min.value))
-        self.assertEqual(max(latencies), (yield m._dut.histogram.max.value))
-        self.assertEqual(sum(latencies), (yield m._dut.histogram.sum.value))
-        self.assertEqual(len(latencies), (yield m._dut.histogram.count.value))
+        assert min(latencies) == (yield m._dut.histogram.min.value)
+        assert max(latencies) == (yield m._dut.histogram.max.value)
+        assert sum(latencies) == (yield m._dut.histogram.sum.value)
+        assert len(latencies) == (yield m._dut.histogram.count.value)
 
         for i in range(m._dut.histogram.bucket_count):
             bucket_start = 0 if i == 0 else 2 ** (i - 1)
             bucket_end = 1e10 if i == m._dut.histogram.bucket_count - 1 else 2**i
 
             count = sum(1 for x in latencies if bucket_start <= x < bucket_end)
-            self.assertEqual(count, (yield m._dut.histogram.buckets[i].value))
+            assert count == (yield m._dut.histogram.buckets[i].value)
 
 
 @parameterized_class(
@@ -495,37 +495,28 @@ class TestMetricsManager(TestCaseWithSimulator):
         with self.run_simulation(m):
             pass
 
-        self.assertEqual(
-            metrics_manager.get_metrics()["foo.counter1"].to_json(),  # type: ignore
-            json.dumps(
-                {
-                    "fully_qualified_name": "foo.counter1",
-                    "description": "this is the description",
-                    "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
-                }
-            ),
+        assert metrics_manager.get_metrics()["foo.counter1"].to_json() == json.dumps(  # type: ignore
+            {
+                "fully_qualified_name": "foo.counter1",
+                "description": "this is the description",
+                "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
+            }
         )
 
-        self.assertEqual(
-            metrics_manager.get_metrics()["bar.baz.counter2"].to_json(),  # type: ignore
-            json.dumps(
-                {
-                    "fully_qualified_name": "bar.baz.counter2",
-                    "description": "",
-                    "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
-                }
-            ),
+        assert metrics_manager.get_metrics()["bar.baz.counter2"].to_json() == json.dumps(  # type: ignore
+            {
+                "fully_qualified_name": "bar.baz.counter2",
+                "description": "",
+                "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
+            }
         )
 
-        self.assertEqual(
-            metrics_manager.get_metrics()["bar.baz.counter3"].to_json(),  # type: ignore
-            json.dumps(
-                {
-                    "fully_qualified_name": "bar.baz.counter3",
-                    "description": "yet another description",
-                    "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
-                }
-            ),
+        assert metrics_manager.get_metrics()["bar.baz.counter3"].to_json() == json.dumps(  # type: ignore
+            {
+                "fully_qualified_name": "bar.baz.counter3",
+                "description": "yet another description",
+                "regs": {"count": {"name": "count", "description": "the value of the counter", "width": 32}},
+            }
         )
 
     def test_returned_reg_values(self):
@@ -548,9 +539,9 @@ class TestMetricsManager(TestCaseWithSimulator):
                     if rand[i] == 1:
                         counters[i] += 1
 
-                self.assertEqual(counters[0], (yield metrics_manager.get_register_value("foo.counter1", "count")))
-                self.assertEqual(counters[1], (yield metrics_manager.get_register_value("bar.baz.counter2", "count")))
-                self.assertEqual(counters[2], (yield metrics_manager.get_register_value("bar.baz.counter3", "count")))
+                assert counters[0] == (yield metrics_manager.get_register_value("foo.counter1", "count"))
+                assert counters[1] == (yield metrics_manager.get_register_value("bar.baz.counter2", "count"))
+                assert counters[2] == (yield metrics_manager.get_register_value("bar.baz.counter3", "count"))
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(test_process)

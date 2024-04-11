@@ -1,4 +1,5 @@
 from unittest.case import TestCase
+import pytest
 from amaranth import *
 from amaranth.sim import *
 
@@ -32,37 +33,37 @@ class TestNames(TestCase):
                 Transaction(manager=mgr)
 
         T()
-        self.assertEqual(mgr.transactions[0].name, "T")
+        assert mgr.transactions[0].name == "T"
 
         t = Transaction(name="x", manager=mgr)
-        self.assertEqual(t.name, "x")
+        assert t.name == "x"
 
         t = Transaction(manager=mgr)
-        self.assertEqual(t.name, "t")
+        assert t.name == "t"
 
         m = Method(name="x")
-        self.assertEqual(m.name, "x")
+        assert m.name == "x"
 
         m = Method()
-        self.assertEqual(m.name, "m")
+        assert m.name == "m"
 
 
 class TestScheduler(TestCaseWithSimulator):
     def count_test(self, sched, cnt):
-        self.assertEqual(sched.count, cnt)
-        self.assertEqual(len(sched.requests), cnt)
-        self.assertEqual(len(sched.grant), cnt)
-        self.assertEqual(len(sched.valid), 1)
+        assert sched.count == cnt
+        assert len(sched.requests) == cnt
+        assert len(sched.grant) == cnt
+        assert len(sched.valid) == 1
 
     def sim_step(self, sched, request, expected_grant):
         yield sched.requests.eq(request)
         yield
 
         if request == 0:
-            self.assertFalse((yield sched.valid))
+            assert not (yield sched.valid)
         else:
-            self.assertEqual((yield sched.grant), expected_grant)
-            self.assertTrue((yield sched.valid))
+            assert (yield sched.grant) == expected_grant
+            assert (yield sched.valid)
 
     def test_single(self):
         sched = Scheduler(1)
@@ -126,7 +127,7 @@ class TransactionConflictTestCircuit(Elaboratable):
 class TestTransactionConflict(TestCaseWithSimulator):
     scheduler: TransactionScheduler
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     def make_process(
@@ -147,7 +148,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             self.out1_expected.append(x)
 
         def chk(x: int):
-            self.assertEqual(x, self.in_expected.popleft())
+            assert x == self.in_expected.popleft()
 
         return self.make_process(self.m.in1, prob, self.in1_stream, tgt, chk)
 
@@ -156,7 +157,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             self.out2_expected.append(x)
 
         def chk(x: int):
-            self.assertEqual(x, self.in_expected.popleft())
+            assert x == self.in_expected.popleft()
 
         return self.make_process(self.m.in2, prob, self.in2_stream, tgt, chk)
 
@@ -170,7 +171,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
             elif self.out2_expected and x == self.out2_expected[0]:
                 self.out2_expected.popleft()
             else:
-                self.fail("%d not found in any of the queues" % x)
+                assert False, "%d not found in any of the queues" % x
 
         return self.make_process(self.m.out, prob, self.out_stream, tgt, chk)
 
@@ -195,9 +196,9 @@ class TestTransactionConflict(TestCaseWithSimulator):
             sim.add_sync_process(self.make_in2_process(prob2))
             sim.add_sync_process(self.make_out_process(probout))
 
-        self.assertFalse(self.in_expected)
-        self.assertFalse(self.out1_expected)
-        self.assertFalse(self.out2_expected)
+        assert not self.in_expected
+        assert not self.out1_expected
+        assert not self.out2_expected
 
 
 class SchedulingTestCircuit(Elaboratable):
@@ -270,7 +271,7 @@ class MethodPriorityTestCircuit(PriorityTestCircuit):
 class TestTransactionPriorities(TestCaseWithSimulator):
     circuit: type[PriorityTestCircuit]
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
@@ -284,12 +285,12 @@ class TestTransactionPriorities(TestCaseWithSimulator):
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield Settle()
-                self.assertNotEqual((yield m.t1), (yield m.t2))
+                assert (yield m.t1) != (yield m.t2)
                 if r1 == 1 and r2 == 1:
                     if priority == Priority.LEFT:
-                        self.assertTrue((yield m.t1))
+                        assert (yield m.t1)
                     if priority == Priority.RIGHT:
-                        self.assertTrue((yield m.t2))
+                        assert (yield m.t2)
 
         with self.run_simulation(m) as sim:
             sim.add_process(process)
@@ -301,7 +302,7 @@ class TestTransactionPriorities(TestCaseWithSimulator):
         import graphlib
 
         if priority != Priority.UNDEFINED:
-            cm = self.assertRaises(graphlib.CycleError)
+            cm = pytest.raises(graphlib.CycleError)
         else:
             cm = contextlib.nullcontext()
 
@@ -356,7 +357,7 @@ class NestedMethodsTestCircuit(SchedulingTestCircuit):
 class TestNested(TestCaseWithSimulator):
     circuit: type[SchedulingTestCircuit]
 
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     def test_scheduling(self):
@@ -369,8 +370,8 @@ class TestNested(TestCaseWithSimulator):
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield
-                self.assertEqual((yield m.t1), r1)
-                self.assertEqual((yield m.t2), r1 * r2)
+                assert (yield m.t1) == r1
+                assert (yield m.t2) == r1 * r2
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
@@ -402,7 +403,7 @@ class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
 
 
 class TestScheduleBefore(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         random.seed(42)
 
     def test_schedule_before(self):
@@ -415,8 +416,8 @@ class TestScheduleBefore(TestCaseWithSimulator):
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
                 yield
-                self.assertEqual((yield m.t1), r1)
-                self.assertFalse((yield m.t2))
+                assert (yield m.t1) == r1
+                assert not (yield m.t2)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)
@@ -441,6 +442,6 @@ class TestSingleCaller(TestCaseWithSimulator):
     def test_single_caller(self):
         m = SingleCallerTestCircuit()
 
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             with self.run_simulation(m):
                 pass

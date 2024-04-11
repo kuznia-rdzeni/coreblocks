@@ -25,7 +25,7 @@ from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
         ),
     ],
 )
-class MultiplierUnitTest(FunctionalUnitTestCase[MulFn.Fn]):
+class TestMultiplierUnit(FunctionalUnitTestCase[MulFn.Fn]):
     ops = {
         MulFn.Fn.MUL: ExecFn(OpType.MUL, Funct3.MUL, Funct7.MULDIV),
         MulFn.Fn.MULH: ExecFn(OpType.MUL, Funct3.MULH, Funct7.MULDIV),
