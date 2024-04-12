@@ -22,6 +22,7 @@ __all__ = [
     "MretKey",
     "CoreStateKey",
     "CSRListKey",
+    "FlushICacheKey",
 ]
 
 
@@ -74,4 +75,9 @@ class CoreStateKey(SimpleKey[Method]):
 class CSRListKey(ListKey["CSRRegister"]):
     """DependencyManager key collecting CSR registers globally as a list."""
 
+    pass
+
+
+@dataclass(frozen=True)
+class FlushICacheKey(SimpleKey[Method]):
     pass
