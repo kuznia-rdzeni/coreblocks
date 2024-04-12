@@ -207,18 +207,6 @@ low_addr CSR is available to the counter.</p>
 <div class="section" id="module-coreblocks.priv.csr.csr_register">
 <span id="coreblocks-priv-csr-csr-register-module"></span><h2>coreblocks.priv.csr.csr_register module<a class="headerlink" href="#module-coreblocks.priv.csr.csr_register" title="Permalink to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRListKey">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">CSRListKey</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRListKey" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.ListKey" title="transactron.utils.dependencies.ListKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListKey</span></code></a>[<a class="reference internal" href="#coreblocks.priv.csr.csr_register.CSRRegister" title="coreblocks.priv.csr.csr_register.CSRRegister"><code class="xref py py-class docutils literal notranslate"><span class="pre">CSRRegister</span></code></a>]</p>
-<p>DependencyManager key collecting CSR registers globally as a list.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRListKey.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRListKey.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRRegister">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">CSRRegister</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRRegister" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -240,74 +228,62 @@ Used to define a CSR register and specify its behaviour.
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>read: Method</strong></dt><dd><p>Reads register value and side effect status.
-Side effect fields <cite>read</cite> and <cite>written</cite> are set if register was accessed by _fu_read or _fu_write
+Side effect fields <cite>read</cite> and <cite>written</cite> are set if register was accessed by <cite>_fu_read</cite> or <cite>_fu_write</cite>
 methods (by CSR instruction) in a current cycle; they can be used to trigger other actions.
 Always ready.</p>
 </dd>
-<dt><strong>write: Method</strong></dt><dd><p>Updates register value.
-Always ready. If _fu_write is called simultaneously, this call is ignored.</p>
+<dt><strong>read_comb: Method</strong></dt><dd><p>Reads register value or value submitted by <cite>_fu_write`(instruction write) combinationally.
+Note that returned value ignores priority setting. It allows for `_fu_write -&gt; read_comb -&gt; write</cite> operation
+in single cycle. Note that if <cite>_fu_write</cite> is called, it returns call value ignoring <cite>ro_bits</cite>. Always ready.</p>
+</dd>
+<dt><strong>write: Method</strong></dt><dd><p>Updates register value. Always ready.</p>
 </dd>
 <dt><strong>_fu_read: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Reads register value.</p>
 </dd>
-<dt><strong>_fu_write: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Updates register value.
-Always ready. Has priority over <cite>write</cite> method.</p>
+<dt><strong>_fu_write: Method</strong></dt><dd><p>Method connected automatically by <cite>CSRUnit</cite>. Updates register value. Always ready.</p>
 </dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.CSRRegister.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ro_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRRegister.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ro_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.lib.enum.Enum</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fu_write_priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fu_write_filtermap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Value</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fu_read_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Value</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_loc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.CSRRegister.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>csr_number: int</strong></dt><dd><p>Address of this CSR Register.</p>
+<dt><strong>csr_number: Optional[int]</strong></dt><dd><p>Address of this CSR Register.
+If <cite>None</cite> is given, CSR is virtual - not automatically connected to CSRUnit.</p>
 </dd>
 <dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
 </dd>
+<dt><strong>width: Optional[int]</strong></dt><dd><p>Width of CSR register. Defaults to <cite>xlen</cite>.</p>
+</dd>
 <dt><strong>ro_bits: int</strong></dt><dd><p>Bit mask of read-only bits in register.
-Writes from _fu_write (instructions) to those bits are ignored.
+Writes from <cite>_fu_write</cite> (instructions) to those bits are ignored.
 Note that this parameter is only required if there are some read-only
 bits in read-write register. Writes to read-only registers specified
 by upper 2 bits of CSR address set to <cite>0b11</cite> are discarded by <cite>CSRUnit</cite>.</p>
 </dd>
+<dt><strong>reset: int | Enum</strong></dt><dd><p>Reset value of CSR.</p>
+</dd>
+<dt><strong>fu_write_priority: bool</strong></dt><dd><p>Priority of CSR instruction write over <cite>write</cite> method, if both are called at the same cycle.
+If <cite>ro_bits</cite> are set, both operations will be performed, respecting priority on writeable bits.
+Deafults to True.</p>
+</dd>
+<dt><strong>fu_write_filtermap: function (TModule, Value) -&gt; (ValueLike, ValueLike)</strong></dt><dd><p>Filter + map on CSR writes from instruction. First Value in returned tuple signals if write should be
+performed, second is modified input data.</p>
+</dd>
+<dt><strong>fu_read_map: function (TModule, Value) -&gt; (ValueLike)</strong></dt><dd><p>Map on CSR reads from instructions. Maps value returned from CSR.</p>
+</dd>
+<dt><strong>src_loc: int | SrcLoc</strong></dt><dd><p>How many stack frames deep the source location is taken from.
+Alternatively, the source location to use instead of the default.</p>
+</dd>
 </dl>
 </dd>
 </dl>
 </dd></dl>
 
 </dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">PrivilegeLevel</span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.MACHINE">
-<span class="sig-name descname"><span class="pre">MACHINE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.MACHINE" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.SUPERVISOR">
-<span class="sig-name descname"><span class="pre">SUPERVISOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.SUPERVISOR" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.USER">
-<span class="sig-name descname"><span class="pre">USER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.USER" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.PrivilegeLevel.__new__">
-<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel.__new__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="coreblocks.priv.csr.csr_register.csr_access_privilege">
-<span class="sig-prename descclassname"><span class="pre">coreblocks.priv.csr.csr_register.</span></span><span class="sig-name descname"><span class="pre">csr_access_privilege</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csr_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.priv.csr.csr_register.PrivilegeLevel" title="coreblocks.priv.csr.csr_register.PrivilegeLevel"><span class="pre">coreblocks.priv.csr.csr_register.PrivilegeLevel</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.priv.csr.csr_register.csr_access_privilege" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
 
 </div>
 <div class="section" id="module-coreblocks.priv.csr">
@@ -327,7 +303,7 @@ by upper 2 bits of CSR address set to <cite>0b11</cite> are discarded by <cite>C
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 16:39 2024-04-12.
+      <span class="lastupdated">Last updated on 16:55 2024-04-12.
       </span></p>
   </div>
 
