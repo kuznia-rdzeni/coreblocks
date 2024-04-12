@@ -14,6 +14,7 @@ from coreblocks.interface.keys import (
     GenericCSRRegistersKey,
     InstructionPrecommitKey,
     CommonBusDataKey,
+    FlushICacheKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
@@ -85,6 +86,7 @@ class Core(Elaboratable):
 
         self.connections = gen_params.get(DependencyManager)
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+        self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
         self.fetch = FetchUnit(self.gen_params, self.icache, self.fetch_continue.method)
 

@@ -477,6 +477,7 @@ class Predecoder(Elaboratable):
         m = TModule()
 
         opcode = self.instr_in[2:7]
+        funct3 = self.instr_in[12:15]
 
         bimm = Signal(signed(13))
         jimm = Signal(signed(21))
@@ -501,6 +502,8 @@ class Predecoder(Elaboratable):
             with m.Default():
                 m.d.comb += self.cfi_type.eq(CfiType.INVALID)
 
-        m.d.comb += self.is_unsafe.eq(opcode == Opcode.SYSTEM)
+        m.d.comb += self.is_unsafe.eq(
+            (opcode == Opcode.SYSTEM) | ((opcode == Opcode.MISC_MEM) & (funct3 == Funct3.FENCEI))
+        )
 
         return m
