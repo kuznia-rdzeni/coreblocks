@@ -12,8 +12,8 @@ from coreblocks.interface.layouts import CSRRegisterLayouts
 from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyManager
-from transactron.utils.transactron_helpers import from_method_layout
-from transactron.utils._typing import ValueLike
+from transactron.utils.transactron_helpers import get_src_loc
+from transactron.utils._typing import ValueLike, SrcLoc
 
 
 class CSRRegister(Elaboratable):
@@ -65,6 +65,7 @@ class CSRRegister(Elaboratable):
         fu_write_priority: bool = True,
         fu_write_filtermap: Optional[Callable[[TModule, Value], tuple[ValueLike, ValueLike]]] = None,
         fu_read_map: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -93,6 +94,9 @@ class CSRRegister(Elaboratable):
             performed, second is modified input data.
         fu_read_map: function (TModule, Value) -> (ValueLike)
             Map on CSR reads from instructions. Maps value returned from CSR.
+        src_loc: int | SrcLoc
+            How many stack frames deep the source location is taken from.
+            Alternatively, the source location to use instead of the default.
         """
         self.gen_params = gen_params
         self.csr_number = csr_number
@@ -101,6 +105,7 @@ class CSRRegister(Elaboratable):
         self.fu_write_priority = fu_write_priority
         fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
         fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
+        self.src_loc = get_src_loc(src_loc)
 
         csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
 
@@ -140,7 +145,7 @@ class CSRRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        internal_method_layout = from_method_layout([("data", self.gen_params.isa.xlen), ("active", 1)])
+        internal_method_layout = StructLayout({"data": self.gen_params.isa.xlen, "active": 1})
         write_internal = Signal(internal_method_layout)
         fu_write_internal = Signal(internal_method_layout)
 
