@@ -88,10 +88,10 @@ class CSRRegister(Elaboratable):
             Priority of CSR instruction write over `write` method, if both are called at the same cycle.
             If `ro_bits` are set, both operations will be performed, respecting priority on writeable bits.
             Deafults to True.
-        fu_write_filtermap: function (TModule, Value) -> (Value, Dict)
+        fu_write_filtermap: function (TModule, Value) -> (ValueLike, ValueLike)
             Filter + map on CSR writes from instruction. First Value in returned tuple signals if write should be
             performed, second is modified input data.
-        fu_read_map: function (TModule, Value) -> (Value)
+        fu_read_map: function (TModule, Value) -> (ValueLike)
             Map on CSR reads from instructions. Maps value returned from CSR.
         """
         self.gen_params = gen_params
@@ -122,7 +122,7 @@ class CSRRegister(Elaboratable):
             o_transform=(csr_layouts._fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
         )
 
-        # Methods connected autatically by CSRUnit
+        # Methods connected automatically by CSRUnit
         self._fu_read = self.fu_read_map.method
         self._fu_write = self.fu_write_filter.method
 

@@ -283,7 +283,6 @@ class TestCSRRegister(TestCaseWithSimulator):
                 expected <<= 1
                 expected &= 2**34 - 1
 
-            print(input, expected, output)
             assert output == expected
 
             prev_value = output

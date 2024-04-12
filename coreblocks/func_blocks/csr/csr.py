@@ -93,9 +93,10 @@ class CSRUnit(FuncBlock, Elaboratable):
     def _create_regfile(self):
         # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
         for csr in self.dependency_manager.get_dependency(CSRListKey()):
+            assert csr.csr_number is not None
             if csr.csr_number in self.regfile:
                 raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)  # type: ignore
+            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
 
     def elaborate(self, platform):
         self._create_regfile()
