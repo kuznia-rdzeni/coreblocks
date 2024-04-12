@@ -135,10 +135,6 @@ class TestBackend(TestCaseWithSimulator):
             assert rs_result is not None
             assert rob_result is not None
 
-            # this is needed to make the typechecker happy
-            if rf_result is None or rs_result is None or rob_result is None:
-                continue
-
             assert rf_result["reg_val"] == rs_result["value"]
             assert rf_result["reg_id"] == rs_result["reg_id"]
 
