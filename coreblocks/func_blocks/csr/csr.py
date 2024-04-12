@@ -1,21 +1,44 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
-
+from amaranth.lib.enum import IntEnum
+from dataclasses import dataclass
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign
 from coreblocks.params.genparams import GenParams
+from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
+from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.priv.csr.csr_register import *
 from coreblocks.interface.keys import (
+    CSRListKey,
     FetchResumeKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
 )
+
+
+class PrivilegeLevel(IntEnum, shape=2):
+    USER = 0b00
+    SUPERVISOR = 0b01
+    MACHINE = 0b11
+
+
+def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
+    read_only = bits_from_int(csr_addr, 10, 2) == 0b11
+
+    match bits_from_int(csr_addr, 8, 2):
+        case 0b00:
+            return (PrivilegeLevel.USER, read_only)
+        case 0b01:
+            return (PrivilegeLevel.SUPERVISOR, read_only)
+        case 0b10:  # Hypervisior CSRs - accessible with VS mode (S with extension)
+            return (PrivilegeLevel.SUPERVISOR, read_only)
+        case _:
+            return (PrivilegeLevel.MACHINE, read_only)
 
 
 class CSRUnit(FuncBlock, Elaboratable):
@@ -57,7 +80,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
 
         # Standard RS interface
-        self.csr_layouts = gen_params.get(CSRLayouts)
+        self.csr_layouts = gen_params.get(CSRUnitLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.select = Method(o=self.csr_layouts.rs.select_out)
         self.insert = Method(i=self.csr_layouts.rs.insert_in)
@@ -68,8 +91,9 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
     def _create_regfile(self):
-        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` depenecy.
+        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
         for csr in self.dependency_manager.get_dependency(CSRListKey()):
+            assert csr.csr_number is not None
             if csr.csr_number in self.regfile:
                 raise RuntimeError(f"CSR number {csr.csr_number} already registered")
             self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
