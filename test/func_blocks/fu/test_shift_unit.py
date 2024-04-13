@@ -4,7 +4,7 @@ from coreblocks.func_blocks.fu.shift_unit import ShiftUnitFn, ShiftUnitComponent
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
-class ShiftUnitTest(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
+class TestShiftUnit(FunctionalUnitTestCase[ShiftUnitFn.Fn]):
     func_unit = ShiftUnitComponent(zbb_enable=True)
     zero_imm = False
 

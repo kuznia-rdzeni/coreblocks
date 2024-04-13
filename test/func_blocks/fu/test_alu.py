@@ -6,7 +6,7 @@ from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 from transactron.utils import signed_to_int
 
 
-class AluUnitTest(FunctionalUnitTestCase[AluFn.Fn]):
+class TestAluUnit(FunctionalUnitTestCase[AluFn.Fn]):
     func_unit = ALUComponent(zba_enable=True, zbb_enable=True)
     zero_imm = False
 

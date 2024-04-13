@@ -78,8 +78,9 @@ class Fetch(Elaboratable):
             res = self.icache.accept_res(m)
 
             opcode = res.fetch_block[2:7]
+            funct3 = res.fetch_block[12:15]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = opcode == Opcode.SYSTEM
+            unsafe_instr = (opcode == Opcode.SYSTEM) | ((opcode == Opcode.MISC_MEM) & (funct3 == Funct3.FENCEI))
 
             with m.If(spin == target.spin):
                 instr = Signal(self.gen_params.isa.ilen)
@@ -200,8 +201,9 @@ class UnalignedFetch(Elaboratable):
             m.d.top_comb += instr.eq(Mux(is_rvc, decompress.instr_out, full_instr))
 
             opcode = instr[2:7]
+            funct3 = instr[12:15]
             # whether we have to wait for the retirement of this instruction before we make futher speculation
-            unsafe_instr = opcode == Opcode.SYSTEM
+            unsafe_instr = (opcode == Opcode.SYSTEM) | ((opcode == Opcode.MISC_MEM) & (funct3 == Funct3.FENCEI))
 
             # Check if we are ready to dispatch an instruction in the current cycle.
             # This can happen in three situations:

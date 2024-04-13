@@ -219,43 +219,43 @@ class TestAXILiteMaster(TestCaseWithSimulator):
 
         def result_process():
             resp = yield from almt.read_data_response_adapter.call()
-            self.assertEqual(resp["data"], 10)
-            self.assertEqual(resp["resp"], 0)
+            assert resp["data"] == 10
+            assert resp["resp"] == 0
 
             resp = yield from almt.read_data_response_adapter.call()
-            self.assertEqual(resp["data"], 15)
-            self.assertEqual(resp["resp"], 0)
+            assert resp["data"] == 15
+            assert resp["resp"] == 0
 
             resp = yield from almt.read_data_response_adapter.call()
-            self.assertEqual(resp["data"], 20)
-            self.assertEqual(resp["resp"], 0)
+            assert resp["data"] == 20
+            assert resp["resp"] == 0
 
             resp = yield from almt.read_data_response_adapter.call()
-            self.assertEqual(resp["data"], 25)
-            self.assertEqual(resp["resp"], 0)
+            assert resp["data"] == 25
+            assert resp["resp"] == 0
 
             resp = yield from almt.write_response_response_adapter.call()
-            self.assertEqual(resp["resp"], 1)
+            assert resp["resp"] == 1
 
             resp = yield from almt.write_response_response_adapter.call()
-            self.assertEqual(resp["resp"], 1)
+            assert resp["resp"] == 1
 
             resp = yield from almt.write_response_response_adapter.call()
-            self.assertEqual(resp["resp"], 1)
+            assert resp["resp"] == 1
 
             resp = yield from almt.write_response_response_adapter.call()
-            self.assertEqual(resp["resp"], 0)
+            assert resp["resp"] == 0
 
             for _ in range(5):
                 yield
 
             resp = yield from almt.read_data_response_adapter.call()
-            self.assertEqual(resp["data"], 3)
-            self.assertEqual(resp["resp"], 1)
+            assert resp["data"] == 3
+            assert resp["resp"] == 1
 
             resp = yield from almt.read_data_response_adapter.call()
-            self.assertEqual(resp["data"], 4)
-            self.assertEqual(resp["resp"], 1)
+            assert resp["data"] == 4
+            assert resp["resp"] == 1
 
         with self.run_simulation(almt) as sim:
             sim.add_sync_process(master_process)

@@ -5,7 +5,7 @@ from coreblocks.frontend.decoder import OpType, Funct3
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
-class ExceptionUnitTest(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
+class TestExceptionUnit(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
     func_unit = ExceptionUnitComponent()
     number_of_tests = 1
     zero_imm = False

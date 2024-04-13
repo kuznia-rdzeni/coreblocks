@@ -1,3 +1,4 @@
+import pytest
 from itertools import product
 from typing import Optional
 from amaranth import *
@@ -39,7 +40,7 @@ class SimultaneousDiamondTestCircuit(Elaboratable):
         return m
 
 
-class SimultaneousDiamondTest(TestCaseWithSimulator):
+class TestSimultaneousDiamond(TestCaseWithSimulator):
     def test_diamond(self):
         circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit())
 
@@ -56,13 +57,13 @@ class SimultaneousDiamondTest(TestCaseWithSimulator):
                     dones[n] = bool((yield from methods[n].done()))
                 for n in methods:
                     if not enables[n]:
-                        self.assertFalse(dones[n])
+                        assert not dones[n]
                 if enables["l"] and enables["r"] and (enables["u"] or enables["d"]):
-                    self.assertTrue(dones["l"])
-                    self.assertTrue(dones["r"])
-                    self.assertTrue(dones["u"] or dones["d"])
+                    assert dones["l"]
+                    assert dones["r"]
+                    assert dones["u"] or dones["d"]
                 else:
-                    self.assertFalse(any(dones.values()))
+                    assert not any(dones.values())
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
@@ -88,11 +89,11 @@ class UnsatisfiableTriangleTestCircuit(Elaboratable):
         return m
 
 
-class UnsatisfiableTriangleTest(TestCaseWithSimulator):
+class TestUnsatisfiableTriangle(TestCaseWithSimulator):
     def test_unsatisfiable(self):
         circ = SimpleTestCircuit(UnsatisfiableTriangleTestCircuit())
 
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             with self.run_simulation(circ) as _:
                 pass
 
@@ -135,7 +136,7 @@ class TransitivityTestCircuit(Elaboratable):
         return m
 
 
-class TransitivityTest(TestCaseWithSimulator):
+class TestTransitivity(TestCaseWithSimulator):
     def test_transitivity(self):
         target = TestbenchIO(Adapter(i=[("data", 2)]))
         req1 = Signal()
@@ -160,12 +161,12 @@ class TransitivityTest(TestCaseWithSimulator):
                 call_result = yield from source.call_try(data=data)
 
                 if not reqv1 and not reqv2:
-                    self.assertIsNone(call_result)
-                    self.assertIsNone(result)
+                    assert call_result is None
+                    assert result is None
                 else:
-                    self.assertIsNotNone(call_result)
+                    assert call_result is not None
                     possibles = reqv1 * [data ^ 1] + reqv2 * [data ^ 2]
-                    self.assertIn(result, possibles)
+                    assert result in possibles
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(process)

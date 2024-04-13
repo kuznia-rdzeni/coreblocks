@@ -18,6 +18,9 @@ REGRESSION_TESTS_PREFIX = "test.regression."
 # disable write protection for specific tests with writes to .text section
 exclude_write_protection = ["rv32uc-rvc"]
 
+# force executable bit for memory segments in specific tests
+force_executable_memory = ["rv32ui-fence_i"]
+
 
 class MMIO(MemorySegment):
     def __init__(self, on_finish: Callable[[], None]):
@@ -41,6 +44,7 @@ async def run_test(sim_backend: SimulationBackend, test_name: str):
     mem_segments += load_segments_from_elf(
         str(riscv_tests_dir.joinpath("test-" + test_name)),
         disable_write_protection=test_name in exclude_write_protection,
+        force_executable=test_name in force_executable_memory,
     )
     mem_segments.append(mmio)
 

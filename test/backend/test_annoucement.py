@@ -131,19 +131,15 @@ class TestBackend(TestCaseWithSimulator):
 
             yield from self.m.rf_announce_val_tbio.disable()
 
-            self.assertIsNotNone(rf_result)
-            self.assertIsNotNone(rs_result)
-            self.assertIsNotNone(rob_result)
+            assert rf_result is not None
+            assert rs_result is not None
+            assert rob_result is not None
 
-            # this is needed to make the typechecker happy
-            if rf_result is None or rs_result is None or rob_result is None:
-                continue
-
-            self.assertEqual(rf_result["reg_val"], rs_result["value"])
-            self.assertEqual(rf_result["reg_id"], rs_result["reg_id"])
+            assert rf_result["reg_val"] == rs_result["value"]
+            assert rf_result["reg_id"] == rs_result["reg_id"]
 
             t = (rob_result["rob_id"], rf_result["reg_val"], rf_result["reg_id"])
-            self.assertIn(t, self.expected_output)
+            assert t in self.expected_output
             if self.expected_output[t] == 1:
                 del self.expected_output[t]
             else:
