@@ -91,14 +91,19 @@
 <div class="section" id="module-coreblocks.frontend.fetch.fetch">
 <span id="coreblocks-frontend-fetch-fetch-module"></span><h2>coreblocks.frontend.fetch.fetch module<a class="headerlink" href="#module-coreblocks.frontend.fetch.fetch" title="Permalink to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.Fetch">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch.fetch.</span></span><span class="sig-name descname"><span class="pre">Fetch</span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.Fetch" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.FetchUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch.fetch.</span></span><span class="sig-name descname"><span class="pre">FetchUnit</span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.FetchUnit" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>Simple fetch unit. It has a PC inside and increments it by <cite>isa.ilen_bytes</cite>
-after each fetch.</p>
+<p>Superscalar Fetch Unit</p>
+<p>This module is responsible for retrieving instructions from memory and forwarding them to the decode stage.</p>
+<p>It works with ‘fetch blocks’, chunks of data it handles at a time. The size of these blocks
+depends on GenParams.fetch_block_bytes and is related to how many instructions the unit can
+handle at once, which can vary if extension C is on.</p>
+<p>The unit also deals with expanding compressed instructions and managing instructions that aren’t aligned to
+4-byte boundaries.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.Fetch.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.Fetch.__init__" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.FetchUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.FetchUnit.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -107,7 +112,7 @@ fetch unit.</p>
 </dd>
 <dt><strong>icache</strong><span class="classifier">CacheInterface</span></dt><dd><p>Instruction Cache</p>
 </dd>
-<dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched data to the next step.
+<dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched instruction to the next step.
 It has layout as described by <cite>FetchLayout</cite>.</p>
 </dd>
 </dl>
@@ -118,28 +123,43 @@ It has layout as described by <cite>FetchLayout</cite>.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.UnalignedFetch">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch.fetch.</span></span><span class="sig-name descname"><span class="pre">UnalignedFetch</span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.UnalignedFetch" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.Predecoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch.fetch.</span></span><span class="sig-name descname"><span class="pre">Predecoder</span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.Predecoder" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>Simple fetch unit that works with unaligned and RVC instructions.</p>
+<p>Instruction predecoder</p>
+<p>The module performs basic analysis on instructions. It identifies if an instruction
+is a jump instruction, determines the type of jump, and finds the jump’s target.</p>
+<p>Its role is to give quick feedback to the fetch unit and potentially the branch predictor
+about the fetched instruction. This helps in redirecting the fetch unit promptly if needed.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.UnalignedFetch.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.method.Method" title="transactron.core.method.Method"><span class="pre">Method</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.UnalignedFetch.__init__" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.Predecoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.Predecoder.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters which should be used to generate
-fetch unit.</p>
-</dd>
-<dt><strong>icache</strong><span class="classifier">CacheInterface</span></dt><dd><p>Instruction Cache</p>
-</dd>
-<dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched data to the next step.
-It has layout as described by <cite>FetchLayout</cite>.</p>
+<dt><strong>gen_params: GenParams</strong></dt><dd><p>Core generation parameters.</p>
 </dd>
 </dl>
 </dd>
 </dl>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.Serializer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch.fetch.</span></span><span class="sig-name descname"><span class="pre">Serializer</span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.Serializer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Many-to-one serializer</p>
+<p>Serializes many elements one-by-one in order and dispatches it to the consumer.
+The module accepts a new batch of elements only if the previous batch was fully
+consumed.</p>
+<p>It is a temporary workaround for a fetch buffer until the rest of the core becomes
+superscalar.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.Serializer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.Serializer.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -161,7 +181,7 @@ It has layout as described by <cite>FetchLayout</cite>.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 16:55 2024-04-12.
+      <span class="lastupdated">Last updated on 18:47 2024-04-13.
       </span></p>
   </div>
 

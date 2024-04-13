@@ -140,9 +140,11 @@
 </li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.rvc.InstrDecompress.__init__">(coreblocks.frontend.decoder.rvc.InstrDecompress method)</a>
 </li>
-        <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Fetch.__init__">(coreblocks.frontend.fetch.fetch.Fetch method)</a>
+        <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.__init__">(coreblocks.frontend.fetch.fetch.FetchUnit method)</a>
 </li>
-        <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.UnalignedFetch.__init__">(coreblocks.frontend.fetch.fetch.UnalignedFetch method)</a>
+        <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Predecoder.__init__">(coreblocks.frontend.fetch.fetch.Predecoder method)</a>
+</li>
+        <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Serializer.__init__">(coreblocks.frontend.fetch.fetch.Serializer method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.alu.ALUComponent.__init__">(coreblocks.func_blocks.fu.alu.ALUComponent method)</a>
 </li>
@@ -440,6 +442,8 @@
 </li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Registers.__new__">(coreblocks.frontend.decoder.isa.Registers method)</a>
 </li>
+        <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.CfiType.__new__">(coreblocks.frontend.decoder.optypes.CfiType method)</a>
+</li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.__new__">(coreblocks.frontend.decoder.optypes.OpType method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.DivFn.Fn.__new__">(coreblocks.func_blocks.fu.div_unit.DivFn.Fn method)</a>
@@ -647,10 +651,10 @@
       </ul></li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.BIT_MANIPULATION">BIT_MANIPULATION (coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.BIT_ROTATION">BIT_ROTATION (coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.bits_from_int">bits_from_int() (in module transactron.utils.data_repr)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams">BlockComponentParams (class in coreblocks.params.fu_params)</a>
@@ -670,6 +674,8 @@
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode.BRANCH">BRANCH (coreblocks.frontend.decoder.isa.Opcode attribute)</a>
 
       <ul>
+        <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.CfiType.BRANCH">(coreblocks.frontend.decoder.optypes.CfiType attribute)</a>
+</li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.BRANCH">(coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
       </ul></li>
@@ -718,6 +724,8 @@
       <li><a href="transactron.core.html#transactron.core.tmodule.TModule.Case">Case() (transactron.core.tmodule.TModule method)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.transformers.CatTrans">CatTrans (class in transactron.lib.transformers)</a>
+</li>
+      <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.CfiType">CfiType (class in coreblocks.frontend.decoder.optypes)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.buttons.ClickIn">ClickIn (class in transactron.lib.buttons)</a>
 </li>
@@ -1598,9 +1606,9 @@
       </ul></li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.FenceTarget">FenceTarget (class in coreblocks.frontend.decoder.isa)</a>
 </li>
-      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Fetch">Fetch (class in coreblocks.frontend.fetch.fetch)</a>
-</li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration.fetch_block_bytes_log">fetch_block_bytes_log (coreblocks.params.configurations.CoreConfiguration attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit">FetchUnit (class in coreblocks.frontend.fetch.fetch)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.logging.LogRecord.fields">fields (transactron.lib.logging.LogRecord attribute)</a>
 </li>
@@ -1954,6 +1962,8 @@
 </li>
       <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.interrupt_controller.InterruptController">InterruptController (class in coreblocks.priv.traps.interrupt_controller)</a>
 </li>
+      <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.CfiType.INVALID">INVALID (coreblocks.frontend.decoder.optypes.CfiType attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.DivComponent.ipc">ipc (coreblocks.func_blocks.fu.div_unit.DivComponent attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.rvc.is_instr_compressed">is_instr_compressed() (in module coreblocks.frontend.decoder.rvc)</a>
@@ -1985,6 +1995,8 @@
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode.JAL">JAL (coreblocks.frontend.decoder.isa.Opcode attribute)</a>
 
       <ul>
+        <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.CfiType.JAL">(coreblocks.frontend.decoder.optypes.CfiType attribute)</a>
+</li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.JAL">(coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
       </ul></li>
@@ -1992,6 +2004,8 @@
 
       <ul>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.Opcode.JALR">(coreblocks.frontend.decoder.isa.Opcode attribute)</a>
+</li>
+        <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.CfiType.JALR">(coreblocks.frontend.decoder.optypes.CfiType attribute)</a>
 </li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.JALR">(coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
@@ -2617,6 +2631,8 @@
 </li>
       <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.functions.popcount">popcount() (in module transactron.utils.amaranth_ext.functions)</a>
 </li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Predecoder">Predecoder (class in coreblocks.frontend.fetch.fetch)</a>
+</li>
       <li><a href="transactron.html#transactron.tracing.TracingFragment.prepare">prepare() (transactron.tracing.TracingFragment method)</a>
 </li>
       <li><a href="transactron.core.html#transactron.core.manager.TransactionManager.print_info">print_info() (transactron.core.manager.TransactionManager method)</a>
@@ -2899,8 +2915,12 @@
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.icache.ICache.serialize_addr">serialize_addr() (coreblocks.cache.icache.ICache method)</a>
 </li>
-      <li><a href="transactron.lib.html#transactron.lib.reqres.Serializer">Serializer (class in transactron.lib.reqres)</a>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Serializer">Serializer (class in coreblocks.frontend.fetch.fetch)</a>
+
+      <ul>
+        <li><a href="transactron.lib.html#transactron.lib.reqres.Serializer">(class in transactron.lib.reqres)</a>
 </li>
+      </ul></li>
       <li><a href="transactron.testing.html#transactron.testing.testbenchio.TestbenchIO.set_enable">set_enable() (transactron.testing.testbenchio.TestbenchIO method)</a>
 </li>
       <li><a href="transactron.testing.html#transactron.testing.functions.set_inputs">set_inputs() (in module transactron.testing.functions)</a>
@@ -3534,8 +3554,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.isa.InstrType.U">U (coreblocks.frontend.decoder.isa.InstrType attribute)</a>
 </li>
-      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.UnalignedFetch">UnalignedFetch (class in coreblocks.frontend.fetch.fetch)</a>
-</li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.UNARY_BIT_MANIPULATION_1">UNARY_BIT_MANIPULATION_1 (coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.UNARY_BIT_MANIPULATION_2">UNARY_BIT_MANIPULATION_2 (coreblocks.frontend.decoder.optypes.OpType attribute)</a>
@@ -3546,10 +3564,10 @@
 </li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.optypes.OpType.UNARY_BIT_MANIPULATION_5">UNARY_BIT_MANIPULATION_5 (coreblocks.frontend.decoder.optypes.OpType attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.core.html#transactron.core.transaction_base.Priority.UNDEFINED">UNDEFINED (transactron.core.transaction_base.Priority attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="transactron.lib.html#transactron.lib.transformers.Unifier">Unifier (class in transactron.lib.transformers)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.dependencies.UnifierKey.unifier">unifier (transactron.lib.dependencies.UnifierKey attribute)</a>
@@ -3809,7 +3827,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 16:55 2024-04-12.
+      <span class="lastupdated">Last updated on 18:47 2024-04-13.
       </span></p>
   </div>
 
