@@ -358,10 +358,6 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
 
             assert result is not None
 
-            # this is needed to make the typechecker happy
-            if result is None:
-                continue
-
             t = (result["field1"], result["field2"])
             assert t in self.expected_output
             if self.expected_output[t] == 1:

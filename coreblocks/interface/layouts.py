@@ -1,3 +1,4 @@
+from typing import Optional
 from amaranth.lib.data import StructLayout
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import ExceptionCause, OpType, Funct7, Funct3
@@ -18,7 +19,8 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
-    "CSRLayouts",
+    "CSRRegisterLayouts",
+    "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
 ]
@@ -539,25 +541,32 @@ class LSULayouts:
         self.accept = make_layout(fields.data, fields.exception, fields.cause)
 
 
-class CSRLayouts:
+class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
-    def __init__(self, gen_params: GenParams):
-        data = gen_params.get(RSFullDataLayout)
-        fields = gen_params.get(CommonLayoutFields)
+    def __init__(self, gen_params: GenParams, *, data_width: Optional[int] = None):
+        data_width = data_width if data_width is not None else gen_params.isa.xlen
 
-        self.rs_entries_bits = 0
+        self.data: LayoutListField = ("data", data_width)
 
         self.read = make_layout(
-            fields.data,
+            self.data,
             ("read", 1),
             ("written", 1),
         )
 
-        self.write = make_layout(fields.data)
+        self.write = make_layout(self.data)
 
-        self._fu_read = make_layout(fields.data)
-        self._fu_write = make_layout(fields.data)
+        self._fu_read = make_layout(self.data)
+        self._fu_write = make_layout(self.data)
+
+
+class CSRUnitLayouts:
+    """Layouts used in the control and status functional unit."""
+
+    def __init__(self, gen_params: GenParams):
+        data = gen_params.get(RSFullDataLayout)
+        self.rs_entries_bits = 0
 
         data_layout = layout_subset(
             data.data_layout,

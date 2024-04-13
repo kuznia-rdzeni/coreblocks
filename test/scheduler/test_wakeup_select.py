@@ -101,7 +101,6 @@ class TestWakeupSelect(TestCaseWithSimulator):
                 take_position = cast(int, take_position["rs_entry_id"])
                 entry = rs[take_position]
                 assert entry is not None
-                entry = cast(RecordIntDict, entry)  # for type checking
 
                 self.taken.append(entry)
                 yield from self.m.take_row_mock.call_init(entry)
