@@ -14,6 +14,7 @@ from coreblocks.interface.keys import (
     GenericCSRRegistersKey,
     InstructionPrecommitKey,
     CommonBusDataKey,
+    FlushICacheKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.isa_params import Extension
@@ -86,6 +87,8 @@ class Core(Elaboratable):
 
         self.connections = gen_params.get(DependencyManager)
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+
+        self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
         if Extension.C in self.gen_params.isa.extensions:
             self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)

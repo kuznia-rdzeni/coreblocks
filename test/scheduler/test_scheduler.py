@@ -3,10 +3,11 @@ import random
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
+from amaranth.lib.data import View
 from amaranth.sim import Settle
 from parameterized import parameterized_class
 from coreblocks.interface.keys import CoreStateKey
-from coreblocks.interface.layouts import RetirementLayouts
+from coreblocks.interface.layouts import ROBLayouts, RetirementLayouts
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
@@ -123,7 +124,7 @@ class TestScheduler(TestCaseWithSimulator):
     optype_sets: list[set[OpType]]
     instr_count: int
 
-    def setUp(self):
+    def setup_method(self):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
             test_core_config.replace(
@@ -267,19 +268,21 @@ class TestScheduler(TestCaseWithSimulator):
 
     def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(got, expected):
-            rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
+            rl_dst = yield View(
+                self.gen_params.get(ROBLayouts).data_layout, self.m.rob.data[got["rs_data"]["rob_id"]]
+            ).rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
 
             # if source operand register ids are 0 then we already have values
-            self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
-            self.assertEqual(got["rs_data"]["exec_fn"], expected["exec_fn"])
-            self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
-            self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
-            self.assertEqual(got["rs_data"]["s2_val"], s2.value if s2.valid else 0)
-            self.assertEqual(rl_dst, expected["rl_dst"])
+            assert got["rs_data"]["rp_s1"] == (expected["rp_s1"] if not s1.valid else 0)
+            assert got["rs_data"]["rp_s2"] == (expected["rp_s2"] if not s2.valid else 0)
+            assert got["rs_data"]["rp_dst"] == expected["rp_dst"]
+            assert got["rs_data"]["exec_fn"] == expected["exec_fn"]
+            assert got["rs_entry_id"] == expected["rs_entry_id"]
+            assert got["rs_data"]["s1_val"] == (s1.value if s1.valid else 0)
+            assert got["rs_data"]["s2_val"] == (s2.value if s2.valid else 0)
+            assert rl_dst == expected["rl_dst"]
 
             # recycle physical register number
             if got["rs_data"]["rp_dst"] != 0:

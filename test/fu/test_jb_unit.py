@@ -144,7 +144,7 @@ ops_auipc = {
         ),
     ],
 )
-class JumpBranchUnitTest(FunctionalUnitTestCase[JumpBranchFn.Fn]):
+class TestJumpBranchUnit(FunctionalUnitTestCase[JumpBranchFn.Fn]):
     compute_result = compute_result
     zero_imm = False
 

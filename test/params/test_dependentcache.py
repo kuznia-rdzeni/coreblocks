@@ -31,19 +31,19 @@ class TestDependentCache(unittest.TestCase):
         count = TestDependentCache.CachedObject.count
         wc = TestDependentCache.WithCache(1)
         obj = wc.get(TestDependentCache.CachedObject)
-        self.assertEqual(obj.x, wc.x)
+        assert obj.x == wc.x
         obj2 = wc.get(TestDependentCache.CachedObject)
-        self.assertEqual(TestDependentCache.CachedObject.count, count + 1)
+        assert TestDependentCache.CachedObject.count == count + 1
         self.assertIs(obj, obj2)
 
     def test_cache_kwargs(self):
         wc = TestDependentCache.WithCache()
         obj = wc.get(TestDependentCache.CachedObjectWithArgs, f=1, s=2)
-        self.assertEqual(obj.f, 1)
-        self.assertEqual(obj.s, 2)
+        assert obj.f == 1
+        assert obj.s == 2
 
     def test_cache_kwargs_only(self):
         wc = TestDependentCache.WithCache()
         obj = wc.get(TestDependentCache.CachedObjectKwArgsOnly, f=1, s=2)
-        self.assertEqual(obj.f, 1)
-        self.assertEqual(obj.s, 2)
+        assert obj.f == 1
+        assert obj.s == 2

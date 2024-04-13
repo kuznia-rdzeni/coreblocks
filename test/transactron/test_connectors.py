@@ -37,9 +37,9 @@ class TestStableSelectingNetwork(TestCaseWithSimulator):
 
                 for i in range(total):
                     out = yield m.outputs[i].data
-                    self.assertEqual(out, expected_output_prefix[i])
+                    assert out == expected_output_prefix[i]
 
-                self.assertEqual((yield m.output_cnt), total)
+                assert (yield m.output_cnt) == total
                 yield
 
         with self.run_simulation(m) as sim:

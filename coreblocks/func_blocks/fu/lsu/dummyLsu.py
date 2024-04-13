@@ -228,17 +228,18 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
-        m.submodules.results = results = self.forwarder = FIFO(self.lsu_layouts.accept, 2)
+        m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
 
         @def_method(m, self.issue)
         def _(arg):
-            issued.write(m, arg)
             is_fence = arg.exec_fn.op_type == OpType.FENCE
             with m.If(~is_fence):
                 requests.write(m, arg)
             with m.Else():
-                results.write(m, data=0, exception=0, cause=0)
+                results_noop.write(m, data=0, exception=0, cause=0)
+                issued_noop.write(m, arg)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
@@ -265,22 +266,28 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
 
             with m.If(res["exception"]):
-                results.write(m, data=0, exception=res["exception"], cause=res["cause"])
+                issued_noop.write(m, arg)
+                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"])
+            with m.Else():
+                issued.write(m, arg)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, request=flush):
-            requests.read(m)
-            results.write(m, data=0, exception=0, cause=0)
+            arg = requests.read(m)
+            results_noop.write(m, data=0, exception=0, cause=0)
+            issued_noop.write(m, arg)
 
         @def_method(m, self.accept)
         def _():
-            arg = issued.read(m)
+            arg = Signal(self.fu_layouts.issue)
             res = Signal(self.lsu_layouts.accept)
             with condition(m) as branch:
                 with branch(True):
                     m.d.comb += res.eq(requester.accept(m))
+                    m.d.comb += arg.eq(issued.read(m))
                 with branch(True):
-                    m.d.comb += res.eq(results.read(m))
+                    m.d.comb += res.eq(results_noop.read(m))
+                    m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
                 self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"])
