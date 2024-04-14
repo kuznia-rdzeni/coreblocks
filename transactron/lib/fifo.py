@@ -130,6 +130,7 @@ class Semaphore(Elaboratable):
         self.release_ready = Signal()
 
         self.count = Signal(self.max_count.bit_length())
+        self.count_next = Signal(self.max_count.bit_length())
 
         self.clear.add_conflict(self.acquire, Priority.LEFT)
         self.clear.add_conflict(self.release, Priority.LEFT)
@@ -141,9 +142,11 @@ class Semaphore(Elaboratable):
         m.d.comb += self.acquire_ready.eq(self.count < self.max_count)
 
         with m.If(self.clear.run):
-            m.d.sync += self.count.eq(0)
+            m.d.comb += self.count_next.eq(0)
         with m.Else():
-            m.d.sync += self.count.eq(self.count + self.acquire.run - self.release.run)
+            m.d.comb += self.count_next.eq(self.count + self.acquire.run - self.release.run)
+
+        m.d.sync += self.count.eq(self.count_next)
 
         @def_method(m, self.acquire, ready=self.acquire_ready)
         def _() -> None:

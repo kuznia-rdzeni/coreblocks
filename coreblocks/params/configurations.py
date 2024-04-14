@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
+
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.func_blocks.fu.alu import ALUComponent
@@ -17,7 +18,7 @@ from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
-from coreblocks.func_blocks.lsu.pma import PMARegion
+from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 
@@ -163,6 +164,7 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    fetch_block_bytes_log=4,
 )
 
 # Core configuration used in internal testbenches

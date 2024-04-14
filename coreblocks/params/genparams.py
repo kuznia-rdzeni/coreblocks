@@ -66,10 +66,13 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
 
+        self.min_instr_width_bytes = 2 if cfg.compressed else 4
+
         self.fetch_block_bytes_log = cfg.fetch_block_bytes_log
         if self.fetch_block_bytes_log < bytes_in_word_log:
             raise ValueError("Fetch block must be not smaller than the machine word.")
         self.fetch_block_bytes = 2**self.fetch_block_bytes_log
+        self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
 
         self.interrupt_custom_count = cfg.interrupt_custom_count
         self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask

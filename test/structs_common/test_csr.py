@@ -246,7 +246,7 @@ class TestCSRRegister(TestCaseWithSimulator):
 
             read_result = yield from self.dut.read.call_result()
             assert read_result is not None
-            previous_data = read_result["data"]  # type: ignore
+            previous_data = read_result["data"]
 
             yield from self.dut._fu_read.disable()
             yield from self.dut._fu_write.disable()
