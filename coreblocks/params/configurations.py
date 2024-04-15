@@ -3,6 +3,9 @@ from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass, field
 
+from typing import Self
+from transactron.utils._typing import type_self_kwargs_as
+
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
 
@@ -35,7 +38,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
 
 
 @dataclass(kw_only=True)
-class CoreConfiguration:
+class _CoreConfigurationDataClass:
     """
     Core configuration parameters.
 
@@ -119,7 +122,10 @@ class CoreConfiguration:
 
     pma: list[PMARegion] = field(default_factory=list)
 
-    def replace(self, **kwargs):
+
+class CoreConfiguration(_CoreConfigurationDataClass):
+    @type_self_kwargs_as(_CoreConfigurationDataClass.__init__)
+    def replace(self, **kwargs) -> Self:
         return dataclasses.replace(self, **kwargs)
 
 
