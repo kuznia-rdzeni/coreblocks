@@ -2,7 +2,7 @@ from coreblocks.func_blocks.fu.exception import ExceptionUnitFn, ExceptionUnitCo
 from coreblocks.frontend.decoder.isa import ExceptionCause
 from coreblocks.frontend.decoder import OpType, Funct3
 
-from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
+from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class TestExceptionUnit(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):

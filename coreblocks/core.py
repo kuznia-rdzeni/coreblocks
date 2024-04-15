@@ -17,7 +17,6 @@ from coreblocks.interface.keys import (
     FlushICacheKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.isa_params import Extension
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
@@ -31,7 +30,7 @@ from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
-from coreblocks.frontend.fetch.fetch import Fetch, UnalignedFetch
+from coreblocks.frontend.fetch.fetch import FetchUnit
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey
@@ -87,13 +86,9 @@ class Core(Elaboratable):
 
         self.connections = gen_params.get(DependencyManager)
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
-
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
-        if Extension.C in self.gen_params.isa.extensions:
-            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
-        else:
-            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
+        self.fetch = FetchUnit(self.gen_params, self.icache, self.fetch_continue.method)
 
         self.exception_cause_register = ExceptionCauseRegister(
             self.gen_params, rob_get_indices=self.ROB.get_indices, fetch_stall_exception=self.fetch.stall_exception
