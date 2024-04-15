@@ -3,7 +3,7 @@ from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass, field
 
-from typing import Self, cast
+from typing import Self
 from transactron.utils._typing import type_self_kwargs_as
 
 from coreblocks.params.isa_params import Extension
@@ -113,7 +113,7 @@ class _CoreConfigurationDataClass:
 class CoreConfiguration(_CoreConfigurationDataClass):
     @type_self_kwargs_as(_CoreConfigurationDataClass.__init__)
     def replace(self, **kwargs) -> Self:
-        return cast(Self, dataclasses.replace(self, **kwargs))
+        return dataclasses.replace(self, **kwargs)
 
 
 # Default core configuration
