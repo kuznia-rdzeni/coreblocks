@@ -47,10 +47,13 @@ class TracingEnabler:
             # starts search of `__mro__` from the class right after the first argument. In our case the first
             # checked class will be `TracingFragment` as we want.
             newclass = type(
-                    class_name,
-                    (orig_fragment_subclass, TracingFragment, ),
-                    dict(orig_fragment_subclass.__dict__)
-                    )
+                class_name,
+                (
+                    orig_fragment_subclass,
+                    TracingFragment,
+                ),
+                dict(orig_fragment_subclass.__dict__),
+            )
             for mod in modules:
                 setattr(mod, class_name, newclass)
             self.orig_patched_fragment_subclasses.append((class_name, orig_fragment_subclass, modules))
@@ -136,7 +139,7 @@ class TracingFragment(Fragment):
                     )
                 # }} (taken from Amaranth)
                 new_obj._tracing_original = obj  # type: ignore
-                obj._elaborated = new_obj        # type: ignore
+                obj._elaborated = new_obj  # type: ignore
 
                 old_obj = obj
                 obj = new_obj
