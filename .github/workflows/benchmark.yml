@@ -16,7 +16,7 @@ jobs:
       matrix:
         config: [basic, full]
     name: Run synthesis benchmarks
-    if: contains(github.event.pull_request.labels.*.name, 'benchmark') || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'benchmark') 
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
@@ -63,7 +63,7 @@ jobs:
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'benchmark') || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'benchmark')
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     steps:
       - name: Checkout
