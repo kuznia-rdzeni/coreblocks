@@ -9,7 +9,6 @@ from transactron.utils._typing import type_self_kwargs_as
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
 
-from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.func_blocks.fu.alu import ALUComponent
