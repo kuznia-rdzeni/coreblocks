@@ -92,130 +92,10 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.configurations.</span></span><span class="sig-name descname"><span class="pre">CoreConfiguration</span></span><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Core configuration parameters.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>xlen: int</strong></dt><dd><p>Bit width of Core.</p>
-</dd>
-<dt><strong>func_units_config: Collection[BlockComponentParams]</strong></dt><dd><p>Configuration of Functional Units and Reservation Stations.
-Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]</p>
-</dd>
-<dt><strong>compressed: bool</strong></dt><dd><p>Enables 16-bit Compressed Instructions extension.</p>
-</dd>
-<dt><strong>embedded: bool</strong></dt><dd><p>Enables Reduced Integer (E) extension.</p>
-</dd>
-<dt><strong>debug_signals: bool</strong></dt><dd><p>Enable debug signals (for example hardware metrics etc). If disabled, none of them will be synthesized.</p>
-</dd>
-<dt><strong>phys_regs_bits: int</strong></dt><dd><p>Size of the Physical Register File is 2**phys_regs_bits.</p>
-</dd>
-<dt><strong>rob_entries_bits: int</strong></dt><dd><p>Size of the Reorder Buffer is 2**rob_entries_bits.</p>
-</dd>
-<dt><strong>start_pc: int</strong></dt><dd><p>Initial Program Counter value.</p>
-</dd>
-<dt><strong>icache_enable: bool</strong></dt><dd><p>Enable instruction cache. If disabled, requestes are bypassed directly to the bus.</p>
-</dd>
-<dt><strong>icache_ways: int</strong></dt><dd><p>Associativity of the instruction cache.</p>
-</dd>
-<dt><strong>icache_sets_bits: int</strong></dt><dd><p>Log of the number of sets of the instruction cache.</p>
-</dd>
-<dt><strong>icache_line_bytes_log: int</strong></dt><dd><p>Log of the cache line size (in bytes).</p>
-</dd>
-<dt><strong>fetch_block_bytes_log: int</strong></dt><dd><p>Log of the size of the fetch block (in bytes).</p>
-</dd>
-<dt><strong>allow_partial_extensions: bool</strong></dt><dd><p>Allow partial support of extensions.</p>
-</dd>
-<dt><strong>_implied_extensions: Extenstion</strong></dt><dd><p>Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.</p>
-</dd>
-<dt><strong>pma</strong><span class="classifier">list[PMARegion]</span></dt><dd><p>Definitions of PMAs per contiguous segments of memory.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">xlen:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">32,</span> <span class="pre">func_units_config:</span> <span class="pre">~collections.abc.Collection[~coreblocks.params.fu_params.BlockComponentParams]</span> <span class="pre">=</span> <span class="pre">(RSBlockComponent(func_units=[&lt;coreblocks.func_blocks.fu.alu.ALUComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.shift_unit.ShiftUnitComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.jumpbranch.JumpComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.exception.ExceptionUnitComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.priv.PrivilegedUnitComponent</span> <span class="pre">object&gt;],</span> <span class="pre">rs_entries=4,</span> <span class="pre">rs_number=-1,</span> <span class="pre">rs_type=&lt;class</span> <span class="pre">'coreblocks.func_blocks.fu.common.rs.RS'&gt;),</span> <span class="pre">RSBlockComponent(func_units=[LSUComponent()],</span> <span class="pre">rs_entries=2,</span> <span class="pre">rs_number=-1,</span> <span class="pre">rs_type=&lt;class</span> <span class="pre">'coreblocks.func_blocks.fu.common.fifo_rs.FifoRS'&gt;),</span> <span class="pre">CSRBlockComponent()),</span> <span class="pre">compressed:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">embedded:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">debug_signals:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">phys_regs_bits:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">6,</span> <span class="pre">rob_entries_bits:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">7,</span> <span class="pre">start_pc:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">icache_enable:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">icache_ways:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">2,</span> <span class="pre">icache_sets_bits:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">7,</span> <span class="pre">icache_line_bytes_log:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5,</span> <span class="pre">fetch_block_bytes_log:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">2,</span> <span class="pre">allow_partial_extensions:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">_implied_extensions:</span> <span class="pre">~coreblocks.params.isa_params.Extension</span> <span class="pre">=</span> <span class="pre">Extension.None,</span> <span class="pre">pma:</span> <span class="pre">list[coreblocks.func_blocks.fu.lsu.pma.PMARegion]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.allow_partial_extensions">
-<span class="sig-name descname"><span class="pre">allow_partial_extensions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.allow_partial_extensions" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.compressed">
-<span class="sig-name descname"><span class="pre">compressed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.compressed" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.debug_signals">
-<span class="sig-name descname"><span class="pre">debug_signals</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.debug_signals" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.embedded">
-<span class="sig-name descname"><span class="pre">embedded</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.embedded" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.fetch_block_bytes_log">
-<span class="sig-name descname"><span class="pre">fetch_block_bytes_log</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.fetch_block_bytes_log" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.func_units_config">
-<span class="sig-name descname"><span class="pre">func_units_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Collection</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.params.fu_params.BlockComponentParams" title="coreblocks.params.fu_params.BlockComponentParams"><span class="pre">BlockComponentParams</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(RSBlockComponent(func_units=[&lt;coreblocks.func_blocks.fu.alu.ALUComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.shift_unit.ShiftUnitComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.jumpbranch.JumpComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.exception.ExceptionUnitComponent</span> <span class="pre">object&gt;,</span> <span class="pre">&lt;coreblocks.func_blocks.fu.priv.PrivilegedUnitComponent</span> <span class="pre">object&gt;],</span> <span class="pre">rs_entries=4,</span> <span class="pre">rs_number=-1,</span> <span class="pre">rs_type=&lt;class</span> <span class="pre">'coreblocks.func_blocks.fu.common.rs.RS'&gt;),</span> <span class="pre">RSBlockComponent(func_units=[LSUComponent()],</span> <span class="pre">rs_entries=2,</span> <span class="pre">rs_number=-1,</span> <span class="pre">rs_type=&lt;class</span> <span class="pre">'coreblocks.func_blocks.fu.common.fifo_rs.FifoRS'&gt;),</span> <span class="pre">CSRBlockComponent())</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.func_units_config" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.icache_enable">
-<span class="sig-name descname"><span class="pre">icache_enable</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.icache_enable" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.icache_line_bytes_log">
-<span class="sig-name descname"><span class="pre">icache_line_bytes_log</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.icache_line_bytes_log" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.icache_sets_bits">
-<span class="sig-name descname"><span class="pre">icache_sets_bits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.icache_sets_bits" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.icache_ways">
-<span class="sig-name descname"><span class="pre">icache_ways</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.icache_ways" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.phys_regs_bits">
-<span class="sig-name descname"><span class="pre">phys_regs_bits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.phys_regs_bits" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.pma">
-<span class="sig-name descname"><span class="pre">pma</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion" title="coreblocks.func_blocks.fu.lsu.pma.PMARegion"><span class="pre">coreblocks.func_blocks.fu.lsu.pma.PMARegion</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.pma" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CoreConfigurationDataClass</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.replace">
-<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.replace" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.rob_entries_bits">
-<span class="sig-name descname"><span class="pre">rob_entries_bits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.rob_entries_bits" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.start_pc">
-<span class="sig-name descname"><span class="pre">start_pc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.start_pc" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.params.configurations.CoreConfiguration.xlen">
-<span class="sig-name descname"><span class="pre">xlen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.xlen" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#coreblocks.params.configurations.CoreConfiguration.replace" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1171,7 +1051,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 12:50 2024-04-15.
+      <span class="lastupdated">Last updated on 16:10 2024-04-15.
       </span></p>
   </div>
 
