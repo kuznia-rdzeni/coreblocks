@@ -3,10 +3,11 @@ from collections.abc import Sequence
 from amaranth import *
 
 from transactron import Method, Transaction, TModule
-from transactron.lib import FIFO, Forwarder
+from transactron.lib import FIFO
 from coreblocks.interface.layouts import SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder.optypes import OpType
+from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.interface.keys import CoreStateKey
@@ -103,12 +104,10 @@ class Renaming(Elaboratable):
             instr = self.get_instr(m)
             renamed_regs = self.rename(
                 m,
-                {
-                    "rl_s1": instr.regs_l.rl_s1,
-                    "rl_s2": instr.regs_l.rl_s2,
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
-                },
+                rl_s1=instr.regs_l.rl_s1,
+                rl_s2=instr.regs_l.rl_s2,
+                rl_dst=instr.regs_l.rl_dst,
+                rp_dst=instr.regs_p.rp_dst,
             )
 
             m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc"})
@@ -161,10 +160,8 @@ class ROBAllocation(Elaboratable):
 
             rob_id = self.rob_put(
                 m,
-                {
-                    "rl_dst": instr.regs_l.rl_dst,
-                    "rp_dst": instr.regs_p.rp_dst,
-                },
+                rl_dst=instr.regs_l.rl_dst,
+                rp_dst=instr.regs_p.rp_dst,
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
@@ -225,28 +222,18 @@ class RSSelection(Elaboratable):
         return res
 
     def elaborate(self, platform):
-        # Module de facto performs two stages. First it gets an instruction and decodes its `OpType` into
-        # one-hot signal. Second, it selects first available RS which supports this instruction type.
-        # In the future, we can try to move FIFO here in order to avoid using `Forwarder`.
         m = TModule()
-        m.submodules.forwarder = forwarder = Forwarder(self.input_layout)
 
         lookup = Signal(OpType)  # lookup of currently processed optype
-        decoded = Signal(len(OpType))  # decoded optype into hot wire
-
-        m.d.comb += lookup.eq(forwarder.read.data_out.exec_fn.op_type)
-        m.d.comb += decoded.eq(Cat(lookup == op for op in OpType))
-
-        with Transaction().body(m):
-            instr = self.get_instr(m)
-            forwarder.write(m, instr)
+        m.d.comb += lookup.eq(self.get_instr.data_out.exec_fn.op_type)
 
         data_out = Signal(self.output_layout)
 
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
-            with Transaction().body(m, request=(decoded & self.decode_optype_set(optypes)).bool()):
-                instr = forwarder.read(m)
+            optype_matches = Cat(lookup == op for op in optypes).any()
+            with Transaction().body(m, request=optype_matches):
+                instr = self.get_instr(m)
                 allocated_field = alloc(m)
 
                 m.d.comb += assign(data_out, instr)
@@ -306,8 +293,8 @@ class RSInsertion(Elaboratable):
         # therefore we can use single transaction here.
         with Transaction().body(m):
             instr = self.get_instr(m)
-            source1 = self.rf_read1(m, {"reg_id": instr.regs_p.rp_s1})
-            source2 = self.rf_read2(m, {"reg_id": instr.regs_p.rp_s2})
+            source1 = self.rf_read1(m, reg_id=instr.regs_p.rp_s1)
+            source2 = self.rf_read2(m, reg_id=instr.regs_p.rp_s2)
 
             # when core is flushed, rp_dst are discarded.
             # source operands may never become ready, skip waiting for them in any in RSes/FBs.
@@ -420,7 +407,7 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.rename_out_buf = rename_out_buf = FIFO(self.layouts.renaming_out, 2)
+        m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
         m.submodules.renaming = Renaming(
             get_instr=alloc_rename_buf.read,
             push_instr=rename_out_buf.write,

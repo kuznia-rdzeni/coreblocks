@@ -4,6 +4,8 @@ from coreblocks.frontend.decoder.isa import Funct3
 from coreblocks.frontend.decoder.optypes import OpType
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
+from coreblocks.interface.layouts import JumpBranchLayouts
+from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
 from .instr_decoder import InstrDecoder
 from coreblocks.params import *
@@ -48,16 +50,20 @@ class DecodeStage(Elaboratable):
 
             m.d.top_comb += instr_decoder.instr.eq(raw.instr)
 
-            # Jump-branch unit requires information if the instruction was
-            # decoded from a compressed instruction. To avoid adding a new signal
-            # to the pipeline, we pack it in funct7 - it is not used in jb unit anyway.
-            # This is a temporary hack and should be removed when we onboard the new
-            # amaranth data lib and make use of it.
+            # Jump-branch unit requires some information from the fetch unit (for example
+            # if the instruction was decoded from a compressed instruction). To avoid adding
+            # a new signal to the pipeline, we pack it in funct7 - it is not used in jb
+            # unit anyway. This is a temporary hack will be removed soon (TODO(jurb)).
             is_jb_unit_instr = (
                 (instr_decoder.optype == OpType.JAL)
                 | (instr_decoder.optype == OpType.JALR)
                 | (instr_decoder.optype == OpType.BRANCH)
             )
+            jb_funct7 = Signal(from_method_layout(self.gen_params.get(JumpBranchLayouts).funct7_info))
+            m.d.av_comb += [
+                jb_funct7.rvc.eq(raw.rvc),
+                jb_funct7.predicted_taken.eq(raw.predicted_taken),
+            ]
 
             exception_override = Signal()
             m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault)
@@ -80,7 +86,7 @@ class DecodeStage(Elaboratable):
                         ),
                         "funct7": Mux(
                             ~exception_override,
-                            Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, raw.rvc, 0)),
+                            Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, jb_funct7, 0)),
                             0,
                         ),
                     },

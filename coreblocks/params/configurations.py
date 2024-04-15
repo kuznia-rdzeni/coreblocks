@@ -8,9 +8,10 @@ from transactron.utils._typing import type_self_kwargs_as
 
 from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
+
+from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
-
 from coreblocks.func_blocks.fu.alu import ALUComponent
 from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
@@ -157,6 +158,7 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    fetch_block_bytes_log=4,
 )
 
 # Core configuration used in internal testbenches
