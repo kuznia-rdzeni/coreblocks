@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
@@ -51,8 +52,8 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.peek, ready=peek_possible)
         def _():
-            return {
-                "rob_data": read_port.data,
+                return {  # remove View after Amaranth upgrade
+                "rob_data": View(self.params.get(ROBLayouts).data_layout, read_port.data),
                 "rob_id": start_idx,
                 "exception": self.exception[start_idx],
             }
