@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional, TypeAlias, cast, TYPE_CHECKING
 from collections.abc import Sequence, Iterable, Mapping
 from amaranth import *
+from amaranth.hdl import ShapeLike, ValueCastable
 from amaranth.hdl._ast import ArrayProxy
 from amaranth.lib import data
 from ._typing import ValueLike
@@ -51,6 +52,13 @@ def assign_arg_fields(val: AssignArg) -> Optional[set[str | int]]:
         return set(val.keys())
     elif isinstance(val, list):
         return set(range(len(val)))
+
+
+def valuelike_shape(val: ValueLike) -> ShapeLike:
+    if isinstance(val, Value) or isinstance(val, ValueCastable):
+        return val.shape()
+    else:
+        return Value.cast(val).shape()
 
 
 def assign(
@@ -161,8 +169,11 @@ def assign(
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 
-        lhs_val = Value.cast(lhs)
-        rhs_val = Value.cast(rhs)
+        # If a single-value structure, assign its only field
+        if lhs_fields is not None and len(lhs_fields) == 1:
+            lhs = lhs[next(iter(lhs_fields))]  # type: ignore
+        if rhs_fields is not None and len(rhs_fields) == 1:
+            rhs = rhs[next(iter(rhs_fields))]  # type: ignore
 
         def has_explicit_shape(val: ValueLike):
             return isinstance(val, Signal) or isinstance(val, ArrayProxy)
@@ -173,8 +184,14 @@ def assign(
             or (lhs_strict or has_explicit_shape(lhs))
             and (rhs_strict or has_explicit_shape(rhs))
         ):
-            if lhs_val.shape() != rhs_val.shape():
+            if valuelike_shape(lhs) != valuelike_shape(rhs):
                 raise ValueError(
-                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
+                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(
+                        valuelike_shape(lhs), lhs, valuelike_shape(rhs), rhs
+                    )
                 )
+
+        lhs_val = Value.cast(lhs)
+        rhs_val = Value.cast(rhs)
+
         yield lhs_val.eq(rhs_val)

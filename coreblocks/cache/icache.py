@@ -157,7 +157,6 @@ class ICache(Elaboratable, CacheInterface):
             self.perf_flushes.incr(m, cond=flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
-
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"
@@ -336,11 +335,11 @@ class ICacheMemory(Elaboratable):
             m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
             m.submodules[f"tag_mem_{i}_wp"] = tag_mem_wp
 
-            m.d.comb += [
-                assign(self.tag_rd_data[i], tag_mem_rp.data),
+            m.d.comb += [  # remove Value.cast after Amaranth upgrade
+                assign(Value.cast(self.tag_rd_data[i]), tag_mem_rp.data),
                 tag_mem_rp.addr.eq(self.tag_rd_index),
                 tag_mem_wp.addr.eq(self.tag_wr_index),
-                assign(tag_mem_wp.data, self.tag_wr_data),
+                assign(tag_mem_wp.data, Value.cast(self.tag_wr_data)),
                 tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
