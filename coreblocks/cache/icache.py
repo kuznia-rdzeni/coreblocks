@@ -157,7 +157,6 @@ class ICache(Elaboratable, CacheInterface):
             self.perf_flushes.incr(m, cond=flush_finish)
 
         with m.FSM(reset="FLUSH") as fsm:
-
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"

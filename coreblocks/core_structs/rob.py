@@ -52,7 +52,7 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.peek, ready=peek_possible)
         def _():
-                return {  # remove View after Amaranth upgrade
+            return {  # remove View after Amaranth upgrade
                 "rob_data": View(self.params.get(ROBLayouts).data_layout, read_port.data),
                 "rob_id": start_idx,
                 "exception": self.exception[start_idx],
