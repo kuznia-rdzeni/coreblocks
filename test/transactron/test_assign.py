@@ -2,6 +2,7 @@ import pytest
 from typing import Callable
 from amaranth import *
 from amaranth.lib import data
+from amaranth.lib.enum import Enum
 from amaranth.hdl._ast import ArrayProxy, Slice
 
 from transactron.utils._typing import MethodLayout
@@ -12,10 +13,16 @@ from unittest import TestCase
 from parameterized import parameterized_class, parameterized
 
 
+class ExampleEnum(Enum, shape=1):
+    ZERO = 0
+    ONE = 1
+
+
 layout_a = [("a", 1)]
 layout_ab = [("a", 1), ("b", 2)]
 layout_ac = [("a", 1), ("c", 3)]
 layout_a_alt = [("a", 2)]
+layout_a_enum = [("a", ExampleEnum)]
 
 params_build_wrap_extr = [
     ("normal", lambda mk, lay: mk(lay), lambda x: x, lambda r: r),
@@ -49,9 +56,9 @@ params_mk = [
 
 
 @parameterized_class(
-    ["name", "build", "wrap", "extr", "constr", "mk"],
+    ["name", "build", "wrap", "extr", "mk"],
     [
-        (n, *map(staticmethod, (b, w, e)), c, staticmethod(m))
+        (f"{n}_{c}", *map(staticmethod, (b, w, e)), staticmethod(m))
         for n, b, w, e in params_build_wrap_extr
         for c, m in params_mk
     ],
@@ -92,9 +99,13 @@ class TestAssign(TestCase):
     def test_wrong_bits(self):
         with pytest.raises(ValueError):
             list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a_alt)))
+        if self.mk != mkproxy:  # Arrays are troublesome and defeat some checks
+            with pytest.raises(ValueError):
+                list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a_enum)))
 
     @parameterized.expand(
         [
+            ("lhs", layout_a, layout_ab, AssignType.LHS),
             ("rhs", layout_ab, layout_a, AssignType.RHS),
             ("all", layout_a, layout_a, AssignType.ALL),
             ("common", layout_ab, layout_ac, AssignType.COMMON),
