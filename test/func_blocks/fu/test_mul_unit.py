@@ -5,7 +5,7 @@ from coreblocks.func_blocks.fu.mul_unit import MulFn, MulComponent, MulType
 
 from transactron.utils import signed_to_int, int_to_signed
 
-from test.fu.functional_common import ExecFn, FunctionalUnitTestCase
+from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 @parameterized_class(

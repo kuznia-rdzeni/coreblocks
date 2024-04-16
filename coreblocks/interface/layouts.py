@@ -1,3 +1,4 @@
+from typing import Optional
 from amaranth.lib.data import StructLayout
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder import ExceptionCause, OpType, Funct7, Funct3
@@ -18,7 +19,8 @@ __all__ = [
     "UnsignedMulUnitLayouts",
     "RATLayouts",
     "LSULayouts",
-    "CSRLayouts",
+    "CSRRegisterLayouts",
+    "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
 ]
@@ -111,6 +113,12 @@ class CommonLayoutFields:
 
         self.side_fx: LayoutListField = ("side_fx", 1)
         """Side effects are enabled."""
+
+        self.rvc: LayoutListField = ("rvc", 1)
+        """Instruction is a compressed (two-byte) one."""
+
+        self.predicted_taken: LayoutListField = ("predicted_taken", 1)
+        """If the branch was predicted taken."""
 
 
 class SchedulerLayouts:
@@ -257,12 +265,6 @@ class ROBLayouts:
         """Index of the entry following the last (the latest) entry in the reorder buffer."""
 
         self.id_layout = make_layout(fields.rob_id)
-
-        self.internal_layout = make_layout(
-            self.rob_data,
-            self.done,
-            fields.exception,
-        )
 
         self.mark_done_layout = make_layout(
             fields.rob_id,
@@ -426,14 +428,12 @@ class FetchLayouts:
         self.access_fault: LayoutListField = ("access_fault", 1)
         """Instruction fetch failed."""
 
-        self.rvc: LayoutListField = ("rvc", 1)
-        """Instruction is a compressed (two-byte) one."""
-
         self.raw_instr = make_layout(
             fields.instr,
             fields.pc,
             self.access_fault,
-            self.rvc,
+            fields.rvc,
+            fields.predicted_taken,
         )
 
         self.resume = make_layout(("pc", gen_params.isa.xlen), ("resume_from_exception", 1))
@@ -508,10 +508,18 @@ class DivUnitLayouts:
 
 class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
         self.verify_branch = make_layout(
             ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
         )
         """ Hint for Branch Predictor about branch result """
+
+        self.funct7_info = make_layout(
+            fields.rvc,
+            fields.predicted_taken,
+        )
+        """Information passed from the frontend to the jumpbranch unit. Encoded in the funct7 field."""
 
 
 class LSULayouts:
@@ -533,25 +541,32 @@ class LSULayouts:
         self.accept = make_layout(fields.data, fields.exception, fields.cause)
 
 
-class CSRLayouts:
+class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
-    def __init__(self, gen_params: GenParams):
-        data = gen_params.get(RSFullDataLayout)
-        fields = gen_params.get(CommonLayoutFields)
+    def __init__(self, gen_params: GenParams, *, data_width: Optional[int] = None):
+        data_width = data_width if data_width is not None else gen_params.isa.xlen
 
-        self.rs_entries_bits = 0
+        self.data: LayoutListField = ("data", data_width)
 
         self.read = make_layout(
-            fields.data,
+            self.data,
             ("read", 1),
             ("written", 1),
         )
 
-        self.write = make_layout(fields.data)
+        self.write = make_layout(self.data)
 
-        self._fu_read = make_layout(fields.data)
-        self._fu_write = make_layout(fields.data)
+        self._fu_read = make_layout(self.data)
+        self._fu_write = make_layout(self.data)
+
+
+class CSRUnitLayouts:
+    """Layouts used in the control and status functional unit."""
+
+    def __init__(self, gen_params: GenParams):
+        data = gen_params.get(RSFullDataLayout)
+        self.rs_entries_bits = 0
 
         data_layout = layout_subset(
             data.data_layout,
