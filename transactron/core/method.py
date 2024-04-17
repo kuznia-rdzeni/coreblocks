@@ -79,7 +79,12 @@ class Method(TransactionBase):
             transactions in the same clock cycle. If such a situation happens,
             the method still is executed only once, and each of the callers
             receive its output. Nonexclusive methods cannot have inputs.
-        combiner: TODO
+        combiner: (Module, Sequence[MethodStruct], Value) -> AssignArg
+            If `nonexclusive` is true, the combiner function combines the
+            arguments from multiple calls to this method into a single
+            argument, which is passed to the method body. The third argument
+            is a bit vector, whose n-th bit is 1 if the n-th call is active
+            in a given cycle.
         single_caller: bool
             If true, this method is intended to be called from a single
             transaction. An error will be thrown if called from multiple
