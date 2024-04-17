@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1713368027584,
+  "lastUpdate": 1713368212929,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -10751,6 +10751,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.39809156081305413,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3e01eb68b6337922d919a7a2e661fd7a6f528b36",
+          "message": "Reverse precommit (#662)",
+          "timestamp": "2024-04-17T17:25:01+02:00",
+          "tree_id": "a23a2f011f9cb1a1967e8249610553ffbae7e71d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3e01eb68b6337922d919a7a2e661fd7a6f528b36"
+        },
+        "date": 1713368210166,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "statemate",
+            "value": 0.30413608847103385,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2559893748467081,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3446809120073327,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.45704217932358554,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.4039033296734477,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6434440067529544,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.39809156081305413,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3111595213198559,
             "unit": "Instructions Per Cycle"
           }
         ]
