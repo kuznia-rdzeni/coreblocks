@@ -206,12 +206,11 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
 
-        dependency_manager = self.gen_params.get(DependencyManager)
-        self.report = dependency_manager.get_dependency(ExceptionReportKey())
+        self.dependency_manager = self.gen_params.get(DependencyManager)
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
 
         self.issue = Method(i=self.fu_layouts.issue, single_caller=True)
         self.accept = Method(o=self.fu_layouts.accept)
-        self.precommit = Method(i=self.lsu_layouts.precommit)
 
         self.bus = bus
 
@@ -299,11 +298,12 @@ class LSUDummy(FuncUnit, Elaboratable):
                 "exception": res["exception"],
             }
 
-        @def_method(m, self.precommit)
-        def _(rob_id: Value, side_fx: Value):
-            with m.If(rob_id == request_rob_id):
+        with Transaction().body(m):
+            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
+            info = precommit(m)
+            with m.If(info.rob_id == request_rob_id):
                 m.d.comb += rob_id_match.eq(1)
-            with m.If(~side_fx):
+            with m.If(~info.side_fx):
                 m.d.comb += flush.eq(1)
 
         return m
@@ -315,7 +315,6 @@ class LSUComponent(FunctionalComponentParams):
         connections = gen_params.get(DependencyManager)
         bus_master = connections.get_dependency(CommonBusDataKey())
         unit = LSUDummy(gen_params, bus_master)
-        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

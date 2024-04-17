@@ -12,7 +12,6 @@ from coreblocks.interface.keys import (
     BranchVerifyKey,
     FetchResumeKey,
     GenericCSRRegistersKey,
-    InstructionPrecommitKey,
     CommonBusDataKey,
     FlushICacheKey,
 )
@@ -97,7 +96,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), FetchResumeKey()],
+            extra_methods_required=[FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -173,7 +172,6 @@ class Core(Elaboratable):
             r_rat_peek=rrat.peek,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,

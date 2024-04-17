@@ -9,9 +9,9 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder import *
-from coreblocks.interface.keys import ExceptionReportKey
+from coreblocks.interface.keys import ExceptionReportKey, InstructionPrecommitKey
 from transactron.utils.dependencies import DependencyManager
-from coreblocks.interface.layouts import ExceptionRegisterLayouts
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
 from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
@@ -84,11 +84,15 @@ class DummyLSUTestCircuit(Elaboratable):
 
         self.gen.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
+        m.submodules.precommit = self.precommit = TestbenchIO(
+            Adapter(o=self.gen.get(RetirementLayouts).precommit, nonexclusive=True)
+        )
+        self.gen.get(DependencyManager).add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
-        m.submodules.precommit_mock = self.precommit = TestbenchIO(AdapterTrans(func_unit.precommit))
         self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.bus = self.bus

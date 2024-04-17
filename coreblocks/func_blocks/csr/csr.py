@@ -71,8 +71,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         ----------
         gen_params: GenParams
             Core generation parameters.
-        fetch_continue: Method
-            Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
         self.dependency_manager = gen_params.get(DependencyManager)
@@ -86,7 +84,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.insert = Method(i=self.csr_layouts.rs.insert_in)
         self.update = Method(i=self.csr_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
-        self.precommit = Method(i=self.csr_layouts.precommit)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
@@ -251,11 +248,12 @@ class CSRUnit(FuncBlock, Elaboratable):
             }
 
         # Generate precommitting signal from precommit
-        @def_method(m, self.precommit)
-        def _(rob_id: Value, side_fx: Value):
-            with m.If(instr.rob_id == rob_id):
+        with Transaction().body(m):
+            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
+            info = precommit(m)
+            with m.If(instr.rob_id == info.rob_id):
                 m.d.comb += precommitting.eq(1)
-                m.d.comb += exe_side_fx.eq(side_fx)
+                m.d.comb += exe_side_fx.eq(info.side_fx)
 
         return m
 
@@ -266,7 +264,6 @@ class CSRBlockComponent(BlockComponentParams):
         connections = gen_params.get(DependencyManager)
         unit = CSRUnit(gen_params)
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
-        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:
