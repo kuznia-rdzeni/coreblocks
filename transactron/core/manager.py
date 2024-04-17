@@ -202,9 +202,9 @@ class TransactionManager(Elaboratable):
     @staticmethod
     def _method_calls(
         m: Module, method_map: MethodMap
-    ) -> tuple[Mapping["Method", Sequence[ValueLike]], Mapping["Method", Sequence[ValueLike]]]:
-        args = defaultdict[Method, list[ValueLike]](list)
-        runs = defaultdict[Method, list[ValueLike]](list)
+    ) -> tuple[Mapping["Method", Sequence[MethodStruct]], Mapping["Method", Sequence[Value]]]:
+        args = defaultdict[Method, list[MethodStruct]](list)
+        runs = defaultdict[Method, list[Value]](list)
 
         for source in method_map.methods_and_transactions:
             if isinstance(source, Method):
@@ -359,8 +359,7 @@ class TransactionManager(Elaboratable):
                     raise RuntimeError(f"Single-caller method '{method.name}' called more than once")
 
                 runs = Cat(method_runs[method])
-                for i in OneHotSwitchDynamic(m, runs):
-                    m.d.comb += method.data_in.eq(method_args[method][i])
+                m.d.comb += assign(method.data_in, method.combiner(m, method_args[method], runs), fields=AssignType.ALL)
 
         if "TRANSACTRON_VERBOSE" in environ:
             self.print_info(cgr, porder, ccs, method_map)
