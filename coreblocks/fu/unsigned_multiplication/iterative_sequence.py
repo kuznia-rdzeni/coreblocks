@@ -2,10 +2,10 @@ from amaranth import *
 import math
 
 from amaranth.sim import Simulator, Delay
-# from coreblocks.fu.unsigned_multiplication.common import DSPMulUnit, MulBaseUnsigned
-# from coreblocks.params import GenParams
-# from transactron import *
-# from transactron.core import def_method
+from coreblocks.fu.unsigned_multiplication.common import DSPMulUnit, MulBaseUnsigned
+from coreblocks.params import GenParams
+from transactron import *
+from transactron.core import def_method
 import random  
 __all__ = ["IterativeSequenceMul"]
 
@@ -72,6 +72,47 @@ class IterativeSequenceMul(Elaboratable):
         m.d.sync += self.result.eq(self.pipeline_array[result_lvl][0][0])
         return m
         
+class IterativeUnsignedMul(MulBaseUnsigned):
+    
+
+    def __init__(self, gen_params: GenParams, dsp_width: int = 4, dsp_number: int =4 ):
+        super().__init__(gen_params)
+        self.dsp_width = dsp_width
+        self.last_ready = Signal(unsigned(1))
+        self.waits = [Signal(10) for _ in range(10)]
+        self.waits_iter = Signal(unsigned(0))
+    def elaborate(self, platform):
+        m = TModule()
+        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen_params.isa.xlen)], 2)
+
+        m.submodules.mul = mul = IterativeSequenceMul( self.dsp_width, self.dsp_number, self.gen_params.isa.xlen)
+        m.d.sync +=  self.last_ready.eq(mul.ready)
+        
+        for i in range(10):
+            with m.If(self.waits[i] == 1):
+                fifo.write(m, o=mul.result)
+            with m.If(self.waits[i] > 0):
+                m.d.sync+= self.waits[i].eq(self.waits[i]-1)
+
+
+        @def_method(m, self.issue, ready = mul.ready)
+        def _(arg):
+            m.d.sync += mul.i1.eq(arg.i1)
+            m.d.sync += mul.i2.eq(arg.i2)
+            m.d.sync += mul.issue.eq(1)
+            m.d.sync += self.waits[self.waits_iter].eq(8)
+            with m.If(self.waits_iter < 10):
+                self.waits_iter.eq(self.waits_iter+1)
+            with m.If(self.waits_iter == 10):
+                self.waits_iter.eq(0)
+
+
+
+        @def_method(m, self.accept)
+        def _(arg):
+            return fifo.read(m)
+
+        return m
 # Random pipelining test of the module - works
 def testbench(t):
     dsp_width = 4
@@ -93,7 +134,7 @@ def testbench(t):
                 yield mul_module.issue.eq(0)
                 time = time + 1
                 yield
-           # print(f"issuing test: {test_idx} time: {time}")
+            print(f"issuing test: {test_idx} time: {time}")
             yield mul_module.i1.eq(test_val1)
             yield mul_module.i2.eq(test_val2)
             yield mul_module.issue.eq(1)
