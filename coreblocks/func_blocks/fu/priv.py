@@ -13,7 +13,7 @@ from transactron.utils import DependencyManager, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.frontend.decoder import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, RetirementLayouts, FetchLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -52,7 +52,6 @@ class PrivilegedFuncUnit(Elaboratable):
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.precommit = Method(i=gp.get(RetirementLayouts).precommit)
 
         self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchLayouts).resume, 2)
 
@@ -94,14 +93,15 @@ class PrivilegedFuncUnit(Elaboratable):
                 instr_fn.eq(decoder.decode_fn),
             ]
 
-        @def_method(m, self.precommit)
-        def _(rob_id, side_fx):
-            with m.If(instr_valid & (rob_id == instr_rob) & ~finished):
+        with Transaction().body(m, request=instr_valid & ~finished):
+            precommit = self.dm.get_dependency(InstructionPrecommitKey())
+            info = precommit(m)
+            with m.If(info.rob_id == instr_rob):
                 m.d.sync += finished.eq(1)
-                self.perf_instr.incr(m, instr_fn, cond=side_fx)
+                self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
                 with condition(m) as branch:
-                    with branch(~side_fx):
+                    with branch(~info.side_fx):
                         pass
                     with branch(instr_fn == PrivilegedFn.Fn.MRET):
                         mret(m)
@@ -152,7 +152,6 @@ class PrivilegedUnitComponent(FunctionalComponentParams):
     def get_module(self, gp: GenParams) -> FuncUnit:
         unit = PrivilegedFuncUnit(gp)
         connections = gp.get(DependencyManager)
-        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
         return unit
 

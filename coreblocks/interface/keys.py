@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
 from transactron import Method
-from transactron.lib import MethodTryProduct, Collector
+from transactron.lib import Collector
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
@@ -32,7 +32,7 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(UnifierKey, unifier=MethodTryProduct):
+class InstructionPrecommitKey(SimpleKey[Method]):
     pass
 
 
