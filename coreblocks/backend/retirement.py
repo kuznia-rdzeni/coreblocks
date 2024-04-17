@@ -8,7 +8,7 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decoder.isa import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey
+from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 
 
@@ -23,7 +23,6 @@ class Retirement(Elaboratable):
         r_rat_peek: Method,
         free_rf_put: Method,
         rf_free: Method,
-        precommit: Method,
         exception_cause_get: Method,
         exception_cause_clear: Method,
         frat_rename: Method,
@@ -38,7 +37,6 @@ class Retirement(Elaboratable):
         self.r_rat_peek = r_rat_peek
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
-        self.precommit = precommit
         self.exception_cause_get = exception_cause_get
         self.exception_cause_clear = exception_cause_clear
         self.rename = frat_rename
@@ -53,6 +51,9 @@ class Retirement(Elaboratable):
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
+        self.precommit = Method(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+        self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -62,13 +63,6 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
-
-        with Transaction().body(m):
-            # TODO: do we prefer single precommit call per instruction?
-            # If so, the precommit method should send an acknowledge signal here.
-            # Just calling once is not enough, because the insn might not be in relevant unit yet.
-            rob_entry = self.rob_peek(m)
-            self.precommit(m, rob_id=rob_entry.rob_id, side_fx=side_fx)
 
         def free_phys_reg(rp_dst: Value):
             # mark reg in Register File as free
@@ -220,5 +214,10 @@ class Retirement(Elaboratable):
         @def_method(m, self.core_state)
         def _():
             return {"flushing": core_flushing}
+
+        @def_method(m, self.precommit)
+        def _():
+            rob_entry = self.rob_peek(m)
+            return {"rob_id": rob_entry.rob_id, "side_fx": side_fx}
 
         return m
