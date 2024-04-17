@@ -16,7 +16,9 @@ class IterativeSequenceMul(Elaboratable):
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
 	
-        self.multiplication_step =  Signal(unsigned(n))
+        self.ready = Signal(unsigned(1))
+        self.issue = Signal(unsigned(1))
+        self.step =  Signal(unsigned(n))
         self.first_mul_number =  Signal(unsigned(n))
         self.last_mul_number = Signal(unsigned(n))
         self.i1 = Signal(unsigned(n))
@@ -32,9 +34,20 @@ class IterativeSequenceMul(Elaboratable):
         number_of_multiplications = number_of_chunks * number_of_chunks
         number_of_steps = math.ceil(number_of_multiplications / self.dsp_number)
 	
-        m.d.sync += self.multiplication_step.eq((self.multiplication_step + 1) % number_of_steps)
-        m.d.comb += self.first_mul_number.eq( self.multiplication_step * self.dsp_number)
-        m.d.comb += self.last_mul_number.eq((self.multiplication_step + 1) * self.dsp_number)
+        m.d.sync += self.step.eq((self.step + 1) % number_of_steps)
+        
+        with m.If(self.step == number_of_steps):
+            m.d.sync += self.ready.eq(1)
+            
+        with m.If(self.step < number_of_steps):
+            m.d.sync += self.ready.eq(0)
+            m.d.sync += self.step.eq(self.step+1)
+            
+        with m.If(self.issue == 1):
+            m.d.sync += self.step.eq(0)
+            m.d.sync += self.ready.eq(0)
+            
+        m.d.sync += self.first_mul_number.eq(( self.first_mul_number + self.dsp_number) % number_of_multiplications)
 
         
         for i in range(number_of_multiplications):
@@ -42,7 +55,7 @@ class IterativeSequenceMul(Elaboratable):
             b = (i % number_of_chunks)
             chunk_i1 = self.i1[a*self.dsp_width: (a+1)*self.dsp_width]
             chunk_i2 = self.i2[b*self.dsp_width: (b+1)*self.dsp_width]
-            with m.If((i >= self.first_mul_number) & (i < self.last_mul_number)):  
+            with m.If((i >= self.first_mul_number) & (i <  self.first_mul_number + self.dsp_number )):
                 m.d.sync += self.pipeline_array[0][a][b].eq(chunk_i1*chunk_i2)
 	
         shift_size = self.dsp_width
@@ -69,37 +82,39 @@ def testbench(t):
 
     def process():
 
-        initial_test_cases = [(random.randint(1, 0xFFFF), random.randint(1, 0xFFFF)) for _ in range(t)]
-        test_cases = [(a, b) for a, b in initial_test_cases for _ in range(4)]
-        expected_results = [(a * b) for a, b in initial_test_cases for _ in range(4)]
-
-        module_latency = int(math.log2(n / dsp_width)) + 3 + 3
+        test_cases = [(random.randint(1, 0xFFFF), random.randint(1, 0xFFFF)) for _ in range(t)]
+        #test_cases = [(500,100)]
+        expected_results = [(a * b) for a, b in test_cases]
+        time = 0
+        module_latency = 1
 	
         for test_idx, (test_val1, test_val2) in enumerate(test_cases + [(0, 0)] * module_latency):
-           
+            while (yield mul_module.ready) == 0:
+                yield mul_module.issue.eq(0)
+                time = time + 1
+                yield
+           # print(f"issuing test: {test_idx} time: {time}")
             yield mul_module.i1.eq(test_val1)
             yield mul_module.i2.eq(test_val2)
-            #if test_val1 != 0:
-            # 	print(f"i1 --> {test_val1} i2 --> {test_val2}") 
-            #print("Next cycle")
-            #multiplication_step_val = yield mul_module.multiplication_step
-            #first_mul_number_val = yield mul_module.first_mul_number
-            #last_mul_number_val = yield mul_module.last_mul_number
-            #print(f"multiplication_step: {multiplication_step_val}, first_mul_number: {first_mul_number_val}, last_mul_number: {last_mul_number_val}")
-            #for i in range(n):
-            #    for j in range(n):
-            #        for k in range(n):
-            #            # Access and print the value of each signal in the pipeline_array
-            #            val = yield mul_module.pipeline_array[i][j][k]
-            #            if val !=0:
-            #                print(f"pipeline_array[{i}][{j}][{k}] = {val}")
-                        
-            if test_idx >= module_latency and (test_idx - module_latency) % 4 == 0:
+            yield mul_module.issue.eq(1)
+            """
+            for i in range(n):
+                for j in range(n):
+                    for k in range(n):
+                        # Access and print the value of each signal in the pipeline_array
+                        val = yield mul_module.pipeline_array[i][j][k]
+                        if val !=0:
+                            print(f"pipeline_array[{i}][{j}][{k}] = {val}")
+            """
+            yield
+            time = time + 1
+            if test_idx >= module_latency:
                 expected = expected_results[test_idx - module_latency]
                 result = yield mul_module.result
-                assert result == expected, f"Test case {(test_idx - module_latency)//4} failed: Expected {expected}, got {result}"
-                print(f"Test case {(test_idx - module_latency)//4}: Expected = {expected}, got {result}")
-            yield
+                assert result == expected, f"Test case {(test_idx - module_latency)} failed: Expected {expected}, got {result}"
+                print(f"Test case {(test_idx - module_latency)}: Expected = {expected}, got {result}")
+            
+            
 
     sim.add_sync_process(process)
     sim.run()
@@ -107,5 +122,6 @@ def testbench(t):
 if __name__ == "__main__":
     t = 100
     testbench(t)
+
 
 
