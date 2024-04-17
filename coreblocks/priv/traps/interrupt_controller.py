@@ -11,8 +11,10 @@ from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRR
 
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
+from transactron.lib import logging
 from transactron.utils.dependencies import DependencyManager
 
+log = logging.HardwareLogger("core.interrupt_controller")
 
 class InterruptCauseNumber(IntEnum):
     SSI = 1
@@ -154,10 +156,12 @@ class InternalInterruptController(Component):
 
         @def_method(m, self.mret)
         def _():
+            log.info(m, True, "Interrupt handler return")
             pass
 
         @def_method(m, self.entry)
         def _():
+            log.info(m, True, "Interrupt handler entry")
             pass
 
         # mret/entry conflict cannot happen in real conditons - mret is called under precommit

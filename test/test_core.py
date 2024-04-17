@@ -176,7 +176,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
     [
         (
             "interrupt.asm",
-            400,
+            400 * 2,
             {4: 2971215073, 8: 29},
             {2: 2971215073, 7: 29, 28: 2**7 | (3 << 11), 29: 2**3 | (3 << 11), 31: 0xDE},
             300,
@@ -203,12 +203,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
 
-    def calc_fib(self, n: int):
-        if n <= 1:
-            return n
-        else:
-            return self.calc_fib(n - 1) + self.calc_fib(n - 2)
-
     def clear_level_interrupt_procsess(self):
         yield Passive()
         while True:
@@ -225,7 +219,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     def run_with_interrupt_process(self):
         main_cycles = 0
         int_count = 0
-        handler_count = 1
+        handler_count = 0
 
         # set up fibonacci max numbers
         for reg_id, val in self.start_regvals.items():
@@ -269,8 +263,14 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 # wait until interrupts are cleared, so it won't be missed
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:
                     yield
-
+                
+                assert (yield from self.get_arch_reg_val(30)) == int_count
+                
                 int_count += yield from do_interrupt()
+            else:
+                while (yield self.m.core.interrupt_controller.mip.value) != 0:
+                    yield
+                assert (yield from self.get_arch_reg_val(30)) == int_count
 
             handler_count += 1
 
@@ -279,6 +279,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 yield
 
         assert (yield from self.get_arch_reg_val(30)) == int_count
+        assert (yield from self.get_arch_reg_val(27)) == handler_count
 
         for reg_id, val in self.expected_regvals.items():
             assert (yield from self.get_arch_reg_val(reg_id)) == val

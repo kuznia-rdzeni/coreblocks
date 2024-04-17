@@ -365,11 +365,13 @@ class FetchUnit(Elaboratable):
 
         @def_method(m, self.resume, ready=(stalled & (flushing_counter == 0)))
         def _(pc: Value, resume_from_exception: Value):
-            log.info(m, True, "Resuming new_pc=0x{:x} from exception={}", pc, resume_from_exception)
+            log.info(m, True, "Resuming new_pc=0x{:x} from exception={} stalled_exception={}", pc, resume_from_exception, stalled_exception)
             m.d.sync += current_pc.eq(pc)
             m.d.sync += stalled_unsafe.eq(0)
             with m.If(resume_from_exception):
                 m.d.sync += stalled_exception.eq(0)
+                # clear forwarder
+
 
         @def_method(m, self.stall_exception)
         def _():

@@ -52,15 +52,20 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         @def_method(m, self._fu_write)
         def _(data: Value):
             for start, csr in self.fields:
-                csr._fu_write(m, data.bit_select(start, csr.width))
+                csr._fu_write(m, data[start : start + csr.width])
+                #csr._fu_write(m, data.bit_select(start, csr.width))
 
         @def_method(m, self._fu_read)
         def _() -> Value:
-            read_data = []  # amaranth doesn't support assigning to bit_select
+            #read_data = []  # amaranth doesn't support assigning to bit_select
+            #for start, csr in self.fields:
+            #    local_data = Signal(self.width)
+            #    m.d.comb += local_data.eq(csr._fu_read(m)["data"] << start)
+            #    read_data.append(local_data)
+            #return reduce(operator.or_, read_data)
+            result = Signal(self.width)
             for start, csr in self.fields:
-                local_data = Signal(self.width)
-                m.d.comb += local_data.eq(csr._fu_read(m)["data"] << start)
-                read_data.append(local_data)
-            return reduce(operator.or_, read_data)
+                m.d.comb += result[start : start + csr.width].eq(csr._fu_read(m)["data"])
+            return result
 
         return m

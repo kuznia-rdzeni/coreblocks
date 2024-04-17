@@ -3,6 +3,7 @@ from amaranth.lib.data import StructLayout
 from dataclasses import dataclass
 
 from transactron import Method, def_method, Transaction, TModule
+from transactron.lib import logging
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyManager
@@ -21,6 +22,7 @@ from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
 )
 
+log = logging.HardwareLogger("backend.csr_unit")
 
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
     read_only = bits_from_int(csr_addr, 10, 2) == 0b11
@@ -101,7 +103,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        accepted = Signal()
+        call_resume = Signal()
         exception = Signal()
         precommitting = Signal()
 
@@ -171,6 +173,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                                         with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
                                             m.d.comb += write_val.eq(read_val & (~instr.s1_val))
                                     with m.If(exe_side_fx):
+                                        log.debug(m, True, "csr write executed {:x} {:x}", csr_number, write_val)
                                         write(m, write_val)
 
                         with m.Else():
@@ -205,7 +208,6 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.get_result, done)
         def _():
-            m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
@@ -229,6 +231,8 @@ class CSRUnit(FuncBlock, Elaboratable):
                 )
 
             m.d.sync += exception.eq(0)
+            
+            m.d.comb += call_resume.eq(exe_side_fx & ~exception & ~interrupt)
 
             return {
                 "rob_id": instr.rob_id,
@@ -237,8 +241,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_resume, accepted)
+        @def_method(m, self.fetch_resume, call_resume)
         def _():
+            # There is at most one unsafe instruction in the core, call would never block.
+            # Unless there is a comfilct with resume from Retirement, but if it is a last instruction (on precommit) and not reporting trap on it,
+            # we are safe.
+            # What with force resume insertion? dont push it on system?
+            log.debug(m, True, "resume se={} to={:x}", exe_side_fx, instr.pc + self.gen_params.isa.ilen_bytes)
             # CSR instructions are never compressed, PC+4 is always next instruction
             return {
                 "pc": instr.pc + self.gen_params.isa.ilen_bytes,
