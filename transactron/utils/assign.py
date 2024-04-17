@@ -126,19 +126,19 @@ def assign(
     rhs_fields = assign_arg_fields(rhs)
 
     def rec_call(name: str | int):
-            subfields = fields
-            if isinstance(fields, Mapping):
-                subfields = fields[name]
-            elif isinstance(fields, Iterable):
-                subfields = AssignType.ALL
+        subfields = fields
+        if isinstance(fields, Mapping):
+            subfields = fields[name]
+        elif isinstance(fields, Iterable):
+            subfields = AssignType.ALL
 
-            return assign(
-                lhs[name],  # type: ignore
-                rhs[name],  # type: ignore
-                fields=subfields,
-                lhs_strict=isinstance(lhs, ValueLike),
-                rhs_strict=isinstance(rhs, ValueLike),
-            )
+        return assign(
+            lhs[name],  # type: ignore
+            rhs[name],  # type: ignore
+            fields=subfields,
+            lhs_strict=isinstance(lhs, ValueLike),
+            rhs_strict=isinstance(rhs, ValueLike),
+        )
 
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
