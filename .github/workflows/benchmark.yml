@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    types: [ opened, synchronize, labeled ]
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -11,7 +15,8 @@ jobs:
     strategy:
       matrix:
         config: [basic, full]
-    name: Synthesis benchmarks
+    name: Run synthesis benchmarks
+    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'benchmark') 
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
@@ -46,23 +51,19 @@ jobs:
       - name: Collect Benchmark information
         run: |
           . venv/bin/activate
-          ./scripts/parse_benchmark_info.py
-          cat ./benchmark.json
+          ./scripts/parse_benchmark_info.py -o synth-benchmark-${{ matrix.config }}.json
+          cat ./synth-benchmark-${{ matrix.config }}.json
 
-      - name: Store benchmark result (Fmax)
-        uses: benchmark-action/github-action-benchmark@v1
-        if: github.ref == 'refs/heads/master'
+      - uses: actions/upload-artifact@v4
         with:
-          name: Fmax and LCs (${{ matrix.config }})
-          tool: 'customBiggerIsBetter'
-          output-file-path: './benchmark.json'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
-          benchmark-data-dir-path: "dev/benchmark"
+          name: synth_benchmark_results-${{ matrix.config }}
+          path: synth-benchmark-${{ matrix.config }}.json
+
 
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'benchmark')
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     steps:
       - name: Checkout
@@ -119,15 +120,157 @@ jobs:
       - name: Run benchmarks
         run: |
           . venv/bin/activate
-          scripts/run_benchmarks.py
+          scripts/run_benchmarks.py -o perf_benchmark.json --summary perf.md
+          cat perf.md >> $GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perf_benchmark_results
+          path: perf_benchmark.json
+
+  pr-summary:
+    name: Create benchmark summary for a pull request
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    needs: [run-perf-benchmarks, synthesis]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set ownership (Github Actions workaround)
+        run: |
+          # https://github.com/actions/runner/issues/2033
+          chown -R $(id -u):$(id -g) $PWD
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements-dev.txt
+
+      - name: Get baseline benchmarks results
+        uses: actions/cache@v4
+        env:
+          cache-name: benchmark-results
+        with:
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ github.event.pull_request.base.sha }}
+          path: |
+            perf_benchmark.json
+            synth-benchmark-basic.json
+            synth-benchmark-full.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf_benchmark_results
+          path: artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: synth_benchmark_results-basic
+          path: artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: synth_benchmark_results-full
+          path: artifacts
+
+      - name: Create comment
+        id: createComment
+        run: |
+          . venv/bin/activate
+          {
+            echo 'comment_content<<EOF'
+            echo "## Benchmarks summary"
+            echo "### Performance benchmarks"
+            ci/print_benchmark_summary.py --precision 3 artifacts/perf_benchmark.json perf_benchmark.json
+            echo
+            echo "You can view all the metrics [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            echo "### Synthesis benchmarks (basic)"
+            ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-basic.json synth-benchmark-basic.json
+            echo
+            echo "### Synthesis benchmarks (full)"
+            ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-full.json synth-benchmark-full.json
+            echo
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish the summary as a comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${{steps.createComment.outputs.comment_content}}`
+            })
+
+  publish-benchmarks:
+    name: Publish benchmarks
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [run-perf-benchmarks, synthesis]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf_benchmark_results
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: synth_benchmark_results-basic
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: synth_benchmark_results-full
+          path: .
+
+      - name: Put results in a cache
+        uses: actions/cache@v4
+        env:
+          cache-name: benchmark-results
+        with:
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ github.sha }}
+          path: |
+            perf_benchmark.json
+            synth-benchmark-basic.json
+            synth-benchmark-full.json
 
       - name: Store benchmark result (IPC)
         uses: benchmark-action/github-action-benchmark@v1
-        if: github.ref == 'refs/heads/master'
         with:
           name: Performance (IPC)
           tool: 'customBiggerIsBetter'
-          output-file-path: './benchmark.json'
+          output-file-path: './perf_benchmark.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (basic)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (basic)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-basic.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (full)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (full)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-full.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"

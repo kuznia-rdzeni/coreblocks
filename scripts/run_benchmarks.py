@@ -106,7 +106,7 @@ def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], t
     return False
 
 
-def build_result_table(results: dict[str, BenchmarkResult]) -> str:
+def build_result_table(results: dict[str, BenchmarkResult], tablefmt: str) -> str:
     if len(results) == 0:
         return ""
 
@@ -135,7 +135,7 @@ def build_result_table(results: dict[str, BenchmarkResult]) -> str:
     # Transpose the table, as the library expects to get a list of rows (and we have a list of columns).
     rows = [list(i) for i in zip(*columns)]
 
-    return tabulate.tabulate(rows, headers="firstrow", tablefmt="simple_outline")
+    return tabulate.tabulate(rows, headers="firstrow", tablefmt=tablefmt)
 
 
 def main():
@@ -152,6 +152,7 @@ def main():
         default="benchmark.json",
         help="Selects output file to write information to. Default: %(default)s",
     )
+    parser.add_argument("--summary", default="", action="store", help="Write Markdown summary to this file")
     parser.add_argument("benchmark_name", nargs="?")
 
     args = parser.parse_args()
@@ -195,7 +196,11 @@ def main():
         ipc = result.instr / result.cycles
         ipcs.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc})
 
-    print(build_result_table(results))
+    print(build_result_table(results, "simple_outline"))
+
+    if args.summary != "":
+        with open(args.summary, "w") as summary_file:
+            print(build_result_table(results, "github"), file=summary_file)
 
     with open(args.output, "w") as benchmark_file:
         json.dump(ipcs, benchmark_file, indent=4)
