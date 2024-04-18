@@ -157,7 +157,7 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
-    fetch_block_bytes_log=4,
+    fetch_block_bytes_log=2,
 )
 
 # Core configuration used in internal testbenches
