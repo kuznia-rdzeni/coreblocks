@@ -5,7 +5,7 @@ on:
     branches:
       - master
   pull_request:
-    types: [ opened, synchronize, labeled ]
+    types: [ synchronize, labeled ]
     branches:
       - master
   workflow_dispatch:
@@ -16,7 +16,15 @@ jobs:
       matrix:
         config: [basic, full]
     name: Run synthesis benchmarks
-    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'benchmark') 
+    if: >
+      github.ref == 'refs/heads/master' ||
+      (
+        github.event_name == 'pull_request' &&
+        (
+          (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'benchmark')) ||
+          (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
+        )
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
@@ -63,7 +71,15 @@ jobs:
   build-perf-benchmarks:
     name: Build performance benchmarks
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'benchmark')
+    if: >
+      github.ref == 'refs/heads/master' ||
+      (
+        github.event_name == 'pull_request' &&
+        (
+          (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'benchmark')) ||
+          (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
+        )
+      )
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
     steps:
       - name: Checkout
@@ -133,8 +149,6 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      pull-requests: write
     needs: [run-perf-benchmarks, synthesis]
     steps:
       - name: Checkout
@@ -181,12 +195,16 @@ jobs:
           name: synth_benchmark_results-full
           path: artifacts
 
+      - name: Save PR number
+        run: |
+          mkdir -p ./summary
+          echo ${{ github.event.number }} > ./summary/pr_number
+
       - name: Create comment
         id: createComment
         run: |
           . venv/bin/activate
           {
-            echo 'comment_content<<EOF'
             echo "## Benchmarks summary"
             echo "### Performance benchmarks"
             ci/print_benchmark_summary.py --precision 3 artifacts/perf_benchmark.json perf_benchmark.json
@@ -198,19 +216,12 @@ jobs:
             echo "### Synthesis benchmarks (full)"
             ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-full.json synth-benchmark-full.json
             echo
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
+          } >> summary/comment.md
 
-      - name: Publish the summary as a comment
-        uses: actions/github-script@v7
+      - uses: actions/upload-artifact@v4
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `${{steps.createComment.outputs.comment_content}}`
-            })
+          name: benchmark-summary
+          path: summary
 
   publish-benchmarks:
     name: Publish benchmarks
