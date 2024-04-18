@@ -5,7 +5,7 @@ on:
     branches:
       - master
   pull_request:
-    types: [ opened, synchronize, labeled ]
+    types: [ synchronize, labeled ]
     branches:
       - master
   workflow_dispatch:
@@ -133,8 +133,6 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      pull-requests: write
     needs: [run-perf-benchmarks, synthesis]
     steps:
       - name: Checkout
@@ -181,12 +179,18 @@ jobs:
           name: synth_benchmark_results-full
           path: artifacts
 
+      - name: Save PR number
+        env:
+          PR_NUMBER: 
+        run: |
+          mkdir -p ./summary
+          echo ${{ github.event.number }} > ./summary/pr_number
+
       - name: Create comment
         id: createComment
         run: |
           . venv/bin/activate
           {
-            echo 'comment_content<<EOF'
             echo "## Benchmarks summary"
             echo "### Performance benchmarks"
             ci/print_benchmark_summary.py --precision 3 artifacts/perf_benchmark.json perf_benchmark.json
@@ -199,18 +203,12 @@ jobs:
             ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-full.json synth-benchmark-full.json
             echo
             echo EOF
-          } >> "$GITHUB_OUTPUT"
+          } >> summary/comment.md
 
-      - name: Publish the summary as a comment
-        uses: actions/github-script@v7
+      - uses: actions/upload-artifact@v4
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `${{steps.createComment.outputs.comment_content}}`
-            })
+          name: benchmark-summary
+          path: summary
 
   publish-benchmarks:
     name: Publish benchmarks
