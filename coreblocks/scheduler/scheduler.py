@@ -3,11 +3,10 @@ from collections.abc import Sequence
 from amaranth import *
 
 from transactron import Method, Transaction, TModule
-from transactron.lib import FIFO
 from coreblocks.interface.layouts import SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.frontend.decoder.optypes import OpType
-from transactron.lib.connectors import Connect
+from transactron.lib.connectors import Connect, Pipe
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.interface.keys import CoreStateKey
@@ -399,7 +398,7 @@ class Scheduler(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
+        m.submodules.alloc_rename_buf = alloc_rename_buf = Pipe(self.layouts.reg_alloc_out)
         m.submodules.reg_alloc = RegAllocation(
             get_instr=self.get_instr,
             push_instr=alloc_rename_buf.write,
@@ -415,7 +414,7 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
+        m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = Pipe(self.layouts.rob_allocate_out)
         m.submodules.rob_alloc = ROBAllocation(
             get_instr=rename_out_buf.read,
             push_instr=reg_alloc_out_buf.write,
@@ -423,7 +422,7 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
+        m.submodules.rs_select_out_buf = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
             get_instr=reg_alloc_out_buf.read,

@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import flipped, connect
+from transactron.lib.connectors import Pipe
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
@@ -140,13 +141,13 @@ class Core(Elaboratable):
         m.submodules.core_counter = self.core_counter
         m.submodules.args_discard_map = self.core_counter_increment_discard_map
 
-        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        m.submodules.pipe_decode = pipe_decode = Pipe(self.gen_params.get(DecodeLayouts).decoded_instr)
         m.submodules.decode = DecodeStage(
-            gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
+            gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=pipe_decode.write
         )
 
         m.submodules.scheduler = Scheduler(
-            get_instr=fifo_decode.read,
+            get_instr=pipe_decode.read,
             get_free_reg=free_rf_fifo.read,
             rat_rename=frat.rename,
             rob_put=rob.put,
