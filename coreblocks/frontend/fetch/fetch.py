@@ -4,6 +4,7 @@ from amaranth.utils import exact_log2
 from amaranth.lib.coding import PriorityEncoder
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
+from transactron.lib.simultaneous import condition
 from transactron.utils import MethodLayout, popcount
 from transactron.utils.transactron_helpers import from_method_layout
 from transactron import *
@@ -342,26 +343,27 @@ class FetchUnit(Elaboratable):
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(fetch_block_addr - 2)
 
-            with m.If(flushing_counter == 0):
-                with m.If(access_fault | unsafe_stall):
-                    # TODO: Raise different code for page fault when supported
-                    flush()
-                    m.d.sync += stalled_unsafe.eq(1)
-                with m.Elif(redirect):
-                    self.perf_fetch_redirects.incr(m)
-                    new_pc = Signal.like(current_pc)
-                    m.d.av_comb += new_pc.eq(redirection_instr_pc + redirection_offset[redirect_or_unsafe_idx])
+            with condition(m, priority=False) as branch:
+                with branch(flushing_counter == 0):
+                    with m.If(access_fault | unsafe_stall):
+                        # TODO: Raise different code for page fault when supported
+                        flush()
+                        m.d.sync += stalled_unsafe.eq(1)
+                    with m.Elif(redirect):
+                        self.perf_fetch_redirects.incr(m)
+                        new_pc = Signal.like(current_pc)
+                        m.d.av_comb += new_pc.eq(redirection_instr_pc + redirection_offset[redirect_or_unsafe_idx])
 
-                    log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
-                    flush()
-                    m.d.sync += current_pc.eq(new_pc)
+                        log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
+                        flush()
+                        m.d.sync += current_pc.eq(new_pc)
 
-                self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+                    self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
-                # Make sure this is called only once to avoid a huge mux on arguments
-                serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
-            with m.Else():
-                m.d.sync += flushing_counter.eq(flushing_counter - 1)
+                    # Make sure this is called only once to avoid a huge mux on arguments
+                    serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
+                with branch(flushing_counter != 0):
+                    m.d.sync += flushing_counter.eq(flushing_counter - 1)
 
         @def_method(m, self.resume, ready=(stalled & (flushing_counter == 0)))
         def _(pc: Value, resume_from_exception: Value):
