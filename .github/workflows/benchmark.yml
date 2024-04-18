@@ -180,8 +180,6 @@ jobs:
           path: artifacts
 
       - name: Save PR number
-        env:
-          PR_NUMBER: 
         run: |
           mkdir -p ./summary
           echo ${{ github.event.number }} > ./summary/pr_number
@@ -202,7 +200,6 @@ jobs:
             echo "### Synthesis benchmarks (full)"
             ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-full.json synth-benchmark-full.json
             echo
-            echo EOF
           } >> summary/comment.md
 
       - uses: actions/upload-artifact@v4

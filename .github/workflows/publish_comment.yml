@@ -1,4 +1,4 @@
-name: Publish a PR comment 
+name: Publish a PR comment
 
 on:
   workflow_run:
