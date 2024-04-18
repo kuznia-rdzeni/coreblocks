@@ -26,7 +26,7 @@ jobs:
           script: |
             let fs = require('fs');
             let issue_number = Number(fs.readFileSync('./summary/pr_number'));
-            let body = fs.readFileSync('./summary/comment.md');
+            let body = fs.readFileSync('./summary/comment.md', "utf-8");
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
