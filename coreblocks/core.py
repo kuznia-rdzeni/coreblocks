@@ -7,7 +7,7 @@ from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifi
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.priv.traps.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
-from transactron.lib import FIFO, ConnectTrans
+from transactron.lib import ConnectTrans
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     BranchVerifyKey,
@@ -58,13 +58,13 @@ class Core(Elaboratable):
         self.core_counter = CoreInstructionCounter(self.gen_params)
 
         # make fetch_continue visible outside the core for injecting instructions
-        self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
+        self.pipe_fetch = Pipe(self.gen_params.get(FetchLayouts).raw_instr)
 
         drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
         self.core_counter_increment_discard_map = MethodMap(
             self.core_counter.increment, i_transform=drop_args_transform
         )
-        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter_increment_discard_map.method])
+        self.fetch_continue = MethodProduct([self.pipe_fetch.write, self.core_counter_increment_discard_map.method])
 
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
@@ -137,13 +137,13 @@ class Core(Elaboratable):
 
         m.submodules.fetch_continue = self.fetch_continue
         m.submodules.fetch = self.fetch
-        m.submodules.fifo_fetch = self.fifo_fetch
+        m.submodules.pipe_fetch = self.pipe_fetch
         m.submodules.core_counter = self.core_counter
         m.submodules.args_discard_map = self.core_counter_increment_discard_map
 
         m.submodules.pipe_decode = pipe_decode = Pipe(self.gen_params.get(DecodeLayouts).decoded_instr)
         m.submodules.decode = DecodeStage(
-            gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=pipe_decode.write
+            gen_params=self.gen_params, get_raw=self.pipe_fetch.read, push_decoded=pipe_decode.write
         )
 
         m.submodules.scheduler = Scheduler(
