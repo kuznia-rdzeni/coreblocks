@@ -7,6 +7,10 @@ from coreblocks.params import GenParams
 from transactron import *
 from transactron.core import def_method
 import random  
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
+from coreblocks.params.configurations import test_core_config
+from transactron.lib import FIFO
+
 __all__ = ["IterativeSequenceMul"]
 
 
@@ -78,19 +82,24 @@ class IterativeUnsignedMul(MulBaseUnsigned):
     def __init__(self, gen_params: GenParams, dsp_width: int = 4, dsp_number: int =4 ):
         super().__init__(gen_params)
         self.dsp_width = dsp_width
+        self.dsp_number = dsp_number
         self.last_ready = Signal(unsigned(1))
         self.waits = [Signal(10) for _ in range(10)]
         self.waits_iter = Signal(unsigned(0))
+
     def elaborate(self, platform):
         m = TModule()
         m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen_params.isa.xlen)], 2)
 
-        m.submodules.mul = mul = IterativeSequenceMul( self.dsp_width, self.dsp_number, self.gen_params.isa.xlen)
+        m.submodules.mul = mul = IterativeSequenceMul(self.dsp_width, self.dsp_number, self.gen_params.isa.xlen)
         m.d.sync +=  self.last_ready.eq(mul.ready)
         
         for i in range(10):
             with m.If(self.waits[i] == 1):
-                fifo.write(m, o=mul.result)
+                with Transaction().body(m):
+                    fifo.write(m, o=mul.result)
+
+
             with m.If(self.waits[i] > 0):
                 m.d.sync+= self.waits[i].eq(self.waits[i]-1)
 
@@ -101,9 +110,10 @@ class IterativeUnsignedMul(MulBaseUnsigned):
             m.d.sync += mul.i2.eq(arg.i2)
             m.d.sync += mul.issue.eq(1)
             m.d.sync += self.waits[self.waits_iter].eq(8)
-            with m.If(self.waits_iter < 10):
+            with m.If(self.waits_iter < 9):
                 self.waits_iter.eq(self.waits_iter+1)
-            with m.If(self.waits_iter == 10):
+
+            with m.If(self.waits_iter == 9):
                 self.waits_iter.eq(0)
 
 
@@ -134,7 +144,7 @@ def testbench(t):
                 yield mul_module.issue.eq(0)
                 time = time + 1
                 yield
-            print(f"issuing test: {test_idx} time: {time}")
+            #print(f"issuing test: {test_idx} time: {time}")
             yield mul_module.i1.eq(test_val1)
             yield mul_module.i2.eq(test_val2)
             yield mul_module.issue.eq(1)
@@ -160,9 +170,22 @@ def testbench(t):
     sim.add_sync_process(process)
     sim.run()
 
+def transactron_testbench():
+    gen_params = GenParams(test_core_config)
+    mul_module = IterativeUnsignedMul(gen_params)
+    tmul_module = SimpleTestCircuit(mul_module)
+    sim = Simulator(tmul_module)
+    sim.add_clock(1e-6)
+    def transactron_process():
+        res = yield from tmul_module.issue.call({"i1":5, "i2": 7})
+        for _ in range(40):
+            yield
+        print(res)
+    sim.add_sync_process(transactron_process)
+    sim.run()
 if __name__ == "__main__":
     t = 100
-    testbench(t)
-
+    #testbench(t)
+    transactron_testbench()
 
 
