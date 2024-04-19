@@ -93,9 +93,6 @@ class FetchUnit(Elaboratable):
         def flush():
             m.d.comb += flush_now.eq(1)
 
-        with m.If(flush_now):
-            m.d.sync += flushing_counter.eq(req_counter.count_next)
-
         current_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
 
         stalled_unsafe = Signal()
@@ -364,6 +361,9 @@ class FetchUnit(Elaboratable):
                     serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
                 with branch(flushing_counter != 0):
                     m.d.sync += flushing_counter.eq(flushing_counter - 1)
+
+        with m.If(flush_now):
+            m.d.sync += flushing_counter.eq(req_counter.count_next)
 
         @def_method(m, self.resume, ready=(stalled & (flushing_counter == 0)))
         def _(pc: Value, resume_from_exception: Value):
