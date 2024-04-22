@@ -35,10 +35,10 @@ def main():
             emoji = ""
             sign = ""
             if diff > 0:
-                emoji = "🔺 "
+                emoji = "▲ "
                 sign = "+"
             elif diff < 0:
-                emoji = "🔻 "
+                emoji = "▼ "
                 sign = "-"
 
             diff_str = f" ({sign}{abs(diff):.{args.precision}f})"
