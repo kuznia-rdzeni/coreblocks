@@ -51,7 +51,9 @@ def load_benchmarks():
         "tarfind",
     }
 
-    return list(set(all_tests) - exclude)
+    ret = list(set(all_tests) - exclude)
+    ret.sort()
+    return ret
 
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:

@@ -481,6 +481,8 @@ class TransactionModule(Elaboratable):
         m = Module()
 
         m.submodules.main_module = elaboratable
-        m.submodules.transactionManager = self.manager.get_dependency(TransactionManagerKey())
+        m.submodules.transactionManager = self.transaction_manager = self.manager.get_dependency(
+            TransactionManagerKey()
+        )
 
         return m

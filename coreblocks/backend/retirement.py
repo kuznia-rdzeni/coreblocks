@@ -46,6 +46,12 @@ class Retirement(Elaboratable):
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
+        self.perf_trap_latency = FIFOLatencyMeasurer(
+            "backend.retirement.trap_latency",
+            "Cycles spent flushing the core after a trap",
+            slots_number=1,
+            max_latency=2 * 2**gen_params.rob_entries_bits,
+        )
 
         self.dependency_manager = gen_params.get(DependencyManager)
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
@@ -57,7 +63,7 @@ class Retirement(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_instr_ret]
+        m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
         m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
@@ -115,6 +121,8 @@ class Retirement(Elaboratable):
                     commit = Signal()
 
                     with m.If(rob_entry.exception):
+                        self.perf_trap_latency.start(m)
+
                         cause_register = self.exception_cause_get(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
@@ -193,6 +201,7 @@ class Retirement(Elaboratable):
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
                     # Resume core operation
+                    self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
