@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1713789328107,
+  "lastUpdate": 1713790429872,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -10943,6 +10943,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.30413608847103385,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "43b106644768fc53b674a5bfd3983b23f238c4be",
+          "message": "Fix fetcher throughput (#667)",
+          "timestamp": "2024-04-22T14:41:33+02:00",
+          "tree_id": "fc80571afa862dbf730f1c92706de2ff73c6bea3",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/43b106644768fc53b674a5bfd3983b23f238c4be"
+        },
+        "date": 1713790427114,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "nsichneu",
+            "value": 0.34467844381270185,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3038021721872202,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3082372303938494,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "aha-mont64",
+            "value": 0.4056988671038813,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6435435984747218,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.3981470473691762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.25519223494459464,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.4569779827467138,
             "unit": "Instructions Per Cycle"
           }
         ]
