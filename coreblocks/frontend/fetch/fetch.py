@@ -285,7 +285,9 @@ class FetchUnit(Elaboratable):
                 )
 
                 # If there was an access fault, mark every instruction as unsafe
-                m.d.av_comb += instr_unsafe[i].eq(predecoders[i].is_unsafe | access_fault)
+                m.d.av_comb += instr_unsafe[i].eq(
+                    predecoders[i].is_unsafe | access_fault | (predecoders[i].cfi_type == CfiType.JALR)
+                )
 
             m.submodules.prio_encoder = prio_encoder = PriorityEncoder(fetch_width)
             m.d.av_comb += prio_encoder.i.eq((Cat(instr_unsafe) | Cat(instr_redirects)) & instr_valid)
