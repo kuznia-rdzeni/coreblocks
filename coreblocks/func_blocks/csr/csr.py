@@ -101,13 +101,12 @@ class CSRUnit(FuncBlock, Elaboratable):
         done = Signal()
         call_resume = Signal()
         exception = Signal()
-        precommitting = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
 
         instr = Signal(StructLayout(self.csr_layouts.rs.data_layout.members | {"valid": 1}))
 
-        m.d.comb += ready_to_process.eq(precommitting & instr.valid & (instr.rp_s1 == 0))
+        m.d.comb += ready_to_process.eq(instr.valid & (instr.rp_s1 == 0))
 
         # RISCV Zicsr spec Table 1.1
         should_read_csr = Signal()
@@ -134,6 +133,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
+            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
+            info = precommit(m, instr.rob_id)
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
@@ -149,7 +150,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                         with m.If(priv_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
-                                with m.If(exe_side_fx):
+                                with m.If(info.side_fx):
                                     m.d.comb += read_val.eq(read(m))
                                 m.d.sync += current_result.eq(read_val)
 
@@ -167,7 +168,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                                             m.d.comb += write_val.eq(read_val | instr.s1_val)
                                         with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
                                             m.d.comb += write_val.eq(read_val & (~instr.s1_val))
-                                    with m.If(exe_side_fx):
+                                    with m.If(info.side_fx):
                                         write(m, write_val)
 
                         with m.Else():
@@ -256,14 +257,6 @@ class CSRUnit(FuncBlock, Elaboratable):
             # stored in unifer's Forwarder unitl resume becomes ready.
             # CSR instructions are never compressed, PC+4 is always next instruction
             return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
-
-        # Generate precommitting signal from precommit
-        with Transaction().body(m):
-            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(instr.rob_id == info.rob_id):
-                m.d.comb += precommitting.eq(1)
-                m.d.comb += exe_side_fx.eq(info.side_fx)
 
         return m
 

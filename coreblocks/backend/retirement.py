@@ -55,11 +55,14 @@ class Retirement(Elaboratable):
             max_latency=2 * 2**gen_params.rob_entries_bits,
         )
 
+        layouts = self.gen_params.get(RetirementLayouts)
         self.dependency_manager = DependencyContext.get()
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        self.precommit = Method(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+        self.precommit = Method(
+            i=layouts.precommit_in, o=layouts.precommit_out, nonexclusive=True, combiner=lambda m, args, runs: args[0]
+        )
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
@@ -228,9 +231,11 @@ class Retirement(Elaboratable):
         def _():
             return {"flushing": core_flushing}
 
-        @def_method(m, self.precommit)
-        def _():
-            rob_entry = self.rob_peek(m)
-            return {"rob_id": rob_entry.rob_id, "side_fx": side_fx}
+        rob_id_val = Signal(self.gen_params.rob_entries_bits)
+
+        @def_method(m, self.precommit, validate_arguments=lambda rob_id: rob_id == rob_id_val)
+        def _(rob_id):
+            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
+            return {"side_fx": side_fx}
 
         return m
