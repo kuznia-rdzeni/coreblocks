@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from transactron.utils import *
 from amaranth import *
 from amaranth import tracer
@@ -59,6 +60,7 @@ class Method(TransactionBase):
         i: MethodLayout = (),
         o: MethodLayout = (),
         nonexclusive: bool = False,
+        combiner: Optional[Callable[[Module, Sequence[MethodStruct], Value], AssignArg]] = None,
         single_caller: bool = False,
         src_loc: int | SrcLoc = 0,
     ):
@@ -77,6 +79,12 @@ class Method(TransactionBase):
             transactions in the same clock cycle. If such a situation happens,
             the method still is executed only once, and each of the callers
             receive its output. Nonexclusive methods cannot have inputs.
+        combiner: (Module, Sequence[MethodStruct], Value) -> AssignArg
+            If `nonexclusive` is true, the combiner function combines the
+            arguments from multiple calls to this method into a single
+            argument, which is passed to the method body. The third argument
+            is a bit vector, whose n-th bit is 1 if the n-th call is active
+            in a given cycle.
         single_caller: bool
             If true, this method is intended to be called from a single
             transaction. An error will be thrown if called from multiple
@@ -86,6 +94,13 @@ class Method(TransactionBase):
             Alternatively, the source location to use instead of the default.
         """
         super().__init__(src_loc=get_src_loc(src_loc))
+
+        def default_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
+            ret = Signal(from_method_layout(i))
+            for k in OneHotSwitchDynamic(m, runs):
+                m.d.comb += ret.eq(args[k])
+            return ret
+
         self.owner, owner_name = get_caller_class_name(default="$method")
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal(name=self.owned_name + "_ready")
@@ -93,10 +108,11 @@ class Method(TransactionBase):
         self.data_in: MethodStruct = Signal(from_method_layout(i))
         self.data_out: MethodStruct = Signal(from_method_layout(o))
         self.nonexclusive = nonexclusive
+        self.combiner: Callable[[Module, Sequence[MethodStruct], Value], AssignArg] = combiner or default_combiner
         self.single_caller = single_caller
         self.validate_arguments: Optional[Callable[..., ValueLike]] = None
         if nonexclusive:
-            assert len(self.data_in.as_value()) == 0
+            assert len(self.data_in.as_value()) == 0 or combiner is not None
 
     @property
     def layout_in(self):

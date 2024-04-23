@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import pytest
 import random
 from amaranth import *
@@ -12,6 +13,8 @@ from transactron.lib import *
 from parameterized import parameterized
 
 from unittest import TestCase
+
+from transactron.utils.assign import AssignArg
 
 
 class TestDefMethod(TestCaseWithSimulator):
@@ -551,6 +554,81 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
 
                 if t2en and mrdy:
                     assert (yield from circ.t2.get_outputs()) == {"data": x}
+
+        with self.run_simulation(circ) as sim:
+            sim.add_sync_process(process)
+
+
+class CustomCombinerMethodCircuit(Elaboratable):
+    def elaborate(self, platform):
+        m = TModule()
+
+        self.ready = Signal()
+        self.running = Signal()
+
+        def combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
+            result = C(0)
+            for i, v in enumerate(args):
+                result = result ^ Mux(runs[i], v.data, 0)
+            return {"data": result}
+
+        method = Method(i=data_layout(WIDTH), o=data_layout(WIDTH), nonexclusive=True, combiner=combiner)
+
+        @def_method(m, method, self.ready)
+        def _(data: Value):
+            m.d.comb += self.running.eq(1)
+            return {"data": data}
+
+        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
+        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
+
+        return m
+
+
+class TestCustomCombinerMethod(TestCaseWithSimulator):
+    def test_custom_combiner_method(self):
+        circ = CustomCombinerMethodCircuit()
+
+        def process():
+            for x in range(8):
+                t1en = bool(x & 1)
+                t2en = bool(x & 2)
+                mrdy = bool(x & 4)
+
+                val1 = random.randrange(0, 2**WIDTH)
+                val2 = random.randrange(0, 2**WIDTH)
+                val1e = val1 if t1en else 0
+                val2e = val2 if t2en else 0
+
+                yield from circ.t1.call_init(data=val1)
+                yield from circ.t2.call_init(data=val2)
+
+                if t1en:
+                    yield from circ.t1.enable()
+                else:
+                    yield from circ.t1.disable()
+
+                if t2en:
+                    yield from circ.t2.enable()
+                else:
+                    yield from circ.t2.disable()
+
+                if mrdy:
+                    yield circ.ready.eq(1)
+                else:
+                    yield circ.ready.eq(0)
+
+                yield Settle()
+
+                assert bool((yield circ.running)) == ((t1en or t2en) and mrdy)
+                assert bool((yield from circ.t1.done())) == (t1en and mrdy)
+                assert bool((yield from circ.t2.done())) == (t2en and mrdy)
+
+                if t1en and mrdy:
+                    assert (yield from circ.t1.get_outputs()) == {"data": val1e ^ val2e}
+
+                if t2en and mrdy:
+                    assert (yield from circ.t2.get_outputs()) == {"data": val1e ^ val2e}
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
