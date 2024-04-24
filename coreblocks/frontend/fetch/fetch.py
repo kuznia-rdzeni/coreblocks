@@ -409,7 +409,6 @@ class FetchUnit(Elaboratable):
                     with m.If(stalled_unsafe):
                         m.next = "stalled_unsafe"
                 with m.State("stalled_unsafe"):
-                    log.info(m, True, "state stalled")
                     m.d.sync += expect_unstall_unsafe.eq(1)
                     with m.If(self.resume_from_unsafe.run):
                         m.d.sync += expect_unstall_unsafe.eq(0)
@@ -419,7 +418,6 @@ class FetchUnit(Elaboratable):
                         m.next = "stalled_exception"
                     log.error(m, self.resume_from_exception.run, "unexpected resume_from_exception")
                 with m.State("stalled_exception"):
-                    log.info(m, True, "state exc")
                     with m.If(self.resume_from_unsafe.run):
                         log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
                         m.d.sync += expect_unstall_unsafe.eq(0)
