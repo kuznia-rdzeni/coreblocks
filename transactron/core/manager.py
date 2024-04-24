@@ -410,7 +410,7 @@ class TransactionManager(Elaboratable):
 
     def debug_signals(self) -> SignalBundle:
         method_map = MethodMap(self.transactions)
-        cgr, _, _ = TransactionManager._conflict_graph(method_map)
+        cgr, _ = TransactionManager._conflict_graph(method_map)
 
         def transaction_debug(t: Transaction):
             return (
