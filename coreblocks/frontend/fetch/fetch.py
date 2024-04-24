@@ -65,6 +65,9 @@ class FetchUnit(Elaboratable):
             "frontend.fetch.fetch_redirects", "How many times the fetch unit redirected itself"
         )
 
+        if self.gen_params.extra_verification:
+            self._verification_resume_from_collector_ready = Signal()
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -404,10 +407,15 @@ class FetchUnit(Elaboratable):
             with m.FSM("running"):
                 with m.State("running"):
                     log.error(m, stalled_exception | prev_stalled_unsafe, "fetch was expected to be running")
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
+                    log.error(
+                        m,
+                        self._verification_resume_from_collector_ready,
+                        "resume_from_unsafe unifier is ready before stall",
+                    )
                     with m.If(stalled_unsafe):
                         m.next = "stalled_unsafe"
+                    with m.If(self.stall_exception.run):
+                        m.next = "stalled_exception"
                 with m.State("stalled_unsafe"):
                     m.d.sync += expect_unstall_unsafe.eq(1)
                     with m.If(self.resume_from_unsafe.run):
@@ -416,19 +424,22 @@ class FetchUnit(Elaboratable):
                         m.next = "running"
                     with m.If(self.stall_exception.run):
                         m.next = "stalled_exception"
-                    log.error(m, self.resume_from_exception.run, "unexpected resume_from_exception")
+                    log.error(
+                        m,
+                        self.resume_from_exception.run & ~self.stall_exception.run,
+                        "unexpected resume_from_exception",
+                    )
                 with m.State("stalled_exception"):
                     with m.If(self.resume_from_unsafe.run):
                         log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
                         m.d.sync += expect_unstall_unsafe.eq(0)
                     with m.If(self.resume_from_exception.run):
-                        log.error(
-                            m,
-                            expect_unstall_unsafe & ~self.resume_from_unsafe.run,
-                            "expected unstall from unsafe before unstall from exception",
-                        )
+                        # unstall_form_unsafe may be skipped if excpetion was reported on unsafe instruction,
+                        # invlid cases are verified by readiness check in running state
+                        m.d.sync += expect_unstall_unsafe.eq(0)
                         m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        m.next = "running"
+                        with m.If(~self.stall_exception.run):
+                            m.next = "running"
 
         return m
 

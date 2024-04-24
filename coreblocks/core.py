@@ -158,9 +158,8 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.fetch_resume_connector = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(FetchResumeKey()), self.fetch.resume_from_unsafe
-        )
+        fb_fetch_resume = self.func_blocks_unifier.get_extra_method(FetchResumeKey())
+        m.submodules.fetch_resume_connector = ConnectTrans(fb_fetch_resume, self.fetch.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
@@ -194,5 +193,8 @@ class Core(Elaboratable):
         with Transaction(name="DiscardBranchVerify").body(m):
             read = self.connections.get_dependency(BranchVerifyKey())
             read(m)  # Consume to not block JB Unit
+
+        if self.gen_params.extra_verification:
+            m.d.comb += self.fetch._verification_resume_from_collector_ready.eq(fb_fetch_resume.ready)
 
         return m
