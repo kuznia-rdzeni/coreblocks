@@ -45,7 +45,7 @@ class TestValidateArguments(TestCaseWithSimulator):
             yield Tick("sync_neg")
         self.accepted_val = 1
 
-    @def_method_mock(tb_getter=lambda self: self.m.method, validate_arguments=validate_arguments, sched_prio=5)
+    @def_method_mock(tb_getter=lambda self: self.m.method, validate_arguments=validate_arguments)
     def method_mock(self, data: int):
         return {"data": data}
 
