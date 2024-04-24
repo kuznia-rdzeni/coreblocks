@@ -436,7 +436,7 @@ class FetchLayouts:
             fields.predicted_taken,
         )
 
-        self.resume = make_layout(("pc", gen_params.isa.xlen), ("resume_from_exception", 1))
+        self.resume = make_layout(fields.pc)
 
 
 class DecodeLayouts:

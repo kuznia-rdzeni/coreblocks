@@ -8,6 +8,7 @@ from amaranth.sim import Passive
 
 from transactron.core import Method
 from transactron.lib import AdapterTrans, Adapter, BasicFifo
+from transactron.testing.infrastructure import SimpleTestCircuit
 from transactron.utils import ModuleConnector
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
@@ -67,13 +68,9 @@ class TestFetchUnit(TestCaseWithSimulator):
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
-        fetch = FetchUnit(self.gen_params, self.icache, fifo.write)
-        self.fetch_resume = TestbenchIO(AdapterTrans(fetch.resume))
-        self.fetch_stall_exception = TestbenchIO(AdapterTrans(fetch.stall_exception))
+        self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))
 
-        self.m = ModuleConnector(
-            self.icache, fifo, self.io_out, self.clean_fifo, fetch, self.fetch_resume, self.fetch_stall_exception
-        )
+        self.m = ModuleConnector(self.icache, fifo, self.io_out, self.clean_fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -186,7 +183,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 yield from self.random_wait(5)
-                yield from self.fetch_stall_exception.call()
+                yield from self.fetch.stall_exception.call()
                 yield from self.random_wait(5)
 
                 # Empty the pipeline
@@ -201,7 +198,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                     ) + self.gen_params.fetch_block_bytes
 
                 # Resume the fetch unit
-                while (yield from self.fetch_resume.call_try(pc=resume_pc, resume_from_exception=1)) is None:
+                while (yield from self.fetch.resume_from_exception.call_try(pc=resume_pc)) is None:
                     pass
 
     def run_sim(self):
