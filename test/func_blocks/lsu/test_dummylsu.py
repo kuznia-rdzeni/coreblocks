@@ -84,8 +84,14 @@ class DummyLSUTestCircuit(Elaboratable):
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
+        layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(o=self.gen.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=layouts.precommit_in,
+                o=layouts.precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
@@ -248,6 +254,10 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         def exception_consumer(arg):
             assert arg == self.exception_queue.pop()
 
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
+
         with self.run_simulation(self.test_module) as sim:
             sim.add_process(self.wishbone_slave)
             sim.add_process(self.inserter)
@@ -304,6 +314,10 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             assert False
+
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_process(self.one_instr_test)
@@ -397,13 +411,12 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             yield from self.random_wait(self.max_wait)
             self.precommit_data.pop()  # retire
 
-    def precommiter(self):
-        yield Passive()
-        while True:
-            while len(self.precommit_data) == 0:
-                yield Tick()
-            rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
-            yield from self.test_module.precommit.call(rob_id=rob_id, side_fx=1)
+    def precommit_validate(self, rob_id):
+        return len(self.precommit_data) > 0 and rob_id == self.precommit_data[-1]
+
+    @def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
+    def precommiter(self, rob_id):
+        return {"side_fx": 1}
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -447,6 +460,10 @@ class TestDummyLSUFence(TestCaseWithSimulator):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             assert False
+
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_process(self.process)
