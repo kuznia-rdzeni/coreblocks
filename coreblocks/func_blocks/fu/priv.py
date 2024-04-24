@@ -133,10 +133,12 @@ class PrivilegedFuncUnit(Elaboratable):
                 # would normally return to (mepc value is preserved)
                 m.d.comb += exception.eq(1)
                 exception_report(m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob)
-            with m.Else():
-                log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
-                # Unstall the fetch
-                self.fetch_resume_fifo.write(m, pc=ret_pc)
+
+            log.info(m, ~async_interrupt_active, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
+            # Unstall the fetch, it will have no final effect if exception_report is called
+            # Calling it unconditionally helps with verification and doesn't affect performance, because
+            # it is called within single cycle to exception_report
+            self.fetch_resume_fifo.write(m, pc=ret_pc)
 
             return {
                 "rob_id": instr_rob,

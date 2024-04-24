@@ -411,20 +411,25 @@ class FetchUnit(Elaboratable):
                 with m.State("stalled_unsafe"):
                     log.info(m, True, "state stalled")
                     m.d.sync += expect_unstall_unsafe.eq(1)
+                    with m.If(self.resume_from_unsafe.run):
+                        m.d.sync += expect_unstall_unsafe.eq(0)
+                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
+                        m.next = "running"
                     with m.If(self.stall_exception.run):
                         m.next = "stalled_exception"
-                    with m.If(self.resume_from_unsafe.run):
-                        m.next = "running"
                     log.error(m, self.resume_from_exception.run, "unexpected resume_from_exception")
                 with m.State("stalled_exception"):
                     log.info(m, True, "state exc")
                     with m.If(self.resume_from_unsafe.run):
                         log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
                         m.d.sync += expect_unstall_unsafe.eq(0)
-                    with m.If(self.resume_from_exception.run & ~self.resume_from_unsafe.run):
+                    with m.If(self.resume_from_exception.run):
                         log.error(
-                            m, expect_unstall_unsafe, "expected unstall from unsafe before unstall from exception"
+                            m,
+                            expect_unstall_unsafe & ~self.resume_from_unsafe.run,
+                            "expected unstall from unsafe before unstall from exception",
                         )
+                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
                         m.next = "running"
 
         return m
