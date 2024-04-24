@@ -396,6 +396,37 @@ class FetchUnit(Elaboratable):
             m.d.sync += stalled_exception.eq(1)
             flush()
 
+        # Fetch resume verification
+        if self.gen_params.extra_verification:
+            expect_unstall_unsafe = Signal()
+            prev_stalled_unsafe = Signal()
+            m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
+            with m.FSM("running"):
+                with m.State("running"):
+                    log.error(m, stalled_exception | prev_stalled_unsafe, "fetch was expected to be running")
+                    with m.If(self.stall_exception.run):
+                        m.next = "stalled_exception"
+                    with m.If(stalled_unsafe):
+                        m.next = "stalled_unsafe"
+                with m.State("stalled_unsafe"):
+                    log.info(m, True, "state stalled")
+                    m.d.sync += expect_unstall_unsafe.eq(1)
+                    with m.If(self.stall_exception.run):
+                        m.next = "stalled_exception"
+                    with m.If(self.resume_from_unsafe.run):
+                        m.next = "running"
+                    log.error(m, self.resume_from_exception.run, "unexpected resume_from_exception")
+                with m.State("stalled_exception"):
+                    log.info(m, True, "state exc")
+                    with m.If(self.resume_from_unsafe.run):
+                        log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
+                        m.d.sync += expect_unstall_unsafe.eq(0)
+                    with m.If(self.resume_from_exception.run & ~self.resume_from_unsafe.run):
+                        log.error(
+                            m, expect_unstall_unsafe, "expected unstall from unsafe before unstall from exception"
+                        )
+                        m.next = "running"
+
         return m
 
 

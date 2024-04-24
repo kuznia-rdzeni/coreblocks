@@ -72,6 +72,8 @@ class _CoreConfigurationDataClass:
         Log of the size of the fetch block (in bytes).
     allow_partial_extensions: bool
         Allow partial support of extensions.
+    extra_verification: bool
+        Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
     pma : list[PMARegion]
@@ -104,6 +106,8 @@ class _CoreConfigurationDataClass:
     fetch_block_bytes_log: int = 2
 
     allow_partial_extensions: bool = False
+
+    extra_verification: bool = True
 
     _implied_extensions: Extension = Extension(0)
 

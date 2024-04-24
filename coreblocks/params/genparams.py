@@ -74,4 +74,6 @@ class GenParams(DependentCache):
         self.fetch_block_bytes = 2**self.fetch_block_bytes_log
         self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
 
+        self.extra_verification = cfg.extra_verification
+
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
