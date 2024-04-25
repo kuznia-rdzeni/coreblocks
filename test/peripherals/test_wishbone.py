@@ -89,7 +89,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
 
             # RTY and ERR responese
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=0)
-            resp = yield from twbm.requestAdapter.call_try()
+            resp = yield from twbm.requestAdapter.call_try(addr=0, data=0, we=0, sel=0)
             assert resp is None  # verify cycle restart
 
         def result_process():
