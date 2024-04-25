@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from amaranth import *
 from amaranth.utils import exact_log2
 
 from .isa_params import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
-from transactron.utils import DependentCache
+from transactron.utils import DependentCache, ValueLike
 
 from typing import TYPE_CHECKING
 
@@ -67,11 +68,32 @@ class GenParams(DependentCache):
         self.start_pc = cfg.start_pc
 
         self.min_instr_width_bytes = 2 if cfg.compressed else 4
+        self.min_instr_width_bytes_log = exact_log2(self.min_instr_width_bytes)
 
         self.fetch_block_bytes_log = cfg.fetch_block_bytes_log
         if self.fetch_block_bytes_log < bytes_in_word_log:
             raise ValueError("Fetch block must be not smaller than the machine word.")
         self.fetch_block_bytes = 2**self.fetch_block_bytes_log
         self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
+        self.fetch_width_log = exact_log2(self.fetch_width)
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
+
+    def fb_addr(self, pc: ValueLike) -> Value:
+        """Returns the fetch block address of a given PC."""
+        return Value.cast(pc)[self.fetch_block_bytes_log :]
+
+    def fb_instr_idx(self, pc: ValueLike) -> Value:
+        """Returns the index of an instruction in a fetch block for a given instruction PC."""
+        return Value.cast(pc)[self.min_instr_width_bytes_log : self.fetch_block_bytes_log]
+
+    def pc_from_fb(self, fb_addr: ValueLike, fb_instr_idx: int | Value) -> Value:
+        """For a given fetch block address and an instruction index, returns the instruction's PC."""
+        if isinstance(fb_instr_idx, int):
+            fb_instr_idx = C(fb_instr_idx, self.fetch_width_log)
+        assert len(fb_instr_idx) == self.fetch_width_log
+        return Cat(C(0, self.min_instr_width_bytes_log), fb_instr_idx, fb_addr)
+
+    def fetch_mask(self, fb_instr_idx: ValueLike) -> Value:
+        """"""
+        return (~((1 << Value.cast(fb_instr_idx)) - 1))[: self.fetch_width]

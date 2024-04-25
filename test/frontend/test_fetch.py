@@ -16,7 +16,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_m
 from coreblocks.frontend.decoder import CfiType
 from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker
 from coreblocks.cache.iface import CacheInterface
-from coreblocks.frontend.decoder.isa import Opcode
+from coreblocks.frontend.decoder.isa import Opcode, Funct3
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
@@ -437,7 +437,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
         # Fill the array with non-CFI instructions
         for _ in range(self.gen_params.fetch_width - len(predecoded)):
             predecoded.append((CfiType.INVALID, 0))
-        predecoded = [
+        predecoded_raw = [
             {"cfi_type": predecoded[i][0], "cfi_offset": predecoded[i][1], "unsafe": 0}
             for i in range(self.gen_params.fetch_width)
         ]
@@ -451,7 +451,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
         }
 
         res = yield from self.m.check.call(
-            pc=pc, instr_block_cross=block_cross, predecoded=predecoded, prediction=prediction
+            pc=pc, instr_block_cross=block_cross, predecoded=predecoded_raw, prediction=prediction
         )
 
         return CheckerResult(

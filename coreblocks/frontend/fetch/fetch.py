@@ -74,6 +74,7 @@ class FetchUnit(Elaboratable):
         m.submodules += [self.perf_fetch_utilization, self.perf_fetch_redirects]
 
         fetch_width = self.gen_params.fetch_width
+        fields = self.gen_params.get(CommonLayoutFields)
 
         # Serializer is just a temporary workaround until we have a proper multiport FIFO
         # to which we can push bundles of instructions.
@@ -111,10 +112,9 @@ class FetchUnit(Elaboratable):
             self.icache.issue_req(m, addr=current_pc)
             cache_requests.write(m, addr=current_pc)
 
-            current_fetch_block = current_pc[self.gen_params.fetch_block_bytes_log :]
 
             # Assume we fallthrough to the next fetch block.
-            m.d.sync += current_pc.eq(Cat(C(0, self.gen_params.fetch_block_bytes_log), current_fetch_block + 1))
+            m.d.sync += current_pc.eq(self.gen_params.pc_from_fb(self.gen_params.fb_addr(current_pc) + 1, 0))
 
         #
         # State passed between stage 1 and stage 2
@@ -122,6 +122,7 @@ class FetchUnit(Elaboratable):
         m.submodules.s1_s2_pipe = s1_s2_pipe = Pipe(
             [
                 ("fetch_block_addr", self.gen_params.isa.xlen),
+                fields.
                 ("instr_valid", fetch_width),
                 ("access_fault", 1),
                 ("rvc", fetch_width),
@@ -146,20 +147,16 @@ class FetchUnit(Elaboratable):
         # be located on a boundary of two fetch blocks. Hence,
         # this requires some statefulness of the stage 1.
         prev_half = Signal(16)
-        prev_half_addr = Signal(self.gen_params.isa.xlen)
+        prev_half_addr = Signal(from_method_layout(fields.fb_addr))
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             target = cache_requests.read(m)
             cache_resp = self.icache.accept_res(m)
 
             # The address of the first byte in the fetch block.
-            fetch_block_addr = Cat(
-                C(0, self.gen_params.fetch_block_bytes_log), target.addr[self.gen_params.fetch_block_bytes_log :]
-            )
+            fetch_block_addr = self.gen_params.fb_addr(target.addr)
             # The index (in instructions) of the first instruction that we should process.
-            fetch_block_offset = target.addr[
-                exact_log2(self.gen_params.min_instr_width_bytes) : self.gen_params.fetch_block_bytes_log
-            ]
+            fetch_block_offset = self.gen_params.fb_instr_idx(target.addr)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -170,13 +167,7 @@ class FetchUnit(Elaboratable):
             # Whether in this cycle we have a fetch block that contains
             # an instruction that crosses a fetch boundary
             instr_block_cross = Signal()
-            m.d.av_comb += instr_block_cross.eq(
-                prev_half_v
-                & (
-                    prev_half_addr[self.gen_params.fetch_block_bytes_log :] + 1
-                    == fetch_block_addr[self.gen_params.fetch_block_bytes_log :]
-                )
-            )
+            m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
 
             for i in range(fetch_width):
                 if Extension.C in self.gen_params.isa.extensions:
