@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1713893691103,
+  "lastUpdate": 1714050593134,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -11287,6 +11287,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1175c46f0ae03fbf40aca8602b96866c37d67f73"
         },
         "date": 1713893684731,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40695958061037724,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5267766788552616,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3209325456266702,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6515563786594487,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3454328855207257,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2833978851592278,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.31740373416157835,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.40531844302830744,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2974bd96c6aedcdd55a0d527ec754ca61704ad36",
+          "message": "Use 'assign' in testbenchio (#683)",
+          "timestamp": "2024-04-25T14:57:49+02:00",
+          "tree_id": "072c956d492e4a2c04d8adfa255cbff2d0dd94f0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2974bd96c6aedcdd55a0d527ec754ca61704ad36"
+        },
+        "date": 1714050589028,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
