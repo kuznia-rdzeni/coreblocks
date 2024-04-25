@@ -6,7 +6,7 @@ from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
+from coreblocks.common import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, InstructionPrecommitKey

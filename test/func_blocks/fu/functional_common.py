@@ -12,10 +12,10 @@ from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.params.fu_params import FunctionalComponentParams
-from coreblocks.frontend.decoder.isa import Funct3, Funct7
+from coreblocks.common import Funct3, Funct7
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
-from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.common.optypes import OpType
 from transactron.lib import Adapter
 from transactron.testing import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator, SimpleTestCircuit
 from transactron.utils import ModuleConnector

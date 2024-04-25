@@ -9,8 +9,8 @@ from transactron.core import def_method
 from transactron.lib import *
 from transactron.lib import logging
 from transactron.utils import DependencyManager
-from coreblocks.params import GenParams, FunctionalComponentParams, Extension
-from coreblocks.frontend.decoder import Funct3, OpType, ExceptionCause
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.common import OpType, Extension, Funct3, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey, ExceptionReportKey
 from transactron.utils import OneHotSwitch

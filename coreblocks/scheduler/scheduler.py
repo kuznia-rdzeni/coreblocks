@@ -6,7 +6,7 @@ from transactron import Method, Transaction, TModule
 from transactron.lib import FIFO
 from coreblocks.interface.layouts import SchedulerLayouts
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.common.optypes import OpType
 from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyManager

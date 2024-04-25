@@ -1,7 +1,7 @@
 from typing import Optional
 from amaranth.lib.data import StructLayout
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import ExceptionCause, OpType, Funct7, Funct3
+from coreblocks.common import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 

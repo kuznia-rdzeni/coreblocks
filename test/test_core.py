@@ -7,7 +7,7 @@ from transactron.utils import align_to_power_of_two, signed_to_int
 from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
-from coreblocks.frontend.decoder import Opcode, Funct3
+from coreblocks.common import Opcode, Funct3
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config

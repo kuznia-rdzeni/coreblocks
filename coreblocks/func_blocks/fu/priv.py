@@ -12,7 +12,7 @@ from transactron.utils import DependencyManager, OneHotSwitch
 
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import OpType, ExceptionCause
+from coreblocks.common import OpType, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.interface.keys import (
     MretKey,
