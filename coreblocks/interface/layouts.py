@@ -71,6 +71,9 @@ class CommonLayoutFields:
         self.rob_id: LayoutListField = ("rob_id", gen_params.rob_entries_bits)
         """Reorder buffer entry identifier."""
 
+        self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
+        """Address of a fetch block"""
+
         self.fb_instr_idx: LayoutListField = ("fb_instr_idx", gen_params.fetch_width_log)
         """Offset of an instruction (counted in number of instructions) in a fetch block"""
 
@@ -455,8 +458,9 @@ class FetchLayouts:
         )
 
         self.pred_checker_i = make_layout(
-            fields.pc,
+            fields.fb_addr,
             ("instr_block_cross", 1),
+            ("instr_valid", gen_params.fetch_width),
             ("predecoded", ArrayLayout(self.predecoded_instr, gen_params.fetch_width)),
             ("prediction", self.bpu_prediction),
         )

@@ -93,7 +93,3 @@ class GenParams(DependentCache):
             fb_instr_idx = C(fb_instr_idx, self.fetch_width_log)
         assert len(fb_instr_idx) == self.fetch_width_log
         return Cat(C(0, self.min_instr_width_bytes_log), fb_instr_idx, fb_addr)
-
-    def fetch_mask(self, fb_instr_idx: ValueLike) -> Value:
-        """"""
-        return (~((1 << Value.cast(fb_instr_idx)) - 1))[: self.fetch_width]

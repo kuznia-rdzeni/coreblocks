@@ -433,6 +433,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
         cfi_idx: int,
         cfi_type: CfiType,
         cfi_target: Optional[int],
+        valid_mask: int = -1,
     ) -> TestGen[CheckerResult]:
         # Fill the array with non-CFI instructions
         for _ in range(self.gen_params.fetch_width - len(predecoded)):
@@ -450,8 +451,18 @@ class TestPredictionChecker(TestCaseWithSimulator):
             "cfi_target_valid": 1 if cfi_target is not None else 0,
         }
 
+        instr_start = (
+            pc & ((1 << self.gen_params.fetch_block_bytes_log) - 1)
+        ) >> self.gen_params.min_instr_width_bytes_log
+
+        instr_valid = (((1 << self.gen_params.fetch_width) - 1) << instr_start) & valid_mask
+
         res = yield from self.m.check.call(
-            pc=pc, instr_block_cross=block_cross, predecoded=predecoded_raw, prediction=prediction
+            fb_addr=pc >> self.gen_params.fetch_block_bytes_log,
+            instr_block_cross=block_cross,
+            instr_valid=instr_valid,
+            predecoded=predecoded_raw,
+            prediction=prediction,
         )
 
         return CheckerResult(
@@ -555,6 +566,18 @@ class TestPredictionChecker(TestCaseWithSimulator):
                     1,
                     CfiType.BRANCH,
                     0x100 + instr_width - 100,
+                )
+                self.assert_resp(ret, mispredicted=False)
+
+                ret = yield from self.check(
+                    0x100,
+                    True,
+                    [(CfiType.JAL, 100), (CfiType.JAL, -100)],
+                    0b00,
+                    1,
+                    CfiType.JAL,
+                    0x100 + instr_width - 100,
+                    valid_mask=0b10,
                 )
                 self.assert_resp(ret, mispredicted=False)
 
