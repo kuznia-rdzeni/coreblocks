@@ -48,7 +48,7 @@ class TestAdapterTrans(TestCaseWithSimulator):
     def proc(self):
         for _ in range(3):
             # this would previously timeout if the output layout was empty (as is in this case)
-            yield from self.consumer.action.call()
+            yield from self.consumer.action.call(data=0)
         for expected in [4, 1, 0]:
             obtained = (yield from self.echo.action.call(data=expected))["data"]
             assert expected == obtained
