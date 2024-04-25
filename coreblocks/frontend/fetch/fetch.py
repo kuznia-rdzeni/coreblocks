@@ -267,6 +267,8 @@ class FetchUnit(Elaboratable):
                 prediction.cfi_target_valid.eq(0),
             ]
 
+            # The method is guarded by the If to make sure that the metrics
+            # are updated only if not flushing.
             with m.If(flushing_counter == 0):
                 predcheck_res = prediction_checker.check(
                     m,

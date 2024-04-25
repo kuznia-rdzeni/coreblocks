@@ -129,9 +129,16 @@ class CommonLayoutFields:
         """If the branch was predicted taken."""
 
         self.cfi_idx: LayoutListField = ("cfi_idx", gen_params.fetch_width_log)
+        """An index of a CFI instruction in a fetch block."""
+
         self.cfi_target: LayoutListField = ("cfi_target", gen_params.isa.xlen)
+        """Target of a CFI instruction."""
+
         self.cfi_type: LayoutListField = ("cfi_type", CfiType)
+        """Type of a CFI instruction"""
+
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
+        """A mask denoting which instruction in a fetch blocks is a branch."""
 
 
 class SchedulerLayouts:
