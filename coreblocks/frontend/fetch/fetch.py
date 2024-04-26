@@ -4,7 +4,7 @@ from amaranth.lib.coding import PriorityEncoder
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import MethodLayout, popcount
+from transactron.utils import MethodLayout, popcount, assign
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from transactron import *
 
@@ -259,13 +259,6 @@ class FetchUnit(Elaboratable):
 
             # No prediction for now
             prediction = Signal(self.layouts.bpu_prediction)
-            m.d.av_comb += [
-                prediction.branch_mask.eq(0),
-                prediction.cfi_idx.eq(0),
-                prediction.cfi_type.eq(CfiType.INVALID),
-                prediction.cfi_target.eq(0),
-                prediction.cfi_target_valid.eq(0),
-            ]
 
             # The method is guarded by the If to make sure that the metrics
             # are updated only if not flushing.
@@ -583,6 +576,9 @@ class PredictionChecker(Elaboratable):
             m.submodules.pd_redirection_enc = pd_redirection_enc = PriorityEncoder(self.gen_params.fetch_width)
             m.d.av_comb += pd_redirection_enc.i.eq(decoded_redirections & instr_valid)
 
+            pd_redirect_idx = Signal(self.gen_params.fetch_width_log)
+            m.d.av_comb += pd_redirect_idx.eq(pd_redirection_enc.o[: self.gen_params.fetch_width_log])
+
             # For a given instruction index, returns a CFI target based on the predecode info
             def get_decoded_target_for(idx: Value) -> Value:
                 base = self.gen_params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
@@ -596,12 +592,10 @@ class PredictionChecker(Elaboratable):
 
             # Target of a CFI that would redirect the frontend according to predecode info
             decoded_target_for_decoded_cfi = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += decoded_target_for_decoded_cfi.eq(
-                get_decoded_target_for(pd_redirection_enc.o[: self.gen_params.fetch_width_log])
-            )
+            m.d.av_comb += decoded_target_for_decoded_cfi.eq(get_decoded_target_for(pd_redirect_idx))
 
             preceding_redirection = ~pd_redirection_enc.n & (
-                ((CfiType.valid(prediction.cfi_type) & (pd_redirection_enc.o < prediction.cfi_idx)))
+                ((CfiType.valid(prediction.cfi_type) & (pd_redirect_idx < prediction.cfi_idx)))
                 | ~CfiType.valid(prediction.cfi_type)
             )
 
@@ -616,28 +610,38 @@ class PredictionChecker(Elaboratable):
             ret = Signal.like(self.check.data_out)
 
             with m.If(preceding_redirection):
-                self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirection_enc.o])
-                m.d.av_comb += ret.mispredicted.eq(1)
-                m.d.av_comb += ret.stall.eq(CfiType.is_jalr(decoded_cfi_types[pd_redirection_enc.o]))
-                m.d.av_comb += ret.fb_instr_idx.eq(pd_redirection_enc.o)
-                m.d.av_comb += ret.redirect_target.eq(decoded_target_for_decoded_cfi)
+                self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx])
+                m.d.av_comb += assign(
+                    ret,
+                    {
+                        "mispredicted": 1,
+                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "fb_instr_idx": pd_redirect_idx,
+                        "redirect_target": decoded_target_for_decoded_cfi,
+                    },
+                )
             with m.Elif(mispredicted_cfi_type):
                 self.perf_mispredicted_cfi_type.incr(m, prediction.cfi_type)
-                m.d.av_comb += ret.mispredicted.eq(1)
-                m.d.av_comb += ret.stall.eq(CfiType.is_jalr(decoded_cfi_types[pd_redirection_enc.o]))
-                m.d.av_comb += ret.fb_instr_idx.eq(
-                    Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirection_enc.o)
-                )
-
                 fallthrough_addr = self.gen_params.pc_from_fb(fb_addr + 1, 0)
-                m.d.av_comb += ret.redirect_target.eq(
-                    Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi)
+                m.d.av_comb += assign(
+                    ret,
+                    {
+                        "mispredicted": 1,
+                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "fb_instr_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
+                        "redirect_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
+                    },
                 )
             with m.Elif(mispredicted_cfi_target):
                 self.perf_mispredicted_cfi_target.incr(m, prediction.cfi_type)
-                m.d.av_comb += ret.mispredicted.eq(1)
-                m.d.av_comb += ret.fb_instr_idx.eq(prediction.cfi_idx)
-                m.d.av_comb += ret.redirect_target.eq(decoded_target_for_predicted_cfi)
+                m.d.av_comb += assign(
+                    ret,
+                    {
+                        "mispredicted": 1,
+                        "fb_instr_idx": prediction.cfi_idx,
+                        "redirect_target": decoded_target_for_predicted_cfi,
+                    },
+                )
 
             return ret
 
