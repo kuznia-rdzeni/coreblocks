@@ -5,7 +5,7 @@ from transactron.utils.transactron_helpers import from_method_layout, make_layou
 from ..core import *
 from ..utils import SrcLoc, get_src_loc, MultiPriorityEncoder
 from typing import Optional
-from transactron.utils import assign, AssignType, LayoutList
+from transactron.utils import assign, AssignType, LayoutList, MethodLayout
 from .reqres import ArgumentsToResultsZipper
 
 __all__ = ["MemoryBank", "ContentAddressableMemory", "AsyncMemoryBank"]
@@ -163,7 +163,7 @@ class ContentAddressableMemory(Elaboratable):
         Inserts new data.
     """
 
-    def __init__(self, address_layout: LayoutList, data_layout: LayoutList, entries_number: int):
+    def __init__(self, address_layout: MethodLayout, data_layout: MethodLayout, entries_number: int):
         """
         Parameters
         ----------

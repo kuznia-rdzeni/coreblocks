@@ -8,6 +8,7 @@ from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
+import copy
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
@@ -205,8 +206,8 @@ class PysimSimulator(Simulator):
 class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
-    @pytest.fixture(autouse=True)
-    def configure_dependency_context(self, request):
+    @contextmanager
+    def configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
         with DependencyContext(self.dependency_manager):
             yield
@@ -226,20 +227,14 @@ class TestCaseWithSimulator:
         self.add_class_mocks(sim)
         self.add_local_mocks(sim, frame_locals)
 
-    @pytest.fixture(autouse=True)
-    def configure_traces(self, request):
+    def configure_traces(self):
         traces_file = None
         if "__TRANSACTRON_DUMP_TRACES" in os.environ:
-            traces_file = ".".join(request.node.nodeid.split("/"))
+            traces_file = self._transactron_current_output_file_name
         self._transactron_infrastructure_traces_file = traces_file
 
-    @pytest.fixture(autouse=True)
-    def fixture_sim_processes_to_add(self):
-        # By default return empty lists, it will be updated by other fixtures based on needs
-        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
-
-    @pytest.fixture(autouse=True)
-    def configure_profiles(self, request, fixture_sim_processes_to_add, configure_dependency_context):
+    @contextmanager
+    def configure_profiles(self):
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
 
@@ -259,18 +254,35 @@ class TestCaseWithSimulator:
 
         if profile is not None:
             profile_dir = "test/__profiles__"
-            profile_file = ".".join(request.node.nodeid.split("/"))
+            profile_file = self._transactron_current_output_file_name
             os.makedirs(profile_dir, exist_ok=True)
             profile.encode(f"{profile_dir}/{profile_file}.json")
 
-    @pytest.fixture(autouse=True)
-    def configure_logging(self, fixture_sim_processes_to_add):
+    def configure_logging(self):
         def on_error():
             assert False, "Simulation finished due to an error"
 
         log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
         self._transactron_sim_processes_to_add.append(lambda: make_logging_process(log_level, log_filter, on_error))
+
+    @contextmanager
+    def reinitialize_fixtures(self):
+        self._transactron_current_output_file_name = self._transactron_base_output_file_name+"_"+str(self._transactron_hypothesis_iter_couter)
+        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
+        with self.configure_dependency_context():
+            self.configure_traces()
+            with self.configure_profiles():
+                self.configure_logging()
+                yield
+
+    @pytest.fixture(autouse = True)
+    def fixture_initialize_testing_env(self, request):
+        self._transactron_hypothesis_iter_couter = 0
+        self._transactron_base_output_file_name = ".".join(request.node.nodeid.split("/"))
+        self._transactron_current_output_file_name = self._transactron_base_output_file_name
+        with self.reinitialize_fixtures():
+            yield
 
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):

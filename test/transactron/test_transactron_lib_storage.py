@@ -3,7 +3,7 @@ from hypothesis.stateful import RuleBasedStateMachine, rule, initialize
 from transactron.testing import *
 from transactron.lib.storage import ContentAddressableMemory
 
-class TestContentAddressableMemory(TestCaseWithSimulator, TransactronHypothesis):
+class TestContentAddressableMemory(TestCaseWithSimulator):
     addr_width = 4
     content_width = 5
     test_number = 50
@@ -49,14 +49,8 @@ class TestContentAddressableMemory(TestCaseWithSimulator, TransactronHypothesis)
     @given(generate_shrinkable_list(test_number, st.tuples(generate_based_on_layout(addr_layout), generate_based_on_layout(content_layout))),
            generate_shrinkable_list(test_number, generate_based_on_layout(addr_layout)))
     def test_random(self, in_push, in_pop):
-        self.manual_setup_method()
-        self.setUp()
-        with DependencyContext(self.dependency_manager):
+        with self.reinitialize_fixtures():
+            self.setUp()
             with self.run_simulation(self.circ) as sim:
                 sim.add_sync_process(self.input_process(in_push))
                 sim.add_sync_process(self.output_process(in_pop))
-
-#settings.register_profile("ci", max_examples=30, stateful_step_count=1)
-#settings.load_profile("ci")
-#TestContentAddressableMemory.TestCase.settings=settings(max_examples=10, stateful_step_count=1)
-#TestTT = TestContentAddressableMemory.TestCase
