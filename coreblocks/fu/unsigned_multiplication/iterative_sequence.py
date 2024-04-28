@@ -91,19 +91,6 @@ class IterativeSequenceMul(Elaboratable):
             m.d.sync += self.result.eq(self.pipeline_array[result_lvl][0][0])
             m.d.sync += self.valid.eq(self.valid_array[result_lvl])
 
-        with m.Else():
-            for i in range(self.n):
-                for j in range(self.n):
-                    for k in range(self.n):
-                        m.d.sync += self.pipeline_array[i][j][k].eq(self.pipeline_array[i][j][k])
-            m.d.sync += self.result.eq(self.result)
-            m.d.sync += self.valid.eq(self.valid)
-            for i in range(self.n):
-                m.d.sync += self.valid_array[i].eq(self.valid_array[i])
-            m.d.sync += self.step.eq(self.step)
-            m.d.sync += self.ready.eq(self.ready)
-            m.d.sync += self.first_mul_number.eq(self.first_mul_number)
-            m.d.sync += self.last_mul_number.eq(self.last_mul_number)
         return m
         
 class IterativeUnsignedMul(MulBaseUnsigned):
@@ -113,45 +100,23 @@ class IterativeUnsignedMul(MulBaseUnsigned):
         super().__init__(gen_params)
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
-        self.last_ready = Signal(unsigned(1))
-        self.waits = [Signal(10) for _ in range(10)]
-        self.waits_iter = Signal(unsigned(0))
 
     def elaborate(self, platform):
         m = TModule()
-        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen_params.isa.xlen)], 2)
-
         m.submodules.mul = mul = IterativeSequenceMul(self.dsp_width, self.dsp_number, self.gen_params.isa.xlen)
-        m.d.sync +=  self.last_ready.eq(mul.ready)
         
-        for i in range(10):
-            with m.If(self.waits[i] == 1):
-                with Transaction().body(m):
-                    fifo.write(m, o=mul.result)
-
-
-            with m.If(self.waits[i] > 0):
-                m.d.sync+= self.waits[i].eq(self.waits[i]-1)
-
+        m.d.sync += mul.issue.eq(0)
 
         @def_method(m, self.issue, ready = mul.ready)
         def _(arg):
-            m.d.comb += self.method_working.eq(1)
             m.d.sync += mul.i1.eq(arg.i1)
             m.d.sync += mul.i2.eq(arg.i2)
             m.d.sync += mul.issue.eq(1)
-            m.d.sync += self.waits[self.waits_iter].eq(8)
-            with m.If(self.waits_iter < 9):
-                self.waits_iter.eq(self.waits_iter+1)
-
-            with m.If(self.waits_iter == 9):
-                self.waits_iter.eq(0)
 
 
-
-        @def_method(m, self.accept)
+        @def_method(m, self.accept, ready = mul.valid)
         def _(arg):
-            return fifo.read(m)
+            return mul.result
 
         return m
 # Random pipelining test of the module - works
