@@ -13,6 +13,9 @@ class BasicFifo(Elaboratable):
     read: Method
         Reads from the FIFO. Accepts an empty argument, returns a structure.
         Ready only if the FIFO is not empty.
+    peek: Method
+        Returns the element at the front (but not delete). Ready only if the FIFO
+        is not empty. The method is nonexclusive.
     write: Method
         Writes to the FIFO. Accepts a structure, returns empty result.
         Ready only if the FIFO is not full.
@@ -40,6 +43,7 @@ class BasicFifo(Elaboratable):
 
         src_loc = get_src_loc(src_loc)
         self.read = Method(o=self.layout, src_loc=src_loc)
+        self.peek = Method(o=self.layout, nonexclusive=True, src_loc=src_loc)
         self.write = Method(i=self.layout, src_loc=src_loc)
         self.clear = Method(src_loc=src_loc)
         self.head = Signal(from_method_layout(layout))
@@ -93,6 +97,10 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.read_idx.eq(next_read_idx)
             return self.head
 
+        @def_method(m, self.peek, self.read_ready)
+        def _() -> ValueLike:
+            return self.head
+
         @def_method(m, self.clear)
         def _() -> None:
             m.d.sync += self.read_idx.eq(0)
@@ -122,6 +130,7 @@ class Semaphore(Elaboratable):
         self.release_ready = Signal()
 
         self.count = Signal(self.max_count.bit_length())
+        self.count_next = Signal(self.max_count.bit_length())
 
         self.clear.add_conflict(self.acquire, Priority.LEFT)
         self.clear.add_conflict(self.release, Priority.LEFT)
@@ -133,9 +142,11 @@ class Semaphore(Elaboratable):
         m.d.comb += self.acquire_ready.eq(self.count < self.max_count)
 
         with m.If(self.clear.run):
-            m.d.sync += self.count.eq(0)
+            m.d.comb += self.count_next.eq(0)
         with m.Else():
-            m.d.sync += self.count.eq(self.count + self.acquire.run - self.release.run)
+            m.d.comb += self.count_next.eq(self.count + self.acquire.run - self.release.run)
+
+        m.d.sync += self.count.eq(self.count_next)
 
         @def_method(m, self.acquire, ready=self.acquire_ready)
         def _() -> None:

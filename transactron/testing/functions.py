@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.sim.core import Command
 from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
-from transactron.utils._typing import RecordValueDict, RecordIntDict
+from transactron.utils._typing import RecordIntDict
 
 
 if TYPE_CHECKING:
@@ -12,14 +12,6 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 TestGen: TypeAlias = Generator[Union[Command, Value, "Statement", "CoreblocksCommand", None], Any, T]
-
-
-def set_inputs(values: RecordValueDict, field: View) -> TestGen[None]:
-    for name, value in values.items():
-        if isinstance(value, dict):
-            yield from set_inputs(value, getattr(field, name))
-        else:
-            yield getattr(field, name).eq(value)
 
 
 def get_outputs(field: View) -> TestGen[RecordIntDict]:

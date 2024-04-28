@@ -19,12 +19,12 @@ from transactron.utils import ModuleConnector
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
-from coreblocks.fu.alu import ALUComponent
-from coreblocks.fu.div_unit import DivComponent
-from coreblocks.fu.mul_unit import MulComponent, MulType
-from coreblocks.fu.shift_unit import ShiftUnitComponent
-from coreblocks.fu.zbc import ZbcComponent
-from coreblocks.fu.zbs import ZbsComponent
+from coreblocks.func_blocks.fu.alu import ALUComponent
+from coreblocks.func_blocks.fu.div_unit import DivComponent
+from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
+from coreblocks.func_blocks.fu.zbc import ZbcComponent
+from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
 from transactron.lib import AdapterBase, AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface

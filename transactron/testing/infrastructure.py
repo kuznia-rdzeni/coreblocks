@@ -1,12 +1,10 @@
 import sys
+import pytest
 import os
 import random
-import unittest
 import functools
-import hypothesis as hp
-import hypothesis.strategies as hpst
 from contextlib import contextmanager, nullcontext
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias
+from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
@@ -19,7 +17,8 @@ from .logging import make_logging_process, parse_logging_level
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
-from transactron.core import TransactionManagerKey, TransactionModule
+from transactron.core.keys import TransactionManagerKey
+from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
 
 T = TypeVar("T")
@@ -203,25 +202,14 @@ class PysimSimulator(Simulator):
         return not self.advance()
 
 
-class TestCaseWithSimulator():
+class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
-    def manual_setup_method(self):
+    @pytest.fixture(autouse=True)
+    def configure_dependency_context(self, request):
         self.dependency_manager = DependencyManager()
-
-        def wrap(f: Callable[[], None]):
-            @functools.wraps(f)
-            def wrapper():
-                with DependencyContext(self.dependency_manager):
-                    f()
-
-            return wrapper
-
-        for k in dir(self):
-            if k.startswith("test") or k == "setUp":
-                f = getattr(self, k)
-                if isinstance(f, Callable):
-                    setattr(self, k, wrap(getattr(self, k)))
+        with DependencyContext(self.dependency_manager):
+            yield
 
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
@@ -238,47 +226,72 @@ class TestCaseWithSimulator():
         self.add_class_mocks(sim)
         self.add_local_mocks(sim, frame_locals)
 
+    @pytest.fixture(autouse=True)
+    def configure_traces(self, request):
+        traces_file = None
+        if "__TRANSACTRON_DUMP_TRACES" in os.environ:
+            traces_file = ".".join(request.node.nodeid.split("/"))
+        self._transactron_infrastructure_traces_file = traces_file
+
+    @pytest.fixture(autouse=True)
+    def fixture_sim_processes_to_add(self):
+        # By default return empty lists, it will be updated by other fixtures based on needs
+        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
+
+    @pytest.fixture(autouse=True)
+    def configure_profiles(self, request, fixture_sim_processes_to_add, configure_dependency_context):
+        profile = None
+        if "__TRANSACTRON_PROFILE" in os.environ:
+
+            def f():
+                nonlocal profile
+                try:
+                    transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
+                    profile = Profile()
+                    return profiler_process(transaction_manager, profile)
+                except KeyError:
+                    pass
+                return None
+
+            self._transactron_sim_processes_to_add.append(f)
+
+        yield
+
+        if profile is not None:
+            profile_dir = "test/__profiles__"
+            profile_file = ".".join(request.node.nodeid.split("/"))
+            os.makedirs(profile_dir, exist_ok=True)
+            profile.encode(f"{profile_dir}/{profile_file}.json")
+
+    @pytest.fixture(autouse=True)
+    def configure_logging(self, fixture_sim_processes_to_add):
+        def on_error():
+            assert False, "Simulation finished due to an error"
+
+        log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
+        log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
+        self._transactron_sim_processes_to_add.append(lambda: make_logging_process(log_level, log_filter, on_error))
+
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
-        traces_file = None
-# TODO: fix
-#        if "__TRANSACTRON_DUMP_TRACES" in os.environ:
-#            traces_file = unittest.TestCase.id(self)
-
         clk_period = 1e-6
         sim = PysimSimulator(
             module,
             max_cycles=max_cycles,
             add_transaction_module=add_transaction_module,
-            traces_file=traces_file,
+            traces_file=self._transactron_infrastructure_traces_file,
             clk_period=clk_period,
         )
         self.add_all_mocks(sim, sys._getframe(2).f_locals)
 
         yield sim
 
-        profile = None
-        if "__TRANSACTRON_PROFILE" in os.environ and isinstance(sim.tested_module, TransactionModule):
-            profile = Profile()
-            sim.add_sync_process(
-                profiler_process(sim.tested_module.manager.get_dependency(TransactionManagerKey()), profile)
-            )
-
-        def on_error():
-            assert False, "Simulation finished due to an error"
-
-        log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
-        log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
-        sim.add_sync_process(make_logging_process(log_level, log_filter, on_error))
+        for f in self._transactron_sim_processes_to_add:
+            ret = f()
+            if ret is not None:
+                sim.add_sync_process(ret)
 
         res = sim.run()
-# TODO fix
-#        if profile is not None:
-#            profile_dir = "test/__profiles__"
-#            profile_file = unittest.TestCase.id(self)
-#            os.makedirs(profile_dir, exist_ok=True)
-#            profile.encode(f"{profile_dir}/{profile_file}.json")
-
         assert res, "Simulation time limit exceeded"
 
     def tick(self, cycle_cnt: int = 1):
@@ -301,28 +314,3 @@ class TestCaseWithSimulator():
         """
         while random.random() > prob:
             yield
-
-class TransactronHypothesis():
-    def init_transactron_hypothesis(self, hp_data : hpst.DataObject):
-        self.hp_data = hp_data
-
-    def shrinkable_loop(self, iter_count, hp_data):
-        """
-        Trick based on https://github.com/HypothesisWorks/hypothesis/blob/6867da71beae0e4ed004b54b92ef7c74d0722815/hypothesis-python/src/hypothesis/stateful.py#L143
-        """
-        if iter_count == 0:
-            return
-        i = 0
-        force_val = None
-        while True:
-            b = hp_data.draw(hpst.booleans())
-            #b = self.hp_data.conjecture_data.draw_boolean(p=2**-16, forced = force_val)
-            print("shr loop", b)
-            if not b:
-                break
-            yield i
-            i += 1
-            if i == iter_count:
-                force_val = False
-
-        

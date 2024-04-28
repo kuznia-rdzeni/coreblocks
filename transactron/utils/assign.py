@@ -1,7 +1,8 @@
 from enum import Enum
 from typing import Optional, TypeAlias, cast, TYPE_CHECKING
-from collections.abc import Iterable, Mapping
+from collections.abc import Sequence, Iterable, Mapping
 from amaranth import *
+from amaranth.hdl import ShapeLike, ValueCastable
 from amaranth.hdl._ast import ArrayProxy
 from amaranth.lib import data
 from ._typing import ValueLike
@@ -21,11 +22,11 @@ class AssignType(Enum):
     ALL = 3
 
 
-AssignFields: TypeAlias = AssignType | Iterable[str] | Mapping[str, "AssignFields"]
-AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"]
+AssignFields: TypeAlias = AssignType | Iterable[str | int] | Mapping[str | int, "AssignFields"]
+AssignArg: TypeAlias = ValueLike | Mapping[str, "AssignArg"] | Mapping[int, "AssignArg"] | Sequence["AssignArg"]
 
 
-def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
+def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str | int]]:
     def flatten_elems(proxy: ArrayProxy):
         for elem in proxy.elems:
             if isinstance(elem, ArrayProxy):
@@ -38,15 +39,26 @@ def arrayproxy_fields(proxy: ArrayProxy) -> Optional[set[str]]:
         return set.intersection(*[set(cast(data.View, el).shape().members.keys()) for el in elems])
 
 
-def assign_arg_fields(val: AssignArg) -> Optional[set[str]]:
+def assign_arg_fields(val: AssignArg) -> Optional[set[str | int]]:
     if isinstance(val, ArrayProxy):
         return arrayproxy_fields(val)
     elif isinstance(val, data.View):
         layout = val.shape()
         if isinstance(layout, data.StructLayout):
             return set(k for k in layout.members)
+        if isinstance(layout, data.ArrayLayout):
+            return set(range(layout.length))
     elif isinstance(val, dict):
         return set(val.keys())
+    elif isinstance(val, list):
+        return set(range(len(val)))
+
+
+def valuelike_shape(val: ValueLike) -> ShapeLike:
+    if isinstance(val, Value) or isinstance(val, ValueCastable):
+        return val.shape()
+    else:
+        return Value.cast(val).shape()
 
 
 def assign(
@@ -107,8 +119,18 @@ def assign(
 
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
-        assert isinstance(lhs, ArrayProxy) or isinstance(lhs, Mapping) or isinstance(lhs, data.View)
-        assert isinstance(rhs, ArrayProxy) or isinstance(rhs, Mapping) or isinstance(rhs, data.View)
+        assert (
+            isinstance(lhs, ArrayProxy)
+            or isinstance(lhs, Mapping)
+            or isinstance(lhs, Sequence)
+            or isinstance(lhs, data.View)
+        )
+        assert (
+            isinstance(rhs, ArrayProxy)
+            or isinstance(rhs, Mapping)
+            or isinstance(rhs, Sequence)
+            or isinstance(rhs, data.View)
+        )
 
         if fields is AssignType.COMMON:
             names = lhs_fields & rhs_fields
@@ -135,8 +157,8 @@ def assign(
                 subfields = AssignType.ALL
 
             yield from assign(
-                lhs[name],
-                rhs[name],
+                lhs[name],  # type: ignore
+                rhs[name],  # type: ignore
                 fields=subfields,
                 lhs_strict=not isinstance(lhs, Mapping),
                 rhs_strict=not isinstance(rhs, Mapping),
@@ -147,8 +169,11 @@ def assign(
         if not isinstance(lhs, ValueLike) or not isinstance(rhs, ValueLike):
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 
-        lhs_val = Value.cast(lhs)
-        rhs_val = Value.cast(rhs)
+        # If a single-value structure, assign its only field
+        if lhs_fields is not None and len(lhs_fields) == 1:
+            lhs = lhs[next(iter(lhs_fields))]  # type: ignore
+        if rhs_fields is not None and len(rhs_fields) == 1:
+            rhs = rhs[next(iter(rhs_fields))]  # type: ignore
 
         def has_explicit_shape(val: ValueLike):
             return isinstance(val, Signal) or isinstance(val, ArrayProxy)
@@ -159,8 +184,14 @@ def assign(
             or (lhs_strict or has_explicit_shape(lhs))
             and (rhs_strict or has_explicit_shape(rhs))
         ):
-            if lhs_val.shape() != rhs_val.shape():
+            if valuelike_shape(lhs) != valuelike_shape(rhs):
                 raise ValueError(
-                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
+                    "Shapes not matching: lhs: {} {} rhs: {} {}".format(
+                        valuelike_shape(lhs), lhs, valuelike_shape(rhs), rhs
+                    )
                 )
+
+        lhs_val = Value.cast(lhs)
+        rhs_val = Value.cast(rhs)
+
         yield lhs_val.eq(rhs_val)

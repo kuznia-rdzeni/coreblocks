@@ -1,16 +1,17 @@
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from collections.abc import Collection, Iterable
 
-from coreblocks.utils.protocols import FuncBlock, FuncUnit
-from coreblocks.params.isa import Extension, extension_implications
-from coreblocks.params.optypes import optypes_required_by_extensions
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
+from coreblocks.params.isa_params import Extension, extension_implications
+from coreblocks.frontend.decoder import optypes_required_by_extensions
 
 from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
-    from coreblocks.params.optypes import OpType
+    from coreblocks.frontend.decoder.optypes import OpType
 
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
 ]
 
 
+@dataclass(frozen=True)
 class BlockComponentParams(ABC):
     @abstractmethod
     def get_module(self, gen_params: "GenParams") -> FuncBlock:

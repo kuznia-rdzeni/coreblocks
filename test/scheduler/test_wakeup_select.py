@@ -8,9 +8,10 @@ from enum import Enum
 from inspect import isclass
 import random
 
-from coreblocks.params import GenParams, RSLayouts
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import RSLayouts
 from coreblocks.params.configurations import test_core_config
-from coreblocks.stages.rs_func_block import RSBlockComponent
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
@@ -40,9 +41,11 @@ class WakeupTestCircuit(Elaboratable):
 
 
 class TestWakeupSelect(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         self.gen_params = GenParams(
-            test_core_config.replace(func_units_config=tuple(RSBlockComponent([], rs_entries=16) for _ in range(2)))
+            test_core_config.replace(
+                func_units_config=tuple(RSBlockComponent([], rs_entries=16, rs_number=k) for k in range(2))
+            )
         )
         self.m = WakeupTestCircuit(self.gen_params)
         self.cycles = 50
@@ -97,8 +100,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
             if take_position is not None:
                 take_position = cast(int, take_position["rs_entry_id"])
                 entry = rs[take_position]
-                self.assertIsNotNone(entry)
-                entry = cast(RecordIntDict, entry)  # for type checking
+                assert entry is not None
 
                 self.taken.append(entry)
                 yield from self.m.take_row_mock.call_init(entry)
@@ -108,11 +110,11 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
                 issued = yield from self.m.issue_mock.call_result()
                 if issued is not None:
-                    self.assertEqual(issued, self.taken.popleft())
+                    assert issued == self.taken.popleft()
                     issued_count += 1
             yield
-        self.assertNotEqual(inserted_count, 0)
-        self.assertEqual(inserted_count, issued_count)
+        assert inserted_count != 0
+        assert inserted_count == issued_count
 
     def test(self):
         with self.run_simulation(self.m) as sim:

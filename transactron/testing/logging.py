@@ -67,7 +67,7 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
     ch = logging.StreamHandler()
     formatter = _LogFormatter()
     ch.setFormatter(formatter)
-    root_logger.handlers = [ch]
+    root_logger.handlers += [ch]
 
     def handle_logs():
         if not (yield combined_trigger):
@@ -97,6 +97,7 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
 
     def log_process():
         global _sim_cycle
+        _sim_cycle = 0
 
         yield Passive()
         while True:

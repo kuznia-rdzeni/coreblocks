@@ -2,23 +2,27 @@ from collections.abc import Collection
 
 import dataclasses
 from dataclasses import dataclass, field
-from coreblocks.lsu.pma import PMARegion
 
-from coreblocks.params.isa import Extension
+from typing import Self
+from transactron.utils._typing import type_self_kwargs_as
+
+from coreblocks.params.isa_params import Extension
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.stages.rs_func_block import RSBlockComponent
 
-from coreblocks.fu.alu import ALUComponent
-from coreblocks.fu.shift_unit import ShiftUnitComponent
-from coreblocks.fu.jumpbranch import JumpComponent
-from coreblocks.fu.mul_unit import MulComponent, MulType
-from coreblocks.fu.div_unit import DivComponent
-from coreblocks.fu.zbc import ZbcComponent
-from coreblocks.fu.zbs import ZbsComponent
-from coreblocks.fu.exception import ExceptionUnitComponent
-from coreblocks.fu.priv import PrivilegedUnitComponent
-from coreblocks.lsu.dummyLsu import LSUBlockComponent
-from coreblocks.structs_common.csr import CSRBlockComponent
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
+from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
+from coreblocks.func_blocks.fu.alu import ALUComponent
+from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
+from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
+from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
+from coreblocks.func_blocks.fu.div_unit import DivComponent
+from coreblocks.func_blocks.fu.zbc import ZbcComponent
+from coreblocks.func_blocks.fu.zbs import ZbsComponent
+from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
+from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
+from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
+from coreblocks.func_blocks.fu.lsu.pma import PMARegion
+from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
 
@@ -27,13 +31,13 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
     ),
-    LSUBlockComponent(),
+    RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
 )
 
 
 @dataclass(kw_only=True)
-class CoreConfiguration:
+class _CoreConfigurationDataClass:
     """
     Core configuration parameters.
 
@@ -62,8 +66,10 @@ class CoreConfiguration:
         Associativity of the instruction cache.
     icache_sets_bits: int
         Log of the number of sets of the instruction cache.
-    icache_block_size_bits: int
+    icache_line_bytes_log: int
         Log of the cache line size (in bytes).
+    fetch_block_bytes_log: int
+        Log of the size of the fetch block (in bytes).
     allow_partial_extensions: bool
         Allow partial support of extensions.
     _implied_extensions: Extenstion
@@ -71,6 +77,12 @@ class CoreConfiguration:
     pma : list[PMARegion]
         Definitions of PMAs per contiguous segments of memory.
     """
+
+    def __post_init__(self):
+        self.func_units_config = [
+            dataclasses.replace(conf, rs_number=k) if hasattr(conf, "rs_number") else conf
+            for k, conf in enumerate(self.func_units_config)
+        ]
 
     xlen: int = 32
     func_units_config: Collection[BlockComponentParams] = basic_configuration
@@ -87,7 +99,9 @@ class CoreConfiguration:
     icache_enable: bool = True
     icache_ways: int = 2
     icache_sets_bits: int = 7
-    icache_block_size_bits: int = 5
+    icache_line_bytes_log: int = 5
+
+    fetch_block_bytes_log: int = 2
 
     allow_partial_extensions: bool = False
 
@@ -95,7 +109,10 @@ class CoreConfiguration:
 
     pma: list[PMARegion] = field(default_factory=list)
 
-    def replace(self, **kwargs):
+
+class CoreConfiguration(_CoreConfigurationDataClass):
+    @type_self_kwargs_as(_CoreConfigurationDataClass.__init__)
+    def replace(self, **kwargs) -> Self:
         return dataclasses.replace(self, **kwargs)
 
 
@@ -107,7 +124,7 @@ tiny_core_config = CoreConfiguration(
     embedded=True,
     func_units_config=(
         RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
-        LSUBlockComponent(),
+        RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     ),
     phys_regs_bits=basic_core_config.phys_regs_bits - 1,
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
@@ -136,10 +153,11 @@ full_core_config = CoreConfiguration(
             ],
             rs_entries=2,
         ),
-        LSUBlockComponent(),
+        RSBlockComponent([LSUComponent()], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
     ),
     compressed=True,
+    fetch_block_bytes_log=4,
 )
 
 # Core configuration used in internal testbenches

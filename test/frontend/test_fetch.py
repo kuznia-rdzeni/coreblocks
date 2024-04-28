@@ -1,18 +1,22 @@
+import pytest
 from collections import deque
-
+from parameterized import parameterized_class
 import random
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 
 from transactron.core import Method
-from transactron.lib import AdapterTrans, FIFO, Adapter
-from coreblocks.frontend.fetch import Fetch, UnalignedFetch
+from transactron.lib import AdapterTrans, Adapter, BasicFifo
+from transactron.utils import ModuleConnector
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
+
+from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.cache.iface import CacheInterface
+from coreblocks.frontend.decoder.isa import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from transactron.utils import ModuleConnector
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit
+from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -35,180 +39,96 @@ class MockedICache(Elaboratable, CacheInterface):
         return m
 
 
-class TestFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18))
+@parameterized_class(
+    ("name", "fetch_block_log", "with_rvc"),
+    [
+        ("block4B", 2, False),
+        ("block4B_rvc", 2, True),
+        ("block8B", 3, False),
+        ("block8B_rvc", 3, True),
+        ("block16B", 4, False),
+        ("block16B_rvc", 4, True),
+    ],
+)
+class TestFetchUnit(TestCaseWithSimulator):
+    fetch_block_log: int
+    with_rvc: bool
 
-        self.icache = MockedICache(self.gen_params)
-
-        fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
-        self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-
-        self.fetch = SimpleTestCircuit(Fetch(self.gen_params, self.icache, fifo.write))
-
-        self.m = ModuleConnector(
-            icache=self.icache,
-            fetch=self.fetch,
-            io_out=self.io_out,
-            fifo=fifo,
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
+        self.pc = 0
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                start_pc=self.pc, compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log
+            )
         )
 
-        self.instr_queue = deque()
-        self.iterations = 500
-        self.input_q = deque()
-        self.output_q = deque()
-
-        random.seed(422)
-
-    def cache_process(self):
-        yield Passive()
-
-        next_pc = self.gen_params.start_pc
-
-        while True:
-            while len(self.input_q) == 0:
-                yield
-
-            while random.random() < 0.5:
-                yield
-
-            addr = self.input_q.popleft()
-            is_branch = random.random() < 0.15
-
-            # exclude branches and jumps
-            data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
-
-            # randomize being a branch instruction
-            if is_branch:
-                data |= 0b1100000
-                data &= ~0b0010000  # but not system
-
-            self.output_q.append({"instr": data, "error": 0})
-
-            # Speculative fetch. Skip, because this instruction shouldn't be executed.
-            if addr != next_pc:
-                continue
-
-            next_pc = addr + self.gen_params.isa.ilen_bytes
-            if is_branch:
-                next_pc = random.randrange(2**self.gen_params.isa.ilen) & ~0b11
-
-            self.instr_queue.append(
-                {
-                    "instr": data,
-                    "pc": addr,
-                    "is_branch": is_branch,
-                    "next_pc": next_pc,
-                }
-            )
-
-    @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
-    def issue_req_mock(self, addr):
-        self.input_q.append(addr)
-
-    @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
-    def accept_res_mock(self):
-        return self.output_q.popleft()
-
-    def fetch_out_check(self):
-        discard_mispredict = False
-        next_pc = 0
-        for _ in range(self.iterations):
-            v = yield from self.io_out.call()
-            if discard_mispredict:
-                while v["pc"] != next_pc:
-                    v = yield from self.io_out.call()
-                discard_mispredict = False
-
-            while len(self.instr_queue) == 0:
-                yield
-
-            instr = self.instr_queue.popleft()
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["instr"], instr["instr"])
-
-            if instr["is_branch"]:
-                # branches on mispredict will stall fetch because of exception and then resume with new pc
-                yield from self.random_wait(5)
-                yield from self.fetch.stall_exception.call()
-                yield from self.random_wait(5)
-                yield from self.fetch.resume.call(pc=instr["next_pc"], resume_from_exception=1)
-
-                discard_mispredict = True
-                next_pc = instr["next_pc"]
-
-    def test(self):
-        with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.cache_process)
-            sim.add_sync_process(self.fetch_out_check)
-
-
-class TestUnalignedFetch(TestCaseWithSimulator):
-    def setUp(self) -> None:
-        self.gen_params = GenParams(test_core_config.replace(start_pc=0x18, compressed=True))
-        self.instr_queue = deque()
-        self.instructions = 500
-
         self.icache = MockedICache(self.gen_params)
-        fifo = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
+        fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        fetch = UnalignedFetch(self.gen_params, self.icache, fifo.write)
+        self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
+        fetch = FetchUnit(self.gen_params, self.icache, fifo.write)
         self.fetch_resume = TestbenchIO(AdapterTrans(fetch.resume))
         self.fetch_stall_exception = TestbenchIO(AdapterTrans(fetch.stall_exception))
 
-        self.m = ModuleConnector(self.icache, fifo, self.io_out, fetch, self.fetch_resume, self.fetch_stall_exception)
+        self.m = ModuleConnector(
+            self.icache, fifo, self.io_out, self.clean_fifo, fetch, self.fetch_resume, self.fetch_stall_exception
+        )
 
+        self.instr_queue = deque()
         self.mem = {}
         self.memerr = set()
         self.input_q = deque()
         self.output_q = deque()
 
-        random.seed(422)
+        random.seed(41)
 
-    def gen_instr_seq(self):
-        pc = self.gen_params.start_pc
+    def add_instr(self, data: int, jumps: bool, jump_offset: int = 0, branch_taken: bool = False) -> int:
+        rvc = (data & 0b11) != 0b11
+        if rvc:
+            self.mem[self.pc] = data
+        else:
+            self.mem[self.pc] = data & 0xFFFF
+            self.mem[self.pc + 2] = data >> 16
 
-        for _ in range(self.instructions):
-            is_branch = random.random() < 0.15
-            is_rvc = random.random() < 0.5
-            branch_target = random.randrange(2**self.gen_params.isa.ilen) & ~0b1
+        next_pc = self.pc + (2 if rvc else 4)
+        if jumps and branch_taken:
+            next_pc = self.pc + jump_offset
 
-            error = random.random() < 0.1
+        self.instr_queue.append(
+            {
+                "instr": data,
+                "pc": self.pc,
+                "jumps": jumps,
+                "branch_taken": branch_taken,
+                "next_pc": next_pc,
+                "rvc": rvc,
+            }
+        )
 
-            if is_rvc:
-                data = (random.randrange(11) << 2) | 0b01  # C.ADDI
-                if is_branch:
-                    data = data | (0b101 << 13)  # make it C.J
+        instr_pc = self.pc
+        self.pc = next_pc
 
-                self.mem[pc] = data
-                if error:
-                    self.memerr.add(pc)
-            else:
-                data = random.randrange(2**self.gen_params.isa.ilen) & ~0b1111111
-                data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
-                if is_branch:
-                    data |= 0b1100000
-                    data &= ~0b0010000
+        return instr_pc
 
-                self.mem[pc] = data & 0xFFFF
-                self.mem[pc + 2] = data >> 16
-                if error:
-                    self.memerr.add(random.choice([pc, pc + 2]))
+    def gen_non_branch_instr(self, rvc: bool) -> int:
+        if rvc:
+            data = (random.randrange(2**11) << 2) | 0b01
+        else:
+            data = random.randrange(2**32) & ~0b1111111
+            data |= 0b11  # 2 lowest bits must be set in 32-bit long instructions
 
-            next_pc = pc + (2 if is_rvc else 4)
-            if is_branch:
-                next_pc = branch_target
+        return self.add_instr(data, False)
 
-            self.instr_queue.append(
-                {
-                    "pc": pc,
-                    "is_branch": is_branch,
-                    "next_pc": next_pc,
-                    "rvc": is_rvc,
-                }
-            )
+    def gen_jal(self, offset: int) -> int:
+        data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
 
-            pc = next_pc
+        return self.add_instr(data, True, jump_offset=offset, branch_taken=True)
+
+    def gen_branch(self, offset: int, taken: bool):
+        data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
+
+        return self.add_instr(data, True, jump_offset=offset, branch_taken=taken)
 
     def cache_process(self):
         yield Passive()
@@ -220,15 +140,24 @@ class TestUnalignedFetch(TestCaseWithSimulator):
             while random.random() < 0.5:
                 yield
 
-            req_addr = self.input_q.popleft()
+            req_addr = self.input_q.popleft() & ~(self.gen_params.fetch_block_bytes - 1)
 
-            def get_mem_or_random(addr):
-                return self.mem[addr] if addr in self.mem else random.randrange(2**16)
+            def load_or_gen_mem(addr):
+                if addr in self.mem:
+                    return self.mem[addr]
 
-            data = (get_mem_or_random(req_addr + 2) << 16) | get_mem_or_random(req_addr)
+                # Make sure to generate a compressed instruction to avoid
+                # random cross boundary instructions.
+                return random.randrange(2**16) & ~(0b11)
 
-            err = (req_addr in self.memerr) or (req_addr + 2 in self.memerr)
-            self.output_q.append({"instr": data, "error": err})
+            fetch_block = 0
+            bad_addr = False
+            for i in range(0, self.gen_params.fetch_block_bytes, 2):
+                fetch_block |= load_or_gen_mem(req_addr + i) << (8 * i)
+                if req_addr + i in self.memerr:
+                    bad_addr = True
+
+            self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
 
     @def_method_mock(lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2, sched_prio=1)
     def issue_req_mock(self, addr):
@@ -239,36 +168,222 @@ class TestUnalignedFetch(TestCaseWithSimulator):
         return self.output_q.popleft()
 
     def fetch_out_check(self):
-        discard_mispredict = False
         while self.instr_queue:
             instr = self.instr_queue.popleft()
 
-            instr_error = (instr["pc"] & (~0b11)) in self.memerr or (instr["pc"] & (~0b11)) + 2 in self.memerr
-            if instr["pc"] & 2 and not instr["rvc"]:
-                instr_error |= ((instr["pc"] + 2) & (~0b11)) in self.memerr or (
-                    (instr["pc"] + 2) & (~0b11)
-                ) + 2 in self.memerr
+            access_fault = instr["pc"] in self.memerr
+            if not instr["rvc"]:
+                access_fault |= instr["pc"] + 2 in self.memerr
 
             v = yield from self.io_out.call()
-            if discard_mispredict:
-                while v["pc"] != instr["pc"]:
-                    v = yield from self.io_out.call()
-                discard_mispredict = False
 
-            self.assertEqual(v["pc"], instr["pc"])
-            self.assertEqual(v["access_fault"], instr_error)
+            assert v["pc"] == instr["pc"]
+            assert v["access_fault"] == access_fault
 
-            if instr["is_branch"] or instr_error:
+            instr_data = instr["instr"]
+            if (instr_data & 0b11) == 0b11:
+                assert v["instr"] == instr_data
+
+            if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 yield from self.random_wait(5)
                 yield from self.fetch_stall_exception.call()
                 yield from self.random_wait(5)
-                while (yield from self.fetch_resume.call_try(pc=instr["next_pc"], resume_from_exception=1)) is None:
-                    yield from self.io_out.call_try()  # try flushing to unblock or wait
 
-                discard_mispredict = True
+                # Empty the pipeline
+                yield from self.clean_fifo.call_try()
+                yield
 
-    def test(self):
-        self.gen_instr_seq()
+                resume_pc = instr["next_pc"]
+                if access_fault:
+                    # Resume from the next fetch block
+                    resume_pc = (
+                        instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
+                    ) + self.gen_params.fetch_block_bytes
+
+                # Resume the fetch unit
+                while (yield from self.fetch_resume.call_try(pc=resume_pc, resume_from_exception=1)) is None:
+                    pass
+
+    def run_sim(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(self.cache_process)
+            sim.add_sync_process(self.fetch_out_check)
+
+    def test_simple_no_jumps(self):
+        for _ in range(50):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_simple_no_jumps_rvc(self):
+        if not self.with_rvc:
+            self.run_sim()  # Run simulation to avoid unused warnings.
+            return
+
+        # Try a fetch block full of non-RVC instructions
+        for _ in range(self.gen_params.fetch_width // 2):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Try a fetch block full of RVC instructions
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=True)
+
+        # Try what if an instruction crossed a boundary of a fetch block
+        self.gen_non_branch_instr(rvc=True)
+        for _ in range(self.gen_params.fetch_width - 1):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.gen_non_branch_instr(rvc=True)
+
+        # We are now at the beginning of a fetch block again.
+
+        # RVC interleaved with non-RVC
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=True)
+            self.gen_non_branch_instr(rvc=False)
+
+        # Random sequence
+        for _ in range(50):
+            self.gen_non_branch_instr(rvc=random.randrange(2) == 1)
+
+        self.run_sim()
+
+    def test_jumps(self):
+        # Jump to the next instruction
+        self.gen_jal(4)
+        for _ in range(self.gen_params.fetch_block_bytes // 4 - 1):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Jump to the next fetch block
+        self.gen_jal(self.gen_params.fetch_block_bytes)
+
+        # Two fetch blocks-worth of instructions
+        for _ in range(self.gen_params.fetch_block_bytes // 2):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Jump to the next fetch block, but fill the block with other jump instructions
+        block_pc = self.gen_jal(self.gen_params.fetch_block_bytes)
+        for i in range(self.gen_params.fetch_block_bytes // 4 - 1):
+            data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=-8).encode()
+            self.mem[block_pc + (i + 1) * 4] = data & 0xFFFF
+            self.mem[block_pc + (i + 1) * 4 + 2] = data >> 16
+
+        # Jump to the last instruction of a fetch block
+        self.gen_jal(2 * self.gen_params.fetch_block_bytes - 4)
+
+        self.gen_non_branch_instr(rvc=False)
+
+        # Jump as the last instruction of the fetch block
+        for _ in range(self.gen_params.fetch_block_bytes // 4 - 1):
+            self.gen_non_branch_instr(rvc=False)
+        self.gen_jal(20)
+
+        # A chain of jumps
+        for _ in range(10):
+            self.gen_jal(random.randrange(4, 100, 4))
+
+        # A big jump
+        self.gen_jal(1000)
+        self.gen_non_branch_instr(rvc=False)
+
+        # And a jump backwards
+        self.gen_jal(-200)
+        for _ in range(5):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_jumps_rvc(self):
+        if not self.with_rvc:
+            self.run_sim()
+            return
+
+        # Jump to the last instruction of a fetch block
+        self.gen_jal(2 * self.gen_params.fetch_block_bytes - 2)
+        self.gen_non_branch_instr(rvc=True)
+
+        # Again, but the last instruction spans two fetch blocks
+        self.gen_jal(2 * self.gen_params.fetch_block_bytes - 2)
+        self.gen_non_branch_instr(rvc=False)
+
+        for _ in range(self.gen_params.fetch_width - 1):
+            self.gen_non_branch_instr(rvc=True)
+
+        # Make a jump instruction that spans two fetch blocks
+        for _ in range(self.gen_params.fetch_width - 1):
+            self.gen_non_branch_instr(rvc=True)
+        self.gen_jal(self.gen_params.fetch_block_bytes + 2)
+
+        self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_branches(self):
+        # Taken branch forward
+        self.gen_branch(offset=self.gen_params.fetch_block_bytes, taken=True)
+
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Not taken branch forward
+        self.gen_branch(offset=self.gen_params.fetch_block_bytes, taken=False)
+
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Jump somewhere far - biggest possible value
+        self.gen_branch(offset=4092, taken=True)
+
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Chain a few branches
+        for i in range(10):
+            self.gen_branch(offset=1028, taken=(i % 2 == 0))
+
+        self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_access_fault(self):
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Access fault at the beginning of the fetch block
+        pc = self.gen_non_branch_instr(rvc=False)
+        self.memerr.add(pc)
+
+        # We will resume from the next fetch block
+        self.pc = pc + self.gen_params.fetch_block_bytes
+
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # Access fault in a block with a jump
+        pc = self.gen_jal(2 * self.gen_params.fetch_block_bytes)
+        self.memerr.add(pc)
+
+        # We will resume from the next fetch block
+        self.pc = pc + self.gen_params.fetch_block_bytes
+
+        self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_random(self):
+        for _ in range(500):
+            r = random.random()
+            if r < 0.6:
+                rvc = random.randrange(2) == 0 if self.with_rvc else False
+                self.gen_non_branch_instr(rvc=rvc)
+            else:
+                offset = random.randrange(0, 1000, 2)
+                if not self.with_rvc:
+                    offset = offset & ~(0b11)
+                if r < 0.8:
+                    self.gen_jal(offset)
+                else:
+                    self.gen_branch(offset, taken=random.randrange(2) == 0)
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.cache_process)

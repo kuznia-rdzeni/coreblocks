@@ -3,22 +3,25 @@ import random
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
+from amaranth.lib.data import View
 from amaranth.sim import Settle
 from parameterized import parameterized_class
-from coreblocks.params.keys import CoreStateKey
-from coreblocks.params.layouts import RetirementLayouts
-from coreblocks.stages.rs_func_block import RSBlockComponent
+from coreblocks.interface.keys import CoreStateKey
+from coreblocks.interface.layouts import ROBLayouts, RetirementLayouts
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.structs_common.rf import RegisterFile
-from coreblocks.structs_common.rat import FRAT
-from coreblocks.params import RSLayouts, DecodeLayouts, SchedulerLayouts, GenParams, OpType, Funct3, Funct7
+from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.core_structs.rat import FRAT
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import RSLayouts, DecodeLayouts, SchedulerLayouts
+from coreblocks.frontend.decoder import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
-from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.utils.protocols import FuncBlock
+from coreblocks.core_structs.rob import ReorderBuffer
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
 
 
@@ -121,11 +124,11 @@ class TestScheduler(TestCaseWithSimulator):
     optype_sets: list[set[OpType]]
     instr_count: int
 
-    def setUp(self):
+    def setup_method(self):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
             test_core_config.replace(
-                func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(self.rs_count))
+                func_units_config=tuple(RSBlockComponent([], rs_entries=4, rs_number=k) for k in range(self.rs_count))
             )
         )
         self.expected_rename_queue = deque()
@@ -265,19 +268,21 @@ class TestScheduler(TestCaseWithSimulator):
 
     def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(got, expected):
-            rl_dst = yield self.m.rob.data[got["rs_data"]["rob_id"]].rob_data.rl_dst
+            rl_dst = yield View(
+                self.gen_params.get(ROBLayouts).data_layout, self.m.rob.data[got["rs_data"]["rob_id"]]
+            ).rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
 
             # if source operand register ids are 0 then we already have values
-            self.assertEqual(got["rs_data"]["rp_s1"], expected["rp_s1"] if not s1.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_s2"], expected["rp_s2"] if not s2.valid else 0)
-            self.assertEqual(got["rs_data"]["rp_dst"], expected["rp_dst"])
-            self.assertEqual(got["rs_data"]["exec_fn"], expected["exec_fn"])
-            self.assertEqual(got["rs_entry_id"], expected["rs_entry_id"])
-            self.assertEqual(got["rs_data"]["s1_val"], s1.value if s1.valid else 0)
-            self.assertEqual(got["rs_data"]["s2_val"], s2.value if s2.valid else 0)
-            self.assertEqual(rl_dst, expected["rl_dst"])
+            assert got["rs_data"]["rp_s1"] == (expected["rp_s1"] if not s1.valid else 0)
+            assert got["rs_data"]["rp_s2"] == (expected["rp_s2"] if not s2.valid else 0)
+            assert got["rs_data"]["rp_dst"] == expected["rp_dst"]
+            assert got["rs_data"]["exec_fn"] == expected["exec_fn"]
+            assert got["rs_entry_id"] == expected["rs_entry_id"]
+            assert got["rs_data"]["s1_val"] == (s1.value if s1.valid else 0)
+            assert got["rs_data"]["s2_val"] == (s2.value if s2.valid else 0)
+            assert rl_dst == expected["rl_dst"]
 
             # recycle physical register number
             if got["rs_data"]["rp_dst"] != 0:

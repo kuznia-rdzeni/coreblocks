@@ -18,10 +18,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
             python-version: '3.11'
 
@@ -37,7 +37,7 @@ jobs:
           . venv/bin/activate
           PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 ./scripts/gen_verilog.py --verbose --config full
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: "verilog-full-core"
           path: |
@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get submodules HEAD hash
         working-directory: .
@@ -72,7 +72,7 @@ jobs:
 
       - name: Cache compiled and reference riscv-arch-test
         id: cache-riscv-arch-test
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: cache-riscv-arch-test
         with:
@@ -93,7 +93,7 @@ jobs:
 
       - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
         name: Checkout with submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -127,7 +127,7 @@ jobs:
 
       - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
         name: Upload compiled and reference tests artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "riscof-tests"
           path: |
@@ -143,10 +143,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
             python-version: '3.11'
 
@@ -157,7 +157,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download full verilog core
         with:
           name: "verilog-full-core"
@@ -168,7 +168,7 @@ jobs:
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Download tests from cache
         env:
           cache-name: cache-riscv-arch-test
@@ -204,7 +204,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get submodules HEAD hash
         run: |
@@ -213,7 +213,7 @@ jobs:
 
       - name: Cache regression-tests
         id: cache-regression
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: cache-regression-tests
         with:
@@ -229,7 +229,7 @@ jobs:
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         name: Checkout with submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -238,7 +238,7 @@ jobs:
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         name: Upload riscv-tests
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: test/external/riscv-tests
 
@@ -250,10 +250,10 @@ jobs:
     needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -264,7 +264,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download full verilog core
         with:
           name: "verilog-full-core"
@@ -275,7 +275,7 @@ jobs:
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Download tests from cache
         env:
           cache-name: cache-regression-tests
@@ -307,10 +307,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -339,10 +339,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'

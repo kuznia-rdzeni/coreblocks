@@ -140,7 +140,9 @@ class CoreMemoryModel:
             return WriteReply(status=ReplyStatus.ERROR)
 
 
-def load_segment(segment: Segment, *, disable_write_protection: bool = False) -> RandomAccessMemory:
+def load_segment(
+    segment: Segment, *, disable_write_protection: bool = False, force_executable: bool = False
+) -> RandomAccessMemory:
     paddr = segment.header["p_paddr"]
     memsz = segment.header["p_memsz"]
     flags_raw = segment.header["p_flags"]
@@ -158,15 +160,15 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
         flags |= SegmentFlags.READ
     if flags_raw & P_FLAGS.PF_W or disable_write_protection:
         flags |= SegmentFlags.WRITE
-    if flags_raw & P_FLAGS.PF_X:
+    if flags_raw & P_FLAGS.PF_X or force_executable:
         flags |= SegmentFlags.EXECUTABLE
 
     config = CoreConfiguration()
-    if flags_raw & P_FLAGS.PF_X:
+    if flags & SegmentFlags.EXECUTABLE:
         # align instruction section to full icache lines
-        align_bits = config.icache_block_size_bits
+        align_bits = config.icache_line_bytes_log
         # workaround for fetching/stalling issue
-        extend_end = 2**config.icache_block_size_bits
+        extend_end = 2**config.icache_line_bytes_log
     else:
         align_bits = 0
         extend_end = 0
@@ -182,7 +184,9 @@ def load_segment(segment: Segment, *, disable_write_protection: bool = False) ->
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
 
-def load_segments_from_elf(file_path: str, *, disable_write_protection: bool = False) -> list[RandomAccessMemory]:
+def load_segments_from_elf(
+    file_path: str, *, disable_write_protection: bool = False, force_executable: bool = False
+) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
     with open(file_path, "rb") as f:
@@ -190,6 +194,10 @@ def load_segments_from_elf(file_path: str, *, disable_write_protection: bool = F
         for segment in elffile.iter_segments():
             if segment.header["p_type"] != "PT_LOAD":
                 continue
-            segments.append(load_segment(segment, disable_write_protection=disable_write_protection))
+            segments.append(
+                load_segment(
+                    segment, disable_write_protection=disable_write_protection, force_executable=force_executable
+                )
+            )
 
     return segments

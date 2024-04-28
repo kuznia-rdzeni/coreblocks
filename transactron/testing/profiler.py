@@ -1,5 +1,6 @@
 from amaranth.sim import *
-from transactron.core import MethodMap, TransactionManager
+from transactron.core import TransactionManager
+from transactron.core.manager import MethodMap
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileData, ProfileSamples, TransactionSamples
 from .functions import TestGen
 

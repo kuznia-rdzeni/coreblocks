@@ -19,7 +19,7 @@ sub_help(){
 sub_check_format_flake8() {
     python3 -m flake8 \
       --max-line-length=$MAX_LINE_LENGTH \
-      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak,ci,stubs,external" \
+      --exclude ".env,.venv,env,venv,ENV,env.bak,venv.bak,stubs,external" \
       --ignore-names "OneHotSwitch,OneHotSwitchDynamic,OneHotCase,setUp,tearDown" \
       --extend-ignore=F403,F405,E203 $@
 }
@@ -27,7 +27,7 @@ sub_check_format_flake8() {
 sub_check_format_black() {
     python3 -m black \
       --line-length $MAX_LINE_LENGTH \
-      --extend-exclude "stubs|ci|external" $@ \
+      --extend-exclude "stubs|external" $@ \
       --check $@
 }
 
@@ -38,7 +38,7 @@ sub_check_format() {
 sub_format(){
     python3 -m black \
       --line-length $MAX_LINE_LENGTH \
-      --extend-exclude "stubs|ci|external" $@
+      --extend-exclude "stubs|external" $@
 
     sub_check_format_flake8 $@
 }

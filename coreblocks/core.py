@@ -2,35 +2,34 @@ from amaranth import *
 from amaranth.lib.wiring import flipped, connect
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
-from coreblocks.stages.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.structs_common.instr_counter import CoreInstructionCounter
-from coreblocks.structs_common.interrupt_controller import InterruptController
+from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
+from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
+from coreblocks.priv.traps.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import FIFO, ConnectTrans
-from coreblocks.params.layouts import *
-from coreblocks.params.keys import (
+from coreblocks.interface.layouts import *
+from coreblocks.interface.keys import (
     BranchVerifyKey,
     FetchResumeKey,
     GenericCSRRegistersKey,
-    InstructionPrecommitKey,
     CommonBusDataKey,
+    FlushICacheKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.params.isa import Extension
-from coreblocks.frontend.decode_stage import DecodeStage
-from coreblocks.structs_common.rat import FRAT, RRAT
-from coreblocks.structs_common.rob import ReorderBuffer
-from coreblocks.structs_common.rf import RegisterFile
-from coreblocks.structs_common.csr_generic import GenericCSRRegisters
-from coreblocks.structs_common.exception import ExceptionCauseRegister
+from coreblocks.frontend.decoder.decode_stage import DecodeStage
+from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.rob import ReorderBuffer
+from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.traps.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.stages.backend import ResultAnnouncement
-from coreblocks.stages.retirement import Retirement
+from coreblocks.backend.annoucement import ResultAnnouncement
+from coreblocks.backend.retirement import Retirement
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
-from coreblocks.frontend.fetch import Fetch, UnalignedFetch
+from coreblocks.frontend.fetch.fetch import FetchUnit
 from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey
@@ -86,11 +85,9 @@ class Core(Elaboratable):
 
         self.connections = gen_params.get(DependencyManager)
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+        self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
-        if Extension.C in self.gen_params.isa.extensions:
-            self.fetch = UnalignedFetch(self.gen_params, self.icache, self.fetch_continue.method)
-        else:
-            self.fetch = Fetch(self.gen_params, self.icache, self.fetch_continue.method)
+        self.fetch = FetchUnit(self.gen_params, self.icache, self.fetch_continue.method)
 
         self.exception_cause_register = ExceptionCauseRegister(
             self.gen_params, rob_get_indices=self.ROB.get_indices, fetch_stall_exception=self.fetch.stall_exception
@@ -99,7 +96,7 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[InstructionPrecommitKey(), FetchResumeKey()],
+            extra_methods_required=[FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -175,7 +172,6 @@ class Core(Elaboratable):
             r_rat_peek=rrat.peek,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            precommit=self.func_blocks_unifier.get_extra_method(InstructionPrecommitKey()),
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
