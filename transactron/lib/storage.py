@@ -151,9 +151,7 @@ class ContentAddressableMemory(Elaboratable):
 
 
     .. warning::
-       Current implementation has critical path O(entries_number). If needed we can
-       optimise it in future to have O(log(entries_number)).
-
+        Pushing the value with index already present in CAM is an undefined behaviour.
 
     Attributes
     ----------
@@ -199,7 +197,7 @@ class ContentAddressableMemory(Elaboratable):
         m.submodules.encoder_write = encoder_write = MultiPriorityEncoder(self.entries_number, 1)
         m.submodules.encoder_push = encoder_push = MultiPriorityEncoder(self.entries_number, 1)
         m.submodules.encoder_remove = encoder_remove = MultiPriorityEncoder(self.entries_number, 1)
-        m.d.comb += encoder_push.input.eq(~valids)
+        m.d.top_comb += encoder_push.input.eq(~valids)
 
         @def_method(m, self.push, ready=~valids.all())
         def _(addr, data):

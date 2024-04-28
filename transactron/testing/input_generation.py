@@ -1,13 +1,18 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
 import random
-from typing import Optional
+from typing import Optional, TypeVar
 import hypothesis.strategies as st
-from hypothesis.strategies import composite, DrawFn, integers
+from hypothesis.strategies import composite, DrawFn, integers, SearchStrategy
 from transactron.utils import MethodLayout, RecordIntDict
 
+class OpNOP():
+    pass
+
+T = TypeVar("T")
+
 @composite
-def generate_shrinkable_list(draw : DrawFn, length : int, generator) -> list:
+def generate_shrinkable_list(draw : DrawFn, length : int, generator : SearchStrategy[T]) -> list[T]:
     """
     Trick based on https://github.com/HypothesisWorks/hypothesis/blob/6867da71beae0e4ed004b54b92ef7c74d0722815/hypothesis-python/src/hypothesis/stateful.py#L143
     """
@@ -53,3 +58,33 @@ def generate_based_on_layout(draw : DrawFn, layout: MethodLayout) -> RecordIntDi
             raise NotImplementedError("Passed LayoutList with syntax yet unsuported in automatic value generation.")
         d[name] = elem
     return d
+
+def insert_nops(draw : DrawFn, max_nops : int, lst : list):
+    nops_nr = draw(integers(min_value=0, max_value=max_nops))
+    for i in range(nops_nr):
+        lst.append(OpNOP())
+    return lst
+
+@composite
+def generate_nops_in_list(draw : DrawFn, max_nops : int, generate_list : SearchStrategy[list[T]]) -> list[T|OpNOP]:
+    lst = draw(generate_list)
+    out_lst = []
+    out_lst = insert_nops(draw, max_nops, out_lst)
+    for i in lst:
+        out_lst.append(i)
+        out_lst = insert_nops(draw, max_nops, out_lst)
+    return out_lst
+
+@composite
+def generate_method_input(draw : DrawFn, args : list[tuple[str, MethodLayout]]) -> dict[str, RecordIntDict]:
+    out = []
+    for name, layout in args:
+        out.append((name, draw(generate_based_on_layout(layout))))
+    return dict(out)
+
+@composite
+def generate_process_input(draw : DrawFn, elem_count : int, max_nops : int, layouts : list[tuple[str, MethodLayout]]) -> list[dict[str, RecordIntDict] | OpNOP]:
+    return draw(
+            generate_nops_in_list(max_nops, generate_shrinkable_list(elem_count, generate_method_input(layouts)))
+            )
+

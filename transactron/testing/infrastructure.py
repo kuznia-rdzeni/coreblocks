@@ -326,3 +326,7 @@ class TestCaseWithSimulator:
         """
         while random.random() > prob:
             yield
+
+    def multi_settle(self, settle_count : int = 1):
+        for _ in range(settle_count):
+            yield Settle()
