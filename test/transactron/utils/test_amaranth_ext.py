@@ -4,14 +4,6 @@ from transactron.utils.amaranth_ext import MultiPriorityEncoder
 
 
 class TestMultiPriorityEncoder(TestCaseWithSimulator):
-    def setup_method(self):
-        random.seed(14)
-        self.test_number = 50
-        self.input_width = 16
-        self.output_count = 4
-
-        self.circ = MultiPriorityEncoder(self.input_width, self.output_count)
-
     def get_expected(self, input):
         places = []
         for i in range(self.input_width):
@@ -35,6 +27,14 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
                     assert (yield real) == ex
             yield Delay(1e-7)
 
-    def test_random(self):
+    @pytest.mark.parametrize("input_width", [1,5,16,23,24])
+    @pytest.mark.parametrize("output_count", [1,3,4])
+    def test_random(self, input_width, output_count):
+        random.seed(14)
+        self.test_number = 50
+        self.input_width = input_width
+        self.output_count = output_count
+        self.circ = MultiPriorityEncoder(self.input_width, self.output_count)
+
         with self.run_simulation(self.circ) as sim:
             sim.add_process(self.process)

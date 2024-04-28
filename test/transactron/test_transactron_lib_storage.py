@@ -21,6 +21,9 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
 
     def input_process(self, in_push):
         def f():
+            a=C(0)
+            b=C(1)
+            print((yield (Cat([a,b]))))
             yield Settle()
             for addr, content in in_push:
                 if frozenset(addr.items()) in self.memory:
