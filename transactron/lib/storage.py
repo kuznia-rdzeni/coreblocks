@@ -157,8 +157,12 @@ class ContentAddressableMemory(Elaboratable):
 
     Attributes
     ----------
-    pop : Method
-        Looks for the data in memory and, if found, returns it and removes it.
+    read : Method
+        Nondestructive read
+    write : Method
+        If index present - do update
+    remove : Method
+        Remove
     push : Method
         Inserts new data.
     """
@@ -178,8 +182,10 @@ class ContentAddressableMemory(Elaboratable):
         self.data_layout = from_method_layout(data_layout)
         self.entries_number = entries_number
 
-        self.pop = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.read = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.remove=Method(i=[("addr", self.address_layout)])
         self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
+        self.write = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
@@ -189,32 +195,42 @@ class ContentAddressableMemory(Elaboratable):
         data_array = Array([Signal(self.data_layout) for _ in range(self.entries_number)])
         valids = Signal(self.entries_number, name="valids")
 
-        m.submodules.encoder_addr = encoder_addr = MultiPriorityEncoder(self.entries_number, 1)
-        m.submodules.encoder_valids = encoder_valids = MultiPriorityEncoder(self.entries_number, 1)
-        m.d.comb += encoder_valids.input.eq(~valids)
+        m.submodules.encoder_read = encoder_read = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_write = encoder_write = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_push = encoder_push = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_remove = encoder_remove = MultiPriorityEncoder(self.entries_number, 1)
+        m.d.comb += encoder_push.input.eq(~valids)
 
         @def_method(m, self.push, ready=~valids.all())
         def _(addr, data):
             id = Signal(range(self.entries_number), name="id_push")
-            m.d.comb += id.eq(encoder_valids.outputs[0])
+            m.d.top_comb += id.eq(encoder_push.outputs[0])
             m.d.sync += address_array[id].eq(addr)
             m.d.sync += data_array[id].eq(data)
             m.d.sync += valids.bit_select(id, 1).eq(1)
 
-        if_addr = Signal(self.entries_number, name="if_addr")
-        data_to_send = Signal(self.data_layout)
+        @def_method(m, self.write)
+        def _(addr, data):
+            write_mask = Signal(self.entries_number, name="write_mask")
+            m.d.top_comb += write_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            m.d.top_comb += encoder_write.input.eq(write_mask)
+            m.d.sync += data_array[encoder_write.outputs[0]].eq(data)
 
-        @def_method(m, self.pop)
+        @def_method(m, self.read)
         def _(addr):
-            m.d.top_comb += if_addr.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
-            id = encoder_addr.outputs[0]
-            with m.If(if_addr.any()):
-                m.d.comb += data_to_send.eq(data_array[id])
-                m.d.sync += valids.bit_select(id, 1).eq(0)
+            read_mask = Signal(self.entries_number, name="read_mask")
+            m.d.top_comb += read_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            m.d.top_comb += encoder_read.input.eq(read_mask)
+            return {"data": data_array[encoder_read.outputs[0]], "not_found": ~read_mask.any()}
 
-            return {"data": data_to_send, "not_found": ~if_addr.any()}
+        @def_method(m, self.remove)
+        def _(addr):
+            rm_mask = Signal(self.entries_number, name="rm_mask")
+            m.d.top_comb += rm_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            m.d.top_comb += encoder_remove.input.eq(rm_mask)
+            with m.If(rm_mask.any()):
+                m.d.sync += valids.bit_select(encoder_remove.outputs[0], 1).eq(0)
 
-        m.d.comb += encoder_addr.input.eq(if_addr)
         return m
 
 
