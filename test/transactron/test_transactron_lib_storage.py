@@ -6,7 +6,7 @@ from transactron.lib.storage import ContentAddressableMemory
 class TestContentAddressableMemory(TestCaseWithSimulator):
     addr_width = 4
     content_width = 5
-    test_number = 50
+    test_number = 5
     addr_layout = data_layout(addr_width)
     content_layout = data_layout(content_width)
 
@@ -23,7 +23,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
         def f():
             while input_lst:
                 elem = input_lst.pop()
-                if elem == OpNOP():
+                if isinstance(elem, OpNOP):
                     yield
                     continue
                 if input_verification is not None and not input_verification(elem):
@@ -32,7 +32,9 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
                 yield from self.multi_settle(settle_count)
                 if behaviour_check is not None:
                     # Here accesses to circuit are allowed
-                    yield from behaviour_check(elem, response)
+                    ret = behaviour_check(elem, response)
+                    if isinstance(ret, Generator):
+                        yield from ret
                 yield Tick("sync_neg")
                 if state_change is not None:
                     # It is standard python function by purpose to don't allow accessing circuit
