@@ -53,16 +53,24 @@ class OpType(IntEnum):
 class CfiType(IntEnum):
     """
     Types of control flow instructions.
+
+    There are 4 main types: invalid, branch, JAL, and JALR. CALL and RET are
+    just special cases of respectively JAL and JALR and thus the encoding
+    was chosen in the way that it is sufficient to check the lowest two bits to
+    get the main type and the third bit is just a hint about the specialized type.
+
+    Because of these encoding tweaks, helper functions should be preferred to use
+    to get the CFI type.
     """
 
     INVALID = 0b000  # Not a CFI
     BRANCH = 0b001
 
     JALR = 0b010  # Jump and Link Register
-    RET = 0b110
+    RET = 0b110  # Return from a function (JALR with rs1 equal to x1 or x5)
 
     JAL = 0b011  # Jump and Link
-    CALL = 0b111
+    CALL = 0b111  # Call a function (JAL with rd equal to x1 or x5))
 
     @staticmethod
     def valid(val: ValueLike) -> Value:

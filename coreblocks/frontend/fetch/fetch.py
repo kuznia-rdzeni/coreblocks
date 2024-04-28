@@ -13,6 +13,7 @@ from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
+from coreblocks.frontend import FrontendParams
 from coreblocks.frontend.decoder.isa import *
 from coreblocks.frontend.decoder.optypes import CfiType
 
@@ -74,6 +75,7 @@ class FetchUnit(Elaboratable):
 
         fetch_width = self.gen_params.fetch_width
         fields = self.gen_params.get(CommonLayoutFields)
+        params = self.gen_params.get(FrontendParams)
 
         # Serializer is just a temporary workaround until we have a proper multiport FIFO
         # to which we can push bundles of instructions.
@@ -112,7 +114,7 @@ class FetchUnit(Elaboratable):
             cache_requests.write(m, addr=current_pc)
 
             # Assume we fallthrough to the next fetch block.
-            m.d.sync += current_pc.eq(self.gen_params.pc_from_fb(self.gen_params.fb_addr(current_pc) + 1, 0))
+            m.d.sync += current_pc.eq(params.pc_from_fb(params.fb_addr(current_pc) + 1, 0))
 
         #
         # State passed between stage 1 and stage 2
@@ -150,10 +152,10 @@ class FetchUnit(Elaboratable):
             target = cache_requests.read(m)
             cache_resp = self.icache.accept_res(m)
 
-            # The address of the first byte in the fetch block.
-            fetch_block_addr = self.gen_params.fb_addr(target.addr)
+            # The address of the fetch block.
+            fetch_block_addr = params.fb_addr(target.addr)
             # The index (in instructions) of the first instruction that we should process.
-            fetch_block_offset = self.gen_params.fb_instr_idx(target.addr)
+            fetch_block_offset = params.fb_instr_idx(target.addr)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -322,7 +324,7 @@ class FetchUnit(Elaboratable):
             for i in range(fetch_width):
                 m.d.av_comb += [
                     raw_instrs[i].instr.eq(instrs[i]),
-                    raw_instrs[i].pc.eq(self.gen_params.pc_from_fb(fetch_block_addr, i)),
+                    raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].access_fault.eq(access_fault),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
                     raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.fb_instr_idx == i)),
@@ -330,7 +332,7 @@ class FetchUnit(Elaboratable):
 
             if Extension.C in self.gen_params.isa.extensions:
                 with m.If(s1_data.instr_block_cross):
-                    m.d.av_comb += raw_instrs[0].pc.eq(self.gen_params.pc_from_fb(fetch_block_addr, 0) - 2)
+                    m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
 
             with condition(m, priority=False) as branch:
                 with branch(flushing_counter == 0):
@@ -548,6 +550,8 @@ class PredictionChecker(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        params = self.gen_params.get(FrontendParams)
+
         m.submodules += [
             self.perf_mispredicted_cfi_type,
             self.perf_preceding_redirection,
@@ -581,7 +585,7 @@ class PredictionChecker(Elaboratable):
 
             # For a given instruction index, returns a CFI target based on the predecode info
             def get_decoded_target_for(idx: Value) -> Value:
-                base = self.gen_params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
+                base = params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
                 if Extension.C in self.gen_params.isa.extensions:
                     return base - Mux(instr_block_cross & (idx == 0), 2, 0)
                 return base
@@ -622,7 +626,7 @@ class PredictionChecker(Elaboratable):
                 )
             with m.Elif(mispredicted_cfi_type):
                 self.perf_mispredicted_cfi_type.incr(m, prediction.cfi_type)
-                fallthrough_addr = self.gen_params.pc_from_fb(fb_addr + 1, 0)
+                fallthrough_addr = params.pc_from_fb(fb_addr + 1, 0)
                 m.d.av_comb += assign(
                     ret,
                     {

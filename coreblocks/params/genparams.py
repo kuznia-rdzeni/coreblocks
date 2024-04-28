@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from amaranth import *
 from amaranth.utils import exact_log2
 
 from .isa_params import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
-from transactron.utils import DependentCache, ValueLike
+from transactron.utils import DependentCache
 
 from typing import TYPE_CHECKING
 
@@ -78,18 +77,3 @@ class GenParams(DependentCache):
         self.fetch_width_log = exact_log2(self.fetch_width)
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
-
-    def fb_addr(self, pc: ValueLike) -> Value:
-        """Returns the fetch block address of a given PC."""
-        return Value.cast(pc)[self.fetch_block_bytes_log :]
-
-    def fb_instr_idx(self, pc: ValueLike) -> Value:
-        """Returns the index of an instruction in a fetch block for a given instruction PC."""
-        return Value.cast(pc)[self.min_instr_width_bytes_log : self.fetch_block_bytes_log]
-
-    def pc_from_fb(self, fb_addr: ValueLike, fb_instr_idx: int | Value) -> Value:
-        """For a given fetch block address and an instruction index, returns the instruction's PC."""
-        if isinstance(fb_instr_idx, int):
-            fb_instr_idx = C(fb_instr_idx, self.fetch_width_log)
-        assert len(fb_instr_idx) == self.fetch_width_log
-        return Cat(C(0, self.min_instr_width_bytes_log), fb_instr_idx, fb_addr)
