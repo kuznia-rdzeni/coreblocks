@@ -4,7 +4,7 @@ from transactron.utils.amaranth_ext import MultiPriorityEncoder
 
 
 class TestMultiPriorityEncoder(TestCaseWithSimulator):
-    def setUp(self):
+    def setup_method(self):
         random.seed(14)
         self.test_number = 50
         self.input_width = 16
@@ -29,10 +29,10 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
             expected_output = self.get_expected(input)
             for ex, real, valid in zip(expected_output, self.circ.outputs, self.circ.valids):
                 if ex is None:
-                    self.assertEqual((yield valid), 0)
+                    assert (yield valid) == 0
                 else:
-                    self.assertEqual((yield valid), 1)
-                    self.assertEqual((yield real), ex)
+                    assert (yield valid) == 1
+                    assert (yield real) == ex
             yield Delay(1e-7)
 
     def test_random(self):
