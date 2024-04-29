@@ -540,12 +540,20 @@ Concrete instances of dependency keys should be frozen data classes.</p>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>lock_on_get: bool, default: True</strong></dt><dd><p>Specifies if no new dependencies should be added to key if it was already read by <cite>get_dependency</cite>.</p>
 </dd>
+<dt><strong>cache: bool, default: True</strong></dt><dd><p>If true, result of the <cite>combine</cite> method is cached and subsequent calls to <cite>get_dependency</cite>
+will return the value in the cache. Adding a new dependency clears the cache.</p>
+</dd>
 <dt><strong>empty_valid: bool, default</strong><span class="classifier">False</span></dt><dd><p>Specifies if getting key dependency without any added dependencies is valid. If set to <cite>False</cite>, that
 action would cause raising <cite>KeyError</cite>.</p>
 </dd>
 </dl>
 </dd>
 </dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="transactron.lib.dependencies.DependencyKey.cache">
+<span class="sig-name descname"><span class="pre">cache</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#transactron.lib.dependencies.DependencyKey.cache" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.lib.dependencies.DependencyKey.combine">
 <em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">U</span></span></span><a class="headerlink" href="#transactron.lib.dependencies.DependencyKey.combine" title="Permalink to this definition"></a></dt>
@@ -2166,7 +2174,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 16:58 2024-04-29.
+      <span class="lastupdated">Last updated on 18:42 2024-04-29.
       </span></p>
   </div>
 
