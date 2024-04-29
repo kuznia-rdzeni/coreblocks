@@ -3,7 +3,7 @@ from typing import Optional, TypeAlias, cast, TYPE_CHECKING
 from collections.abc import Sequence, Iterable, Mapping
 from amaranth import *
 from amaranth.hdl import ShapeLike, ValueCastable
-from amaranth.hdl._ast import ArrayProxy
+from amaranth.hdl._ast import ArrayProxy, Slice
 from amaranth.lib import data
 from ._typing import ValueLike
 
@@ -18,8 +18,9 @@ __all__ = [
 
 class AssignType(Enum):
     COMMON = 1
-    RHS = 2
-    ALL = 3
+    LHS = 2
+    RHS = 3
+    ALL = 4
 
 
 AssignFields: TypeAlias = AssignType | Iterable[str | int] | Mapping[str | int, "AssignFields"]
@@ -61,6 +62,10 @@ def valuelike_shape(val: ValueLike) -> ShapeLike:
         return Value.cast(val).shape()
 
 
+def is_union(val: AssignArg):
+    return isinstance(val, data.View) and isinstance(val.shape(), data.UnionLayout)
+
+
 def assign(
     lhs: AssignArg, rhs: AssignArg, *, fields: AssignFields = AssignType.RHS, lhs_strict=False, rhs_strict=False
 ) -> Iterable["Assign"]:
@@ -93,6 +98,9 @@ def assign(
 
         AssignType.COMMON
             Only fields common to `lhs` and `rhs` are assigned.
+        AssignType.LHS
+            All fields in `lhs` are assigned. If one of them is not present
+            in `rhs`, an exception is raised.
         AssignType.RHS
             All fields in `rhs` are assigned. If one of them is not present
             in `lhs`, an exception is raised.
@@ -117,6 +125,21 @@ def assign(
     lhs_fields = assign_arg_fields(lhs)
     rhs_fields = assign_arg_fields(rhs)
 
+    def rec_call(name: str | int):
+        subfields = fields
+        if isinstance(fields, Mapping):
+            subfields = fields[name]
+        elif isinstance(fields, Iterable):
+            subfields = AssignType.ALL
+
+        return assign(
+            lhs[name],  # type: ignore
+            rhs[name],  # type: ignore
+            fields=subfields,
+            lhs_strict=isinstance(lhs, ValueLike),
+            rhs_strict=isinstance(rhs, ValueLike),
+        )
+
     if lhs_fields is not None and rhs_fields is not None:
         # asserts for type checking
         assert (
@@ -134,6 +157,8 @@ def assign(
 
         if fields is AssignType.COMMON:
             names = lhs_fields & rhs_fields
+        elif fields is AssignType.LHS:
+            names = lhs_fields
         elif fields is AssignType.RHS:
             names = rhs_fields
         elif fields is AssignType.ALL:
@@ -150,19 +175,22 @@ def assign(
             if name not in rhs_fields:
                 raise KeyError("Field {} not present in rhs".format(name))
 
-            subfields = fields
-            if isinstance(fields, Mapping):
-                subfields = fields[name]
-            elif isinstance(fields, Iterable):
-                subfields = AssignType.ALL
+            yield from rec_call(name)
+    elif is_union(lhs) and isinstance(rhs, Mapping) or isinstance(lhs, Mapping) and is_union(rhs):
+        mapping, union = (lhs, rhs) if isinstance(lhs, Mapping) else (rhs, lhs)
 
-            yield from assign(
-                lhs[name],  # type: ignore
-                rhs[name],  # type: ignore
-                fields=subfields,
-                lhs_strict=not isinstance(lhs, Mapping),
-                rhs_strict=not isinstance(rhs, Mapping),
-            )
+        # asserts for type checking
+        assert isinstance(mapping, Mapping)
+        assert isinstance(union, data.View)
+
+        if len(mapping) != 1:
+            raise ValueError(f"Non-singleton mapping on union assignment lhs: {lhs} rhs: {rhs}")
+        name = next(iter(mapping))
+
+        if name not in union.shape().members:
+            raise ValueError(f"Field {name} not present in union {union}")
+
+        yield from rec_call(name)
     else:
         if not isinstance(fields, AssignType):
             raise ValueError("Fields on assigning non-structures lhs: {} rhs: {}".format(lhs, rhs))
@@ -170,17 +198,19 @@ def assign(
             raise TypeError("Unsupported assignment lhs: {} rhs: {}".format(lhs, rhs))
 
         # If a single-value structure, assign its only field
-        if lhs_fields is not None and len(lhs_fields) == 1:
+        while lhs_fields is not None and len(lhs_fields) == 1:
             lhs = lhs[next(iter(lhs_fields))]  # type: ignore
-        if rhs_fields is not None and len(rhs_fields) == 1:
+            lhs_fields = assign_arg_fields(lhs)
+        while rhs_fields is not None and len(rhs_fields) == 1:
             rhs = rhs[next(iter(rhs_fields))]  # type: ignore
+            rhs_fields = assign_arg_fields(rhs)
 
         def has_explicit_shape(val: ValueLike):
-            return isinstance(val, Signal) or isinstance(val, ArrayProxy)
+            return isinstance(val, (Signal, ArrayProxy, Slice, ValueCastable))
 
         if (
-            isinstance(lhs, data.View)
-            or isinstance(rhs, data.View)
+            isinstance(lhs, ValueCastable)
+            or isinstance(rhs, ValueCastable)
             or (lhs_strict or has_explicit_shape(lhs))
             and (rhs_strict or has_explicit_shape(rhs))
         ):
