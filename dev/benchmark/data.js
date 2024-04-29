@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1714418334742,
+  "lastUpdate": 1714418336096,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -35043,6 +35043,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 31709,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1970,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1184,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8802,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "144e666723c01001b3558be2623ae1ce6e3890d9",
+          "message": "Dependency caching, removal of extra_methods (#688)",
+          "timestamp": "2024-04-29T20:42:06+02:00",
+          "tree_id": "57e5192a469bf1453dead4971faaaa4e6adb20dc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/144e666723c01001b3558be2623ae1ce6e3890d9"
+        },
+        "date": 1714418335695,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 44.47,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 31184,
             "unit": "LUT4"
           },
           {
