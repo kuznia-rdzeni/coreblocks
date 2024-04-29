@@ -30,7 +30,7 @@ class TestValidateArguments(TestCaseWithSimulator):
                 pre_accepted_val = self.accepted_val
                 ret = yield from caller.call_try(data=val)
                 if ret is None:
-                    assert val != pre_accepted_val or (yield from method.done())
+                    assert val != pre_accepted_val or val == pre_accepted_val and (yield from method.done())
                 else:
                     assert val == pre_accepted_val
                     assert ret["data"] == val
