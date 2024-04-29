@@ -2,6 +2,7 @@ import pytest
 from typing import Callable
 from amaranth import *
 from amaranth.lib import data
+from amaranth.lib.enum import Enum
 from amaranth.hdl._ast import ArrayProxy, Slice
 
 from transactron.utils._typing import MethodLayout
@@ -12,18 +13,39 @@ from unittest import TestCase
 from parameterized import parameterized_class, parameterized
 
 
+class ExampleEnum(Enum, shape=1):
+    ZERO = 0
+    ONE = 1
+
+
+def with_reversed(pairs: list[tuple[str, str]]):
+    return pairs + [(b, a) for (a, b) in pairs]
+
+
 layout_a = [("a", 1)]
 layout_ab = [("a", 1), ("b", 2)]
 layout_ac = [("a", 1), ("c", 3)]
 layout_a_alt = [("a", 2)]
+layout_a_enum = [("a", ExampleEnum)]
 
-params_build_wrap_extr = [
-    ("normal", lambda mk, lay: mk(lay), lambda x: x, lambda r: r),
-    ("rec", lambda mk, lay: mk([("x", lay)]), lambda x: {"x": x}, lambda r: r.x),
-    ("dict", lambda mk, lay: {"x": mk(lay)}, lambda x: {"x": x}, lambda r: r["x"]),
-    ("list", lambda mk, lay: [mk(lay)], lambda x: {0: x}, lambda r: r[0]),
-    ("array", lambda mk, lay: Signal(data.ArrayLayout(reclayout2datalayout(lay), 1)), lambda x: {0: x}, lambda r: r[0]),
-]
+# Defines functions build, wrap, extr used in TestAssign
+params_funs = {
+    "normal": (lambda mk, lay: mk(lay), lambda x: x, lambda r: r),
+    "rec": (lambda mk, lay: mk([("x", lay)]), lambda x: {"x": x}, lambda r: r.x),
+    "dict": (lambda mk, lay: {"x": mk(lay)}, lambda x: {"x": x}, lambda r: r["x"]),
+    "list": (lambda mk, lay: [mk(lay)], lambda x: {0: x}, lambda r: r[0]),
+    "union": (
+        lambda mk, lay: Signal(data.UnionLayout({"x": reclayout2datalayout(lay)})),
+        lambda x: {"x": x},
+        lambda r: r.x,
+    ),
+    "array": (lambda mk, lay: Signal(data.ArrayLayout(reclayout2datalayout(lay), 1)), lambda x: {0: x}, lambda r: r[0]),
+}
+
+
+params_pairs = [(k, k) for k in params_funs if k != "union"] + with_reversed(
+    [("rec", "dict"), ("list", "array"), ("union", "dict")]
+)
 
 
 def mkproxy(layout):
@@ -49,52 +71,62 @@ params_mk = [
 
 
 @parameterized_class(
-    ["name", "build", "wrap", "extr", "constr", "mk"],
+    ["name", "buildl", "wrapl", "extrl", "buildr", "wrapr", "extrr", "mk"],
     [
-        (n, *map(staticmethod, (b, w, e)), c, staticmethod(m))
-        for n, b, w, e in params_build_wrap_extr
+        (f"{nl}_{nr}_{c}", *map(staticmethod, params_funs[nl] + params_funs[nr] + (m,)))
+        for nl, nr in params_pairs
         for c, m in params_mk
     ],
 )
 class TestAssign(TestCase):
     # constructs `assign` arguments (views, proxies, dicts) which have an "inner" and "outer" part
     # parameterized with a constructor and a layout of the inner part
-    build: Callable[[Callable[[MethodLayout], AssignArg], MethodLayout], AssignArg]
+    buildl: Callable[[Callable[[MethodLayout], AssignArg], MethodLayout], AssignArg]
+    buildr: Callable[[Callable[[MethodLayout], AssignArg], MethodLayout], AssignArg]
     # constructs field specifications for `assign`, takes field specifications for the inner part
-    wrap: Callable[[AssignFields], AssignFields]
+    wrapl: Callable[[AssignFields], AssignFields]
+    wrapr: Callable[[AssignFields], AssignFields]
     # extracts the inner part of the structure
-    extr: Callable[[AssignArg], ArrayProxy]
+    extrl: Callable[[AssignArg], ArrayProxy]
+    extrr: Callable[[AssignArg], ArrayProxy]
     # constructor, takes a layout
     mk: Callable[[MethodLayout], AssignArg]
 
+    def test_wraps_eq(self):
+        assert self.wrapl({}) == self.wrapr({})
+
     def test_rhs_exception(self):
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=AssignType.RHS))
+            list(assign(self.buildl(self.mk, layout_a), self.buildr(self.mk, layout_ab), fields=AssignType.RHS))
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_ac), fields=AssignType.RHS))
+            list(assign(self.buildl(self.mk, layout_ab), self.buildr(self.mk, layout_ac), fields=AssignType.RHS))
 
     def test_all_exception(self):
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=AssignType.ALL))
+            list(assign(self.buildl(self.mk, layout_a), self.buildr(self.mk, layout_ab), fields=AssignType.ALL))
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_a), fields=AssignType.ALL))
+            list(assign(self.buildl(self.mk, layout_ab), self.buildr(self.mk, layout_a), fields=AssignType.ALL))
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_ac), fields=AssignType.ALL))
+            list(assign(self.buildl(self.mk, layout_ab), self.buildr(self.mk, layout_ac), fields=AssignType.ALL))
 
     def test_missing_exception(self):
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_ab), fields=self.wrap({"b"})))
+            list(assign(self.buildl(self.mk, layout_a), self.buildr(self.mk, layout_ab), fields=self.wrapl({"b"})))
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_ab), self.build(self.mk, layout_a), fields=self.wrap({"b"})))
+            list(assign(self.buildl(self.mk, layout_ab), self.buildr(self.mk, layout_a), fields=self.wrapl({"b"})))
         with pytest.raises(KeyError):
-            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a), fields=self.wrap({"b"})))
+            list(assign(self.buildl(self.mk, layout_a), self.buildr(self.mk, layout_a), fields=self.wrapl({"b"})))
 
     def test_wrong_bits(self):
         with pytest.raises(ValueError):
-            list(assign(self.build(self.mk, layout_a), self.build(self.mk, layout_a_alt)))
+            list(assign(self.buildl(self.mk, layout_a), self.buildr(self.mk, layout_a_alt)))
+        if self.mk != mkproxy:  # Arrays are troublesome and defeat some checks
+            with pytest.raises(ValueError):
+                list(assign(self.buildl(self.mk, layout_a), self.buildr(self.mk, layout_a_enum)))
 
     @parameterized.expand(
         [
+            ("lhs", layout_a, layout_ab, AssignType.LHS),
             ("rhs", layout_ab, layout_a, AssignType.RHS),
             ("all", layout_a, layout_a, AssignType.ALL),
             ("common", layout_ab, layout_ac, AssignType.COMMON),
@@ -103,12 +135,12 @@ class TestAssign(TestCase):
         ]
     )
     def test_assign_a(self, name, layout1: MethodLayout, layout2: MethodLayout, atype: AssignType):
-        lhs = self.build(self.mk, layout1)
-        rhs = self.build(self.mk, layout2)
-        alist = list(assign(lhs, rhs, fields=self.wrap(atype)))
+        lhs = self.buildl(self.mk, layout1)
+        rhs = self.buildr(self.mk, layout2)
+        alist = list(assign(lhs, rhs, fields=self.wrapl(atype)))
         assert len(alist) == 1
-        self.assertIs_AP(alist[0].lhs, self.extr(lhs).a)
-        self.assertIs_AP(alist[0].rhs, self.extr(rhs).a)
+        self.assertIs_AP(alist[0].lhs, self.extrl(lhs).a)
+        self.assertIs_AP(alist[0].rhs, self.extrr(rhs).a)
 
     def assertIs_AP(self, expr1, expr2):  # noqa: N802
         if isinstance(expr1, ArrayProxy) and isinstance(expr2, ArrayProxy):

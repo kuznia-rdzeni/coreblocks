@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import flipped, connect
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyManager, DependencyContext
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
@@ -96,7 +97,6 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -158,9 +158,10 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.fetch_resume_connector = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(FetchResumeKey()), self.fetch.resume
-        )
+        fetch_resume, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
+        m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
+
+        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume, self.fetch.resume)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
