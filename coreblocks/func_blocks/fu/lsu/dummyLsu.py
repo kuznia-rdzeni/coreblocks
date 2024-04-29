@@ -3,7 +3,7 @@ from amaranth import *
 
 from transactron import Method, def_method, Transaction, TModule
 from transactron.lib.connectors import FIFO, Forwarder
-from transactron.utils import ModuleLike, DependencyManager
+from transactron.utils import ModuleLike, DependencyContext
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 
@@ -204,7 +204,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
 
-        self.dependency_manager = self.gen_params.get(DependencyManager)
+        self.dependency_manager = DependencyContext.get()
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
 
         self.issue = Method(i=self.fu_layouts.issue, single_caller=True)
@@ -310,7 +310,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 @dataclass(frozen=True)
 class LSUComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        connections = gen_params.get(DependencyManager)
+        connections = DependencyContext.get()
         bus_master = connections.get_dependency(CommonBusDataKey())
         unit = LSUDummy(gen_params, bus_master)
         return unit

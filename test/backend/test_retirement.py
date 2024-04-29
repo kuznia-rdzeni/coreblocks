@@ -47,7 +47,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
-        self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
+        DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
         m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
@@ -73,7 +73,7 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
-        precommit = self.gen_params.get(DependencyManager).get_dependency(InstructionPrecommitKey())
+        precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
         m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans(precommit))
 
         return m
