@@ -8,7 +8,7 @@ from transactron import *
 from transactron.lib import BasicFifo, logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
-from transactron.utils import DependencyManager, OneHotSwitch
+from transactron.utils import DependencyContext, OneHotSwitch
 
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
@@ -48,7 +48,7 @@ class PrivilegedFuncUnit(Elaboratable):
         self.priv_fn = PrivilegedFn()
 
         self.layouts = layouts = gp.get(FuncUnitLayouts)
-        self.dm = gp.get(DependencyManager)
+        self.dm = DependencyContext.get()
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
@@ -151,7 +151,7 @@ class PrivilegedFuncUnit(Elaboratable):
 class PrivilegedUnitComponent(FunctionalComponentParams):
     def get_module(self, gp: GenParams) -> FuncUnit:
         unit = PrivilegedFuncUnit(gp)
-        connections = gp.get(DependencyManager)
+        connections = DependencyContext.get()
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
         return unit
 

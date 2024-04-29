@@ -10,7 +10,7 @@ from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, InstructionPrecommitKey
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 
 from transactron.testing import *
 
@@ -27,7 +27,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
         )
-        self.gen_params.get(DependencyManager).add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -38,8 +38,8 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
-        self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
+        DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
         m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 

@@ -1,5 +1,5 @@
 from amaranth import *
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.genparams import GenParams
 
 from coreblocks.frontend.decoder.isa import ExceptionCause
@@ -63,7 +63,7 @@ class ExceptionCauseRegister(Elaboratable):
         # Break long combinational paths from single-cycle FUs
         self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
         self.report = self.fu_report_fifo.write
-        dm = gen_params.get(DependencyManager)
+        dm = DependencyContext.get()
         dm.add_dependency(ExceptionReportKey(), self.report)
 
         self.get = Method(o=self.layouts.get, nonexclusive=True)

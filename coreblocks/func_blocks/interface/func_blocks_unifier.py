@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams
-from transactron.lib.dependencies import UnifierKey, DependencyManager
+from transactron.lib.dependencies import UnifierKey, DependencyContext
 from transactron import Method, TModule
 from transactron.lib import MethodProduct, Collector, Unifier
 
@@ -30,7 +30,7 @@ class FuncBlocksUnifier(Elaboratable):
         self.unifiers: dict[str, Unifier] = {}
         self.extra_methods: dict[UnifierKey, Method] = {}
 
-        connections = gen_params.get(DependencyManager)
+        connections = DependencyContext.get()
 
         for key in extra_methods_required:
             method, unifiers = connections.get_dependency(key)

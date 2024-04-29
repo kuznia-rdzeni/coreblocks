@@ -1,6 +1,6 @@
 from typing import Sequence
 from amaranth import *
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 
 from transactron import *
 from transactron.lib import FIFO
@@ -50,7 +50,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
-        dm = gen_params.get(DependencyManager)
+        dm = DependencyContext.get()
         self.report = dm.get_dependency(ExceptionReportKey())
 
     def elaborate(self, platform):
