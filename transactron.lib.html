@@ -1697,7 +1697,7 @@ Alternatively, the source location to use instead of the default.</p>
 <span id="transactron-lib-simultaneous-module"></span><h2>transactron.lib.simultaneous module<a class="headerlink" href="#module-transactron.lib.simultaneous" title="Permalink to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="transactron.lib.simultaneous.condition">
-<span class="sig-prename descclassname"><span class="pre">transactron.lib.simultaneous.</span></span><span class="sig-name descname"><span class="pre">condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonblocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.simultaneous.condition" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">transactron.lib.simultaneous.</span></span><span class="sig-name descname"><span class="pre">condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="transactron.core.html#transactron.core.tmodule.TModule" title="transactron.core.tmodule.TModule"><span class="pre">TModule</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonblocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.simultaneous.condition" title="Permalink to this definition"></a></dt>
 <dd><p>Conditions using simultaneous transactions.</p>
 <p>This context manager allows to easily define conditions utilizing
 nested transactions and the simultaneous transactions mechanism.
@@ -1708,23 +1708,21 @@ defined using a separate nested transaction.</p>
 by Boolean conditions. A branch is considered for execution if its
 condition is true and the called methods can be run. A catch-all,
 default branch can be added, which can be executed only if none of
-the other branches execute. Note that the default branch can run
-even if some of the conditions are true, but their branches can’t
-execute for other reasons.</p>
+the other branches execute. The condition of the default branch is
+the negated alternative of all the other conditions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>m</strong><span class="classifier">TModule</span></dt><dd><p>A module where the condition is defined.</p>
 </dd>
 <dt><strong>nonblocking</strong><span class="classifier">bool</span></dt><dd><p>States that the condition should not block the containing method
-or transaction from running, even when every branch cannot run.
-If <cite>nonblocking</cite> is false and every branch cannot run (because of
-a false condition or disabled called methods), the whole method
-or transaction will be stopped from running.</p>
+or transaction from running, even when none of the branch
+conditions is true. In case of a blocking method call, the
+containing method or transaction is still blocked.</p>
 </dd>
-<dt><strong>priority</strong><span class="classifier">bool</span></dt><dd><p>States that the conditions are not mutually exclusive and should
-be tested in order. This influences the scheduling order of generated
-transactions.</p>
+<dt><strong>priority</strong><span class="classifier">bool</span></dt><dd><p>States that when conditions are not mutually exclusive and multiple
+branches could be executed, the first one will be selected. This
+influences the scheduling order of generated transactions.</p>
 </dd>
 </dl>
 </dd>
@@ -2174,7 +2172,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 18:42 2024-04-29.
+      <span class="lastupdated">Last updated on 19:01 2024-04-29.
       </span></p>
   </div>
 
