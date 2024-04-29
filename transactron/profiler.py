@@ -76,7 +76,7 @@ class ProfileData:
         transaction_conflicts = dict[int, list[int]]()
 
         method_map = MethodMap(transaction_manager.transactions)
-        cgr, _, _ = TransactionManager._conflict_graph(method_map)
+        cgr, _ = TransactionManager._conflict_graph(method_map)
         get_id = IdGenerator()
 
         def local_src_loc(src_loc: SrcLoc):
