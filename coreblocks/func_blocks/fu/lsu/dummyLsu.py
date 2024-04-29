@@ -133,13 +133,11 @@ class LSURequester(Elaboratable):
                 aligned,
             )
 
-            with condition(m, nonblocking=False, priority=False) as branch:
+            with condition(m, nonblocking=True) as branch:
                 with branch(aligned & store):
                     self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
-                with branch(~aligned):
-                    pass
 
             with m.If(aligned):
                 m.d.sync += request_sent.eq(1)
@@ -163,11 +161,11 @@ class LSURequester(Elaboratable):
 
             self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
 
-            with condition(m, nonblocking=False, priority=False) as branch:
+            with condition(m) as branch:
                 with branch(store_reg):
                     fetched = self.bus.get_write_response(m)
                     m.d.comb += err.eq(fetched.err)
-                with branch(~store_reg):
+                with branch():
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))

@@ -100,12 +100,10 @@ class PrivilegedFuncUnit(Elaboratable):
                 m.d.sync += finished.eq(1)
                 self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
-                with condition(m) as branch:
-                    with branch(~info.side_fx):
-                        pass
-                    with branch(instr_fn == PrivilegedFn.Fn.MRET):
+                with condition(m, nonblocking=True) as branch:
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET)):
                         mret(m)
-                    with branch(instr_fn == PrivilegedFn.Fn.FENCEI):
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                         flush_icache(m)
 
         @def_method(m, self.accept, ready=instr_valid & finished)

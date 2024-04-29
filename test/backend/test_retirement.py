@@ -160,7 +160,7 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_instr_decrement)
     def instr_decrement_process(self):
-        pass
+        return {"empty": 0}
 
     @def_method_mock(lambda self: self.retc.mock_trap_entry)
     def mock_trap_entry_process(self):

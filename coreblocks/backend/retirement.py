@@ -172,10 +172,10 @@ class Retirement(Elaboratable):
                         m.d.av_comb += commit.eq(1)
 
                     # Condition is used to avoid FRAT locking during normal operation
-                    with condition(m, priority=False) as cond:
+                    with condition(m) as cond:
                         with cond(commit):
                             retire_instr(rob_entry)
-                        with cond(~commit):
+                        with cond():
                             # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
 
