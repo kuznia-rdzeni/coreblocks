@@ -2,9 +2,9 @@ from amaranth import *
 from amaranth.sim import Settle, Passive
 from typing import Optional, Callable
 from transactron.lib import AdapterBase
-from transactron.utils import ValueLike, SignalBundle, mock_def_helper
+from transactron.utils import ValueLike, SignalBundle, mock_def_helper, assign
 from transactron.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
-from .functions import set_inputs, get_outputs, TestGen
+from .functions import get_outputs, TestGen
 
 
 class TestbenchIO(Elaboratable):
@@ -35,7 +35,7 @@ class TestbenchIO(Elaboratable):
             yield
 
     def set_inputs(self, data: RecordValueDict = {}) -> TestGen[None]:
-        yield from set_inputs(data, self.adapter.data_in)
+        yield from assign(self.adapter.data_in, data)
 
     def get_outputs(self) -> TestGen[RecordIntDictRet]:
         return (yield from get_outputs(self.adapter.data_out))

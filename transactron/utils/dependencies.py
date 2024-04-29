@@ -4,13 +4,7 @@ from abc import abstractmethod, ABC
 from typing import Any, Generic, TypeVar
 
 
-__all__ = [
-    "DependencyManager",
-    "DependencyKey",
-    "DependencyContext",
-    "SimpleKey",
-    "ListKey"
-]
+__all__ = ["DependencyManager", "DependencyKey", "DependencyContext", "SimpleKey", "ListKey"]
 
 T = TypeVar("T")
 U = TypeVar("U")
