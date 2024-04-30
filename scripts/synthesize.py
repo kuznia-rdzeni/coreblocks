@@ -109,7 +109,7 @@ def unit_core(gen_params: GenParams):
 
     module = ModuleConnector(core=core, wb_arbiter=wb_arbiter, wb_connector=wb_connector)
 
-    return resources, TransactionModule(module)
+    return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 
 
 def unit_fu(unit_params: FunctionalComponentParams):
