@@ -341,7 +341,7 @@ class FetchUnit(Elaboratable):
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(fetch_block_addr - 2)
 
-            with condition(m, priority=False) as branch:
+            with condition(m) as branch:
                 with branch(flushing_counter == 0):
                     with m.If(access_fault | unsafe_stall):
                         # TODO: Raise different code for page fault when supported
@@ -360,7 +360,7 @@ class FetchUnit(Elaboratable):
 
                     # Make sure this is called only once to avoid a huge mux on arguments
                     serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
-                with branch(flushing_counter != 0):
+                with branch():
                     m.d.sync += flushing_counter.eq(flushing_counter - 1)
 
         with m.If(flush_now):
