@@ -13,7 +13,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_m
 
 from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.cache.iface import CacheInterface
-from coreblocks.common import *
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts

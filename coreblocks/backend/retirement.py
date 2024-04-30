@@ -7,7 +7,7 @@ from transactron.utils.dependencies import DependencyManager
 from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.common import ExceptionCause
+from coreblocks.arch import ExceptionCause
 from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 

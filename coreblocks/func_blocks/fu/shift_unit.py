@@ -5,7 +5,7 @@ from transactron import *
 from transactron.lib import FIFO
 
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.common import OpType, Funct3, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
 

@@ -5,7 +5,7 @@ from transactron.lib import Adapter
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
-from coreblocks.common import *
+from coreblocks.arch import *
 from coreblocks.interface.keys import ExceptionReportKey, InstructionPrecommitKey
 from transactron.utils.dependencies import DependencyManager
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts

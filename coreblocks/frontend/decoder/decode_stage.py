@@ -1,6 +1,6 @@
 from amaranth import *
 
-from coreblocks.common import *
+from coreblocks.arch import *
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
 from coreblocks.interface.layouts import JumpBranchLayouts

@@ -13,7 +13,7 @@ from amaranth.hdl import ValueCastable
 from amaranth import *
 
 from transactron.utils import ValueLike
-from coreblocks.common import Opcode, Registers, Funct3, Funct12
+from coreblocks.arch import Opcode, Registers, Funct3, Funct12
 
 
 __all__ = [

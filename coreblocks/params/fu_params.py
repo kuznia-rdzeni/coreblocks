@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from collections.abc import Collection, Iterable
 
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
-from coreblocks.common.isa import Extension, extension_implications
-from coreblocks.common.optypes import optypes_required_by_extensions, OpType
+from coreblocks.arch.isa import Extension, extension_implications
+from coreblocks.arch.optypes import optypes_required_by_extensions, OpType
 
 from typing import TYPE_CHECKING
 

@@ -8,7 +8,7 @@ from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 
 from coreblocks.params import *
-from coreblocks.common import OpType, Funct3, ExceptionCause
+from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts

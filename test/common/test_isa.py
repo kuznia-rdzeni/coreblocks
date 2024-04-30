@@ -1,7 +1,7 @@
 import pytest
 import unittest
 
-from coreblocks.common.isa import Extension, ISA
+from coreblocks.arch.isa import Extension, ISA
 
 
 class TestISA(unittest.TestCase):

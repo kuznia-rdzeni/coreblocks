@@ -6,7 +6,7 @@ from transactron import *
 from transactron.lib import FIFO
 
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.common import OpType, Funct3, ExceptionCause
+from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
 from coreblocks.interface.keys import ExceptionReportKey

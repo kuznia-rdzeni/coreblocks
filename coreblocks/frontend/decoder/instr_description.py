@@ -1,7 +1,7 @@
 from dataclasses import KW_ONLY, dataclass
 from typing import Optional
 
-from coreblocks.common import *
+from coreblocks.arch import *
 
 
 @dataclass(frozen=True)

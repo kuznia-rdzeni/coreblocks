@@ -12,7 +12,7 @@ from transactron import *
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 
-from coreblocks.common import *
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
 
