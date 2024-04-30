@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1714473671937,
+  "lastUpdate": 1714513435451,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -11671,6 +11671,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cc0f5597e3fb02fcd3581ef271a7f978c7e7c09d"
         },
         "date": 1714473663935,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40695958061037724,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5267766788552616,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3209325456266702,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6515563786594487,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3454328855207257,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2834153089455887,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.31740373416157835,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.40531844302830744,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3dff4e1f49dd5e5f251eb8cfb0811f333ebb32cc",
+          "message": "Implement WFI (#691)",
+          "timestamp": "2024-04-30T23:31:03+02:00",
+          "tree_id": "4030de63aa0c130a37f9290e732f284dd6fe56bd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3dff4e1f49dd5e5f251eb8cfb0811f333ebb32cc"
+        },
+        "date": 1714513432370,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
