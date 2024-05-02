@@ -565,6 +565,9 @@ class PredictionChecker(Elaboratable):
             # First find all the instructions that would redirect the fetch unit.
             decoded_redirections = Signal(self.gen_params.fetch_width)
             for i in range(self.gen_params.fetch_width):
+                # Here we make a static prediction: forward branches not taken and backward
+                # taken. This prediction will be used if the branch prediction unit
+                # didn't detect the branch at all.
                 m.d.av_comb += decoded_redirections[i].eq(
                     CfiType.is_jal(decoded_cfi_types[i])
                     | CfiType.is_jalr(decoded_cfi_types[i])
