@@ -11,11 +11,10 @@ from transactron import *
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
 from coreblocks.frontend import FrontendParams
-from coreblocks.frontend.decoder.isa import *
-from coreblocks.frontend.decoder.optypes import CfiType
 
 log = logging.HardwareLogger("frontend.fetch")
 
@@ -334,7 +333,7 @@ class FetchUnit(Elaboratable):
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
 
-            with condition(m, priority=False) as branch:
+            with condition(m) as branch:
                 with branch(flushing_counter == 0):
                     with m.If(access_fault | unsafe_stall):
                         # TODO: Raise different code for page fault when supported
@@ -353,7 +352,7 @@ class FetchUnit(Elaboratable):
 
                     # Make sure this is called only once to avoid a huge mux on arguments
                     serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
-                with branch(flushing_counter != 0):
+                with branch():
                     m.d.sync += flushing_counter.eq(flushing_counter - 1)
 
         with m.If(flush_now):

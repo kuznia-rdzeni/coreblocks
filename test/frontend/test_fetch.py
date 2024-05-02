@@ -13,10 +13,9 @@ from transactron.lib import AdapterTrans, Adapter, BasicFifo
 from transactron.utils import ModuleConnector
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit, TestGen
 
-from coreblocks.frontend.decoder import CfiType
 from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker
 from coreblocks.cache.iface import CacheInterface
-from coreblocks.frontend.decoder.isa import Opcode, Funct3
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts

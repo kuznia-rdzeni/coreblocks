@@ -3,7 +3,12 @@ from amaranth.lib.enum import unique, IntEnum, auto
 
 from transactron.utils._typing import ValueLike
 
-from coreblocks.params.isa_params import extension_implications, extension_only_implies, Extension
+from .isa import Extension, extension_implications, extension_only_implies
+
+__all__ = [
+    "OpType",
+    "CfiType",
+]
 
 
 @unique
@@ -143,7 +148,7 @@ optypes_by_extensions = {
     ],
     Extension.XINTMACHINEMODE: [
         OpType.MRET,
-        # OpType.WFI, - uncomment when WFI implemented, to not break fully supported extensions check
+        OpType.WFI,
     ],
     Extension.XINTSUPERVISOR: [
         OpType.SRET,

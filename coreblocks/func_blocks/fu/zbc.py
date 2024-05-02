@@ -6,7 +6,7 @@ from amaranth import *
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import Funct3, OpType
+from coreblocks.arch import OpType, Funct3
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import Method, def_method, TModule
 from transactron.lib import FIFO

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from amaranth.utils import exact_log2
 
-from .isa_params import ISA, gen_isa_string
+from coreblocks.arch.isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters

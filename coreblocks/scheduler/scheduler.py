@@ -6,10 +6,10 @@ from transactron import Method, Transaction, TModule
 from transactron.lib import FIFO
 from coreblocks.interface.layouts import SchedulerLayouts
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.arch.optypes import OpType
 from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.keys import CoreStateKey
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 
@@ -298,7 +298,7 @@ class RSInsertion(Elaboratable):
 
             # when core is flushed, rp_dst are discarded.
             # source operands may never become ready, skip waiting for them in any in RSes/FBs.
-            core_state = self.gen_params.get(DependencyManager).get_dependency(CoreStateKey())
+            core_state = DependencyContext.get().get_dependency(CoreStateKey())
             flushing = core_state(m).flushing
 
             data = {

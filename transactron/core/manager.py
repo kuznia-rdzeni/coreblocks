@@ -84,7 +84,7 @@ class TransactionManager(Elaboratable):
         self.transactions.append(transaction)
 
     @staticmethod
-    def _conflict_graph(method_map: MethodMap) -> Tuple[TransactionGraph, TransactionGraph, PriorityOrder]:
+    def _conflict_graph(method_map: MethodMap) -> Tuple[TransactionGraph, PriorityOrder]:
         """_conflict_graph
 
         This function generates the graph of transaction conflicts. Conflicts
@@ -110,8 +110,6 @@ class TransactionManager(Elaboratable):
         -------
         cgr : TransactionGraph
             Graph of conflicts between transactions, where vertices are transactions and edges are conflicts.
-        rgr : TransactionGraph
-            Graph of relations between transactions, which includes conflicts and orderings.
         porder : PriorityOrder
             Linear ordering of transactions which is consistent with priority constraints.
         """
@@ -130,11 +128,8 @@ class TransactionManager(Elaboratable):
 
         cgr: TransactionGraph = {}  # Conflict graph
         pgr: TransactionGraph = {}  # Priority graph
-        rgr: TransactionGraph = {}  # Relation graph
 
         def add_edge(begin: Transaction, end: Transaction, priority: Priority, conflict: bool):
-            rgr[begin].add(end)
-            rgr[end].add(begin)
             if conflict:
                 cgr[begin].add(end)
                 cgr[end].add(begin)
@@ -147,7 +142,6 @@ class TransactionManager(Elaboratable):
         for transaction in method_map.transactions:
             cgr[transaction] = set()
             pgr[transaction] = set()
-            rgr[transaction] = set()
 
         for method in method_map.methods:
             if method.nonexclusive:
@@ -180,7 +174,7 @@ class TransactionManager(Elaboratable):
         for k, transaction in enumerate(TopologicalSorter(pgr).static_order()):
             porder[transaction] = k
 
-        return cgr, rgr, porder
+        return cgr, porder
 
     @staticmethod
     def _method_enables(method_map: MethodMap) -> Mapping["Transaction", Mapping["Method", ValueLike]]:
@@ -323,7 +317,7 @@ class TransactionManager(Elaboratable):
             merge_manager = self._simultaneous()
 
             method_map = MethodMap(self.transactions)
-            cgr, rgr, porder = TransactionManager._conflict_graph(method_map)
+            cgr, porder = TransactionManager._conflict_graph(method_map)
 
         m = Module()
         m.submodules.merge_manager = merge_manager
@@ -338,7 +332,7 @@ class TransactionManager(Elaboratable):
             ]
             m.d.comb += transaction.runnable.eq(Cat(ready).all())
 
-        ccs = _graph_ccs(rgr)
+        ccs = _graph_ccs(cgr)
         m.submodules._transactron_schedulers = ModuleConnector(
             *[self.cc_scheduler(method_map, cgr, cc, porder) for cc in ccs]
         )
@@ -415,7 +409,7 @@ class TransactionManager(Elaboratable):
 
     def debug_signals(self) -> SignalBundle:
         method_map = MethodMap(self.transactions)
-        cgr, _, _ = TransactionManager._conflict_graph(method_map)
+        cgr, _ = TransactionManager._conflict_graph(method_map)
 
         def transaction_debug(t: Transaction):
             return (

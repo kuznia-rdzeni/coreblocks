@@ -3,7 +3,7 @@ from coreblocks.interface.layouts import ROBLayouts
 
 from coreblocks.priv.traps.exception import ExceptionCauseRegister
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import ExceptionCause
+from coreblocks.arch import ExceptionCause
 from coreblocks.params.configurations import test_core_config
 from transactron.lib import Adapter
 from transactron.utils import ModuleConnector

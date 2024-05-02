@@ -1,7 +1,8 @@
 from amaranth import *
 from amaranth.lib.wiring import flipped, connect
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
-from transactron.utils.dependencies import DependencyManager, DependencyContext
+from transactron.utils.dependencies import DependencyContext
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.priv.traps.interrupt_controller import InterruptController
@@ -41,9 +42,9 @@ class Core(Elaboratable):
     def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneInterface, wb_data_bus: WishboneInterface):
         self.gen_params = gen_params
 
-        dep_manager = DependencyContext.get()
+        self.connections = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
-            dep_manager.add_dependency(HwMetricsEnabledKey(), True)
+            self.connections.add_dependency(HwMetricsEnabledKey(), True)
 
         self.wb_instr_bus = wb_instr_bus
         self.wb_data_bus = wb_data_bus
@@ -83,7 +84,6 @@ class Core(Elaboratable):
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        self.connections = gen_params.get(DependencyManager)
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
@@ -96,7 +96,6 @@ class Core(Elaboratable):
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
-            extra_methods_required=[FetchResumeKey()],
         )
 
         self.announcement = ResultAnnouncement(
@@ -158,9 +157,10 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        m.submodules.fetch_resume_connector = ConnectTrans(
-            self.func_blocks_unifier.get_extra_method(FetchResumeKey()), self.fetch.resume
-        )
+        fetch_resume, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
+        m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
+
+        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume, self.fetch.resume)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
