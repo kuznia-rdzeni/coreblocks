@@ -10,8 +10,9 @@ import random
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 from coreblocks.params.configurations import test_core_config
 from transactron.lib import FIFO
+from amaranth.sim import Settle
 
-__all__ = ["IterativeSequenceMul"]
+__all__ = ["IterativeUnsignedMul"]
 
 
 class IterativeSequenceMul(Elaboratable):
@@ -22,7 +23,7 @@ class IterativeSequenceMul(Elaboratable):
 	
         self.ready = Signal(unsigned(1))
         self.issue = Signal(unsigned(1))
-        self.step =  Signal(unsigned(n))
+        self.step =  Signal(unsigned(n),reset=math.ceil((self.n // self.dsp_width) ** 2 / self.dsp_number))
         self.first_mul_number =  Signal(unsigned(n))
         self.last_mul_number = Signal(unsigned(n))
         self.i1 = Signal(unsigned(n))
@@ -34,16 +35,18 @@ class IterativeSequenceMul(Elaboratable):
         self.pipeline_array = [[[Signal(unsigned(n*2)) for _ in range(n)] for _ in range(n)] for _ in range(n)]
         self.valid_array = [Signal(unsigned(1)) for _ in range(n)]
     def elaborate(self, platform=None):
-        m = Module()
+        m = TModule()
         
         
         number_of_chunks = self.n // self.dsp_width
-        number_of_multiplications = number_of_chunks * number_of_chunks
+        number_of_multiplications = number_of_chunks ** 2
         number_of_steps = math.ceil(number_of_multiplications / self.dsp_number)
         result_lvl = int(math.log(number_of_chunks, 2))
 
+        
+
+
         with m.If(~self.valid | self.getting_result):
-            m.d.sync += self.step.eq((self.step + 1) % number_of_steps)
             
             for i in range(1,result_lvl+1):
                 m.d.sync += self.valid_array[i].eq(self.valid_array[i-1])
@@ -61,9 +64,7 @@ class IterativeSequenceMul(Elaboratable):
                 m.d.sync += self.ready.eq(0)
                 m.d.sync += self.step.eq(self.step+1)
                 
-            with m.If(self.issue == 1):
-                m.d.sync += self.step.eq(0)
-                m.d.sync += self.ready.eq(0)
+            
             
                 
             m.d.sync += self.first_mul_number.eq(( self.first_mul_number + self.dsp_number) % number_of_multiplications)
@@ -90,7 +91,9 @@ class IterativeSequenceMul(Elaboratable):
              
             m.d.sync += self.result.eq(self.pipeline_array[result_lvl][0][0])
             m.d.sync += self.valid.eq(self.valid_array[result_lvl])
-
+        with m.If(self.issue == 1):
+            m.d.sync += self.step.eq(0)
+            m.d.sync += self.ready.eq(0)
         return m
         
 class IterativeUnsignedMul(MulBaseUnsigned):
@@ -116,6 +119,7 @@ class IterativeUnsignedMul(MulBaseUnsigned):
 
         @def_method(m, self.accept, ready = mul.valid)
         def _(arg):
+            m.d.comb += mul.getting_result.eq(1)
             return mul.result
 
         return m
@@ -135,9 +139,11 @@ def testbench(t):
         time = 0
         module_latency = 1
         test_it=0
-        for time in range(30):         
+        for time in range(50):         
+            yield Settle()
             ready_signal = yield mul_module.ready
-            if ready_signal == 1:
+            
+            if ready_signal == 1 and random.randint(0, 1) == 1:
                 test_val1,test_val2 = test_cases[test_it]
                 test_it = test_it + 1
                 print(f"giving values: {test_val1}, {test_val2} = {test_val1 * test_val2}")
@@ -147,14 +153,16 @@ def testbench(t):
             else:
                 yield mul_module.issue.eq(0)
             
-
+           # yield Settle()
             result_sig = yield mul_module.result
             valid_sig = yield mul_module.valid
             ready_signal = yield mul_module.ready
+
             if valid_sig == 1 and random.randint(0, 1) == 1:
                 yield mul_module.getting_result.eq(1)
             else:
                 yield mul_module.getting_result.eq(0)
+
             print(f" time: {time} result: {result_sig} valid_sig: {valid_sig} ready_sig: {ready_signal}")
             yield
             """
