@@ -110,4 +110,3 @@ class IterativeUnsignedMul(MulBaseUnsigned):
             return mul.result
 
         return m
-

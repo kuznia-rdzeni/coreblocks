@@ -32,11 +32,10 @@ from coreblocks.params.configurations import test_core_config
             "shift_multiplier",
             ShiftUnsignedMul,
         ),
-        ( 
+        (
             "iterative_multiplier",
             IterativeUnsignedMul,
         ),
-            
     ],
 )
 class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
