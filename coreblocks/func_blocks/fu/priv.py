@@ -36,10 +36,11 @@ class PrivilegedFn(DecoderManager):
     class Fn(IntFlag):
         MRET = auto()
         FENCEI = auto()
+        WFI = auto()
 
     @classmethod
     def get_instructions(cls) -> Sequence[tuple]:
-        return [(cls.Fn.MRET, OpType.MRET), (cls.Fn.FENCEI, OpType.FENCEI)]
+        return [(cls.Fn.MRET, OpType.MRET), (cls.Fn.FENCEI, OpType.FENCEI), (cls.Fn.WFI, OpType.WFI)]
 
 
 class PrivilegedFuncUnit(Elaboratable):
@@ -105,6 +106,8 @@ class PrivilegedFuncUnit(Elaboratable):
                         mret(m)
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                         flush_icache(m)
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI)):
+                        m.d.sync += finished.eq(async_interrupt_active)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():
@@ -116,8 +119,10 @@ class PrivilegedFuncUnit(Elaboratable):
             with OneHotSwitch(m, instr_fn) as OneHotCase:
                 with OneHotCase(PrivilegedFn.Fn.MRET):
                     m.d.av_comb += ret_pc.eq(csr.m_mode.mepc.read(m).data)
+                # FENCE.I and WFI can't be compressed, so the next instruction is always pc+4
                 with OneHotCase(PrivilegedFn.Fn.FENCEI):
-                    # FENCE.I can't be compressed, so the next instruction is always pc+4
+                    m.d.av_comb += ret_pc.eq(instr_pc + 4)
+                with OneHotCase(PrivilegedFn.Fn.WFI):
                     m.d.av_comb += ret_pc.eq(instr_pc + 4)
 
             exception = Signal()
