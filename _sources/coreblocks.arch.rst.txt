@@ -1,0 +1,37 @@
+coreblocks.arch package
+=======================
+
+Submodules
+----------
+
+coreblocks.arch.isa module
+--------------------------
+
+.. automodule:: coreblocks.arch.isa
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.arch.isa\_consts module
+----------------------------------
+
+.. automodule:: coreblocks.arch.isa_consts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.arch.optypes module
+------------------------------
+
+.. automodule:: coreblocks.arch.optypes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.arch
+   :members:
+   :undoc-members:
+   :show-inheritance:

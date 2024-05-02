@@ -28,22 +28,6 @@ coreblocks.frontend.decoder.instr\_description module
    :undoc-members:
    :show-inheritance:
 
-coreblocks.frontend.decoder.isa module
---------------------------------------
-
-.. automodule:: coreblocks.frontend.decoder.isa
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-coreblocks.frontend.decoder.optypes module
-------------------------------------------
-
-.. automodule:: coreblocks.frontend.decoder.optypes
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 coreblocks.frontend.decoder.rvc module
 --------------------------------------
 

@@ -44,14 +44,6 @@ coreblocks.params.instr module
    :undoc-members:
    :show-inheritance:
 
-coreblocks.params.isa\_params module
-------------------------------------
-
-.. automodule:: coreblocks.params.isa_params
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
