@@ -9,7 +9,7 @@ from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
-from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
+from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.priv.csr.csr_register import *
 from coreblocks.interface.keys import (

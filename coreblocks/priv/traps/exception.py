@@ -2,7 +2,7 @@ from amaranth import *
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.genparams import GenParams
 
-from coreblocks.frontend.decoder.isa import ExceptionCause
+from coreblocks.arch import ExceptionCause
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.interface.keys import ExceptionReportKey
 from transactron.core import TModule, def_method, Method

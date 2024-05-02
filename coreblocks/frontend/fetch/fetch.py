@@ -12,10 +12,9 @@ from transactron import *
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
-from coreblocks.frontend.decoder.isa import *
-from coreblocks.frontend.decoder.optypes import CfiType
 
 log = logging.HardwareLogger("frontend.fetch")
 

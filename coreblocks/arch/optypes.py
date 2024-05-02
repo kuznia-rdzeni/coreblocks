@@ -1,7 +1,11 @@
 from enum import IntEnum, auto, unique
 
-from coreblocks.params import Extension
-from coreblocks.params.isa_params import extension_implications, extension_only_implies
+from .isa import Extension, extension_implications, extension_only_implies
+
+__all__ = [
+    "OpType",
+    "CfiType",
+]
 
 
 @unique

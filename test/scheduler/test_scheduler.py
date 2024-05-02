@@ -18,7 +18,7 @@ from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.core_structs.rat import FRAT
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts, DecodeLayouts, SchedulerLayouts
-from coreblocks.frontend.decoder import OpType, Funct3, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock

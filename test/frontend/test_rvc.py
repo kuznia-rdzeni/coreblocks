@@ -4,7 +4,7 @@ from amaranth.sim import Settle
 from amaranth import *
 
 from coreblocks.frontend.decoder.rvc import InstrDecompress
-from coreblocks.frontend.decoder import *
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ValueLike
