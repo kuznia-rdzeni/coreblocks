@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1714513438168,
+  "lastUpdate": 1714665802947,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -11735,6 +11735,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3dff4e1f49dd5e5f251eb8cfb0811f333ebb32cc"
         },
         "date": 1714513432370,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40695958061037724,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5267766788552616,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3209325456266702,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6515563786594487,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3454328855207257,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2834153089455887,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.31740373416157835,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.40531844302830744,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d5b06f92c7555610b2ecf949ba0904e3174a64f",
+          "message": "Move common code to a new dir (#682)",
+          "timestamp": "2024-05-02T17:51:24+02:00",
+          "tree_id": "4adf0f8bdef66aef2ca509303ca5074af7e07b90",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d5b06f92c7555610b2ecf949ba0904e3174a64f"
+        },
+        "date": 1714665799619,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
