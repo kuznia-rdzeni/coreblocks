@@ -1,4 +1,3 @@
-import pytest
 from collections.abc import Callable
 from typing import Any
 import logging
@@ -58,6 +57,7 @@ class _LogFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord):
         level_name = self.loglevel2colour[record.levelno].format(record.levelname)
         return f"{_sim_cycle} {level_name} {record.name} {record.getMessage()}"
+
 
 def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: Callable[[], Any]):
     combined_trigger = tlog.get_trigger_bit(level, namespace_regexp)

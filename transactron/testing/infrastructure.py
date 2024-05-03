@@ -203,7 +203,6 @@ class PysimSimulator(Simulator):
         return not self.advance()
 
 
-
 class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
