@@ -512,6 +512,7 @@ class PredictionChecker(Elaboratable):
 
     This module checks if branch predictions are correct by looking at predecoded data.
     It checks for the following errors:
+
      - a JAL/JALR instruction was not predicted taken,
      - mistaking non-control flow instructions (CFI) for control flow ones,
      - getting the target of JAL/BRANCH instructions wrong.
