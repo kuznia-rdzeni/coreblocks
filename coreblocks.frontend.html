@@ -106,6 +106,41 @@
 </ul>
 </div>
 </div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.frontend.frontend_params">
+<span id="coreblocks-frontend-frontend-params-module"></span><h2>coreblocks.frontend.frontend_params module<a class="headerlink" href="#module-coreblocks.frontend.frontend_params" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend_params.FrontendParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.frontend_params.</span></span><span class="sig-name descname"><span class="pre">FrontendParams</span></span><a class="headerlink" href="#coreblocks.frontend.frontend_params.FrontendParams" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend_params.FrontendParams.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend_params.FrontendParams.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend_params.FrontendParams.fb_addr">
+<span class="sig-name descname"><span class="pre">fb_addr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.frontend.frontend_params.FrontendParams.fb_addr" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the fetch block address of a given PC.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend_params.FrontendParams.fb_instr_idx">
+<span class="sig-name descname"><span class="pre">fb_instr_idx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.frontend.frontend_params.FrontendParams.fb_instr_idx" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the index of an instruction in a fetch block for a given instruction PC.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend_params.FrontendParams.pc_from_fb">
+<span class="sig-name descname"><span class="pre">pc_from_fb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fb_addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fb_instr_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Value</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.frontend.frontend_params.FrontendParams.pc_from_fb" title="Permalink to this definition"></a></dt>
+<dd><p>For a given fetch block address and an instruction index, returns the instruction’s PC.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.frontend">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.frontend" title="Permalink to this heading"></a></h2>
 </div>
@@ -123,7 +158,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 15:52 2024-05-02.
+      <span class="lastupdated">Last updated on 10:37 2024-05-03.
       </span></p>
   </div>
 

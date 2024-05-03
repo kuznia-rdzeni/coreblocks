@@ -10,6 +10,17 @@ Subpackages
    coreblocks.frontend.decoder
    coreblocks.frontend.fetch
 
+Submodules
+----------
+
+coreblocks.frontend.frontend\_params module
+-------------------------------------------
+
+.. automodule:: coreblocks.frontend.frontend_params
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

@@ -1586,14 +1586,25 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.optypes.</span></span><span class="sig-name descname"><span class="pre">CfiType</span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></p>
 <p>Types of control flow instructions.</p>
+<p>There are 4 main types: invalid, branch, JAL, and JALR. CALL and RET are
+just special cases of respectively JAL and JALR and thus the encoding
+was chosen in the way that it is sufficient to check the lowest two bits to
+get the main type and the third bit is just a hint about the specialized type.</p>
+<p>Because of these encoding tweaks, helper functions should be preferred to use
+to get the CFI type.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.BRANCH">
-<span class="sig-name descname"><span class="pre">BRANCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.BRANCH" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">BRANCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.BRANCH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.CALL">
+<span class="sig-name descname"><span class="pre">CALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.CALL" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.INVALID">
-<span class="sig-name descname"><span class="pre">INVALID</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.INVALID" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">INVALID</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.INVALID" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -1603,12 +1614,37 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.JALR">
-<span class="sig-name descname"><span class="pre">JALR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.JALR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">JALR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.JALR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.RET">
+<span class="sig-name descname"><span class="pre">RET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.RET" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.__new__">
 <span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_branch">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_branch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_branch" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_jal">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jal" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_jalr">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jalr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jalr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.valid">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Value</span></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.valid" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1814,7 +1850,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 15:52 2024-05-02.
+      <span class="lastupdated">Last updated on 10:37 2024-05-03.
       </span></p>
   </div>
 
