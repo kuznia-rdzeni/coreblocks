@@ -7,7 +7,7 @@ from transactron.utils import align_to_power_of_two, signed_to_int
 from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 from coreblocks.core import Core
-from coreblocks.frontend.decoder import Opcode, Funct3
+from coreblocks.arch import Opcode, Funct3
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
@@ -140,6 +140,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
+        ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
@@ -174,6 +175,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         ("interrupt.asm", 600, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
         # interrupts are only inserted on branches, we always have some forward progression. 15 for trigger variantion.
         ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15),
+        ("wfi_int.asm", 80, {2: 10}, {2: 10, 3: 10}, 5, 15),
     ],
 )
 class TestCoreInterrupt(TestCoreAsmSourceBase):

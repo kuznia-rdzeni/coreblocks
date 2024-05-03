@@ -4,8 +4,8 @@ from operator import or_
 from amaranth import *
 
 from coreblocks.params import *
-from coreblocks.frontend.decoder.optypes import *
-from coreblocks.frontend.decoder.isa import *
+from coreblocks.arch import *
+from coreblocks.arch.optypes import optypes_by_extensions
 from .instr_description import instructions_by_optype, Encoding
 
 __all__ = ["InstrDecoder"]

@@ -7,7 +7,7 @@ from coreblocks.func_blocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchF
 from transactron import Method, def_method, TModule
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
-from coreblocks.frontend.decoder import Funct3, OpType, ExceptionCause
+from coreblocks.arch import Funct3, OpType, ExceptionCause
 
 from transactron.utils import signed_to_int
 

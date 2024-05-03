@@ -11,7 +11,7 @@ from coreblocks.interface.layouts import CSRRegisterLayouts
 
 from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import get_src_loc
 from transactron.utils._typing import ValueLike, SrcLoc
 
@@ -136,7 +136,7 @@ class CSRRegister(Elaboratable):
 
         # append to global CSR list
         if csr_number is not None:
-            dm = gen_params.get(DependencyManager)
+            dm = DependencyContext.get()
             dm.add_dependency(CSRListKey(), self)
 
         if csr_number and self.width != gen_params.isa.xlen:

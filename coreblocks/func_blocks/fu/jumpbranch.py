@@ -8,9 +8,9 @@ from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
 from transactron.lib import logging
-from transactron.utils import DependencyManager
-from coreblocks.params import GenParams, FunctionalComponentParams, Extension
-from coreblocks.frontend.decoder import Funct3, OpType, ExceptionCause
+from transactron.utils import DependencyContext
+from coreblocks.params import GenParams, FunctionalComponentParams
+from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey, ExceptionReportKey
 from transactron.utils import OneHotSwitch
@@ -133,7 +133,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         self.jb_fn = jb_fn
 
-        self.dm = gen_params.get(DependencyManager)
+        self.dm = DependencyContext.get()
         self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
         self.perf_instr = TaggedCounter(
@@ -189,9 +189,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)) != 0
 
-            async_interrupt_active = self.gen_params.get(DependencyManager).get_dependency(
-                AsyncInterruptInsertSignalKey()
-            )
+            async_interrupt_active = DependencyContext.get().get_dependency(AsyncInterruptInsertSignalKey())
 
             misprediction = Signal()
             m.d.av_comb += misprediction.eq(~(is_auipc | (jb.taken == funct7_info.predicted_taken)))

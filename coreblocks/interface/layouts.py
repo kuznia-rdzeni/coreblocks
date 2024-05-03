@@ -1,7 +1,8 @@
 from typing import Optional
-from amaranth.lib.data import StructLayout
+from amaranth import signed
+from amaranth.lib.data import StructLayout, ArrayLayout
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import ExceptionCause, OpType, Funct7, Funct3
+from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 
@@ -69,6 +70,12 @@ class CommonLayoutFields:
         self.rob_id: LayoutListField = ("rob_id", gen_params.rob_entries_bits)
         """Reorder buffer entry identifier."""
 
+        self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
+        """Address of a fetch block"""
+
+        self.fb_instr_idx: LayoutListField = ("fb_instr_idx", gen_params.fetch_width_log)
+        """Offset of an instruction (counted in number of instructions) in a fetch block"""
+
         self.s1_val: LayoutListField = ("s1_val", gen_params.isa.xlen)
         """Value of first source operand."""
 
@@ -119,6 +126,18 @@ class CommonLayoutFields:
 
         self.predicted_taken: LayoutListField = ("predicted_taken", 1)
         """If the branch was predicted taken."""
+
+        self.cfi_idx: LayoutListField = ("cfi_idx", gen_params.fetch_width_log)
+        """An index of a CFI instruction in a fetch block."""
+
+        self.cfi_target: LayoutListField = ("cfi_target", gen_params.isa.xlen)
+        """Target of a CFI instruction."""
+
+        self.cfi_type: LayoutListField = ("cfi_type", CfiType)
+        """Type of a CFI instruction"""
+
+        self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
+        """A mask denoting which instruction in a fetch blocks is a branch."""
 
 
 class SchedulerLayouts:
@@ -437,6 +456,27 @@ class FetchLayouts:
         )
 
         self.resume = make_layout(("pc", gen_params.isa.xlen), ("resume_from_exception", 1))
+
+        self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
+
+        self.bpu_prediction = make_layout(
+            fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
+        )
+
+        self.pred_checker_i = make_layout(
+            fields.fb_addr,
+            ("instr_block_cross", 1),
+            ("instr_valid", gen_params.fetch_width),
+            ("predecoded", ArrayLayout(self.predecoded_instr, gen_params.fetch_width)),
+            ("prediction", self.bpu_prediction),
+        )
+
+        self.pred_checker_o = make_layout(
+            ("mispredicted", 1),
+            ("stall", 1),
+            fields.fb_instr_idx,
+            ("redirect_target", gen_params.isa.xlen),
+        )
 
 
 class DecodeLayouts:

@@ -10,7 +10,7 @@ from coreblocks.func_blocks.fu.common.rs import RS, RSBase
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.frontend.decoder import OpType
+from coreblocks.arch import OpType
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:

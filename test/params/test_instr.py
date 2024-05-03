@@ -4,7 +4,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.params.instr import *
-from coreblocks.frontend.decoder.isa import *
+from coreblocks.arch import *
 
 
 class InstructionTest(unittest.TestCase):

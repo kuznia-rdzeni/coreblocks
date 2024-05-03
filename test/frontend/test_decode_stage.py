@@ -5,7 +5,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCi
 
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import OpType, Funct3, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FetchLayouts, DecodeLayouts
 from coreblocks.params.configurations import test_core_config
 
