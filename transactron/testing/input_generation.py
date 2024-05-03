@@ -7,7 +7,8 @@ from hypothesis.strategies import composite, DrawFn, integers, SearchStrategy
 from transactron.utils import MethodLayout, RecordIntDict
 
 class OpNOP():
-    pass
+    def __repr__(self):
+        return "OpNOP()"
 
 T = TypeVar("T")
 

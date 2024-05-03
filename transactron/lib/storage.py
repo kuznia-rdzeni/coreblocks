@@ -183,14 +183,14 @@ class ContentAddressableMemory(Elaboratable):
         self.read = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
         self.remove=Method(i=[("addr", self.address_layout)])
         self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
-        self.write = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
+        self.write = Method(i=[("addr", self.address_layout), ("data", self.data_layout)], o=[("not_found",1)])
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
 
-        address_array = Array([Signal(self.address_layout) for _ in range(self.entries_number)])
-        data_array = Array([Signal(self.data_layout) for _ in range(self.entries_number)])
+        address_array = Array([Signal(self.address_layout, name=f"address_array_{i}") for i in range(self.entries_number)])
+        data_array = Array([Signal(self.data_layout, name=f"data_array_{i}") for i in range(self.entries_number)])
         valids = Signal(self.entries_number, name="valids")
 
         m.submodules.encoder_read = encoder_read = MultiPriorityEncoder(self.entries_number, 1)
@@ -212,7 +212,9 @@ class ContentAddressableMemory(Elaboratable):
             write_mask = Signal(self.entries_number, name="write_mask")
             m.d.top_comb += write_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
             m.d.top_comb += encoder_write.input.eq(write_mask)
-            m.d.sync += data_array[encoder_write.outputs[0]].eq(data)
+            with m.If(write_mask.any()):
+                m.d.sync += data_array[encoder_write.outputs[0]].eq(data)
+            return {"not_found" : ~write_mask.any()}
 
         @def_method(m, self.read)
         def _(addr):
