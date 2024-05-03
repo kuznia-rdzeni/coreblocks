@@ -151,7 +151,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     "addr": word_addr,
                     "mask": mask,
                     "sign": signess,
-                    "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+                    "rnd_bytes": bytes.fromhex(f"{random.randint(0, 2**32-1):08x}"),
                     "misaligned": misaligned,
                     "err": bus_err,
                 }
@@ -262,7 +262,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         wish_data = {
             "addr": (s1_val + imm) >> 2,
             "mask": 0xF,
-            "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+            "rnd_bytes": bytes.fromhex(f"{random.randint(0, 2**32-1):08x}"),
         }
         return instr, wish_data
 

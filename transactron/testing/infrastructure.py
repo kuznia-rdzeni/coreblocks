@@ -8,7 +8,6 @@ from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
-import copy
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
