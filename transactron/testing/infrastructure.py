@@ -3,6 +3,7 @@ import pytest
 import os
 import random
 import functools
+import logging
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
 from abc import ABC
@@ -13,7 +14,7 @@ from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
-from .logging import make_logging_process, parse_logging_level
+from .logging import make_logging_process, parse_logging_level, _LogFormatter
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -202,8 +203,17 @@ class PysimSimulator(Simulator):
         return not self.advance()
 
 
+
 class TestCaseWithSimulator:
     dependency_manager: DependencyManager
+
+    @pytest.fixture(scope="session")
+    def register_logging_handler(self):
+        root_logger = logging.getLogger()
+        ch = logging.StreamHandler()
+        formatter = _LogFormatter()
+        ch.setFormatter(formatter)
+        root_logger.handlers += [ch]
 
     @contextmanager
     def configure_dependency_context(self):
@@ -279,7 +289,7 @@ class TestCaseWithSimulator:
         self._transactron_hypothesis_iter_counter += 1
 
     @pytest.fixture(autouse=True)
-    def fixture_initialize_testing_env(self, request):
+    def fixture_initialize_testing_env(self, request, register_logging_handler):
         self._transactron_hypothesis_iter_counter = 0
         self._transactron_base_output_file_name = ".".join(request.node.nodeid.split("/"))
         self._transactron_current_output_file_name = self._transactron_base_output_file_name
