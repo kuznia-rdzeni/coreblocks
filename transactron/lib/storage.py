@@ -37,7 +37,7 @@ class MemoryBank(Elaboratable):
         elem_count: int,
         granularity: Optional[int] = None,
         safe_writes: bool = True,
-        src_loc: int | SrcLoc = 0
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -141,7 +141,7 @@ class MemoryBank(Elaboratable):
 class ContentAddressableMemory(Elaboratable):
     """Content addresable memory
 
-    This module implements a content-addressable memory (in short CAM) with Transactron interface. 
+    This module implements a content-addressable memory (in short CAM) with Transactron interface.
     CAM is a type of memory where instead of predefined indexes there are used values feed in runtime
     as keys (smimlar as in python dictionary). To insert new entry a pair `(key, value)` has to be
     provided. Such pair takes an free slot which depends on internal implementation. To read value
@@ -181,15 +181,16 @@ class ContentAddressableMemory(Elaboratable):
         self.entries_number = entries_number
 
         self.read = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
-        self.remove=Method(i=[("addr", self.address_layout)])
+        self.remove = Method(i=[("addr", self.address_layout)])
         self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
-        self.write = Method(i=[("addr", self.address_layout), ("data", self.data_layout)], o=[("not_found",1)])
+        self.write = Method(i=[("addr", self.address_layout), ("data", self.data_layout)], o=[("not_found", 1)])
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-
-        address_array = Array([Signal(self.address_layout, name=f"address_array_{i}") for i in range(self.entries_number)])
+        address_array = Array(
+            [Signal(self.address_layout, name=f"address_array_{i}") for i in range(self.entries_number)]
+        )
         data_array = Array([Signal(self.data_layout, name=f"data_array_{i}") for i in range(self.entries_number)])
         valids = Signal(self.entries_number, name="valids")
 
@@ -214,7 +215,7 @@ class ContentAddressableMemory(Elaboratable):
             m.d.top_comb += encoder_write.input.eq(write_mask)
             with m.If(write_mask.any()):
                 m.d.sync += data_array[encoder_write.outputs[0]].eq(data)
-            return {"not_found" : ~write_mask.any()}
+            return {"not_found": ~write_mask.any()}
 
         @def_method(m, self.read)
         def _(addr):

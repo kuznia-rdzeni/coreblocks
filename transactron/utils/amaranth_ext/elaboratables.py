@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Literal, Optional, overload
 from collections.abc import Iterable
 from amaranth import *
-from transactron.utils._typing import HasElaborate, ModuleLike, ValueLike
+from transactron.utils._typing import HasElaborate, ModuleLike
 
 __all__ = [
     "OneHotSwitchDynamic",
@@ -13,6 +13,7 @@ __all__ = [
     "RoundRobin",
     "MultiPriorityEncoder",
 ]
+
 
 @contextmanager
 def OneHotSwitch(m: ModuleLike, test: Value):
@@ -271,34 +272,35 @@ class MultiPriorityEncoder(Elaboratable):
         self.outputs = [Signal(range(self.input_width), name=f"output_{i}") for i in range(self.outputs_count)]
         self.valids = [Signal(name=f"valid_{i}") for i in range(self.outputs_count)]
 
-    def build_tree(self, m : Module, in_sig : Signal, start_idx : int):
+    def build_tree(self, m: Module, in_sig: Signal, start_idx: int):
         assert len(in_sig) > 0
-        level_outputs = [Signal(range(self.input_width), name=f"_lvl_out_idx{start_idx}_{i}") for i in range(self.outputs_count)]
+        level_outputs = [
+            Signal(range(self.input_width), name=f"_lvl_out_idx{start_idx}_{i}") for i in range(self.outputs_count)
+        ]
         level_valids = [Signal(name=f"_lvl_val_idx{start_idx}_{i}") for i in range(self.outputs_count)]
         if len(in_sig) == 1:
             with m.If(in_sig):
                 m.d.comb += level_outputs[0].eq(start_idx)
                 m.d.comb += level_valids[0].eq(1)
         else:
-            middle = len(in_sig)//2
+            middle = len(in_sig) // 2
             r_in = Signal(middle, name=f"_r_in_idx{start_idx}")
             l_in = Signal(len(in_sig) - middle, name=f"_l_in_idx{start_idx}")
             m.d.comb += r_in.eq(in_sig[0:middle])
             m.d.comb += l_in.eq(in_sig[middle:])
             r_out, r_val = self.build_tree(m, r_in, start_idx)
-            l_out, l_val = self.build_tree(m, l_in, start_idx+middle)
+            l_out, l_val = self.build_tree(m, l_in, start_idx + middle)
 
             with m.Switch(Cat(r_val)):
-                for i in range(self.outputs_count+1):
-                    with m.Case((1<<i)-1):
+                for i in range(self.outputs_count + 1):
+                    with m.Case((1 << i) - 1):
                         for j in range(i):
                             m.d.comb += level_outputs[j].eq(r_out[j])
                             m.d.comb += level_valids[j].eq(r_val[j])
                         for j in range(i, self.outputs_count):
-                            m.d.comb += level_outputs[j].eq(l_out[j-i])
-                            m.d.comb += level_valids[j].eq(l_val[j-i])
+                            m.d.comb += level_outputs[j].eq(l_out[j - i])
+                            m.d.comb += level_valids[j].eq(l_val[j - i])
         return level_outputs, level_valids
-
 
     def elaborate(self, platform):
         m = Module()

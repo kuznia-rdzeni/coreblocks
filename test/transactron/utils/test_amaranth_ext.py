@@ -27,8 +27,8 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
                     assert (yield real) == ex
             yield Delay(1e-7)
 
-    @pytest.mark.parametrize("input_width", [1,5,16,23,24])
-    @pytest.mark.parametrize("output_count", [1,3,4])
+    @pytest.mark.parametrize("input_width", [1, 5, 16, 23, 24])
+    @pytest.mark.parametrize("output_count", [1, 3, 4])
     def test_random(self, input_width, output_count):
         random.seed(14)
         self.test_number = 50

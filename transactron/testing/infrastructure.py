@@ -268,7 +268,9 @@ class TestCaseWithSimulator:
 
     @contextmanager
     def reinitialize_fixtures(self):
-        self._transactron_current_output_file_name = self._transactron_base_output_file_name+"_"+str(self._transactron_hypothesis_iter_counter)
+        self._transactron_current_output_file_name = (
+            self._transactron_base_output_file_name + "_" + str(self._transactron_hypothesis_iter_counter)
+        )
         self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
         with self.configure_dependency_context():
             self.configure_traces()
@@ -277,7 +279,7 @@ class TestCaseWithSimulator:
                 yield
         self._transactron_hypothesis_iter_counter += 1
 
-    @pytest.fixture(autouse = True)
+    @pytest.fixture(autouse=True)
     def fixture_initialize_testing_env(self, request):
         self._transactron_hypothesis_iter_counter = 0
         self._transactron_base_output_file_name = ".".join(request.node.nodeid.split("/"))
@@ -328,6 +330,6 @@ class TestCaseWithSimulator:
         while random.random() > prob:
             yield
 
-    def multi_settle(self, settle_count : int = 1):
+    def multi_settle(self, settle_count: int = 1):
         for _ in range(settle_count):
             yield Settle()

@@ -4,6 +4,7 @@ from hypothesis.stateful import RuleBasedStateMachine, rule, initialize
 from transactron.testing import *
 from transactron.lib.storage import ContentAddressableMemory
 
+
 class TestContentAddressableMemory(TestCaseWithSimulator):
     addr_width = 4
     content_width = 5
@@ -21,7 +22,16 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
 
         self.memory = {}
 
-    def generic_process(self, method, input_lst, behaviour_check = None, state_change = None, input_verification = None, settle_count = 0, name=""):
+    def generic_process(
+        self,
+        method,
+        input_lst,
+        behaviour_check=None,
+        state_change=None,
+        input_verification=None,
+        settle_count=0,
+        name="",
+    ):
         def f():
             while input_lst:
                 # wait till all processes will end the previous cycle
@@ -44,50 +54,78 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
                     # It is standard python function by purpose to don't allow accessing circuit
                     state_change(elem, response)
                 yield
+
         return f
 
     def push_process(self, in_push):
         def verify_in(elem):
             return not (frozenset(elem["addr"].items()) in self.memory)
+
         def modify_state(elem, response):
             self.memory[frozenset(elem["addr"].items())] = elem["data"]
-        return self.generic_process(self.circ.push, in_push, state_change = modify_state, input_verification = verify_in, settle_count = 3, name="push")
+
+        return self.generic_process(
+            self.circ.push,
+            in_push,
+            state_change=modify_state,
+            input_verification=verify_in,
+            settle_count=3,
+            name="push",
+        )
 
     def read_process(self, in_read):
         def check(elem, response):
             addr = elem["addr"]
             frozen_addr = frozenset(addr.items())
             if frozen_addr in self.memory:
-                assert response["not_found"]== 0
-                assert response["data"]== self.memory[frozen_addr]
+                assert response["not_found"] == 0
+                assert response["data"] == self.memory[frozen_addr]
             else:
-                assert response["not_found"]== 1
-        return self.generic_process(self.circ.read, in_read, behaviour_check = check, settle_count = 0, name="read")
+                assert response["not_found"] == 1
+
+        return self.generic_process(self.circ.read, in_read, behaviour_check=check, settle_count=0, name="read")
 
     def remove_process(self, in_remove):
         def modify_state(elem, response):
             if frozenset(elem["addr"].items()) in self.memory:
                 del self.memory[frozenset(elem["addr"].items())]
-        return self.generic_process(self.circ.remove, in_remove, state_change = modify_state, settle_count = 2, name="remv")
+
+        return self.generic_process(self.circ.remove, in_remove, state_change=modify_state, settle_count=2, name="remv")
 
     def write_process(self, in_write):
         def verify_in(elem):
-            ret= frozenset(elem["addr"].items()) in self.memory
+            ret = frozenset(elem["addr"].items()) in self.memory
             return ret
+
         def check(elem, response):
-            assert response["not_found"]== int(frozenset(elem["addr"].items()) not in self.memory)
+            assert response["not_found"] == int(frozenset(elem["addr"].items()) not in self.memory)
+
         def modify_state(elem, response):
             if frozenset(elem["addr"].items()) in self.memory:
                 self.memory[frozenset(elem["addr"].items())] = elem["data"]
-        return self.generic_process(self.circ.write, in_write, behaviour_check=check, state_change = modify_state, input_verification = None, settle_count = 1, name = "writ")
 
-    @settings(max_examples=10, phases=(Phase.explicit, Phase.reuse, Phase.generate, Phase.shrink), derandomize = True, deadline=timedelta(milliseconds=500))
+        return self.generic_process(
+            self.circ.write,
+            in_write,
+            behaviour_check=check,
+            state_change=modify_state,
+            input_verification=None,
+            settle_count=1,
+            name="writ",
+        )
+
+    @settings(
+        max_examples=10,
+        phases=(Phase.explicit, Phase.reuse, Phase.generate, Phase.shrink),
+        derandomize=True,
+        deadline=timedelta(milliseconds=500),
+    )
     @given(
-           generate_process_input(test_number, nop_number, [("addr", addr_layout), ("data", content_layout)]),
-           generate_process_input(test_number, nop_number, [("addr", addr_layout), ("data", content_layout)]),
-           generate_process_input(test_number, nop_number, [("addr", addr_layout)]),
-           generate_process_input(test_number, nop_number, [("addr", addr_layout)]),
-           )
+        generate_process_input(test_number, nop_number, [("addr", addr_layout), ("data", content_layout)]),
+        generate_process_input(test_number, nop_number, [("addr", addr_layout), ("data", content_layout)]),
+        generate_process_input(test_number, nop_number, [("addr", addr_layout)]),
+        generate_process_input(test_number, nop_number, [("addr", addr_layout)]),
+    )
     def test_random(self, in_push, in_write, in_read, in_remove):
         with self.reinitialize_fixtures():
             self.setUp()

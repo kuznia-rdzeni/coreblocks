@@ -1,5 +1,4 @@
 from typing import (
-    Tuple,
     Callable,
     Concatenate,
     Generic,
