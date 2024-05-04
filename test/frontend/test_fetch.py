@@ -1,5 +1,7 @@
 import pytest
+from typing import Optional
 from collections import deque
+from dataclasses import dataclass
 from parameterized import parameterized_class
 import random
 
@@ -9,11 +11,11 @@ from amaranth.sim import Passive
 from transactron.core import Method
 from transactron.lib import AdapterTrans, Adapter, BasicFifo
 from transactron.utils import ModuleConnector
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit, TestGen
 
-from coreblocks.frontend.fetch.fetch import FetchUnit
+from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker
 from coreblocks.cache.iface import CacheInterface
-from coreblocks.frontend.decoder.isa import *
+from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
@@ -388,3 +390,438 @@ class TestFetchUnit(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.cache_process)
             sim.add_sync_process(self.fetch_out_check)
+
+
+@dataclass(frozen=True)
+class CheckerResult:
+    mispredicted: bool
+    stall: bool
+    fb_instr_idx: int
+    redirect_target: int
+
+
+@parameterized_class(
+    ("name", "fetch_block_log", "with_rvc"),
+    [
+        ("block4B", 2, False),
+        ("block4B_rvc", 2, True),
+        ("block8B", 3, False),
+        ("block8B_rvc", 3, True),
+        ("block16B", 4, False),
+        ("block16B_rvc", 4, True),
+    ],
+)
+class TestPredictionChecker(TestCaseWithSimulator):
+    fetch_block_log: int
+    with_rvc: bool
+
+    @pytest.fixture(autouse=True)
+    def setup(self, configure_dependency_context):
+        self.gen_params = GenParams(
+            test_core_config.replace(compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log)
+        )
+
+        self.m = SimpleTestCircuit(PredictionChecker(self.gen_params))
+
+    def check(
+        self,
+        pc: int,
+        block_cross: bool,
+        predecoded: list[tuple[CfiType, int]],
+        branch_mask: int,
+        cfi_idx: int,
+        cfi_type: CfiType,
+        cfi_target: Optional[int],
+        valid_mask: int = -1,
+    ) -> TestGen[CheckerResult]:
+        # Fill the array with non-CFI instructions
+        for _ in range(self.gen_params.fetch_width - len(predecoded)):
+            predecoded.append((CfiType.INVALID, 0))
+        predecoded_raw = [
+            {"cfi_type": predecoded[i][0], "cfi_offset": predecoded[i][1], "unsafe": 0}
+            for i in range(self.gen_params.fetch_width)
+        ]
+
+        prediction = {
+            "branch_mask": branch_mask,
+            "cfi_idx": cfi_idx,
+            "cfi_type": cfi_type,
+            "cfi_target": cfi_target or 0,
+            "cfi_target_valid": 1 if cfi_target is not None else 0,
+        }
+
+        instr_start = (
+            pc & ((1 << self.gen_params.fetch_block_bytes_log) - 1)
+        ) >> self.gen_params.min_instr_width_bytes_log
+
+        instr_valid = (((1 << self.gen_params.fetch_width) - 1) << instr_start) & valid_mask
+
+        res = yield from self.m.check.call(
+            fb_addr=pc >> self.gen_params.fetch_block_bytes_log,
+            instr_block_cross=block_cross,
+            instr_valid=instr_valid,
+            predecoded=predecoded_raw,
+            prediction=prediction,
+        )
+
+        return CheckerResult(
+            mispredicted=bool(res["mispredicted"]),
+            stall=bool(res["stall"]),
+            fb_instr_idx=res["fb_instr_idx"],
+            redirect_target=res["redirect_target"],
+        )
+
+    def assert_resp(
+        self,
+        res: CheckerResult,
+        mispredicted: Optional[bool] = None,
+        stall: Optional[bool] = None,
+        fb_instr_idx: Optional[int] = None,
+        redirect_target: Optional[int] = None,
+    ):
+        if mispredicted is not None:
+            assert res.mispredicted == mispredicted
+        if stall is not None:
+            assert res.stall == stall
+        if fb_instr_idx is not None:
+            assert res.fb_instr_idx == fb_instr_idx
+        if redirect_target is not None:
+            assert res.redirect_target == redirect_target
+
+    def test_no_misprediction(self):
+        instr_width = self.gen_params.min_instr_width_bytes
+        fetch_width = self.gen_params.fetch_width
+
+        def proc():
+            # No CFI at all
+            ret = yield from self.check(0x100, False, [], 0, 0, CfiType.INVALID, None)
+            self.assert_resp(ret, mispredicted=False)
+
+            # There is one forward branch that we didn't predict
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, 100)], 0, 0, CfiType.INVALID, None)
+            self.assert_resp(ret, mispredicted=False)
+
+            # There are many forward branches that we didn't predict
+            ret = yield from self.check(
+                0x100, False, [(CfiType.BRANCH, 100)] * fetch_width, 0, 0, CfiType.INVALID, None
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+            # There is a predicted JAL instr
+            ret = yield from self.check(0x100, False, [(CfiType.JAL, 100)], 0, 0, CfiType.JAL, 0x100 + 100)
+            self.assert_resp(ret, mispredicted=False)
+
+            # There is a predicted JALR instr - the predecoded offset can now be anything
+            ret = yield from self.check(0x100, False, [(CfiType.JALR, 200)], 0, 0, CfiType.JALR, 0x100 + 100)
+            self.assert_resp(ret, mispredicted=False)
+
+            # There is a forward taken-predicted branch
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, 100)], 0b1, 0, CfiType.BRANCH, 0x100 + 100)
+            self.assert_resp(ret, mispredicted=False)
+
+            # There is a backward taken-predicted branch
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, -100)], 0b1, 0, CfiType.BRANCH, 0x100 - 100)
+            self.assert_resp(ret, mispredicted=False)
+
+            # Branch located between two fetch blocks
+            if self.with_rvc:
+                ret = yield from self.check(
+                    0x100, True, [(CfiType.BRANCH, -100)], 0b1, 0, CfiType.BRANCH, 0x100 - 100 - 2
+                )
+                self.assert_resp(ret, mispredicted=False)
+
+            # One branch predicted as not taken
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, -100)], 0b1, 0, CfiType.INVALID, 0)
+            self.assert_resp(ret, mispredicted=False)
+
+            # Now tests for fetch blocks with multiple instructions
+            if fetch_width < 2:
+                return
+
+            # Predicted taken branch as the second instruction
+            ret = yield from self.check(
+                0x100,
+                False,
+                [(CfiType.INVALID, 0), (CfiType.BRANCH, -100)],
+                0b10,
+                1,
+                CfiType.BRANCH,
+                0x100 + instr_width - 100,
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+            # Predicted, but not taken branch as the second instruction
+            ret = yield from self.check(
+                0x100, False, [(CfiType.INVALID, 0), (CfiType.BRANCH, -100)], 0b10, 0, CfiType.INVALID, 0
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+            if self.with_rvc:
+                ret = yield from self.check(
+                    0x100,
+                    True,
+                    [(CfiType.INVALID, 0), (CfiType.BRANCH, -100)],
+                    0b10,
+                    1,
+                    CfiType.BRANCH,
+                    0x100 + instr_width - 100,
+                )
+                self.assert_resp(ret, mispredicted=False)
+
+                ret = yield from self.check(
+                    0x100,
+                    True,
+                    [(CfiType.JAL, 100), (CfiType.JAL, -100)],
+                    0b00,
+                    1,
+                    CfiType.JAL,
+                    0x100 + instr_width - 100,
+                    valid_mask=0b10,
+                )
+                self.assert_resp(ret, mispredicted=False)
+
+            # Two branches with all possible combintations taken/not-taken
+            ret = yield from self.check(
+                0x100, False, [(CfiType.BRANCH, -100), (CfiType.BRANCH, 100)], 0b11, 0, CfiType.INVALID, 0
+            )
+            self.assert_resp(ret, mispredicted=False)
+            ret = yield from self.check(
+                0x100, False, [(CfiType.BRANCH, -100), (CfiType.BRANCH, 100)], 0b11, 0, CfiType.BRANCH, 0x100 - 100
+            )
+            self.assert_resp(ret, mispredicted=False)
+            ret = yield from self.check(
+                0x100,
+                False,
+                [(CfiType.BRANCH, -100), (CfiType.BRANCH, 100)],
+                0b11,
+                1,
+                CfiType.BRANCH,
+                0x100 + instr_width + 100,
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+            # JAL at the beginning, but we start from the second instruction
+            ret = yield from self.check(0x100 + instr_width, False, [(CfiType.JAL, -100)], 0b0, 0, CfiType.INVALID, 0)
+            self.assert_resp(ret, mispredicted=False)
+
+            # JAL and a forward branch that we didn't predict
+            ret = yield from self.check(
+                0x100 + instr_width, False, [(CfiType.JAL, -100), (CfiType.BRANCH, 100)], 0b00, 0, CfiType.INVALID, 0
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+            # two JAL instructions, but we start from the second one
+            ret = yield from self.check(
+                0x100 + instr_width,
+                False,
+                [(CfiType.JAL, -100), (CfiType.JAL, 100)],
+                0b00,
+                1,
+                CfiType.JAL,
+                0x100 + instr_width + 100,
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+            # JAL and a branch, but we start from the second instruction
+            ret = yield from self.check(
+                0x100 + instr_width,
+                False,
+                [(CfiType.JAL, -100), (CfiType.BRANCH, 100)],
+                0b10,
+                1,
+                CfiType.BRANCH,
+                0x100 + instr_width + 100,
+            )
+            self.assert_resp(ret, mispredicted=False)
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(proc)
+
+    def test_preceding_redirection(self):
+        instr_width = self.gen_params.min_instr_width_bytes
+        fetch_width = self.gen_params.fetch_width
+
+        def proc():
+            # No prediction was made, but there is a JAL at the beginning
+            ret = yield from self.check(0x100, False, [(CfiType.JAL, 0x20)], 0, 0, CfiType.INVALID, None)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 + 0x20)
+
+            # The same, but the jump is between two fetch blocks
+            if self.with_rvc:
+                ret = yield from self.check(0x100, True, [(CfiType.JAL, 0x20)], 0, 0, CfiType.INVALID, None)
+                self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 + 0x20 - 2)
+
+            # Not predicted backward branch
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, -100)], 0b0, 0, CfiType.INVALID, 0)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 - 100)
+
+            # Now tests for fetch blocks with multiple instructions
+            if fetch_width < 2:
+                return
+
+            # We predicted the branch on the second instruction, but there's a JAL on the first one.
+            ret = yield from self.check(
+                0x100,
+                False,
+                [(CfiType.JAL, -100), (CfiType.BRANCH, 100)],
+                0b10,
+                1,
+                CfiType.BRANCH,
+                0x100 + instr_width + 100,
+            )
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 - 100)
+
+            # We predicted the branch on the second instruction, but there's a JALR on the first one.
+            ret = yield from self.check(
+                0x100,
+                False,
+                [(CfiType.JALR, -100), (CfiType.BRANCH, 100)],
+                0b10,
+                1,
+                CfiType.BRANCH,
+                0x100 + instr_width + 100,
+            )
+            self.assert_resp(ret, mispredicted=True, stall=True, fb_instr_idx=0)
+
+            # We predicted the branch on the second instruction, but there's a backward on the first one.
+            ret = yield from self.check(
+                0x100,
+                False,
+                [(CfiType.BRANCH, -100), (CfiType.BRANCH, 100)],
+                0b10,
+                1,
+                CfiType.BRANCH,
+                0x100 + instr_width + 100,
+            )
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 - 100)
+
+            # Unpredicted backward branch as the second instruction
+            ret = yield from self.check(
+                0x100, False, [(CfiType.INVALID, 0), (CfiType.BRANCH, -100)], 0b00, 0, CfiType.INVALID, 0
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=1, redirect_target=0x100 + instr_width - 100
+            )
+
+            # Unpredicted JAL as the second instruction
+            ret = yield from self.check(
+                0x100, False, [(CfiType.INVALID, 0), (CfiType.JAL, 100)], 0b00, 0, CfiType.INVALID, 0
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=1, redirect_target=0x100 + instr_width + 100
+            )
+
+            # Unpredicted JALR as the second instruction
+            ret = yield from self.check(
+                0x100, False, [(CfiType.INVALID, 0), (CfiType.JALR, 100)], 0b00, 0, CfiType.INVALID, 0
+            )
+            self.assert_resp(ret, mispredicted=True, stall=True, fb_instr_idx=1)
+
+            if fetch_width < 3:
+                return
+
+            ret = yield from self.check(
+                0x100 + instr_width,
+                False,
+                [(CfiType.JAL, -100), (CfiType.INVALID, 100), (CfiType.JAL, 100)],
+                0b0,
+                0,
+                CfiType.INVALID,
+                None,
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=2, redirect_target=0x100 + 2 * instr_width + 100
+            )
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(proc)
+
+    def test_mispredicted_cfi_type(self):
+        instr_width = self.gen_params.min_instr_width_bytes
+        fetch_width = self.gen_params.fetch_width
+        fb_bytes = self.gen_params.fetch_block_bytes
+
+        def proc():
+            # We predicted a JAL, but in fact there is a non-CFI instruction
+            ret = yield from self.check(0x100, False, [(CfiType.INVALID, 0)], 0, 0, CfiType.JAL, 100)
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=fetch_width - 1, redirect_target=0x100 + fb_bytes
+            )
+
+            # We predicted a JAL, but in fact there is a branch
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, -100)], 0, 0, CfiType.JAL, 100)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 - 100)
+
+            # We predicted a JAL, but in fact there is a JALR instruction
+            ret = yield from self.check(0x100, False, [(CfiType.JALR, -100)], 0, 0, CfiType.JAL, 100)
+            self.assert_resp(ret, mispredicted=True, stall=True, fb_instr_idx=0)
+
+            # We predicted a branch, but in fact there is a JAL
+            ret = yield from self.check(0x100, False, [(CfiType.JAL, -100)], 0b1, 0, CfiType.BRANCH, 100)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 - 100)
+
+            if fetch_width < 2:
+                return
+
+            # There is a branch and a non-CFI, but we predicted two branches
+            ret = yield from self.check(
+                0x100, False, [(CfiType.BRANCH, -100), (CfiType.INVALID, 0)], 0b11, 1, CfiType.BRANCH, 100
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=fetch_width - 1, redirect_target=0x100 + fb_bytes
+            )
+
+            # The same as above, but we start from the second instruction
+            ret = yield from self.check(
+                0x100 + instr_width, False, [(CfiType.BRANCH, -100), (CfiType.INVALID, 0)], 0b11, 1, CfiType.BRANCH, 100
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=fetch_width - 1, redirect_target=0x100 + fb_bytes
+            )
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(proc)
+
+    def test_mispredicted_cfi_target(self):
+        instr_width = self.gen_params.min_instr_width_bytes
+        fetch_width = self.gen_params.fetch_width
+
+        def proc():
+            # We predicted a wrong JAL target
+            ret = yield from self.check(0x100, False, [(CfiType.JAL, 100)], 0, 0, CfiType.JAL, 200)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 + 100)
+
+            # We predicted a wrong branch target
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, 100)], 0b1, 0, CfiType.BRANCH, 200)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 + 100)
+
+            # We didn't provide the branch target
+            ret = yield from self.check(0x100, False, [(CfiType.BRANCH, 100)], 0b1, 0, CfiType.BRANCH, None)
+            self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 + 100)
+
+            # We predicted a wrong JAL target that is between two fetch blocks
+            if self.with_rvc:
+                ret = yield from self.check(0x100, True, [(CfiType.JAL, 100)], 0, 0, CfiType.JAL, 300)
+                self.assert_resp(ret, mispredicted=True, stall=False, fb_instr_idx=0, redirect_target=0x100 + 100 - 2)
+
+            if fetch_width < 2:
+                return
+
+            # The second instruction is a branch without the target
+            ret = yield from self.check(
+                0x100, False, [(CfiType.INVALID, 0), (CfiType.BRANCH, 100)], 0b10, 1, CfiType.BRANCH, None
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=1, redirect_target=0x100 + instr_width + 100
+            )
+
+            # The second instruction is a JAL with a wrong target
+            ret = yield from self.check(
+                0x100, False, [(CfiType.INVALID, 0), (CfiType.JAL, 100)], 0b10, 1, CfiType.JAL, 200
+            )
+            self.assert_resp(
+                ret, mispredicted=True, stall=False, fb_instr_idx=1, redirect_target=0x100 + instr_width + 100
+            )
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_sync_process(proc)

@@ -1,7 +1,14 @@
-from enum import IntEnum, auto, unique
+from amaranth import *
+from amaranth.lib.enum import unique, IntEnum, auto
 
-from coreblocks.params import Extension
-from coreblocks.params.isa_params import extension_implications, extension_only_implies
+from transactron.utils._typing import ValueLike
+
+from .isa import Extension, extension_implications, extension_only_implies
+
+__all__ = [
+    "OpType",
+    "CfiType",
+]
 
 
 @unique
@@ -51,12 +58,40 @@ class OpType(IntEnum):
 class CfiType(IntEnum):
     """
     Types of control flow instructions.
+
+    There are 4 main types: invalid, branch, JAL, and JALR. CALL and RET are
+    just special cases of respectively JAL and JALR and thus the encoding
+    was chosen in the way that it is sufficient to check the lowest two bits to
+    get the main type and the third bit is just a hint about the specialized type.
+
+    Because of these encoding tweaks, helper functions should be preferred to use
+    to get the CFI type.
     """
 
-    INVALID = auto()  # Not a CFI. Needs to be first.
-    BRANCH = auto()
-    JAL = auto()  # Jump and Link
-    JALR = auto()  # Jump and Link Register
+    INVALID = 0b000  # Not a CFI
+    BRANCH = 0b001
+
+    JALR = 0b010  # Jump and Link Register
+    RET = 0b110  # Return from a function (JALR with rs1 equal to x1 or x5)
+
+    JAL = 0b011  # Jump and Link
+    CALL = 0b111  # Call a function (JAL with rd equal to x1 or x5))
+
+    @staticmethod
+    def valid(val: ValueLike) -> Value:
+        return Value.cast(val)[0:2] != CfiType.INVALID
+
+    @staticmethod
+    def is_branch(val: ValueLike) -> Value:
+        return Value.cast(val)[0:2] == CfiType.BRANCH
+
+    @staticmethod
+    def is_jal(val: ValueLike) -> Value:
+        return Value.cast(val)[0:2] == CfiType.JAL
+
+    @staticmethod
+    def is_jalr(val: ValueLike) -> Value:
+        return Value.cast(val)[0:2] == CfiType.JALR
 
 
 #
@@ -113,7 +148,7 @@ optypes_by_extensions = {
     ],
     Extension.XINTMACHINEMODE: [
         OpType.MRET,
-        # OpType.WFI, - uncomment when WFI implemented, to not break fully supported extensions check
+        OpType.WFI,
     ],
     Extension.XINTSUPERVISOR: [
         OpType.SRET,

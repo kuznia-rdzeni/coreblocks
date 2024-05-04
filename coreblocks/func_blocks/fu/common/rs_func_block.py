@@ -7,7 +7,7 @@ from coreblocks.scheduler.wakeup_select import WakeupSelect
 from transactron import Method, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import Collector
-from coreblocks.frontend.decoder import OpType
+from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]

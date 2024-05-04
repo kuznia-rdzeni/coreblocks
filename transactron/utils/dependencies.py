@@ -20,6 +20,9 @@ class DependencyKey(Generic[T, U], ABC):
     ----------
     lock_on_get: bool, default: True
         Specifies if no new dependencies should be added to key if it was already read by `get_dependency`.
+    cache: bool, default: True
+        If true, result of the `combine` method is cached and subsequent calls to `get_dependency`
+        will return the value in the cache. Adding a new dependency clears the cache.
     empty_valid: bool, default : False
         Specifies if getting key dependency without any added dependencies is valid. If set to `False`, that
         action would cause raising `KeyError`.
@@ -47,6 +50,7 @@ class DependencyKey(Generic[T, U], ABC):
         raise NotImplementedError()
 
     lock_on_get: bool = True
+    cache: bool = True
     empty_valid: bool = False
 
 
@@ -94,7 +98,8 @@ class DependencyManager:
     """
 
     def __init__(self):
-        self.dependencies = defaultdict[DependencyKey, list](list)
+        self.dependencies: defaultdict[DependencyKey, list] = defaultdict(list)
+        self.cache: dict[DependencyKey, Any] = {}
         self.locked_dependencies: set[DependencyKey] = set()
 
     def add_dependency(self, key: DependencyKey[T, Any], dependency: T) -> None:
@@ -109,6 +114,9 @@ class DependencyManager:
 
         self.dependencies[key].append(dependency)
 
+        if key in self.cache:
+            del self.cache[key]
+
     def get_dependency(self, key: DependencyKey[Any, U]) -> U:
         """Gets the dependency for a key.
 
@@ -117,10 +125,18 @@ class DependencyManager:
         if not key.empty_valid and key not in self.dependencies:
             raise KeyError(f"Dependency {key} not provided")
 
+        if key in self.cache:
+            return self.cache[key]
+
         if key.lock_on_get:
             self.locked_dependencies.add(key)
 
-        return key.combine(self.dependencies[key])
+        val = key.combine(self.dependencies[key])
+
+        if key.cache:
+            self.cache[key] = val
+
+        return val
 
 
 class DependencyContext:

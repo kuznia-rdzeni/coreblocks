@@ -7,7 +7,7 @@ from amaranth.lib import data
 
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import Funct3, OpType
+from coreblocks.arch import OpType, Funct3
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method

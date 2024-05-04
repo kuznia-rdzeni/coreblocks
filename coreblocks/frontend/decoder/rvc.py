@@ -1,9 +1,10 @@
 from amaranth import *
 
 from transactron import TModule
-from coreblocks.params import *
-from coreblocks.frontend.decoder.isa import *
 from transactron.utils import ValueLike
+
+from coreblocks.params import *
+from coreblocks.arch import *
 
 
 # An instruction or an instruction with the valid signal

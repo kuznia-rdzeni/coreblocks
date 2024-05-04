@@ -1,4 +1,4 @@
-from coreblocks.frontend.decoder import Funct3, Funct7, OpType
+from coreblocks.arch import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.zbs import ZbsFunction, ZbsComponent
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase

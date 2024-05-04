@@ -1,5 +1,5 @@
 from amaranth import *
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, MretKey
 
@@ -8,7 +8,7 @@ from transactron.core import Method, TModule, def_method
 
 class InterruptController(Elaboratable):
     def __init__(self, gp: GenParams):
-        dm = gp.get(DependencyManager)
+        dm = DependencyContext.get()
 
         self.interrupt_insert = Signal()
         dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)

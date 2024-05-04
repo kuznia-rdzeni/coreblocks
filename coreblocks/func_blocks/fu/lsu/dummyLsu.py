@@ -3,11 +3,12 @@ from amaranth import *
 
 from transactron import Method, def_method, Transaction, TModule
 from transactron.lib.connectors import FIFO, Forwarder
-from transactron.utils import ModuleLike, DependencyManager
+from transactron.utils import ModuleLike, DependencyContext
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 
 from coreblocks.params import *
+from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.frontend.decoder import *
 from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
@@ -133,13 +134,11 @@ class LSURequester(Elaboratable):
                 aligned,
             )
 
-            with condition(m, nonblocking=False, priority=False) as branch:
+            with condition(m, nonblocking=True) as branch:
                 with branch(aligned & store):
                     self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
-                with branch(~aligned):
-                    pass
 
             with m.If(aligned):
                 m.d.sync += request_sent.eq(1)
@@ -163,11 +162,11 @@ class LSURequester(Elaboratable):
 
             self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
 
-            with condition(m, nonblocking=False, priority=False) as branch:
+            with condition(m) as branch:
                 with branch(store_reg):
                     fetched = self.bus.get_write_response(m)
                     m.d.comb += err.eq(fetched.err)
-                with branch(~store_reg):
+                with branch():
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))
@@ -206,7 +205,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
 
-        self.dependency_manager = self.gen_params.get(DependencyManager)
+        self.dependency_manager = DependencyContext.get()
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
 
         self.issue = Method(i=self.fu_layouts.issue, single_caller=True)
@@ -312,7 +311,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 @dataclass(frozen=True)
 class LSUComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        connections = gen_params.get(DependencyManager)
+        connections = DependencyContext.get()
         bus_master = connections.get_dependency(CommonBusDataKey())
         unit = LSUDummy(gen_params, bus_master)
         return unit

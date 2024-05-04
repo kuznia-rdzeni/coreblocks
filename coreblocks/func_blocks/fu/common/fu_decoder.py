@@ -6,7 +6,7 @@ from coreblocks.interface.layouts import CommonLayoutFields
 
 from enum import IntFlag
 
-from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.arch.optypes import OpType
 
 
 class Decoder(Elaboratable):

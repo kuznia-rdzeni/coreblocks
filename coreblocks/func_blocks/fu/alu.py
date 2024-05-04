@@ -5,8 +5,7 @@ from transactron import *
 from transactron.lib import FIFO
 from transactron.lib.metrics import *
 
-from coreblocks.frontend.decoder.isa import Funct3, Funct7
-from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params import GenParams, FunctionalComponentParams
 from transactron.utils import HasElaborate, OneHotSwitch
