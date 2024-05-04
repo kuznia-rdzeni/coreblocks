@@ -103,9 +103,11 @@ possible uses is to mock a method in a testbench.</p>
 </dd>
 <dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the method is called (returns the <cite>run</cite> signal).</p>
 </dd>
-<dt><strong>data_in: Record, in</strong></dt><dd><p>Data returned from the defined method.</p>
+<dt><strong>data_in: View, in</strong></dt><dd><p>Data returned from the defined method.</p>
 </dd>
-<dt><strong>data_out: Record, out</strong></dt><dd><p>Data passed as argument to the defined method.</p>
+<dt><strong>data_out: View, out</strong></dt><dd><p>Data passed as argument to the defined method.</p>
+</dd>
+<dt><strong>validators: list of tuples of View, out and Signal, in</strong></dt><dd><p>Hooks for <cite>validate_arguments</cite>.</p>
 </dd>
 </dl>
 </dd>
@@ -123,6 +125,11 @@ See transactron.core.Method.__init__ for parameters description.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.adapters.Adapter.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">with_validate_arguments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.adapters.Adapter.set" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -167,9 +174,9 @@ expose a method to plain Amaranth code, including testbenches.</p>
 <dt><strong>done: Signal, out</strong></dt><dd><p>Signals that the transaction is performed (returns the <cite>grant</cite>
 signal).</p>
 </dd>
-<dt><strong>data_in: Record, in</strong></dt><dd><p>Data passed to the <cite>iface</cite> method.</p>
+<dt><strong>data_in: View, in</strong></dt><dd><p>Data passed to the <cite>iface</cite> method.</p>
 </dd>
-<dt><strong>data_out: Record, out</strong></dt><dd><p>Data returned from the <cite>iface</cite> method.</p>
+<dt><strong>data_out: View, out</strong></dt><dd><p>Data returned from the <cite>iface</cite> method.</p>
 </dd>
 </dl>
 </dd>
@@ -2172,7 +2179,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 10:37 2024-05-03.
+      <span class="lastupdated">Last updated on 09:32 2024-05-04.
       </span></p>
   </div>
 
