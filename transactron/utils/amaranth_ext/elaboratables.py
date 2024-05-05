@@ -274,13 +274,13 @@ class MultiPriorityEncoder(Elaboratable):
 
     @staticmethod
     def create_priority_encoder(m : Module, input_width : int, input : ValueLike, outputs_count : int = 1, name : Optional[str]=None) -> list[tuple[Signal, Signal]]:
-        """ Syntax sugar for creation of MultiPriorityEncoder
+        """ Syntax sugar for creating MultiPriorityEncoder
 
-        This staticmethod allow to use MultiPriorityEncoder in more functional
-        way. Instead of creating the instance manually, connecting all signals and
-        adding a submodule you can call this function to do it automaticaly.
+        This staticmethod allows to use MultiPriorityEncoder in a more functional
+        way. Instead of creating the instance manually, connecting all the signals and
+        adding a submodule, you can call this function to do it automatically.
 
-        This function is equivalent of:
+        This function is equivalent to:
 
         .. highlight:: python
         .. code-block:: python
@@ -293,24 +293,24 @@ class MultiPriorityEncoder(Elaboratable):
         Parameters
         ----------
         m: Module
-            Module to which MultiPriorityEncoder should be added.
+            Module to add the MultiPriorityEncoder to.
         input_width : int
             Width of the one hot signal.
         input : ValueLike
-            One hot signal to decode.
+            The one hot signal to decode.
         outputs_count : int
-            Count of different decoder outputs to be generated at once. Default: 1.
+            Number of different decoder outputs to generate at once. Default: 1.
         name : Optional[str[
-            Name which should be used while adding MultiPriorityEncoder to the submodules.
-            If None it will be added as anonymous submodule. Provided name can not be
-            used in already added submodule. Default: None.
+            Name to use when adding MultiPriorityEncoder to submodules.
+            If None, it will be added as an anonymous submodule. The given name
+            can not be used in a submodule that has already been added. Default: None.
 
         Returns
         -------
         return : list[tuple[Signal, Signal]]
-            Return list with len equal to outputs_count. Each tuple contain
-            a pair of decoded index on the first place and valid signal
-            on the second place.
+            Returns a list with len equal to outputs_count. Each tuple contains
+            a pair of decoded index on the first position and a valid signal
+            on the second position.
         """
         prio_encoder = MultiPriorityEncoder(input_width, outputs_count)
         if name is None:
