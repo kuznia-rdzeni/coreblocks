@@ -1,38 +1,43 @@
 from amaranth import *
 
-from transactron.core import Transaction, TModule
-from transactron.lib import FIFO, MethodMap, MethodProduct
+from transactron.core import *
+from transactron.lib import BasicFifo, Pipe
 from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.params.genparams import GenParams
+from coreblocks.frontend.frontend_params import FrontendParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
-from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
 class CoreFrontend(Elaboratable):
+    """Frontend of the core.
+
+    Attributes
+    ----------
+    inject_instr: Method
+        Inject a raw instruction (of type FetchLayouts.raw_instr) directly
+        into the instruction buffer.
+    consume_instr: Method
+        Consume a single decoded instruction.
+    resume: Method
+        Resume the frontend from the given PC.
+    stall: Method
+        Stall and flush the frontend.
+    """
+
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
         self.gen_params = gen_params
-
         self.connections = DependencyContext.get()
 
-        self.instr_bus = instr_bus
-
-        self.core_counter = CoreInstructionCounter(self.gen_params)
-
-        # make fetch_continue visible outside the core for injecting instructions
-        self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
-
-        drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
-        self.core_counter_increment_discard_map = MethodMap(
-            self.core_counter.increment, i_transform=drop_args_transform
+        self.instr_buffer = BasicFifo(
+            self.gen_params.get(FetchLayouts).raw_instr, self.gen_params.get(FrontendParams).instr_buffer_size
         )
-        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter_increment_discard_map.method])
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
@@ -43,9 +48,14 @@ class CoreFrontend(Elaboratable):
 
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
-        self.fetch = FetchUnit(self.gen_params, self.icache, self.fetch_continue.method)
+        self.fetch = FetchUnit(self.gen_params, self.icache, self.instr_buffer.write)
 
-        self.fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
+        self.decode_pipe = Pipe(self.gen_params.get(DecodeLayouts).decoded_instr)
+
+        self.inject_instr = self.instr_buffer.write
+        self.consume_instr = self.decode_pipe.read
+        self.resume = self.fetch.resume
+        self.stall = Method()
 
     def elaborate(self, platform):
         m = TModule()
@@ -54,20 +64,23 @@ class CoreFrontend(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
-        m.submodules.fetch_continue = self.fetch_continue
         m.submodules.fetch = self.fetch
-        m.submodules.fifo_fetch = self.fifo_fetch
-        m.submodules.core_counter = self.core_counter
-        m.submodules.args_discard_map = self.core_counter_increment_discard_map
+        m.submodules.instr_buffer = self.instr_buffer
 
-        m.submodules.fifo_decode = self.fifo_decode
+        m.submodules.decode_pipe = self.decode_pipe
         m.submodules.decode = DecodeStage(
-            gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=self.fifo_decode.write
+            gen_params=self.gen_params, get_raw=self.instr_buffer.read, push_decoded=self.decode_pipe.write
         )
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):
             read = self.connections.get_dependency(BranchVerifyKey())
             read(m)  # Consume to not block JB Unit
+
+        @def_method(m, self.stall)
+        def _():
+            self.fetch.stall_exception(m)
+            self.instr_buffer.clear(m)
+            self.decode_pipe.clean(m)
 
         return m

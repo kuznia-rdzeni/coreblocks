@@ -103,6 +103,8 @@ class _CoreConfigurationDataClass:
 
     fetch_block_bytes_log: int = 2
 
+    instr_buffer_size: int = 4
+
     allow_partial_extensions: bool = False
 
     _implied_extensions: Extension = Extension(0)
@@ -158,6 +160,7 @@ full_core_config = CoreConfiguration(
     ),
     compressed=True,
     fetch_block_bytes_log=4,
+    instr_buffer_size=16,
 )
 
 # Core configuration used in internal testbenches

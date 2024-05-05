@@ -20,6 +20,7 @@ class GenParams(DependentCache):
     def __init__(self, cfg: CoreConfiguration):
         super().__init__()
 
+        self.cfg = cfg
         self.func_units_config = cfg.func_units_config
 
         ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)

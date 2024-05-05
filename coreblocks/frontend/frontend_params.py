@@ -11,6 +11,8 @@ class FrontendParams:
     def __init__(self, gen_params: GenParams):
         self.gp = gen_params
 
+        self.instr_buffer_size = self.gp.cfg.instr_buffer_size
+
     def fb_addr(self, pc: ValueLike) -> Value:
         """Returns the fetch block address of a given PC."""
         return Value.cast(pc)[self.gp.fetch_block_bytes_log :]
