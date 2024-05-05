@@ -102,9 +102,8 @@ class LSURequester(Elaboratable):
         m = TModule()
 
         m.submodules.args_fifo = args_fifo = BasicFifo([("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store",1)], 6)
-        request_sent = Signal(1)
 
-        @def_method(m, self.issue, ~request_sent)
+        @def_method(m, self.issue)
         def _(addr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
@@ -132,8 +131,8 @@ class LSURequester(Elaboratable):
 
             with m.If(aligned):
                 args_fifo.write(m, addr = addr, funct3 = funct3, store = store)
-                m.d.sync += request_sent.eq(1)
             with m.Else():
+                self.log.debug(m, 1, "Exception")
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
                     Mux(store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED)
@@ -141,7 +140,7 @@ class LSURequester(Elaboratable):
 
             return {"exception": exception, "cause": cause}
 
-        @def_method(m, self.accept, request_sent)
+        @def_method(m, self.accept)
         def _():
             data = Signal(self.gen_params.isa.xlen)
             exception = Signal()
@@ -159,8 +158,6 @@ class LSURequester(Elaboratable):
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.addr))
-
-            m.d.sync += request_sent.eq(0)
 
             with m.If(err):
                 m.d.av_comb += exception.eq(1)

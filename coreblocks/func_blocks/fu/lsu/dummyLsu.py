@@ -49,6 +49,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         self.bus = bus
 
+        self.log = HardwareLogger("backend.lsu.dummylsu")
+
     def elaborate(self, platform):
         m = TModule()
         flush = Signal()  # exception handling, requests are not issued
@@ -68,6 +70,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
+            self.log.debug(m, 1, "issue rob_id={} funct3={} op_type={}",
+                           arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type)
             is_fence = arg.exec_fn.op_type == OpType.FENCE
             with m.If(~is_fence):
                 requests.write(m, arg)
@@ -125,6 +129,9 @@ class LSUDummy(FuncUnit, Elaboratable):
 
             with m.If(res["exception"]):
                 self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"])
+
+            self.log.debug(m,1,"accept rob_id={} result=0x{:08x} exception={}",
+                           arg.rob_id, res.data, res.exception)
 
             return {
                 "rob_id": arg["rob_id"],
