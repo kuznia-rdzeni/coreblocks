@@ -134,7 +134,6 @@ class LSURequester(Elaboratable):
             with m.If(aligned):
                 args_fifo.write(m, addr=addr, funct3=funct3, store=store)
             with m.Else():
-                self.log.debug(m, 1, "Exception")
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
                     Mux(store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED)

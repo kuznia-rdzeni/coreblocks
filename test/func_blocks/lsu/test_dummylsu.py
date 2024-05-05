@@ -199,7 +199,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             if generated_data["misaligned"]:
                 continue
 
-            print("Wishbone slave generated data", generated_data)
             mask = generated_data["mask"]
             sign = generated_data["sign"]
             yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
@@ -225,7 +224,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             while req["rob_id"] not in self.free_rob_id:
                 yield
             self.free_rob_id.remove(req["rob_id"])
-            print("Inserter", i, req, hex(req["imm"]))
             yield from self.test_module.issue.call(req)
             yield from self.random_wait(self.max_wait)
 
@@ -238,7 +236,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             exc = next(i for i in self.exception_result if i["rob_id"] == rob_id)
             self.exception_result.remove(exc)
-            print("Consumer", i, v, exc)
             if not exc["err"]:
                 assert v["result"] == self.returned_data.pop()
             assert v["exception"] == exc["err"]
