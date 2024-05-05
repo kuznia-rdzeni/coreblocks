@@ -202,7 +202,7 @@ def main():
 
     config = str_to_coreconfig[args.config]
     if args.strip_debug:
-        config = config.replace(debug_signals_enable=False)
+        config = config.replace(debug_signals=False)
 
     synthesize(config, args.platform, core_units[args.unit])
 

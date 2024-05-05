@@ -100,7 +100,7 @@ def main():
 
     config = str_to_coreconfig[args.config]
     if args.strip_debug:
-        config = config.replace(debug_signals_enable=False)
+        config = config.replace(debug_signals=False)
 
     gen_verilog(config, args.output)
 
