@@ -278,7 +278,7 @@ class MultiPriorityEncoder(Elaboratable):
     ) -> list[tuple[Signal, Signal]]:
         """Syntax sugar for creating MultiPriorityEncoder
 
-        This staticmethod allows to use MultiPriorityEncoder in a more functional
+        This static method allows to use MultiPriorityEncoder in a more functional
         way. Instead of creating the instance manually, connecting all the signals and
         adding a submodule, you can call this function to do it automatically.
 
