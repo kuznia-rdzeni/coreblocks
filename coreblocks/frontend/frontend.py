@@ -5,7 +5,6 @@ from transactron.lib import BasicFifo, Pipe
 from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.frontend.frontend_params import FrontendParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
@@ -35,9 +34,7 @@ class CoreFrontend(Elaboratable):
         self.gen_params = gen_params
         self.connections = DependencyContext.get()
 
-        self.instr_buffer = BasicFifo(
-            self.gen_params.get(FetchLayouts).raw_instr, self.gen_params.get(FrontendParams).instr_buffer_size
-        )
+        self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, self.gen_params.instr_buffer_size)
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
