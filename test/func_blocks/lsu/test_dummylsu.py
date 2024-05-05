@@ -100,7 +100,8 @@ class DummyLSUTestCircuit(Elaboratable):
 
 
 class TestDummyLSULoads(TestCaseWithSimulator):
-    last_rob_id : int =0
+    last_rob_id: int = 0
+
     def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
             "LB": (OpType.LOAD, Funct3.B),
@@ -136,7 +137,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             word_addr = addr >> 2
 
             rp_dst = random.randint(0, 2**self.gen_params.phys_regs_bits - 1)
-            self.last_rob_id = (self.last_rob_id+1)%2**self.gen_params.rob_entries_bits
+            self.last_rob_id = (self.last_rob_id + 1) % 2**self.gen_params.rob_entries_bits
             rob_id = self.last_rob_id
             instr = {
                 "rp_dst": rp_dst,
@@ -153,7 +154,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     "addr": word_addr,
                     "mask": mask,
                     "sign": signess,
-                    "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+                    "rnd_bytes": bytes.fromhex(f"{random.randint(0, 2**32-1):08x}"),
                     "misaligned": misaligned,
                     "err": bus_err,
                 }
@@ -171,7 +172,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 )
 
             self.exception_result.append(
-                    {"rob_id": rob_id, "err" : misaligned or bus_err},
+                {"rob_id": rob_id, "err": misaligned or bus_err},
             )
 
     def setup_method(self) -> None:
@@ -276,7 +277,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         wish_data = {
             "addr": (s1_val + imm) >> 2,
             "mask": 0xF,
-            "rnd_bytes": bytes.fromhex(f"{random.randint(0,2**32-1):08x}"),
+            "rnd_bytes": bytes.fromhex(f"{random.randint(0, 2**32-1):08x}"),
         }
         return instr, wish_data
 

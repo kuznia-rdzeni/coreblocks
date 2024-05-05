@@ -1,15 +1,15 @@
 from amaranth import *
-from transactron import Method, def_method, Transaction, TModule
-from transactron.utils import ModuleLike, DependencyContext
+from transactron import Method, def_method, TModule
+from transactron.utils import ModuleLike
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
-from transactron.lib.reqres import ArgumentsToResultsZipper
 from transactron.lib import BasicFifo
 
 from coreblocks.params import *
-from coreblocks.arch import OpType, Funct3, ExceptionCause
+from coreblocks.arch import Funct3, ExceptionCause
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import LSULayouts
+
 
 class LSURequester(Elaboratable):
     """
@@ -101,7 +101,9 @@ class LSURequester(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.args_fifo = args_fifo = BasicFifo([("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store",1)], 6)
+        m.submodules.args_fifo = args_fifo = BasicFifo(
+            [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], 6
+        )
 
         @def_method(m, self.issue)
         def _(addr: Value, data: Value, funct3: Value, store: Value):
@@ -130,7 +132,7 @@ class LSURequester(Elaboratable):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
-                args_fifo.write(m, addr = addr, funct3 = funct3, store = store)
+                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
             with m.Else():
                 self.log.debug(m, 1, "Exception")
                 m.d.av_comb += exception.eq(1)
@@ -157,7 +159,9 @@ class LSURequester(Elaboratable):
                 with branch():
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
-                    m.d.top_comb += data.eq(self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.addr))
+                    m.d.top_comb += data.eq(
+                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.addr)
+                    )
 
             with m.If(err):
                 m.d.av_comb += exception.eq(1)
