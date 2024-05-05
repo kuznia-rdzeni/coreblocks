@@ -64,10 +64,6 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
     records = tlog.get_log_records(level, namespace_regexp)
 
     root_logger = logging.getLogger()
-    ch = logging.StreamHandler()
-    formatter = _LogFormatter()
-    ch.setFormatter(formatter)
-    root_logger.handlers += [ch]
 
     def handle_logs():
         if not (yield combined_trigger):
@@ -86,7 +82,7 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
             logger = root_logger.getChild(record.logger_name)
             logger.log(
                 record.level,
-                "%s:%d] %s",
+                "[%s:%d] %s",
                 record.location[0],
                 record.location[1],
                 formatted_msg,
