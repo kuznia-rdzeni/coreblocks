@@ -40,6 +40,33 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
             sim.add_process(self.process)
 
     @pytest.mark.parametrize("name", ["prio_encoder", None])
+    def test_static_create_simple(self, name):
+        random.seed(14)
+        self.test_number = 50
+        self.input_width = 7
+        self.output_count = 1
+
+        class DUT(Elaboratable):
+            def __init__(self, input_width, output_count, name):
+                self.input = Signal(input_width)
+                self.output_count = output_count
+                self.input_width = input_width
+                self.name = name
+
+            def elaborate(self, platform):
+                m = Module()
+                out, val = MultiPriorityEncoder.create_simple(m, self.input_width, self.input, name=self.name)
+                # Save as a list to use common interface in testing
+                self.outputs = [out]
+                self.valids = [val]
+                return m
+
+        self.circ = DUT(self.input_width, self.output_count, name)
+
+        with self.run_simulation(self.circ) as sim:
+            sim.add_process(self.process)
+
+    @pytest.mark.parametrize("name", ["prio_encoder", None])
     def test_static_create(self, name):
         random.seed(14)
         self.test_number = 50
@@ -55,9 +82,7 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
 
             def elaborate(self, platform):
                 m = Module()
-                out = MultiPriorityEncoder.create_priority_encoder(
-                    m, self.input_width, self.input, self.output_count, name=self.name
-                )
+                out = MultiPriorityEncoder.create(m, self.input_width, self.input, self.output_count, name=self.name)
                 self.outputs, self.valids = list(zip(*out))
                 return m
 
