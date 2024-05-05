@@ -1,3 +1,4 @@
+from transactron import TModule
 from transactron.testing import *
 import random
 from transactron.utils.amaranth_ext import MultiPriorityEncoder
@@ -30,11 +31,36 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
     @pytest.mark.parametrize("input_width", [1, 5, 16, 23, 24])
     @pytest.mark.parametrize("output_count", [1, 3, 4])
     def test_random(self, input_width, output_count):
-        random.seed(14)
+        random.seed(input_width+output_count)
         self.test_number = 50
         self.input_width = input_width
         self.output_count = output_count
         self.circ = MultiPriorityEncoder(self.input_width, self.output_count)
+
+        with self.run_simulation(self.circ) as sim:
+            sim.add_process(self.process)
+
+    @pytest.mark.parametrize("name", ["prio_encoder", None])
+    def test_static_create(self, name):
+        random.seed(14)
+        self.test_number = 50
+        self.input_width = 7
+        self.output_count = 2
+
+        class DUT(Elaboratable):
+            def __init__(self, input_width, output_count, name):
+                self.input = Signal(input_width)
+                self.output_count = output_count
+                self.input_width = input_width
+                self.name = name
+
+            def elaborate(self, platform):
+                m = Module()
+                out = MultiPriorityEncoder.create_priority_encoder(m, self.input_width, self.input, self.output_count, name=self.name)
+                self.outputs, self.valids = list(zip(*out))
+                return m
+
+        self.circ = DUT(self.input_width, self.output_count, name)
 
         with self.run_simulation(self.circ) as sim:
             sim.add_process(self.process)
