@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Literal, Optional, overload
 from collections.abc import Iterable
 from amaranth import *
-from transactron.utils._typing import HasElaborate, ModuleLike
+from transactron.utils._typing import HasElaborate, ModuleLike, ValueLike
 
 __all__ = [
     "OneHotSwitchDynamic",
@@ -271,6 +271,59 @@ class MultiPriorityEncoder(Elaboratable):
         self.input = Signal(self.input_width)
         self.outputs = [Signal(range(self.input_width), name=f"output_{i}") for i in range(self.outputs_count)]
         self.valids = [Signal(name=f"valid_{i}") for i in range(self.outputs_count)]
+
+    @staticmethod
+    def create_priority_encoder(m : Module, input_width : int, input : ValueLike, outputs_count : int = 1, name : Optional[str]=None) -> list[tuple[Signal, Signal]]:
+        """ Syntax sugar for creation of MultiPriorityEncoder
+
+        This staticmethod allow to use MultiPriorityEncoder in more functional
+        way. Instead of creating the instance manually, connecting all signals and
+        adding a submodule you can call this function to do it automaticaly.
+
+        This function is equivalent of:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            m.submodules += prio_encoder = PriorityEncoder(cnt)
+            m.d.top_comb += prio_encoder.input.eq(one_hot_singal)
+            idx = prio_encoder.outputs
+            valid = prio.encoder.valids
+
+        Parameters
+        ----------
+        m: TModule
+            Module to which MultiPriorityEncoder should be added.
+        input_width : int
+            Width of the one hot signal.
+        input : ValueLike
+            One hot signal to decode.
+        outputs_count : int
+            Count of different decoder outputs to be generated at once. Default: 1.
+        name : Optional[str[
+            Name which should be used while adding MultiPriorityEncoder to the submodules.
+            If None it will be added as anonymous submodule. Provided name can not be
+            used in already added submodule. Default: None.
+
+        Returns
+        -------
+        return : list[tuple[Signal, Signal]]
+            Return list with len equal to outputs_count. Each tuple contain
+            a pair of decoded index on the first place and valid signal
+            on the second place.
+        """
+        prio_encoder = MultiPriorityEncoder(input_width, outputs_count)
+        if name is None:
+            m.submodules += prio_encoder
+        else:
+            try:
+                getattr(m.submodules, name)
+                raise ValueError(f"Name: {name} is already in use, so MultiPriorityEncoder can not be added with it.")
+            except AttributeError:
+                setattr(m.submodules, name, prio_encoder)
+        m.d.top_comb += prio_encoder.input.eq(input)
+        return list(zip(prio_encoder.outputs, prio_encoder.valids))
+
 
     def build_tree(self, m: Module, in_sig: Signal, start_idx: int):
         assert len(in_sig) > 0
