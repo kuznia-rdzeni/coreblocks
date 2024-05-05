@@ -52,7 +52,7 @@ class _CoreConfigurationDataClass:
         Enables 16-bit Compressed Instructions extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
-    debug_signals: bool
+    debug_signals_enable: bool
         Enable debug signals (for example hardware metrics etc). If disabled, none of them will be synthesized.
     phys_regs_bits: int
         Size of the Physical Register File is 2**phys_regs_bits.
@@ -90,7 +90,7 @@ class _CoreConfigurationDataClass:
     compressed: bool = False
     embedded: bool = False
 
-    debug_signals: bool = True
+    debug_signals_enable: bool = True
 
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
