@@ -1,4 +1,3 @@
-from transactron import TModule
 from transactron.testing import *
 import random
 from transactron.utils.amaranth_ext import MultiPriorityEncoder
@@ -31,7 +30,7 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
     @pytest.mark.parametrize("input_width", [1, 5, 16, 23, 24])
     @pytest.mark.parametrize("output_count", [1, 3, 4])
     def test_random(self, input_width, output_count):
-        random.seed(input_width+output_count)
+        random.seed(input_width + output_count)
         self.test_number = 50
         self.input_width = input_width
         self.output_count = output_count
@@ -56,7 +55,9 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
 
             def elaborate(self, platform):
                 m = Module()
-                out = MultiPriorityEncoder.create_priority_encoder(m, self.input_width, self.input, self.output_count, name=self.name)
+                out = MultiPriorityEncoder.create_priority_encoder(
+                    m, self.input_width, self.input, self.output_count, name=self.name
+                )
                 self.outputs, self.valids = list(zip(*out))
                 return m
 

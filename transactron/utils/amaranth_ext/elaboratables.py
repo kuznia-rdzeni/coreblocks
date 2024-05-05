@@ -273,8 +273,10 @@ class MultiPriorityEncoder(Elaboratable):
         self.valids = [Signal(name=f"valid_{i}") for i in range(self.outputs_count)]
 
     @staticmethod
-    def create_priority_encoder(m : Module, input_width : int, input : ValueLike, outputs_count : int = 1, name : Optional[str]=None) -> list[tuple[Signal, Signal]]:
-        """ Syntax sugar for creating MultiPriorityEncoder
+    def create_priority_encoder(
+        m: Module, input_width: int, input: ValueLike, outputs_count: int = 1, name: Optional[str] = None
+    ) -> list[tuple[Signal, Signal]]:
+        """Syntax sugar for creating MultiPriorityEncoder
 
         This staticmethod allows to use MultiPriorityEncoder in a more functional
         way. Instead of creating the instance manually, connecting all the signals and
@@ -323,7 +325,6 @@ class MultiPriorityEncoder(Elaboratable):
                 setattr(m.submodules, name, prio_encoder)
         m.d.comb += prio_encoder.input.eq(input)
         return list(zip(prio_encoder.outputs, prio_encoder.valids))
-
 
     def build_tree(self, m: Module, in_sig: Signal, start_idx: int):
         assert len(in_sig) > 0
