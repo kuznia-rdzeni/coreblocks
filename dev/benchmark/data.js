@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1714815779648,
+  "lastUpdate": 1714911783961,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -11927,6 +11927,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e922df0c0e421f97b4e34287e8dedbe98bbf7fcc"
         },
         "date": 1714815773455,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40695958061037724,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5267766788552616,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3209325456266702,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6515563786594487,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3454328855207257,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2834153089455887,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.31740373416157835,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.40531844302830744,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b900c8896bf4b7c78c414ff5e05865609c1104df",
+          "message": "Move LSURequester. (#696)",
+          "timestamp": "2024-05-05T14:10:14+02:00",
+          "tree_id": "24e4e50e65519bf135ca033a5d0db89902d9afb2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b900c8896bf4b7c78c414ff5e05865609c1104df"
+        },
+        "date": 1714911780507,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
