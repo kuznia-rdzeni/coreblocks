@@ -25,7 +25,7 @@ class GenParams(DependentCache):
         ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
         extensions = ext_partial if cfg.allow_partial_extensions else ext_full
         if not cfg.allow_partial_extensions and ext_partial != ext_full:
-            raise RuntimeError(f"Extensions {ext_partial&~ext_full!r} are only partially supported")
+            raise RuntimeError(f"Extensions {ext_partial & ~ext_full!r} are only partially supported")
 
         extensions |= cfg._implied_extensions
         self.isa_str = gen_isa_string(extensions, cfg.xlen)
