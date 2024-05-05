@@ -302,7 +302,7 @@ class MultiPriorityEncoder(Elaboratable):
             The one hot signal to decode.
         outputs_count : int
             Number of different decoder outputs to generate at once. Default: 1.
-        name : Optional[str[
+        name : Optional[str]
             Name to use when adding MultiPriorityEncoder to submodules.
             If None, it will be added as an anonymous submodule. The given name
             can not be used in a submodule that has already been added. Default: None.
