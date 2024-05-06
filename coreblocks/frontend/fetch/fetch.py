@@ -6,7 +6,7 @@ from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import MethodLayout, popcount, assign
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from transactron import *
 
@@ -393,7 +393,7 @@ class FetchUnit(Elaboratable):
         if self.gen_params.extra_verification:
             expect_unstall_unsafe = Signal()
             prev_stalled_unsafe = Signal()
-            unifier_ready = self.gen_params.get(DependencyManager).get_dependency(FetchResumeKey())[0].ready
+            unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
             m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
             with m.FSM("running"):
                 with m.State("running"):

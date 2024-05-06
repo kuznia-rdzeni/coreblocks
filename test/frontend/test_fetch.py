@@ -7,6 +7,7 @@ import random
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
+from coreblocks.interface.keys import FetchResumeKey
 
 from transactron.core import Method
 from transactron.lib import AdapterTrans, Adapter, BasicFifo
@@ -20,6 +21,7 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
+from transactron.utils.dependencies import DependencyContext
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -70,6 +72,8 @@ class TestFetchUnit(TestCaseWithSimulator):
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
+        self.fetch_resume_mock = TestbenchIO(Adapter())
+        DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume_mock.adapter.iface)
         self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))
 
         self.m = ModuleConnector(self.icache, fifo, self.io_out, self.clean_fifo, self.fetch)
