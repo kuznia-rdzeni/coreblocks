@@ -1,7 +1,6 @@
 from amaranth import *
 
-from coreblocks.frontend.decoder.isa import Funct3
-from coreblocks.frontend.decoder.optypes import OpType
+from coreblocks.arch import *
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
 from coreblocks.interface.layouts import JumpBranchLayouts

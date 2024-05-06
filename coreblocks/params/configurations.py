@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Self
 from transactron.utils._typing import type_self_kwargs_as
 
-from coreblocks.params.isa_params import Extension
+from coreblocks.arch.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
 
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent

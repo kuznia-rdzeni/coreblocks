@@ -12,13 +12,13 @@ from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.core_structs.rat import FRAT
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts, DecodeLayouts, SchedulerLayouts
-from coreblocks.frontend.decoder import OpType, Funct3, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
@@ -91,7 +91,7 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.core_state = self.core_state = TestbenchIO(
             Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
-        self.gen_params.get(DependencyManager).add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         # main scheduler
         m.submodules.scheduler = self.scheduler = Scheduler(

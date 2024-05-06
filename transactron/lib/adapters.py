@@ -1,4 +1,6 @@
+from typing import Optional
 from amaranth import *
+from amaranth.lib.data import StructLayout, View
 
 from ..utils import SrcLoc, get_src_loc, MethodStruct
 from ..core import *
@@ -37,9 +39,9 @@ class AdapterTrans(AdapterBase):
     done: Signal, out
         Signals that the transaction is performed (returns the `grant`
         signal).
-    data_in: Record, in
+    data_in: View, in
         Data passed to the `iface` method.
-    data_out: Record, out
+    data_out: View, out
         Data returned from the `iface` method.
     """
 
@@ -85,10 +87,12 @@ class Adapter(AdapterBase):
         Activates the method (sets the `ready` signal).
     done: Signal, out
         Signals that the method is called (returns the `run` signal).
-    data_in: Record, in
+    data_in: View, in
         Data returned from the defined method.
-    data_out: Record, out
+    data_out: View, out
         Data passed as argument to the defined method.
+    validators: list of tuples of View, out and Signal, in
+        Hooks for `validate_arguments`.
     """
 
     @type_self_kwargs_as(Method.__init__)
@@ -106,6 +110,13 @@ class Adapter(AdapterBase):
         super().__init__(Method(**kwargs))
         self.data_in = Signal.like(self.iface.data_out)
         self.data_out = Signal.like(self.iface.data_in)
+        self.validators: list[tuple[View[StructLayout], Signal]] = []
+        self.with_validate_arguments: bool = False
+
+    def set(self, with_validate_arguments: Optional[bool]):
+        if with_validate_arguments is not None:
+            self.with_validate_arguments = with_validate_arguments
+        return self
 
     def elaborate(self, platform):
         m = TModule()
@@ -114,7 +125,18 @@ class Adapter(AdapterBase):
         data_in = Signal.like(self.data_in)
         m.d.comb += data_in.eq(self.data_in)
 
-        @def_method(m, self.iface, ready=self.en)
+        kwargs = {}
+
+        if self.with_validate_arguments:
+
+            def validate_arguments(arg: "View[StructLayout]"):
+                ret = Signal()
+                self.validators.append((arg, ret))
+                return ret
+
+            kwargs["validate_arguments"] = validate_arguments
+
+        @def_method(m, self.iface, ready=self.en, **kwargs)
         def _(arg):
             m.d.top_comb += self.data_out.eq(arg)
             m.d.comb += self.done.eq(1)

@@ -3,7 +3,7 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import Funct3, OpType, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import Method, TModule, def_method
 from transactron.lib import FIFO
