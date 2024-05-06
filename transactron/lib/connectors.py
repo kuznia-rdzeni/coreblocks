@@ -117,9 +117,6 @@ class Forwarder(Elaboratable):
         self.clear = Method(src_loc=src_loc)
         self.head = Signal.like(self.read.data_out)
 
-        self.clear.add_conflict(self.read, Priority.LEFT)
-        self.clear.add_conflict(self.write, Priority.LEFT)
-
     def elaborate(self, platform):
         m = TModule()
 
@@ -184,11 +181,8 @@ class Pipe(Elaboratable):
         """
         self.read = Method(o=layout)
         self.write = Method(i=layout)
-        self.clean = Method()
+        self.clear = Method()
         self.head = Signal.like(self.read.data_out)
-
-        self.clean.add_conflict(self.read, Priority.LEFT)
-        self.clean.add_conflict(self.write, Priority.LEFT)
 
     def elaborate(self, platform):
         m = TModule()
@@ -208,7 +202,7 @@ class Pipe(Elaboratable):
             m.d.sync += reg.eq(arg)
             m.d.sync += reg_valid.eq(1)
 
-        @def_method(m, self.clean)
+        @def_method(m, self.clear)
         def _():
             m.d.sync += reg_valid.eq(0)
 
