@@ -1,10 +1,12 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from amaranth.lib.coding import PriorityEncoder
+from coreblocks.interface.keys import FetchResumeKey
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import MethodLayout, popcount, assign
+from transactron.utils.dependencies import DependencyManager
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from transactron import *
 
@@ -63,9 +65,6 @@ class FetchUnit(Elaboratable):
         self.perf_fetch_redirects = HwCounter(
             "frontend.fetch.fetch_redirects", "How many times the fetch unit redirected itself"
         )
-
-        if self.gen_params.extra_verification:
-            self._verification_resume_from_collector_ready = Signal()
 
     def elaborate(self, platform):
         m = TModule()
@@ -394,13 +393,14 @@ class FetchUnit(Elaboratable):
         if self.gen_params.extra_verification:
             expect_unstall_unsafe = Signal()
             prev_stalled_unsafe = Signal()
+            unifier_ready = self.gen_params.get(DependencyManager).get_dependency(FetchResumeKey())[0].ready
             m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
             with m.FSM("running"):
                 with m.State("running"):
                     log.error(m, stalled_exception | prev_stalled_unsafe, "fetch was expected to be running")
                     log.error(
                         m,
-                        self._verification_resume_from_collector_ready,
+                        unifier_ready,
                         "resume_from_unsafe unifier is ready before stall",
                     )
                     with m.If(stalled_unsafe):
@@ -426,7 +426,7 @@ class FetchUnit(Elaboratable):
                         m.d.sync += expect_unstall_unsafe.eq(0)
                     with m.If(self.resume_from_exception.run):
                         # unstall_form_unsafe may be skipped if excpetion was reported on unsafe instruction,
-                        # invlid cases are verified by readiness check in running state
+                        # invalid cases are verified by readiness check in running state
                         m.d.sync += expect_unstall_unsafe.eq(0)
                         m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
                         with m.If(~self.stall_exception.run):
