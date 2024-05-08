@@ -78,13 +78,13 @@ class TestLog(TestCaseWithSimulator):
 
         print(caplog.text)
         assert (
-            "WARNING  test_logger:logging.py:87 test/transactron/testing/test_log.py:22] "
+            "WARNING  test_logger:logging.py:83 [test/transactron/testing/test_log.py:22] "
             + "Log triggered under Amaranth If value+3=0x2d"
             in caplog.text
         )
         for i in range(0, 50, 2):
             expected_msg = (
-                "WARNING  test_logger:logging.py:87 test/transactron/testing/test_log.py:24] "
+                "WARNING  test_logger:logging.py:83 [test/transactron/testing/test_log.py:24] "
                 + f"Input is even! input={i}, counter={i + 2}"
             )
             assert expected_msg in caplog.text
@@ -101,7 +101,7 @@ class TestLog(TestCaseWithSimulator):
                 sim.add_sync_process(proc)
 
         extected_out = (
-            "ERROR    test_logger:logging.py:87 test/transactron/testing/test_log.py:41] "
+            "ERROR    test_logger:logging.py:83 [test/transactron/testing/test_log.py:41] "
             + "Input is different than output! input=0x1 output=0x0"
         )
         assert extected_out in caplog.text
@@ -117,5 +117,5 @@ class TestLog(TestCaseWithSimulator):
             with self.run_simulation(m) as sim:
                 sim.add_sync_process(proc)
 
-        extected_out = "ERROR    test_logger:logging.py:87 test/transactron/testing/test_log.py:62] Output differs"
+        extected_out = "ERROR    test_logger:logging.py:83 [test/transactron/testing/test_log.py:62] Output differs"
         assert extected_out in caplog.text
