@@ -24,7 +24,7 @@ class LSURequester(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterInterface, depth: int = 4) -> None:
         """
         Parameters
         ----------
@@ -32,9 +32,13 @@ class LSURequester(Elaboratable):
             Parameters to be used during processor generation.
         bus : BusMasterInterface
             An instance of the bus master for interfacing with the data bus.
+        depth : int
+            Number of requests which can be send to memory, before it provides first response. Describe
+            the resiliency of `LSURequester` to latency of memory in case when memory is fully pipelined.
         """
         self.gen_params = gen_params
         self.bus = bus
+        self.depth = depth
 
         lsu_layouts = gen_params.get(LSULayouts)
 
@@ -102,7 +106,7 @@ class LSURequester(Elaboratable):
         m = TModule()
 
         m.submodules.args_fifo = args_fifo = BasicFifo(
-            [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], 6
+            [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], self.depth
         )
 
         @def_method(m, self.issue)
