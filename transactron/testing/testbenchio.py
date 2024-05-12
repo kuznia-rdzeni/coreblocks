@@ -2,6 +2,7 @@ from amaranth import *
 from amaranth.sim import Settle, Passive
 from typing import Optional, Callable
 from transactron.lib import AdapterBase
+from transactron.lib.adapters import Adapter
 from transactron.utils import ValueLike, SignalBundle, mock_def_helper, assign
 from transactron.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
 from .functions import get_outputs, TestGen
@@ -96,19 +97,32 @@ class TestbenchIO(Elaboratable):
         function: Callable[..., Optional[RecordIntDict]],
         *,
         enable: Optional[Callable[[], bool]] = None,
+        validate_arguments: Optional[Callable[..., bool]] = None,
         extra_settle_count: int = 0,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
 
+        def handle_validate_arguments():
+            if validate_arguments is not None:
+                assert isinstance(self.adapter, Adapter)
+                for a, r in self.adapter.validators:
+                    ret_out = mock_def_helper(self, validate_arguments, (yield from get_outputs(a)))
+                    yield r.eq(ret_out)
+                for _ in range(extra_settle_count + 1):
+                    yield Settle()
+
         # One extra Settle() required to propagate enable signal.
         for _ in range(extra_settle_count + 1):
             yield Settle()
+        yield from handle_validate_arguments()
         while (arg := (yield from self.method_argument())) is None:
             yield
+
             yield from self.set_enable(enable())
             for _ in range(extra_settle_count + 1):
                 yield Settle()
+            yield from handle_validate_arguments()
 
         ret_out = mock_def_helper(self, function, arg)
         yield from self.method_return(ret_out or {})
@@ -119,11 +133,14 @@ class TestbenchIO(Elaboratable):
         function: Callable[..., Optional[RecordIntDict]],
         *,
         enable: Optional[Callable[[], bool]] = None,
+        validate_arguments: Optional[Callable[..., bool]] = None,
         extra_settle_count: int = 0,
     ) -> TestGen[None]:
         yield Passive()
         while True:
-            yield from self.method_handle(function, enable=enable, extra_settle_count=extra_settle_count)
+            yield from self.method_handle(
+                function, enable=enable, validate_arguments=validate_arguments, extra_settle_count=extra_settle_count
+            )
 
     # Debug signals
 

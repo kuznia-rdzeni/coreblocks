@@ -25,7 +25,7 @@ class GenParams(DependentCache):
         ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
         extensions = ext_partial if cfg.allow_partial_extensions else ext_full
         if not cfg.allow_partial_extensions and ext_partial != ext_full:
-            raise RuntimeError(f"Extensions {ext_partial&~ext_full!r} are only partially supported")
+            raise RuntimeError(f"Extensions {ext_partial & ~ext_full!r} are only partially supported")
 
         extensions |= cfg._implied_extensions
         self.isa_str = gen_isa_string(extensions, cfg.xlen)
@@ -67,11 +67,13 @@ class GenParams(DependentCache):
         self.start_pc = cfg.start_pc
 
         self.min_instr_width_bytes = 2 if cfg.compressed else 4
+        self.min_instr_width_bytes_log = exact_log2(self.min_instr_width_bytes)
 
         self.fetch_block_bytes_log = cfg.fetch_block_bytes_log
         if self.fetch_block_bytes_log < bytes_in_word_log:
             raise ValueError("Fetch block must be not smaller than the machine word.")
         self.fetch_block_bytes = 2**self.fetch_block_bytes_log
         self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
+        self.fetch_width_log = exact_log2(self.fetch_width)
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
