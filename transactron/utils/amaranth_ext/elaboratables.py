@@ -381,11 +381,37 @@ class MultiPriorityEncoder(Elaboratable):
 
 
 class RingMultiPriorityEncoder(Elaboratable):
-    """
-    first - inclusive
-    last - exclusive
-    """
+    """Priority encoder with one or more outputs and flexible start
 
+    This is an extension of the `MultiPriorityEncoder` that supports
+    flexible start and end indexes. In the standard `MultiPriorityEncoder`
+    the first bit is always at position 0 and the last is the last bit of
+    the input signal. In this extended implementation, both can be
+    selected at runtime.
+
+    This implementation is intended for selection from the circular buffers,
+    so if `last < first` the encoder will first select bits from
+    [first, input_width) and then from [0, last).
+
+    Attributes
+    ----------
+    input_width : int
+        Width of the input signal
+    outputs_count : int
+        Number of outputs to generate at once.
+    input : Signal, in
+        Signal with 1 on `i`-th bit if `i` can be selected by encoder
+    first : Signal, in
+        Index of the first bit in the `input`. Inclusive.
+    last : Signal, out
+        Index of the last bit in the `input`. Exclusive.
+    outputs : list[Signal], out
+        Signals with selected indicies, sorted in ascending order,
+        if the number of ready signals is less than `outputs_count`
+        then valid signals are at the beginning of the list.
+    valids : list[Signal], out
+        One bit for each output signal, indicating whether the output is valid or not.
+    """
     def __init__(self, input_width: int, outputs_count: int):
         self.input_width = input_width
         self.outputs_count = outputs_count
