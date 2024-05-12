@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715512019560,
+  "lastUpdate": 1715512020895,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28135,6 +28135,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 22390,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 802,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1004,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5561,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "83d706a31da7e8a31ed1b8c5963217a259168251",
+          "message": "Create CoreFrontend module (#698)",
+          "timestamp": "2024-05-12T12:54:28+02:00",
+          "tree_id": "b6f088331adbf301f9cbeb5b38b8f8f8612bd9d4",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/83d706a31da7e8a31ed1b8c5963217a259168251"
+        },
+        "date": 1715512020512,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.55,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22122,
             "unit": "LUT4"
           },
           {
