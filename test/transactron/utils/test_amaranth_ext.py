@@ -153,7 +153,9 @@ class TestRingMultiPriorityEncoder(TestCaseWithSimulator):
 
             def elaborate(self, platform):
                 m = Module()
-                out, val = RingMultiPriorityEncoder.create_simple(m, self.input_width, self.input, self.first, self.last, name=self.name)
+                out, val = RingMultiPriorityEncoder.create_simple(
+                    m, self.input_width, self.input, self.first, self.last, name=self.name
+                )
                 # Save as a list to use common interface in testing
                 self.outputs = [out]
                 self.valids = [val]
@@ -182,7 +184,9 @@ class TestRingMultiPriorityEncoder(TestCaseWithSimulator):
 
             def elaborate(self, platform):
                 m = Module()
-                out = RingMultiPriorityEncoder.create(m, self.input_width, self.input, self.first, self.last, self.output_count, name=self.name)
+                out = RingMultiPriorityEncoder.create(
+                    m, self.input_width, self.input, self.first, self.last, self.output_count, name=self.name
+                )
                 self.outputs, self.valids = list(zip(*out))
                 return m
 

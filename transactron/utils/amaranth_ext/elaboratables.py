@@ -412,6 +412,7 @@ class RingMultiPriorityEncoder(Elaboratable):
     valids : list[Signal], out
         One bit for each output signal, indicating whether the output is valid or not.
     """
+
     def __init__(self, input_width: int, outputs_count: int):
         self.input_width = input_width
         self.outputs_count = outputs_count
@@ -424,7 +425,13 @@ class RingMultiPriorityEncoder(Elaboratable):
 
     @staticmethod
     def create(
-            m: Module, input_width: int, input: ValueLike, first : ValueLike, last : ValueLike, outputs_count: int = 1, name: Optional[str] = None
+        m: Module,
+        input_width: int,
+        input: ValueLike,
+        first: ValueLike,
+        last: ValueLike,
+        outputs_count: int = 1,
+        name: Optional[str] = None,
     ) -> list[tuple[Signal, Signal]]:
         """Syntax sugar for creating RingMultiPriorityEncoder
 
@@ -476,7 +483,9 @@ class RingMultiPriorityEncoder(Elaboratable):
         else:
             try:
                 getattr(m.submodules, name)
-                raise ValueError(f"Name: {name} is already in use, so RingMultiPriorityEncoder can not be added with it.")
+                raise ValueError(
+                    f"Name: {name} is already in use, so RingMultiPriorityEncoder can not be added with it."
+                )
             except AttributeError:
                 setattr(m.submodules, name, prio_encoder)
         m.d.comb += prio_encoder.input.eq(input)
@@ -486,13 +495,13 @@ class RingMultiPriorityEncoder(Elaboratable):
 
     @staticmethod
     def create_simple(
-            m: Module, input_width: int, input: ValueLike, first : ValueLike, last:ValueLike, name: Optional[str] = None
+        m: Module, input_width: int, input: ValueLike, first: ValueLike, last: ValueLike, name: Optional[str] = None
     ) -> tuple[Signal, Signal]:
         """Syntax sugar for creating RingMultiPriorityEncoder
 
         This is the same as `create` function, but with `outputs_count` hardcoded to 1.
         """
-        lst = RingMultiPriorityEncoder.create(m, input_width, input,first,last, outputs_count=1, name=name)
+        lst = RingMultiPriorityEncoder.create(m, input_width, input, first, last, outputs_count=1, name=name)
         return lst[0]
 
     def elaborate(self, platform):
