@@ -13,6 +13,14 @@ Subpackages
 Submodules
 ----------
 
+coreblocks.frontend.frontend module
+-----------------------------------
+
+.. automodule:: coreblocks.frontend.frontend
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.frontend.frontend\_params module
 -------------------------------------------
 
