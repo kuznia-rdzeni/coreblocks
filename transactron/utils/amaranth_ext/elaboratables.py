@@ -420,6 +420,80 @@ class RingMultiPriorityEncoder(Elaboratable):
         self.first = Signal(range(self.input_width))
         self.last = Signal(range(self.input_width))
         self.outputs = [Signal(range(self.input_width), name=f"output_{i}") for i in range(self.outputs_count)]
+        self.valids = [Signal(name=f"valid_{i}") for i in range(self.outputs_count)]
+
+    @staticmethod
+    def create(
+            m: Module, input_width: int, input: ValueLike, first : ValueLike, last : ValueLike, outputs_count: int = 1, name: Optional[str] = None
+    ) -> list[tuple[Signal, Signal]]:
+        """Syntax sugar for creating RingMultiPriorityEncoder
+
+        This static method allows to use RingMultiPriorityEncoder in a more functional
+        way. Instead of creating the instance manually, connecting all the signals and
+        adding a submodule, you can call this function to do it automatically.
+
+        This function is equivalent to:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            m.submodules += prio_encoder = RingMultiPriorityEncoder(input_width, outputs_count)
+            m.d.comb += prio_encoder.input.eq(one_hot_singal)
+            m.d.comb += prio_encoder.first.eq(first)
+            m.d.comb += prio_encoder.last.eq(last)
+            idx = prio_encoder.outputs
+            valid = prio.encoder.valids
+
+        Parameters
+        ----------
+        m: Module
+            Module to add the RingMultiPriorityEncoder to.
+        input_width : int
+            Width of the one hot signal.
+        input : ValueLike
+            The one hot signal to decode.
+        first : ValueLike
+            Index of the first bit in the `input`. Inclusive.
+        last : ValueLike
+            Index of the last bit in the `input`. Exclusive.
+        outputs_count : int
+            Number of different decoder outputs to generate at once. Default: 1.
+        name : Optional[str]
+            Name to use when adding RingMultiPriorityEncoder to submodules.
+            If None, it will be added as an anonymous submodule. The given name
+            can not be used in a submodule that has already been added. Default: None.
+
+        Returns
+        -------
+        return : list[tuple[Signal, Signal]]
+            Returns a list with len equal to outputs_count. Each tuple contains
+            a pair of decoded index on the first position and a valid signal
+            on the second position.
+        """
+        prio_encoder = RingMultiPriorityEncoder(input_width, outputs_count)
+        if name is None:
+            m.submodules += prio_encoder
+        else:
+            try:
+                getattr(m.submodules, name)
+                raise ValueError(f"Name: {name} is already in use, so RingMultiPriorityEncoder can not be added with it.")
+            except AttributeError:
+                setattr(m.submodules, name, prio_encoder)
+        m.d.comb += prio_encoder.input.eq(input)
+        m.d.comb += prio_encoder.first.eq(first)
+        m.d.comb += prio_encoder.last.eq(last)
+        return list(zip(prio_encoder.outputs, prio_encoder.valids))
+
+    @staticmethod
+    def create_simple(
+            m: Module, input_width: int, input: ValueLike, first : ValueLike, last:ValueLike, name: Optional[str] = None
+    ) -> tuple[Signal, Signal]:
+        """Syntax sugar for creating RingMultiPriorityEncoder
+
+        This is the same as `create` function, but with `outputs_count` hardcoded to 1.
+        """
+        lst = RingMultiPriorityEncoder.create(m, input_width, input,first,last, outputs_count=1, name=name)
+        return lst[0]
 
     def elaborate(self, platform):
         m = Module()
@@ -443,6 +517,8 @@ class RingMultiPriorityEncoder(Elaboratable):
             moved_out = Signal(range(2 * self.input_width))
             m.d.comb += moved_out.eq(multi_enc.outputs[k] + self.first)
             corrected_out = Mux(moved_out >= self.input_width, moved_out - self.input_width, moved_out)
+
             m.d.comb += self.outputs[k].eq(corrected_out)
+            m.d.comb += self.valids[k].eq(multi_enc.valids[k])
         self.valids = multi_enc.valids
         return m
