@@ -70,6 +70,8 @@ class _CoreConfigurationDataClass:
         Log of the cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
+    instr_buffer_size: int
+        Size of the instruction buffer.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     _implied_extensions: Extenstion
