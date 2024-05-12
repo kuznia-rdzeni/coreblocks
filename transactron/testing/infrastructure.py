@@ -1,5 +1,6 @@
 import sys
 import pytest
+import logging
 import os
 import random
 import functools
@@ -13,7 +14,7 @@ from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
-from .logging import make_logging_process, parse_logging_level
+from .logging import make_logging_process, parse_logging_level, _LogFormatter
 from .gtkw_extension import write_vcd_ext
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -204,6 +205,14 @@ class PysimSimulator(Simulator):
 
 class TestCaseWithSimulator:
     dependency_manager: DependencyManager
+
+    @pytest.fixture(scope="session")
+    def register_logging_handler(self):
+        root_logger = logging.getLogger()
+        ch = logging.StreamHandler()
+        formatter = _LogFormatter()
+        ch.setFormatter(formatter)
+        root_logger.handlers += [ch]
 
     @contextmanager
     def configure_dependency_context(self):
