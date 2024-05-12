@@ -4,6 +4,14 @@ coreblocks.priv.csr package
 Submodules
 ----------
 
+coreblocks.priv.csr.csr\_address module
+---------------------------------------
+
+.. automodule:: coreblocks.priv.csr.csr_address
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.priv.csr.csr\_instances module
 -----------------------------------------
 
