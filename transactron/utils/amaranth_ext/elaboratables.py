@@ -12,6 +12,7 @@ __all__ = [
     "Scheduler",
     "RoundRobin",
     "MultiPriorityEncoder",
+    "RingMultiPriorityEncoder",
 ]
 
 
@@ -376,4 +377,40 @@ class MultiPriorityEncoder(Elaboratable):
             m.d.comb += self.outputs[k].eq(level_outputs[k])
             m.d.comb += self.valids[k].eq(level_valids[k])
 
+        return m
+
+
+class RingMultiPriorityEncoder(Elaboratable):
+    """
+    first - inclusive
+    last - exclusive
+    """
+    def __init__(self, input_width: int, outputs_count: int):
+        self.input_width = input_width
+        self.outputs_count = outputs_count
+
+        self.input = Signal(self.input_width)
+        self.first = Signal(range(self.input_width))
+        self.last = Signal(range(self.input_width))
+
+    def elaborate(self, platform):
+        m = Module()
+        double_input = Cat(self.input, self.input)
+
+        last_corrected = Signal.like(self.last)
+        with m.If(self.first>self.last):
+            m.d.comb += last_corrected.eq(self.input_width+self.last)
+        with m.Else():
+            m.d.comb += last_corrected.eq(self.last)
+
+        mask = Signal.like(double_input)
+        m.d.comb += mask.eq((1<<last_corrected)-1)
+
+        multi_enc_input = (double_input & mask) >> self.first
+
+        m.submodules.multi_enc = multi_enc = MultiPriorityEncoder(self.input_width, self.outputs_count)
+        m.d.comb += multi_enc.input.eq(multi_enc_input)
+        self.outputs = multi_enc.outputs
+        self.valids = multi_enc.valids
+        
         return m

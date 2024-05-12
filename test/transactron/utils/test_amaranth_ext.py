@@ -1,6 +1,6 @@
 from transactron.testing import *
 import random
-from transactron.utils.amaranth_ext import MultiPriorityEncoder
+from transactron.utils.amaranth_ext import MultiPriorityEncoder, RingMultiPriorityEncoder
 
 
 class TestMultiPriorityEncoder(TestCaseWithSimulator):
@@ -87,6 +87,50 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
                 return m
 
         self.circ = DUT(self.input_width, self.output_count, name)
+
+        with self.run_simulation(self.circ) as sim:
+            sim.add_process(self.process)
+
+class TestRingMultiPriorityEncoder(TestCaseWithSimulator):
+    def get_expected(self, input, first, last):
+        places = []
+        input = (input << self.input_width) + input
+        if last<first:
+            last+=self.input_width
+        for i in range(2*self.input_width):
+            if i>=first and i<last and input % 2:
+                places.append(i%self.input_width)
+            input //= 2
+        places += [None] * self.output_count
+        return places
+
+    def process(self):
+        for _ in range(self.test_number):
+            input = random.randrange(2**self.input_width)
+            first = random.randrange(self.input_width)
+            last = random.randrange(self.input_width)
+            print(f"{input:05b}", first, last)
+            yield self.circ.input.eq(input)
+            yield self.circ.first.eq(first)
+            yield self.circ.last.eq(last)
+            yield Settle()
+            expected_output = self.get_expected(input, first, last)
+            for ex, real, valid in zip(expected_output, self.circ.outputs, self.circ.valids):
+                if ex is None:
+                    assert (yield valid) == 0
+                else:
+                    assert (yield valid) == 1
+                    assert (yield real) == ex
+            yield Delay(1e-7)
+
+    @pytest.mark.parametrize("input_width", [1, 5, 16, 23, 24])
+    @pytest.mark.parametrize("output_count", [1, 3, 4])
+    def test_random(self, input_width, output_count):
+        random.seed(input_width + output_count)
+        self.test_number = 50
+        self.input_width = input_width
+        self.output_count = output_count
+        self.circ = RingMultiPriorityEncoder(self.input_width, self.output_count)
 
         with self.run_simulation(self.circ) as sim:
             sim.add_process(self.process)
