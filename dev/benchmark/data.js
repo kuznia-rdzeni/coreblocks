@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715512022157,
+  "lastUpdate": 1715518211814,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12183,6 +12183,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/83d706a31da7e8a31ed1b8c5963217a259168251"
         },
         "date": 1715512016920,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40695958061037724,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5267766788552616,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3209325456266702,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6515563786594487,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3454328855207257,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2834153089455887,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.31740373416157835,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.40531844302830744,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "piotro888",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "255abce16ee072ee4fd8063244b161dbe12a3165",
+          "message": "Fix fetch resume (#681)",
+          "timestamp": "2024-05-12T14:37:18+02:00",
+          "tree_id": "23b20028c4d7a733782a92124085545a6d927ac1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/255abce16ee072ee4fd8063244b161dbe12a3165"
+        },
+        "date": 1715518208374,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
