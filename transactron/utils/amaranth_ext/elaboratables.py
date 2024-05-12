@@ -385,6 +385,7 @@ class RingMultiPriorityEncoder(Elaboratable):
     first - inclusive
     last - exclusive
     """
+
     def __init__(self, input_width: int, outputs_count: int):
         self.input_width = input_width
         self.outputs_count = outputs_count
@@ -392,25 +393,30 @@ class RingMultiPriorityEncoder(Elaboratable):
         self.input = Signal(self.input_width)
         self.first = Signal(range(self.input_width))
         self.last = Signal(range(self.input_width))
+        self.outputs = [Signal(range(self.input_width), name=f"output_{i}") for i in range(self.outputs_count)]
 
     def elaborate(self, platform):
         m = Module()
-        double_input = Cat(self.input, self.input)
+        double_input = Signal(2 * self.input_width)
+        m.d.comb += double_input.eq(Cat(self.input, self.input))
 
-        last_corrected = Signal.like(self.last)
-        with m.If(self.first>self.last):
-            m.d.comb += last_corrected.eq(self.input_width+self.last)
+        last_corrected = Signal(range(self.input_width * 2))
+        with m.If(self.first > self.last):
+            m.d.comb += last_corrected.eq(self.input_width + self.last)
         with m.Else():
             m.d.comb += last_corrected.eq(self.last)
 
         mask = Signal.like(double_input)
-        m.d.comb += mask.eq((1<<last_corrected)-1)
+        m.d.comb += mask.eq((1 << last_corrected) - 1)
 
         multi_enc_input = (double_input & mask) >> self.first
 
         m.submodules.multi_enc = multi_enc = MultiPriorityEncoder(self.input_width, self.outputs_count)
         m.d.comb += multi_enc.input.eq(multi_enc_input)
-        self.outputs = multi_enc.outputs
+        for k in range(self.outputs_count):
+            moved_out = Signal(range(2 * self.input_width))
+            m.d.comb += moved_out.eq(multi_enc.outputs[k] + self.first)
+            corrected_out = Mux(moved_out >= self.input_width, moved_out - self.input_width, moved_out)
+            m.d.comb += self.outputs[k].eq(corrected_out)
         self.valids = multi_enc.valids
-        
         return m

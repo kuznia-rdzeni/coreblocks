@@ -91,15 +91,16 @@ class TestMultiPriorityEncoder(TestCaseWithSimulator):
         with self.run_simulation(self.circ) as sim:
             sim.add_process(self.process)
 
+
 class TestRingMultiPriorityEncoder(TestCaseWithSimulator):
     def get_expected(self, input, first, last):
         places = []
         input = (input << self.input_width) + input
-        if last<first:
-            last+=self.input_width
-        for i in range(2*self.input_width):
-            if i>=first and i<last and input % 2:
-                places.append(i%self.input_width)
+        if last < first:
+            last += self.input_width
+        for i in range(2 * self.input_width):
+            if i >= first and i < last and input % 2:
+                places.append(i % self.input_width)
             input //= 2
         places += [None] * self.output_count
         return places
@@ -109,7 +110,6 @@ class TestRingMultiPriorityEncoder(TestCaseWithSimulator):
             input = random.randrange(2**self.input_width)
             first = random.randrange(self.input_width)
             last = random.randrange(self.input_width)
-            print(f"{input:05b}", first, last)
             yield self.circ.input.eq(input)
             yield self.circ.first.eq(first)
             yield self.circ.last.eq(last)
