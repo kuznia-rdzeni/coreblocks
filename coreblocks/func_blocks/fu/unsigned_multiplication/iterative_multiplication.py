@@ -2,7 +2,7 @@ from amaranth import *
 import math
 
 
-from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned
+from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned, DSPMulUnit
 from coreblocks.params import GenParams
 from transactron import *
 from transactron.core import def_method
@@ -34,6 +34,12 @@ class IterativeSequenceMul(Elaboratable):
     def elaborate(self, platform=None):
         m = TModule()
 
+        self.dsp_units = []
+        for _ in range(self.dsp_number):
+            unit = DSPMulUnit(self.dsp_width)
+            self.dsp_units.append(unit)
+            m.submodules += unit
+
         number_of_chunks = self.n // self.dsp_width
         number_of_multiplications = number_of_chunks**2
         number_of_steps = math.ceil(number_of_multiplications / self.dsp_number)
@@ -59,15 +65,25 @@ class IterativeSequenceMul(Elaboratable):
                 m.d.sync += self.step.eq(0)
                 m.d.sync += self.ready.eq(0)
 
-            m.d.sync += self.first_mul_number.eq((self.first_mul_number + self.dsp_number) % number_of_multiplications)
-
+            with m.If(self.first_mul_number + self.dsp_number < number_of_multiplications):
+                m.d.sync += self.first_mul_number.eq(self.first_mul_number + self.dsp_number)
+            with m.Else():
+                m.d.sync += self.first_mul_number.eq(
+                    self.first_mul_number + self.dsp_number - number_of_multiplications
+                )
+            dsp_idx = 0
             for i in range(number_of_multiplications):
                 a = i // number_of_chunks
                 b = i % number_of_chunks
                 chunk_i1 = self.i1[a * self.dsp_width : (a + 1) * self.dsp_width]
                 chunk_i2 = self.i2[b * self.dsp_width : (b + 1) * self.dsp_width]
                 with m.If((i >= self.first_mul_number) & (i < self.first_mul_number + self.dsp_number)):
-                    m.d.sync += self.pipeline_array[0][a][b].eq(chunk_i1 * chunk_i2)
+                    dsp_idx = dsp_idx + 1
+                    if dsp_idx == self.dsp_number:
+                        dsp_idx = 0
+                    with Transaction().body(m):
+                        res = self.dsp_units[dsp_idx].compute(m, i1=chunk_i1 | 0, i2=chunk_i2 | 0)
+                        m.d.sync += self.pipeline_array[0][a][b].eq(res)
 
             shift_size = self.dsp_width
             for i in range(1, int(math.log(number_of_chunks, 2)) + 1):
