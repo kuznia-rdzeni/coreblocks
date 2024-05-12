@@ -210,7 +210,7 @@ class Retirement(Elaboratable):
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
 
-                    self.fetch_continue(m, pc=resume_pc, resume_from_exception=1)
+                    self.fetch_continue(m, pc=resume_pc)
 
                     # Release pending trap state - allow accepting new reports
                     self.exception_cause_clear(m)
