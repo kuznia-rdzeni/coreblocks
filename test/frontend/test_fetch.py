@@ -11,7 +11,6 @@ from coreblocks.interface.keys import FetchResumeKey
 
 from transactron.core import Method
 from transactron.lib import AdapterTrans, Adapter, BasicFifo
-from transactron.testing.infrastructure import SimpleTestCircuit
 from transactron.utils import ModuleConnector
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, SimpleTestCircuit, TestGen
 
