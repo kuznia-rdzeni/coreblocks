@@ -49,8 +49,11 @@ class IterativeSequenceMul(Elaboratable):
             for i in range(1, result_lvl + 1):
                 m.d.sync += self.valid_array[i].eq(self.valid_array[i - 1])
 
-            with m.If(self.step == number_of_steps):
+            with m.If((self.step == number_of_steps)):
                 m.d.sync += self.ready.eq(1)
+
+            with m.If(self.valid_array[result_lvl]):
+                m.d.sync += self.ready.eq(0)
 
             with m.If(self.step == number_of_steps - 1):
                 m.d.sync += self.valid_array[0].eq(1)
@@ -68,9 +71,7 @@ class IterativeSequenceMul(Elaboratable):
             with m.If(self.first_mul_number + self.dsp_number < number_of_multiplications):
                 m.d.sync += self.first_mul_number.eq(self.first_mul_number + self.dsp_number)
             with m.Else():
-                m.d.sync += self.first_mul_number.eq(
-                    self.first_mul_number + self.dsp_number - number_of_multiplications
-                )
+                m.d.sync += self.first_mul_number.eq(0)
             dsp_idx = 0
             for i in range(number_of_multiplications):
                 a = i // number_of_chunks
@@ -86,7 +87,7 @@ class IterativeSequenceMul(Elaboratable):
                         m.d.sync += self.pipeline_array[0][a][b].eq(res)
 
             shift_size = self.dsp_width
-            for i in range(1, int(math.log(number_of_chunks, 2)) + 1):
+            for i in range(1, result_lvl + 1):
                 shift_size = shift_size << 1
                 for j in range(number_of_chunks >> i):
                     for k in range(number_of_chunks >> i):
@@ -105,7 +106,7 @@ class IterativeSequenceMul(Elaboratable):
 
 
 class IterativeUnsignedMul(MulBaseUnsigned):
-    def __init__(self, gen_params: GenParams, dsp_width: int = 4, dsp_number: int = 4):
+    def __init__(self, gen_params: GenParams, dsp_width: int = 16, dsp_number: int = 8):
         super().__init__(gen_params)
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
