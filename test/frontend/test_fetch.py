@@ -59,7 +59,7 @@ class TestFetchUnit(TestCaseWithSimulator):
     with_rvc: bool
 
     @pytest.fixture(autouse=True)
-    def setup(self, configure_dependency_context):
+    def setup(self, fixture_initialize_testing_env):
         self.pc = 0
         self.gen_params = GenParams(
             test_core_config.replace(
@@ -416,7 +416,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
     with_rvc: bool
 
     @pytest.fixture(autouse=True)
-    def setup(self, configure_dependency_context):
+    def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(
             test_core_config.replace(compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log)
         )

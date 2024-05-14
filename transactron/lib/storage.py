@@ -3,12 +3,12 @@ from amaranth.utils import *
 
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from ..core import *
-from ..utils import SrcLoc, get_src_loc
+from ..utils import SrcLoc, get_src_loc, MultiPriorityEncoder
 from typing import Optional
-from transactron.utils import assign, AssignType, LayoutList
+from transactron.utils import assign, AssignType, LayoutList, MethodLayout
 from .reqres import ArgumentsToResultsZipper
 
-__all__ = ["MemoryBank", "AsyncMemoryBank"]
+__all__ = ["MemoryBank", "ContentAddressableMemory", "AsyncMemoryBank"]
 
 
 class MemoryBank(Elaboratable):
@@ -37,7 +37,7 @@ class MemoryBank(Elaboratable):
         elem_count: int,
         granularity: Optional[int] = None,
         safe_writes: bool = True,
-        src_loc: int | SrcLoc = 0
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -134,6 +134,103 @@ class MemoryBank(Elaboratable):
             else:
                 m.d.comb += write_req.eq(1)
             m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
+
+        return m
+
+
+class ContentAddressableMemory(Elaboratable):
+    """Content addresable memory
+
+    This module implements a content-addressable memory (in short CAM) with Transactron interface.
+    CAM is a type of memory where instead of predefined indexes there are used values fed in runtime
+    as keys (similar as in python dictionary). To insert new entry a pair `(key, value)` has to be
+    provided. Such pair takes an free slot which depends on internal implementation. To read value
+    a `key` has to be provided. It is compared with every valid key stored in CAM. If there is a hit,
+    a value is read. There can be many instances of the same key in CAM. In such case it is undefined
+    which value will be read.
+
+
+    .. warning::
+        Pushing the value with index already present in CAM is an undefined behaviour.
+
+    Attributes
+    ----------
+    read : Method
+        Nondestructive read
+    write : Method
+        If index present - do update
+    remove : Method
+        Remove
+    push : Method
+        Inserts new data.
+    """
+
+    def __init__(self, address_layout: MethodLayout, data_layout: MethodLayout, entries_number: int):
+        """
+        Parameters
+        ----------
+        address_layout : LayoutLike
+            The layout of the address records.
+        data_layout : LayoutLike
+            The layout of the data.
+        entries_number : int
+            The number of slots to create in memory.
+        """
+        self.address_layout = from_method_layout(address_layout)
+        self.data_layout = from_method_layout(data_layout)
+        self.entries_number = entries_number
+
+        self.read = Method(i=[("addr", self.address_layout)], o=[("data", self.data_layout), ("not_found", 1)])
+        self.remove = Method(i=[("addr", self.address_layout)])
+        self.push = Method(i=[("addr", self.address_layout), ("data", self.data_layout)])
+        self.write = Method(i=[("addr", self.address_layout), ("data", self.data_layout)], o=[("not_found", 1)])
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        address_array = Array(
+            [Signal(self.address_layout, name=f"address_array_{i}") for i in range(self.entries_number)]
+        )
+        data_array = Array([Signal(self.data_layout, name=f"data_array_{i}") for i in range(self.entries_number)])
+        valids = Signal(self.entries_number, name="valids")
+
+        m.submodules.encoder_read = encoder_read = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_write = encoder_write = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_push = encoder_push = MultiPriorityEncoder(self.entries_number, 1)
+        m.submodules.encoder_remove = encoder_remove = MultiPriorityEncoder(self.entries_number, 1)
+        m.d.top_comb += encoder_push.input.eq(~valids)
+
+        @def_method(m, self.push, ready=~valids.all())
+        def _(addr, data):
+            id = Signal(range(self.entries_number), name="id_push")
+            m.d.top_comb += id.eq(encoder_push.outputs[0])
+            m.d.sync += address_array[id].eq(addr)
+            m.d.sync += data_array[id].eq(data)
+            m.d.sync += valids.bit_select(id, 1).eq(1)
+
+        @def_method(m, self.write)
+        def _(addr, data):
+            write_mask = Signal(self.entries_number, name="write_mask")
+            m.d.top_comb += write_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            m.d.top_comb += encoder_write.input.eq(write_mask)
+            with m.If(write_mask.any()):
+                m.d.sync += data_array[encoder_write.outputs[0]].eq(data)
+            return {"not_found": ~write_mask.any()}
+
+        @def_method(m, self.read)
+        def _(addr):
+            read_mask = Signal(self.entries_number, name="read_mask")
+            m.d.top_comb += read_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            m.d.top_comb += encoder_read.input.eq(read_mask)
+            return {"data": data_array[encoder_read.outputs[0]], "not_found": ~read_mask.any()}
+
+        @def_method(m, self.remove)
+        def _(addr):
+            rm_mask = Signal(self.entries_number, name="rm_mask")
+            m.d.top_comb += rm_mask.eq(Cat([addr == stored_addr for stored_addr in address_array]) & valids)
+            m.d.top_comb += encoder_remove.input.eq(rm_mask)
+            with m.If(rm_mask.any()):
+                m.d.sync += valids.bit_select(encoder_remove.outputs[0], 1).eq(0)
 
         return m
 

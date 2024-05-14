@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from typing import Literal, Optional, overload
 from collections.abc import Iterable
 from amaranth import *
-from transactron.utils._typing import HasElaborate, ModuleLike
+from transactron.utils._typing import HasElaborate, ModuleLike, ValueLike
 
 __all__ = [
     "OneHotSwitchDynamic",
@@ -11,6 +11,7 @@ __all__ = [
     "ModuleConnector",
     "Scheduler",
     "RoundRobin",
+    "MultiPriorityEncoder",
 ]
 
 
@@ -235,5 +236,144 @@ class RoundRobin(Elaboratable):
                             m.d.sync += self.grant.eq(succ)
 
         m.d.sync += self.valid.eq(self.requests.any())
+
+        return m
+
+
+class MultiPriorityEncoder(Elaboratable):
+    """Priority encoder with more outputs
+
+    This is an extension of the `PriorityEncoder` from amaranth that supports
+    more than one output from an input signal. In other words
+    it decodes multi-hot encoded signal into lists of signals in binary
+    format, each with the index of a different high bit in the input.
+
+    Attributes
+    ----------
+    input_width : int
+        Width of the input signal
+    outputs_count : int
+        Number of outputs to generate at once.
+    input : Signal, in
+        Signal with 1 on `i`-th bit if `i` can be selected by encoder
+    outputs : list[Signal], out
+        Signals with selected indicies, sorted in ascending order,
+        if the number of ready signals is less than `outputs_count`
+        then valid signals are at the beginning of the list.
+    valids : list[Signal], out
+        One bit for each output signal, indicating whether the output is valid or not.
+    """
+
+    def __init__(self, input_width: int, outputs_count: int):
+        self.input_width = input_width
+        self.outputs_count = outputs_count
+
+        self.input = Signal(self.input_width)
+        self.outputs = [Signal(range(self.input_width), name=f"output_{i}") for i in range(self.outputs_count)]
+        self.valids = [Signal(name=f"valid_{i}") for i in range(self.outputs_count)]
+
+    @staticmethod
+    def create(
+        m: Module, input_width: int, input: ValueLike, outputs_count: int = 1, name: Optional[str] = None
+    ) -> list[tuple[Signal, Signal]]:
+        """Syntax sugar for creating MultiPriorityEncoder
+
+        This static method allows to use MultiPriorityEncoder in a more functional
+        way. Instead of creating the instance manually, connecting all the signals and
+        adding a submodule, you can call this function to do it automatically.
+
+        This function is equivalent to:
+
+        .. highlight:: python
+        .. code-block:: python
+
+            m.submodules += prio_encoder = PriorityEncoder(cnt)
+            m.d.top_comb += prio_encoder.input.eq(one_hot_singal)
+            idx = prio_encoder.outputs
+            valid = prio.encoder.valids
+
+        Parameters
+        ----------
+        m: Module
+            Module to add the MultiPriorityEncoder to.
+        input_width : int
+            Width of the one hot signal.
+        input : ValueLike
+            The one hot signal to decode.
+        outputs_count : int
+            Number of different decoder outputs to generate at once. Default: 1.
+        name : Optional[str]
+            Name to use when adding MultiPriorityEncoder to submodules.
+            If None, it will be added as an anonymous submodule. The given name
+            can not be used in a submodule that has already been added. Default: None.
+
+        Returns
+        -------
+        return : list[tuple[Signal, Signal]]
+            Returns a list with len equal to outputs_count. Each tuple contains
+            a pair of decoded index on the first position and a valid signal
+            on the second position.
+        """
+        prio_encoder = MultiPriorityEncoder(input_width, outputs_count)
+        if name is None:
+            m.submodules += prio_encoder
+        else:
+            try:
+                getattr(m.submodules, name)
+                raise ValueError(f"Name: {name} is already in use, so MultiPriorityEncoder can not be added with it.")
+            except AttributeError:
+                setattr(m.submodules, name, prio_encoder)
+        m.d.comb += prio_encoder.input.eq(input)
+        return list(zip(prio_encoder.outputs, prio_encoder.valids))
+
+    @staticmethod
+    def create_simple(
+        m: Module, input_width: int, input: ValueLike, name: Optional[str] = None
+    ) -> tuple[Signal, Signal]:
+        """Syntax sugar for creating MultiPriorityEncoder
+
+        This is the same as `create` function, but with `outputs_count` hardcoded to 1.
+        """
+        lst = MultiPriorityEncoder.create(m, input_width, input, outputs_count=1, name=name)
+        return lst[0]
+
+    def build_tree(self, m: Module, in_sig: Signal, start_idx: int):
+        assert len(in_sig) > 0
+        level_outputs = [
+            Signal(range(self.input_width), name=f"_lvl_out_idx{start_idx}_{i}") for i in range(self.outputs_count)
+        ]
+        level_valids = [Signal(name=f"_lvl_val_idx{start_idx}_{i}") for i in range(self.outputs_count)]
+        if len(in_sig) == 1:
+            with m.If(in_sig):
+                m.d.comb += level_outputs[0].eq(start_idx)
+                m.d.comb += level_valids[0].eq(1)
+        else:
+            middle = len(in_sig) // 2
+            r_in = Signal(middle, name=f"_r_in_idx{start_idx}")
+            l_in = Signal(len(in_sig) - middle, name=f"_l_in_idx{start_idx}")
+            m.d.comb += r_in.eq(in_sig[0:middle])
+            m.d.comb += l_in.eq(in_sig[middle:])
+            r_out, r_val = self.build_tree(m, r_in, start_idx)
+            l_out, l_val = self.build_tree(m, l_in, start_idx + middle)
+
+            with m.Switch(Cat(r_val)):
+                for i in range(self.outputs_count + 1):
+                    with m.Case((1 << i) - 1):
+                        for j in range(i):
+                            m.d.comb += level_outputs[j].eq(r_out[j])
+                            m.d.comb += level_valids[j].eq(r_val[j])
+                        for j in range(i, self.outputs_count):
+                            m.d.comb += level_outputs[j].eq(l_out[j - i])
+                            m.d.comb += level_valids[j].eq(l_val[j - i])
+        return level_outputs, level_valids
+
+    def elaborate(self, platform):
+        m = Module()
+
+        level_outputs, level_valids = self.build_tree(m, self.input, 0)
+
+        for k in range(self.outputs_count):
+            m.d.comb += self.outputs[k].eq(level_outputs[k])
+            m.d.comb += self.valids[k].eq(level_valids[k])
 
         return m
