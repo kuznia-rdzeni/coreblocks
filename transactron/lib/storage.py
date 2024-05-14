@@ -142,8 +142,8 @@ class ContentAddressableMemory(Elaboratable):
     """Content addresable memory
 
     This module implements a content-addressable memory (in short CAM) with Transactron interface.
-    CAM is a type of memory where instead of predefined indexes there are used values feed in runtime
-    as keys (smimlar as in python dictionary). To insert new entry a pair `(key, value)` has to be
+    CAM is a type of memory where instead of predefined indexes there are used values fed in runtime
+    as keys (similar as in python dictionary). To insert new entry a pair `(key, value)` has to be
     provided. Such pair takes an free slot which depends on internal implementation. To read value
     a `key` has to be provided. It is compared with every valid key stored in CAM. If there is a hit,
     a value is read. There can be many instances of the same key in CAM. In such case it is undefined
