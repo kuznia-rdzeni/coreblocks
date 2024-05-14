@@ -129,7 +129,7 @@ class Core(Elaboratable):
         fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
         m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
-        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.fetch.resume_from_unsafe)
+        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
@@ -144,7 +144,7 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.frontend.fetch.resume_from_exception,
+            fetch_continue=self.frontend.resume_from_exception,
             instr_decrement=core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )

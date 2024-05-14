@@ -24,8 +24,10 @@ class CoreFrontend(Elaboratable):
         into the instruction buffer.
     consume_instr: Method
         Consume a single decoded instruction.
-    resume: Method
-        Resume the frontend from the given PC.
+    resume_from_exception: Method
+        Resume the frontend from the given PC after an exception.
+    resume_from_unsafe: Method
+        Resume the frontend from the given PC after an unsafe instruction.
     stall: Method
         Stall and flush the frontend.
     """
@@ -51,7 +53,8 @@ class CoreFrontend(Elaboratable):
 
         self.inject_instr = self.instr_buffer.write
         self.consume_instr = self.decode_pipe.read
-        self.resume = self.fetch.resume
+        self.resume_from_exception = self.fetch.resume_from_exception
+        self.resume_from_unsafe = self.fetch.resume_from_unsafe
         self.stall = Method()
 
     def elaborate(self, platform):
