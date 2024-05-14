@@ -70,6 +70,8 @@ class _CoreConfigurationDataClass:
         Log of the cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
+    instr_buffer_size: int
+        Size of the instruction buffer.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -104,6 +106,8 @@ class _CoreConfigurationDataClass:
     icache_line_bytes_log: int = 5
 
     fetch_block_bytes_log: int = 2
+
+    instr_buffer_size: int = 4
 
     allow_partial_extensions: bool = False
 
@@ -162,6 +166,7 @@ full_core_config = CoreConfiguration(
     ),
     compressed=True,
     fetch_block_bytes_log=4,
+    instr_buffer_size=16,
 )
 
 # Core configuration used in internal testbenches

@@ -3,10 +3,11 @@ from amaranth.lib.wiring import flipped, connect
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
+from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
-from transactron.lib import ConnectTrans
+from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     FetchResumeKey,
@@ -64,7 +65,7 @@ class Core(Elaboratable):
         self.exception_cause_register = ExceptionCauseRegister(
             self.gen_params,
             rob_get_indices=self.ROB.get_indices,
-            fetch_stall_exception=self.frontend.fetch.stall_exception,
+            fetch_stall_exception=self.frontend.stall,
         )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
@@ -105,8 +106,15 @@ class Core(Elaboratable):
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
 
+        m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
+
+        drop_second_ret_value = (self.gen_params.get(DecodeLayouts).decoded_instr, lambda _, rets: rets[0])
+        m.submodules.get_instr = get_instr = MethodProduct(
+            [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
+        )
+
         m.submodules.scheduler = Scheduler(
-            get_instr=self.frontend.fifo_decode.read,
+            get_instr=get_instr.method,
             get_free_reg=free_rf_fifo.read,
             rat_rename=frat.rename,
             rob_put=rob.put,
@@ -121,7 +129,7 @@ class Core(Elaboratable):
         fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
         m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
-        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.fetch.resume_from_unsafe)
+        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
@@ -136,8 +144,8 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.frontend.fetch.resume_from_exception,
-            instr_decrement=self.frontend.core_counter.decrement,
+            fetch_continue=self.frontend.resume_from_exception,
+            instr_decrement=core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )
 
