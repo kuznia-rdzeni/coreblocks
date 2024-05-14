@@ -115,6 +115,24 @@
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.frontend.</span></span><span class="sig-name descname"><span class="pre">CoreFrontend</span></span><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Frontend of the core.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>inject_instr: Method</strong></dt><dd><p>Inject a raw instruction (of type FetchLayouts.raw_instr) directly
+into the instruction buffer.</p>
+</dd>
+<dt><strong>consume_instr: Method</strong></dt><dd><p>Consume a single decoded instruction.</p>
+</dd>
+<dt><strong>resume_from_exception: Method</strong></dt><dd><p>Resume the frontend from the given PC after an exception.</p>
+</dd>
+<dt><strong>resume_from_unsafe: Method</strong></dt><dd><p>Resume the frontend from the given PC after an unsafe instruction.</p>
+</dd>
+<dt><strong>stall: Method</strong></dt><dd><p>Stall and flush the frontend.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">instr_bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.__init__" title="Permalink to this definition"></a></dt>
@@ -172,7 +190,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 12:38 2024-05-12.
+      <span class="lastupdated">Last updated on 07:20 2024-05-14.
       </span></p>
   </div>
 
