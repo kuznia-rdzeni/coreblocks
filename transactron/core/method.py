@@ -160,7 +160,7 @@ class Method(TransactionBase):
             Method for which this method is a proxy for.
         """
 
-        @def_method(m, self)
+        @def_method(m, self, ready=method.ready)
         def _(arg):
             return method(m, arg)
 

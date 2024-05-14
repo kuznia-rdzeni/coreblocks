@@ -77,5 +77,6 @@ class GenParams(DependentCache):
         self.fetch_width_log = exact_log2(self.fetch_width)
 
         self.instr_buffer_size = cfg.instr_buffer_size
+        self.extra_verification = cfg.extra_verification
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
