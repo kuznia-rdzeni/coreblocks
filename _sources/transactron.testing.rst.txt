@@ -28,6 +28,14 @@ transactron.testing.infrastructure module
    :undoc-members:
    :show-inheritance:
 
+transactron.testing.input\_generation module
+--------------------------------------------
+
+.. automodule:: transactron.testing.input_generation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.testing.logging module
 ----------------------------------
 

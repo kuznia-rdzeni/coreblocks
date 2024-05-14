@@ -190,22 +190,22 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.configure_dependency_context">
-<span class="sig-name descname"><span class="pre">configure_dependency_context</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_dependency_context" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">configure_dependency_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_dependency_context" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.configure_logging">
-<span class="sig-name descname"><span class="pre">configure_logging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fixture_sim_processes_to_add</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_logging_handler</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_logging" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">configure_logging</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_logging" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.configure_profiles">
-<span class="sig-name descname"><span class="pre">configure_profiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixture_sim_processes_to_add</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">configure_dependency_context</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_profiles" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">configure_profiles</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_profiles" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.configure_traces">
-<span class="sig-name descname"><span class="pre">configure_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_traces" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">configure_traces</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.configure_traces" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -214,8 +214,13 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.fixture_sim_processes_to_add">
-<span class="sig-name descname"><span class="pre">fixture_sim_processes_to_add</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.fixture_sim_processes_to_add" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.fixture_initialize_testing_env">
+<span class="sig-name descname"><span class="pre">fixture_initialize_testing_env</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.fixture_initialize_testing_env" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.multi_settle">
+<span class="sig-name descname"><span class="pre">multi_settle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">settle_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.multi_settle" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -236,6 +241,11 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.reinitialize_fixtures">
+<span class="sig-name descname"><span class="pre">reinitialize_fixtures</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.reinitialize_fixtures" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.TestCaseWithSimulator.run_simulation">
 <span class="sig-name descname"><span class="pre">run_simulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HasElaborate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cycles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_transaction_module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.infrastructure.TestCaseWithSimulator.run_simulation" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -251,6 +261,47 @@ Processes compiled from HDL and added with <code class="xref py py-meth docutils
 <dl class="py function">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.guard_nested_collection">
 <span class="sig-prename descclassname"><span class="pre">transactron.testing.infrastructure.</span></span><span class="sig-name descname"><span class="pre">guard_nested_collection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union[~T,</span> <span class="pre">list[ForwardRef('_T_nested_collection[T]')],</span> <span class="pre">dict[str,</span> <span class="pre">ForwardRef('_T_nested_collection[T]')]]]]]</span></span></span><a class="headerlink" href="#transactron.testing.infrastructure.guard_nested_collection" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-transactron.testing.input_generation">
+<span id="transactron-testing-input-generation-module"></span><h2>transactron.testing.input_generation module<a class="headerlink" href="#module-transactron.testing.input_generation" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.OpNOP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">OpNOP</span></span><a class="headerlink" href="#transactron.testing.input_generation.OpNOP" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.generate_based_on_layout">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">generate_based_on_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">SearchStrategy</span><span class="p"><span class="pre">[</span></span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">RecordIntDict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.testing.input_generation.generate_based_on_layout" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.generate_method_input">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">generate_method_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union[int,</span> <span class="pre">ForwardRef('RecordIntDict')]]]]</span></span></span><a class="headerlink" href="#transactron.testing.input_generation.generate_method_input" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.generate_nops_in_list">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">generate_nops_in_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_nops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SearchStrategy</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">SearchStrategy</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#transactron.testing.input_generation.OpNOP" title="transactron.testing.input_generation.OpNOP"><span class="pre">transactron.testing.input_generation.OpNOP</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.testing.input_generation.generate_nops_in_list" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.generate_process_input">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">generate_process_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">elem_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_nops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layouts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">OpNOP]]</span></span></span><a class="headerlink" href="#transactron.testing.input_generation.generate_process_input" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.generate_shrinkable_list">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">generate_shrinkable_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SearchStrategy</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">SearchStrategy</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.testing.input_generation.generate_shrinkable_list" title="Permalink to this definition"></a></dt>
+<dd><p>Trick based on <a class="reference external" href="https://github.com/HypothesisWorks/hypothesis/blob/">https://github.com/HypothesisWorks/hypothesis/blob/</a>
+6867da71beae0e4ed004b54b92ef7c74d0722815/hypothesis-python/src/hypothesis/stateful.py#L143</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="transactron.testing.input_generation.insert_nops">
+<span class="sig-prename descclassname"><span class="pre">transactron.testing.input_generation.</span></span><span class="sig-name descname"><span class="pre">insert_nops</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">draw</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DrawFn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_nops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lst</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.input_generation.insert_nops" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </div>
@@ -425,7 +476,7 @@ during function declaration.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 07:20 2024-05-14.
+      <span class="lastupdated">Last updated on 10:38 2024-05-14.
       </span></p>
   </div>
 

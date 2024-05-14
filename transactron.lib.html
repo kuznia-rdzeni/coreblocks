@@ -1793,6 +1793,55 @@ Alternatively, the source location to use instead of the default.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.lib.storage.ContentAddressableMemory">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.storage.</span></span><span class="sig-name descname"><span class="pre">ContentAddressableMemory</span></span><a class="headerlink" href="#transactron.lib.storage.ContentAddressableMemory" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Content addresable memory</p>
+<p>This module implements a content-addressable memory (in short CAM) with Transactron interface.
+CAM is a type of memory where instead of predefined indexes there are used values fed in runtime
+as keys (similar as in python dictionary). To insert new entry a pair <cite>(key, value)</cite> has to be
+provided. Such pair takes an free slot which depends on internal implementation. To read value
+a <cite>key</cite> has to be provided. It is compared with every valid key stored in CAM. If there is a hit,
+a value is read. There can be many instances of the same key in CAM. In such case it is undefined
+which value will be read.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Pushing the value with index already present in CAM is an undefined behaviour.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>read</strong><span class="classifier">Method</span></dt><dd><p>Nondestructive read</p>
+</dd>
+<dt><strong>write</strong><span class="classifier">Method</span></dt><dd><p>If index present - do update</p>
+</dd>
+<dt><strong>remove</strong><span class="classifier">Method</span></dt><dd><p>Remove</p>
+</dd>
+<dt><strong>push</strong><span class="classifier">Method</span></dt><dd><p>Inserts new data.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.lib.storage.ContentAddressableMemory.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">address_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.lib.data.StructLayout</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">collections.abc.Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ShapeLike</span> <span class="pre">|</span> <span class="pre">LayoutList'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.lib.storage.ContentAddressableMemory.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>address_layout</strong><span class="classifier">LayoutLike</span></dt><dd><p>The layout of the address records.</p>
+</dd>
+<dt><strong>data_layout</strong><span class="classifier">LayoutLike</span></dt><dd><p>The layout of the data.</p>
+</dd>
+<dt><strong>entries_number</strong><span class="classifier">int</span></dt><dd><p>The number of slots to create in memory.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.lib.storage.MemoryBank">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.lib.storage.</span></span><span class="sig-name descname"><span class="pre">MemoryBank</span></span><a class="headerlink" href="#transactron.lib.storage.MemoryBank" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -2179,7 +2228,7 @@ Alternatively, the source location to use instead of the default.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 07:20 2024-05-14.
+      <span class="lastupdated">Last updated on 10:38 2024-05-14.
       </span></p>
   </div>
 

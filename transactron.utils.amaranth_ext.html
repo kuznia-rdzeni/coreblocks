@@ -112,6 +112,94 @@ added as its submodules.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">MultiPriorityEncoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Priority encoder with more outputs</p>
+<p>This is an extension of the <cite>PriorityEncoder</cite> from amaranth that supports
+more than one output from an input signal. In other words
+it decodes multi-hot encoded signal into lists of signals in binary
+format, each with the index of a different high bit in the input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>input_width</strong><span class="classifier">int</span></dt><dd><p>Width of the input signal</p>
+</dd>
+<dt><strong>outputs_count</strong><span class="classifier">int</span></dt><dd><p>Number of outputs to generate at once.</p>
+</dd>
+<dt><strong>input</strong><span class="classifier">Signal, in</span></dt><dd><p>Signal with 1 on <cite>i</cite>-th bit if <cite>i</cite> can be selected by encoder</p>
+</dd>
+<dt><strong>outputs</strong><span class="classifier">list[Signal], out</span></dt><dd><p>Signals with selected indicies, sorted in ascending order,
+if the number of ready signals is less than <cite>outputs_count</cite>
+then valid signals are at the beginning of the list.</p>
+</dd>
+<dt><strong>valids</strong><span class="classifier">list[Signal], out</span></dt><dd><p>One bit for each output signal, indicating whether the output is valid or not.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.build_tree">
+<span class="sig-name descname"><span class="pre">build_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_sig</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Signal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.build_tree" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.create">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._ast.Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Signal</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.create" title="Permalink to this definition"></a></dt>
+<dd><p>Syntax sugar for creating MultiPriorityEncoder</p>
+<p>This static method allows to use MultiPriorityEncoder in a more functional
+way. Instead of creating the instance manually, connecting all the signals and
+adding a submodule, you can call this function to do it automatically.</p>
+<p>This function is equivalent to:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">m</span><span class="o">.</span><span class="n">submodules</span> <span class="o">+=</span> <span class="n">prio_encoder</span> <span class="o">=</span> <span class="n">PriorityEncoder</span><span class="p">(</span><span class="n">cnt</span><span class="p">)</span>
+<span class="n">m</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">top_comb</span> <span class="o">+=</span> <span class="n">prio_encoder</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">one_hot_singal</span><span class="p">)</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="n">prio_encoder</span><span class="o">.</span><span class="n">outputs</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">prio</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">valids</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>m: Module</strong></dt><dd><p>Module to add the MultiPriorityEncoder to.</p>
+</dd>
+<dt><strong>input_width</strong><span class="classifier">int</span></dt><dd><p>Width of the one hot signal.</p>
+</dd>
+<dt><strong>input</strong><span class="classifier">ValueLike</span></dt><dd><p>The one hot signal to decode.</p>
+</dd>
+<dt><strong>outputs_count</strong><span class="classifier">int</span></dt><dd><p>Number of different decoder outputs to generate at once. Default: 1.</p>
+</dd>
+<dt><strong>name</strong><span class="classifier">Optional[str]</span></dt><dd><p>Name to use when adding MultiPriorityEncoder to submodules.
+If None, it will be added as an anonymous submodule. The given name
+can not be used in a submodule that has already been added. Default: None.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>return</strong><span class="classifier">list[tuple[Signal, Signal]]</span></dt><dd><p>Returns a list with len equal to outputs_count. Each tuple contains
+a pair of decoded index on the first position and a valid signal
+on the second position.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.create_simple">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_simple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">amaranth.hdl._ast.Value</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">enum.Enum</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.ValueCastable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">amaranth.hdl._ast.Signal</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">amaranth.hdl._ast.Signal</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.create_simple" title="Permalink to this definition"></a></dt>
+<dd><p>Syntax sugar for creating MultiPriorityEncoder</p>
+<p>This is the same as <cite>create</cite> function, but with <cite>outputs_count</cite> hardcoded to 1.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="transactron.utils.amaranth_ext.elaboratables.OneHotSwitch">
 <span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.elaboratables.</span></span><span class="sig-name descname"><span class="pre">OneHotSwitch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ModuleLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.elaboratables.OneHotSwitch" title="Permalink to this definition"></a></dt>
@@ -120,7 +208,7 @@ added as its submodules.</p>
 Amaranth <cite>Switch</cite>. This allows to get the performance benefit of using
 the one-hot representation.</p>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">OneHotSwitch</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span> <span class="k">as</span> <span class="n">OneHotCase</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">OneHotSwitch</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span> <span class="k">as</span> <span class="n">OneHotCase</span><span class="p">:</span>
     <span class="k">with</span> <span class="n">OneHotCase</span><span class="p">(</span><span class="mb">0b01</span><span class="p">):</span>
         <span class="o">...</span>
     <span class="k">with</span> <span class="n">OneHotCase</span><span class="p">(</span><span class="mb">0b10</span><span class="p">):</span>
@@ -151,7 +239,7 @@ the one-hot representation.</p>
 <p>This function allows simple one-hot matching on signals which can have
 variable bit widths.</p>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">OneHotSwitchDynamic</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">OneHotSwitchDynamic</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
     <span class="c1"># code dependent on the bit index i</span>
     <span class="o">...</span>
 </pre></div>
@@ -293,7 +381,7 @@ one-hot encoding.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 07:20 2024-05-14.
+      <span class="lastupdated">Last updated on 10:38 2024-05-14.
       </span></p>
   </div>
 

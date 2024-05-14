@@ -366,6 +366,8 @@
 </li>
         <li><a href="transactron.lib.html#transactron.lib.storage.AsyncMemoryBank.__init__">(transactron.lib.storage.AsyncMemoryBank method)</a>
 </li>
+        <li><a href="transactron.lib.html#transactron.lib.storage.ContentAddressableMemory.__init__">(transactron.lib.storage.ContentAddressableMemory method)</a>
+</li>
         <li><a href="transactron.lib.html#transactron.lib.storage.MemoryBank.__init__">(transactron.lib.storage.MemoryBank method)</a>
 </li>
         <li><a href="transactron.lib.html#transactron.lib.transformers.CatTrans.__init__">(transactron.lib.transformers.CatTrans method)</a>
@@ -409,6 +411,8 @@
         <li><a href="transactron.testing.html#transactron.testing.testbenchio.TestbenchIO.__init__">(transactron.testing.testbenchio.TestbenchIO method)</a>
 </li>
         <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.ModuleConnector.__init__">(transactron.utils.amaranth_ext.elaboratables.ModuleConnector method)</a>
+</li>
+        <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.__init__">(transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder method)</a>
 </li>
         <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.RoundRobin.__init__">(transactron.utils.amaranth_ext.elaboratables.RoundRobin method)</a>
 </li>
@@ -697,6 +701,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.BU">BU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
+      <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.build_tree">build_tree() (transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder method)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneMemorySlave.bus">bus (coreblocks.peripherals.wishbone.WishboneMemorySlave attribute)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface">BusMasterInterface (class in coreblocks.peripherals.bus_adapter)</a>
@@ -814,6 +820,8 @@
       <li><a href="transactron.lib.html#transactron.lib.transformers.ConnectAndMapTrans">ConnectAndMapTrans (class in transactron.lib.transformers)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.connectors.ConnectTrans">ConnectTrans (class in transactron.lib.connectors)</a>
+</li>
+      <li><a href="transactron.lib.html#transactron.lib.storage.ContentAddressableMemory">ContentAddressableMemory (class in transactron.lib.storage)</a>
 </li>
       <li><a href="transactron.core.html#transactron.core.manager.TransactionModule.context">context() (transactron.core.manager.TransactionModule method)</a>
 
@@ -1350,6 +1358,12 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneSignature.create">create() (coreblocks.peripherals.wishbone.WishboneSignature method)</a>
+
+      <ul>
+        <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.create">(transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder static method)</a>
+</li>
+      </ul></li>
+      <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder.create_simple">create_simple() (transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder static method)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.CSR_IMM">CSR_IMM (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
@@ -1677,7 +1691,7 @@
 </li>
       <li><a href="transactron.lib.html#transactron.lib.metrics.FIFOLatencyMeasurer">FIFOLatencyMeasurer (class in transactron.lib.metrics)</a>
 </li>
-      <li><a href="transactron.testing.html#transactron.testing.infrastructure.TestCaseWithSimulator.fixture_sim_processes_to_add">fixture_sim_processes_to_add() (transactron.testing.infrastructure.TestCaseWithSimulator method)</a>
+      <li><a href="transactron.testing.html#transactron.testing.infrastructure.TestCaseWithSimulator.fixture_initialize_testing_env">fixture_initialize_testing_env() (transactron.testing.infrastructure.TestCaseWithSimulator method)</a>
 </li>
       <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.functions.flatten_signals">flatten_signals() (in module transactron.utils.amaranth_ext.functions)</a>
 </li>
@@ -1769,7 +1783,17 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.G">G (coreblocks.arch.isa.Extension attribute)</a>
 </li>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.generate_based_on_layout">generate_based_on_layout() (in module transactron.testing.input_generation)</a>
+</li>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.generate_method_input">generate_method_input() (in module transactron.testing.input_generation)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.PipelinedWishboneMaster.generate_method_layouts">generate_method_layouts() (coreblocks.peripherals.wishbone.PipelinedWishboneMaster method)</a>
+</li>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.generate_nops_in_list">generate_nops_in_list() (in module transactron.testing.input_generation)</a>
+</li>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.generate_process_input">generate_process_input() (in module transactron.testing.input_generation)</a>
+</li>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.generate_shrinkable_list">generate_shrinkable_list() (in module transactron.testing.input_generation)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.gen.generate_verilog">generate_verilog() (in module transactron.utils.gen)</a>
 </li>
@@ -2157,6 +2181,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.insert_nops">insert_nops() (in module transactron.testing.input_generation)</a>
+</li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.rvc.InstrDecompress.instr_mux">instr_mux() (coreblocks.frontend.decoder.rvc.InstrDecompress method)</a>
 </li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.instr_description.Encoding.instr_type_override">instr_type_override (coreblocks.frontend.decoder.instr_description.Encoding attribute)</a>
@@ -2685,8 +2711,6 @@
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_address.CSRAddress.MIE">MIE (coreblocks.priv.csr.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_address.CSRAddress.MIMPID">MIMPID (coreblocks.priv.csr.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MIN">MIN (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -2695,6 +2719,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.MIN">(coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_address.CSRAddress.MINSTRET">MINSTRET (coreblocks.priv.csr.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_address.CSRAddress.MINSTRETH">MINSTRETH (coreblocks.priv.csr.csr_address.CSRAddress attribute)</a>
@@ -2925,6 +2951,8 @@
 </li>
         <li><a href="transactron.testing.html#module-transactron.testing.infrastructure">transactron.testing.infrastructure</a>
 </li>
+        <li><a href="transactron.testing.html#module-transactron.testing.input_generation">transactron.testing.input_generation</a>
+</li>
         <li><a href="transactron.testing.html#module-transactron.testing.logging">transactron.testing.logging</a>
 </li>
         <li><a href="transactron.testing.html#module-transactron.testing.profiler">transactron.testing.profiler</a>
@@ -3044,6 +3072,10 @@
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulFn.Fn.MULHU">(coreblocks.func_blocks.fu.mul_unit.MulFn.Fn attribute)</a>
 </li>
       </ul></li>
+      <li><a href="transactron.testing.html#transactron.testing.infrastructure.TestCaseWithSimulator.multi_settle">multi_settle() (transactron.testing.infrastructure.TestCaseWithSimulator method)</a>
+</li>
+      <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.MultiPriorityEncoder">MultiPriorityEncoder (class in transactron.utils.amaranth_ext.elaboratables)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulType">MulType (class in coreblocks.func_blocks.fu.mul_unit)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulUnit">MulUnit (class in coreblocks.func_blocks.fu.mul_unit)</a>
@@ -3114,12 +3146,14 @@
         <li><a href="coreblocks.params.html#coreblocks.params.instr.RISCVInstr.opcode">(coreblocks.params.instr.RISCVInstr attribute)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType">OpType (class in coreblocks.arch.optypes)</a>
+      <li><a href="transactron.testing.html#transactron.testing.input_generation.OpNOP">OpNOP (class in transactron.testing.input_generation)</a>
 </li>
-      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.optypes_supported">optypes_supported() (in module coreblocks.params.fu_params)</a>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType">OpType (class in coreblocks.arch.optypes)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.params.html#coreblocks.params.fu_params.optypes_supported">optypes_supported() (in module coreblocks.params.fu_params)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.OR">OR (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 
       <ul>
@@ -3442,6 +3476,8 @@
         <li><a href="transactron.utils.html#transactron.utils.gen.MetricLocation.regs">(transactron.utils.gen.MetricLocation attribute)</a>
 </li>
       </ul></li>
+      <li><a href="transactron.testing.html#transactron.testing.infrastructure.TestCaseWithSimulator.reinitialize_fixtures">reinitialize_fixtures() (transactron.testing.infrastructure.TestCaseWithSimulator method)</a>
+</li>
       <li><a href="transactron.core.html#transactron.core.transaction_base.TransactionBase.relations">relations (transactron.core.transaction_base.TransactionBase attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.REM">REM (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -3474,10 +3510,10 @@
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write">request_write (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.RESERVED">RESERVED (coreblocks.arch.isa_consts.Opcode attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.RESERVED">RESERVED (coreblocks.arch.isa_consts.Opcode attribute)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">result_handler() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
 </li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.annoucement.ResultAnnouncement">ResultAnnouncement (class in coreblocks.backend.annoucement)</a>
@@ -4053,8 +4089,6 @@
         <li><a href="transactron.html#module-transactron.graph">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib
 
@@ -4062,6 +4096,8 @@
         <li><a href="transactron.lib.html#module-transactron.lib">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib.adapters
 
@@ -4172,6 +4208,13 @@
 
       <ul>
         <li><a href="transactron.testing.html#module-transactron.testing.infrastructure">module</a>
+</li>
+      </ul></li>
+      <li>
+    transactron.testing.input_generation
+
+      <ul>
+        <li><a href="transactron.testing.html#module-transactron.testing.input_generation">module</a>
 </li>
       </ul></li>
       <li>
@@ -4606,7 +4649,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 07:20 2024-05-14.
+      <span class="lastupdated">Last updated on 10:38 2024-05-14.
       </span></p>
   </div>
 
