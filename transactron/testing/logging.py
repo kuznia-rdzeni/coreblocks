@@ -87,6 +87,7 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
                 record.location[1],
                 formatted_msg,
             )
+            print("kurwa", formatted_msg, record.location[0])
 
             if record.level >= logging.ERROR:
                 on_error()

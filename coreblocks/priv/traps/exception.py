@@ -88,14 +88,14 @@ class ExceptionCauseRegister(Elaboratable):
             with m.If(self.valid & (self.rob_id == rob_id)):
                 # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
                 # in Retirement.
-                m.d.comb += should_write.eq(0)
+                m.d.av_comb += should_write.eq(0)
             with m.Elif(self.valid):
                 rob_start_idx = self.rob_get_indices(m).start
-                m.d.comb += should_write.eq(
+                m.d.av_comb += should_write.eq(
                     (rob_id - rob_start_idx).as_unsigned() < (self.rob_id - rob_start_idx).as_unsigned()
                 )
             with m.Else():
-                m.d.comb += should_write.eq(1)
+                m.d.av_comb += should_write.eq(1)
 
             with m.If(should_write):
                 m.d.sync += self.rob_id.eq(rob_id)
@@ -106,6 +106,8 @@ class ExceptionCauseRegister(Elaboratable):
 
             # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
             self.fetch_stall_exception(m)
+
+            # return {"accepted": should_write}
 
         @def_method(m, self.get)
         def _():

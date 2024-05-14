@@ -72,7 +72,7 @@ class Core(Component):
         self.exception_cause_register = ExceptionCauseRegister(
             self.gen_params,
             rob_get_indices=self.ROB.get_indices,
-            fetch_stall_exception=self.frontend.stall,
+            fetch_stall_exception=self.frontend.flush_and_stall,
         )
 
         self.func_blocks_unifier = FuncBlocksUnifier(

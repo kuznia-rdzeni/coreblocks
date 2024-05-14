@@ -30,12 +30,7 @@ class JumpBranchWrapper(Elaboratable):
 
         self.jb = JumpBranchFuncUnit(gen_params)
         self.issue = self.jb.issue
-        self.accept = Method(
-            o=StructLayout(
-                gen_params.get(FuncUnitLayouts).accept.members
-                | (gen_params.get(JumpBranchLayouts).verify_branch.members if not auipc_test else {})
-            )
-        )
+        self.accept = Method(o=StructLayout(gen_params.get(FuncUnitLayouts).accept.members))
 
     def elaborate(self, platform):
         m = TModule()
@@ -66,12 +61,7 @@ class JumpBranchWrapper(Elaboratable):
             if self.auipc_test:
                 return ret
 
-            verify = self.jb.fifo_branch_resolved.read(m)
-            return ret | {
-                "next_pc": verify.next_pc,
-                "from_pc": verify.from_pc,
-                "misprediction": verify.misprediction,
-            }
+            return ret
 
         return m
 

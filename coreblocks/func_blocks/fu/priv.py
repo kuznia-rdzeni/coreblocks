@@ -13,7 +13,7 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, FetchTargetQueueLayouts, FTQPtr
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -54,7 +54,7 @@ class PrivilegedFuncUnit(Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
-        self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchLayouts).resume, 2)
+        self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchTargetQueueLayouts).resume, 2)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
@@ -139,7 +139,7 @@ class PrivilegedFuncUnit(Elaboratable):
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                self.fetch_resume_fifo.write(m, pc=ret_pc)
+                self.fetch_resume_fifo.write(m, ftq_idx=FTQPtr(gp=self.gp), pc=ret_pc)
 
             return {
                 "rob_id": instr_rob,

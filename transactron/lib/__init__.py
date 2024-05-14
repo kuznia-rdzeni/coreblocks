@@ -7,3 +7,4 @@ from .reqres import *  # noqa: F401
 from .storage import *  # noqa: F401
 from .simultaneous import *  # noqa: F401
 from .metrics import *  # noqa: F401
+from .structs import *  # noqa: F401

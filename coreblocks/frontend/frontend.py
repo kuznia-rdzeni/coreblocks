@@ -1,17 +1,22 @@
 from amaranth import *
 
 from transactron.core import *
-from transactron.lib import BasicFifo, Pipe
-from transactron.utils.dependencies import DependencyContext
+from transactron.lib import BasicFifo, Pipe, logging
+from transactron.utils import DependencyContext
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.frontend.fetch.fetch import FetchUnit
+from coreblocks.frontend.fetch.fetch_target_queue import FetchTargetQueue
+from coreblocks.frontend.branch_prediction import BranchPredictionUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey, PredictedJumpTargetKey
+from coreblocks.interface.keys import FlushICacheKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
+
+
+log = logging.HardwareLogger("frontend")
 
 
 class CoreFrontend(Elaboratable):
@@ -47,21 +52,25 @@ class CoreFrontend(Elaboratable):
 
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
-        self.fetch = FetchUnit(self.gen_params, self.icache, self.instr_buffer.write)
+        self.bpu = BranchPredictionUnit(self.gen_params)
+        self.ftq = FetchTargetQueue(self.gen_params, self.bpu)
+        self.fetch = FetchUnit(
+            self.gen_params,
+            self.icache,
+            self.instr_buffer.write,
+            self.ftq.consume_fetch_target,
+            self.ftq.consume_prediction,
+            self.ftq.ifu_writeback,
+        )
 
         self.decode_pipe = Pipe(self.gen_params.get(DecodeLayouts).decoded_instr)
 
-        # TODO: move and implement these methods
-        jb_layouts = self.gen_params.get(JumpBranchLayouts)
-        self.target_pred_req = Method(i=jb_layouts.predicted_jump_target_req)
-        self.target_pred_resp = Method(o=jb_layouts.predicted_jump_target_resp)
-        DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
-
         self.inject_instr = self.instr_buffer.write
         self.consume_instr = self.decode_pipe.read
-        self.resume_from_exception = self.fetch.resume_from_exception
-        self.resume_from_unsafe = self.fetch.resume_from_unsafe
-        self.stall = Method()
+
+        self.resume_from_unsafe = self.ftq.resume_from_unsafe
+        self.resume_from_exception = self.ftq.resume_from_exception
+        self.flush_and_stall = Method()
 
     def elaborate(self, platform):
         m = TModule()
@@ -70,6 +79,8 @@ class CoreFrontend(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
+        m.submodules.bpu = self.bpu
+        m.submodules.ftq = self.ftq
         m.submodules.fetch = self.fetch
         m.submodules.instr_buffer = self.instr_buffer
 
@@ -78,22 +89,10 @@ class CoreFrontend(Elaboratable):
             gen_params=self.gen_params, get_raw=self.instr_buffer.read, push_decoded=self.decode_pipe.write
         )
 
-        # TODO: Remove when Branch Predictor implemented
-        with Transaction(name="DiscardBranchVerify").body(m):
-            read = self.connections.get_dependency(BranchVerifyKey())
-            read(m)  # Consume to not block JB Unit
-
-        @def_method(m, self.target_pred_req)
+        @def_method(m, self.flush_and_stall)
         def _():
-            pass
-
-        @def_method(m, self.target_pred_resp)
-        def _(arg):
-            return {"valid": 0, "cfi_target": 0}
-
-        @def_method(m, self.stall)
-        def _():
-            self.fetch.stall_exception(m)
+            self.ftq.stall(m)
+            self.fetch.flush(m)
             self.instr_buffer.clear(m)
             self.decode_pipe.clean(m)
 

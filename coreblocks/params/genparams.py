@@ -66,6 +66,9 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
         self.start_pc = cfg.start_pc
 
+        self.ftq_size_log = cfg.ftq_size_log
+        self.ftq_size = 2**self.ftq_size_log
+
         self.min_instr_width_bytes = 2 if cfg.compressed else 4
         self.min_instr_width_bytes_log = exact_log2(self.min_instr_width_bytes)
 
@@ -75,6 +78,10 @@ class GenParams(DependentCache):
         self.fetch_block_bytes = 2**self.fetch_block_bytes_log
         self.fetch_width = 2**cfg.fetch_block_bytes_log // self.min_instr_width_bytes
         self.fetch_width_log = exact_log2(self.fetch_width)
+
+        self.bpu_stages_cnt = 1
+        self.bpu_meta_len = 1
+        self.global_branch_history_len = cfg.bpu_global_history_len
 
         self.instr_buffer_size = cfg.instr_buffer_size
         self.extra_verification = cfg.extra_verification

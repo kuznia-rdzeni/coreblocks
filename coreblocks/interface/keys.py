@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 __all__ = [
     "CommonBusDataKey",
     "InstructionPrecommitKey",
-    "BranchVerifyKey",
+    "MispredictionReportKey",
     "PredictedJumpTargetKey",
     "FetchResumeKey",
     "ExceptionReportKey",
@@ -38,11 +38,6 @@ class InstructionPrecommitKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
-    pass
-
-
-@dataclass(frozen=True)
 class PredictedJumpTargetKey(SimpleKey[tuple[Method, Method]]):
     pass
 
@@ -54,6 +49,11 @@ class FetchResumeKey(UnifierKey, unifier=Collector):
 
 @dataclass(frozen=True)
 class ExceptionReportKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class MispredictionReportKey(SimpleKey[Method]):
     pass
 
 

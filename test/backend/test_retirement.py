@@ -1,7 +1,7 @@
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionRegisterLayouts,
-    FetchLayouts,
+    FetchTargetQueueLayouts,
     InternalInterruptControllerLayouts,
 )
 from coreblocks.backend.retirement import *
@@ -29,7 +29,7 @@ class RetirementTestCircuit(Elaboratable):
         rf_layouts = self.gen_params.get(RFLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
-        fetch_layouts = self.gen_params.get(FetchLayouts)
+        ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
         interrupt_controller_layouts = self.gen_params.get(InternalInterruptControllerLayouts)
         core_instr_counter_layouts = self.gen_params.get(CoreInstructionCounterLayouts)
 
@@ -55,7 +55,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=ftq_layouts.resume))
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter(o=core_instr_counter_layouts.decrement)
         )

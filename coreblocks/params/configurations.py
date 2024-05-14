@@ -1,8 +1,6 @@
 from collections.abc import Collection
-
 import dataclasses
 from dataclasses import dataclass, field
-
 from typing import Self
 from transactron.utils._typing import type_self_kwargs_as
 
@@ -124,6 +122,8 @@ class _CoreConfigurationDataClass:
     fetch_block_bytes_log: int = 2
 
     instr_buffer_size: int = 4
+    ftq_size_log: int = 4
+    bpu_global_history_len: int = 16
 
     interrupt_custom_count: int = 0
     interrupt_custom_edge_trig_mask: int = 0
@@ -187,6 +187,7 @@ full_core_config = CoreConfiguration(
     compressed=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
+    bpu_global_history_len=64,
 )
 
 # Core configuration used in internal testbenches

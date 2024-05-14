@@ -18,6 +18,7 @@ __all__ = [
     "mock_def_helper",
     "get_src_loc",
     "from_method_layout",
+    "make_layout",
 ]
 
 T = TypeVar("T")

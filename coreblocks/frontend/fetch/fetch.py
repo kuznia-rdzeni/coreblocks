@@ -1,18 +1,17 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from amaranth.lib.coding import PriorityEncoder
-from coreblocks.interface.keys import FetchResumeKey
+from amaranth.utils import bits_for
+
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import MethodLayout, popcount, assign
-from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
-
 from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
@@ -34,7 +33,15 @@ class FetchUnit(Elaboratable):
     4-byte boundaries.
     """
 
-    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
+    def __init__(
+        self,
+        gen_params: GenParams,
+        icache: CacheInterface,
+        cont: Method,
+        consume_fetch_target: Method,
+        consume_prediction: Method,
+        ftq_writeback: Method,
+    ) -> None:
         """
         Parameters
         ----------
@@ -51,11 +58,13 @@ class FetchUnit(Elaboratable):
         self.icache = icache
         self.cont = cont
 
+        self.consume_fetch_target = consume_fetch_target
+        self.consume_prediction = consume_prediction
+        self.ftq_writeback = ftq_writeback
+
         self.layouts = self.gen_params.get(FetchLayouts)
 
-        self.resume_from_unsafe = Method(i=self.layouts.resume)
-        self.resume_from_exception = Method(i=self.layouts.resume)
-        self.stall_exception = Method()
+        self.flush = Method(nonexclusive=True)
 
         self.perf_fetch_utilization = TaggedCounter(
             "frontend.fetch.fetch_block_util",
@@ -80,7 +89,7 @@ class FetchUnit(Elaboratable):
         m.submodules.serializer = serializer = Serializer(fetch_width, self.layouts.raw_instr)
         m.submodules.serializer_connector = ConnectTrans(serializer.read, self.cont)
 
-        m.submodules.cache_requests = cache_requests = BasicFifo(layout=[("addr", self.gen_params.isa.xlen)], depth=2)
+        fields = self.gen_params.get(CommonLayoutFields)
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -88,38 +97,33 @@ class FetchUnit(Elaboratable):
         m.submodules.req_counter = req_counter = Semaphore(4)
         flushing_counter = Signal.like(req_counter.count)
 
-        flush_now = Signal()
-
-        def flush():
-            m.d.comb += flush_now.eq(1)
-
-        current_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
-
-        stalled_unsafe = Signal()
-        stalled_exception = Signal()
-
-        stalled = Signal()
-        m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
+        #
+        # State passed between stage 0 and stage 1
+        #
+        m.submodules.s0_s1_fifo = s0_s1_fifo = BasicFifo(layout=[fields.ftq_idx, fields.pc, fields.bpu_stage], depth=2)
 
         #
         # Fetch - stage 0
         # ================
+        # - consume a fetch target from the FTQ
         # - send a request to the instruction cache
         #
-        with Transaction(name="Fetch_Stage0").body(m, request=~stalled):
+        with Transaction(name="Fetch_Stage0").body(m):
             req_counter.acquire(m)
-            self.icache.issue_req(m, addr=current_pc)
-            cache_requests.write(m, addr=current_pc)
 
-            # Assume we fallthrough to the next fetch block.
-            m.d.sync += current_pc.eq(params.pc_from_fb(params.fb_addr(current_pc) + 1, 0))
+            fetch_target = self.consume_fetch_target(m)
+
+            self.icache.issue_req(m, addr=fetch_target.pc)
+            s0_s1_fifo.write(m, fetch_target)
 
         #
         # State passed between stage 1 and stage 2
         #
         m.submodules.s1_s2_pipe = s1_s2_pipe = Pipe(
             [
+                fields.ftq_idx,
                 fields.fb_addr,
+                fields.bpu_stage,
                 ("instr_valid", fetch_width),
                 ("access_fault", 1),
                 ("rvc", fetch_width),
@@ -144,16 +148,16 @@ class FetchUnit(Elaboratable):
         # be located on a boundary of two fetch blocks. Hence,
         # this requires some statefulness of the stage 1.
         prev_half = Signal(16)
-        prev_half_addr = Signal(make_layout(fields.fb_addr).size)
+        prev_half_addr = Signal(make_layout(fields.fb_addr))
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
-            target = cache_requests.read(m)
+            target = s0_s1_fifo.read(m)
             cache_resp = self.icache.accept_res(m)
 
             # The address of the fetch block.
-            fetch_block_addr = params.fb_addr(target.addr)
+            fetch_block_addr = params.fb_addr(target.pc)
             # The index (in instructions) of the first instruction that we should process.
-            fetch_block_offset = params.fb_instr_idx(target.addr)
+            fetch_block_offset = params.fb_instr_idx(target.pc)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -164,7 +168,7 @@ class FetchUnit(Elaboratable):
             # Whether in this cycle we have a fetch block that contains
             # an instruction that crosses a fetch boundary
             instr_block_cross = Signal()
-            m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
+            m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr.fb_addr + 1) == fetch_block_addr))
 
             for i in range(fetch_width):
                 if Extension.C in self.gen_params.isa.extensions:
@@ -211,23 +215,21 @@ class FetchUnit(Elaboratable):
                     (flushing_counter <= 1) & (cache_resp.error == 0) & ~is_rvc[-1] & instr_start[-1]
                 )
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
-                m.d.sync += prev_half_addr.eq(fetch_block_addr)
+                m.d.sync += prev_half_addr.fb_addr.eq(fetch_block_addr)
             else:
                 valid_instr_mask = Cat(instr_start)
 
             s1_s2_pipe.write(
                 m,
+                ftq_idx=target.ftq_idx,
                 fb_addr=fetch_block_addr,
+                bpu_stage=target.bpu_stage,
                 instr_valid=valid_instr_mask,
                 access_fault=cache_resp.error,
                 rvc=is_rvc,
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
             )
-
-        # Make sure to clean the state
-        with m.If(flush_now):
-            m.d.sync += prev_half_v.eq(0)
 
         #
         # Fetch - stage 2
@@ -257,19 +259,22 @@ class FetchUnit(Elaboratable):
             # Predecode instructions
             predecoded_instr = [predecoders[i].predecode(m, instrs[i]) for i in range(fetch_width)]
 
-            # No prediction for now
-            prediction = Signal(self.layouts.bpu_prediction)
+            with condition(m) as branch:
+                with branch(flushing_counter == 0):
+                    pred_data = self.consume_prediction(m, ftq_idx=s1_data.ftq_idx, bpu_stage=s1_data.bpu_stage)
+                with branch(True):
+                    pass
 
             # The method is guarded by the If to make sure that the metrics
             # are updated only if not flushing.
-            with m.If(flushing_counter == 0):
+            with m.If((flushing_counter == 0) & ~pred_data.discard):
                 predcheck_res = prediction_checker.check(
                     m,
                     fb_addr=fetch_block_addr,
                     instr_block_cross=s1_data.instr_block_cross,
                     instr_valid=instr_valid,
                     predecoded=predecoded_instr,
-                    prediction=prediction,
+                    block_prediction=pred_data.block_prediction,
                 )
 
             # Is the instruction unsafe (i.e. stalls the frontend until the backend resumes it).
@@ -294,8 +299,8 @@ class FetchUnit(Elaboratable):
 
             with m.If(predcheck_res.mispredicted & (~has_unsafe | redirect_before_unsafe)):
                 m.d.av_comb += [
-                    redirect.eq(~predcheck_res.stall),
-                    unsafe_stall.eq(predcheck_res.stall),
+                    redirect.eq(predcheck_res.target_valid),
+                    unsafe_stall.eq(~predcheck_res.target_valid),
                     redirect_or_unsafe_idx.eq(predcheck_res.fb_instr_idx),
                 ]
             with m.Elif(has_unsafe):
@@ -333,104 +338,62 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
 
             with condition(m) as branch:
-                with branch(flushing_counter == 0):
-                    with m.If(access_fault | unsafe_stall):
-                        # TODO: Raise different code for page fault when supported
-                        flush()
-                        m.d.sync += stalled_unsafe.eq(1)
-                    with m.Elif(redirect):
-                        self.perf_fetch_redirects.incr(m)
-                        new_pc = Signal.like(current_pc)
-                        m.d.av_comb += new_pc.eq(predcheck_res.redirect_target)
-
-                        log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
-                        flush()
-                        m.d.sync += current_pc.eq(new_pc)
-
+                with branch((flushing_counter == 0) & ~pred_data.discard):
+                    self.perf_fetch_redirects.incr(m, cond=redirect)
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+
+                    with m.If(access_fault | unsafe_stall | redirect):
+                        self.flush(m)
+
+                    # Here we should write another block_prediction
+                    self.ftq_writeback(
+                        m,
+                        ftq_idx=s1_data.ftq_idx,
+                        redirect=redirect,
+                        stall=unsafe_stall,
+                        block_prediction=pred_data.block_prediction,
+                    )
 
                     # Make sure this is called only once to avoid a huge mux on arguments
                     serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
-                with branch():
+                with branch(flushing_counter != 0):
                     m.d.sync += flushing_counter.eq(flushing_counter - 1)
 
-        with m.If(flush_now):
-            m.d.sync += flushing_counter.eq(req_counter.count_next)
-
-        @def_method(m, self.resume_from_unsafe, ready=(stalled & (flushing_counter == 0)))
-        def _(pc: Value):
-            log.info(m, ~stalled_exception, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
-            m.d.sync += current_pc.eq(pc)
-            # If core is stalled because of exception, effect of this call will be ignored, as
-            # `stalled_exception` is not changed
-            m.d.sync += stalled_unsafe.eq(0)
-
-        @def_method(m, self.resume_from_exception, ready=(stalled_exception & (flushing_counter == 0)))
-        def _(pc: Value):
-            log.info(m, True, "Resuming from exception new_pc=0x{:x}", pc)
-            # Resume from exception has implicit priority to resume from unsafe instructions call.
-            # Both could happen at the same time due to resume methods being blocked.
-            # `resume_from_unsafe` will never overwrite `resume_from_exception` event, because there is at most one
-            # unsafe instruction in the core that will call resume_from_unsafe before or at the same time as
-            # `resume_from_exception`.
-            # `current_pc` is set to correct entry at a complete unstall due to method declaration order
-            # See https://github.com/kuznia-rdzeni/coreblocks/pull/654#issuecomment-2057478960
-            m.d.sync += current_pc.eq(pc)
-            m.d.sync += stalled_unsafe.eq(0)
-            m.d.sync += stalled_exception.eq(0)
-
-        # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
-        # of exception report, both can happen at any time during normal excecution.
-        # In case of simultaneous call, fetch will be correctly stalled, becasue separate signal is used
-        @def_method(m, self.stall_exception)
+        @def_method(m, self.flush)
         def _():
-            log.info(m, True, "Stalling the fetch unit because of an exception")
-            serializer.clean(m)
-            m.d.sync += stalled_exception.eq(1)
-            flush()
+            m.d.sync += flushing_counter.eq(req_counter.count_next)
+            m.d.sync += prev_half_v.eq(0)
 
-        # Fetch resume verification
-        if self.gen_params.extra_verification:
-            expect_unstall_unsafe = Signal()
-            prev_stalled_unsafe = Signal()
-            unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
-            m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
-            with m.FSM("running"):
-                with m.State("running"):
-                    log.error(m, stalled_exception | prev_stalled_unsafe, "fetch was expected to be running")
-                    log.error(
-                        m,
-                        unifier_ready,
-                        "resume_from_unsafe unifier is ready before stall",
-                    )
-                    with m.If(stalled_unsafe):
-                        m.next = "stalled_unsafe"
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
-                with m.State("stalled_unsafe"):
-                    m.d.sync += expect_unstall_unsafe.eq(1)
-                    with m.If(self.resume_from_unsafe.run):
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        m.next = "running"
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
-                    log.error(
-                        m,
-                        self.resume_from_exception.run & ~self.stall_exception.run,
-                        "unexpected resume_from_exception",
-                    )
-                with m.State("stalled_exception"):
-                    with m.If(self.resume_from_unsafe.run):
-                        log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                    with m.If(self.resume_from_exception.run):
-                        # unstall_form_unsafe may be skipped if excpetion was reported on unsafe instruction,
-                        # invalid cases are verified by readiness check in running state
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        with m.If(~self.stall_exception.run):
-                            m.next = "running"
+        return m
+
+
+class PipelineController(Elaboratable):
+    """ """
+
+    def __init__(self, stages_cnt: int, max_items: int) -> None:
+        self.stages_cnt = stages_cnt
+        self.max_items = max_items
+
+        self.enter = Method()
+        self.exit = Method(o=[("flush", 1)])
+        self.flush_youngest_n = Method(i=[("cnt", bits_for(max_items))])
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.req_counter = req_counter = Semaphore(self.max_items)
+
+        @def_method(m, self.enter)
+        def _():
+            req_counter.acquire(m)
+
+        @def_method(m, self.exit)
+        def _():
+            req_counter.release(m)
+
+        @def_method(m, self.flush_youngest_n)
+        def _():
+            pass
 
         return m
 
@@ -618,7 +581,7 @@ class PredictionChecker(Elaboratable):
         ]
 
         @def_method(m, self.check)
-        def _(fb_addr, instr_block_cross, instr_valid, predecoded, prediction):
+        def _(fb_addr, instr_block_cross, instr_valid, predecoded, block_prediction):
             decoded_cfi_types = Array([predecoded[i].cfi_type for i in range(self.gen_params.fetch_width)])
             decoded_cfi_offsets = Array([predecoded[i].cfi_offset for i in range(self.gen_params.fetch_width)])
 
@@ -633,7 +596,7 @@ class PredictionChecker(Elaboratable):
                     | CfiType.is_jalr(decoded_cfi_types[i])
                     | (
                         CfiType.is_branch(decoded_cfi_types[i])
-                        & ~prediction.branch_mask[i]
+                        & ~block_prediction.branch_mask[i]
                         & (decoded_cfi_offsets[i] < 0)
                     )
                 )
@@ -654,23 +617,26 @@ class PredictionChecker(Elaboratable):
 
             # Target of a CFI that would redirect the frontend according to the prediction
             decoded_target_for_predicted_cfi = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += decoded_target_for_predicted_cfi.eq(get_decoded_target_for(prediction.cfi_idx))
+            m.d.av_comb += decoded_target_for_predicted_cfi.eq(get_decoded_target_for(block_prediction.cfi_idx))
 
             # Target of a CFI that would redirect the frontend according to predecode info
             decoded_target_for_decoded_cfi = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += decoded_target_for_decoded_cfi.eq(get_decoded_target_for(pd_redirect_idx))
 
             preceding_redirection = ~pd_redirection_enc.n & (
-                ((CfiType.valid(prediction.cfi_type) & (pd_redirect_idx < prediction.cfi_idx)))
-                | ~CfiType.valid(prediction.cfi_type)
+                ((CfiType.valid(block_prediction.cfi_type) & (pd_redirect_idx < block_prediction.cfi_idx)))
+                | ~CfiType.valid(block_prediction.cfi_type)
             )
 
-            mispredicted_cfi_type = CfiType.valid(prediction.cfi_type) & (
-                prediction.cfi_type != decoded_cfi_types[prediction.cfi_idx]
+            mispredicted_cfi_type = CfiType.valid(block_prediction.cfi_type) & (
+                block_prediction.cfi_type != decoded_cfi_types[block_prediction.cfi_idx]
             )
 
-            mispredicted_cfi_target = (CfiType.is_branch(prediction.cfi_type) | CfiType.is_jal(prediction.cfi_type)) & (
-                ~prediction.cfi_target_valid | (decoded_target_for_predicted_cfi != prediction.cfi_target)
+            mispredicted_cfi_target = (
+                CfiType.is_branch(block_prediction.cfi_type) | CfiType.is_jal(block_prediction.cfi_type)
+            ) & (
+                ~block_prediction.maybe_cfi_target.valid
+                | (decoded_target_for_predicted_cfi != block_prediction.maybe_cfi_target.value)
             )
 
             ret = Signal.like(self.check.data_out)
@@ -681,30 +647,31 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "target_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
                         "fb_instr_idx": pd_redirect_idx,
                         "redirect_target": decoded_target_for_decoded_cfi,
                     },
                 )
             with m.Elif(mispredicted_cfi_type):
-                self.perf_mispredicted_cfi_type.incr(m, prediction.cfi_type)
+                self.perf_mispredicted_cfi_type.incr(m, block_prediction.cfi_type)
                 fallthrough_addr = params.pc_from_fb(fb_addr + 1, 0)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
-                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "target_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
                         "fb_instr_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
                         "redirect_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
                     },
                 )
             with m.Elif(mispredicted_cfi_target):
-                self.perf_mispredicted_cfi_target.incr(m, prediction.cfi_type)
+                self.perf_mispredicted_cfi_target.incr(m, block_prediction.cfi_type)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
-                        "fb_instr_idx": prediction.cfi_idx,
+                        "target_valid": 1,
+                        "fb_instr_idx": block_prediction.cfi_idx,
                         "redirect_target": decoded_target_for_predicted_cfi,
                     },
                 )

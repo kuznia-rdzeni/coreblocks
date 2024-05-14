@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.utils import *
+from amaranth.lib.data import View
 
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from ..core import *
@@ -96,7 +97,7 @@ class MemoryBank(Elaboratable):
         self._internal_read_resp_trans = Transaction(src_loc=self.src_loc)
         with self._internal_read_resp_trans.body(m, request=read_output_valid):
             m.d.sync += read_output_valid.eq(0)
-            zipper.write_results(m, read_port.data)
+            zipper.write_results(m, View(self.data_layout, read_port.data))
 
         write_trans = Transaction(src_loc=self.src_loc)
         with write_trans.body(m, request=write_req | (~read_output_valid & write_pending)):

@@ -1,12 +1,17 @@
 from typing import Optional
+
 from amaranth import signed
 from amaranth.lib.data import StructLayout, ArrayLayout
+
+from transactron.utils import LayoutList, LayoutListField, layout_subset, ShapeLike
+from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.lib import CircularQueuePtr
+
 from coreblocks.params import GenParams
 from coreblocks.arch import *
-from transactron.utils import LayoutList, LayoutListField, layout_subset
-from transactron.utils.transactron_helpers import from_method_layout, make_layout
 
 __all__ = [
+    "with_valid",
     "CommonLayoutFields",
     "SchedulerLayouts",
     "ROBLayouts",
@@ -24,7 +29,29 @@ __all__ = [
     "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
+    "BranchPredictionLayouts",
+    "FetchTargetQueueLayouts",
+    "FTQPtr",
 ]
+
+
+def with_valid(shape: ShapeLike) -> StructLayout:
+    return StructLayout(
+        {
+            "valid": 1,
+            "value": shape,
+        }
+    )
+
+
+class FTQPtrLayout(CircularQueuePtr.Layout):
+    def __init__(self, gp: GenParams):
+        super().__init__(size_log=gp.ftq_size_log)
+
+
+class FTQPtr(CircularQueuePtr):
+    def __init__(self, target=None, *, gp: GenParams, **kwargs):
+        super().__init__(layout=FTQPtrLayout(gp), target=target, **kwargs)
 
 
 class CommonLayoutFields:
@@ -69,6 +96,10 @@ class CommonLayoutFields:
 
         self.rob_id: LayoutListField = ("rob_id", gen_params.rob_entries_bits)
         """Reorder buffer entry identifier."""
+
+        # self.ftq_idx: LayoutListField = ("ftq_idx", FTQPtr(gp=gen_params))
+        self.ftq_idx: LayoutListField = ("ftq_idx", FTQPtrLayout(gen_params))
+        """Fetch Target Queue entry index."""
 
         self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
         """Address of a fetch block"""
@@ -133,11 +164,19 @@ class CommonLayoutFields:
         self.cfi_target: LayoutListField = ("cfi_target", gen_params.isa.xlen)
         """Target of a CFI instruction."""
 
+        self.maybe_cfi_target: LayoutListField = ("maybe_cfi_target", with_valid(gen_params.isa.xlen))
+
         self.cfi_type: LayoutListField = ("cfi_type", CfiType)
         """Type of a CFI instruction"""
 
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
         """A mask denoting which instruction in a fetch blocks is a branch."""
+
+        self.bpu_stage: LayoutListField = ("bpu_stage", range(gen_params.bpu_stages_cnt))
+
+        self.bpu_meta: LayoutListField = ("bpu_meta", gen_params.bpu_meta_len)
+
+        self.global_branch_history: LayoutListField = ("global_branch_history", gen_params.global_branch_history_len)
 
 
 class SchedulerLayouts:
@@ -455,25 +494,21 @@ class FetchLayouts:
             fields.predicted_taken,
         )
 
-        self.resume = make_layout(fields.pc)
+        self.stall_frontend = make_layout(("exception", 1))
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
-
-        self.bpu_prediction = make_layout(
-            fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
-        )
 
         self.pred_checker_i = make_layout(
             fields.fb_addr,
             ("instr_block_cross", 1),
             ("instr_valid", gen_params.fetch_width),
             ("predecoded", ArrayLayout(self.predecoded_instr, gen_params.fetch_width)),
-            ("prediction", self.bpu_prediction),
+            gen_params.get(BranchPredictionLayouts).block_prediction_field,
         )
 
         self.pred_checker_o = make_layout(
             ("mispredicted", 1),
-            ("stall", 1),
+            ("target_valid", 1),
             fields.fb_instr_idx,
             ("redirect_target", gen_params.isa.xlen),
         )
@@ -550,13 +585,8 @@ class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.predicted_jump_target_req = make_layout()
-        self.predicted_jump_target_resp = make_layout(fields.cfi_target, ("valid", 1))
-
-        self.verify_branch = make_layout(
-            ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
-        )
-        """ Hint for Branch Predictor about branch result """
+        self.predicted_jump_target_req = make_layout(fields.ftq_idx)
+        self.predicted_jump_target_resp = make_layout(fields.maybe_cfi_target)
 
         self.funct7_info = make_layout(
             fields.rvc,
@@ -647,6 +677,8 @@ class ExceptionRegisterLayouts:
             fields.pc,
         )
 
+        self.report_o = make_layout(("accepted", 1))
+
         self.get = StructLayout(self.report.members | make_layout(self.valid).members)
 
 
@@ -661,3 +693,84 @@ class InternalInterruptControllerLayouts:
 class CoreInstructionCounterLayouts:
     def __init__(self, gen_params: GenParams):
         self.decrement = [("empty", 1)]
+
+
+class BranchPredictionLayouts:
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.block_prediction = make_layout(
+            fields.branch_mask,
+            fields.cfi_idx,
+            fields.cfi_type,
+            fields.maybe_cfi_target,
+        )
+
+        self.block_prediction_field: LayoutListField = ("block_prediction", self.block_prediction)
+
+        self.bpu_request = make_layout(fields.ftq_idx, fields.pc, fields.global_branch_history, fields.bpu_stage)
+
+        self.bpu_read_target_pred = make_layout(
+            fields.ftq_idx, fields.pc, fields.bpu_stage, fields.global_branch_history
+        )
+
+        self.bpu_read_pred_details = make_layout(
+            fields.ftq_idx,
+            fields.bpu_stage,
+            fields.bpu_meta,
+            self.block_prediction_field,
+        )
+
+        self.bpu_update = make_layout(
+            # The start of the prediction block
+            fields.fb_addr,
+            # What did this CFI jump to?
+            fields.cfi_target,
+            # Was the CFI really taken?
+            ("cfi_taken", 1),
+            # Was the CFI mispredicted from the original prediction?
+            ("cfi_mispredicted", 1),
+        )
+
+
+class FetchTargetQueueLayouts:
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+        bp_layouts = gen_params.get(BranchPredictionLayouts)
+
+        self.stall = make_layout(fields.ftq_idx)
+        self.resume = make_layout(fields.ftq_idx, fields.pc)
+
+        self.consume_fetch_target = make_layout(
+            fields.ftq_idx,
+            fields.pc,
+            fields.bpu_stage,
+        )
+
+        self.consume_prediction_i = make_layout(
+            fields.ftq_idx,
+            fields.bpu_stage,
+        )
+        self.consume_prediction_o = make_layout(
+            ("discard", 1),
+            bp_layouts.block_prediction_field,
+        )
+
+        self.ifu_writeback = make_layout(
+            fields.ftq_idx,
+            ("stall", 1),
+            ("redirect", 1),
+            bp_layouts.block_prediction_field,
+        )
+
+        self.report_misprediction = make_layout(
+            fields.ftq_idx,
+            fields.cfi_target,
+        )
+
+        self.commit = make_layout(
+            fields.fb_addr,
+            fields.fb_instr_idx,
+            fields.exception,
+            ("misprediction", 1),
+        )
