@@ -43,7 +43,7 @@ class IterativeSequenceMul(Elaboratable):
 
     def __init__(self, dsp_width: int, dsp_number: int, n: int):
         self.n = n
-        self.n_prim = n + (dsp_width - (n % dsp_width)) % dsp_width
+        self.n_prim = dsp_width * 2 ** (math.ceil(math.log2(n / dsp_width)))
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
         self.number_of_chunks = self.n_prim // self.dsp_width
@@ -119,12 +119,10 @@ class IterativeSequenceMul(Elaboratable):
                         m.d.sync += self.values_array[0][a][b].eq(res)
 
             shift_size = self.dsp_width
-            curr_chunks = self.number_of_chunks
             for i in range(1, self.result_lvl + 1):
                 shift_size = shift_size << 1
-                curr_chunks = curr_chunks >> 1 + curr_chunks % 2
-                for j in range(curr_chunks):
-                    for k in range(curr_chunks):
+                for j in range(self.number_of_chunks >> i):
+                    for k in range(self.number_of_chunks >> i):
                         ll = self.values_array[i - 1][2 * j][2 * k]
                         lu = self.values_array[i - 1][2 * j][2 * k + 1]
                         ul = self.values_array[i - 1][2 * j + 1][2 * k]
@@ -140,7 +138,7 @@ class IterativeSequenceMul(Elaboratable):
 
 
 class IterativeUnsignedMul(MulBaseUnsigned):
-    def __init__(self, gen_params: GenParams, dsp_width: int = 18, dsp_number: int = 5):
+    def __init__(self, gen_params: GenParams, dsp_width: int = 18, dsp_number: int = 7):
         super().__init__(gen_params)
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
