@@ -12,55 +12,87 @@ __all__ = ["IterativeUnsignedMul"]
 
 
 class IterativeSequenceMul(Elaboratable):
+    """
+    IterativeSequenceMul performs iterative unsigned multiplication using multiple DSP units.
+
+    This class breaks down the multiplication of large bit-width operands into smaller chunks that
+    fit into the DSP units,
+    processes these chunks iteratively,
+    and then combines the results using a multi-level pipeline to form the final product.
+
+    Attributes:
+        dsp_width (int): Width of each DSP unit.
+        dsp_number (int): Number of DSP units available.
+        n (int): Bit width of the numbers to be multiplied.
+
+    Signals:
+        ready (Signal): Indicates if the multiplier is ready to accept new inputs.
+        issue (Signal): Signals the start of a new multiplication.
+        step (Signal): Tracks the current iteration step in the multiplication process.
+        first_mul_number (Signal): Index of the first multiplication operation in the current step.
+        last_mul_number (Signal): Index of the last multiplication operation in the current step.
+        i1 (Signal): First multiplicand, extended to align with the DSP width.
+        i2 (Signal): Second multiplicand, extended to align with the DSP width.
+        result (Signal): Final result of the multiplication.
+        valid (Signal): Indicates if the result is valid.
+        getting_result (Signal): Signals the process of retrieving the result.
+        values_array (list): 3D list to hold intermediate multiplication results.
+        valid_array (list): List to manage the validity of intermediate results.
+
+    """
+
     def __init__(self, dsp_width: int, dsp_number: int, n: int):
         self.n = n
+        self.n_prim = n + (dsp_width - (n % dsp_width)) % dsp_width
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
+        self.number_of_chunks = self.n_prim // self.dsp_width
+        self.number_of_multiplications = self.number_of_chunks**2
+        self.number_of_steps = math.ceil(self.number_of_multiplications / self.dsp_number)
+        self.result_lvl = int(math.log2(self.number_of_chunks))
 
-        self.ready = Signal(unsigned(1))
-        self.issue = Signal(unsigned(1))
-        self.step = Signal(unsigned(n), reset=math.ceil((self.n // self.dsp_width) ** 2 / self.dsp_number))
-        self.first_mul_number = Signal(unsigned(n))
-        self.last_mul_number = Signal(unsigned(n))
-        self.i1 = Signal(unsigned(n))
-        self.i2 = Signal(unsigned(n))
-        self.result = Signal(unsigned(n * 2))
-        self.valid = Signal(unsigned(1))
-        self.getting_result = Signal(unsigned(1))
+        self.ready = Signal()
+        self.issue = Signal()
+        self.step = Signal(n, reset=self.number_of_steps)
+        self.first_mul_number = Signal(n)
+        self.last_mul_number = Signal(n)
+        self.i1 = Signal(self.n_prim)
+        self.i2 = Signal(self.n_prim)
+        self.result = Signal(n * 2)
+        self.valid = Signal()
+        self.getting_result = Signal()
 
-        self.pipeline_array = [[[Signal(unsigned(n * 2)) for _ in range(n)] for _ in range(n)] for _ in range(n)]
-        self.valid_array = [Signal(unsigned(1)) for _ in range(n)]
+        self.values_array = [
+            [[Signal(n * 2) for _ in range(self.result_lvl + 1)] for _ in range(self.number_of_chunks)]
+            for _ in range(self.number_of_chunks)
+        ]
+        self.valid_array = [Signal() for _ in range(n)]
 
     def elaborate(self, platform=None):
         m = TModule()
 
         self.dsp_units = []
-        for _ in range(self.dsp_number):
+        for i in range(self.dsp_number):
             unit = DSPMulUnit(self.dsp_width)
             self.dsp_units.append(unit)
-            m.submodules += unit
-
-        number_of_chunks = self.n // self.dsp_width
-        number_of_multiplications = number_of_chunks**2
-        number_of_steps = math.ceil(number_of_multiplications / self.dsp_number)
-        result_lvl = int(math.log(number_of_chunks, 2))
+            setattr(m.submodules, f"dsp_unit_{i}", unit)
 
         with m.If(~self.valid | self.getting_result):
-            for i in range(1, result_lvl + 1):
+            for i in range(1, self.result_lvl + 1):
                 m.d.sync += self.valid_array[i].eq(self.valid_array[i - 1])
 
-            with m.If((self.step == number_of_steps)):
+            with m.If((self.step == self.number_of_steps)):
                 m.d.sync += self.ready.eq(1)
 
-            with m.If(self.valid_array[result_lvl]):
+            with m.If(self.valid_array[self.result_lvl]):
                 m.d.sync += self.ready.eq(0)
 
-            with m.If(self.step == number_of_steps - 1):
+            with m.If(self.step == self.number_of_steps - 1):
                 m.d.sync += self.valid_array[0].eq(1)
             with m.Else():
                 m.d.sync += self.valid_array[0].eq(0)
 
-            with m.If(self.step < number_of_steps):
+            with m.If(self.step < self.number_of_steps):
                 m.d.sync += self.ready.eq(0)
                 m.d.sync += self.step.eq(self.step + 1)
 
@@ -68,45 +100,47 @@ class IterativeSequenceMul(Elaboratable):
                 m.d.sync += self.step.eq(0)
                 m.d.sync += self.ready.eq(0)
 
-            with m.If(self.first_mul_number + self.dsp_number < number_of_multiplications):
+            with m.If(self.first_mul_number + self.dsp_number < self.number_of_multiplications):
                 m.d.sync += self.first_mul_number.eq(self.first_mul_number + self.dsp_number)
             with m.Else():
                 m.d.sync += self.first_mul_number.eq(0)
+
             dsp_idx = 0
-            for i in range(number_of_multiplications):
-                a = i // number_of_chunks
-                b = i % number_of_chunks
+            m.d.comb += self.last_mul_number.eq(self.first_mul_number + self.dsp_number)
+            for i in range(self.number_of_multiplications):
+                a = i // self.number_of_chunks
+                b = i % self.number_of_chunks
                 chunk_i1 = self.i1[a * self.dsp_width : (a + 1) * self.dsp_width]
                 chunk_i2 = self.i2[b * self.dsp_width : (b + 1) * self.dsp_width]
-                with m.If((i >= self.first_mul_number) & (i < self.first_mul_number + self.dsp_number)):
-                    dsp_idx = dsp_idx + 1
-                    if dsp_idx == self.dsp_number:
-                        dsp_idx = 0
+                with m.If((i >= self.first_mul_number) & (i < self.last_mul_number)):
+                    dsp_idx = (dsp_idx + 1) % self.dsp_number
                     with Transaction().body(m):
-                        res = self.dsp_units[dsp_idx].compute(m, i1=chunk_i1 | 0, i2=chunk_i2 | 0)
-                        m.d.sync += self.pipeline_array[0][a][b].eq(res)
+                        res = self.dsp_units[dsp_idx].compute(m, i1=chunk_i1, i2=chunk_i2)
+                        m.d.sync += self.values_array[0][a][b].eq(res)
 
             shift_size = self.dsp_width
-            for i in range(1, result_lvl + 1):
+            curr_chunks = self.number_of_chunks
+            for i in range(1, self.result_lvl + 1):
                 shift_size = shift_size << 1
-                for j in range(number_of_chunks >> i):
-                    for k in range(number_of_chunks >> i):
-                        ll = self.pipeline_array[i - 1][2 * j][2 * k]
-                        lu = self.pipeline_array[i - 1][2 * j][2 * k + 1]
-                        ul = self.pipeline_array[i - 1][2 * j + 1][2 * k]
-                        uu = self.pipeline_array[i - 1][2 * j + 1][2 * k + 1]
-                        m.d.sync += self.pipeline_array[i][j][k].eq(
+                curr_chunks = curr_chunks >> 1 + curr_chunks % 2
+                for j in range(curr_chunks):
+                    for k in range(curr_chunks):
+                        ll = self.values_array[i - 1][2 * j][2 * k]
+                        lu = self.values_array[i - 1][2 * j][2 * k + 1]
+                        ul = self.values_array[i - 1][2 * j + 1][2 * k]
+                        uu = self.values_array[i - 1][2 * j + 1][2 * k + 1]
+                        m.d.sync += self.values_array[i][j][k].eq(
                             ll + ((ul + lu) << (shift_size >> 1)) + (uu << shift_size)
                         )
 
-            m.d.sync += self.result.eq(self.pipeline_array[result_lvl][0][0])
-            m.d.sync += self.valid.eq(self.valid_array[result_lvl])
+            m.d.sync += self.result.eq(self.values_array[self.result_lvl][0][0])
+            m.d.sync += self.valid.eq(self.valid_array[self.result_lvl])
 
         return m
 
 
 class IterativeUnsignedMul(MulBaseUnsigned):
-    def __init__(self, gen_params: GenParams, dsp_width: int = 16, dsp_number: int = 8):
+    def __init__(self, gen_params: GenParams, dsp_width: int = 18, dsp_number: int = 5):
         super().__init__(gen_params)
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
