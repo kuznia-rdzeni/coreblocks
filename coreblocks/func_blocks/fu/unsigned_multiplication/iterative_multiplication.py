@@ -49,7 +49,7 @@ class IterativeSequenceMul(Elaboratable):
         self.number_of_chunks = self.n_prim // self.dsp_width
         self.number_of_multiplications = self.number_of_chunks**2
         self.number_of_steps = math.ceil(self.number_of_multiplications / self.dsp_number)
-        self.result_lvl = int(math.log2(self.number_of_chunks))
+        self.result_lvl = math.ceil(math.log2(self.number_of_chunks))
 
         self.ready = Signal()
         self.issue = Signal()
@@ -63,8 +63,8 @@ class IterativeSequenceMul(Elaboratable):
         self.getting_result = Signal()
 
         self.values_array = [
-            [[Signal(n * 2) for _ in range(self.result_lvl + 1)] for _ in range(self.number_of_chunks)]
-            for _ in range(self.number_of_chunks)
+            [[Signal(n * 2) for _ in range(self.number_of_chunks)] for _ in range(self.number_of_chunks)]
+            for _ in range(self.result_lvl + 1)
         ]
         self.valid_array = [Signal() for _ in range(n)]
 
