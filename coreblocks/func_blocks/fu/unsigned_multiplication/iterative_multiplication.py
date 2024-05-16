@@ -62,7 +62,10 @@ class IterativeSequenceMul(Elaboratable):
         self.getting_result = Signal()
 
         self.values_array = [
-            [[Signal(n * 2) for _ in range(self.number_of_chunks >> i)] for _ in range(self.number_of_chunks >> i)]
+            [
+                [Signal(self.dsp_width * (1 << i) * 2) for _ in range(self.number_of_chunks >> i)]
+                for _ in range(self.number_of_chunks >> i)
+            ]
             for i in range(self.result_lvl + 1)
         ]
         self.valid_array = [Signal() for _ in range(self.result_lvl + 1)]
