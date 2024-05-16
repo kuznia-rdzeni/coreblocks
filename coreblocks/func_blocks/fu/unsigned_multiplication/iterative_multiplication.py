@@ -81,6 +81,9 @@ class IterativeSequenceMul(Elaboratable):
             for i in range(1, self.result_lvl + 1):
                 m.d.sync += self.valid_array[i].eq(self.valid_array[i - 1])
 
+            with m.If((self.step == self.number_of_steps)):
+                m.d.sync += self.ready.eq(1)
+
             with m.If(self.valid_array[self.result_lvl]):
                 m.d.sync += self.ready.eq(0)
 
@@ -93,8 +96,6 @@ class IterativeSequenceMul(Elaboratable):
                 m.d.sync += self.ready.eq(0)
                 m.d.sync += self.step.eq(self.step + 1)
 
-            with m.If(self.step >= (self.number_of_steps - 1)):
-                m.d.sync += self.ready.eq(1)
             with m.If(self.issue):
                 m.d.sync += self.step.eq(0)
                 m.d.sync += self.ready.eq(0)
@@ -137,11 +138,10 @@ class IterativeSequenceMul(Elaboratable):
 
 
 class IterativeUnsignedMul(MulBaseUnsigned):
-    def __init__(self, gen_params: GenParams, dsp_width: int = 18, dsp_number: int = 4):
+    def __init__(self, gen_params: GenParams, dsp_width: int = 18, dsp_number: int = 7):
         super().__init__(gen_params)
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
-        self.ready = Signal()
 
     def elaborate(self, platform):
         m = TModule()
