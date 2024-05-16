@@ -139,7 +139,7 @@ class PrivilegedFuncUnit(Elaboratable):
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                self.fetch_resume_fifo.write(m, pc=ret_pc, resume_from_exception=0)
+                self.fetch_resume_fifo.write(m, pc=ret_pc)
 
             return {
                 "rob_id": instr_rob,

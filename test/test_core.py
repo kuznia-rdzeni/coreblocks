@@ -44,7 +44,7 @@ class CoreTestElaboratable(Elaboratable):
             wb_params=self.gen_params.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
         self.core = Core(gen_params=self.gen_params, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
-        self.io_in = TestbenchIO(AdapterTrans(self.core.fetch_continue.method))
+        self.io_in = TestbenchIO(AdapterTrans(self.core.frontend.inject_instr))
         self.interrupt = TestbenchIO(AdapterTrans(self.core.interrupt_controller.report_interrupt))
 
         m.submodules.wb_mem_slave = self.wb_mem_slave

@@ -3,35 +3,29 @@ from amaranth.lib.wiring import flipped, connect
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
-from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
+from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import InterruptController
 from transactron.core import Transaction, TModule
-from transactron.lib import FIFO, ConnectTrans
+from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
-    BranchVerifyKey,
     FetchResumeKey,
     GenericCSRRegistersKey,
     CommonBusDataKey,
-    FlushICacheKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.frontend.frontend import CoreFrontend
 from coreblocks.priv.traps.exception import ExceptionCauseRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
-from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
-from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
-from coreblocks.frontend.fetch.fetch import FetchUnit
-from transactron.lib.transformers import MethodMap, MethodProduct
 from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey
 
@@ -55,29 +49,11 @@ class Core(Elaboratable):
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
         self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
 
-        self.core_counter = CoreInstructionCounter(self.gen_params)
-
-        # make fetch_continue visible outside the core for injecting instructions
-        self.fifo_fetch = FIFO(self.gen_params.get(FetchLayouts).raw_instr, 2)
-
-        drop_args_transform = (self.gen_params.get(FetchLayouts).raw_instr, lambda _a, _b: {})
-        self.core_counter_increment_discard_map = MethodMap(
-            self.core_counter.increment, i_transform=drop_args_transform
-        )
-        self.fetch_continue = MethodProduct([self.fifo_fetch.write, self.core_counter_increment_discard_map.method])
+        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
         self.free_rf_fifo = BasicFifo(
             self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
-
-        cache_layouts = self.gen_params.get(ICacheLayouts)
-        if gen_params.icache_params.enable:
-            self.icache_refiller = SimpleCommonBusCacheRefiller(
-                cache_layouts, self.gen_params.icache_params, self.bus_master_instr_adapter
-            )
-            self.icache = ICache(cache_layouts, self.gen_params.icache_params, self.icache_refiller)
-        else:
-            self.icache = ICacheBypass(cache_layouts, gen_params.icache_params, self.bus_master_instr_adapter)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -85,12 +61,11 @@ class Core(Elaboratable):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
-        self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
-
-        self.fetch = FetchUnit(self.gen_params, self.icache, self.fetch_continue.method)
 
         self.exception_cause_register = ExceptionCauseRegister(
-            self.gen_params, rob_get_indices=self.ROB.get_indices, fetch_stall_exception=self.fetch.stall_exception
+            self.gen_params,
+            rob_get_indices=self.ROB.get_indices,
+            fetch_stall_exception=self.frontend.stall,
         )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
@@ -123,29 +98,23 @@ class Core(Elaboratable):
         m.submodules.bus_master_instr_adapter = self.bus_master_instr_adapter
         m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
 
+        m.submodules.frontend = self.frontend
+
         m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
         m.submodules.FRAT = frat = self.FRAT
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
 
-        if self.icache_refiller:
-            m.submodules.icache_refiller = self.icache_refiller
-        m.submodules.icache = self.icache
+        m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
-        m.submodules.fetch_continue = self.fetch_continue
-        m.submodules.fetch = self.fetch
-        m.submodules.fifo_fetch = self.fifo_fetch
-        m.submodules.core_counter = self.core_counter
-        m.submodules.args_discard_map = self.core_counter_increment_discard_map
-
-        m.submodules.fifo_decode = fifo_decode = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, 2)
-        m.submodules.decode = DecodeStage(
-            gen_params=self.gen_params, get_raw=self.fifo_fetch.read, push_decoded=fifo_decode.write
+        drop_second_ret_value = (self.gen_params.get(DecodeLayouts).decoded_instr, lambda _, rets: rets[0])
+        m.submodules.get_instr = get_instr = MethodProduct(
+            [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
 
         m.submodules.scheduler = Scheduler(
-            get_instr=fifo_decode.read,
+            get_instr=get_instr.method,
             get_free_reg=free_rf_fifo.read,
             rat_rename=frat.rename,
             rob_put=rob.put,
@@ -157,10 +126,10 @@ class Core(Elaboratable):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        fetch_resume, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
+        fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
         m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
-        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume, self.fetch.resume)
+        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
@@ -175,8 +144,8 @@ class Core(Elaboratable):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.fetch.resume,
-            instr_decrement=self.core_counter.decrement,
+            fetch_continue=self.frontend.resume_from_exception,
+            instr_decrement=core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
         )
 
@@ -189,10 +158,5 @@ class Core(Elaboratable):
         with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
             free_rf_fifo.write(m, free_rf_reg)
             m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
-
-        # TODO: Remove when Branch Predictor implemented
-        with Transaction(name="DiscardBranchVerify").body(m):
-            read = self.connections.get_dependency(BranchVerifyKey())
-            read(m)  # Consume to not block JB Unit
 
         return m
