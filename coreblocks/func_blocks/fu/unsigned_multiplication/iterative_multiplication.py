@@ -77,7 +77,7 @@ class IterativeSequenceMul(Elaboratable):
             self.dsp_units.append(unit)
             setattr(m.submodules, f"dsp_unit_{i}", unit)
 
-        with m.If((self.step < self.number_of_steps) | (self.valid & ~self.getting_result)):
+        with m.If((self.step < (self.number_of_steps - 1)) | (self.valid & ~self.getting_result)):
             m.d.comb += self.ready.eq(0)
         with m.Else():
             m.d.comb += self.ready.eq(1)
