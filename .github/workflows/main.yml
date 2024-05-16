@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout submodules
+        run: git submodule update --init --recursive amaranth-stubs
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -145,6 +148,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get submodules HEAD hash
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive amaranth-stubs
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -162,11 +173,6 @@ jobs:
         with:
           name: "verilog-full-core"
           path: .
-
-      - name: Get submodules HEAD hash
-        run: |
-          git config --global --add safe.directory /__w/coreblocks/coreblocks
-          git submodule > .gitmodules-hash
 
       - uses: actions/cache@v4
         name: Download tests from cache
@@ -252,6 +258,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get submodules HEAD hash
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive amaranth-stubs
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -269,11 +283,6 @@ jobs:
         with:
           name: "verilog-full-core"
           path: .
-
-      - name: Get submodules HEAD hash
-        run: |
-          git config --global --add safe.directory /__w/coreblocks/coreblocks
-          git submodule > .gitmodules-hash
 
       - uses: actions/cache@v4
         name: Download tests from cache
@@ -309,6 +318,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout submodules
+        run: git submodule update --init --recursive amaranth-stubs
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -340,6 +352,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5

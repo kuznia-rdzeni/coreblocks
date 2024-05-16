@@ -10,4 +10,4 @@
 	url = https://github.com/riscv-non-isa/riscv-arch-test.git
 [submodule "amaranth-stubs"]
 	path = amaranth-stubs
-	url = git@github.com:kuznia-rdzeni/amaranth-stubs.git
+	url = https://github.com/kuznia-rdzeni/amaranth-stubs.git
