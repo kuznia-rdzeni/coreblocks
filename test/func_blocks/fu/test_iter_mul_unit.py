@@ -64,7 +64,6 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
                 if busy == 0:
                     expected = self.responses.pop()
                     assert expected == res
-                yield
             with open("iterative_multiplication_busy.txt", "a") as file:
                 file.write(f"dsp_width:{self.m._dut.dsp_width},dsp_number:{self.m._dut.dsp_number} -> {waiting}\n")
 
