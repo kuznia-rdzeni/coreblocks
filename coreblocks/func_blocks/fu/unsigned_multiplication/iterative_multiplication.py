@@ -1,7 +1,6 @@
 from amaranth import *
 import math
 
-
 from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned, DSPMulUnit
 from coreblocks.params import GenParams
 from transactron import *
@@ -43,30 +42,30 @@ class IterativeSequenceMul(Elaboratable):
 
     def __init__(self, dsp_width: int, dsp_number: int, n: int):
         self.n = n
-        self.n_prim = dsp_width * 2 ** (math.ceil(math.log2(n / dsp_width)))
+        self.n_padding = dsp_width * 2 ** (math.ceil(math.log2(n / dsp_width)))
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
-        self.number_of_chunks = self.n_prim // self.dsp_width
+        self.number_of_chunks = self.n_padding // self.dsp_width
         self.number_of_multiplications = self.number_of_chunks**2
         self.number_of_steps = math.ceil(self.number_of_multiplications / self.dsp_number)
         self.result_lvl = math.ceil(math.log2(self.number_of_chunks))
 
         self.ready = Signal()
         self.issue = Signal()
-        self.step = Signal(n, reset=self.number_of_steps)
-        self.first_mul_number = Signal(n)
-        self.last_mul_number = Signal(n)
-        self.i1 = Signal(self.n_prim)
-        self.i2 = Signal(self.n_prim)
-        self.result = Signal(n * 2)
+        self.step = Signal(math.ceil(math.log2(self.number_of_steps) + 1), reset=self.number_of_steps)
+        self.first_mul_number = Signal(math.ceil(math.log2(self.number_of_multiplications) + 1))
+        self.last_mul_number = Signal(math.ceil(math.log2(self.number_of_multiplications) + 1))
+        self.i1 = Signal(self.n_padding)
+        self.i2 = Signal(self.n_padding)
+        self.result = Signal(2 * n)
         self.valid = Signal()
         self.getting_result = Signal()
 
         self.values_array = [
-            [[Signal(n * 2) for _ in range(self.number_of_chunks)] for _ in range(self.number_of_chunks)]
-            for _ in range(self.result_lvl + 1)
+            [[Signal(n * 2) for _ in range(self.number_of_chunks >> i)] for _ in range(self.number_of_chunks >> i)]
+            for i in range(self.result_lvl + 1)
         ]
-        self.valid_array = [Signal() for _ in range(n)]
+        self.valid_array = [Signal() for _ in range(self.result_lvl + 1)]
 
     def elaborate(self, platform=None):
         m = TModule()
@@ -96,13 +95,10 @@ class IterativeSequenceMul(Elaboratable):
 
             with m.If(self.step < self.number_of_steps):
                 m.d.sync += self.step.eq(self.step + 1)
+                m.d.sync += self.first_mul_number.eq(self.first_mul_number + self.dsp_number)
 
             with m.If(self.issue):
                 m.d.sync += self.step.eq(0)
-
-            with m.If(self.first_mul_number + self.dsp_number < self.number_of_multiplications):
-                m.d.sync += self.first_mul_number.eq(self.first_mul_number + self.dsp_number)
-            with m.Else():
                 m.d.sync += self.first_mul_number.eq(0)
 
             dsp_idx = 0
@@ -130,7 +126,6 @@ class IterativeSequenceMul(Elaboratable):
                         m.d.sync += self.values_array[i][j][k].eq(
                             ll + ((ul + lu) << (shift_size >> 1)) + (uu << shift_size)
                         )
-
         return m
 
 
