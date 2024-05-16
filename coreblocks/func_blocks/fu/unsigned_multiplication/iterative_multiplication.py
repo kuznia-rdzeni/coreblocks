@@ -82,6 +82,9 @@ class IterativeSequenceMul(Elaboratable):
         with m.Else():
             m.d.comb += self.ready.eq(1)
 
+        m.d.comb += self.result.eq(self.values_array[self.result_lvl][0][0])
+        m.d.comb += self.valid.eq(self.valid_array[self.result_lvl])
+
         with m.If(~self.valid | self.getting_result):
             for i in range(1, self.result_lvl + 1):
                 m.d.sync += self.valid_array[i].eq(self.valid_array[i - 1])
@@ -127,9 +130,6 @@ class IterativeSequenceMul(Elaboratable):
                         m.d.sync += self.values_array[i][j][k].eq(
                             ll + ((ul + lu) << (shift_size >> 1)) + (uu << shift_size)
                         )
-
-            m.d.sync += self.result.eq(self.values_array[self.result_lvl][0][0])
-            m.d.sync += self.valid.eq(self.valid_array[self.result_lvl])
 
         return m
 
