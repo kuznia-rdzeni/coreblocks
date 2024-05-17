@@ -6,12 +6,12 @@
     csrw marchid, 1
     csrw mimpid, 1
     csrw mhartid, 1
-    csrw mconfigptr, 1
+    csrw 0xf15, 1  # csrw mconfigptr, 1
     csrr x1, mvendorid
     csrr x2, marchid
     csrr x3, mimpid
     csrr x4, mhartid
-    csrr x5, mconfigptr
+    csrr x5, 0xf15  # csrr x5, mconfigptr
     # test writable CSRs
     csrw mscratch, 4
     csrr x6, mscratch
