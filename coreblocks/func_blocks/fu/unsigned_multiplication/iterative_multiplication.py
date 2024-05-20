@@ -6,38 +6,32 @@ from coreblocks.params import GenParams
 from transactron import *
 from transactron.core import def_method
 
-
 __all__ = ["IterativeUnsignedMul"]
 
 
 class IterativeSequenceMul(Elaboratable):
     """
     IterativeSequenceMul performs iterative unsigned multiplication using multiple DSP units.
-
     This class breaks down the multiplication of large bit-width operands into smaller chunks that
     fit into the DSP units,
     processes these chunks iteratively,
     and then combines the results using a multi-level pipeline to form the final product.
 
-    Attributes:
+    Attributes
+    ----------
         dsp_width (int): Width of each DSP unit.
         dsp_number (int): Number of DSP units available.
         n (int): Bit width of the numbers to be multiplied.
 
     Signals:
+    --------
         ready (Signal): Indicates if the multiplier is ready to accept new inputs.
         issue (Signal): Signals the start of a new multiplication.
-        step (Signal): Tracks the current iteration step in the multiplication process.
-        first_mul_number (Signal): Index of the first multiplication operation in the current step.
-        last_mul_number (Signal): Index of the last multiplication operation in the current step.
         i1 (Signal): First multiplicand, extended to align with the DSP width.
         i2 (Signal): Second multiplicand, extended to align with the DSP width.
         result (Signal): Final result of the multiplication.
         valid (Signal): Indicates if the result is valid.
         getting_result (Signal): Signals the process of retrieving the result.
-        values_array (list): 3D list to hold intermediate multiplication results.
-        valid_array (list): List to manage the validity of intermediate results.
-
     """
 
     def __init__(self, dsp_width: int, dsp_number: int, n: int):
@@ -52,9 +46,7 @@ class IterativeSequenceMul(Elaboratable):
 
         self.ready = Signal()
         self.issue = Signal()
-        self.step = Signal(math.ceil(math.log2(self.number_of_steps) + 1), reset=self.number_of_steps)
-        self.first_mul_number = Signal(math.ceil(math.log2(self.number_of_multiplications) + 1))
-        self.last_mul_number = Signal(math.ceil(math.log2(self.number_of_multiplications) + 1))
+        self.step = Signal(range(self.number_of_steps + 1), reset=self.number_of_steps)
         self.i1 = Signal(self.n_padding)
         self.i2 = Signal(self.n_padding)
         self.result = Signal(2 * n)
@@ -98,20 +90,17 @@ class IterativeSequenceMul(Elaboratable):
 
             with m.If(self.step < self.number_of_steps):
                 m.d.sync += self.step.eq(self.step + 1)
-                m.d.sync += self.first_mul_number.eq(self.first_mul_number + self.dsp_number)
 
             with m.If(self.issue):
                 m.d.sync += self.step.eq(0)
-                m.d.sync += self.first_mul_number.eq(0)
 
             dsp_idx = 0
-            m.d.comb += self.last_mul_number.eq(self.first_mul_number + self.dsp_number)
             for i in range(self.number_of_multiplications):
                 a = i // self.number_of_chunks
                 b = i % self.number_of_chunks
                 chunk_i1 = self.i1[a * self.dsp_width : (a + 1) * self.dsp_width]
                 chunk_i2 = self.i2[b * self.dsp_width : (b + 1) * self.dsp_width]
-                with m.If((i >= self.first_mul_number) & (i < self.last_mul_number)):
+                with m.If((i >= self.step * self.dsp_number) & (i < (self.step + 1) * self.dsp_number)):
                     dsp_idx = (dsp_idx + 1) % self.dsp_number
                     with Transaction().body(m):
                         res = self.dsp_units[dsp_idx].compute(m, i1=chunk_i1, i2=chunk_i2)
