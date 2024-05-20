@@ -1,4 +1,5 @@
 import random
+import math
 from collections import deque
 
 from amaranth.sim import Settle
@@ -28,7 +29,10 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
         self.m = SimpleTestCircuit(IterativeUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number))
-        self.waiting_time = 10
+        self.n_padding = self.dsp_width * 2 ** (math.ceil(math.log2(self.gen_params.isa.xlen / self.dsp_width)))
+        self.number_of_chunks = self.n_padding // self.dsp_width
+        self.number_of_multiplications = self.number_of_chunks**2
+        self.pipeline_length = math.ceil(math.log2(self.number_of_chunks))
 
         random.seed(1050)
         self.requests = deque()
@@ -53,19 +57,15 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
 
     def test_pipeline(self):
         def consumer():
-            waiting = 0
+            time = 0
             while self.responses:
                 res = yield from self.m.accept.call_try()
-                if res is None:
-                    busy = 1
-                else:
-                    busy = 0
-                waiting = waiting + busy
-                if busy == 0:
+                time += 1
+                if res is not None:
                     expected = self.responses.pop()
                     assert expected == res
-            with open("iterative_multiplication_busy.txt", "a") as file:
-                file.write(f"dsp_width:{self.m._dut.dsp_width},dsp_number:{self.m._dut.dsp_number} -> {waiting}\n")
+
+            assert time == 100 * math.ceil(self.number_of_multiplications / self.dsp_number) + self.pipeline_length + 2
 
         def producer():
             while self.requests:
