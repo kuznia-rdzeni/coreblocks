@@ -125,13 +125,11 @@ class LSURequester(Elaboratable):
                 aligned,
             )
 
-            with condition(m, nonblocking=True) as branch:
-                with branch(aligned & store):
-                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
-                with branch(aligned & ~store):
-                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
-
             with m.If(aligned):
+                with m.If(store):
+                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
+                with m.Else():
+                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
                 m.d.sync += request_sent.eq(1)
                 m.d.sync += addr_reg.eq(addr)
                 m.d.sync += funct3_reg.eq(funct3)
@@ -153,14 +151,13 @@ class LSURequester(Elaboratable):
 
             self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
 
-            with condition(m) as branch:
-                with branch(store_reg):
-                    fetched = self.bus.get_write_response(m)
-                    m.d.comb += err.eq(fetched.err)
-                with branch():
-                    fetched = self.bus.get_read_response(m)
-                    m.d.comb += err.eq(fetched.err)
-                    m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))
+            with m.If(store_reg):
+                fetched = self.bus.get_write_response(m)
+                m.d.comb += err.eq(fetched.err)
+            with m.Else():
+                fetched = self.bus.get_read_response(m)
+                m.d.comb += err.eq(fetched.err)
+                m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))
 
             m.d.sync += request_sent.eq(0)
 
