@@ -309,23 +309,55 @@ class AsyncMemoryBank(Elaboratable):
         return m
 
 class ShiftStorage(Elaboratable):
+    """ Ordered storage, which shifts data
+
+    This module implements a storage, which maintain all elements in continuous, ordered array
+    according to the age of the elements (element inserted earlier will be earlier in the list).
+    The order is restored after each `delete` operation by shifting all elemets which are older
+    that the removed one.
+
+
+    Attributes
+    ----------
+    read: Method
+        The read method. Accepts an `addr` from which data should be read.
+        The read response method. Return `data_layout` View which was saved on `addr` at reading
+        time. The `valid` signal indicates if the `addr` was inside the range.
+    push_back : Method
+        Insert the new entry on the end of storage. Ready only if there is a free place.
+    delate: Method
+        Remove the element from the `addr`. Shifts the elements to restore the proper order.
+    update: Method
+        The update method. Accepts `addr` where data should be saved, `data` in form of `data_layout`.
+        This method is available if `support_update` is set to `True`.
+    """
     def __init__(self, data_layout : LayoutList, depth : int, support_update : bool = False):
+        """
+        Parameters
+        ----------
+        data_layout: LayoutList
+            The format of structures stored in the ShiftStorage.
+        depth: int
+            Number of elements stored in ShiftStorage.
+        support_update: bool
+            Indicates if `update` method should be generated. Default: `False`
+        """
         self.data_layout = make_layout(*data_layout)
         self.depth = depth
         self.support_update = support_update
 
         self._data = Array([Signal(self.data_layout, name=f"cell_{i}") for i in range(self.depth)])
-        self._last = Signal(range(self.depth+1)) # pointer on first empty
+        self._last = Signal(range(self.depth+1)) # pointer on first empty cell
 
-        self.read = Method(i=[("index", range(self.depth))], o=[("data", self.data_layout), ("valid", 1)])
+        self.read = Method(i=[("addr", range(self.depth))], o=[("data", self.data_layout), ("valid", 1)])
         self.push_back = Method(i=[("data", self.data_layout)])
-        self.delete = Method(i=[("index", range(self.depth))])
+        self.delete = Method(i=[("addr", range(self.depth))])
         if self.support_update:
-            self.update = Method(i=[("index", range(self.depth)),("data", self.data_layout)], o=[("err", 1)])
+            self.update = Method(i=[("addr", range(self.depth)),("data", self.data_layout)], o=[("err", 1)])
 
-    def _generate_shift(self, m : TModule, index : Value):
+    def _generate_shift(self, m : TModule, addr : Value):
         for i in range(1, self.depth):
-            with m.If(index < i):
+            with m.If(addr < i):
                 m.d.sync += self._data[i-1].eq(self._data[i])
 
     def elaborate(self, platform):
@@ -335,16 +367,16 @@ class ShiftStorage(Elaboratable):
         last_decr = Signal()
 
         @def_method(m, self.read)
-        def _(index):
-            return {"data" : self._data[index], "valid" : index < self._last}
+        def _(addr):
+            return {"data" : self._data[addr], "valid" : addr < self._last}
 
         if self.support_update:
             @def_method(m, self.update)
-            def _(index, data):
+            def _(addr, data):
                 update_req_valid = Signal()
-                m.d.top_comb += update_req_valid.eq(index < self._last)
+                m.d.top_comb += update_req_valid.eq(addr < self._last)
                 with m.If(update_req_valid):
-                    m.d.sync += self._data[index].eq(data)
+                    m.d.sync += self._data[addr].eq(data)
                 return {"err": ~update_req_valid}
 
 
@@ -354,9 +386,9 @@ class ShiftStorage(Elaboratable):
             m.d.comb += last_incr.eq(1)
 
         @def_method(m, self.delete)
-        def _(index):
+        def _(addr):
             m.d.comb += last_decr.eq(1)
-            self._generate_shift(m, index)
+            self._generate_shift(m, addr)
 
         with m.Switch(Cat(last_incr, last_decr)):
             with m.Case(1):
