@@ -7,6 +7,7 @@ import random
 
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
+from coreblocks.interface.keys import FetchResumeKey
 
 from transactron.core import Method
 from transactron.lib import AdapterTrans, Adapter, BasicFifo
@@ -19,6 +20,7 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
+from transactron.utils.dependencies import DependencyContext
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -57,7 +59,7 @@ class TestFetchUnit(TestCaseWithSimulator):
     with_rvc: bool
 
     @pytest.fixture(autouse=True)
-    def setup(self, configure_dependency_context):
+    def setup(self, fixture_initialize_testing_env):
         self.pc = 0
         self.gen_params = GenParams(
             test_core_config.replace(
@@ -69,13 +71,11 @@ class TestFetchUnit(TestCaseWithSimulator):
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
-        fetch = FetchUnit(self.gen_params, self.icache, fifo.write)
-        self.fetch_resume = TestbenchIO(AdapterTrans(fetch.resume))
-        self.fetch_stall_exception = TestbenchIO(AdapterTrans(fetch.stall_exception))
+        self.fetch_resume_mock = TestbenchIO(Adapter())
+        DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume_mock.adapter.iface)
+        self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))
 
-        self.m = ModuleConnector(
-            self.icache, fifo, self.io_out, self.clean_fifo, fetch, self.fetch_resume, self.fetch_stall_exception
-        )
+        self.m = ModuleConnector(self.icache, fifo, self.io_out, self.clean_fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -188,7 +188,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 yield from self.random_wait(5)
-                yield from self.fetch_stall_exception.call()
+                yield from self.fetch.stall_exception.call()
                 yield from self.random_wait(5)
 
                 # Empty the pipeline
@@ -203,7 +203,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                     ) + self.gen_params.fetch_block_bytes
 
                 # Resume the fetch unit
-                while (yield from self.fetch_resume.call_try(pc=resume_pc, resume_from_exception=1)) is None:
+                while (yield from self.fetch.resume_from_exception.call_try(pc=resume_pc)) is None:
                     pass
 
     def run_sim(self):
@@ -416,7 +416,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
     with_rvc: bool
 
     @pytest.fixture(autouse=True)
-    def setup(self, configure_dependency_context):
+    def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(
             test_core_config.replace(compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log)
         )

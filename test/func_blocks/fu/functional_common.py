@@ -95,7 +95,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         raise NotImplementedError
 
     @pytest.fixture(autouse=True)
-    def setup(self, configure_dependency_context):
+    def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))

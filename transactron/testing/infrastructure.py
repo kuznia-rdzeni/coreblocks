@@ -214,8 +214,8 @@ class TestCaseWithSimulator:
         ch.setFormatter(formatter)
         root_logger.handlers += [ch]
 
-    @pytest.fixture(autouse=True)
-    def configure_dependency_context(self, request):
+    @contextmanager
+    def configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
         with DependencyContext(self.dependency_manager):
             yield
@@ -235,20 +235,14 @@ class TestCaseWithSimulator:
         self.add_class_mocks(sim)
         self.add_local_mocks(sim, frame_locals)
 
-    @pytest.fixture(autouse=True)
-    def configure_traces(self, request):
+    def configure_traces(self):
         traces_file = None
         if "__TRANSACTRON_DUMP_TRACES" in os.environ:
-            traces_file = ".".join(request.node.nodeid.split("/"))
+            traces_file = self._transactron_current_output_file_name
         self._transactron_infrastructure_traces_file = traces_file
 
-    @pytest.fixture(autouse=True)
-    def fixture_sim_processes_to_add(self):
-        # By default return empty lists, it will be updated by other fixtures based on needs
-        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
-
-    @pytest.fixture(autouse=True)
-    def configure_profiles(self, request, fixture_sim_processes_to_add, configure_dependency_context):
+    @contextmanager
+    def configure_profiles(self):
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
 
@@ -268,18 +262,48 @@ class TestCaseWithSimulator:
 
         if profile is not None:
             profile_dir = "test/__profiles__"
-            profile_file = ".".join(request.node.nodeid.split("/"))
+            profile_file = self._transactron_current_output_file_name
             os.makedirs(profile_dir, exist_ok=True)
             profile.encode(f"{profile_dir}/{profile_file}.json")
 
-    @pytest.fixture(autouse=True)
-    def configure_logging(self, fixture_sim_processes_to_add, register_logging_handler):
+    def configure_logging(self):
         def on_error():
             assert False, "Simulation finished due to an error"
 
         log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
         self._transactron_sim_processes_to_add.append(lambda: make_logging_process(log_level, log_filter, on_error))
+
+    @contextmanager
+    def reinitialize_fixtures(self):
+        # File name to be used in the current test run (either standard or hypothesis iteration)
+        # for standard tests it will always have the suffix "_0". For hypothesis tests, it will be suffixed
+        # with the current hypothesis iteration number, so that each hypothesis run is saved to a
+        # the different file.
+        self._transactron_current_output_file_name = (
+            self._transactron_base_output_file_name + "_" + str(self._transactron_hypothesis_iter_counter)
+        )
+        self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
+        with self.configure_dependency_context():
+            self.configure_traces()
+            with self.configure_profiles():
+                self.configure_logging()
+                yield
+        self._transactron_hypothesis_iter_counter += 1
+
+    @pytest.fixture(autouse=True)
+    def fixture_initialize_testing_env(self, request):
+        # Hypothesis creates a single instance of a test class, which is later reused multiple times.
+        # This means that pytest fixtures are only run once. We can take advantage of this behaviour and
+        # initialise hypothesis related variables.
+
+        # The counter for distinguishing between successive hypothesis iterations, it is incremented
+        # by `reinitialize_fixtures` which should be started at the beginning of each hypothesis run
+        self._transactron_hypothesis_iter_counter = 0
+        # Base name which will be used later to create file names for particular outputs
+        self._transactron_base_output_file_name = ".".join(request.node.nodeid.split("/"))
+        with self.reinitialize_fixtures():
+            yield
 
     @contextmanager
     def run_simulation(self, module: HasElaborate, max_cycles: float = 10e4, add_transaction_module=True):
@@ -323,3 +347,7 @@ class TestCaseWithSimulator:
         """
         while random.random() > prob:
             yield
+
+    def multi_settle(self, settle_count: int = 1):
+        for _ in range(settle_count):
+            yield Settle()

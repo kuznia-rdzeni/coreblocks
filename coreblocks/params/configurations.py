@@ -52,6 +52,10 @@ class _CoreConfigurationDataClass:
         Enables 16-bit Compressed Instructions extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
+    marchid: int
+        The value of the MARCHID CSR.
+    mimpid: int
+        The value of the MIMPID CSR.
     debug_signals: bool
         Enable debug signals (for example hardware metrics etc). If disabled, none of them will be synthesized.
     phys_regs_bits: int
@@ -70,8 +74,12 @@ class _CoreConfigurationDataClass:
         Log of the cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
+    instr_buffer_size: int
+        Size of the instruction buffer.
     allow_partial_extensions: bool
         Allow partial support of extensions.
+    extra_verification: bool
+        Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
     pma : list[PMARegion]
@@ -90,6 +98,9 @@ class _CoreConfigurationDataClass:
     compressed: bool = False
     embedded: bool = False
 
+    marchid: int = 44
+    mimpid: int = 0
+
     debug_signals: bool = True
 
     phys_regs_bits: int = 6
@@ -103,7 +114,11 @@ class _CoreConfigurationDataClass:
 
     fetch_block_bytes_log: int = 2
 
+    instr_buffer_size: int = 4
+
     allow_partial_extensions: bool = False
+
+    extra_verification: bool = True
 
     _implied_extensions: Extension = Extension(0)
 
@@ -158,6 +173,7 @@ full_core_config = CoreConfiguration(
     ),
     compressed=True,
     fetch_block_bytes_log=4,
+    instr_buffer_size=16,
 )
 
 # Core configuration used in internal testbenches

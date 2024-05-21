@@ -133,7 +133,7 @@ def from_layout_field(shape: ShapeLike | LayoutList) -> ShapeLike:
         return shape
 
 
-def make_layout(*fields: LayoutListField):
+def make_layout(*fields: LayoutListField) -> StructLayout:
     return from_method_layout(fields)
 
 

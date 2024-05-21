@@ -241,11 +241,10 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.fetch_resume, accepted)
         def _():
+            # This call will always execute, because there is at most one usafe instruction in the core, and it can be
+            # stored in unifer's Forwarder unitl resume becomes ready.
             # CSR instructions are never compressed, PC+4 is always next instruction
-            return {
-                "pc": instr.pc + self.gen_params.isa.ilen_bytes,
-                "resume_from_exception": False,
-            }
+            return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
         # Generate precommitting signal from precommit
         with Transaction().body(m):
