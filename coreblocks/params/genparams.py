@@ -83,4 +83,8 @@ class GenParams(DependentCache):
         self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
+
         self._generate_test_hardware = cfg._generate_test_hardware
+
+        self.marchid = cfg.marchid
+        self.mimpid = cfg.mimpid

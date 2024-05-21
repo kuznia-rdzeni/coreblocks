@@ -53,6 +53,10 @@ class _CoreConfigurationDataClass:
         Enables 16-bit Compressed Instructions extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
+    marchid: int
+        The value of the MARCHID CSR.
+    mimpid: int
+        The value of the MIMPID CSR.
     debug_signals: bool
         Enable debug signals (for example hardware metrics etc). If disabled, none of them will be synthesized.
     phys_regs_bits: int
@@ -102,6 +106,9 @@ class _CoreConfigurationDataClass:
 
     compressed: bool = False
     embedded: bool = False
+
+    marchid: int = 44
+    mimpid: int = 0
 
     debug_signals: bool = True
 
