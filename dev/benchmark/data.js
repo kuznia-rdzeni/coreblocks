@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1715683818915,
+  "lastUpdate": 1716295562727,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12375,6 +12375,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/edf58b67b14498cdc373a2ba0fb86a75385051f9"
         },
         "date": 1715683812765,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.42572004421038945,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3507750541915795,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6552717165494218,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36438650678294576,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2934884683336782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32911855660670825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43503890274984436,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "efdbd5f3e8f70247e86d784b2d6cc4c73bb3eaa4",
+          "message": "Add new M-mode CSRs (#704)",
+          "timestamp": "2024-05-21T14:33:26+02:00",
+          "tree_id": "ea2799a2097ad7db225661dc41ab77966a7cf315",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/efdbd5f3e8f70247e86d784b2d6cc4c73bb3eaa4"
+        },
+        "date": 1716295559603,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
