@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 
 from amaranth import *
 from amaranth.back import verilog
 from amaranth.hdl import Fragment
+from amaranth.lib import wiring
 
 from transactron.core import TransactionManager
 from transactron.core.keys import TransactionManagerKey
@@ -227,9 +228,18 @@ def collect_logs(name_map: "SignalDict") -> list[GeneratedLog]:
 
 
 def generate_verilog(
-    top_module: Elaboratable, ports: list[Signal], top_name: str = "top"
+    elaboratable: Elaboratable, ports: Optional[list[Value]] = None, top_name: str = "top"
 ) -> tuple[str, GenerationInfo]:
-    fragment = Fragment.get(top_module, platform=None).prepare(ports=ports)
+    # The ports logic is copied (and simplified) from amaranth.back.verilog.convert.
+    # Unfortunately, the convert function doesn't return the name map.
+    if ports is None and isinstance(elaboratable, wiring.Component):
+        ports = []
+        for _, _, value in elaboratable.signature.flatten(elaboratable):
+            ports.append(Value.cast(value))
+    elif ports is None:
+        raise TypeError("The `generate_verilog()` function requires a `ports=` argument")
+
+    fragment = Fragment.get(elaboratable, platform=None).prepare(ports=ports)
     verilog_text, name_map = verilog.convert_fragment(fragment, name=top_name, emit_src=True, strip_internal_attrs=True)
 
     transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())

@@ -3,6 +3,7 @@ from typing import Callable, Iterable, Sequence, TypeAlias, Tuple
 from os import environ
 from graphlib import TopologicalSorter
 from amaranth import *
+from amaranth.lib.wiring import Component, connect, flipped
 from itertools import chain, filterfalse, product
 
 from transactron.utils import *
@@ -15,7 +16,7 @@ from .transaction import Transaction, TransactionManagerKey
 from .tmodule import TModule
 from .schedulers import eager_deterministic_cc_scheduler
 
-__all__ = ["TransactionManager", "TransactionModule"]
+__all__ = ["TransactionManager", "TransactionModule", "TransactionComponent"]
 
 TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
@@ -477,5 +478,24 @@ class TransactionModule(Elaboratable):
         m.submodules.transactionManager = self.transaction_manager = self.manager.get_dependency(
             TransactionManagerKey()
         )
+
+        return m
+
+
+class TransactionComponent(TransactionModule, Component):
+    def __init__(
+        self,
+        component: Component,
+        dependency_manager: Optional[DependencyManager] = None,
+        transaction_manager: Optional[TransactionManager] = None,
+    ):
+        TransactionModule.__init__(self, component, dependency_manager, transaction_manager)
+        Component.__init__(self, component.signature)
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+
+        for name in self.signature.members:
+            connect(m, flipped(getattr(self, name)), getattr(self.elaboratable, name))
 
         return m

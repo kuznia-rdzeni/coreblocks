@@ -11,7 +11,7 @@ from coreblocks.arch import Opcode, Funct3
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
-from coreblocks.peripherals.wishbone import WishboneSignature, WishboneMemorySlave
+from coreblocks.peripherals.wishbone import WishboneMemorySlave
 
 from typing import Optional
 import random
@@ -32,9 +32,6 @@ class CoreTestElaboratable(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_instr_bus = WishboneSignature(self.gen_params.wb_params).create()
-        wb_data_bus = WishboneSignature(self.gen_params.wb_params).create()
-
         # Align the size of the memory to the length of a cache line.
         instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
         self.wb_mem_slave = WishboneMemorySlave(
@@ -43,7 +40,7 @@ class CoreTestElaboratable(Elaboratable):
         self.wb_mem_slave_data = WishboneMemorySlave(
             wb_params=self.gen_params.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
         )
-        self.core = Core(gen_params=self.gen_params, wb_instr_bus=wb_instr_bus, wb_data_bus=wb_data_bus)
+        self.core = Core(gen_params=self.gen_params)
         self.io_in = TestbenchIO(AdapterTrans(self.core.frontend.inject_instr))
         self.interrupt = TestbenchIO(AdapterTrans(self.core.interrupt_controller.report_interrupt))
 
@@ -53,8 +50,8 @@ class CoreTestElaboratable(Elaboratable):
         m.submodules.io_in = self.io_in
         m.submodules.interrupt = self.interrupt
 
-        connect(m, wb_instr_bus, self.wb_mem_slave.bus)
-        connect(m, wb_data_bus, self.wb_mem_slave_data.bus)
+        connect(m, self.core.wb_instr, self.wb_mem_slave.bus)
+        connect(m, self.core.wb_data, self.wb_mem_slave_data.bus)
 
         return m
 

@@ -7,7 +7,7 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth import *
-from amaranth.lib.wiring import Flow
+from amaranth.lib.wiring import Flow, connect, flipped
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -96,20 +96,29 @@ class AdapterConnector(Elaboratable):
 UnitCore = Callable[[GenParams], tuple[ResourceBuilder, Elaboratable]]
 
 
+class SynthesisCore(Elaboratable):
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.core = core = Core(gen_params=self.gen_params)
+        m.submodules.wb_arbiter = wb_arbiter = WishboneArbiter(self.gen_params.wb_params, 2)
+        m.submodules.wb_connector = WishboneConnector(wb_arbiter.slave_wb, 0)
+
+        connect(m, wb_arbiter.masters[0], flipped(core.wb_instr))
+        connect(m, wb_arbiter.masters[1], flipped(core.wb_data))
+
+        return m
+
+
 def unit_core(gen_params: GenParams):
     resources = wishbone_resources(gen_params.wb_params)
 
-    wb_arbiter = WishboneArbiter(gen_params.wb_params, 2)
-    wb_instr = wb_arbiter.masters[0]
-    wb_data = wb_arbiter.masters[1]
+    core = SynthesisCore(gen_params)
 
-    wb_connector = WishboneConnector(wb_arbiter.slave_wb, 0)
-
-    core = Core(gen_params=gen_params, wb_instr_bus=wb_instr, wb_data_bus=wb_data)
-
-    module = ModuleConnector(core=core, wb_arbiter=wb_arbiter, wb_connector=wb_connector)
-
-    return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
+    return resources, TransactionModule(core, dependency_manager=DependencyContext.get())
 
 
 def unit_fu(unit_params: FunctionalComponentParams):
