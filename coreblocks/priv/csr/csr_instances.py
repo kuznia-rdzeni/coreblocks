@@ -1,10 +1,10 @@
 from amaranth import *
 
 from typing import Optional
+from coreblocks.arch import CSRAddress
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
-from coreblocks.priv.csr.csr_address import CSRAddress
 from transactron.core import Method, Transaction, def_method, TModule
 
 

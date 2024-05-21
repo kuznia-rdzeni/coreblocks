@@ -1,10 +1,9 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, In, Signature
 
-from coreblocks.frontend.decoder.isa import PrivilegeLevel
+from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.arch import CSRAddress, InterruptCauseNumber 
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRRegistersKey, MretKey
 
@@ -18,6 +17,7 @@ log = logging.HardwareLogger("core.interrupt_controller")
 
 
 ISA_RESERVED_INTERRUPTS = 16
+
 
 class InternalInterruptControllerSignature(Signature):
     def __init__(self, gen_params: GenParams):

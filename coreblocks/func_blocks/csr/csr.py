@@ -7,8 +7,9 @@ from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
+from coreblocks.params import GenParams
+from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
