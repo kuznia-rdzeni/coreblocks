@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716295562727,
+  "lastUpdate": 1716295564290,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28602,6 +28602,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5730,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "efdbd5f3e8f70247e86d784b2d6cc4c73bb3eaa4",
+          "message": "Add new M-mode CSRs (#704)",
+          "timestamp": "2024-05-21T14:33:26+02:00",
+          "tree_id": "ea2799a2097ad7db225661dc41ab77966a7cf315",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/efdbd5f3e8f70247e86d784b2d6cc4c73bb3eaa4"
+        },
+        "date": 1716295563765,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.85,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22344,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 802,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 896,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5762,
             "unit": "LUT"
           }
         ]
