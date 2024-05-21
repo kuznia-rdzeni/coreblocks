@@ -10,6 +10,7 @@ __all__ = [
     "FenceTarget",
     "FenceFm",
     "Registers",
+    "PrivilegeLevel",
 ]
 
 

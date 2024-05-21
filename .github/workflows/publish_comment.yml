@@ -1,0 +1,35 @@
+name: Publish a PR comment
+
+on:
+  workflow_run:
+    workflows: [Core Benchmarks]
+    types:
+      - completed
+
+jobs:
+  benchmark-summary:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          name: benchmark-summary
+          path: summary
+
+      - name: 'Comment on PR'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let fs = require('fs');
+            let issue_number = Number(fs.readFileSync('./summary/pr_number'));
+            let body = fs.readFileSync('./summary/comment.md', "utf-8");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: body
+            });

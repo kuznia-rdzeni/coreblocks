@@ -1,6 +1,6 @@
 from parameterized import parameterized_class
 
-from coreblocks.frontend.decoder import Funct3, Funct7, OpType
+from coreblocks.arch import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.div_unit import DivFn, DivComponent
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase

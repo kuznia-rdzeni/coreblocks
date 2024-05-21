@@ -5,12 +5,10 @@ from dataclasses import dataclass
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.frontend.decoder.isa import PrivilegeLevel, Funct3, ExceptionCause
-from coreblocks.frontend.decoder import OpType
-from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
@@ -66,11 +64,9 @@ class CSRUnit(FuncBlock, Elaboratable):
         ----------
         gen_params: GenParams
             Core generation parameters.
-        fetch_continue: Method
-            Method to resume `Fetch` unit from stalled PC.
         """
         self.gen_params = gen_params
-        self.dependency_manager = gen_params.get(DependencyManager)
+        self.dependency_manager = DependencyContext.get()
 
         self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
 
@@ -81,7 +77,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.insert = Method(i=self.csr_layouts.rs.insert_in)
         self.update = Method(i=self.csr_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.accept)
-        self.precommit = Method(i=self.csr_layouts.precommit)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
@@ -239,18 +234,18 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.fetch_resume, call_resume)
         def _():
-            # There is at most one unsafe instruction in the core, call would never block.
+            # This call will always execute, because there is at most one unsafe instruction in the core, and it can be
+            # stored in unifer's Forwarder unitl resume becomes ready.
             # CSR instructions are never compressed, PC+4 is always next instruction
-            return {
-                "pc": instr.pc + self.gen_params.isa.ilen_bytes,
-            }
+            return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
         # Generate precommitting signal from precommit
-        @def_method(m, self.precommit)
-        def _(rob_id: Value, side_fx: Value):
-            with m.If(instr.rob_id == rob_id):
+        with Transaction().body(m):
+            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
+            info = precommit(m)
+            with m.If(instr.rob_id == info.rob_id):
                 m.d.comb += precommitting.eq(1)
-                m.d.comb += exe_side_fx.eq(side_fx)
+                m.d.comb += exe_side_fx.eq(info.side_fx)
 
         return m
 
@@ -258,10 +253,9 @@ class CSRUnit(FuncBlock, Elaboratable):
 @dataclass(frozen=True)
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
-        connections = gen_params.get(DependencyManager)
+        connections = DependencyContext.get()
         unit = CSRUnit(gen_params)
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
-        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
         return unit
 
     def get_optypes(self) -> set[OpType]:

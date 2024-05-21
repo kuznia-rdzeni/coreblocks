@@ -6,11 +6,11 @@ from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import Funct3, ExceptionCause, OpType
+from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
-from coreblocks.interface.layouts import ExceptionRegisterLayouts
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
-from transactron.utils.dependencies import DependencyManager
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, InstructionPrecommitKey
+from transactron.utils.dependencies import DependencyContext
 
 from transactron.testing import *
 
@@ -24,18 +24,22 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
+        m.submodules.precommit = self.precommit = TestbenchIO(
+            Adapter(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+        )
+        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
         m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
-        m.submodules.precommit = self.precommit = TestbenchIO(AdapterTrans(self.dut.precommit))
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        self.gen_params.get(DependencyManager).add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
-        self.gen_params.get(DependencyManager).add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
+        DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
         m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 

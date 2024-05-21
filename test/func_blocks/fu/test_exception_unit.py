@@ -1,6 +1,6 @@
 from coreblocks.func_blocks.fu.exception import ExceptionUnitFn, ExceptionUnitComponent
-from coreblocks.frontend.decoder.isa import ExceptionCause
-from coreblocks.frontend.decoder import OpType, Funct3
+from coreblocks.arch import ExceptionCause, Funct3
+from coreblocks.arch import OpType
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 

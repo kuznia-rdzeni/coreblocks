@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Self
 from transactron.utils._typing import type_self_kwargs_as
 
-from coreblocks.params.isa_params import Extension
+from coreblocks.arch.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
 
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
@@ -71,6 +71,8 @@ class _CoreConfigurationDataClass:
         Log of the cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
+    instr_buffer_size: int
+        Size of the instruction buffer.
     interrupt_custom_count: int
         Number of custom/local async interrupts to support. First interrupt will be registered at id 16.
     interrupt_custom_edge_trig_mask: int
@@ -79,6 +81,8 @@ class _CoreConfigurationDataClass:
         read-only and directly connected to input signal (implementation must provide clearing method)
     allow_partial_extensions: bool
         Allow partial support of extensions.
+    extra_verification: bool
+        Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
     _generate_test_hardware: bool
@@ -112,10 +116,14 @@ class _CoreConfigurationDataClass:
 
     fetch_block_bytes_log: int = 2
 
+    instr_buffer_size: int = 4
+
     interrupt_custom_count: int = 0
     interrupt_custom_edge_trig_mask: int = 0
 
     allow_partial_extensions: bool = False
+
+    extra_verification: bool = True
 
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
@@ -171,6 +179,7 @@ full_core_config = CoreConfiguration(
     ),
     compressed=True,
     fetch_block_bytes_log=4,
+    instr_buffer_size=16,
 )
 
 # Core configuration used in internal testbenches

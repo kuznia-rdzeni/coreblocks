@@ -5,14 +5,14 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCi
 
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.params import GenParams
-from coreblocks.frontend.decoder import OpType, Funct3, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FetchLayouts, DecodeLayouts
 from coreblocks.params.configurations import test_core_config
 
 
 class TestDecode(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
-    def setup(self, configure_dependency_context):
+    def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config.replace(start_pc=24))
 
         fifo_in = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)

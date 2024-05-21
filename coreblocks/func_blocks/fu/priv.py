@@ -8,12 +8,12 @@ from transactron import *
 from transactron.lib import BasicFifo, logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
-from transactron.utils import DependencyManager, OneHotSwitch
+from transactron.utils import DependencyContext, OneHotSwitch
 
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.frontend.decoder import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, RetirementLayouts, FetchLayouts
+from coreblocks.arch import OpType, ExceptionCause
+from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -36,10 +36,11 @@ class PrivilegedFn(DecoderManager):
     class Fn(IntFlag):
         MRET = auto()
         FENCEI = auto()
+        WFI = auto()
 
     @classmethod
     def get_instructions(cls) -> Sequence[tuple]:
-        return [(cls.Fn.MRET, OpType.MRET), (cls.Fn.FENCEI, OpType.FENCEI)]
+        return [(cls.Fn.MRET, OpType.MRET), (cls.Fn.FENCEI, OpType.FENCEI), (cls.Fn.WFI, OpType.WFI)]
 
 
 class PrivilegedFuncUnit(Elaboratable):
@@ -48,11 +49,10 @@ class PrivilegedFuncUnit(Elaboratable):
         self.priv_fn = PrivilegedFn()
 
         self.layouts = layouts = gp.get(FuncUnitLayouts)
-        self.dm = gp.get(DependencyManager)
+        self.dm = DependencyContext.get()
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
-        self.precommit = Method(i=gp.get(RetirementLayouts).precommit)
 
         self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchLayouts).resume, 2)
 
@@ -94,19 +94,20 @@ class PrivilegedFuncUnit(Elaboratable):
                 instr_fn.eq(decoder.decode_fn),
             ]
 
-        @def_method(m, self.precommit)
-        def _(rob_id, side_fx):
-            with m.If(instr_valid & (rob_id == instr_rob) & ~finished):
+        with Transaction().body(m, request=instr_valid & ~finished):
+            precommit = self.dm.get_dependency(InstructionPrecommitKey())
+            info = precommit(m)
+            with m.If(info.rob_id == instr_rob):
                 m.d.sync += finished.eq(1)
-                self.perf_instr.incr(m, instr_fn, cond=side_fx)
+                self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
-                with condition(m) as branch:
-                    with branch(~side_fx):
-                        pass
-                    with branch(instr_fn == PrivilegedFn.Fn.MRET):
+                with condition(m, nonblocking=True) as branch:
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET)):
                         mret(m)
-                    with branch(instr_fn == PrivilegedFn.Fn.FENCEI):
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                         flush_icache(m)
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI)):
+                        m.d.sync += finished.eq(async_interrupt_active)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():
@@ -118,8 +119,10 @@ class PrivilegedFuncUnit(Elaboratable):
             with OneHotSwitch(m, instr_fn) as OneHotCase:
                 with OneHotCase(PrivilegedFn.Fn.MRET):
                     m.d.av_comb += ret_pc.eq(csr.m_mode.mepc.read(m).data)
+                # FENCE.I and WFI can't be compressed, so the next instruction is always pc+4
                 with OneHotCase(PrivilegedFn.Fn.FENCEI):
-                    # FENCE.I can't be compressed, so the next instruction is always pc+4
+                    m.d.av_comb += ret_pc.eq(instr_pc + 4)
+                with OneHotCase(PrivilegedFn.Fn.WFI):
                     m.d.av_comb += ret_pc.eq(instr_pc + 4)
 
             exception = Signal()
@@ -151,8 +154,7 @@ class PrivilegedFuncUnit(Elaboratable):
 class PrivilegedUnitComponent(FunctionalComponentParams):
     def get_module(self, gp: GenParams) -> FuncUnit:
         unit = PrivilegedFuncUnit(gp)
-        connections = gp.get(DependencyManager)
-        connections.add_dependency(InstructionPrecommitKey(), unit.precommit)
+        connections = DependencyContext.get()
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
         return unit
 

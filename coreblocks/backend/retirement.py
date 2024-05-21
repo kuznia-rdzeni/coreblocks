@@ -3,12 +3,12 @@ from coreblocks.interface.layouts import RetirementLayouts
 
 from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.frontend.decoder.isa import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey
+from coreblocks.arch import ExceptionCause
+from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 
 
@@ -23,7 +23,6 @@ class Retirement(Elaboratable):
         r_rat_peek: Method,
         free_rf_put: Method,
         rf_free: Method,
-        precommit: Method,
         exception_cause_get: Method,
         exception_cause_clear: Method,
         frat_rename: Method,
@@ -39,7 +38,6 @@ class Retirement(Elaboratable):
         self.r_rat_peek = r_rat_peek
         self.free_rf_put = free_rf_put
         self.rf_free = rf_free
-        self.precommit = precommit
         self.exception_cause_get = exception_cause_get
         self.exception_cause_clear = exception_cause_clear
         self.rename = frat_rename
@@ -50,27 +48,29 @@ class Retirement(Elaboratable):
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
+        self.perf_trap_latency = FIFOLatencyMeasurer(
+            "backend.retirement.trap_latency",
+            "Cycles spent flushing the core after a trap",
+            slots_number=1,
+            max_latency=2 * 2**gen_params.rob_entries_bits,
+        )
 
-        self.dependency_manager = gen_params.get(DependencyManager)
+        self.dependency_manager = DependencyContext.get()
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
+
+        self.precommit = Method(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+        self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_instr_ret]
+        m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
         m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(reset=1)
-
-        with Transaction().body(m):
-            # TODO: do we prefer single precommit call per instruction?
-            # If so, the precommit method should send an acknowledge signal here.
-            # Just calling once is not enough, because the insn might not be in relevant unit yet.
-            rob_entry = self.rob_peek(m)
-            self.precommit(m, rob_id=rob_entry.rob_id, side_fx=side_fx)
 
         def free_phys_reg(rp_dst: Value):
             # mark reg in Register File as free
@@ -123,6 +123,8 @@ class Retirement(Elaboratable):
                     commit = Signal()
 
                     with m.If(rob_entry.exception):
+                        self.perf_trap_latency.start(m)
+
                         cause_register = self.exception_cause_get(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
@@ -173,10 +175,10 @@ class Retirement(Elaboratable):
                         m.d.av_comb += commit.eq(1)
 
                     # Condition is used to avoid FRAT locking during normal operation
-                    with condition(m, priority=False) as cond:
+                    with condition(m) as cond:
                         with cond(commit):
                             retire_instr(rob_entry)
-                        with cond(~commit):
+                        with cond():
                             # Not using default condition, because we want to block if branch is not ready
                             flush_instr(rob_entry)
 
@@ -202,6 +204,7 @@ class Retirement(Elaboratable):
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
                     # Resume core operation
+                    self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
@@ -223,5 +226,10 @@ class Retirement(Elaboratable):
         @def_method(m, self.core_state)
         def _():
             return {"flushing": core_flushing}
+
+        @def_method(m, self.precommit)
+        def _():
+            rob_entry = self.rob_peek(m)
+            return {"rob_id": rob_entry.rob_id, "side_fx": side_fx}
 
         return m

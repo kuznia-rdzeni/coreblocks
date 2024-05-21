@@ -10,7 +10,7 @@ from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from transactron.lib import FIFO, Adapter
 from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import ROBLayouts, RFLayouts, LSULayouts, SchedulerLayouts
+from coreblocks.interface.layouts import ROBLayouts, RFLayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
 
 from transactron.testing import *
@@ -27,7 +27,6 @@ class RetirementTestCircuit(Elaboratable):
 
         rob_layouts = self.gen_params.get(ROBLayouts)
         rf_layouts = self.gen_params.get(RFLayouts)
-        lsu_layouts = self.gen_params.get(LSULayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
         fetch_layouts = self.gen_params.get(FetchLayouts)
@@ -48,15 +47,13 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_precommit = self.mock_precommit = TestbenchIO(Adapter(i=lsu_layouts.precommit))
-
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
             Adapter(o=exception_layouts.get, nonexclusive=True)
         )
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
-        self.gen_params.get(DependencyManager).add_dependency(GenericCSRRegistersKey(), self.generic_csr)
+        DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.generic_csr)
 
         m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
@@ -75,7 +72,6 @@ class RetirementTestCircuit(Elaboratable):
             r_rat_peek=self.rat.peek,
             free_rf_put=self.free_rf.write,
             rf_free=self.mock_rf_free.adapter.iface,
-            precommit=self.mock_precommit.adapter.iface,
             exception_cause_get=self.mock_exception_cause.adapter.iface,
             exception_cause_clear=self.mock_exception_clear.adapter.iface,
             frat_rename=self.frat.rename,
@@ -87,9 +83,13 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
+        precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
+        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans(precommit))
+
         return m
 
 
+# TODO: write a proper retirement test
 class TestRetirement(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
@@ -146,16 +146,19 @@ class TestRetirement(TestCaseWithSimulator):
         assert not self.submit_q
         assert not self.rf_free_q
 
+    def precommit_process(self):
+        yield from self.retc.precommit_adapter.call_init()
+        while self.precommit_q:
+            yield
+            info = yield from self.retc.precommit_adapter.call_result()
+            assert info is not None
+            assert info["side_fx"]
+            assert self.precommit_q[0] == info["rob_id"]
+            self.precommit_q.popleft()
+
     @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
     def rf_free_process(self, reg_id):
         assert reg_id == self.rf_free_q.popleft()
-
-    @def_method_mock(lambda self: self.retc.mock_precommit, sched_prio=2)
-    def precommit_process(self, rob_id, side_fx):
-        assert side_fx
-        if self.precommit_q[0] != rob_id:
-            self.precommit_q.popleft()
-            assert rob_id == self.precommit_q[0]
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
@@ -167,7 +170,7 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_instr_decrement)
     def instr_decrement_process(self):
-        pass
+        return {"empty": 0}
 
     @def_method_mock(lambda self: self.retc.mock_trap_entry)
     def mock_trap_entry_process(self):
@@ -186,3 +189,4 @@ class TestRetirement(TestCaseWithSimulator):
         with self.run_simulation(self.retc) as sim:
             sim.add_sync_process(self.free_reg_process)
             sim.add_sync_process(self.rat_process)
+            sim.add_sync_process(self.precommit_process)

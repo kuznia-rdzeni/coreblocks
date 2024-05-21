@@ -1,8 +1,6 @@
 from amaranth import *
 
-from coreblocks.frontend.decoder.isa import Funct3
-from coreblocks.frontend.decoder.optypes import OpType
-from transactron.lib import logging
+from coreblocks.arch import *
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
 from coreblocks.interface.layouts import JumpBranchLayouts
@@ -10,8 +8,6 @@ from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
 from .instr_decoder import InstrDecoder
 from coreblocks.params import *
-
-log = logging.HardwareLogger("frontend.decoder")
 
 
 class DecodeStage(Elaboratable):
@@ -76,8 +72,6 @@ class DecodeStage(Elaboratable):
             with m.Elif(instr_decoder.illegal):
                 self.perf_illegal_instr.incr(m)
                 m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
-
-            log.debug(m, True, "Decoded instruction pc={:x} OpType={:x}", raw.pc, instr_decoder.optype)
 
             self.push_decoded(
                 m,

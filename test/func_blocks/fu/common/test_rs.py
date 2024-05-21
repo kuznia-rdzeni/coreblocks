@@ -10,7 +10,7 @@ from coreblocks.func_blocks.fu.common.rs import RS, RSBase
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from coreblocks.frontend.decoder import OpType
+from coreblocks.arch import OpType
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:
@@ -240,7 +240,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         assert (yield self.m._dut.select.ready) == 0
 
         # After take, select ready should be true, with 0 index returned
-        yield from self.m.take.call()
+        yield from self.m.take.call(rs_entry_id=0)
         yield Settle()
         assert (yield self.m._dut.select.ready) == 1
         assert (yield from self.m.select.call())["rs_entry_id"] == 0

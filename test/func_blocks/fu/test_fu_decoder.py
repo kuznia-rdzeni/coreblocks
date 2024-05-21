@@ -6,7 +6,7 @@ from amaranth.sim import *
 from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager, Decoder
-from coreblocks.frontend.decoder import OpType, Funct3, Funct7
+from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 

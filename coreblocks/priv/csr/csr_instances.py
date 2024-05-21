@@ -1,30 +1,11 @@
 from amaranth import *
-from amaranth.lib.enum import IntEnum
 
 from typing import Optional
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
+from coreblocks.priv.csr.csr_address import CSRAddress
 from transactron.core import Method, Transaction, def_method, TModule
-
-
-class CSRAddress(IntEnum, shape=12):
-    MSTATUS = 0x300
-    MIE = 0x304
-    MTVEC = 0x305
-
-    MEPC = 0x341
-    MCAUSE = 0x342
-    MIP = 0x344
-
-    CYCLE = 0xC00
-    TIME = 0xC01
-    INSTRET = 0xC02
-    CYCLEH = 0xC80
-    TIMEH = 0xC81
-    INSTRETH = 0xC82
-
-    COREBLOCKS_TEST_CSR = 0x7FF
 
 
 class DoubleCounterCSR(Elaboratable):

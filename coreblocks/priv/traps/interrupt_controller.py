@@ -12,7 +12,8 @@ from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRR
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
 from transactron.lib import logging
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
+
 
 log = logging.HardwareLogger("core.interrupt_controller")
 
@@ -76,7 +77,7 @@ class InternalInterruptController(Component):
         super().__init__(InternalInterruptControllerSignature(gen_params))
 
         self.gen_params = gen_params
-        dm = gen_params.get(DependencyManager)
+        dm = DependencyContext.get()
 
         self.edge_reported_mask = self.gen_params.interrupt_custom_edge_trig_mask << ISA_RESERVED_INTERRUPTS
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
