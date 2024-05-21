@@ -27,11 +27,10 @@ from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
-from transactron.lib import AdapterBase, AdapterTrans
+from transactron.lib import AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface, WishboneSignature
 from constants.ecp5_platforms import (
     ResourceBuilder,
-    adapter_resources,
     append_resources,
     signature_resources,
     make_ecp5_platform,
@@ -68,33 +67,6 @@ class InterfaceConnector(Elaboratable):
         return m
 
 
-class AdapterConnector(Elaboratable):
-    def __init__(self, adapter: AdapterBase, number: int):
-        self.adapter = adapter
-        self.number = number
-
-    @staticmethod
-    def with_resources(adapter: AdapterBase, number: int):
-        return AdapterConnector(adapter, number), adapter_resources(adapter, number)
-
-    def elaborate(self, platform: Platform):
-        m = Module()
-
-        m.submodules.adapter = self.adapter
-
-        pins = platform.request("adapter", self.number)
-        assert isinstance(pins, Record)
-
-        m.d.comb += self.adapter.en.eq(pins.en)
-        m.d.comb += pins.done.eq(self.adapter.done)
-        if "data_in" in pins.fields:
-            m.d.comb += self.adapter.data_in.eq(pins.data_in)
-        if "data_out" in pins.fields:
-            m.d.comb += pins.data_out.eq(self.adapter.data_out)
-
-        return m
-
-
 UnitCore = Callable[[GenParams], tuple[ResourceBuilder, Elaboratable]]
 
 
@@ -121,7 +93,7 @@ class SynthesisCore(Component):
 def unit_core(gen_params: GenParams):
     core = SynthesisCore(gen_params)
 
-    resources = signature_resources(core.signature, "wishbone")
+    resources = signature_resources(core.signature, "wishbone", 0)
     connector = InterfaceConnector(core, "wishbone", 0)
 
     module = ModuleConnector(core=core, connector=connector)
@@ -133,12 +105,22 @@ def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
 
-        issue_connector, issue_resources = AdapterConnector.with_resources(AdapterTrans(fu.issue), 0)
-        accept_connector, accept_resources = AdapterConnector.with_resources(AdapterTrans(fu.accept), 1)
+        issue_adapter = AdapterTrans(fu.issue)
+        accept_adapter = AdapterTrans(fu.accept)
+        issue_connector = InterfaceConnector(issue_adapter, "adapter", 0)
+        accept_connector = InterfaceConnector(accept_adapter, "adapter", 1)
+        issue_resources = signature_resources(issue_adapter.signature, "adapter", 0)
+        accept_resources = signature_resources(accept_adapter.signature, "adapter", 1)
 
         resources = append_resources(issue_resources, accept_resources)
 
-        module = ModuleConnector(fu=fu, issue_connector=issue_connector, accept_connector=accept_connector)
+        module = ModuleConnector(
+            fu=fu,
+            issue_connector=issue_connector,
+            accept_connector=accept_connector,
+            issue_adapter=issue_adapter,
+            accept_adapter=accept_adapter,
+        )
 
         return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 

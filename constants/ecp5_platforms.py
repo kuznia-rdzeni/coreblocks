@@ -9,8 +9,6 @@ from amaranth.lib.wiring import Signature, Flow
 
 from constants.ecp5_pinout import ecp5_bg756_pins, ecp5_bg756_pclk
 
-from transactron.lib import AdapterBase
-
 __all__ = ["make_ecp5_platform"]
 
 
@@ -25,19 +23,6 @@ def SignatureResource(*args, pins: "PinManager", signature: Signature, default_n
         io.append(Subsignal(name, Pins(pins.p(Shape.cast(member.shape).width), dir=dir, conn=conn)))
 
     return Resource.family(*args, default_name=default_name, ios=io)
-
-
-def AdapterResource(*args, en, done, data_in, data_out, conn=None):  # noqa: N802
-    io = []
-
-    io.append(Subsignal("en", Pins(en, dir="i", conn=conn, assert_width=1)))
-    io.append(Subsignal("done", Pins(done, dir="o", conn=conn, assert_width=1)))
-    if data_in:
-        io.append(Subsignal("data_in", Pins(data_in, dir="i", conn=conn)))
-    if data_out:
-        io.append(Subsignal("data_out", Pins(data_out, dir="o", conn=conn)))
-
-    return Resource.family(*args, default_name="adapter", ios=io)
 
 
 class PinManager:
@@ -58,24 +43,9 @@ class PinManager:
 ResourceBuilder: TypeAlias = Callable[[PinManager], list[Resource]]
 
 
-def signature_resources(signature: Signature, default_name: str):
+def signature_resources(signature: Signature, default_name: str, number: int):
     def make_resources(pins: PinManager) -> list[Resource]:
-        return [SignatureResource(0, signature=signature, pins=pins, default_name=default_name)]
-
-    return make_resources
-
-
-def adapter_resources(adapter: AdapterBase, number: int):
-    def make_resources(pins: PinManager) -> list[Resource]:
-        return [
-            AdapterResource(
-                number,
-                en=pins.p(),
-                done=pins.p(),
-                data_in=pins.p(adapter.data_in.shape().size),
-                data_out=pins.p(adapter.data_out.shape().size),
-            )
-        ]
+        return [SignatureResource(number, signature=signature, pins=pins, default_name=default_name)]
 
     return make_resources
 
