@@ -32,7 +32,7 @@ class InternalInterruptControllerSignature(Signature):
 
 class InternalInterruptController(Component):
     """Core Internal Interrupt Controller
-    Compatiblie with RISC-V privileged specification.
+    Compatible with RISC-V privileged specification.
     Operates on CSR registers xIE, xIP, and parts of xSTATUS.
     Interrups are reported via plain signals in Component interface.
 
