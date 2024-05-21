@@ -80,3 +80,6 @@ class GenParams(DependentCache):
         self.extra_verification = cfg.extra_verification
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
+
+        self.marchid = cfg.marchid
+        self.mimpid = cfg.mimpid
