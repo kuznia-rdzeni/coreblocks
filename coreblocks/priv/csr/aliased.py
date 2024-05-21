@@ -9,7 +9,7 @@ from coreblocks.func_blocks.csr.csr import CSRListKey
 from transactron.core.method import Method
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
-from transactron.utils.dependencies import DependencyManager
+from transactron.utils.dependencies import DependencyContext
 
 
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
@@ -28,12 +28,13 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         self._fu_read = Method(o=csr_layouts._fu_read)
         self._fu_write = Method(i=csr_layouts._fu_write)
 
+        self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
+
         self.elaborated = False
 
         # append to global CSR list
         if csr_number is not None:
-            dm = gen_params.get(DependencyManager)
-            dm.add_dependency(CSRListKey(), self)
+            DependencyContext.get().add_dependency(CSRListKey(), self)
 
         # TODO: WPRI defult mode
 
@@ -54,9 +55,8 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
 
         @def_method(m, self._fu_read)
         def _() -> Value:
-            result = Signal(self.width)
             for start, csr in self.fields:
-                m.d.comb += result[start : start + csr.width].eq(csr._fu_read(m)["data"])
-            return result
+                m.d.av_comb += self.value[start : start + csr.width].eq(csr._fu_read(m)["data"])
+            return self.value
 
         return m
