@@ -263,9 +263,9 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 # wait until interrupts are cleared, so it won't be missed
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:
                     yield
-                
+
                 assert (yield from self.get_arch_reg_val(30)) == int_count
-                
+
                 int_count += yield from do_interrupt()
             else:
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:

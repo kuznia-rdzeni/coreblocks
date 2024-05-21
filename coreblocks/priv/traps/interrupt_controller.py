@@ -16,6 +16,7 @@ from transactron.utils.dependencies import DependencyManager
 
 log = logging.HardwareLogger("core.interrupt_controller")
 
+
 class InterruptCauseNumber(IntEnum):
     SSI = 1
     MSI = 3

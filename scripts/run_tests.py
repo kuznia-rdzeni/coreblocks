@@ -58,7 +58,6 @@ def main():
     if args.log_filter:
         pytest_arguments += [f"--coreblocks-log-filter={args.log_filter}"]
 
-
     ret = pytest.main(pytest_arguments, [])
 
     exit(ret)

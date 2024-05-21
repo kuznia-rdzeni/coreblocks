@@ -13,6 +13,7 @@ from coreblocks.params import *
 
 log = logging.HardwareLogger("frontend.decoder")
 
+
 class DecodeStage(Elaboratable):
     """
     Simple decode unit. This is a transactional interface which instantiates a
@@ -75,7 +76,7 @@ class DecodeStage(Elaboratable):
             with m.Elif(instr_decoder.illegal):
                 self.perf_illegal_instr.incr(m)
                 m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
-            
+
             log.debug(m, True, "Decoded instruction pc={:x} OpType={:x}", raw.pc, instr_decoder.optype)
 
             self.push_decoded(
