@@ -143,7 +143,7 @@ class TestShiftStorage(TestCaseWithSimulator):
     content_layout = data_layout(content_width)
 
     def setUp(self):
-        self.circ = SimpleTestCircuit(ShiftStorage(self.content_layout, self.depth, support_update = True))
+        self.circ = SimpleTestCircuit(ShiftStorage(self.content_layout, self.depth, support_update=True))
         self.memory = []
 
     def generic_process(
@@ -183,7 +183,7 @@ class TestShiftStorage(TestCaseWithSimulator):
 
     def push_back_process(self, in_push):
         def verify_in(elem):
-            return len(self.memory)<self.depth
+            return len(self.memory) < self.depth
 
         def modify_state(elem, response):
             self.memory.append(elem["data"])
@@ -192,7 +192,7 @@ class TestShiftStorage(TestCaseWithSimulator):
             self.circ.push_back,
             in_push,
             state_change=modify_state,
-            input_verification = verify_in,
+            input_verification=verify_in,
             settle_count=3,
             name="push_back",
         )
@@ -210,18 +210,25 @@ class TestShiftStorage(TestCaseWithSimulator):
 
     def delete_process(self, in_delete):
         def verify_in(elem):
-            return len(self.memory)>0
+            return len(self.memory) > 0
 
         def modify_state(elem, response):
-            addr=elem["addr"]
+            addr = elem["addr"]
             if addr < len(self.memory):
-                self.memory=self.memory[:addr]+self.memory[addr+1:]
+                self.memory = self.memory[:addr] + self.memory[addr + 1 :]
 
-        return self.generic_process(self.circ.delete, in_delete, state_change=modify_state, input_verification = verify_in, settle_count=2, name="delete")
+        return self.generic_process(
+            self.circ.delete,
+            in_delete,
+            state_change=modify_state,
+            input_verification=verify_in,
+            settle_count=2,
+            name="delete",
+        )
 
     def update_process(self, in_update):
         def check(elem, response):
-            assert response["err"] == (elem["addr"]>=len(self.memory))
+            assert response["err"] == (elem["addr"] >= len(self.memory))
 
         def modify_state(elem, response):
             if elem["addr"] < len(self.memory):
