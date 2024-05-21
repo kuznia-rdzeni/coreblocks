@@ -1,38 +1,30 @@
 from collections.abc import Callable, Iterable
 from itertools import chain
 from typing import TypeAlias
+from amaranth import *
 from amaranth.build.dsl import Subsignal
 from amaranth.vendor import LatticeECP5Platform
 from amaranth.build import Resource, Attrs, Pins, Clock, PinsN
+from amaranth.lib.wiring import Signature, Flow
 
 from constants.ecp5_pinout import ecp5_bg756_pins, ecp5_bg756_pclk
 
-from coreblocks.peripherals.wishbone import WishboneParameters
 from transactron.lib import AdapterBase
 
 __all__ = ["make_ecp5_platform"]
 
 
-def WishboneResource(  # noqa: N802
-    *args, dat_r, dat_w, rst, ack, adr, cyc, stall, err, lock, rty, sel, stb, we, conn=None
-):
+def SignatureResource(*args, pins: "PinManager", signature: Signature, default_name: str, conn=None):  # noqa: N802
     io = []
 
-    io.append(Subsignal("dat_r", Pins(dat_r, dir="i", conn=conn)))
-    io.append(Subsignal("dat_w", Pins(dat_w, dir="o", conn=conn)))
-    io.append(Subsignal("rst", Pins(rst, dir="o", conn=conn, assert_width=1)))
-    io.append(Subsignal("ack", Pins(ack, dir="i", conn=conn, assert_width=1)))
-    io.append(Subsignal("adr", Pins(adr, dir="o", conn=conn)))
-    io.append(Subsignal("cyc", Pins(cyc, dir="o", conn=conn, assert_width=1)))
-    io.append(Subsignal("stall", Pins(stall, dir="i", conn=conn, assert_width=1)))
-    io.append(Subsignal("err", Pins(err, dir="i", conn=conn, assert_width=1)))
-    io.append(Subsignal("lock", Pins(lock, dir="o", conn=conn, assert_width=1)))
-    io.append(Subsignal("rty", Pins(rty, dir="i", conn=conn, assert_width=1)))
-    io.append(Subsignal("sel", Pins(sel, dir="o", conn=conn)))
-    io.append(Subsignal("stb", Pins(stb, dir="o", conn=conn, assert_width=1)))
-    io.append(Subsignal("we", Pins(we, dir="o", conn=conn, assert_width=1)))
+    for hier_name, member in signature.members.flatten():
+        if not member.is_port:
+            continue
+        name = "__".join(str(x) for x in hier_name)
+        dir = "i" if member.flow == Flow.In else "o"
+        io.append(Subsignal(name, Pins(pins.p(Shape.cast(member.shape).width), dir=dir, conn=conn)))
 
-    return Resource.family(*args, default_name="wishbone", ios=io)
+    return Resource.family(*args, default_name=default_name, ios=io)
 
 
 def AdapterResource(*args, en, done, data_in, data_out, conn=None):  # noqa: N802
@@ -66,26 +58,9 @@ class PinManager:
 ResourceBuilder: TypeAlias = Callable[[PinManager], list[Resource]]
 
 
-def wishbone_resources(wb_params: WishboneParameters):
+def signature_resources(signature: Signature, default_name: str):
     def make_resources(pins: PinManager) -> list[Resource]:
-        return [
-            WishboneResource(
-                0,
-                dat_r=pins.p(wb_params.data_width),
-                dat_w=pins.p(wb_params.data_width),
-                rst=pins.p(),
-                ack=pins.p(),
-                adr=pins.p(wb_params.addr_width),
-                cyc=pins.p(),
-                stall=pins.p(),
-                err=pins.p(),
-                lock=pins.p(),
-                rty=pins.p(),
-                sel=pins.p(wb_params.data_width // wb_params.granularity),
-                stb=pins.p(),
-                we=pins.p(),
-            ),
-        ]
+        return [SignatureResource(0, signature=signature, pins=pins, default_name=default_name)]
 
     return make_resources
 

@@ -7,7 +7,7 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth import *
-from amaranth.lib.wiring import Flow, connect, flipped
+from amaranth.lib.wiring import Component, Flow, Out, connect, flipped
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -28,12 +28,12 @@ from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
 from transactron.lib import AdapterBase, AdapterTrans
-from coreblocks.peripherals.wishbone import WishboneArbiter
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface, WishboneSignature
 from constants.ecp5_platforms import (
     ResourceBuilder,
     adapter_resources,
     append_resources,
-    wishbone_resources,
+    signature_resources,
     make_ecp5_platform,
 )
 
@@ -58,12 +58,12 @@ class InterfaceConnector(Elaboratable):
         pins = platform.request(self.name, self.number)
         assert isinstance(pins, Record)
 
-        for name in self.interface.signature.members:
-            member = self.interface.signature.members[name]
-            if member.flow == Flow.In:
-                m.d.comb += getattr(pins, name).o.eq(getattr(self.interface, name))
+        for hier_name, member, v in self.interface.signature.flatten(self.interface):
+            name = "__".join(str(x) for x in hier_name)
+            if member.flow == Flow.Out:
+                m.d.comb += getattr(pins, name).o.eq(v)
             else:
-                m.d.comb += getattr(self.interface, name).eq(getattr(pins, name).i)
+                m.d.comb += v.eq(getattr(pins, name).i)
 
         return m
 
@@ -98,8 +98,11 @@ class AdapterConnector(Elaboratable):
 UnitCore = Callable[[GenParams], tuple[ResourceBuilder, Elaboratable]]
 
 
-class SynthesisCore(Elaboratable):
+class SynthesisCore(Component):
+    wb: WishboneInterface
+
     def __init__(self, gen_params: GenParams):
+        super().__init__({"wb": Out(WishboneSignature(gen_params.wb_params))})
         self.gen_params = gen_params
 
     def elaborate(self, platform):
@@ -107,20 +110,23 @@ class SynthesisCore(Elaboratable):
 
         m.submodules.core = core = Core(gen_params=self.gen_params)
         m.submodules.wb_arbiter = wb_arbiter = WishboneArbiter(self.gen_params.wb_params, 2)
-        m.submodules.wb_connector = InterfaceConnector(wb_arbiter.slave_wb, "wishbone", 0)
 
-        connect(m, flipped(wb_arbiter.masters[0]), core.wb_instr)
-        connect(m, flipped(wb_arbiter.masters[1]), core.wb_data)
+        connect(m, wb_arbiter.masters[0], core.wb_instr)
+        connect(m, wb_arbiter.masters[1], core.wb_data)
+        connect(m, flipped(self.wb), wb_arbiter.slave_wb)
 
         return m
 
 
 def unit_core(gen_params: GenParams):
-    resources = wishbone_resources(gen_params.wb_params)
-
     core = SynthesisCore(gen_params)
 
-    return resources, TransactionModule(core, dependency_manager=DependencyContext.get())
+    resources = signature_resources(core.signature, "wishbone")
+    connector = InterfaceConnector(core, "wishbone", 0)
+
+    module = ModuleConnector(core=core, connector=connector)
+
+    return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 
 
 def unit_fu(unit_params: FunctionalComponentParams):
