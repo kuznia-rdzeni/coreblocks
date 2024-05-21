@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
+from transactron.utils._typing import AbstractInterface
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
@@ -27,7 +28,7 @@ from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
 from transactron.lib import AdapterBase, AdapterTrans
-from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
+from coreblocks.peripherals.wishbone import WishboneArbiter
 from constants.ecp5_platforms import (
     ResourceBuilder,
     adapter_resources,
@@ -45,23 +46,24 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
 }
 
 
-class WishboneConnector(Elaboratable):
-    def __init__(self, wb: WishboneInterface, number: int):
-        self.wb = wb
+class InterfaceConnector(Elaboratable):
+    def __init__(self, interface: AbstractInterface, name: str, number: int):
+        self.interface = interface
+        self.name = name
         self.number = number
 
     def elaborate(self, platform: Platform):
         m = Module()
 
-        pins = platform.request("wishbone", self.number)
+        pins = platform.request(self.name, self.number)
         assert isinstance(pins, Record)
 
-        for name in self.wb.signature.members:
-            member = self.wb.signature.members[name]
+        for name in self.interface.signature.members:
+            member = self.interface.signature.members[name]
             if member.flow == Flow.In:
-                m.d.comb += getattr(pins, name).o.eq(getattr(self.wb, name))
+                m.d.comb += getattr(pins, name).o.eq(getattr(self.interface, name))
             else:
-                m.d.comb += getattr(self.wb, name).eq(getattr(pins, name).i)
+                m.d.comb += getattr(self.interface, name).eq(getattr(pins, name).i)
 
         return m
 
@@ -105,10 +107,10 @@ class SynthesisCore(Elaboratable):
 
         m.submodules.core = core = Core(gen_params=self.gen_params)
         m.submodules.wb_arbiter = wb_arbiter = WishboneArbiter(self.gen_params.wb_params, 2)
-        m.submodules.wb_connector = WishboneConnector(wb_arbiter.slave_wb, 0)
+        m.submodules.wb_connector = InterfaceConnector(wb_arbiter.slave_wb, "wishbone", 0)
 
-        connect(m, wb_arbiter.masters[0], flipped(core.wb_instr))
-        connect(m, wb_arbiter.masters[1], flipped(core.wb_data))
+        connect(m, flipped(wb_arbiter.masters[0]), core.wb_instr)
+        connect(m, flipped(wb_arbiter.masters[1]), core.wb_data)
 
         return m
 
