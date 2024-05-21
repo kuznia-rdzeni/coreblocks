@@ -5,7 +5,6 @@ from typing import Optional, TypeAlias
 from amaranth import *
 from amaranth.back import verilog
 from amaranth.hdl import Fragment
-from amaranth.lib import wiring
 
 from transactron.core import TransactionManager
 from transactron.core.keys import TransactionManagerKey
@@ -14,6 +13,7 @@ from transactron.lib.metrics import HardwareMetricsManager
 from transactron.lib import logging
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.idgen import IdGenerator
+from transactron.utils._typing import AbstractInterface
 from transactron.profiler import ProfileData
 
 from typing import TYPE_CHECKING
@@ -232,7 +232,7 @@ def generate_verilog(
 ) -> tuple[str, GenerationInfo]:
     # The ports logic is copied (and simplified) from amaranth.back.verilog.convert.
     # Unfortunately, the convert function doesn't return the name map.
-    if ports is None and isinstance(elaboratable, wiring.Component):
+    if ports is None and isinstance(elaboratable, AbstractInterface):
         ports = []
         for _, _, value in elaboratable.signature.flatten(elaboratable):
             ports.append(Value.cast(value))

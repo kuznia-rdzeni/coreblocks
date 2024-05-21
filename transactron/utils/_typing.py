@@ -181,6 +181,7 @@ class AbstractSignature(Protocol):
 _T_AbstractSignature = TypeVar("_T_AbstractSignature", bound=AbstractSignature)
 
 
+@runtime_checkable
 class AbstractInterface(Protocol, Generic[_T_AbstractSignature]):
     signature: _T_AbstractSignature
 
