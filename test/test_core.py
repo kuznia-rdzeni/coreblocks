@@ -175,7 +175,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
 # returning from an interrupt and triggering it again with 'lo' and 'hi' parameters)
 @parameterized_class(
-    ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi"),
+    ("source_file", "main_cycle_count", "start_regvals", "expected_regvals", "lo", "hi", "edge_only"),
     [
         (
             "interrupt.asm",
@@ -184,12 +184,13 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
             {2: 2971215073, 7: 29, 28: 2**7 | (3 << 11), 29: 2**3 | (3 << 11), 31: 0xDE},
             300,
             500,
+            False,
         ),
-        ("interrupt.asm", 700, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200),
-        ("interrupt.asm", 600, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50),
+        ("interrupt.asm", 700, {4: 24157817, 8: 199}, {2: 24157817, 7: 199, 31: 0xDE}, 100, 200, False),
+        ("interrupt.asm", 600, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50, False),
         # interrupts are only inserted on branches, we always have some forward progression. 15 for trigger variantion.
-        ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15),
-        ("wfi_int.asm", 80, {2: 10}, {2: 10, 3: 10}, 5, 15),
+        ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15, False),
+        ("wfi_int.asm", 80, {2: 10}, {2: 10, 3: 10}, 5, 15, True),
     ],
 )
 class TestCoreInterrupt(TestCoreAsmSourceBase):
@@ -199,6 +200,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     expected_regvals: dict[int, int]
     lo: int
     hi: int
+    edge_only: bool
 
     def setup_method(self):
         self.configuration = full_core_config.replace(
@@ -237,10 +239,10 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             count = 0
             trig = random.randint(1, 3)
             mie = (yield self.m.core.interrupt_controller.mie.value) >> 16
-            if mie != 0b11 or trig & 1:
+            if mie != 0b11 or trig & 1 or self.edge_only:
                 yield self.m.interrupt_edge.eq(1)
                 count += 1
-            if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0:
+            if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0 and not self.edge_only:
                 yield self.m.interrupt_level.eq(1)
                 count += 1
             yield
