@@ -11,6 +11,7 @@ __all__ = [
     "FenceFm",
     "Registers",
     "PrivilegeLevel",
+    "InterruptCauseNumber",
 ]
 
 
@@ -161,3 +162,13 @@ class PrivilegeLevel(IntEnum, shape=2):
     USER = 0b00
     SUPERVISOR = 0b01
     MACHINE = 0b11
+
+@unique
+class InterruptCauseNumber(IntEnum):
+    SSI = 1 # supervisor software interrupt
+    MSI = 3 # machine software interrupt
+    STI = 5 # supervisor timer interrupt
+    MTI = 7 # machine timer interrupt
+    SEI = 9 # supervisor external interrupt
+    MEI = 11 # machine external interrupt
+

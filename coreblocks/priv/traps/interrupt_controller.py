@@ -1,11 +1,10 @@
 from amaranth import *
-from amaranth.lib.enum import IntEnum
 from amaranth.lib.wiring import Component, In, Signature
 
 from coreblocks.frontend.decoder.isa import PrivilegeLevel
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.priv.csr.csr_instances import CSRAddress
+from coreblocks.arch import CSRAddress, InterruptCauseNumber 
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRRegistersKey, MretKey
 
@@ -18,17 +17,7 @@ from transactron.utils.dependencies import DependencyContext
 log = logging.HardwareLogger("core.interrupt_controller")
 
 
-class InterruptCauseNumber(IntEnum):
-    SSI = 1
-    MSI = 3
-    STI = 5
-    MTI = 7
-    SEI = 9
-    MEI = 11
-
-
 ISA_RESERVED_INTERRUPTS = 16
-
 
 class InternalInterruptControllerSignature(Signature):
     def __init__(self, gen_params: GenParams):
