@@ -331,7 +331,7 @@ class ShiftStorage(Elaboratable):
         The update method. Accepts `addr` where data should be saved, `data` in form of `data_layout`.
         This method is available if `support_update` is set to `True`.
     """
-    def __init__(self, data_layout : LayoutList, depth : int, support_update : bool = False):
+    def __init__(self, data_layout : MethodLayout, depth : int, support_update : bool = False):
         """
         Parameters
         ----------
@@ -342,7 +342,7 @@ class ShiftStorage(Elaboratable):
         support_update: bool
             Indicates if `update` method should be generated. Default: `False`
         """
-        self.data_layout = make_layout(*data_layout)
+        self.data_layout = from_method_layout(data_layout)
         self.depth = depth
         self.support_update = support_update
 
@@ -365,30 +365,35 @@ class ShiftStorage(Elaboratable):
 
         last_incr = Signal()
         last_decr = Signal()
+        delete_address = Signal(range(self.depth))
 
         @def_method(m, self.read)
         def _(addr):
             return {"data" : self._data[addr], "valid" : addr < self._last}
+
+        @def_method(m, self.delete, ready = self._last > 0)
+        def _(addr):
+            m.d.top_comb += delete_address.eq(addr)
+            with m.If(addr < self._last):
+                m.d.comb += last_decr.eq(1)
+                self._generate_shift(m, addr)
 
         if self.support_update:
             @def_method(m, self.update)
             def _(addr, data):
                 update_req_valid = Signal()
                 m.d.top_comb += update_req_valid.eq(addr < self._last)
-                with m.If(update_req_valid):
-                    m.d.sync += self._data[addr].eq(data)
+                affected_by_delete = Signal()
+                m.d.top_comb += affected_by_delete.eq(addr > delete_address)
+                with m.If(update_req_valid & (last_decr.implies(delete_address!=addr))):
+                    m.d.sync += self._data[addr-Mux(last_decr, affected_by_delete, 0)].eq(data)
                 return {"err": ~update_req_valid}
 
 
         @def_method(m, self.push_back, self._last < self.depth)
         def _(data):
-            m.d.sync += self._data[self._last].eq(data)
+            m.d.sync += self._data[self._last-last_decr].eq(data)
             m.d.comb += last_incr.eq(1)
-
-        @def_method(m, self.delete)
-        def _(addr):
-            m.d.comb += last_decr.eq(1)
-            self._generate_shift(m, addr)
 
         with m.Switch(Cat(last_incr, last_decr)):
             with m.Case(1):

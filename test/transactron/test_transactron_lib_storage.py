@@ -1,7 +1,7 @@
 from datetime import timedelta
 from hypothesis import given, settings, Phase
 from transactron.testing import *
-from transactron.lib.storage import ContentAddressableMemory
+from transactron.lib.storage import ContentAddressableMemory, ShiftStorage
 
 
 class TestContentAddressableMemory(TestCaseWithSimulator):
@@ -133,3 +133,126 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
                 sim.add_sync_process(self.read_process(in_read))
                 sim.add_sync_process(self.write_process(in_write))
                 sim.add_sync_process(self.remove_process(in_remove))
+
+
+class TestShiftStorage(TestCaseWithSimulator):
+    depth = 8
+    content_width = 5
+    test_number = 30
+    nop_number = 3
+    content_layout = data_layout(content_width)
+
+    def setUp(self):
+        self.circ = SimpleTestCircuit(ShiftStorage(self.content_layout, self.depth, support_update = True))
+        self.memory = []
+
+    def generic_process(
+        self,
+        method,
+        input_lst,
+        behaviour_check=None,
+        state_change=None,
+        input_verification=None,
+        settle_count=0,
+        name="",
+    ):
+        def f():
+            while input_lst:
+                # wait till all processes will end the previous cycle
+                yield from self.multi_settle(4)
+                elem = input_lst.pop()
+                if isinstance(elem, OpNOP):
+                    yield
+                    continue
+                if input_verification is not None and not input_verification(elem):
+                    yield
+                    continue
+                response = yield from method.call(**elem)
+                yield from self.multi_settle(settle_count)
+                if behaviour_check is not None:
+                    # Here accesses to circuit are allowed
+                    ret = behaviour_check(elem, response)
+                    if isinstance(ret, Generator):
+                        yield from ret
+                if state_change is not None:
+                    # It is standard python function by purpose to don't allow accessing circuit
+                    state_change(elem, response)
+                yield
+
+        return f
+
+    def push_back_process(self, in_push):
+        def verify_in(elem):
+            return len(self.memory)<self.depth
+
+        def modify_state(elem, response):
+            self.memory.append(elem["data"])
+
+        return self.generic_process(
+            self.circ.push_back,
+            in_push,
+            state_change=modify_state,
+            input_verification = verify_in,
+            settle_count=3,
+            name="push_back",
+        )
+
+    def read_process(self, in_read):
+        def check(elem, response):
+            addr = elem["addr"]
+            if addr < len(self.memory):
+                assert response["valid"] == 1
+                assert response["data"] == self.memory[addr]
+            else:
+                assert response["valid"] == 0
+
+        return self.generic_process(self.circ.read, in_read, behaviour_check=check, settle_count=0, name="read")
+
+    def delete_process(self, in_delete):
+        def verify_in(elem):
+            return len(self.memory)>0
+
+        def modify_state(elem, response):
+            addr=elem["addr"]
+            if addr < len(self.memory):
+                self.memory=self.memory[:addr]+self.memory[addr+1:]
+
+        return self.generic_process(self.circ.delete, in_delete, state_change=modify_state, input_verification = verify_in, settle_count=2, name="delete")
+
+    def update_process(self, in_update):
+        def check(elem, response):
+            assert response["err"] == (elem["addr"]>=len(self.memory))
+
+        def modify_state(elem, response):
+            if elem["addr"] < len(self.memory):
+                self.memory[elem["addr"]] = elem["data"]
+
+        return self.generic_process(
+            self.circ.update,
+            in_update,
+            behaviour_check=check,
+            state_change=modify_state,
+            settle_count=1,
+            name="update",
+        )
+
+    @settings(
+        max_examples=30,
+        phases=(Phase.explicit, Phase.reuse, Phase.generate, Phase.shrink),
+        derandomize=True,
+        deadline=timedelta(milliseconds=500),
+    )
+    @given(
+        generate_process_input(test_number, nop_number, [("data", content_layout)]),
+        generate_process_input(test_number, nop_number, [("addr", range(depth)), ("data", content_layout)]),
+        generate_process_input(test_number, nop_number, [("addr", range(depth))]),
+        generate_process_input(test_number, nop_number, [("addr", range(depth))]),
+    )
+    def test_random(self, in_push, in_update, in_read, in_delete):
+        with self.reinitialize_fixtures():
+            self.setUp()
+            with self.run_simulation(self.circ, max_cycles=500) as sim:
+                sim.add_sync_process(self.push_back_process(in_push))
+                sim.add_sync_process(self.read_process(in_read))
+                sim.add_sync_process(self.update_process(in_update))
+                sim.add_sync_process(self.delete_process(in_delete))
