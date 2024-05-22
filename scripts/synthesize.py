@@ -51,6 +51,12 @@ class InterfaceConnector(Elaboratable):
         self.name = name
         self.number = number
 
+    @staticmethod
+    def with_resources(interface: AbstractInterface, name: str, number: int):
+        connector = InterfaceConnector(interface, name, number)
+        resources = signature_resources(interface.signature, name, number)
+        return connector, resources
+
     def elaborate(self, platform: Platform):
         m = Module()
 
@@ -93,8 +99,7 @@ class SynthesisCore(Component):
 def unit_core(gen_params: GenParams):
     core = SynthesisCore(gen_params)
 
-    resources = signature_resources(core.signature, "wishbone", 0)
-    connector = InterfaceConnector(core, "wishbone", 0)
+    connector, resources = InterfaceConnector.with_resources(core, "wishbone", 0)
 
     module = ModuleConnector(core=core, connector=connector)
 
@@ -104,13 +109,11 @@ def unit_core(gen_params: GenParams):
 def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
-
         issue_adapter = AdapterTrans(fu.issue)
         accept_adapter = AdapterTrans(fu.accept)
-        issue_connector = InterfaceConnector(issue_adapter, "adapter", 0)
-        accept_connector = InterfaceConnector(accept_adapter, "adapter", 1)
-        issue_resources = signature_resources(issue_adapter.signature, "adapter", 0)
-        accept_resources = signature_resources(accept_adapter.signature, "adapter", 1)
+
+        issue_connector, issue_resources = InterfaceConnector.with_resources(issue_adapter, "adapter", 0)
+        accept_connector, accept_resources = InterfaceConnector.with_resources(accept_adapter, "adapter", 1)
 
         resources = append_resources(issue_resources, accept_resources)
 
