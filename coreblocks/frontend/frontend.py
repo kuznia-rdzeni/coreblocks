@@ -10,7 +10,7 @@ from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey
+from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey, PredictedJumpTargetKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
@@ -51,6 +51,12 @@ class CoreFrontend(Elaboratable):
 
         self.decode_pipe = Pipe(self.gen_params.get(DecodeLayouts).decoded_instr)
 
+        # TODO: move and implement these methods
+        jb_layouts = self.gen_params.get(JumpBranchLayouts)
+        self.target_pred_req = Method(i=jb_layouts.predicted_jump_target_req)
+        self.target_pred_resp = Method(o=jb_layouts.predicted_jump_target_resp)
+        DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
+
         self.inject_instr = self.instr_buffer.write
         self.consume_instr = self.decode_pipe.read
         self.resume_from_exception = self.fetch.resume_from_exception
@@ -76,6 +82,14 @@ class CoreFrontend(Elaboratable):
         with Transaction(name="DiscardBranchVerify").body(m):
             read = self.connections.get_dependency(BranchVerifyKey())
             read(m)  # Consume to not block JB Unit
+
+        @def_method(m, self.target_pred_req)
+        def _():
+            pass
+
+        @def_method(m, self.target_pred_resp)
+        def _(arg):
+            return {"valid": 0, "cfi_target": 0}
 
         @def_method(m, self.stall)
         def _():

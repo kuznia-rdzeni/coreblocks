@@ -550,6 +550,9 @@ class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
+        self.predicted_jump_target_req = make_layout()
+        self.predicted_jump_target_resp = make_layout(fields.cfi_target, ("valid", 1))
+
         self.verify_branch = make_layout(
             ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
         )
