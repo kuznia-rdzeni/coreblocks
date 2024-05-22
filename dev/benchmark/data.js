@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716386721633,
+  "lastUpdate": 1716386722973,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28715,6 +28715,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5762,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf09d6d9f2faffbc8f43da2544a176f53eea5370",
+          "message": "Add pipelining support to LSU requester (#695)",
+          "timestamp": "2024-05-22T15:52:56+02:00",
+          "tree_id": "fd758dadd7c6ce177b5a29c4ee49708cdabbc3ac",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cf09d6d9f2faffbc8f43da2544a176f53eea5370"
+        },
+        "date": 1716386722609,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.73,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24085,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 802,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 904,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5768,
             "unit": "LUT"
           }
         ]
