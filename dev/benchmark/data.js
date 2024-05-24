@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716577687132,
+  "lastUpdate": 1716577688694,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28823,6 +28823,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as ram: (ECP5)",
             "value": 904,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5768,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b46fa218382a665306c4b46f490673e719aeb04d",
+          "message": "Components at top level in Transactron (#708)",
+          "timestamp": "2024-05-24T20:56:07+02:00",
+          "tree_id": "343fa3fe743bde069bd3360d88bcdc1b197502af",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b46fa218382a665306c4b46f490673e719aeb04d"
+        },
+        "date": 1716577688159,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.34,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22721,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 770,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 900,
             "unit": "LUT"
           },
           {
