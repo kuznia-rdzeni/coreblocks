@@ -134,6 +134,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, basic_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
+        ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),

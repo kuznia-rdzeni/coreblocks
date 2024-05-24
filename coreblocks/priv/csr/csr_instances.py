@@ -59,6 +59,13 @@ class DoubleCounterCSR(Elaboratable):
 
 class MachineModeCSRRegisters(Elaboratable):
     def __init__(self, gen_params: GenParams):
+        self.mvendorid = CSRRegister(CSRAddress.MVENDORID, gen_params, reset=0)
+        self.marchid = CSRRegister(CSRAddress.MARCHID, gen_params, reset=gen_params.marchid)
+        self.mimpid = CSRRegister(CSRAddress.MIMPID, gen_params, reset=gen_params.mimpid)
+        self.mhartid = CSRRegister(CSRAddress.MHARTID, gen_params, reset=0)
+        self.mscratch = CSRRegister(CSRAddress.MSCRATCH, gen_params)
+        self.mconfigptr = CSRRegister(CSRAddress.MCONFIGPTR, gen_params, reset=0)
+
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
         # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
@@ -71,9 +78,9 @@ class MachineModeCSRRegisters(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.mcause = self.mcause
-        m.submodules.mtvec = self.mtvec
-        m.submodules.mepc = self.mepc
+        for name, value in vars(self).items():
+            if isinstance(value, CSRRegister):
+                m.submodules[name] = value
 
         return m
 

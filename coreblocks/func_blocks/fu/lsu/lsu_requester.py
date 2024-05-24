@@ -3,6 +3,7 @@ from transactron import Method, def_method, TModule
 from transactron.utils import ModuleLike
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
+from transactron.lib import BasicFifo
 
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
@@ -23,7 +24,7 @@ class LSURequester(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterInterface, depth: int = 4) -> None:
         """
         Parameters
         ----------
@@ -31,9 +32,13 @@ class LSURequester(Elaboratable):
             Parameters to be used during processor generation.
         bus : BusMasterInterface
             An instance of the bus master for interfacing with the data bus.
+        depth : int
+            Number of requests which can be send to memory, before it provides first response. Describe
+            the resiliency of `LSURequester` to latency of memory in case when memory is fully pipelined.
         """
         self.gen_params = gen_params
         self.bus = bus
+        self.depth = depth
 
         lsu_layouts = gen_params.get(LSULayouts)
 
@@ -100,12 +105,11 @@ class LSURequester(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        addr_reg = Signal(self.gen_params.isa.xlen)
-        funct3_reg = Signal(Funct3)
-        store_reg = Signal()
-        request_sent = Signal()
+        m.submodules.args_fifo = args_fifo = BasicFifo(
+            [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], self.depth
+        )
 
-        @def_method(m, self.issue, ~request_sent)
+        @def_method(m, self.issue)
         def _(addr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
@@ -132,10 +136,7 @@ class LSURequester(Elaboratable):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
-                m.d.sync += request_sent.eq(1)
-                m.d.sync += addr_reg.eq(addr)
-                m.d.sync += funct3_reg.eq(funct3)
-                m.d.sync += store_reg.eq(store)
+                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
             with m.Else():
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
@@ -144,30 +145,31 @@ class LSURequester(Elaboratable):
 
             return {"exception": exception, "cause": cause}
 
-        @def_method(m, self.accept, request_sent)
+        @def_method(m, self.accept)
         def _():
             data = Signal(self.gen_params.isa.xlen)
             exception = Signal()
             cause = Signal(ExceptionCause)
             err = Signal()
 
+            request_args = args_fifo.read(m)
             self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
 
             with condition(m) as branch:
-                with branch(store_reg):
+                with branch(request_args.store):
                     fetched = self.bus.get_write_response(m)
                     m.d.comb += err.eq(fetched.err)
                 with branch():
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
-                    m.d.top_comb += data.eq(self.postprocess_load_data(m, funct3_reg, fetched.data, addr_reg))
-
-            m.d.sync += request_sent.eq(0)
+                    m.d.top_comb += data.eq(
+                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.addr)
+                    )
 
             with m.If(err):
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
-                    Mux(store_reg, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
+                    Mux(request_args.store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
                 )
 
             return {"data": data, "exception": exception, "cause": cause}
