@@ -1,5 +1,6 @@
 from typing import Optional
 from amaranth import *
+from amaranth.lib.wiring import Component, In, Out
 from amaranth.lib.data import StructLayout, View
 
 from ..utils import SrcLoc, get_src_loc, MethodStruct
@@ -13,14 +14,15 @@ __all__ = [
 ]
 
 
-class AdapterBase(Elaboratable):
+class AdapterBase(Component):
     data_in: MethodStruct
     data_out: MethodStruct
+    en: Signal
+    done: Signal
 
-    def __init__(self, iface: Method):
+    def __init__(self, iface: Method, layout_in: StructLayout, layout_out: StructLayout):
+        super().__init__({"data_in": In(layout_in), "data_out": Out(layout_out), "en": In(1), "done": Out(1)})
         self.iface = iface
-        self.en = Signal()
-        self.done = Signal()
 
     def debug_signals(self) -> SignalBundle:
         return [self.en, self.done, self.data_in, self.data_out]
@@ -55,10 +57,8 @@ class AdapterTrans(AdapterBase):
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
         """
-        super().__init__(iface)
+        super().__init__(iface, iface.layout_in, iface.layout_out)
         self.src_loc = get_src_loc(src_loc)
-        self.data_in = Signal.like(iface.data_in)
-        self.data_out = Signal.like(iface.data_out)
 
     def elaborate(self, platform):
         m = TModule()
@@ -107,9 +107,8 @@ class Adapter(AdapterBase):
 
         kwargs["src_loc"] = get_src_loc(kwargs.setdefault("src_loc", 0))
 
-        super().__init__(Method(**kwargs))
-        self.data_in = Signal.like(self.iface.data_out)
-        self.data_out = Signal.like(self.iface.data_in)
+        iface = Method(**kwargs)
+        super().__init__(iface, iface.layout_out, iface.layout_in)
         self.validators: list[tuple[View[StructLayout], Signal]] = []
         self.with_validate_arguments: bool = False
 
