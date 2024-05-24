@@ -104,6 +104,39 @@
 <div class="section" id="module-transactron.core.manager">
 <span id="transactron-core-manager-module"></span><h2>transactron.core.manager module<a class="headerlink" href="#module-transactron.core.manager" title="Permalink to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.manager.</span></span><span class="sig-name descname"><span class="pre">TransactionComponent</span></span><a class="headerlink" href="#transactron.core.manager.TransactionComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#transactron.core.manager.TransactionModule" title="transactron.core.manager.TransactionModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransactionModule</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></p>
+<p>Top-level component for Transactron projects.</p>
+<p>The <cite>TransactronComponent</cite> is a wrapper on <cite>Component</cite> classes,
+which adds Transactron support for the wrapped class. The use
+case is to wrap a top-level module of the project, and pass the
+wrapped module for simulation, HDL generation or synthesis.
+The ports of the wrapped component are forwarded to the wrapper.</p>
+<p>It extends the functionality of <cite>TransactionModule</cite>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.core.manager.TransactionComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Component</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependency_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="transactron.utils.html#transactron.utils.dependencies.DependencyManager" title="transactron.utils.dependencies.DependencyManager"><span class="pre">DependencyManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transaction_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#transactron.core.manager.TransactionManager" title="transactron.core.manager.TransactionManager"><span class="pre">TransactionManager</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.core.manager.TransactionComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>component: Component</strong></dt><dd><p>The <cite>Component</cite> which should be wrapped to add support for
+transactions and methods.</p>
+</dd>
+<dt><strong>dependency_manager: DependencyManager, optional</strong></dt><dd><p>The <cite>DependencyManager</cite> to use inside the transaction component.
+If omitted, a new one is created.</p>
+</dd>
+<dt><strong>transaction_manager: TransactionManager, optional</strong></dt><dd><p>The <cite>TransactionManager</cite> to use inside the transaction component.
+If omitted, a new one is created.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="transactron.core.manager.TransactionManager">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.core.manager.</span></span><span class="sig-name descname"><span class="pre">TransactionManager</span></span><a class="headerlink" href="#transactron.core.manager.TransactionManager" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -866,7 +899,7 @@ but mutually exclusive, with this <cite>Transaction</cite> or <cite>Method</cite
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 13:53 2024-05-22.
+      <span class="lastupdated">Last updated on 18:57 2024-05-24.
       </span></p>
   </div>
 
