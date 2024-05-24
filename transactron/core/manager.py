@@ -483,12 +483,36 @@ class TransactionModule(Elaboratable):
 
 
 class TransactionComponent(TransactionModule, Component):
+    """Top-level component for Transactron projects.
+
+    The `TransactronComponent` is a wrapper on `Component` classes,
+    which adds Transactron support for the wrapped class. The use
+    case is to wrap a top-level module of the project, and pass the
+    wrapped module for simulation, HDL generation or synthesis.
+    The ports of the wrapped component are forwarded to the wrapper.
+
+    It extends the functionality of `TransactionModule`.
+    """
+
     def __init__(
         self,
         component: Component,
         dependency_manager: Optional[DependencyManager] = None,
         transaction_manager: Optional[TransactionManager] = None,
     ):
+        """
+        Parameters
+        ----------
+        component: Component
+            The `Component` which should be wrapped to add support for
+            transactions and methods.
+        dependency_manager: DependencyManager, optional
+            The `DependencyManager` to use inside the transaction component.
+            If omitted, a new one is created.
+        transaction_manager: TransactionManager, optional
+            The `TransactionManager` to use inside the transaction component.
+            If omitted, a new one is created.
+        """
         TransactionModule.__init__(self, component, dependency_manager, transaction_manager)
         Component.__init__(self, component.signature)
 
