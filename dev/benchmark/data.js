@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716386724230,
+  "lastUpdate": 1716577687132,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12503,6 +12503,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cf09d6d9f2faffbc8f43da2544a176f53eea5370"
         },
         "date": 1716386718891,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.42572004421038945,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3507750541915795,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6552717165494218,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36438650678294576,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2934884683336782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32911855660670825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43503890274984436,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b46fa218382a665306c4b46f490673e719aeb04d",
+          "message": "Components at top level in Transactron (#708)",
+          "timestamp": "2024-05-24T20:56:07+02:00",
+          "tree_id": "343fa3fe743bde069bd3360d88bcdc1b197502af",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b46fa218382a665306c4b46f490673e719aeb04d"
+        },
+        "date": 1716577682965,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
