@@ -529,5 +529,4 @@ class RingMultiPriorityEncoder(Elaboratable):
 
             m.d.comb += self.outputs[k].eq(corrected_out)
             m.d.comb += self.valids[k].eq(multi_enc.valids[k])
-        self.valids = multi_enc.valids
         return m
