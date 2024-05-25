@@ -7,7 +7,7 @@ import argparse
 
 from amaranth.build import Platform
 from amaranth import *
-from amaranth.lib.wiring import Flow
+from amaranth.lib.wiring import Component, Flow, Out, connect, flipped
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +16,7 @@ if __name__ == "__main__":
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
+from transactron.utils._typing import AbstractInterface
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
@@ -26,13 +27,12 @@ from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
-from transactron.lib import AdapterBase, AdapterTrans
-from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
+from transactron.lib import AdapterTrans
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface, WishboneSignature
 from constants.ecp5_platforms import (
     ResourceBuilder,
-    adapter_resources,
     append_resources,
-    wishbone_resources,
+    signature_resources,
     make_ecp5_platform,
 )
 
@@ -45,50 +45,30 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
 }
 
 
-class WishboneConnector(Elaboratable):
-    def __init__(self, wb: WishboneInterface, number: int):
-        self.wb = wb
-        self.number = number
-
-    def elaborate(self, platform: Platform):
-        m = Module()
-
-        pins = platform.request("wishbone", self.number)
-        assert isinstance(pins, Record)
-
-        for name in self.wb.signature.members:
-            member = self.wb.signature.members[name]
-            if member.flow == Flow.In:
-                m.d.comb += getattr(pins, name).o.eq(getattr(self.wb, name))
-            else:
-                m.d.comb += getattr(self.wb, name).eq(getattr(pins, name).i)
-
-        return m
-
-
-class AdapterConnector(Elaboratable):
-    def __init__(self, adapter: AdapterBase, number: int):
-        self.adapter = adapter
+class InterfaceConnector(Elaboratable):
+    def __init__(self, interface: AbstractInterface, name: str, number: int):
+        self.interface = interface
+        self.name = name
         self.number = number
 
     @staticmethod
-    def with_resources(adapter: AdapterBase, number: int):
-        return AdapterConnector(adapter, number), adapter_resources(adapter, number)
+    def with_resources(interface: AbstractInterface, name: str, number: int):
+        connector = InterfaceConnector(interface, name, number)
+        resources = signature_resources(interface.signature, name, number)
+        return connector, resources
 
     def elaborate(self, platform: Platform):
         m = Module()
 
-        m.submodules.adapter = self.adapter
-
-        pins = platform.request("adapter", self.number)
+        pins = platform.request(self.name, self.number)
         assert isinstance(pins, Record)
 
-        m.d.comb += self.adapter.en.eq(pins.en)
-        m.d.comb += pins.done.eq(self.adapter.done)
-        if "data_in" in pins.fields:
-            m.d.comb += self.adapter.data_in.eq(pins.data_in)
-        if "data_out" in pins.fields:
-            m.d.comb += pins.data_out.eq(self.adapter.data_out)
+        for hier_name, member, v in self.interface.signature.flatten(self.interface):
+            name = "__".join(str(x) for x in hier_name)
+            if member.flow == Flow.Out:
+                m.d.comb += getattr(pins, name).o.eq(v)
+            else:
+                m.d.comb += v.eq(getattr(pins, name).i)
 
         return m
 
@@ -96,18 +76,32 @@ class AdapterConnector(Elaboratable):
 UnitCore = Callable[[GenParams], tuple[ResourceBuilder, Elaboratable]]
 
 
+class SynthesisCore(Component):
+    wb: WishboneInterface
+
+    def __init__(self, gen_params: GenParams):
+        super().__init__({"wb": Out(WishboneSignature(gen_params.wb_params))})
+        self.gen_params = gen_params
+
+    def elaborate(self, platform):
+        m = Module()
+
+        m.submodules.core = core = Core(gen_params=self.gen_params)
+        m.submodules.wb_arbiter = wb_arbiter = WishboneArbiter(self.gen_params.wb_params, 2)
+
+        connect(m, wb_arbiter.masters[0], core.wb_instr)
+        connect(m, wb_arbiter.masters[1], core.wb_data)
+        connect(m, flipped(self.wb), wb_arbiter.slave_wb)
+
+        return m
+
+
 def unit_core(gen_params: GenParams):
-    resources = wishbone_resources(gen_params.wb_params)
+    core = SynthesisCore(gen_params)
 
-    wb_arbiter = WishboneArbiter(gen_params.wb_params, 2)
-    wb_instr = wb_arbiter.masters[0]
-    wb_data = wb_arbiter.masters[1]
+    connector, resources = InterfaceConnector.with_resources(core, "wishbone", 0)
 
-    wb_connector = WishboneConnector(wb_arbiter.slave_wb, 0)
-
-    core = Core(gen_params=gen_params, wb_instr_bus=wb_instr, wb_data_bus=wb_data)
-
-    module = ModuleConnector(core=core, wb_arbiter=wb_arbiter, wb_connector=wb_connector)
+    module = ModuleConnector(core=core, connector=connector)
 
     return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 
@@ -115,13 +109,21 @@ def unit_core(gen_params: GenParams):
 def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
+        issue_adapter = AdapterTrans(fu.issue)
+        accept_adapter = AdapterTrans(fu.accept)
 
-        issue_connector, issue_resources = AdapterConnector.with_resources(AdapterTrans(fu.issue), 0)
-        accept_connector, accept_resources = AdapterConnector.with_resources(AdapterTrans(fu.accept), 1)
+        issue_connector, issue_resources = InterfaceConnector.with_resources(issue_adapter, "adapter", 0)
+        accept_connector, accept_resources = InterfaceConnector.with_resources(accept_adapter, "adapter", 1)
 
         resources = append_resources(issue_resources, accept_resources)
 
-        module = ModuleConnector(fu=fu, issue_connector=issue_connector, accept_connector=accept_connector)
+        module = ModuleConnector(
+            fu=fu,
+            issue_connector=issue_connector,
+            accept_connector=accept_connector,
+            issue_adapter=issue_adapter,
+            accept_adapter=accept_adapter,
+        )
 
         return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
 

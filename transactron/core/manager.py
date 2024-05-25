@@ -3,6 +3,7 @@ from typing import Callable, Iterable, Sequence, TypeAlias, Tuple
 from os import environ
 from graphlib import TopologicalSorter
 from amaranth import *
+from amaranth.lib.wiring import Component, connect, flipped
 from itertools import chain, filterfalse, product
 
 from transactron.utils import *
@@ -15,7 +16,7 @@ from .transaction import Transaction, TransactionManagerKey
 from .tmodule import TModule
 from .schedulers import eager_deterministic_cc_scheduler
 
-__all__ = ["TransactionManager", "TransactionModule"]
+__all__ = ["TransactionManager", "TransactionModule", "TransactionComponent"]
 
 TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
@@ -477,5 +478,48 @@ class TransactionModule(Elaboratable):
         m.submodules.transactionManager = self.transaction_manager = self.manager.get_dependency(
             TransactionManagerKey()
         )
+
+        return m
+
+
+class TransactionComponent(TransactionModule, Component):
+    """Top-level component for Transactron projects.
+
+    The `TransactronComponent` is a wrapper on `Component` classes,
+    which adds Transactron support for the wrapped class. The use
+    case is to wrap a top-level module of the project, and pass the
+    wrapped module for simulation, HDL generation or synthesis.
+    The ports of the wrapped component are forwarded to the wrapper.
+
+    It extends the functionality of `TransactionModule`.
+    """
+
+    def __init__(
+        self,
+        component: Component,
+        dependency_manager: Optional[DependencyManager] = None,
+        transaction_manager: Optional[TransactionManager] = None,
+    ):
+        """
+        Parameters
+        ----------
+        component: Component
+            The `Component` which should be wrapped to add support for
+            transactions and methods.
+        dependency_manager: DependencyManager, optional
+            The `DependencyManager` to use inside the transaction component.
+            If omitted, a new one is created.
+        transaction_manager: TransactionManager, optional
+            The `TransactionManager` to use inside the transaction component.
+            If omitted, a new one is created.
+        """
+        TransactionModule.__init__(self, component, dependency_manager, transaction_manager)
+        Component.__init__(self, component.signature)
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+
+        for name in self.signature.members:
+            connect(m, flipped(getattr(self, name)), getattr(self.elaboratable, name))
 
         return m
