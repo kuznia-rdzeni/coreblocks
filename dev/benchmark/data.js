@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716577690277,
+  "lastUpdate": 1716798050928,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12567,6 +12567,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b46fa218382a665306c4b46f490673e719aeb04d"
         },
         "date": 1716577682965,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.42572004421038945,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3507750541915795,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6552717165494218,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36438650678294576,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2934884683336782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32911855660670825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43503890274984436,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6b357ff0ce1346ecebfe76571bbaba95cbf4e2e",
+          "message": "Ring priority encoder (#703)",
+          "timestamp": "2024-05-27T10:09:18+02:00",
+          "tree_id": "ad38a1eb1986a9eb29c1215f53dede7ab0ccaebf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d6b357ff0ce1346ecebfe76571bbaba95cbf4e2e"
+        },
+        "date": 1716798047482,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
