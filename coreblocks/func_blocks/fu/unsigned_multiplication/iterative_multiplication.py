@@ -40,7 +40,8 @@ class IterativeSequenceMul(Elaboratable):
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
         self.number_of_chunks = self.n_padding // self.dsp_width
-        self.number_of_multiplications = self.number_of_chunks**2
+        self.number_of_chunks_multiplication = math.ceil(n / dsp_width)
+        self.number_of_multiplications = self.number_of_chunks_multiplication**2
         self.number_of_steps = math.ceil(self.number_of_multiplications / self.dsp_number)
         self.result_lvl = math.ceil(math.log2(self.number_of_chunks))
 
@@ -96,8 +97,8 @@ class IterativeSequenceMul(Elaboratable):
 
             dsp_idx = 0
             for i in range(self.number_of_multiplications):
-                a = i // self.number_of_chunks
-                b = i % self.number_of_chunks
+                a = i // self.number_of_chunks_multiplication
+                b = i % self.number_of_chunks_multiplication
                 chunk_i1 = self.i1[a * self.dsp_width : (a + 1) * self.dsp_width]
                 chunk_i2 = self.i2[b * self.dsp_width : (b + 1) * self.dsp_width]
                 with m.If((i >= self.step * self.dsp_number) & (i < (self.step + 1) * self.dsp_number)):
