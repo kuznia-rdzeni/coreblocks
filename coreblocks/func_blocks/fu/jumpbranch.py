@@ -188,13 +188,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
             is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
 
-            predicted_target_correctly = (instr.type != JumpBranchFn.Fn.JALR) | (
+            predicted_addr_correctly = (instr.type != JumpBranchFn.Fn.JALR) | (
                 target_prediction.valid & (target_prediction.cfi_target == instr.jmp_addr)
             )
 
             misprediction = Signal()
             m.d.av_comb += misprediction.eq(
-                ~(is_auipc | (predicted_target_correctly & (instr.taken == instr.predicted_taken)))
+                ~(is_auipc | (predicted_addr_correctly & (instr.taken == instr.predicted_taken)))
             )
             self.perf_mispredictions.incr(m, cond=misprediction)
 
