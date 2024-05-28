@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716798054840,
+  "lastUpdate": 1716916549062,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12631,6 +12631,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d6b357ff0ce1346ecebfe76571bbaba95cbf4e2e"
         },
         "date": 1716798047482,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.42572004421038945,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3507750541915795,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6552717165494218,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36438650678294576,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2934884683336782,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32911855660670825,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43503890274984436,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "542974d10baf03f20b5dd9992620886e7bb7ee9f",
+          "message": "Internal Interrupt Controller (#654)",
+          "timestamp": "2024-05-28T19:03:40+02:00",
+          "tree_id": "101e6e36cf55e8e348c4ee3a0c0029282d016198",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/542974d10baf03f20b5dd9992620886e7bb7ee9f"
+        },
+        "date": 1716916546126,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
