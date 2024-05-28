@@ -225,21 +225,19 @@ class TransactionManager(Elaboratable):
         args = defaultdict[Method, list[MethodStruct]](list)
         runs = defaultdict[Method, list[Value]](list)
 
+        def run_for(source: TransactionOrMethod) -> Value:
+            # TODO: can the expressions be smaller while preserving correctness?
+            if isinstance(source, Transaction):
+                return source.grant
+            else:
+                return Cat(Cat(call.enable for call in calls).any() & run_for(source2) for source2, calls in call_srcs[source].items()).any()
+
         for method, d in call_srcs.items():
             for source, calls in d.items():
-                source_runs = list[ValueLike]()
-                for call in calls:
-                    if isinstance(source, Transaction):
-                        source_runs.append(source.grant)
-                    else:
-                        # TODO
-                        source_runs.append(
-                            Cat(transaction.grant for transaction in method_map.transactions_by_method[source]).any()
-                        )
+                call_ens = Cat(call.enable for call in calls)
                 if len(calls) == 1:
                     args[method].append(calls[0].arg)
                 else:
-                    call_ens = Cat([call.enable for call in calls])
                     arg = Signal.like(calls[0].arg)
 
                     for i in OneHotSwitchDynamic(m, call_ens):
@@ -247,7 +245,7 @@ class TransactionManager(Elaboratable):
 
                     args[method].append(arg)
 
-                runs[method].append(Cat(source_runs).any())
+                runs[method].append(call_ens.any() & run_for(source))
 
         return (args, runs)
 
@@ -382,7 +380,7 @@ class TransactionManager(Elaboratable):
         (method_args, method_runs) = self._method_args_runs(m, method_map)
 
         for method in method_map.methods:
-            print(method, method_args[method])
+            print(method, method_args[method], method_runs[method])
             if len(method_args[method]) == 1:
                 m.d.comb += method.data_in.eq(method_args[method][0])
             else:
