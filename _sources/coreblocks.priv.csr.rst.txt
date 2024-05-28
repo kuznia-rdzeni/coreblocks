@@ -4,10 +4,10 @@ coreblocks.priv.csr package
 Submodules
 ----------
 
-coreblocks.priv.csr.csr\_address module
----------------------------------------
+coreblocks.priv.csr.aliased module
+----------------------------------
 
-.. automodule:: coreblocks.priv.csr.csr_address
+.. automodule:: coreblocks.priv.csr.aliased
    :members:
    :undoc-members:
    :show-inheritance:

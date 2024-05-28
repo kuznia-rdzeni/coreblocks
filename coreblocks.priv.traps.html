@@ -143,12 +143,46 @@ last instruction in core and no new instruction is fetched). Should be called wh
 <div class="section" id="module-coreblocks.priv.traps.interrupt_controller">
 <span id="coreblocks-priv-traps-interrupt-controller-module"></span><h2>coreblocks.priv.traps.interrupt_controller module<a class="headerlink" href="#module-coreblocks.priv.traps.interrupt_controller" title="Permalink to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.priv.traps.interrupt_controller.InterruptController">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.traps.interrupt_controller.</span></span><span class="sig-name descname"><span class="pre">InterruptController</span></span><a class="headerlink" href="#coreblocks.priv.traps.interrupt_controller.InterruptController" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dt class="sig sig-object py" id="coreblocks.priv.traps.interrupt_controller.InternalInterruptController">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.traps.interrupt_controller.</span></span><span class="sig-name descname"><span class="pre">InternalInterruptController</span></span><a class="headerlink" href="#coreblocks.priv.traps.interrupt_controller.InternalInterruptController" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></p>
+<p>Core Internal Interrupt Controller
+Compatible with RISC-V privileged specification.
+Operates on CSR registers xIE, xIP, and parts of xSTATUS.
+Interrups are reported via plain signals in Component interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>internal_report_level: In, 16</strong></dt><dd><p>Level-triggered input for interrupts with numbers 0-15, assigned by spec for standard interrupts (internal use)</p>
+</dd>
+<dt><strong>custom_report: In, interrupt_custom_count</strong></dt><dd><p>Input for reporting custom/local interrupts starting with number 16.
+Each custom interrupt can be either level-triggered or edge-triggered, configured by <cite>CoreConfigration</cite>.
+See <cite>interrupt_custom_count</cite> and <cite>interrupt_custom_edge_trig_mask</cite> in <cite>CoreConfigration</cite>.</p>
+</dd>
+<dt><strong>interrupt_insert: Out, 1</strong></dt><dd><p>Internal interface, signals pending interrupt.</p>
+</dd>
+<dt><strong>entry: Method</strong></dt><dd><p>Internal interface, changes state to interrupt handler entry.</p>
+</dd>
+<dt><strong>mret: Method</strong></dt><dd><p>Internal interface, changes state to interrupt handler exit.</p>
+</dd>
+<dt><strong>interrupt_cause: Method</strong></dt><dd><p>Internal interface, provides number of the most prioritized interrupt that caused current interrupt insertion.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.priv.traps.interrupt_controller.InterruptController.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.traps.interrupt_controller.InterruptController.__init__" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.priv.traps.interrupt_controller.InternalInterruptController.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.traps.interrupt_controller.InternalInterruptController.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.traps.interrupt_controller.InternalInterruptController.custom_report">
+<span class="sig-name descname"><span class="pre">custom_report</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Signal</span></em><a class="headerlink" href="#coreblocks.priv.traps.interrupt_controller.InternalInterruptController.custom_report" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.traps.interrupt_controller.InternalInterruptController.internal_report_level">
+<span class="sig-name descname"><span class="pre">internal_report_level</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Signal</span></em><a class="headerlink" href="#coreblocks.priv.traps.interrupt_controller.InternalInterruptController.internal_report_level" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -171,7 +205,7 @@ last instruction in core and no new instruction is fetched). Should be called wh
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 08:10 2024-05-27.
+      <span class="lastupdated">Last updated on 17:04 2024-05-28.
       </span></p>
   </div>
 

@@ -4,6 +4,14 @@ coreblocks.arch package
 Submodules
 ----------
 
+coreblocks.arch.csr\_address module
+-----------------------------------
+
+.. automodule:: coreblocks.arch.csr_address
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.arch.isa module
 --------------------------
 
