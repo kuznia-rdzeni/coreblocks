@@ -79,7 +79,12 @@ class GenParams(DependentCache):
         self.instr_buffer_size = cfg.instr_buffer_size
         self.extra_verification = cfg.extra_verification
 
+        self.interrupt_custom_count = cfg.interrupt_custom_count
+        self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask
+
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
+
+        self._generate_test_hardware = cfg._generate_test_hardware
 
         self.marchid = cfg.marchid
         self.mimpid = cfg.mimpid

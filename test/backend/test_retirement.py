@@ -1,4 +1,9 @@
-from coreblocks.interface.layouts import CoreInstructionCounterLayouts, ExceptionRegisterLayouts, FetchLayouts
+from coreblocks.interface.layouts import (
+    CoreInstructionCounterLayouts,
+    ExceptionRegisterLayouts,
+    FetchLayouts,
+    InternalInterruptControllerLayouts,
+)
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 
@@ -25,6 +30,7 @@ class RetirementTestCircuit(Elaboratable):
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
         exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
         fetch_layouts = self.gen_params.get(FetchLayouts)
+        interrupt_controller_layouts = self.gen_params.get(InternalInterruptControllerLayouts)
         core_instr_counter_layouts = self.gen_params.get(CoreInstructionCounterLayouts)
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
@@ -54,6 +60,9 @@ class RetirementTestCircuit(Elaboratable):
             Adapter(o=core_instr_counter_layouts.decrement)
         )
         m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
+        m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
+            Adapter(o=interrupt_controller_layouts.interrupt_cause)
+        )
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
@@ -69,6 +78,7 @@ class RetirementTestCircuit(Elaboratable):
             fetch_continue=self.mock_fetch_continue.adapter.iface,
             instr_decrement=self.mock_instr_decrement.adapter.iface,
             trap_entry=self.mock_trap_entry.adapter.iface,
+            async_interrupt_cause=self.mock_async_interrupt_cause.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -169,6 +179,10 @@ class TestRetirement(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)
     def mock_fetch_continue_process(self):
         pass
+
+    @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
+    def mock_async_interrupt_cause(self):
+        return {"cause": 0}
 
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
