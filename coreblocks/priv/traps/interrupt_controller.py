@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.wiring import Component, In, Signature
+from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
@@ -44,7 +44,7 @@ class InternalInterruptController(Component):
     """
 
     internal_report_level: Signal
-    custom_report: Signature
+    custom_report: Signal
 
     def __init__(self, gen_params: GenParams):
         super().__init__(
