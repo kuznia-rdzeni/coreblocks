@@ -438,8 +438,8 @@ class WishboneArbiter(Component):
     def __init__(self, wb_params: WishboneParameters, num_masters: int):
         super().__init__(
             {
-                "slave_wb": In(WishboneSignature(wb_params)),
-                "masters": Out(WishboneSignature(wb_params)).array(num_masters),
+                "slave_wb": Out(WishboneSignature(wb_params)),
+                "masters": In(WishboneSignature(wb_params)).array(num_masters),
             }
         )
 
