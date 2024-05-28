@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716916549062,
+  "lastUpdate": 1716916550389,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29054,6 +29054,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5768,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "542974d10baf03f20b5dd9992620886e7bb7ee9f",
+          "message": "Internal Interrupt Controller (#654)",
+          "timestamp": "2024-05-28T19:03:40+02:00",
+          "tree_id": "101e6e36cf55e8e348c4ee3a0c0029282d016198",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/542974d10baf03f20b5dd9992620886e7bb7ee9f"
+        },
+        "date": 1716916549993,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.19,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21533,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 770,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 900,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5804,
             "unit": "LUT"
           }
         ]
