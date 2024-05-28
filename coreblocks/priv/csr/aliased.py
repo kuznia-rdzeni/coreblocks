@@ -15,7 +15,7 @@ from transactron.utils.dependencies import DependencyContext
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
     """
     Temporary simple support for CSR aliasing for InternalInterruptController. Will be replaced with more complete
-    implemantation soon.
+    implementation soon.
     """
 
     def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):

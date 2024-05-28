@@ -1,4 +1,4 @@
-from amaranth import Elaboratable, Module, Signal
+from amaranth import *
 from amaranth.lib.wiring import connect
 from amaranth.sim import Passive
 
@@ -51,8 +51,7 @@ class CoreTestElaboratable(Elaboratable):
         self.interrupt_level = Signal()
         self.interrupt_edge = Signal()
 
-        m.d.comb += self.core.interrupt_controller.custom_report_edge.eq(self.interrupt_edge)
-        m.d.comb += self.core.interrupt_controller.custom_report_level.eq(self.interrupt_level << 1)
+        m.d.comb += self.core.interrupt_controller.custom_report.eq(Cat(self.interrupt_edge, self.interrupt_level))
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data

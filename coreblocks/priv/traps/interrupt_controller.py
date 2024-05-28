@@ -19,17 +19,6 @@ log = logging.HardwareLogger("core.interrupt_controller")
 ISA_RESERVED_INTERRUPTS = 16
 
 
-class InternalInterruptControllerSignature(Signature):
-    def __init__(self, gen_params: GenParams):
-        super().__init__(
-            {
-                "internal_report_level": In(ISA_RESERVED_INTERRUPTS),
-                "custom_report_level": In(gen_params.interrupt_custom_count),
-                "custom_report_edge": In(gen_params.interrupt_custom_count),
-            }
-        )
-
-
 class InternalInterruptController(Component):
     """Core Internal Interrupt Controller
     Compatible with RISC-V privileged specification.
@@ -40,13 +29,9 @@ class InternalInterruptController(Component):
     ----------
     internal_report_level: In, 16
         Level-triggered input for interrupts with numbers 0-15, assigned by spec for standard interrupts (internal use)
-    custom_report_level: In, interrupt_custom_count
-        Level-triggered input for reporting custom/local interrupts starting with number 16.
+    custom_report: In, interrupt_custom_count
+        Input for reporting custom/local interrupts starting with number 16.
         Each custom interrupt can be either level-triggered or edge-triggered, configured by `CoreConfigration`.
-        Bits for interrupts that are configured as edge-triggered are ignored.
-        See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfigration`.
-    custom_report_edge: In, interrupt_custom_count
-        Edge-triggered input for reporting custom/local interrupts starting with number 16.
         See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfigration`.
     interrupt_insert: Out, 1
         Internal interface, signals pending interrupt.
@@ -59,11 +44,15 @@ class InternalInterruptController(Component):
     """
 
     internal_report_level: Signal
-    custom_report_level: Signal
-    custom_report_edge: Signal
+    custom_report: Signature
 
     def __init__(self, gen_params: GenParams):
-        super().__init__(InternalInterruptControllerSignature(gen_params))
+        super().__init__(
+            {
+                "internal_report_level": In(ISA_RESERVED_INTERRUPTS),
+                "custom_report": In(gen_params.interrupt_custom_count),
+            }
+        )
 
         self.gen_params = gen_params
         dm = DependencyContext.get()
@@ -125,9 +114,9 @@ class InternalInterruptController(Component):
 
         edge_report_interrupt = Signal(self.gen_params.isa.xlen)
         level_report_interrupt = Signal(self.gen_params.isa.xlen)
-        m.d.comb += edge_report_interrupt.eq(self.custom_report_edge << ISA_RESERVED_INTERRUPTS)
+        m.d.comb += edge_report_interrupt.eq((self.custom_report << ISA_RESERVED_INTERRUPTS) & self.edge_reported_mask)
         m.d.comb += level_report_interrupt.eq(
-            (self.custom_report_level << ISA_RESERVED_INTERRUPTS) | self.internal_report_level
+            ((self.custom_report << ISA_RESERVED_INTERRUPTS) & ~self.edge_reported_mask) | self.internal_report_level
         )
 
         with Transaction().body(m):
