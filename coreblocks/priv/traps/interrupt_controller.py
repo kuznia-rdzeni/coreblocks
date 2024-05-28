@@ -102,12 +102,13 @@ class InternalInterruptController(Component):
         interrupt_enable = Signal()
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
-        with Transaction().body(m):
+        with Transaction().body(m) as assign_trans:
             m.d.comb += [
                 interrupt_enable.eq(self.mstatus_mie.read(m).data),
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data),
             ]
+        log.error(m, ~assign_trans.grant, "assert transaction running failed")
 
         interrupt_pending = (mie & mip).any()
         m.d.comb += self.interrupt_insert.eq(interrupt_pending & interrupt_enable)
@@ -119,7 +120,7 @@ class InternalInterruptController(Component):
             ((self.custom_report << ISA_RESERVED_INTERRUPTS) & ~self.edge_reported_mask) | self.internal_report_level
         )
 
-        with Transaction().body(m):
+        with Transaction().body(m) as mip_trans:
             # 1. Get MIP CSR write from instruction or previous value
             mip_value = self.mip.read_comb(m).data
 
@@ -133,6 +134,7 @@ class InternalInterruptController(Component):
             mip_value |= level_report_interrupt & ~self.edge_reported_mask
 
             self.mip.write(m, {"data": mip_value})
+        log.error(m, ~mip_trans.grant, "assert transaction running failed")
 
         @def_method(m, self.mret)
         def _():
