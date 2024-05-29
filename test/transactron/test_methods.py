@@ -752,3 +752,58 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
 
     def test_random_kwarg(self):
         self.base_random(lambda data: data != self.bad_number)
+
+
+class ExclusiveDiamondCircuit(Elaboratable):
+    def __init__(self):
+        self.meth1 = Method(i=[("v1", 8), ("v2", 8)], o=[("v", 8)])
+        self.meth2 = Method(i=[("v", 8)], o=[("v", 8)])
+        self.meth3 = Method(i=[("v", 8)], o=[("v", 8)])
+        self.meth4 = Method(i=[("s", 1), ("v", 8)], o=[("v", 8)])
+        self.meth4_tbio = TestbenchIO(AdapterTrans(self.meth4))
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules += self.meth4_tbio
+
+        @def_method(m, self.meth1)
+        def _(v1, v2):
+            return {"v": v1 ^ ~v2}
+
+        @def_method(m, self.meth2)
+        def _(v):
+            return self.meth1(m, v1=v, v2=0xFF)
+
+        @def_method(m, self.meth3)
+        def _(v):
+            return self.meth1(m, v1=0, v2=v)
+
+        @def_method(m, self.meth4)
+        def _(s, v):
+            ret = Signal(8)
+            with m.If(s):
+                m.d.comb += ret.eq(self.meth2(m, v=v))
+            with m.Else():
+                m.d.comb += ret.eq(self.meth3(m, v=v))
+            return {"v": ret}
+
+        return m
+
+
+class TestExclusiveDiamond(TestCaseWithSimulator):
+    test_number = 100
+
+    def test_exclusive_diamond(self):
+        random.seed(14)
+        circ = ExclusiveDiamondCircuit()
+
+        def process():
+            for _ in range(self.test_number):
+                v = random.randrange(0, 2**8)
+                s = random.randrange(0, 2)
+                ret = yield from circ.meth4_tbio.call(v=v, s=s)
+                assert ret["v"] == v ^ (0 if s else 0xFF)
+
+        with self.run_simulation(circ, 200) as sim:
+            sim.add_sync_process(process)

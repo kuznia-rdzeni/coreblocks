@@ -230,7 +230,10 @@ class TransactionManager(Elaboratable):
             if isinstance(source, Transaction):
                 return source.grant
             else:
-                return Cat(Cat(call.enable for call in calls).any() & run_for(source2) for source2, calls in call_srcs[source].items()).any()
+                return Cat(
+                    Cat(call.enable for call in calls).any() & run_for(source2)
+                    for source2, calls in call_srcs[source].items()
+                ).any()
 
         for method, d in call_srcs.items():
             for source, calls in d.items():
