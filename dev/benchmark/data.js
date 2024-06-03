@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1717418027618,
+  "lastUpdate": 1717418029646,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29167,6 +29167,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 5804,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9a52816abfef90a18beadc7b5356fdae70bf1830",
+          "message": "Add support for target prediction in JumpBranch unit (#711)\n\n* Add support for target prediction in JumpBranch unit\r\n\r\n* rename variable\r\n\r\n---------\r\n\r\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2024-06-03T14:21:24+02:00",
+          "tree_id": "3efd6a1d390cc3410339dd8c5501878ffc953331",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9a52816abfef90a18beadc7b5356fdae70bf1830"
+        },
+        "date": 1717418028901,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.79,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24285,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 802,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 972,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5924,
             "unit": "LUT"
           }
         ]
