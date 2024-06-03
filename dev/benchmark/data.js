@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1716916551789,
+  "lastUpdate": 1717418027618,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12735,6 +12735,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.43503890274984436,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9a52816abfef90a18beadc7b5356fdae70bf1830",
+          "message": "Add support for target prediction in JumpBranch unit (#711)\n\n* Add support for target prediction in JumpBranch unit\r\n\r\n* rename variable\r\n\r\n---------\r\n\r\nCo-authored-by: Marek Materzok <tilk@tilk.eu>",
+          "timestamp": "2024-06-03T14:21:24+02:00",
+          "tree_id": "3efd6a1d390cc3410339dd8c5501878ffc953331",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9a52816abfef90a18beadc7b5356fdae70bf1830"
+        },
+        "date": 1717418024181,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4178698719523674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.33741535166461933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6549151571561538,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35511191772534784,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2902773842133434,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3267211625794732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4326590252008001,
             "unit": "Instructions Per Cycle"
           }
         ]
