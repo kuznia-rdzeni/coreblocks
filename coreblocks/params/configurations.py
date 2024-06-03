@@ -24,6 +24,7 @@ from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
+
 __all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
@@ -76,12 +77,20 @@ class _CoreConfigurationDataClass:
         Log of the size of the fetch block (in bytes).
     instr_buffer_size: int
         Size of the instruction buffer.
+    interrupt_custom_count: int
+        Number of custom/local async interrupts to support. First interrupt will be registered at id 16.
+    interrupt_custom_edge_trig_mask: int
+        Bit mask specifing if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
+        with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
+        read-only and directly connected to input signal (implementation must provide clearing method)
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
     _implied_extensions: Extenstion
         Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
+    _generate_test_hardware: bool
+        Enables generation of additional hardware used for use in internal unit tests.
     pma : list[PMARegion]
         Definitions of PMAs per contiguous segments of memory.
     """
@@ -116,11 +125,15 @@ class _CoreConfigurationDataClass:
 
     instr_buffer_size: int = 4
 
+    interrupt_custom_count: int = 0
+    interrupt_custom_edge_trig_mask: int = 0
+
     allow_partial_extensions: bool = False
 
     extra_verification: bool = True
 
     _implied_extensions: Extension = Extension(0)
+    _generate_test_hardware: bool = False
 
     pma: list[PMARegion] = field(default_factory=list)
 
@@ -181,5 +194,8 @@ test_core_config = CoreConfiguration(
     func_units_config=tuple(RSBlockComponent([], rs_entries=4) for _ in range(2)),
     rob_entries_bits=7,
     phys_regs_bits=7,
+    interrupt_custom_count=2,
+    interrupt_custom_edge_trig_mask=0b01,
     _implied_extensions=Extension.I,
+    _generate_test_hardware=True,
 )
