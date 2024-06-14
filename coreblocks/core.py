@@ -1,11 +1,11 @@
 from amaranth import *
-from amaranth.lib.wiring import flipped, connect
+from amaranth.lib.wiring import Component, flipped, connect, Out
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.priv.traps.interrupt_controller import InterruptController
+from coreblocks.priv.traps.interrupt_controller import InternalInterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
@@ -25,23 +25,30 @@ from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface, WishboneSignature
 from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey
 
 __all__ = ["Core"]
 
 
-class Core(Elaboratable):
-    def __init__(self, *, gen_params: GenParams, wb_instr_bus: WishboneInterface, wb_data_bus: WishboneInterface):
+class Core(Component):
+    wb_instr: WishboneInterface
+    wb_data: WishboneInterface
+
+    def __init__(self, *, gen_params: GenParams):
+        super().__init__(
+            {
+                "wb_instr": Out(WishboneSignature(gen_params.wb_params)),
+                "wb_data": Out(WishboneSignature(gen_params.wb_params)),
+            }
+        )
+
         self.gen_params = gen_params
 
         self.connections = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
             self.connections.add_dependency(HwMetricsEnabledKey(), True)
-
-        self.wb_instr_bus = wb_instr_bus
-        self.wb_data_bus = wb_data_bus
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
@@ -81,16 +88,16 @@ class Core(Elaboratable):
             rf_write=self.RF.write,
         )
 
-        self.interrupt_controller = InterruptController(self.gen_params)
-
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+
+        self.interrupt_controller = InternalInterruptController(self.gen_params)
 
     def elaborate(self, platform):
         m = TModule()
 
-        connect(m, flipped(self.wb_instr_bus), self.wb_master_instr.wb_master)
-        connect(m, flipped(self.wb_data_bus), self.wb_master_data.wb_master)
+        connect(m, flipped(self.wb_instr), self.wb_master_instr.wb_master)
+        connect(m, flipped(self.wb_data), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data
@@ -105,6 +112,9 @@ class Core(Elaboratable):
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
+
+        m.submodules.csr_generic = self.csr_generic
+        m.submodules.interrupt_controller = self.interrupt_controller
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
@@ -147,11 +157,8 @@ class Core(Elaboratable):
             fetch_continue=self.frontend.resume_from_exception,
             instr_decrement=core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
+            async_interrupt_cause=self.interrupt_controller.interrupt_cause,
         )
-
-        m.submodules.interrupt_controller = self.interrupt_controller
-
-        m.submodules.csr_generic = self.csr_generic
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
         free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)

@@ -1,17 +1,17 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth.lib.enum import IntEnum
 from dataclasses import dataclass
+
 from transactron import Method, def_method, Transaction, TModule
 from transactron.utils import assign
-from coreblocks.params.genparams import GenParams
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
+
+from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
+from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
-from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.priv.csr.csr_register import *
+from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
     FetchResumeKey,
@@ -19,12 +19,6 @@ from coreblocks.interface.keys import (
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
 )
-
-
-class PrivilegeLevel(IntEnum, shape=2):
-    USER = 0b00
-    SUPERVISOR = 0b01
-    MACHINE = 0b11
 
 
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
@@ -103,7 +97,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        accepted = Signal()
+        call_resume = Signal()
         exception = Signal()
         precommitting = Signal()
 
@@ -150,7 +144,6 @@ class CSRUnit(FuncBlock, Elaboratable):
                         priv_valid = Signal()
                         m.d.comb += priv_valid.eq(priv_level_required <= priv_level)
 
-                        # TODO: handle read-only and missing priv access (exception)
                         with m.If(priv_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
@@ -207,7 +200,6 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         @def_method(m, self.get_result, done)
         def _():
-            m.d.comb += accepted.eq(1)
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
@@ -232,6 +224,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += exception.eq(0)
 
+            m.d.comb += call_resume.eq(exe_side_fx & ~exception & ~interrupt)
+
             return {
                 "rob_id": instr.rob_id,
                 "rp_dst": instr.rp_dst,
@@ -239,9 +233,9 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_resume, accepted)
+        @def_method(m, self.fetch_resume, call_resume)
         def _():
-            # This call will always execute, because there is at most one usafe instruction in the core, and it can be
+            # This call will always execute, because there is at most one unsafe instruction in the core, and it can be
             # stored in unifer's Forwarder unitl resume becomes ready.
             # CSR instructions are never compressed, PC+4 is always next instruction
             return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}

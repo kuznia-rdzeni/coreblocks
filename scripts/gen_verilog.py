@@ -5,8 +5,6 @@ import sys
 import argparse
 
 from amaranth import *
-from amaranth.build import Platform
-from amaranth import Module, Elaboratable
 
 
 if __name__ == "__main__":
@@ -14,9 +12,8 @@ if __name__ == "__main__":
     sys.path.insert(0, parent)
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.peripherals.wishbone import WishboneSignature
 from coreblocks.core import Core
-from transactron import TransactionModule
+from transactron import TransactionComponent
 from transactron.utils import DependencyManager, DependencyContext
 from transactron.utils.gen import generate_verilog
 
@@ -29,34 +26,12 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
 }
 
 
-class Top(Elaboratable):
-    def __init__(self, gen_params):
-        self.gp: GenParams = gen_params
-
-        self.wb_instr = WishboneSignature(self.gp.wb_params).create()
-        self.wb_data = WishboneSignature(self.gp.wb_params).create()
-
-    def elaborate(self, platform: Platform):
-        m = Module()
-        tm = TransactionModule(m, dependency_manager=DependencyContext.get())
-
-        m.submodules.c = Core(gen_params=self.gp, wb_instr_bus=self.wb_instr, wb_data_bus=self.wb_data)
-
-        return tm
-
-
 def gen_verilog(core_config: CoreConfiguration, output_path: str):
     with DependencyContext(DependencyManager()):
         gp = GenParams(core_config)
-        top = Top(gp)
-        instr_ports: list[Signal] = [getattr(top.wb_instr, name) for name in top.wb_instr.signature.members]
-        data_ports: list[Signal] = [getattr(top.wb_data, name) for name in top.wb_data.signature.members]
-        for sig in instr_ports:
-            sig.name = "wb_instr__" + sig.name
-        for sig in data_ports:
-            sig.name = "wb_data__" + sig.name
+        top = TransactionComponent(Core(gen_params=gp), dependency_manager=DependencyContext.get())
 
-        verilog_text, gen_info = generate_verilog(top, instr_ports + data_ports)
+        verilog_text, gen_info = generate_verilog(top)
 
         gen_info.encode(f"{output_path}.json")
         with open(output_path, "w") as f:

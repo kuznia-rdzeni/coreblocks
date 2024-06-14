@@ -428,3 +428,6 @@ class CSRAddress(IntEnum, shape=12):
     DPC = 0x7B1  # Debug program counter
     DSCRATCH0 = 0x7B2  # Debug scratch register 0
     DSCRATCH1 = 0x7B3  # Debug scratch register 1.
+
+    # Internal Coreblocks CSRs
+    COREBLOCKS_TEST_CSR = 0x7FF  # used only for testbench verification

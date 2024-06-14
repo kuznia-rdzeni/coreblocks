@@ -3,24 +3,37 @@ from amaranth.lib.data import StructLayout
 from parameterized import parameterized_class
 
 from coreblocks.params import *
-from coreblocks.func_blocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn, JumpComponent
-from transactron import Method, def_method, TModule
+from coreblocks.func_blocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
+from transactron import Method, def_method, TModule, Transaction
+
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.arch import Funct3, OpType, ExceptionCause
+from coreblocks.interface.keys import PredictedJumpTargetKey
 
-from transactron.utils import signed_to_int
+from transactron.utils import signed_to_int, DependencyContext
+from transactron.lib import BasicFifo
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
 class JumpBranchWrapper(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, auipc_test: bool):
+        self.gp = gen_params
+        self.auipc_test = auipc_test
+        layouts = gen_params.get(JumpBranchLayouts)
+
+        self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
+        self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
+
+        DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
+
         self.jb = JumpBranchFuncUnit(gen_params)
         self.issue = self.jb.issue
         self.accept = Method(
             o=StructLayout(
-                gen_params.get(FuncUnitLayouts).accept.members | gen_params.get(JumpBranchLayouts).verify_branch.members
+                gen_params.get(FuncUnitLayouts).accept.members
+                | (gen_params.get(JumpBranchLayouts).verify_branch.members if not auipc_test else {})
             )
         )
 
@@ -28,16 +41,33 @@ class JumpBranchWrapper(Elaboratable):
         m = TModule()
 
         m.submodules.jb_unit = self.jb
+        m.submodules.res_fifo = res_fifo = BasicFifo(self.gp.get(FuncUnitLayouts).accept, 2)
+
+        with Transaction().body(m):
+            res_fifo.write(m, self.jb.accept(m))
+
+        @def_method(m, self.target_pred_req)
+        def _():
+            pass
+
+        @def_method(m, self.target_pred_resp)
+        def _(arg):
+            return {"valid": 0, "cfi_target": 0}
 
         @def_method(m, self.accept)
         def _(arg):
-            res = self.jb.accept(m)
-            verify = self.jb.fifo_branch_resolved.read(m)
-            return {
+            res = res_fifo.read(m)
+            ret = {
                 "result": res.result,
                 "rob_id": res.rob_id,
                 "rp_dst": res.rp_dst,
                 "exception": res.exception,
+            }
+            if self.auipc_test:
+                return ret
+
+            verify = self.jb.fifo_branch_resolved.read(m)
+            return ret | {
                 "next_pc": verify.next_pc,
                 "from_pc": verify.from_pc,
                 "misprediction": verify.misprediction,
@@ -47,8 +77,11 @@ class JumpBranchWrapper(Elaboratable):
 
 
 class JumpBranchWrapperComponent(FunctionalComponentParams):
+    def __init__(self, auipc_test: bool):
+        self.auipc_test = auipc_test
+
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return JumpBranchWrapper(gen_params)
+        return JumpBranchWrapper(gen_params, self.auipc_test)
 
     def get_optypes(self) -> set[OpType]:
         return JumpBranchFn().get_op_types()
@@ -133,13 +166,13 @@ ops_auipc = {
         (
             "branches_and_jumps",
             ops,
-            JumpBranchWrapperComponent(),
+            JumpBranchWrapperComponent(auipc_test=False),
             compute_result,
         ),
         (
             "auipc",
             ops_auipc,
-            JumpComponent(),
+            JumpBranchWrapperComponent(auipc_test=True),
             compute_result_auipc,
         ),
     ],
