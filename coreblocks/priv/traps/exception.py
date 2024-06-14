@@ -40,8 +40,8 @@ def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) ->
     return _update
 
 
-class ExceptionCauseRegister(Elaboratable):
-    """ExceptionCauseRegister
+class ExceptionInformationRegister(Elaboratable):
+    """ExceptionInformationRegister
 
     Stores parameters of earliest (in instruction order) exception, to save resources in the `ReorderBuffer`.
     All FUs that report exceptions should `report` the details to `ExceptionCauseRegister` and set `exception` bit in
@@ -56,6 +56,7 @@ class ExceptionCauseRegister(Elaboratable):
         self.cause = Signal(ExceptionCause)
         self.rob_id = Signal(gen_params.rob_entries_bits)
         self.pc = Signal(gen_params.isa.xlen)
+        self.mtval = Signal(gen_params.isa.xlen)
         self.valid = Signal()
 
         self.layouts = gen_params.get(ExceptionRegisterLayouts)
@@ -82,7 +83,7 @@ class ExceptionCauseRegister(Elaboratable):
         m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
 
         @def_method(m, report)
-        def _(cause, rob_id, pc):
+        def _(cause, rob_id, pc, mtval):
             should_write = Signal()
 
             with m.If(self.valid & (self.rob_id == rob_id)):
@@ -101,6 +102,7 @@ class ExceptionCauseRegister(Elaboratable):
                 m.d.sync += self.rob_id.eq(rob_id)
                 m.d.sync += self.cause.eq(cause)
                 m.d.sync += self.pc.eq(pc)
+                m.d.sync += self.mtval.eq(mtval)
 
             m.d.sync += self.valid.eq(1)
 

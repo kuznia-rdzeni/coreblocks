@@ -20,7 +20,7 @@ from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from coreblocks.frontend.frontend import CoreFrontend
-from coreblocks.priv.traps.exception import ExceptionCauseRegister
+from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
@@ -69,7 +69,7 @@ class Core(Component):
 
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
 
-        self.exception_cause_register = ExceptionCauseRegister(
+        self.exception_information_register = ExceptionInformationRegister(
             self.gen_params,
             rob_get_indices=self.ROB.get_indices,
             fetch_stall_exception=self.frontend.stall,
@@ -134,7 +134,7 @@ class Core(Component):
             gen_params=self.gen_params,
         )
 
-        m.submodules.exception_cause_register = self.exception_cause_register
+        m.submodules.exception_information_register = self.exception_information_register
 
         fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
         m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
@@ -151,8 +151,8 @@ class Core(Component):
             r_rat_peek=rrat.peek,
             free_rf_put=free_rf_fifo.write,
             rf_free=rf.free,
-            exception_cause_get=self.exception_cause_register.get,
-            exception_cause_clear=self.exception_cause_register.clear,
+            exception_cause_get=self.exception_information_register.get,
+            exception_cause_clear=self.exception_information_register.clear,
             frat_rename=frat.rename,
             fetch_continue=self.frontend.resume_from_exception,
             instr_decrement=core_counter.decrement,
