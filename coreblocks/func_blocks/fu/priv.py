@@ -135,7 +135,9 @@ class PrivilegedFuncUnit(Elaboratable):
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
                 # would normally return to (mepc value is preserved)
                 m.d.comb += exception.eq(1)
-                exception_report(m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob)
+                exception_report(
+                    m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
+                )
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch

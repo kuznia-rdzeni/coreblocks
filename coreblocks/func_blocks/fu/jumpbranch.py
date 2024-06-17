@@ -214,8 +214,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # generated for a conditional branch that is not taken."
                 m.d.comb += exception.eq(1)
                 exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=instr.pc
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED,
+                    pc=instr.pc,
+                    mtval=instr.jmp_addr,
                 )
+
             with m.Elif(async_interrupt_active & ~is_auipc):
                 # Jump instructions are entry points for async interrupts.
                 # This way we can store known pc via report to global exception register and avoid it in ROB.
@@ -223,13 +228,15 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
                 exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result
+                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result, mtval=0
                 )
             with m.Elif(misprediction):
                 # Async interrupts can have priority, because `jump_result` is handled in the same way.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
                 m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
+                exception_report(
+                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result, mtval=0
+                )
 
             with m.If(~is_auipc):
                 self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)

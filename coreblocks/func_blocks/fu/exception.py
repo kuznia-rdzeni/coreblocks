@@ -68,21 +68,29 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
             m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
 
             cause = Signal(ExceptionCause)
+            mtval = Signal(self.gen_params.isa.xlen)
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
-                    m.d.comb += cause.eq(ExceptionCause.BREAKPOINT)
+                    m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
+                    m.d.av_comb += mtval.eq(arg.pc)
                 with OneHotCase(ExceptionUnitFn.Fn.ECALL):
                     # TODO: Switch privilege level when implemented
-                    m.d.comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
+                    m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT):
-                    m.d.comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
+                    m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
+                    # With C extension access fault can be only on the second half of instruction, and mepc != mtval.
+                    # This information is passed in imm field
+                    m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
                 with OneHotCase(ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION):
-                    m.d.comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
+                    m.d.av_comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
+                    m.d.av_comb += mtval.eq(arg.imm)  # passed instruction bytes
                 with OneHotCase(ExceptionUnitFn.Fn.BREAKPOINT):
-                    m.d.comb += cause.eq(ExceptionCause.BREAKPOINT)
+                    m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
+                    m.d.av_comb += mtval.eq(arg.pc)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_PAGE_FAULT):
-                    m.d.comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
+                    m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
+                    m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
 
             self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc)
 

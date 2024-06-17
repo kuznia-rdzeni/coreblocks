@@ -77,6 +77,8 @@ class MachineModeCSRRegisters(Elaboratable):
         # TODO: set low bits R/O based on gp align
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params)
 
+        self.mtval = CSRRegister(CSRAddress.MTVAL, gen_params)
+
     def elaborate(self, platform):
         m = Module()
 

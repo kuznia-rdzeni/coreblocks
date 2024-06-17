@@ -1,10 +1,10 @@
 from typing import Optional
 from amaranth import signed
-from amaranth.lib.data import StructLayout, ArrayLayout
+from amaranth.lib.data import ArrayLayout
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
-from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.utils.transactron_helpers import from_method_layout, make_layout, extend_layout
 
 __all__ = [
     "CommonLayoutFields",
@@ -444,7 +444,7 @@ class FetchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.access_fault: LayoutListField = ("access_fault", 1)
+        self.access_fault: LayoutListField = ("access_fault", 2)
         """Instruction fetch failed."""
 
         self.raw_instr = make_layout(
@@ -634,10 +634,13 @@ class CSRUnitLayouts:
 
 
 class ExceptionRegisterLayouts:
-    """Layouts used in the exception register."""
+    """Layouts used in the exception information register."""
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+
+        self.mtval: LayoutListField = ("mtval", gen_params.isa.xlen)
+        """ Value to set for mtval CSR register """
 
         self.valid: LayoutListField = ("valid", 1)
 
@@ -645,9 +648,10 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            self.mtval,
         )
 
-        self.get = StructLayout(self.report.members | make_layout(self.valid).members)
+        self.get = extend_layout(self.report, self.valid)
 
 
 class InternalInterruptControllerLayouts:
