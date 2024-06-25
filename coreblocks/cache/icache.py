@@ -185,6 +185,20 @@ class ICache(Elaboratable, CacheInterface):
         forwarding_response_now = Signal()
         accepting_requests = ~mem_read_output_valid | forwarding_response_now
 
+        # TODO: common bits, clear valid, check flush logic
+        refill_line_buffer = Array(
+            [
+                Signal(make_layout(("data", 8 * self.params.fetch_block_bytes), ("valid", 1)))
+                for _ in range(2**self.params.fetch_blocks_in_line)
+            ]
+        )
+        refill_tag = Signal(self.params.tag_bits)
+        refill_index = Signal(self.params.index_bits)
+        # Forward immediately current refill response. Can be removed for critical path reasons
+        refill_forward_offset = Signal(self.params.offset_bits)
+        refill_forward_data = Signal(8 * self.params.fetch_block_bytes)
+        refill_forward_valid = Signal()
+
         with Transaction(name="MemRead").body(
             m, request=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
         ):
@@ -208,10 +222,34 @@ class ICache(Elaboratable, CacheInterface):
 
                 m.d.comb += needs_refill.eq(1)
 
-                # Align to the beginning of the cache line
-                aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
-                log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
-                self.refiller.start_refill(m, addr=aligned_addr)
+                m.d.sync += refill_tag.eq(req_addr.tag)
+                m.d.sync += refill_index.eq(req_addr.index)
+                for i in range(self.params.fetch_blocks_in_line):
+                    m.d.sync += refill_line_buffer[i].valid.eq(0)
+
+                addr = self.serialize_addr(req_addr)
+                aligned_addr = addr & ~((1 << self.params.offset_bits) - 1)
+                # TODO: align to fetch block
+                log.debug(m, True, "Refilling line 0x{:x} starting from 0x{:x}", aligned_addr, addr)
+                self.refiller.start_refill(m, addr=addr)
+
+        # refill_buffer_hit = (mem_read_addr.tag == refill_tag) & (mem_read_addr.offset == refill_offset) & refill_line_buffer[mem_read_addr.index].valid
+        # DONE TODO: optimize to comb matching / new valid forwarding -> now it is two cycles. This passes the same cycle as it appears on bus -- bad
+        # TODO: Further optimization - enable normal lookup on ~refill_hit and tag_hit_any
+        with Transaction(name="RefillBufferResponse").body(m, request=fsm.ongoing("REFILL")):
+            req_addr = req_zipper.peek_arg(m)
+            refill_hit = (req_addr.tag == refill_tag) & (req_addr.index == refill_index)
+            refill_buffer_hit = refill_hit & refill_line_buffer[req_addr.offset].valid
+            refill_forward_hit = refill_hit & (req_addr.offset == refill_forward_offset) & refill_forward_valid
+            with m.If(refill_forward_hit | refill_buffer_hit):
+                m.d.comb += forwarding_response_now.eq(1)
+                m.d.sync += mem_read_output_valid.eq(0)
+                # TODO: handle error
+                req_zipper.write_results(
+                    m,
+                    fetch_block=Mux(refill_forward_hit, refill_forward_data, refill_line_buffer[req_addr.offset].data),
+                    error=0,
+                )
 
         @def_method(m, self.accept_res)
         def _():
@@ -270,6 +308,13 @@ class ICache(Elaboratable, CacheInterface):
             with m.If(ret.error):
                 m.d.sync += refill_error_saved.eq(1)
 
+            m.d.sync += refill_line_buffer[deserialized["offset"]].data.eq(ret.fetch_block)
+            m.d.sync += refill_line_buffer[deserialized["offset"]].valid.eq(1)
+
+            m.d.av_comb += refill_forward_offset.eq(deserialized["offset"])
+            m.d.av_comb += refill_forward_data.eq(ret.fetch_block)
+            m.d.comb += refill_forward_valid.eq(1)
+
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
                 self.mem.way_wr_en.eq(C(1).replicate(self.params.num_of_ways)),
@@ -281,9 +326,9 @@ class ICache(Elaboratable, CacheInterface):
         with m.Else():
             m.d.comb += [
                 self.mem.way_wr_en.eq(way_selector),
-                self.mem.tag_wr_index.eq(mem_read_addr.index),
+                self.mem.tag_wr_index.eq(refill_index),
                 self.mem.tag_wr_data.valid.eq(~refill_error),
-                self.mem.tag_wr_data.tag.eq(mem_read_addr.tag),
+                self.mem.tag_wr_data.tag.eq(refill_tag),
                 self.mem.tag_wr_en.eq(refill_finish),
             ]
 
