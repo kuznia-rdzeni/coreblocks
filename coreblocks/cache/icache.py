@@ -194,10 +194,6 @@ class ICache(Elaboratable, CacheInterface):
         )
         refill_tag = Signal(self.params.tag_bits)
         refill_index = Signal(self.params.index_bits)
-        # Forward immediately current refill response. Can be removed for critical path reasons
-        refill_forward_offset = Signal(self.params.offset_bits)
-        refill_forward_data = Signal(8 * self.params.fetch_block_bytes)
-        refill_forward_valid = Signal()
 
         with Transaction(name="MemRead").body(
             m, request=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
@@ -240,14 +236,14 @@ class ICache(Elaboratable, CacheInterface):
             req_addr = req_zipper.peek_arg(m)
             refill_hit = (req_addr.tag == refill_tag) & (req_addr.index == refill_index)
             refill_buffer_hit = refill_hit & refill_line_buffer[req_addr.offset].valid
-            refill_forward_hit = refill_hit & (req_addr.offset == refill_forward_offset) & refill_forward_valid
-            with m.If(refill_forward_hit | refill_buffer_hit):
+            with m.If(refill_buffer_hit):
                 m.d.comb += forwarding_response_now.eq(1)
                 m.d.sync += mem_read_output_valid.eq(0)
-                # TODO: handle error
+                # TODO: handle error -> whole line via refill_error_saved and save to refiil state
+                # TODO: handle flushing?
                 req_zipper.write_results(
                     m,
-                    fetch_block=Mux(refill_forward_hit, refill_forward_data, refill_line_buffer[req_addr.offset].data),
+                    fetch_block=refill_line_buffer[req_addr.offset].data,
                     error=0,
                 )
 
@@ -310,10 +306,6 @@ class ICache(Elaboratable, CacheInterface):
 
             m.d.sync += refill_line_buffer[deserialized["offset"]].data.eq(ret.fetch_block)
             m.d.sync += refill_line_buffer[deserialized["offset"]].valid.eq(1)
-
-            m.d.av_comb += refill_forward_offset.eq(deserialized["offset"])
-            m.d.av_comb += refill_forward_data.eq(ret.fetch_block)
-            m.d.comb += refill_forward_valid.eq(1)
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
