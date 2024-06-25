@@ -112,6 +112,12 @@ class ICache(Elaboratable, CacheInterface):
 
         self.perf_loads = HwCounter("frontend.icache.loads", "Number of requests to the L1 Instruction Cache")
         self.perf_hits = HwCounter("frontend.icache.hits")
+        self.perf_hits_refill = HwCounter(
+            "frontend.icache.hits_refill", "Number of hits during refill (including refill buffer and other indexes)"
+        )
+        self.perf_hits_refill_buffer = HwCounter(
+            "frontend.icache.hits_refill_buffer", "Number of hits to currently refilling line buffer"
+        )
         self.perf_misses = HwCounter("frontend.icache.misses")
         self.perf_errors = HwCounter("frontend.icache.fetch_errors")
         self.perf_flushes = HwCounter("frontend.icache.flushes")
@@ -135,6 +141,8 @@ class ICache(Elaboratable, CacheInterface):
         m.submodules += [
             self.perf_loads,
             self.perf_hits,
+            self.perf_hits_refill,
+            self.perf_hits_refill_buffer,
             self.perf_misses,
             self.perf_errors,
             self.perf_flushes,
@@ -236,21 +244,49 @@ class ICache(Elaboratable, CacheInterface):
                 log.debug(m, True, "Refilling line 0x{:x} starting from 0x{:x}", aligned_addr, addr)
                 self.refiller.start_refill(m, addr=addr)
 
-        # TODO: Further optimization - enable normal lookup on ~refill_hit and tag_hit_any
-        with Transaction(name="RefillBufferResponse").body(
+        with Transaction(name="RefillResponse").body(
             m, request=fsm.ongoing("REFILL") & (mem_read_output_valid | refill_error_saved) & ~flush_start_saved
         ):
             req_addr = req_zipper.peek_arg(m)
             refill_hit = (req_addr.tag == refill_tag) & (req_addr.index == refill_index)
-            refill_buffer_hit = refill_hit & refill_line_buffer[req_addr.offset[self.params.fetch_block_bytes_log :]].valid
-                
+            refill_buffer_hit = (
+                refill_hit & refill_line_buffer[req_addr.offset[self.params.fetch_block_bytes_log :]].valid
+            )
+
+            tag_hit_safe = [
+                tag_data.valid
+                & (tag_data.tag == req_addr.tag)
+                & ((req_addr.index != refill_index) | (way_selector != tag_way))
+                for tag_way, tag_data in enumerate(self.mem.tag_rd_data)
+            ]
+            tag_hit_safe_any = reduce(operator.or_, tag_hit_safe)
+
             with m.If(refill_buffer_hit | (refill_hit & refill_error_saved)):
                 m.d.comb += forwarding_response_now.eq(1)
                 m.d.sync += mem_read_output_valid.eq(0)
                 req_zipper.write_results(
-                    m, fetch_block=refill_line_buffer[req_addr.offset[self.params.fetch_block_bytes_log :]].data, error=refill_error_saved
+                    m,
+                    fetch_block=refill_line_buffer[req_addr.offset[self.params.fetch_block_bytes_log :]].data,
+                    error=refill_error_saved,
                 )
                 m.d.sync += refill_error_saved.eq(0)
+
+                self.perf_hits.incr(m, cond=refill_buffer_hit)
+                self.perf_hits_refill.incr(m, cond=refill_buffer_hit)
+                self.perf_hits_refill_buffer.incr(m, cond=refill_buffer_hit)
+            with m.Elif(tag_hit_safe_any):
+                m.d.comb += forwarding_response_now.eq(1)
+
+                mem_out = Signal(self.params.fetch_block_bytes * 8)
+                for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
+                    m.d.av_comb += mem_out.eq(self.mem.data_rd_data[i])
+
+                req_zipper.write_results(m, fetch_block=mem_out, error=0)
+                m.d.sync += refill_error_saved.eq(0)
+                m.d.sync += mem_read_output_valid.eq(0)
+
+                self.perf_hits.incr(m)
+                self.perf_hits_refill.incr(m)
 
         @def_method(m, self.accept_res)
         def _():
@@ -311,8 +347,12 @@ class ICache(Elaboratable, CacheInterface):
             with m.If(ret.error):
                 m.d.sync += refill_error_saved.eq(1)
 
-            m.d.sync += refill_line_buffer[deserialized["offset"][self.params.fetch_block_bytes_log :]].data.eq(ret.fetch_block)
-            m.d.sync += refill_line_buffer[deserialized["offset"][self.params.fetch_block_bytes_log :]].valid.eq(~ret.error)
+            m.d.sync += refill_line_buffer[deserialized["offset"][self.params.fetch_block_bytes_log :]].data.eq(
+                ret.fetch_block
+            )
+            m.d.sync += refill_line_buffer[deserialized["offset"][self.params.fetch_block_bytes_log :]].valid.eq(
+                ~ret.error
+            )
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
