@@ -242,12 +242,13 @@ class ICache(Elaboratable, CacheInterface):
         ):
             req_addr = req_zipper.peek_arg(m)
             refill_hit = (req_addr.tag == refill_tag) & (req_addr.index == refill_index)
-            refill_buffer_hit = refill_hit & refill_line_buffer[req_addr.offset].valid
+            refill_buffer_hit = refill_hit & refill_line_buffer[req_addr.offset[self.params.fetch_block_bytes_log :]].valid
+                
             with m.If(refill_buffer_hit | (refill_hit & refill_error_saved)):
                 m.d.comb += forwarding_response_now.eq(1)
                 m.d.sync += mem_read_output_valid.eq(0)
                 req_zipper.write_results(
-                    m, fetch_block=refill_line_buffer[req_addr.offset].data, error=refill_error_saved
+                    m, fetch_block=refill_line_buffer[req_addr.offset[self.params.fetch_block_bytes_log :]].data, error=refill_error_saved
                 )
                 m.d.sync += refill_error_saved.eq(0)
 
@@ -310,8 +311,8 @@ class ICache(Elaboratable, CacheInterface):
             with m.If(ret.error):
                 m.d.sync += refill_error_saved.eq(1)
 
-            m.d.sync += refill_line_buffer[deserialized["offset"]].data.eq(ret.fetch_block)
-            m.d.sync += refill_line_buffer[deserialized["offset"]].valid.eq(~ret.error)
+            m.d.sync += refill_line_buffer[deserialized["offset"][self.params.fetch_block_bytes_log :]].data.eq(ret.fetch_block)
+            m.d.sync += refill_line_buffer[deserialized["offset"][self.params.fetch_block_bytes_log :]].valid.eq(~ret.error)
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
