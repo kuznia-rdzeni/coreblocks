@@ -151,6 +151,7 @@ class ICache(Elaboratable, CacheInterface):
         refill_error_saved = Signal()
 
         flush_start = Signal()
+        flush_start_saved = Signal()
         flush_finish = Signal()
 
         with Transaction().body(m):
@@ -164,11 +165,13 @@ class ICache(Elaboratable, CacheInterface):
             with m.State("LOOKUP"):
                 with m.If(needs_refill):
                     m.next = "REFILL"
-                with m.Elif(flush_start):
+                with m.Elif(flush_start | flush_start_saved):
                     m.next = "FLUSH"
 
             with m.State("REFILL"):
-                with m.If(refill_finish):
+                with m.If(flush_start | flush_start_saved):
+                    m.next = "FLUSH"
+                with m.Elif(refill_finish):
                     m.next = "LOOKUP"
 
         # Replacement policy
@@ -185,11 +188,15 @@ class ICache(Elaboratable, CacheInterface):
         forwarding_response_now = Signal()
         accepting_requests = ~mem_read_output_valid | forwarding_response_now
 
-        # TODO: common bits, clear valid, check flush logic
         refill_line_buffer = Array(
             [
-                Signal(make_layout(("data", 8 * self.params.fetch_block_bytes), ("valid", 1)))
-                for _ in range(2**self.params.fetch_blocks_in_line)
+                Signal(
+                    make_layout(
+                        ("data", 8 * self.params.fetch_block_bytes),
+                        ("valid", 1),
+                    )
+                )
+                for _ in range(self.params.fetch_blocks_in_line)
             ]
         )
         refill_tag = Signal(self.params.tag_bits)
@@ -229,23 +236,20 @@ class ICache(Elaboratable, CacheInterface):
                 log.debug(m, True, "Refilling line 0x{:x} starting from 0x{:x}", aligned_addr, addr)
                 self.refiller.start_refill(m, addr=addr)
 
-        # refill_buffer_hit = (mem_read_addr.tag == refill_tag) & (mem_read_addr.offset == refill_offset) & refill_line_buffer[mem_read_addr.index].valid
-        # DONE TODO: optimize to comb matching / new valid forwarding -> now it is two cycles. This passes the same cycle as it appears on bus -- bad
         # TODO: Further optimization - enable normal lookup on ~refill_hit and tag_hit_any
-        with Transaction(name="RefillBufferResponse").body(m, request=fsm.ongoing("REFILL")):
+        with Transaction(name="RefillBufferResponse").body(
+            m, request=fsm.ongoing("REFILL") & (mem_read_output_valid | refill_error_saved) & ~flush_start_saved
+        ):
             req_addr = req_zipper.peek_arg(m)
             refill_hit = (req_addr.tag == refill_tag) & (req_addr.index == refill_index)
             refill_buffer_hit = refill_hit & refill_line_buffer[req_addr.offset].valid
-            with m.If(refill_buffer_hit):
+            with m.If(refill_buffer_hit | (refill_hit & refill_error_saved)):
                 m.d.comb += forwarding_response_now.eq(1)
                 m.d.sync += mem_read_output_valid.eq(0)
-                # TODO: handle error -> whole line via refill_error_saved and save to refiil state
-                # TODO: handle flushing?
                 req_zipper.write_results(
-                    m,
-                    fetch_block=refill_line_buffer[req_addr.offset].data,
-                    error=0,
+                    m, fetch_block=refill_line_buffer[req_addr.offset].data, error=refill_error_saved
                 )
+                m.d.sync += refill_error_saved.eq(0)
 
         @def_method(m, self.accept_res)
         def _():
@@ -276,12 +280,14 @@ class ICache(Elaboratable, CacheInterface):
         flush_index = Signal(self.params.index_bits)
         with m.If(fsm.ongoing("FLUSH")):
             m.d.sync += flush_index.eq(flush_index + 1)
+            m.d.sync += flush_start_saved.eq(0)
 
         @def_method(m, self.flush, ready=accepting_requests)
         def _() -> None:
             log.info(m, True, "Flushing the cache...")
             m.d.sync += flush_index.eq(0)
             m.d.comb += flush_start.eq(1)
+            m.d.sync += flush_start_saved.eq(1)
 
         m.d.comb += flush_finish.eq(flush_index == self.params.num_of_sets - 1)
 
@@ -305,7 +311,7 @@ class ICache(Elaboratable, CacheInterface):
                 m.d.sync += refill_error_saved.eq(1)
 
             m.d.sync += refill_line_buffer[deserialized["offset"]].data.eq(ret.fetch_block)
-            m.d.sync += refill_line_buffer[deserialized["offset"]].valid.eq(1)
+            m.d.sync += refill_line_buffer[deserialized["offset"]].valid.eq(~ret.error)
 
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += [
