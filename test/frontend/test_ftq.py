@@ -5,7 +5,6 @@ import random
 from amaranth import Elaboratable, Module
 from amaranth.sim import Passive
 from amaranth import *
-from amaranth.lib.data import View
 
 from transactron.lib import Adapter
 from transactron.utils import ModuleConnector
@@ -74,21 +73,21 @@ class TestFTQ(TestCaseWithSimulator):
 
         random.seed(41)
 
-    @def_method_mock(lambda self: self.bpu.request_io)
+    @def_method_mock(lambda self: self.bpu.request_io, enable=lambda self: False)
     def bpu_req_mock(self, pc, ftq_idx, global_branch_history, bpu_stage):
         pass
 
-    @def_method_mock(lambda self: self.bpu.read_target_pred_io)
+    @def_method_mock(lambda self: self.bpu.read_target_pred_io, enable=lambda self: False)
     def bpu_target_pred_mock(self):
         return {"ftq_idx": FTQPtr(gp=self.gen_params), "pc": 0, "bpu_stage": 0, "global_branch_history": 0}
 
-    @def_method_mock(lambda self: self.bpu.read_pred_details_io)
+    @def_method_mock(lambda self: self.bpu.read_pred_details_io, enable=lambda self: False)
     def bpu_pred_details_mock(self):
         pred = Signal(self.gen_params.get(BranchPredictionLayouts).block_prediction)
         return {"ftq_idx": FTQPtr(gp=self.gen_params), "bpu_stage": 0, "bpu_meta": 0, "block_prediction": pred}
 
     @def_method_mock(lambda self: self.bpu.update_io)
-    def bpu_update_moc(self):
+    def bpu_update_mock(self):
         pass
 
     @def_method_mock(lambda self: self.bpu.flush_io)
@@ -102,6 +101,8 @@ class TestFTQ(TestCaseWithSimulator):
             yield
 
     def fetch_out_check(self):
+        yield
+        yield
         yield
 
     def run_sim(self):

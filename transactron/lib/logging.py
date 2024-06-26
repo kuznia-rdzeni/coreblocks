@@ -174,7 +174,7 @@ class HardwareLogger:
         """
         self.log(m, logging.ERROR, trigger, format, *args, **kwargs)
 
-    def assertion(self, m: ModuleLike, value: Value, format: str = "", *args, src_loc_at: int = 0, **kwargs):
+    def assertion(self, m: ModuleLike, value: Value, format: str = "Assertion failed", *args, src_loc_at: int = 0, **kwargs):
         """Define an assertion.
 
         This function might help find some hardware bugs which might otherwise be

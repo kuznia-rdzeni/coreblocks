@@ -94,6 +94,7 @@ class FetchTargetQueue(Elaboratable):
             self.bpu.request(m, pc_queue.bpu_consume(m))
 
         with Transaction(name="FTQ_Read_Target_Prediction").body(m):
+            log.info(m, True, "read target pred")
             pred = self.bpu.read_target_pred(m)
             pc_queue.write(
                 m,
@@ -246,6 +247,7 @@ class PCQueue(Elaboratable):
         @def_method(m, self.write)
         def _(arg) -> None:
             ftq_idx = FTQPtr(arg.ftq_idx, gp=self.gen_params)
+            log.info(m, True, "write {} {}", arg.ftq_idx, bpu_request_reg_valid)
             log.assertion(m, ftq_idx <= next_write_slot, "FTQ entry must be written in the next free slot or before")
             log.assertion(m, ~bpu_request_reg_valid)
 
