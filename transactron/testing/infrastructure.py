@@ -206,14 +206,6 @@ class PysimSimulator(Simulator):
 class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
-    @pytest.fixture(scope="session")
-    def register_logging_handler(self):
-        root_logger = logging.getLogger()
-        ch = logging.StreamHandler()
-        formatter = _LogFormatter()
-        ch.setFormatter(formatter)
-        root_logger.handlers += [ch]
-
     @contextmanager
     def configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
@@ -266,6 +258,7 @@ class TestCaseWithSimulator:
             os.makedirs(profile_dir, exist_ok=True)
             profile.encode(f"{profile_dir}/{profile_file}.json")
 
+    @contextmanager
     def configure_logging(self):
         def on_error():
             assert False, "Simulation finished due to an error"
@@ -273,6 +266,16 @@ class TestCaseWithSimulator:
         log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
         self._transactron_sim_processes_to_add.append(lambda: make_logging_process(log_level, log_filter, on_error))
+
+        ch = logging.StreamHandler()
+        formatter = _LogFormatter()
+        ch.setFormatter(formatter)
+
+        root_logger = logging.getLogger()
+        handlers_before = root_logger.handlers.copy()
+        root_logger.handlers.append(ch)
+        yield
+        root_logger.handlers = handlers_before
 
     @contextmanager
     def reinitialize_fixtures(self):
@@ -287,8 +290,8 @@ class TestCaseWithSimulator:
         with self.configure_dependency_context():
             self.configure_traces()
             with self.configure_profiles():
-                self.configure_logging()
-                yield
+                with self.configure_logging():
+                    yield
         self._transactron_hypothesis_iter_counter += 1
 
     @pytest.fixture(autouse=True)
