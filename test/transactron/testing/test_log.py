@@ -76,7 +76,6 @@ class TestLog(TestCaseWithSimulator):
         with self.run_simulation(m) as sim:
             sim.add_sync_process(proc)
 
-        print(caplog.text)
         assert (
             "WARNING  test_logger:logging.py:83 [test/transactron/testing/test_log.py:22] "
             + "Log triggered under Amaranth If value+3=0x2d"
