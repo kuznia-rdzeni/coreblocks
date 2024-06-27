@@ -100,6 +100,8 @@ class DummyLSUTestCircuit(Elaboratable):
 
 
 class TestDummyLSULoads(TestCaseWithSimulator):
+    last_rob_id: int = 0
+
     def generate_instr(self, max_reg_val, max_imm_val):
         ops = {
             "LB": (OpType.LOAD, Funct3.B),
@@ -135,7 +137,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             word_addr = addr >> 2
 
             rp_dst = random.randint(0, 2**self.gen_params.phys_regs_bits - 1)
-            rob_id = random.randint(0, 2**self.gen_params.rob_entries_bits - 1)
+            self.last_rob_id = (self.last_rob_id + 1) % 2**self.gen_params.rob_entries_bits
+            rob_id = self.last_rob_id
             instr = {
                 "rp_dst": rp_dst,
                 "rob_id": rob_id,
@@ -168,20 +171,21 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                     }
                 )
 
-            self.exception_result.appendleft(
-                misaligned or bus_err,
+            self.exception_result.append(
+                {"rob_id": rob_id, "err": misaligned or bus_err},
             )
 
     def setup_method(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=4))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.mem_data_queue = deque()
         self.returned_data = deque()
         self.exception_queue = deque()
         self.exception_result = deque()
+        self.free_rob_id = set(range(2**self.gen_params.rob_entries_bits))
         self.generate_instr(2**7, 2**7)
         self.max_wait = 10
 
@@ -217,16 +221,24 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def inserter(self):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
+            while req["rob_id"] not in self.free_rob_id:
+                yield
+            self.free_rob_id.remove(req["rob_id"])
             yield from self.test_module.issue.call(req)
             yield from self.random_wait(self.max_wait)
 
     def consumer(self):
         for i in range(self.tests_number):
             v = yield from self.test_module.accept.call()
-            exc = self.exception_result.pop()
-            if not exc:
+            rob_id = v["rob_id"]
+            assert rob_id not in self.free_rob_id
+            self.free_rob_id.add(rob_id)
+
+            exc = next(i for i in self.exception_result if i["rob_id"] == rob_id)
+            self.exception_result.remove(exc)
+            if not exc["err"]:
                 assert v["result"] == self.returned_data.pop()
-            assert v["exception"] == exc
+            assert v["exception"] == exc["err"]
 
             yield from self.random_wait(self.max_wait)
 

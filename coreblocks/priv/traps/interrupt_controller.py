@@ -1,44 +1,188 @@
 from amaranth import *
-from transactron.utils.dependencies import DependencyContext
+from amaranth.lib.wiring import Component, In
+
+from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
+from coreblocks.interface.layouts import InternalInterruptControllerLayouts
+from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params.genparams import GenParams
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, MretKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRRegistersKey, MretKey
 
 from transactron.core import Method, TModule, def_method
+from transactron.core.transaction import Transaction
+from transactron.lib import logging
+from transactron.utils.dependencies import DependencyContext
 
 
-class InterruptController(Elaboratable):
-    def __init__(self, gp: GenParams):
+log = logging.HardwareLogger("core.interrupt_controller")
+
+
+ISA_RESERVED_INTERRUPTS = 16
+
+
+class InternalInterruptController(Component):
+    """Core Internal Interrupt Controller
+    Compatible with RISC-V privileged specification.
+    Operates on CSR registers xIE, xIP, and parts of xSTATUS.
+    Interrups are reported via plain signals in Component interface.
+
+    Attributes
+    ----------
+    internal_report_level: In, 16
+        Level-triggered input for interrupts with numbers 0-15, assigned by spec for standard interrupts (internal use)
+    custom_report: In, interrupt_custom_count
+        Input for reporting custom/local interrupts starting with number 16.
+        Each custom interrupt can be either level-triggered or edge-triggered, configured by `CoreConfigration`.
+        See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfigration`.
+    interrupt_insert: Out, 1
+        Internal interface, signals pending interrupt.
+    entry: Method
+        Internal interface, changes state to interrupt handler entry.
+    mret: Method
+        Internal interface, changes state to interrupt handler exit.
+    interrupt_cause: Method
+        Internal interface, provides number of the most prioritized interrupt that caused current interrupt insertion.
+    """
+
+    internal_report_level: Signal
+    custom_report: Signal
+
+    def __init__(self, gen_params: GenParams):
+        super().__init__(
+            {
+                "internal_report_level": In(ISA_RESERVED_INTERRUPTS),
+                "custom_report": In(gen_params.interrupt_custom_count),
+            }
+        )
+
+        self.gen_params = gen_params
         dm = DependencyContext.get()
+
+        self.edge_reported_mask = self.gen_params.interrupt_custom_edge_trig_mask << ISA_RESERVED_INTERRUPTS
+        if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
+            raise RuntimeError("Too many custom interrupts")
+
+        # MIE bit - global interrupt enable - part of mstatus CSR
+        self.mstatus_mie = CSRRegister(None, gen_params, width=1)
+        # MPIE bit - previous MIE - part of mstatus
+        self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
+        # MPP bit - previous priv mode - part of mstatus
+        self.mstatus_mpp = CSRRegister(None, gen_params, width=2, ro_bits=0b11, reset=PrivilegeLevel.MACHINE)
+        # TODO: filter xPP for only legal modes (when not read-only)
+        mstatus = dm.get_dependency(GenericCSRRegistersKey()).m_mode.mstatus
+        mstatus.add_field(3, self.mstatus_mie)
+        mstatus.add_field(7, self.mstatus_mpie)
+        mstatus.add_field(11, self.mstatus_mpp)
+
+        mie_writeable = (
+            # (1 << InterruptCauseNumber.MSI) TODO: CLINT
+            # (1 << InterruptCauseNumber.MTI) TODO: CLINT
+            (1 << InterruptCauseNumber.MEI)
+            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+        )
+        self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
+        self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
 
         self.interrupt_insert = Signal()
         dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
 
-        self.report_interrupt = Method()
+        self.interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
 
         self.mret = Method()
         dm.add_dependency(MretKey(), self.mret)
 
         self.entry = Method()
 
-        self.interrupts_enabled = Signal(reset=1)  # Temporarily needed globally accessibletests
-
     def elaborate(self, platform):
         m = TModule()
 
-        interrupt_pending = Signal()
-        m.d.comb += self.interrupt_insert.eq(interrupt_pending & self.interrupts_enabled)
+        interrupt_cause = Signal(self.gen_params.isa.xlen)
 
-        @def_method(m, self.report_interrupt)
-        def _():
-            m.d.sync += interrupt_pending.eq(1)
+        m.submodules += [self.mstatus_mie, self.mstatus_mpie, self.mstatus_mpp, self.mie, self.mip]
+
+        interrupt_enable = Signal()
+        mie = Signal(self.gen_params.isa.xlen)
+        mip = Signal(self.gen_params.isa.xlen)
+        with Transaction().body(m) as assign_trans:
+            m.d.comb += [
+                interrupt_enable.eq(self.mstatus_mie.read(m).data),
+                mie.eq(self.mie.read(m).data),
+                mip.eq(self.mip.read(m).data),
+            ]
+        log.error(m, ~assign_trans.grant, "assert transaction running failed")
+
+        interrupt_pending = (mie & mip).any()
+        m.d.comb += self.interrupt_insert.eq(interrupt_pending & interrupt_enable)
+
+        edge_report_interrupt = Signal(self.gen_params.isa.xlen)
+        level_report_interrupt = Signal(self.gen_params.isa.xlen)
+        m.d.comb += edge_report_interrupt.eq((self.custom_report << ISA_RESERVED_INTERRUPTS) & self.edge_reported_mask)
+        m.d.comb += level_report_interrupt.eq(
+            ((self.custom_report << ISA_RESERVED_INTERRUPTS) & ~self.edge_reported_mask) | self.internal_report_level
+        )
+
+        with Transaction().body(m) as mip_trans:
+            # 1. Get MIP CSR write from instruction or previous value
+            mip_value = self.mip.read_comb(m).data
+
+            # 2. Apply new egde interrupts (after the FU read-modify-write cycle)
+            # This is not standardised by the spec, but makes sense to enforce independent
+            # order and don't miss interrupts that happen in the cycle of FU write
+            mip_value |= edge_report_interrupt
+
+            # 3. Mask with FU read-only level reported interrupts
+            mip_value &= self.edge_reported_mask
+            mip_value |= level_report_interrupt & ~self.edge_reported_mask
+
+            self.mip.write(m, {"data": mip_value})
+        log.error(m, ~mip_trans.grant, "assert transaction running failed")
 
         @def_method(m, self.mret)
         def _():
-            m.d.sync += self.interrupts_enabled.eq(1)
+            log.info(m, True, "Interrupt handler return")
+            pass
 
         @def_method(m, self.entry)
         def _():
-            m.d.sync += interrupt_pending.eq(0)
-            m.d.sync += self.interrupts_enabled.eq(0)
+            log.info(m, True, "Interrupt handler entry")
+            pass
+
+        # mret/entry conflict cannot happen in real conditons - mret is called under precommit
+        # it is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
+        with Transaction().body(m):
+            with m.If(self.entry.run):
+                self.mstatus_mie.write(m, {"data": 0})
+                self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
+            with m.Elif(self.mret.run):
+                self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
+                self.mstatus_mpie.write(m, {"data": 1})
+                # TODO: Set mpp when other privilege modes are implemented
+
+        interrupt_priority = [
+            InterruptCauseNumber.MEI,
+            InterruptCauseNumber.MSI,
+            InterruptCauseNumber.MTI,
+            InterruptCauseNumber.SEI,
+            InterruptCauseNumber.SSI,
+            InterruptCauseNumber.STI,
+        ] + [
+            i for i in range(16, 16 + self.gen_params.interrupt_custom_count)
+        ]  # custom use range
+
+        top_interrupt = Signal(range(self.gen_params.isa.xlen))
+        for bit in reversed(interrupt_priority):
+            with m.If(mip[bit] & mie[bit]):
+                m.d.comb += top_interrupt.eq(bit)
+
+        # Level-triggered interrupts can disappear after insertion to the instruction core,
+        # but they cannot be canceled at this point. Latch last interrupt cause reason that makes
+        # sense, in case of every interrupt becoming disabled before reaching the retirement
+        # NOTE2: we depend on the fact that writes to xIE stall the fetcher. In other case
+        # interrupt could be explicitly disabled, after being irrecoverably inserted to the core.
+        with m.If(self.interrupt_insert):
+            m.d.sync += interrupt_cause.eq(top_interrupt)
+
+        @def_method(m, self.interrupt_cause)
+        def _():
+            return {"cause": interrupt_cause}
 
         return m

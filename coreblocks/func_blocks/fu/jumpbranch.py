@@ -11,9 +11,15 @@ from transactron.lib import logging
 from transactron.utils import DependencyContext
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
-from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, BranchVerifyKey, ExceptionReportKey
+from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
+from coreblocks.interface.keys import (
+    AsyncInterruptInsertSignalKey,
+    BranchVerifyKey,
+    ExceptionReportKey,
+    PredictedJumpTargetKey,
+)
 from transactron.utils import OneHotSwitch
+from transactron.utils.transactron_helpers import make_layout
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
@@ -155,14 +161,93 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_mispredictions,
         ]
 
+        jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
+
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
-        m.submodules.fifo_res = fifo_res = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
         m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
+        fields = self.gen_params.get(CommonLayoutFields)
+        instr_fifo_layout = make_layout(
+            fields.rob_id,
+            fields.pc,
+            fields.rp_dst,
+            ("type", JumpBranchFn.Fn),
+            ("jmp_addr", self.gen_params.isa.xlen),
+            ("reg_res", self.gen_params.isa.xlen),
+            ("taken", 1),
+            fields.predicted_taken,
+        )
+        m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
+
         @def_method(m, self.accept)
         def _():
-            return fifo_res.read(m)
+            instr = instr_fifo.read(m)
+            target_prediction = jump_target_resp(m)
+
+            jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
+            is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
+
+            predicted_addr_correctly = (instr.type != JumpBranchFn.Fn.JALR) | (
+                target_prediction.valid & (target_prediction.cfi_target == instr.jmp_addr)
+            )
+
+            misprediction = Signal()
+            m.d.av_comb += misprediction.eq(
+                ~(is_auipc | (predicted_addr_correctly & (instr.taken == instr.predicted_taken)))
+            )
+            self.perf_mispredictions.incr(m, cond=misprediction)
+
+            jmp_addr_misaligned = (
+                instr.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)
+            ) != 0
+
+            async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
+            exception_report = self.dm.get_dependency(ExceptionReportKey())
+
+            exception = Signal()
+
+            with m.If(~is_auipc & instr.taken & jmp_addr_misaligned):
+                self.perf_misaligned.incr(m)
+                # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
+                # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
+                # generated for a conditional branch that is not taken."
+                m.d.comb += exception.eq(1)
+                exception_report(
+                    m, rob_id=instr.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=instr.pc
+                )
+            with m.Elif(async_interrupt_active & ~is_auipc):
+                # Jump instructions are entry points for async interrupts.
+                # This way we can store known pc via report to global exception register and avoid it in ROB.
+                # Exceptions have priority, because the instruction that reports async interrupt is commited
+                # and exception would be lost.
+                m.d.comb += exception.eq(1)
+                exception_report(
+                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result
+                )
+            with m.Elif(misprediction):
+                # Async interrupts can have priority, because `jump_result` is handled in the same way.
+                # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
+                m.d.comb += exception.eq(1)
+                exception_report(m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
+
+            with m.If(~is_auipc):
+                self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
+                log.debug(
+                    m,
+                    True,
+                    "branch resolved from 0x{:08x} to 0x{:08x}; misprediction: {}",
+                    instr.pc,
+                    jump_result,
+                    misprediction,
+                )
+
+            return {
+                "rob_id": instr.rob_id,
+                "result": instr.reg_res,
+                "rp_dst": instr.rp_dst,
+                "exception": exception,
+            }
 
         @def_method(m, self.issue)
         def _(arg):
@@ -178,55 +263,20 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.top_comb += funct7_info.eq(arg.exec_fn.funct7)
             m.d.top_comb += jb.in_rvc.eq(funct7_info.rvc)
 
-            is_auipc = decoder.decode_fn == JumpBranchFn.Fn.AUIPC
+            jump_target_req(m)
 
-            jump_result = Mux(jb.taken, jb.jmp_addr, jb.reg_res)
-
+            instr_fifo.write(
+                m,
+                rob_id=arg.rob_id,
+                pc=arg.pc,
+                rp_dst=arg.rp_dst,
+                type=decoder.decode_fn,
+                jmp_addr=jb.jmp_addr,
+                reg_res=jb.reg_res,
+                taken=jb.taken,
+                predicted_taken=funct7_info.predicted_taken,
+            )
             self.perf_instr.incr(m, decoder.decode_fn)
-
-            exception = Signal()
-            exception_report = self.dm.get_dependency(ExceptionReportKey())
-
-            jmp_addr_misaligned = (jb.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)) != 0
-
-            async_interrupt_active = DependencyContext.get().get_dependency(AsyncInterruptInsertSignalKey())
-
-            misprediction = Signal()
-            m.d.av_comb += misprediction.eq(~(is_auipc | (jb.taken == funct7_info.predicted_taken)))
-            self.perf_mispredictions.incr(m, cond=misprediction)
-
-            with m.If(~is_auipc & jb.taken & jmp_addr_misaligned):
-                self.perf_misaligned.incr(m)
-                # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
-                # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
-                # generated for a conditional branch that is not taken."
-                m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=arg.pc)
-            with m.Elif(async_interrupt_active & ~is_auipc):
-                # Jump instructions are entry points for async interrupts.
-                # This way we can store known pc via report to global exception register and avoid it in ROB.
-                # Exceptions have priority, because the instruction that reports async interrupt is commited
-                # and exception would be lost.
-                m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result)
-            with m.Elif(misprediction):
-                # Async interrupts can have priority, because `jump_result` is handled in the same way.
-                # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=arg.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
-
-            fifo_res.write(m, rob_id=arg.rob_id, result=jb.reg_res, rp_dst=arg.rp_dst, exception=exception)
-
-            with m.If(~is_auipc):
-                self.fifo_branch_resolved.write(m, from_pc=jb.in_pc, next_pc=jump_result, misprediction=misprediction)
-                log.debug(
-                    m,
-                    True,
-                    "branch resolved from 0x{:08x} to 0x{:08x}; misprediction: {}",
-                    jb.in_pc,
-                    jump_result,
-                    misprediction,
-                )
 
         return m
 

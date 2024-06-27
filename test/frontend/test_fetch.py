@@ -73,6 +73,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
         self.fetch_resume_mock = TestbenchIO(Adapter())
         DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume_mock.adapter.iface)
+
         self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))
 
         self.m = ModuleConnector(self.icache, fifo, self.io_out, self.clean_fifo, self.fetch)

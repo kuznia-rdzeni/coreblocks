@@ -550,6 +550,9 @@ class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
+        self.predicted_jump_target_req = make_layout()
+        self.predicted_jump_target_resp = make_layout(fields.cfi_target, ("valid", 1))
+
         self.verify_branch = make_layout(
             ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
         )
@@ -645,6 +648,14 @@ class ExceptionRegisterLayouts:
         )
 
         self.get = StructLayout(self.report.members | make_layout(self.valid).members)
+
+
+class InternalInterruptControllerLayouts:
+    def __init__(self, gen_params: GenParams):
+        self.cause: LayoutListField = ("cause", gen_params.isa.xlen)
+        """ Async interrupt cause code """
+
+        self.interrupt_cause = make_layout(self.cause)
 
 
 class CoreInstructionCounterLayouts:

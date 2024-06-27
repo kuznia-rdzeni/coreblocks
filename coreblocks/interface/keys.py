@@ -15,6 +15,7 @@ __all__ = [
     "CommonBusDataKey",
     "InstructionPrecommitKey",
     "BranchVerifyKey",
+    "PredictedJumpTargetKey",
     "FetchResumeKey",
     "ExceptionReportKey",
     "GenericCSRRegistersKey",
@@ -38,6 +39,11 @@ class InstructionPrecommitKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class BranchVerifyKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class PredictedJumpTargetKey(SimpleKey[tuple[Method, Method]]):
     pass
 
 

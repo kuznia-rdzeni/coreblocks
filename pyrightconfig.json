@@ -18,8 +18,7 @@
 
   "reportMissingImports": true,
   "reportMissingTypeStubs": false,
-
-  "stubPath": "./stubs",
+  "reportWildcardImportFromLibrary": false,
 
   "pythonVersion": "3.11",
   "pythonPlatform": "Linux"
