@@ -13,8 +13,8 @@ class CircularQueuePtr(data.View):
         def __init__(self, size_log: int):
             super().__init__(
                 {
-                    "parity": 1,
                     "ptr": size_log,
+                    "parity": 1,
                 }
             )
 

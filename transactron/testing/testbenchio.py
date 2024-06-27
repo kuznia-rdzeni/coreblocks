@@ -101,7 +101,6 @@ class TestbenchIO(Elaboratable):
         extra_settle_count: int = 0,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
-        yield from self.set_enable(enable())
 
         def handle_validate_arguments():
             if validate_arguments is not None:
@@ -113,15 +112,20 @@ class TestbenchIO(Elaboratable):
                     yield Settle()
 
         # One extra Settle() required to propagate enable signal.
-        for _ in range(extra_settle_count + 1):
+        for _ in range(extra_settle_count):
             yield Settle()
+
+        yield from self.set_enable(enable())
+        yield Settle()
         yield from handle_validate_arguments()
         while (arg := (yield from self.method_argument())) is None:
             yield
 
-            yield from self.set_enable(enable())
-            for _ in range(extra_settle_count + 1):
+            for _ in range(extra_settle_count):
                 yield Settle()
+
+            yield from self.set_enable(enable())
+            yield Settle()
             yield from handle_validate_arguments()
 
         ret_out = mock_def_helper(self, function, arg)
