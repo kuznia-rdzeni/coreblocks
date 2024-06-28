@@ -227,9 +227,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 m.d.comb += exception.eq(1)
                 exception_report(m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
 
-                # TODO: this conditions
-                with m.If(True):
-                    misprediction_report(m, ftq_idx=FTQPtr(gp=self.gen_params), cfi_target=jump_result)
+                misprediction_report(m, ftq_idx=FTQPtr(gp=self.gen_params), fb_instr_idx=0, cfi_target=jump_result)
 
             return {
                 "rob_id": instr.rob_id,

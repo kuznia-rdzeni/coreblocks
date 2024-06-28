@@ -107,8 +107,6 @@ class ExceptionCauseRegister(Elaboratable):
             # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
             self.fetch_stall_exception(m)
 
-            # return {"accepted": should_write}
-
         @def_method(m, self.get)
         def _():
             return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "valid": self.valid}
