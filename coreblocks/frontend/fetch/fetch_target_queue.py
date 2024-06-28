@@ -3,10 +3,11 @@ from amaranth.lib.data import Layout
 
 from transactron import *
 from transactron.utils import make_layout, DependencyContext, assign
-from transactron.lib import logging, MemoryBank, condition
+from transactron.lib import logging, MemoryBank
 
 from coreblocks.params import GenParams
 from coreblocks.arch import *
+from coreblocks.frontend import FrontendParams
 from coreblocks.frontend.branch_prediction.iface import BranchPredictionUnitInterface
 from coreblocks.interface.layouts import (
     CommonLayoutFields,
@@ -64,11 +65,15 @@ class FetchTargetQueue(Elaboratable):
         )
 
         m.submodules.pc_queue = pc_queue = PCQueue(self.gen_params)
-        m.submodules.prediction_queue = prediction_queue = BPUPredictionQueue(self.gen_params)
+        m.submodules.prediction_queue = prediction_queue = PredictionDetailsQueue(self.gen_params)
 
         m.submodules.meta_mem = meta_mem = FTQMemoryWrapper(self.gen_params, make_layout(fields.bpu_meta))
         m.submodules.predecode_mem = predecode_mem = FTQMemoryWrapper(
-            self.gen_params, make_layout(self.gen_params.get(BranchPredictionLayouts).block_prediction_field)
+            self.gen_params,
+            make_layout(
+                self.gen_params.get(BranchPredictionLayouts).block_prediction_field,
+                fields.fb_addr,
+            ),
         )
         m.submodules.misprediction_mem = misprediction_mem = FTQMemoryWrapper(
             self.gen_params, make_layout(fields.cfi_target)
@@ -96,7 +101,13 @@ class FetchTargetQueue(Elaboratable):
         with Transaction(name="FTQ_Read_Target_Prediction").body(m):
             pred = self.bpu.read_target_pred(m)
             log.info(
-                m, True, "Predicted next PC=0x{:x}, FTQ={}, bpu_stage={}", pred.pc, pred.ftq_idx.ptr, pred.bpu_stage
+                m,
+                True,
+                "Predicted next PC=0x{:x}, FTQ=[{}]{}, bpu_stage={}",
+                pred.pc,
+                pred.ftq_idx.parity,
+                pred.ftq_idx.ptr,
+                pred.bpu_stage,
             )
             pc_queue.write(
                 m,
@@ -108,7 +119,9 @@ class FetchTargetQueue(Elaboratable):
 
         with Transaction(name="FTQ_Read_Prediction_Details").body(m):
             final_pred = self.bpu.read_pred_details(m)
-
+            log.info(
+                m, True, "Writing prediction details for FTQ=[{}]{}", final_pred.ftq_idx.parity, final_pred.ftq_idx.ptr
+            )
             prediction_queue.write(
                 m,
                 ftq_idx=final_pred.ftq_idx,
@@ -124,26 +137,34 @@ class FetchTargetQueue(Elaboratable):
         self.consume_prediction.proxy(m, prediction_queue.try_consume)
 
         @def_method(m, self.ifu_writeback)
-        def _(ftq_idx, redirect, stall, block_prediction):
-            log.info(m, True, "IFU writeback ftq={}", ftq_idx)
-            with m.If(stall):
+        def _(ftq_idx, fb_addr, redirect, unsafe, block_prediction):
+            log.info(m, True, "IFU writeback ftq=[{}]{}", ftq_idx.parity, ftq_idx.ptr)
+
+            is_jalr_without_target = Signal()
+            m.d.av_comb += is_jalr_without_target.eq(
+                CfiType.is_jalr(block_prediction.cfi_type) & ~block_prediction.maybe_cfi_target.valid
+            )
+
+            with m.If(unsafe | (redirect & is_jalr_without_target)):
                 self.stall_ctrl.stall_unsafe(m)
 
-            with condition(m) as branch:
-                with branch(redirect):
-                    pc_queue.redirect(
-                        m, ftq_idx=FTQPtr(ftq_idx, gp=self.gen_params) + 1, pc=block_prediction.maybe_cfi_target.value
-                    )
-                with branch(~redirect):
-                    pass
+            with m.If(redirect & ~is_jalr_without_target):
+                fallthrough_addr = self.gen_params.get(FrontendParams).pc_from_fb(fb_addr + 1, 0)
+                redirect_pc = Mux(
+                    CfiType.valid(block_prediction.cfi_type),
+                    block_prediction.maybe_cfi_target.value,
+                    fallthrough_addr,
+                )
+                pc_queue.redirect(m, ftq_idx=FTQPtr(ftq_idx, gp=self.gen_params) + 1, pc=redirect_pc)
 
-            with m.If(redirect | stall):
+            with m.If(redirect | unsafe):
                 self.bpu.flush(m)
 
             predecode_mem.write(
                 m,
                 ftq_idx=ftq_idx,
                 data={
+                    "fb_addr": fb_addr,
                     "block_prediction": block_prediction,
                 },
             )
@@ -154,8 +175,8 @@ class FetchTargetQueue(Elaboratable):
             misprediction_mem.write(m, ftq_idx=ftq_idx, data={"cfi_target": cfi_target})
 
         @def_method(m, self.commit)
-        def _(fb_addr, fb_instr_idx, exception, misprediction):
-            pc_queue.pop(m)
+        def _(ftq_idx, fb_instr_idx, exception, misprediction):
+            log.info(m, True, "Committing instr #{} from FTQ=[{}]{}", fb_instr_idx, ftq_idx.parity, ftq_idx.ptr)
 
             # meta_data = meta_mem.read_data
             predecode_data = predecode_mem.read_data
@@ -185,7 +206,9 @@ class FetchTargetQueue(Elaboratable):
                 )
                 """
 
-            m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
+                log.debug(m, True, "Releasing FTQ entry #[{}]{}", ftq_idx.parity, ftq_idx.ptr)
+                pc_queue.pop(m)
+                m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
 
         @def_method(m, self.stall)
         def _():
@@ -233,6 +256,7 @@ class PCQueue(Elaboratable):
         ifu_queue_layout = make_layout(fields.pc, fields.bpu_stage)
 
         m.submodules.mem = mem = FTQMemoryWrapper(gen_params=self.gen_params, layout=ifu_queue_layout)
+        mem_write_args = Signal.like(mem.write.data_in)
 
         write_forwarded_args = Signal(self.write.layout_in)
 
@@ -252,7 +276,7 @@ class PCQueue(Elaboratable):
         @def_method(m, self.write)
         def _(arg) -> None:
             ftq_idx = FTQPtr(arg.ftq_idx, gp=self.gen_params)
-            log.info(m, True, "PC queue write ftq={} pc=0x{:x}", arg.ftq_idx.ptr, arg.pc)
+            log.info(m, True, "PC queue write ftq=[{}]{} pc=0x{:x}", arg.ftq_idx.parity, arg.ftq_idx.ptr, arg.pc)
             log.assertion(m, ftq_idx <= next_write_slot, "FTQ entry must be written in the next free slot or before")
             log.assertion(m, ~bpu_request_reg_valid)
 
@@ -266,7 +290,9 @@ class PCQueue(Elaboratable):
             m.d.sync += assign(bpu_request_reg, arg)
             m.d.sync += bpu_request_reg_valid.eq(1)
 
-            mem.write(m, ftq_idx=arg.ftq_idx, data={"pc": arg.pc, "bpu_stage": arg.bpu_stage})
+            m.d.comb += assign(
+                mem_write_args, {"ftq_idx": arg.ftq_idx, "data": {"pc": arg.pc, "bpu_stage": arg.bpu_stage}}
+            )
 
         # to avoid combinational loops
         self.write.schedule_before(self.bpu_consume)
@@ -287,7 +313,7 @@ class PCQueue(Elaboratable):
             with m.Else():
                 m.d.av_comb += assign(ret, write_forwarded_args)
 
-            log.info(m, True, "Consuming BPU ftq={} pc=0x{:x}", ret.ftq_idx.ptr, ret.pc)
+            log.info(m, True, "Consuming BPU ftq=[{}]{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             return ret
 
@@ -306,7 +332,7 @@ class PCQueue(Elaboratable):
                     ret, {"ftq_idx": self.ifu_consume_ptr, "pc": mem.read_data.pc, "bpu_stage": mem.read_data.bpu_stage}
                 )
 
-            log.info(m, True, "Consuming IFU ftq={} pc=0x{:x}", ret.ftq_idx.ptr, ret.pc)
+            log.info(m, True, "Consuming IFU ftq=[{}]{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             m.d.comb += consume_ptr_next.eq(FTQPtr(ret.ftq_idx, gp=self.gen_params) + 1)
 
@@ -315,17 +341,21 @@ class PCQueue(Elaboratable):
         @def_method(m, self.redirect)
         def _(ftq_idx, pc) -> None:
             log.assertion(m, ftq_idx >= self.oldest_ptr, "Cannot rollback before the commit ptr")
-            log.info(m, True, "Redirecting FTQ to pc:0x{:x} ftq_idx:{}", pc, ftq_idx.ptr)
+            log.info(m, True, "Redirecting FTQ to pc:0x{:x} ftq_idx:[{}]{}", pc, ftq_idx.parity, ftq_idx.ptr)
 
-            m.d.sync += assign(bpu_request_reg, {"pc": pc, "bpu_stage": 0, "global_branch_history": 0})
+            m.d.sync += assign(
+                bpu_request_reg, {"ftq_idx": ftq_idx, "pc": pc, "bpu_stage": 0, "global_branch_history": 0}
+            )
             m.d.sync += bpu_request_reg_valid.eq(1)
 
-            mem.write(m, ftq_idx=ftq_idx, data={"pc": pc, "bpu_stage": 0})
+            m.d.comb += assign(mem_write_args, {"ftq_idx": ftq_idx, "data": {"pc": pc, "bpu_stage": 0}})
 
             m.d.sync += last_written_slot.eq(ftq_idx)
             m.d.comb += consume_ptr_next.eq(ftq_idx)
 
-        self.redirect.add_conflict(self.write, Priority.LEFT)
+        # todo: comment (to avoid conflits on methods)
+        with Transaction().body(m, request=self.write.run | self.redirect.run):
+            mem.write(m, mem_write_args)
 
         @def_method(m, self.pop, ready=self.ifu_consume_ptr != self.oldest_ptr)
         def _() -> None:
@@ -334,7 +364,7 @@ class PCQueue(Elaboratable):
         return m
 
 
-class BPUPredictionQueue(Elaboratable):
+class PredictionDetailsQueue(Elaboratable):
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
 
@@ -360,11 +390,14 @@ class BPUPredictionQueue(Elaboratable):
         m.d.comb += mem.read_ptr_next.eq(consume_ptr)
         m.d.sync += consume_ptr.eq(mem.read_ptr_next)
 
+        write_ptr = FTQPtr(gp=self.gen_params)
+
         @def_method(m, self.write)
         def _(ftq_idx, bpu_stage, block_prediction) -> None:
             mem.write(m, ftq_idx=ftq_idx, data={"bpu_stage": bpu_stage, "block_prediction": block_prediction})
+            m.d.sync += write_ptr.eq(FTQPtr(ftq_idx, gp=self.gen_params) + 1)
 
-        @def_method(m, self.try_consume)
+        @def_method(m, self.try_consume, ready=consume_ptr != write_ptr)
         def _(ftq_idx, bpu_stage):
             data = mem.read_data
 
@@ -379,6 +412,7 @@ class BPUPredictionQueue(Elaboratable):
         @def_method(m, self.rollback)
         def _(ftq_idx) -> None:
             m.d.comb += mem.read_ptr_next.eq(ftq_idx)
+            m.d.sync += write_ptr.eq(FTQPtr(ftq_idx, gp=self.gen_params))
 
         return m
 

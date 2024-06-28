@@ -345,10 +345,10 @@ class FetchUnit(Elaboratable):
                     with m.If(access_fault | unsafe_stall | redirect):
                         self.flush(m)
 
-                    # Here we should write another block_prediction
                     self.ftq_writeback(
                         m,
                         ftq_idx=s1_data.ftq_idx,
+                        fb_addr=fetch_block_addr,
                         redirect=redirect,
                         stall=unsafe_stall,
                         block_prediction=pred_data.block_prediction,

@@ -758,7 +758,8 @@ class FetchTargetQueueLayouts:
 
         self.ifu_writeback = make_layout(
             fields.ftq_idx,
-            ("stall", 1),
+            fields.fb_addr,
+            ("unsafe", 1),
             ("redirect", 1),
             bp_layouts.block_prediction_field,
         )
@@ -769,7 +770,7 @@ class FetchTargetQueueLayouts:
         )
 
         self.commit = make_layout(
-            fields.fb_addr,
+            fields.ftq_idx,
             fields.fb_instr_idx,
             fields.exception,
             ("misprediction", 1),
