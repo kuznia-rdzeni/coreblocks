@@ -99,6 +99,7 @@ class TestbenchIO(Elaboratable):
         enable: Optional[Callable[[], bool]] = None,
         validate_arguments: Optional[Callable[..., bool]] = None,
         extra_settle_count: int = 0,
+        disable_after: bool = True,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
@@ -127,6 +128,7 @@ class TestbenchIO(Elaboratable):
         ret_out = mock_def_helper(self, function, arg)
         yield from self.method_return(ret_out or {})
         yield
+        yield from self.set_enable(False)
 
     def method_handle_loop(
         self,
@@ -139,7 +141,11 @@ class TestbenchIO(Elaboratable):
         yield Passive()
         while True:
             yield from self.method_handle(
-                function, enable=enable, validate_arguments=validate_arguments, extra_settle_count=extra_settle_count
+                function,
+                enable=enable,
+                validate_arguments=validate_arguments,
+                extra_settle_count=extra_settle_count,
+                disable_after=False,
             )
 
     # Debug signals

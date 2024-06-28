@@ -64,8 +64,14 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
+        layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(o=self.gen.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=layouts.precommit_in,
+                o=layouts.precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
@@ -101,7 +107,9 @@ class TestPMAIndirect(TestCaseWithSimulator):
                     wb_requested = (yield wb.stb) and (yield wb.cyc)
                     assert not wb_requested
 
-                yield from self.test_module.precommit.call(rob_id=1, side_fx=1)
+                yield from self.test_module.precommit.method_handle(
+                    function=lambda rob_id: {"side_fx": 1}, validate_arguments=lambda rob_id: rob_id == 1
+                )
 
             yield from self.test_module.io_in.slave_wait()
             yield from self.test_module.io_in.slave_respond((addr << (addr % 4) * 8))

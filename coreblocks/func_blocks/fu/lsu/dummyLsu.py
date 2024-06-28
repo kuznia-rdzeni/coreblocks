@@ -142,11 +142,10 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         with Transaction().body(m):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(info.rob_id == request_rob_id):
-                m.d.comb += rob_id_match.eq(1)
+            info = precommit(m, request_rob_id)
+            m.d.comb += rob_id_match.eq(1)
             with m.If(~info.side_fx):
-                m.d.comb += flush.eq(1)
+                m.d.av_comb += flush.eq(1)
 
         return m
 
