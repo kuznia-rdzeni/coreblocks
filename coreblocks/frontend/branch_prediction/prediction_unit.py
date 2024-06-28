@@ -53,7 +53,17 @@ class BranchPredictionUnit(Elaboratable, BranchPredictionUnitInterface):
             m.d.sync += has_prediction.eq(1)
 
         @def_method(m, self.update)
-        def _():
+        def _(
+            fb_addr,
+            cfi_target,
+            cfi_type,
+            cfi_idx,
+            cfi_mispredicted,
+            cfi_taken,
+            branch_mask,
+            global_branch_history,
+            bpu_meta,
+        ):
             pass
 
         @def_method(m, self.flush)

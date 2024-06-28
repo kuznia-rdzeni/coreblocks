@@ -31,7 +31,7 @@ class MockBPU(Elaboratable, BranchPredictionUnitInterface):
         self.request_io = TestbenchIO(Adapter(i=layouts.bpu_request))
         self.read_target_pred_io = TestbenchIO(Adapter(o=layouts.bpu_read_target_pred))
         self.read_pred_details_io = TestbenchIO(Adapter(o=layouts.bpu_read_pred_details))
-        self.update_io = TestbenchIO(Adapter())
+        self.update_io = TestbenchIO(Adapter(i=layouts.bpu_update))
         self.flush_io = TestbenchIO(Adapter(nonexclusive=True))
 
         self.request = self.request_io.adapter.iface
@@ -98,7 +98,6 @@ class IFURequest:
 @dataclass(frozen=True)
 class IFUResponse:
     block_prediction: BlockPrediction
-    redirect: bool = False
     unsafe: bool = False
 
 
@@ -183,7 +182,18 @@ class TestFTQ(TestCaseWithSimulator):
         return self.bpu_details_resp[0]
 
     @def_method_mock(lambda self: self.bpu.update_io)
-    def bpu_update_mock(self):
+    def bpu_update_mock(
+        self,
+        fb_addr,
+        cfi_target,
+        cfi_type,
+        cfi_idx,
+        cfi_mispredicted,
+        cfi_taken,
+        branch_mask,
+        global_branch_history,
+        bpu_meta,
+    ):
         pass
 
     @def_method_mock(lambda self: self.bpu.flush_io, sched_prio=4)
@@ -245,10 +255,21 @@ class TestFTQ(TestCaseWithSimulator):
                     yield from self.multi_settle(3)
 
                 if not res["discard"]:
+                    redirect = not (
+                        (
+                            (res["block_prediction"]["cfi_type"] == int(CfiType.INVALID))
+                            and (resp.block_prediction.cfi_type == CfiType.INVALID)
+                        )
+                        or (res["block_prediction"] == resp.block_prediction.as_dict())
+                    )
+                    if redirect or resp.unsafe:
+                        for i in range(latency):
+                            pipeline[i + 1] = None
+
                     yield from self.ftq.ifu_writeback.call(
                         ftq_idx=req.ftq_idx.as_dict(),
                         fb_addr=FrontendParams(self.gen_params).fb_addr(C(req.pc, self.gen_params.isa.xlen)),
-                        redirect=resp.redirect,
+                        redirect=redirect,
                         unsafe=resp.unsafe,
                         block_prediction=resp.block_prediction.as_dict(),
                     )
@@ -270,11 +291,11 @@ class TestFTQ(TestCaseWithSimulator):
     def read_jump_target(self, ftq_idx: FTQIndex) -> TestGen[Optional[int]]:
         yield from self.ftq.jump_target_req.call(ftq_idx=ftq_idx.as_dict())
         ret = yield from self.ftq.jump_target_resp.call()
-        return None if ~ret["maybe_cfi_target"]["valid"] else ret["maybe_cfi_target"]["value"]
+        return None if not ret["maybe_cfi_target"]["valid"] else ret["maybe_cfi_target"]["value"]
 
     def commit_block(self, ftq_idx: FTQIndex, last_instr_offset: int = -1):
         for i in range(self.gen_params.fetch_width + last_instr_offset + 1):
-            yield from self.ftq.commit.call(ftq_idx=ftq_idx.as_dict(), fb_instr_idx=i, exception=0, misprediction=0)
+            yield from self.ftq.commit.call(ftq_idx=ftq_idx.as_dict(), fb_instr_idx=i, exception=0)
 
     def run_sim(self, test_proc: Callable[[], TestGen[None]], ifu_latency: int = 3):
         with self.run_simulation(self.m) as sim:
@@ -294,7 +315,7 @@ class TestFTQ(TestCaseWithSimulator):
 
             # Enable IFU while keep blocking BPU
             self.expect_ifu_request(
-                IFURequest(0x100, FTQIndex(0, False), 0),
+                IFURequest(0x100, FTQIndex(0, False)),
                 IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.INVALID, None)),
             )
             yield from self.tick(5)
@@ -323,7 +344,7 @@ class TestFTQ(TestCaseWithSimulator):
                     BlockPrediction(0, 0, CfiType.INVALID, None),
                 )
                 self.expect_ifu_request(
-                    IFURequest(pc, ftq_idx, 0),
+                    IFURequest(pc, ftq_idx),
                     IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.INVALID, None)),
                 )
 
@@ -347,7 +368,7 @@ class TestFTQ(TestCaseWithSimulator):
                     BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)], BlockPrediction(0, 0, CfiType.INVALID, None)
                 )
                 self.expect_ifu_request(
-                    IFURequest(pc, ftq_idx, 0),
+                    IFURequest(pc, ftq_idx),
                     IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.INVALID, None)),
                 )
             yield from self.tick(30)
@@ -442,43 +463,6 @@ class TestFTQ(TestCaseWithSimulator):
         def test_proc():
             yield from self.tick(2)
 
-            # Firstly make a few BPU predictions
-            for i in range(3):
-                pc = (i + 1) * 0x100
-                self.expect_bpu_request(
-                    BPURequest(pc, FTQIndex(i, False)),
-                    [(pc + 0x100, 0), None],
-                    BlockPrediction(0, 0, CfiType.INVALID, None),
-                )
-
-            yield from self.tick(10)
-
-            # Make the IFU redirect the FTQ
-            self.expect_ifu_request(
-                IFURequest(0x100, FTQIndex(0, False), 0),
-                IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.JAL, 0x1000), redirect=True),
-            )
-
-            # Now verify the moment when the redirection propagates to the BPU
-            for i in range(3, 7):
-                pc = (i + 1) * 0x100
-                self.expect_bpu_request(
-                    BPURequest(pc, FTQIndex(i, False)),
-                    [(pc + 0x100, 0), None],
-                    BlockPrediction(0, 0, CfiType.INVALID, None),
-                )
-            # It takes 3 cycles for IFU to verify the prediction and 1 cycle to redirect the FTQ, so
-            # the 5th prediction should reflect the redirection.
-            self.expect_bpu_request(
-                BPURequest(0x1000, FTQIndex(1, False)),
-                [(0x1100, 0), None],
-                BlockPrediction(0, 0, CfiType.INVALID, None),
-            )
-
-            yield from self.tick(15)
-
-            assert self.fetched_pcs == [0x100]
-
         self.run_sim(test_proc, ifu_latency=3)
 
     def test_ifu_redirect(self):
@@ -497,12 +481,18 @@ class TestFTQ(TestCaseWithSimulator):
                     BlockPrediction(0, 0, CfiType.INVALID, None),
                 )
 
-            yield from self.tick(10)
+            # The first FTQ doesn't redirect
+            self.expect_ifu_request(
+                IFURequest(0x100, FTQIndex(0, False)),
+                IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.INVALID, 0)),
+            )
+
+            yield from self.tick(15)
 
             # Make the IFU redirect the FTQ
             self.expect_ifu_request(
-                IFURequest(0x100, FTQIndex(0, False), 0),
-                IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.JAL, 0x1000), redirect=True),
+                IFURequest(0x200, FTQIndex(1, False)),
+                IFUResponse(BlockPrediction(0, self.gen_params.fetch_width - 1, CfiType.JAL, 0x1000)),
             )
 
             # Now verify the moment when the redirection propagates to the BPU
@@ -516,13 +506,53 @@ class TestFTQ(TestCaseWithSimulator):
             # It takes 3 cycles for IFU to verify the prediction and 1 cycle to redirect the FTQ, so
             # the 5th prediction should reflect the redirection.
             self.expect_bpu_request(
-                BPURequest(0x1000, FTQIndex(1, False)),
+                BPURequest(0x1000, FTQIndex(2, False)),
                 [(0x1100, 0), None],
                 BlockPrediction(0, 0, CfiType.INVALID, None),
             )
 
             yield from self.tick(15)
 
-            assert self.fetched_pcs == [0x100]
+            assert self.fetched_pcs == [0x100, 0x200]
 
-        self.run_sim(test_proc, ifu_latency=3)
+        self.run_sim(test_proc)
+
+    def test_jump_target(self):
+        """Tests if the predicted jump target is ready to read by the jump branch unit."""
+        self.init_module(bpu_stages_cnt=1)
+
+        def test_proc():
+            yield from self.tick(2)
+
+            # Make a prediction about the target of a JALR instruction.
+            self.expect_bpu_request(
+                BPURequest(0x100, FTQIndex(0, False)), [(0x2000, 0)], BlockPrediction(0, 0, CfiType.JALR, 0x2000)
+            )
+
+            # The first FTQ doesn't redirect
+            self.expect_ifu_request(
+                IFURequest(0x100, FTQIndex(0, False)), IFUResponse(BlockPrediction(0, 0, CfiType.JALR, 0x2000))
+            )
+
+            yield from self.tick(15)
+
+            # Validate the jump target
+            assert (yield from self.read_jump_target(FTQIndex(0, False))) == 0x2000
+
+            # Make a prediction about the target of a JALR instruction on position 1 in the block
+            self.expect_bpu_request(
+                BPURequest(0x2000, FTQIndex(1, False)), [(0x5000, 0)], BlockPrediction(0, 1, CfiType.JALR, 0x5000)
+            )
+
+            # But apparently there is another JALR instruction on position 0 - this will trigger a frontend redirection
+            self.expect_ifu_request(
+                IFURequest(0x2000, FTQIndex(1, False)), IFUResponse(BlockPrediction(0, 0, CfiType.JALR, 0x6000))
+            )
+
+            yield from self.tick(15)
+
+            assert (yield from self.read_jump_target(FTQIndex(1, False))) == 0x6000
+
+            assert self.fetched_pcs == [0x100, 0x2000]
+
+        self.run_sim(test_proc)

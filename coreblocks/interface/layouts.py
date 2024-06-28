@@ -722,14 +722,18 @@ class BranchPredictionLayouts:
         )
 
         self.bpu_update = make_layout(
-            # The start of the prediction block
             fields.fb_addr,
-            # What did this CFI jump to?
+            # The CFI that was either taken or mispredicted
             fields.cfi_target,
-            # Was the CFI really taken?
-            ("cfi_taken", 1),
+            fields.cfi_type,
+            fields.cfi_idx,
             # Was the CFI mispredicted from the original prediction?
             ("cfi_mispredicted", 1),
+            # Was the CFI really taken?
+            ("cfi_taken", 1),
+            fields.branch_mask,
+            fields.global_branch_history,
+            fields.bpu_meta,
         )
 
 
@@ -766,6 +770,7 @@ class FetchTargetQueueLayouts:
 
         self.report_misprediction = make_layout(
             fields.ftq_idx,
+            fields.fb_instr_idx,
             fields.cfi_target,
         )
 
@@ -773,5 +778,4 @@ class FetchTargetQueueLayouts:
             fields.ftq_idx,
             fields.fb_instr_idx,
             fields.exception,
-            ("misprediction", 1),
         )

@@ -66,6 +66,7 @@ class FetchTargetQueue(Elaboratable):
 
         m.submodules.pc_queue = pc_queue = PCQueue(self.gen_params)
         m.submodules.prediction_queue = prediction_queue = PredictionDetailsQueue(self.gen_params)
+        m.submodules.misprediction_reg = misprediction_reg = MispredictionInfoRegister(self.gen_params)
 
         m.submodules.meta_mem = meta_mem = FTQMemoryWrapper(self.gen_params, make_layout(fields.bpu_meta))
         m.submodules.predecode_mem = predecode_mem = FTQMemoryWrapper(
@@ -74,9 +75,6 @@ class FetchTargetQueue(Elaboratable):
                 self.gen_params.get(BranchPredictionLayouts).block_prediction_field,
                 fields.fb_addr,
             ),
-        )
-        m.submodules.misprediction_mem = misprediction_mem = FTQMemoryWrapper(
-            self.gen_params, make_layout(fields.cfi_target)
         )
 
         commit_ptr = FTQPtr(gp=self.gen_params)
@@ -87,7 +85,6 @@ class FetchTargetQueue(Elaboratable):
         m.d.sync += [
             meta_mem.read_ptr_next.eq(commit_ptr_next),
             predecode_mem.read_ptr_next.eq(commit_ptr_next),
-            misprediction_mem.read_ptr_next.eq(commit_ptr_next),
         ]
 
         initalized = Signal()
@@ -170,41 +167,42 @@ class FetchTargetQueue(Elaboratable):
             )
             jump_target_mem.write(m, addr=ftq_idx.ptr, data={"maybe_cfi_target": block_prediction.maybe_cfi_target})
 
-        @def_method(m, self.report_misprediction)
-        def _(ftq_idx, cfi_target):
-            misprediction_mem.write(m, ftq_idx=ftq_idx, data={"cfi_target": cfi_target})
+        self.report_misprediction.proxy(m, misprediction_reg.report_misprediction)
 
         @def_method(m, self.commit)
-        def _(ftq_idx, fb_instr_idx, exception, misprediction):
+        def _(ftq_idx, fb_instr_idx, exception):
             log.info(m, True, "Committing instr #{} from FTQ=[{}]{}", fb_instr_idx, ftq_idx.parity, ftq_idx.ptr)
-
-            # meta_data = meta_mem.read_data
             predecode_data = predecode_mem.read_data
-            # misprediction_data = misprediction_mem.read_data
-
             prediction = predecode_data.block_prediction
 
             with m.If(exception | (fb_instr_idx == prediction.cfi_idx)):
+                meta_data = meta_mem.read_data
+                misprediction_data = misprediction_reg.get(m, ftq_idx=ftq_idx, fb_instr_idx=fb_instr_idx)
+
+                had_misprediction = misprediction_data.valid
+
                 # TODO: comment about it
 
-                """
                 cfi_type = Mux(
-                    misprediction,
+                    had_misprediction,
                     Mux(fb_instr_idx == prediction.cfi_idx, prediction.cfi_type, CfiType.BRANCH),
                     Mux(exception, CfiType.INVALID, prediction.cfi_type),
                 )
+
+                cfi_taken = ~CfiType.is_branch(cfi_type) | (had_misprediction ^ (fb_instr_idx == prediction.cfi_idx))
+
                 self.bpu.update(
                     m,
-                    fb_addr=fb_addr,
+                    fb_addr=predecode_data.fb_addr,
                     cfi_type=cfi_type,
                     cfi_idx=fb_instr_idx,
-                    cfi_target=Mux(misprediction, misprediction_data.cfi_target, prediction.maybe_cfi_target.value),
-                    cfi_taken=Mux(misprediction, C(0), C(1)),  # todo: fix this
-                    cfi_mispredicted=misprediction,
-                    branch_mask=prediction.branch_mask,
-                    meta=meta_data.bpu_meta,
+                    cfi_target=Mux(had_misprediction, misprediction_data.cfi_target, prediction.maybe_cfi_target.value),
+                    cfi_taken=cfi_taken,
+                    cfi_mispredicted=had_misprediction,
+                    branch_mask=prediction.branch_mask & ((1 << (fb_instr_idx + 1)) - 1),  # trim the mask
+                    global_branch_history=0,
+                    bpu_meta=meta_data.bpu_meta,
                 )
-                """
 
                 log.debug(m, True, "Releasing FTQ entry #[{}]{}", ftq_idx.parity, ftq_idx.ptr)
                 pc_queue.pop(m)
@@ -220,12 +218,60 @@ class FetchTargetQueue(Elaboratable):
             log.info(m, True, "Resuming new_pc=0x{:x}", pc)
             pc_queue.redirect(m, ftq_idx=ftq_idx, pc=pc)
             prediction_queue.rollback(m, ftq_idx=ftq_idx)
+            misprediction_reg.clear(m)
 
         @def_method(m, self.jump_target_req)
         def _(ftq_idx):
             jump_target_mem.read_req(m, addr=ftq_idx.ptr)
 
         self.jump_target_resp.proxy(m, jump_target_mem.read_resp)
+
+        return m
+
+
+class MispredictionInfoRegister(Elaboratable):
+    def __init__(self, gen_params: GenParams) -> None:
+        self.gen_params = gen_params
+        fields = self.gen_params.get(CommonLayoutFields)
+
+        ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
+
+        self.report_misprediction = Method(i=ftq_layouts.report_misprediction)
+        self.get = Method(
+            i=make_layout(fields.ftq_idx, fields.fb_instr_idx), o=make_layout(fields.cfi_target, ("valid", 1))
+        )
+        self.clear = Method()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        valid = Signal()
+        current_misprediction = Signal(self.report_misprediction.layout_in)
+
+        @def_method(m, self.report_misprediction)
+        def _(arg):
+            current_ftq_idx = FTQPtr(current_misprediction.ftq_idx, gp=self.gen_params)
+            ftq_idx = FTQPtr(arg.ftq_idx, gp=self.gen_params)
+            with m.If(
+                ~valid
+                | (ftq_idx < current_ftq_idx)
+                | ((ftq_idx == current_ftq_idx) & (arg.fb_instr_idx < current_misprediction.fb_instr_idx))
+            ):
+                m.d.sync += valid.eq(1)
+                m.d.sync += assign(current_misprediction, arg)
+
+        @def_method(m, self.get)
+        def _(ftq_idx, fb_instr_idx):
+            return {
+                "cfi_target": current_misprediction.cfi_target,
+                "valid": valid
+                & (ftq_idx == current_misprediction.ftq_idx)
+                & (fb_instr_idx == current_misprediction.fb_instr_idx),
+            }
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += valid.eq(0)
 
         return m
 
