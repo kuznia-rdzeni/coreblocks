@@ -309,11 +309,7 @@ class ROBLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.data_layout = make_layout(
-            fields.rl_dst,
-            fields.rp_dst,
-            fields.fb_instr_idx
-        )
+        self.data_layout = make_layout(fields.rl_dst, fields.rp_dst, fields.fb_instr_idx)
 
         self.rob_data: LayoutListField = ("rob_data", self.data_layout)
         """Data stored in a reorder buffer entry."""
@@ -772,6 +768,7 @@ class FetchTargetQueueLayouts:
             ("unsafe", 1),
             ("redirect", 1),
             bp_layouts.block_prediction_field,
+            ("empty_block", 1),
         )
 
         self.report_misprediction = make_layout(

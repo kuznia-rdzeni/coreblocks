@@ -107,6 +107,7 @@ class IFUResponse:
     block_prediction: BlockPrediction = BlockPrediction()
     fb_last_instr_idx: int = -1
     unsafe: bool = False
+    empty_block: bool = False
 
 
 class TestFTQ(TestCaseWithSimulator):
@@ -280,6 +281,7 @@ class TestFTQ(TestCaseWithSimulator):
                         redirect=redirect,
                         unsafe=resp.unsafe,
                         block_prediction=resp.block_prediction.as_dict(),
+                        empty_block=resp.empty_block,
                     )
 
                     self.fetched_pcs.append(req.pc)
@@ -317,9 +319,11 @@ class TestFTQ(TestCaseWithSimulator):
     def resume_exception(self, pc: int):
         yield from self.resume_ftq_exception.call(pc=pc, from_exception=1)
 
-    def commit_block(self, last_instr_offset: int = -1):
-        for i in range(self.gen_params.fetch_width + last_instr_offset + 1):
-            yield from self.ftq.commit.call(fb_instr_idx=i, exception=0)
+    def commit_block(self, last_instr_offset: int = 0, exception: bool = False):
+        for i in range(last_instr_offset + 1):
+            yield from self.ftq.commit.call(
+                fb_instr_idx=i, exception=1 if exception and i == last_instr_offset else 0
+            )
 
     def run_sim(self, test_proc: Callable[[], TestGen[None]], ifu_latency: int = 3):
         with self.run_simulation(self.m) as sim:
@@ -436,7 +440,7 @@ class TestFTQ(TestCaseWithSimulator):
                 self.expect_ifu_request(IFURequest(pc, FTQIndex(i, False), 0), IFUResponse(fb_last_instr_idx=offset))
 
                 yield from self.tick(10)
-                yield from self.commit_block(last_instr_offset=offset)
+                yield from self.commit_block(last_instr_offset=offset + self.gen_params.fetch_width)
                 yield from self.tick(10)
 
             # Now all of these predictions should fit in the FTQ if the previous FTQ entries were commited successfully.
@@ -649,11 +653,121 @@ class TestFTQ(TestCaseWithSimulator):
 
         self.run_sim(test_proc, ifu_latency=3)
 
-    def test_stall_exception(self):
+    def test_empty_block(self):
+        """Tests a situation where a FTQ entry is associated to an empty fetch block (cross-boundary instructions)."""
+        self.init_module(bpu_stages_cnt=1)
+
+        def test_proc():
+            yield from self.tick(2)
+
+            # Prepare 5 fetch blocks, make the second block empty
+            for i in range(5):
+                pc = (i + 1) * 0x100
+                ftq_idx = FTQIndex(i, False)
+                self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+                self.expect_ifu_request(
+                    IFURequest(pc, ftq_idx),
+                    IFUResponse(empty_block=(i == 1)),
+                )
+
+            yield from self.tick(20)
+
+            # We would commit instructions only from 4 blocks
+            for i in range(4):
+                yield from self.commit_block()
+
+            assert self.fetched_pcs == [0x100, 0x200, 0x300, 0x400, 0x500]
+
+            # Now all of these predictions should fit in the FTQ if the previous FTQ entries were commited successfully.
+            for i in range(5, self.gen_params.ftq_size + 4):
+                pc = (i + 1) * 0x100
+                ftq_idx = FTQIndex(i % self.gen_params.ftq_size, i >= self.gen_params.ftq_size)
+                self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0)])
+
+            yield from self.tick(20)
+
+        self.run_sim(test_proc, ifu_latency=3)
+
+    def test_exception_and_unsafe(self):
+        """Tests interaction between stalls from exceptions and unsafe instructions."""
+        self.init_module(bpu_stages_cnt=1)
+
+        def test_proc():
+            yield from self.tick(2)
+
+            # Report an unsafe instruction first, then an exception
+            for i in range(6):
+                pc = (i + 1) * 0x100
+                ftq_idx = FTQIndex(i, False)
+                self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+                self.expect_ifu_request(
+                    IFURequest(pc, ftq_idx), IFUResponse(BlockPrediction(branch_mask=0b1), unsafe=(i == 3))
+                )
+
+            yield from self.tick(20)
+
+            yield from self.report_misprediction(FTQIndex(1, False), 0, 0x3000)
+            yield from self.tick(5)
+            yield from self.stall_exception(FTQIndex(1, False))
+
+            yield from self.tick(5)
+
+            yield from self.commit_block()
+            yield from self.commit_block(last_instr_offset=0, exception=True)
+            yield from self.resume_exception(0x3000)
+
+            # Like previously, but now report them in the same cycle
+            for i in range(2, 9):
+                pc = (i - 2) * 0x100 + 0x3000
+                ftq_idx = FTQIndex(i, False)
+                self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+                self.expect_ifu_request(
+                    IFURequest(pc, ftq_idx), IFUResponse(BlockPrediction(branch_mask=0b1), unsafe=(i == 5))
+                )
+
+            yield from self.tick(2)
+            yield from self.report_misprediction(FTQIndex(4, False), 0, 0x6000)
+            yield from self.tick(3)
+            yield from self.stall_exception(FTQIndex(4, False))
+
+            self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+            yield from self.tick(4)
+            assert len(self.expected_bpu_requests) == 1
+            self.expected_bpu_requests.clear()
+
+        self.run_sim(test_proc, ifu_latency=3)
+
+    def test_exception(self):
         """Tests what happens if the FTQ gets exceptions."""
         self.init_module(bpu_stages_cnt=1)
 
         def test_proc():
             yield from self.tick(2)
+
+            # Prepare 4 fetch blocks, misprediction on 2nd
+            for i in range(4):
+                pc = (i + 1) * 0x100
+                ftq_idx = FTQIndex(i, False)
+                self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+                self.expect_ifu_request(IFURequest(pc, ftq_idx), IFUResponse(BlockPrediction(branch_mask=0b1)))
+
+            yield from self.tick(4)
+
+            yield from self.report_misprediction(FTQIndex(1, False), 0, 0x5000)
+            yield from self.stall_exception(FTQIndex(1, False))
+
+            assert len(self.expected_bpu_requests) == 0
+            assert len(self.expected_ifu_requests) == 0
+
+            # Verify that BPU is not running
+            self.expect_bpu_request(BPURequest(0x100, FTQIndex(1, False)), [(0x100, 0x0)])
+            yield from self.tick(4)
+            assert len(self.expected_bpu_requests) == 1
+            self.expected_bpu_requests.clear()
+            yield from self.tick(4)
+
+            yield from self.commit_block()
+
+            yield from self.tick(20)
 
         self.run_sim(test_proc, ifu_latency=3)

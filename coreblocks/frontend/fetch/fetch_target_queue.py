@@ -75,6 +75,7 @@ class FetchTargetQueue(Elaboratable):
                 self.gen_params.get(BranchPredictionLayouts).block_prediction_field,
                 fields.fb_addr,
                 fields.fb_last_instr_idx,
+                ("empty_block", 1),
             ),
         )
 
@@ -102,7 +103,7 @@ class FetchTargetQueue(Elaboratable):
             log.info(
                 m,
                 True,
-                "Predicted next PC=0x{:x}, FTQ=[{}]{}, bpu_stage={}",
+                "Predicted next PC=0x{:x}, FTQ={}/{}, bpu_stage={}",
                 pred.pc,
                 pred.ftq_idx.parity,
                 pred.ftq_idx.ptr,
@@ -119,7 +120,7 @@ class FetchTargetQueue(Elaboratable):
         with Transaction(name="FTQ_Read_Prediction_Details").body(m):
             final_pred = self.bpu.read_pred_details(m)
             log.info(
-                m, True, "Writing prediction details for FTQ=[{}]{}", final_pred.ftq_idx.parity, final_pred.ftq_idx.ptr
+                m, True, "Writing prediction details for FTQ={}/{}", final_pred.ftq_idx.parity, final_pred.ftq_idx.ptr
             )
             prediction_queue.write(
                 m,
@@ -137,8 +138,8 @@ class FetchTargetQueue(Elaboratable):
         self.consume_prediction.proxy(m, prediction_queue.try_consume)
 
         @def_method(m, self.ifu_writeback)
-        def _(ftq_idx, fb_addr, fb_last_instr_idx, redirect, unsafe, block_prediction):
-            log.info(m, True, "IFU writeback ftq=[{}]{}", ftq_idx.parity, ftq_idx.ptr)
+        def _(ftq_idx, fb_addr, fb_last_instr_idx, redirect, unsafe, block_prediction, empty_block):
+            log.info(m, True, "IFU writeback ftq={}/{}", ftq_idx.parity, ftq_idx.ptr)
 
             is_jalr_without_target = Signal()
             m.d.av_comb += is_jalr_without_target.eq(
@@ -167,15 +168,29 @@ class FetchTargetQueue(Elaboratable):
                     "fb_addr": fb_addr,
                     "fb_last_instr_idx": fb_last_instr_idx,
                     "block_prediction": block_prediction,
+                    "empty_block": empty_block,
                 },
             )
             jump_target_mem.write(m, addr=ftq_idx.ptr, data={"maybe_cfi_target": block_prediction.maybe_cfi_target})
 
         self.report_misprediction.proxy(m, misprediction_reg.report_misprediction)
 
-        @def_method(m, self.commit)
+        commit_ready = Signal()
+        if Extension.C in self.gen_params.isa.extensions:
+            # TODO: instead of having a separate transaction and wasting one cycle every an empty block
+            # we can simply make a new memory just with the `empty_block` bit, reading entry `commit_ptr + 1`
+            # and advancing the commit pointer either by 1 or 2 depending on the emptiness bit.
+            m.d.comb += commit_ready.eq(~predecode_mem.read_data.empty_block)
+            with Transaction(name="FTQ_Empty_Block_Committer").body(m, request=predecode_mem.read_data.empty_block):
+                log.debug(m, True, "Fetch block #{} is empty. Releasing the associated FTQ entry", commit_ptr.ptr)
+                pc_queue.pop(m)
+                m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
+        else:
+            m.d.comb += commit_ready.eq(1)
+
+        @def_method(m, self.commit, ready=commit_ready)
         def _(fb_instr_idx, exception):
-            log.info(m, True, "Committing instr #{} from FTQ=[{}]{}", fb_instr_idx, commit_ptr.parity, commit_ptr.ptr)
+            log.info(m, True, "Committing instr #{} from FTQ={}/{}", fb_instr_idx, commit_ptr.parity, commit_ptr.ptr)
             predecode_data = predecode_mem.read_data
 
             with m.If(exception | (fb_instr_idx == predecode_data.fb_last_instr_idx)):
@@ -207,7 +222,7 @@ class FetchTargetQueue(Elaboratable):
                     bpu_meta=meta_data.bpu_meta,
                 )
 
-                log.debug(m, True, "Releasing FTQ entry #[{}]{}", commit_ptr.parity, commit_ptr.ptr)
+                log.debug(m, True, "Releasing FTQ entry #{}/{}", commit_ptr.parity, commit_ptr.ptr)
                 pc_queue.pop(m)
                 m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
 
@@ -325,7 +340,7 @@ class PCQueue(Elaboratable):
         @def_method(m, self.write)
         def _(arg) -> None:
             ftq_idx = FTQPtr(arg.ftq_idx, gp=self.gen_params)
-            log.info(m, True, "PC queue write ftq=[{}]{} pc=0x{:x}", arg.ftq_idx.parity, arg.ftq_idx.ptr, arg.pc)
+            log.info(m, True, "PC queue write ftq={}/{} pc=0x{:x}", arg.ftq_idx.parity, arg.ftq_idx.ptr, arg.pc)
             log.assertion(m, ftq_idx <= next_write_slot, "FTQ entry must be written in the next free slot or before")
             log.assertion(m, ~bpu_request_reg_valid)
 
@@ -362,7 +377,7 @@ class PCQueue(Elaboratable):
             with m.Else():
                 m.d.av_comb += assign(ret, write_forwarded_args)
 
-            log.info(m, True, "Consuming BPU ftq=[{}]{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
+            log.info(m, True, "Consuming BPU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             return ret
 
@@ -381,7 +396,7 @@ class PCQueue(Elaboratable):
                     ret, {"ftq_idx": self.ifu_consume_ptr, "pc": mem.read_data.pc, "bpu_stage": mem.read_data.bpu_stage}
                 )
 
-            log.info(m, True, "Consuming IFU ftq=[{}]{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
+            log.info(m, True, "Consuming IFU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             m.d.comb += consume_ptr_next.eq(FTQPtr(ret.ftq_idx, gp=self.gen_params) + 1)
 
@@ -390,7 +405,7 @@ class PCQueue(Elaboratable):
         @def_method(m, self.redirect)
         def _(ftq_idx, pc) -> None:
             log.assertion(m, ftq_idx >= self.oldest_ptr, "Cannot rollback before the commit ptr")
-            log.info(m, True, "Redirecting FTQ to pc:0x{:x} ftq_idx:[{}]{}", pc, ftq_idx.parity, ftq_idx.ptr)
+            log.info(m, True, "Redirecting FTQ to pc:0x{:x} ftq_idx:{}/{}", pc, ftq_idx.parity, ftq_idx.ptr)
 
             m.d.sync += assign(
                 bpu_request_reg, {"ftq_idx": ftq_idx, "pc": pc, "bpu_stage": 0, "global_branch_history": 0}

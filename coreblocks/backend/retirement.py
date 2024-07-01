@@ -175,7 +175,7 @@ class Retirement(Elaboratable):
                     with m.Else():
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
- 
+
                     self.ftq_commit(m, fb_instr_idx=rob_entry.rob_data.fb_instr_idx, exception=rob_entry.exception)
 
                     # Condition is used to avoid FRAT locking during normal operation
