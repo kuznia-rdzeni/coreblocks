@@ -91,8 +91,6 @@ class Retirement(Elaboratable):
             self.instret_csr.increment(m)
             self.perf_instr_ret.incr(m)
 
-            self.ftq_commit(m, exception=rob_entry.exception)
-
         def flush_instr(rob_entry):
             # get original rp_dst mapped to instruction rl_dst in R-RAT
             rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
@@ -177,6 +175,8 @@ class Retirement(Elaboratable):
                     with m.Else():
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
+ 
+                    self.ftq_commit(m, fb_instr_idx=rob_entry.rob_data.fb_instr_idx, exception=rob_entry.exception)
 
                     # Condition is used to avoid FRAT locking during normal operation
                     with condition(m) as cond:

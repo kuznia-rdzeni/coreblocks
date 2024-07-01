@@ -97,7 +97,6 @@ class CommonLayoutFields:
         self.rob_id: LayoutListField = ("rob_id", gen_params.rob_entries_bits)
         """Reorder buffer entry identifier."""
 
-        # self.ftq_idx: LayoutListField = ("ftq_idx", FTQPtr(gp=gen_params))
         self.ftq_idx: LayoutListField = ("ftq_idx", FTQPtrLayout(gen_params))
         """Fetch Target Queue entry index."""
 
@@ -106,6 +105,8 @@ class CommonLayoutFields:
 
         self.fb_instr_idx: LayoutListField = ("fb_instr_idx", gen_params.fetch_width_log)
         """Offset of an instruction (counted in number of instructions) in a fetch block"""
+
+        self.ftq_addr: LayoutListField = ("ftq_addr", make_layout(self.ftq_idx, self.fb_instr_idx))
 
         self.fb_last_instr_idx: LayoutListField = ("fb_last_instr_idx", gen_params.fetch_width_log)
         """Offset of the last instruction (counted in number of instructions) in a fetch block"""
@@ -311,6 +312,7 @@ class ROBLayouts:
         self.data_layout = make_layout(
             fields.rl_dst,
             fields.rp_dst,
+            fields.fb_instr_idx
         )
 
         self.rob_data: LayoutListField = ("rob_data", self.data_layout)
