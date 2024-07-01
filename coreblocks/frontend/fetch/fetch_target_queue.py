@@ -1,8 +1,9 @@
 from amaranth import *
 from amaranth.lib.data import Layout
+from collections.abc import Sequence
 
 from transactron import *
-from transactron.utils import make_layout, DependencyContext, assign
+from transactron.utils import make_layout, DependencyContext, assign, AssignArg, MethodStruct, popcount
 from transactron.lib import logging, MemoryBank
 
 from coreblocks.params import GenParams
@@ -38,13 +39,10 @@ class FetchTargetQueue(Elaboratable):
 
         self.commit = Method(i=ftq_layouts.commit)
 
-        self.stall = Method()
+        self.stall = Method(i=ftq_layouts.stall)
         self._on_resume = Method(i=make_layout(fields.ftq_idx, fields.pc))
 
         self.stall_ctrl = StallController(self.gen_params, self._on_resume)
-
-        self.resume_from_unsafe = self.stall_ctrl.resume_from_unsafe
-        self.resume_from_exception = self.stall_ctrl.resume_from_exception
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
         self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
@@ -53,6 +51,7 @@ class FetchTargetQueue(Elaboratable):
         dm = DependencyContext.get()
         dm.add_dependency(PredictedJumpTargetKey(), (self.jump_target_req, self.jump_target_resp))
         dm.add_dependency(MispredictionReportKey(), self.report_misprediction)
+        dm.add_dependency(FetchResumeKey(), self.stall_ctrl.resume)
 
     def elaborate(self, platform):
         m = TModule()
@@ -68,12 +67,14 @@ class FetchTargetQueue(Elaboratable):
         m.submodules.prediction_queue = prediction_queue = PredictionDetailsQueue(self.gen_params)
         m.submodules.misprediction_reg = misprediction_reg = MispredictionInfoRegister(self.gen_params)
 
+        # todo: pass the read pointer as an argument
         m.submodules.meta_mem = meta_mem = FTQMemoryWrapper(self.gen_params, make_layout(fields.bpu_meta))
         m.submodules.predecode_mem = predecode_mem = FTQMemoryWrapper(
             self.gen_params,
             make_layout(
                 self.gen_params.get(BranchPredictionLayouts).block_prediction_field,
                 fields.fb_addr,
+                fields.fb_last_instr_idx,
             ),
         )
 
@@ -82,7 +83,7 @@ class FetchTargetQueue(Elaboratable):
         m.d.sync += commit_ptr.eq(commit_ptr_next)
         m.d.comb += commit_ptr_next.eq(commit_ptr)
 
-        m.d.sync += [
+        m.d.comb += [
             meta_mem.read_ptr_next.eq(commit_ptr_next),
             predecode_mem.read_ptr_next.eq(commit_ptr_next),
         ]
@@ -92,7 +93,8 @@ class FetchTargetQueue(Elaboratable):
             pc_queue.redirect(m, ftq_idx=FTQPtr(gp=self.gen_params), pc=self.gen_params.start_pc)
             m.d.sync += initalized.eq(1)
 
-        with Transaction(name="FTQ_New_Prediction").body(m, request=~self.stall_ctrl.stalled):
+        with Transaction(name="FTQ_New_Prediction").body(m):
+            self.stall_ctrl.stall_guard(m)
             self.bpu.request(m, pc_queue.bpu_consume(m))
 
         with Transaction(name="FTQ_Read_Target_Prediction").body(m):
@@ -127,14 +129,15 @@ class FetchTargetQueue(Elaboratable):
             )
             meta_mem.write(m, ftq_idx=final_pred.ftq_idx, data=final_pred.bpu_meta)
 
-        @def_method(m, self.consume_fetch_target, ready=~self.stall_ctrl.stalled)
+        @def_method(m, self.consume_fetch_target)
         def _():
+            self.stall_ctrl.stall_guard(m)
             return pc_queue.ifu_consume(m)
 
         self.consume_prediction.proxy(m, prediction_queue.try_consume)
 
         @def_method(m, self.ifu_writeback)
-        def _(ftq_idx, fb_addr, redirect, unsafe, block_prediction):
+        def _(ftq_idx, fb_addr, fb_last_instr_idx, redirect, unsafe, block_prediction):
             log.info(m, True, "IFU writeback ftq=[{}]{}", ftq_idx.parity, ftq_idx.ptr)
 
             is_jalr_without_target = Signal()
@@ -143,7 +146,7 @@ class FetchTargetQueue(Elaboratable):
             )
 
             with m.If(unsafe | (redirect & is_jalr_without_target)):
-                self.stall_ctrl.stall_unsafe(m)
+                self.stall_ctrl.stall_unsafe(m, ftq_idx=ftq_idx)
 
             with m.If(redirect & ~is_jalr_without_target):
                 fallthrough_addr = self.gen_params.get(FrontendParams).pc_from_fb(fb_addr + 1, 0)
@@ -162,6 +165,7 @@ class FetchTargetQueue(Elaboratable):
                 ftq_idx=ftq_idx,
                 data={
                     "fb_addr": fb_addr,
+                    "fb_last_instr_idx": fb_last_instr_idx,
                     "block_prediction": block_prediction,
                 },
             )
@@ -170,19 +174,18 @@ class FetchTargetQueue(Elaboratable):
         self.report_misprediction.proxy(m, misprediction_reg.report_misprediction)
 
         @def_method(m, self.commit)
-        def _(ftq_idx, fb_instr_idx, exception):
-            log.info(m, True, "Committing instr #{} from FTQ=[{}]{}", fb_instr_idx, ftq_idx.parity, ftq_idx.ptr)
+        def _(fb_instr_idx, exception):
+            log.info(m, True, "Committing instr #{} from FTQ=[{}]{}", fb_instr_idx, commit_ptr.parity, commit_ptr.ptr)
             predecode_data = predecode_mem.read_data
-            prediction = predecode_data.block_prediction
 
-            with m.If(exception | (fb_instr_idx == prediction.cfi_idx)):
+            with m.If(exception | (fb_instr_idx == predecode_data.fb_last_instr_idx)):
                 meta_data = meta_mem.read_data
-                misprediction_data = misprediction_reg.get(m, ftq_idx=ftq_idx, fb_instr_idx=fb_instr_idx)
+                prediction = predecode_data.block_prediction
+                misprediction_data = misprediction_reg.get(m, ftq_idx=commit_ptr, fb_instr_idx=fb_instr_idx)
 
                 had_misprediction = misprediction_data.valid
 
                 # TODO: comment about it
-
                 cfi_type = Mux(
                     had_misprediction,
                     Mux(fb_instr_idx == prediction.cfi_idx, prediction.cfi_type, CfiType.BRANCH),
@@ -204,14 +207,14 @@ class FetchTargetQueue(Elaboratable):
                     bpu_meta=meta_data.bpu_meta,
                 )
 
-                log.debug(m, True, "Releasing FTQ entry #[{}]{}", ftq_idx.parity, ftq_idx.ptr)
+                log.debug(m, True, "Releasing FTQ entry #[{}]{}", commit_ptr.parity, commit_ptr.ptr)
                 pc_queue.pop(m)
                 m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
 
         @def_method(m, self.stall)
-        def _():
+        def _(ftq_idx):
             self.bpu.flush(m)
-            self.stall_ctrl.stall_exception(m)
+            self.stall_ctrl.stall_exception(m, ftq_idx=ftq_idx)
 
         @def_method(m, self._on_resume)
         def _(ftq_idx, pc):
@@ -473,12 +476,31 @@ class StallController(Elaboratable):
 
         layouts = self.gen_params.get(FetchTargetQueueLayouts)
 
-        self.stall_unsafe = Method()
-        self.stall_exception = Method()
-        self.resume_from_unsafe = Method(i=layouts.resume)
-        self.resume_from_exception = Method(i=layouts.resume)
+        self.stall_unsafe = Method(i=layouts.stall)
+        self.stall_exception = Method(i=layouts.stall)
 
-        self.stalled = Signal()
+        def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
+            from_exception_args = Signal(len(args))
+            from_unsafe_args = Signal(len(args))
+            m.d.comb += from_exception_args.eq(Cat([arg.from_exception for arg in args]) & runs)
+            m.d.comb += from_unsafe_args.eq(Cat([~arg.from_exception for arg in args]) & runs)
+
+            # Make sure that there is at most one caller of each type.
+            log.assertion(m, popcount(from_exception_args) <= 1)
+            log.assertion(m, popcount(from_unsafe_args) <= 1)
+
+            result = Signal(layouts.resume)
+            m.d.comb += result.from_exception.eq(from_exception_args.any())
+
+            for i, v in enumerate(args):
+                with m.If(
+                    (result.from_exception & from_exception_args[i]) | (~result.from_exception & from_unsafe_args[i])
+                ):
+                    m.d.comb += result.pc.eq(v.pc)
+            return result
+
+        self.resume = Method(i=layouts.resume, nonexclusive=True, combiner=resume_combiner)
+        self.stall_guard = Method(nonexclusive=True)
 
     def elaborate(self, platform):
         m = TModule()
@@ -486,90 +508,44 @@ class StallController(Elaboratable):
         stalled_unsafe = Signal()
         stalled_exception = Signal()
 
-        stalled = Signal()
-        m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
+        ftq_idx_stall = FTQPtr(gp=self.gen_params)
 
-        @def_method(m, self.resume_from_unsafe, ready=stalled)
-        def _(ftq_idx, pc):
-            log.info(m, ~stalled_exception, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
-            # If core is stalled because of exception, effect of this call will be ignored, as
-            # `stalled_exception` is not changed
+        @def_method(m, self.stall_guard, ready=~(stalled_unsafe | stalled_exception))
+        def _():
+            pass
+
+        @def_method(m, self.resume)
+        def _(pc, from_exception):
+            log.assertion(m, stalled_unsafe | from_exception)
+            log.info(m, ~stalled_exception, "Resuming from_exception={} new_pc=0x{:x}", from_exception, pc)
+
             m.d.sync += stalled_unsafe.eq(0)
 
-            with m.If(~stalled_exception):
-                self.on_resume(m, ftq_idx=ftq_idx, pc=pc)
+            with m.If(from_exception):
+                log.assertion(m, stalled_exception)
+                m.d.sync += stalled_exception.eq(0)
 
-        @def_method(m, self.resume_from_exception, ready=stalled_exception)
-        def _(ftq_idx, pc):
-            log.info(m, True, "Resuming from exception new_pc=0x{:x}", pc)
-            # Resume from exception has implicit priority to resume from unsafe instructions call.
-            # Both could happen at the same time due to resume methods being blocked.
-            # `resume_from_unsafe` will never overwrite `resume_from_exception` event, because there is at most one
-            # unsafe instruction in the core that will call resume_from_unsafe before or at the same time as
-            # `resume_from_exception`.
-            # `current_pc` is set to correct entry at a complete unstall due to method declaration order
-            # See https://github.com/kuznia-rdzeni/coreblocks/pull/654#issuecomment-2057478960
-            # m.d.sync += current_pc.eq(pc)
-            m.d.sync += stalled_unsafe.eq(0)
-            m.d.sync += stalled_exception.eq(0)
-            self.on_resume(m, ftq_idx=ftq_idx, pc=pc)
+            self.on_resume(m, ftq_idx=ftq_idx_stall + 1, pc=pc)
 
         @def_method(m, self.stall_unsafe)
-        def _():
+        def _(ftq_idx):
+            log.assertion(
+                m,
+                ~stalled_exception,
+                "Trying to stall because of an unsafe instruction while being stalled because of an exception",
+            )
             log.info(m, True, "Stalling the frontend because of an unsafe instruction")
+            m.d.sync += ftq_idx_stall.eq(ftq_idx)
             m.d.sync += stalled_unsafe.eq(1)
 
         # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
         # of exception report, both can happen at any time during normal excecution.
         # In case of simultaneous call, fetch will be correctly stalled, becasue separate signal is used
         @def_method(m, self.stall_exception)
-        def _():
-            log.info(m, True, "Stalling the frontend because of an exception")
+        def _(ftq_idx):
+            log.info(m, ~stalled_exception, "Stalling the frontend because of an exception")
+            m.d.sync += ftq_idx_stall.eq(ftq_idx)
             m.d.sync += stalled_exception.eq(1)
-
-        # Fetch resume verification
-        if self.gen_params.extra_verification:
-            expect_unstall_unsafe = Signal()
-            prev_stalled_unsafe = Signal()
-            unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
-            m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
-            with m.FSM("running"):
-                with m.State("running"):
-                    log.error(m, stalled_exception | prev_stalled_unsafe, "fetch was expected to be running")
-                    log.error(
-                        m,
-                        unifier_ready,
-                        "resume_from_unsafe unifier is ready before stall",
-                    )
-                    with m.If(stalled_unsafe):
-                        m.next = "stalled_unsafe"
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
-                with m.State("stalled_unsafe"):
-                    m.d.sync += expect_unstall_unsafe.eq(1)
-                    with m.If(self.resume_from_unsafe.run):
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        m.next = "running"
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
-                    log.error(
-                        m,
-                        self.resume_from_exception.run & ~self.stall_exception.run,
-                        "unexpected resume_from_exception",
-                    )
-                with m.State("stalled_exception"):
-                    log.error(m, ~stalled_exception, "fetch was expected to be stalled because of the exception")
-                    with m.If(self.resume_from_unsafe.run):
-                        log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                    with m.If(self.resume_from_exception.run):
-                        # unstall_form_unsafe may be skipped if excpetion was reported on unsafe instruction,
-                        # invalid cases are verified by readiness check in running state
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        with m.If(~self.stall_exception.run):
-                            m.next = "running"
 
         return m
 

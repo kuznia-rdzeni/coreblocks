@@ -63,6 +63,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
             Adapter(o=interrupt_controller_layouts.interrupt_cause)
         )
+        m.submodules.mock_ftq_commit = self.mock_ftq_commit = TestbenchIO(Adapter(i=ftq_layouts.commit))
 
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
@@ -79,6 +80,7 @@ class RetirementTestCircuit(Elaboratable):
             instr_decrement=self.mock_instr_decrement.adapter.iface,
             trap_entry=self.mock_trap_entry.adapter.iface,
             async_interrupt_cause=self.mock_async_interrupt_cause.adapter.iface,
+            ftq_commit=self.mock_ftq_commit.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -183,6 +185,10 @@ class TestRetirement(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
+
+    @def_method_mock(lambda self: self.retc.mock_ftq_commit)
+    def mock_ftq_commit(self, arg):
+        pass
 
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)

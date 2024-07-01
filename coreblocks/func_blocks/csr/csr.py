@@ -11,7 +11,7 @@ from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FetchTargetQueueLayouts, FTQPtr, FuncUnitLayouts, CSRUnitLayouts
+from coreblocks.interface.layouts import FetchTargetQueueLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
     FetchResumeKey,
@@ -238,7 +238,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             # This call will always execute, because there is at most one unsafe instruction in the core, and it can be
             # stored in unifer's Forwarder unitl resume becomes ready.
             # CSR instructions are never compressed, PC+4 is always next instruction
-            return {"ftq_idx": FTQPtr(gp=self.gen_params), "pc": instr.pc + self.gen_params.isa.ilen_bytes}
+            return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
 
         # Generate precommitting signal from precommit
         with Transaction().body(m):

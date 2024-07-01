@@ -107,6 +107,9 @@ class CommonLayoutFields:
         self.fb_instr_idx: LayoutListField = ("fb_instr_idx", gen_params.fetch_width_log)
         """Offset of an instruction (counted in number of instructions) in a fetch block"""
 
+        self.fb_last_instr_idx: LayoutListField = ("fb_last_instr_idx", gen_params.fetch_width_log)
+        """Offset of the last instruction (counted in number of instructions) in a fetch block"""
+
         self.s1_val: LayoutListField = ("s1_val", gen_params.isa.xlen)
         """Value of first source operand."""
 
@@ -743,7 +746,7 @@ class FetchTargetQueueLayouts:
         bp_layouts = gen_params.get(BranchPredictionLayouts)
 
         self.stall = make_layout(fields.ftq_idx)
-        self.resume = make_layout(fields.ftq_idx, fields.pc)
+        self.resume = make_layout(fields.pc, ("from_exception", 1))
 
         self.consume_fetch_target = make_layout(
             fields.ftq_idx,
@@ -763,6 +766,7 @@ class FetchTargetQueueLayouts:
         self.ifu_writeback = make_layout(
             fields.ftq_idx,
             fields.fb_addr,
+            fields.fb_last_instr_idx,
             ("unsafe", 1),
             ("redirect", 1),
             bp_layouts.block_prediction_field,
@@ -775,7 +779,6 @@ class FetchTargetQueueLayouts:
         )
 
         self.commit = make_layout(
-            fields.ftq_idx,
             fields.fb_instr_idx,
             fields.exception,
         )

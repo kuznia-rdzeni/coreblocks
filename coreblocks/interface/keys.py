@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
+from transactron.lib.dependencies import SimpleKey, ListKey
 from transactron import Method
-from transactron.lib import Collector
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
@@ -43,7 +42,7 @@ class PredictedJumpTargetKey(SimpleKey[tuple[Method, Method]]):
 
 
 @dataclass(frozen=True)
-class FetchResumeKey(UnifierKey, unifier=Collector):
+class FetchResumeKey(SimpleKey[Method]):
     pass
 
 

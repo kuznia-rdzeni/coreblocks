@@ -1,16 +1,14 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, Out
-from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import InternalInterruptController
 from transactron.core import Transaction, TModule
-from transactron.lib import ConnectTrans, MethodProduct
+from transactron.lib import MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
-    FetchResumeKey,
     GenericCSRRegistersKey,
     CommonBusDataKey,
 )
@@ -136,11 +134,6 @@ class Core(Component):
 
         m.submodules.exception_cause_register = self.exception_cause_register
 
-        fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
-        m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
-
-        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
-
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
         m.submodules.retirement = Retirement(
@@ -154,10 +147,11 @@ class Core(Component):
             exception_cause_get=self.exception_cause_register.get,
             exception_cause_clear=self.exception_cause_register.clear,
             frat_rename=frat.rename,
-            fetch_continue=self.frontend.resume_from_exception,
+            fetch_continue=self.frontend.resume,
             instr_decrement=core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
             async_interrupt_cause=self.interrupt_controller.interrupt_cause,
+            ftq_commit=self.frontend.ftq.commit,
         )
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0

@@ -68,8 +68,7 @@ class CoreFrontend(Elaboratable):
         self.inject_instr = self.instr_buffer.write
         self.consume_instr = self.decode_pipe.read
 
-        self.resume_from_unsafe = self.ftq.resume_from_unsafe
-        self.resume_from_exception = self.ftq.resume_from_exception
+        self.resume = self.ftq.stall_ctrl.resume
         self.flush_and_stall = Method()
 
     def elaborate(self, platform):

@@ -18,7 +18,7 @@ class BranchPredictionUnit(Elaboratable, BranchPredictionUnitInterface):
         self.request = Method(i=self.layouts.bpu_request)
         self.read_target_pred = Method(o=self.layouts.bpu_read_target_pred)
         self.read_pred_details = Method(o=self.layouts.bpu_read_pred_details)
-        self.update = Method()
+        self.update = Method(i=self.layouts.bpu_update)
         self.flush = Method()
 
         self.flush.add_conflict(self.read_target_pred, Priority.LEFT)

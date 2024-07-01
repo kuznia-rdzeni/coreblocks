@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.interface.layouts import RetirementLayouts, FTQPtr
+from coreblocks.interface.layouts import RetirementLayouts
 
 from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
@@ -30,6 +30,7 @@ class Retirement(Elaboratable):
         instr_decrement: Method,
         trap_entry: Method,
         async_interrupt_cause: Method,
+        ftq_commit: Method,
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -45,6 +46,7 @@ class Retirement(Elaboratable):
         self.instr_decrement = instr_decrement
         self.trap_entry = trap_entry
         self.async_interrupt_cause = async_interrupt_cause
+        self.ftq_commit = ftq_commit
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
@@ -88,6 +90,8 @@ class Retirement(Elaboratable):
 
             self.instret_csr.increment(m)
             self.perf_instr_ret.incr(m)
+
+            self.ftq_commit(m, exception=rob_entry.exception)
 
         def flush_instr(rob_entry):
             # get original rp_dst mapped to instruction rl_dst in R-RAT
@@ -213,7 +217,7 @@ class Retirement(Elaboratable):
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
 
-                    self.fetch_continue(m, ftq_idx=FTQPtr(gp=self.gen_params), pc=resume_pc)
+                    self.fetch_continue(m, pc=resume_pc)
 
                     # Release pending trap state - allow accepting new reports
                     self.exception_cause_clear(m)
