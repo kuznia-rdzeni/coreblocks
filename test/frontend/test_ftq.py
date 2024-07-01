@@ -609,15 +609,6 @@ class TestFTQ(TestCaseWithSimulator):
 
         self.run_sim(test_proc, ifu_latency=3)
 
-    def test_stall_exception(self):
-        """Tests what happens if the FTQ gets exceptions."""
-        self.init_module(bpu_stages_cnt=1)
-
-        def test_proc():
-            yield from self.tick(2)
-
-        self.run_sim(test_proc, ifu_latency=3)
-
     def test_stall_jalr_no_target(self):
         """Tests what happens if IFU fetches a JALR instruction without a predicted target."""
         self.init_module(bpu_stages_cnt=1)
@@ -655,5 +646,14 @@ class TestFTQ(TestCaseWithSimulator):
             yield from self.tick(5)
 
             assert self.fetched_pcs == [0x1000]
+
+        self.run_sim(test_proc, ifu_latency=3)
+
+    def test_stall_exception(self):
+        """Tests what happens if the FTQ gets exceptions."""
+        self.init_module(bpu_stages_cnt=1)
+
+        def test_proc():
+            yield from self.tick(2)
 
         self.run_sim(test_proc, ifu_latency=3)

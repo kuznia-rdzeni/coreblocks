@@ -8,8 +8,13 @@ from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchTargetQueueLayouts
+from coreblocks.interface.keys import (
+    AsyncInterruptInsertSignalKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
+    FetchResumeKey,
+)
 from transactron.utils.dependencies import DependencyContext
 
 from transactron.testing import *
@@ -41,7 +46,10 @@ class CSRUnitTestCircuit(Elaboratable):
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
 
-        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(
+            Adapter(i=self.gen_params.get(FetchTargetQueueLayouts).resume)
+        )
+        DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume.adapter.iface)
 
         self.csr = {}
 

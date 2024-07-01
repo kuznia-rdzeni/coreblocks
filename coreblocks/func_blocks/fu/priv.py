@@ -5,7 +5,7 @@ from typing import Sequence
 
 
 from transactron import *
-from transactron.lib import BasicFifo, logging
+from transactron.lib import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
@@ -13,7 +13,7 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, FetchTargetQueueLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -54,8 +54,6 @@ class PrivilegedFuncUnit(Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
-        self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchTargetQueueLayouts).resume, 2)
-
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
             "Number of instructions precommited with side effects by the priviledge unit",
@@ -81,8 +79,7 @@ class PrivilegedFuncUnit(Elaboratable):
         exception_report = self.dm.get_dependency(ExceptionReportKey())
         csr = self.dm.get_dependency(GenericCSRRegistersKey())
         flush_icache = self.dm.get_dependency(FlushICacheKey())
-
-        m.submodules.fetch_resume_fifo = self.fetch_resume_fifo
+        fetch_resume = self.dm.get_dependency(FetchResumeKey())
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
@@ -139,7 +136,7 @@ class PrivilegedFuncUnit(Elaboratable):
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                self.fetch_resume_fifo.write(m, pc=ret_pc)
+                fetch_resume(m, pc=ret_pc)
 
             return {
                 "rob_id": instr_rob,
@@ -153,10 +150,7 @@ class PrivilegedFuncUnit(Elaboratable):
 
 class PrivilegedUnitComponent(FunctionalComponentParams):
     def get_module(self, gp: GenParams) -> FuncUnit:
-        unit = PrivilegedFuncUnit(gp)
-        connections = DependencyContext.get()
-        connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
-        return unit
+        return PrivilegedFuncUnit(gp)
 
     def get_optypes(self) -> set[OpType]:
         return PrivilegedFn().get_op_types()
