@@ -105,7 +105,7 @@ class IFURequest:
 @dataclass(frozen=True)
 class IFUResponse:
     block_prediction: BlockPrediction = BlockPrediction()
-    fb_last_instr_idx: int = -1
+    fb_last_instr_idx: int = 0
     unsafe: bool = False
     empty_block: bool = False
 
@@ -279,7 +279,7 @@ class TestFTQ(TestCaseWithSimulator):
                     yield from self.ftq.ifu_writeback.call(
                         ftq_idx=req.ftq_idx.as_dict(),
                         fb_addr=FrontendParams(self.gen_params).fb_addr(C(req.pc, self.gen_params.isa.xlen)),
-                        fb_last_instr_idx=resp.fb_last_instr_idx + self.gen_params.fetch_width,
+                        fb_last_instr_idx=resp.fb_last_instr_idx,
                         redirect=redirect,
                         unsafe=resp.unsafe,
                         block_prediction=resp.block_prediction.as_dict(),
@@ -436,8 +436,8 @@ class TestFTQ(TestCaseWithSimulator):
                 pc = (i + 1) * 0x100
                 self.expect_bpu_request(BPURequest(pc, FTQIndex(i, False)), [(pc + 0x100, 0)])
 
-                # Assume that the last instruction in the block is on position `self.gen_params.fetch_width - 2`.
-                self.expect_ifu_request(IFURequest(pc, FTQIndex(i, False), 0), IFUResponse(fb_last_instr_idx=offset))
+                # Assume that the last instruction in the block is on position `self.gen_params.fetch_width - i`.
+                self.expect_ifu_request(IFURequest(pc, FTQIndex(i, False), 0), IFUResponse(fb_last_instr_idx=offset + self.gen_params.fetch_width))
 
                 yield from self.tick(10)
                 yield from self.commit_block(last_instr_offset=offset + self.gen_params.fetch_width)
@@ -685,6 +685,8 @@ class TestFTQ(TestCaseWithSimulator):
                 self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0)])
 
             yield from self.tick(20)
+
+            assert len(self.expected_bpu_requests) == 0
 
         self.run_sim(test_proc, ifu_latency=3)
 
