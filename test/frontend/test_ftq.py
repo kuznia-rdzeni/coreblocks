@@ -136,8 +136,10 @@ class TestFTQ(TestCaseWithSimulator):
 
         self.bpu = MockBPU(self.gen_params)
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params, self.bpu))
-        self.resume_ftq_exception = TestbenchIO(AdapterTrans(DependencyContext.get().get_dependency(FetchResumeKey())))
-        self.resume_ftq_unsafe = TestbenchIO(AdapterTrans(DependencyContext.get().get_dependency(FetchResumeKey())))
+
+        resume_method = DependencyContext.get().get_dependency(FetchResumeKey())
+        self.resume_ftq_exception = TestbenchIO(AdapterTrans(resume_method))
+        self.resume_ftq_unsafe = TestbenchIO(AdapterTrans(resume_method))
 
         self.m = ModuleConnector(self.bpu, self.ftq, self.resume_ftq_exception, self.resume_ftq_unsafe)
 
@@ -321,9 +323,7 @@ class TestFTQ(TestCaseWithSimulator):
 
     def commit_block(self, last_instr_offset: int = 0, exception: bool = False):
         for i in range(last_instr_offset + 1):
-            yield from self.ftq.commit.call(
-                fb_instr_idx=i, exception=1 if exception and i == last_instr_offset else 0
-            )
+            yield from self.ftq.commit.call(fb_instr_idx=i, exception=1 if exception and i == last_instr_offset else 0)
 
     def run_sim(self, test_proc: Callable[[], TestGen[None]], ifu_latency: int = 3):
         with self.run_simulation(self.m) as sim:
@@ -730,10 +730,52 @@ class TestFTQ(TestCaseWithSimulator):
             yield from self.tick(3)
             yield from self.stall_exception(FTQIndex(4, False))
 
-            self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+            # Verify that BPU is not running
+            self.expect_bpu_request(BPURequest(0x100, FTQIndex(0, False)), [(0x100, 0x0)])
             yield from self.tick(4)
             assert len(self.expected_bpu_requests) == 1
             self.expected_bpu_requests.clear()
+
+            yield from self.tick(4)
+
+            # Resume at the same time
+            yield from self.resume_ftq_unsafe.call_init(pc=0x8000, from_exception=0)
+            yield from self.resume_ftq_exception.call_init(pc=0x9000, from_exception=1)
+            yield
+            assert (yield from self.resume_ftq_unsafe.done())
+            assert (yield from self.resume_ftq_exception.done())
+            yield from self.resume_ftq_unsafe.disable()
+            yield from self.resume_ftq_exception.disable()
+
+            self.expect_bpu_request(BPURequest(0x9000, FTQIndex(5, False)), [(0x9600, 0x0)])
+            self.expect_ifu_request(IFURequest(0x9000, FTQIndex(5, False)), IFUResponse())
+            yield from self.tick(5)
+
+            # Now try to stall from an unsafe instruction and then report an exception together with unsafe resume.
+            for i in range(6, 10):
+                pc = i * 0x100 + 0x9000
+                ftq_idx = FTQIndex(i, False)
+                self.expect_bpu_request(BPURequest(pc, ftq_idx), [(pc + 0x100, 0x0)])
+                self.expect_ifu_request(IFURequest(pc, ftq_idx), IFUResponse(unsafe=(i == 7)))
+
+            yield from self.tick(15)
+
+            assert len(self.expected_bpu_requests) == 0
+            self.expect_bpu_request(BPURequest(0xA000, FTQIndex(7, False)), [(0xA100, 0x0)])
+
+            yield from self.tick(5)
+            yield from self.resume_ftq_unsafe.call_init(pc=0x9900, from_exception=0)
+            yield from self.ftq.stall.call_init(ftq_idx=FTQIndex(6, False).as_dict())
+            yield
+            assert (yield from self.resume_ftq_unsafe.done())
+            assert (yield from self.ftq.stall.done())
+            yield from self.resume_ftq_unsafe.disable()
+            yield from self.ftq.stall.disable()
+            yield from self.tick(5)
+
+            yield from self.resume_exception(0xA000)
+
+            yield from self.tick(5)
 
         self.run_sim(test_proc, ifu_latency=3)
 
