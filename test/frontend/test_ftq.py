@@ -309,11 +309,11 @@ class TestFTQ(TestCaseWithSimulator):
 
     def report_misprediction(self, ftq_idx: FTQIndex, fb_instr_idx: int, cfi_target: int):
         yield from self.ftq.report_misprediction.call(
-            ftq_idx=ftq_idx.as_dict(), fb_instr_idx=fb_instr_idx, cfi_target=cfi_target
+            ftq_addr={"ftq_idx": ftq_idx.as_dict(), "fb_instr_idx": fb_instr_idx}, cfi_target=cfi_target
         )
 
-    def stall_exception(self, ftq_idx: FTQIndex):
-        yield from self.ftq.stall.call(ftq_idx=ftq_idx.as_dict())
+    def stall_exception(self):
+        yield from self.ftq.stall.call()
 
     def resume_unsafe(self, pc: int):
         yield from self.resume_ftq_unsafe.call(pc=pc, from_exception=0)
@@ -437,7 +437,10 @@ class TestFTQ(TestCaseWithSimulator):
                 self.expect_bpu_request(BPURequest(pc, FTQIndex(i, False)), [(pc + 0x100, 0)])
 
                 # Assume that the last instruction in the block is on position `self.gen_params.fetch_width - i`.
-                self.expect_ifu_request(IFURequest(pc, FTQIndex(i, False), 0), IFUResponse(fb_last_instr_idx=offset + self.gen_params.fetch_width))
+                self.expect_ifu_request(
+                    IFURequest(pc, FTQIndex(i, False), 0),
+                    IFUResponse(fb_last_instr_idx=offset + self.gen_params.fetch_width),
+                )
 
                 yield from self.tick(10)
                 yield from self.commit_block(last_instr_offset=offset + self.gen_params.fetch_width)
@@ -644,7 +647,10 @@ class TestFTQ(TestCaseWithSimulator):
             self.fetched_pcs.clear()
 
             # In this case, the jump branch unit would report a misprediction exception
-            yield from self.stall_exception(ftq_idx=FTQIndex(1, False))
+            yield from self.stall_exception()
+            yield from self.commit_block()
+            yield from self.commit_block(exception=True)
+
             yield from self.resume_exception(pc=0x1000)
 
             yield from self.tick(5)
@@ -710,7 +716,7 @@ class TestFTQ(TestCaseWithSimulator):
 
             yield from self.report_misprediction(FTQIndex(1, False), 0, 0x3000)
             yield from self.tick(5)
-            yield from self.stall_exception(FTQIndex(1, False))
+            yield from self.stall_exception()
 
             yield from self.tick(5)
 
@@ -730,7 +736,7 @@ class TestFTQ(TestCaseWithSimulator):
             yield from self.tick(2)
             yield from self.report_misprediction(FTQIndex(4, False), 0, 0x6000)
             yield from self.tick(3)
-            yield from self.stall_exception(FTQIndex(4, False))
+            yield from self.stall_exception()
 
             # Verify that BPU is not running
             self.expect_bpu_request(BPURequest(0x100, FTQIndex(0, False)), [(0x100, 0x0)])
@@ -739,6 +745,10 @@ class TestFTQ(TestCaseWithSimulator):
             self.expected_bpu_requests.clear()
 
             yield from self.tick(4)
+
+            yield from self.commit_block()
+            yield from self.commit_block()
+            yield from self.commit_block(exception=True)
 
             # Resume at the same time
             yield from self.resume_ftq_unsafe.call_init(pc=0x8000, from_exception=0)
@@ -767,13 +777,16 @@ class TestFTQ(TestCaseWithSimulator):
 
             yield from self.tick(5)
             yield from self.resume_ftq_unsafe.call_init(pc=0x9900, from_exception=0)
-            yield from self.ftq.stall.call_init(ftq_idx=FTQIndex(6, False).as_dict())
+            yield from self.ftq.stall.call_init()
             yield
             assert (yield from self.resume_ftq_unsafe.done())
             assert (yield from self.ftq.stall.done())
             yield from self.resume_ftq_unsafe.disable()
             yield from self.ftq.stall.disable()
             yield from self.tick(5)
+
+            yield from self.commit_block()
+            yield from self.commit_block(exception=True)
 
             yield from self.resume_exception(0xA000)
 
@@ -798,7 +811,7 @@ class TestFTQ(TestCaseWithSimulator):
             yield from self.tick(4)
 
             yield from self.report_misprediction(FTQIndex(1, False), 0, 0x5000)
-            yield from self.stall_exception(FTQIndex(1, False))
+            yield from self.stall_exception()
 
             assert len(self.expected_bpu_requests) == 0
             assert len(self.expected_ifu_requests) == 0

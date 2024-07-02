@@ -11,7 +11,7 @@ from transactron.lib import logging
 from transactron.utils import DependencyContext
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
-from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields, FTQPtr
+from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     MispredictionReportKey,
@@ -172,6 +172,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             ("reg_res", self.gen_params.isa.xlen),
             ("taken", 1),
             fields.predicted_taken,
+            fields.ftq_addr,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
@@ -227,7 +228,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 m.d.comb += exception.eq(1)
                 exception_report(m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
 
-                misprediction_report(m, ftq_idx=FTQPtr(gp=self.gen_params), fb_instr_idx=0, cfi_target=jump_result)
+                misprediction_report(m, ftq_addr=instr.ftq_addr, cfi_target=jump_result)
 
             return {
                 "rob_id": instr.rob_id,
@@ -250,8 +251,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.top_comb += funct7_info.eq(arg.exec_fn.funct7)
             m.d.top_comb += jb.in_rvc.eq(funct7_info.rvc)
 
-            # TODO
-            jump_target_req(m, ftq_idx=FTQPtr(gp=self.gen_params))
+            jump_target_req(m, ftq_idx=arg.ftq_addr.ftq_idx)
 
             instr_fifo.write(
                 m,
@@ -263,6 +263,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
+                ftq_addr=arg.ftq_addr,
             )
             self.perf_instr.incr(m, decoder.decode_fn)
 

@@ -39,8 +39,8 @@ class FetchTargetQueue(Elaboratable):
 
         self.commit = Method(i=ftq_layouts.commit)
 
-        self.stall = Method(i=ftq_layouts.stall)
-        self._on_resume = Method(i=make_layout(fields.ftq_idx, fields.pc))
+        self.stall = Method()
+        self._on_resume = Method(i=make_layout(fields.pc, fields.ftq_idx, ("from_exception", 1)))
 
         self.stall_ctrl = StallController(self.gen_params, self._on_resume)
 
@@ -196,7 +196,9 @@ class FetchTargetQueue(Elaboratable):
             with m.If(exception | (fb_instr_idx == predecode_data.fb_last_instr_idx)):
                 meta_data = meta_mem.read_data
                 prediction = predecode_data.block_prediction
-                misprediction_data = misprediction_reg.get(m, ftq_idx=commit_ptr, fb_instr_idx=fb_instr_idx)
+                misprediction_data = misprediction_reg.get(
+                    m, ftq_addr={"ftq_idx": commit_ptr, "fb_instr_idx": fb_instr_idx}
+                )
 
                 had_misprediction = misprediction_data.valid
 
@@ -227,14 +229,17 @@ class FetchTargetQueue(Elaboratable):
                 m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
 
         @def_method(m, self.stall)
-        def _(ftq_idx):
+        def _():
             self.bpu.flush(m)
-            self.stall_ctrl.stall_exception(m, ftq_idx=ftq_idx)
+            self.stall_ctrl.stall_exception(m)
 
         @def_method(m, self._on_resume)
-        def _(ftq_idx, pc):
-            pc_queue.redirect(m, ftq_idx=ftq_idx, pc=pc)
-            prediction_queue.rollback(m, ftq_idx=ftq_idx)
+        def _(ftq_idx, pc, from_exception):
+            resume_from_ptr = FTQPtr(gp=self.gen_params)
+            m.d.top_comb += resume_from_ptr.eq(Mux(from_exception, commit_ptr, ftq_idx))
+            log.info(m, True, "Resuming from pc=0x{:x} ftq_idx={}/{}", pc, resume_from_ptr.parity, resume_from_ptr.ptr)
+            pc_queue.redirect(m, ftq_idx=resume_from_ptr, pc=pc)
+            prediction_queue.rollback(m, ftq_idx=resume_from_ptr)
             misprediction_reg.clear(m)
 
         @def_method(m, self.jump_target_req)
@@ -254,9 +259,7 @@ class MispredictionInfoRegister(Elaboratable):
         ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
 
         self.report_misprediction = Method(i=ftq_layouts.report_misprediction)
-        self.get = Method(
-            i=make_layout(fields.ftq_idx, fields.fb_instr_idx), o=make_layout(fields.cfi_target, ("valid", 1))
-        )
+        self.get = Method(i=make_layout(fields.ftq_addr), o=make_layout(fields.cfi_target, ("valid", 1)))
         self.clear = Method()
 
     def elaborate(self, platform):
@@ -267,23 +270,24 @@ class MispredictionInfoRegister(Elaboratable):
 
         @def_method(m, self.report_misprediction)
         def _(arg):
-            current_ftq_idx = FTQPtr(current_misprediction.ftq_idx, gp=self.gen_params)
-            ftq_idx = FTQPtr(arg.ftq_idx, gp=self.gen_params)
+            current_ftq_idx = FTQPtr(current_misprediction.ftq_addr.ftq_idx, gp=self.gen_params)
+            ftq_idx = FTQPtr(arg.ftq_addr.ftq_idx, gp=self.gen_params)
             with m.If(
                 ~valid
                 | (ftq_idx < current_ftq_idx)
-                | ((ftq_idx == current_ftq_idx) & (arg.fb_instr_idx < current_misprediction.fb_instr_idx))
+                | (
+                    (ftq_idx == current_ftq_idx)
+                    & (arg.ftq_addr.fb_instr_idx < current_misprediction.ftq_addr.fb_instr_idx)
+                )
             ):
                 m.d.sync += valid.eq(1)
                 m.d.sync += assign(current_misprediction, arg)
 
         @def_method(m, self.get)
-        def _(ftq_idx, fb_instr_idx):
+        def _(ftq_addr):
             return {
                 "cfi_target": current_misprediction.cfi_target,
-                "valid": valid
-                & (ftq_idx == current_misprediction.ftq_idx)
-                & (fb_instr_idx == current_misprediction.fb_instr_idx),
+                "valid": valid & (ftq_addr == current_misprediction.ftq_addr),
             }
 
         @def_method(m, self.clear)
@@ -489,9 +493,10 @@ class StallController(Elaboratable):
         self.on_resume = on_resume
 
         layouts = self.gen_params.get(FetchTargetQueueLayouts)
+        fields = self.gen_params.get(CommonLayoutFields)
 
-        self.stall_unsafe = Method(i=layouts.stall)
-        self.stall_exception = Method(i=layouts.stall)
+        self.stall_unsafe = Method(i=make_layout(fields.ftq_idx))
+        self.stall_exception = Method()
 
         def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
             from_exception_args = Signal(len(args))
@@ -522,7 +527,7 @@ class StallController(Elaboratable):
         stalled_unsafe = Signal()
         stalled_exception = Signal()
 
-        ftq_idx_stall = FTQPtr(gp=self.gen_params)
+        unsafe_stall_ptr = FTQPtr(gp=self.gen_params)
 
         @def_method(m, self.stall_guard, ready=~(stalled_unsafe | stalled_exception))
         def _():
@@ -535,15 +540,6 @@ class StallController(Elaboratable):
         @def_method(m, self.resume)
         def _(pc, from_exception):
             log.assertion(m, stalled_unsafe | from_exception)
-            log.info(
-                m,
-                True,
-                "Resuming from_exception={} new_pc=0x{:x} ftq_idx:{}/{}",
-                from_exception,
-                pc,
-                ftq_idx_stall.parity,
-                ftq_idx_stall.ptr,
-            )
 
             m.d.sync += stalled_unsafe.eq(0)
 
@@ -552,9 +548,9 @@ class StallController(Elaboratable):
                 m.d.sync += stalled_exception.eq(0)
 
             m.d.comb += run_resume.eq(1)
-            m.d.top_comb += assign(resume_args, {"ftq_idx": ftq_idx_stall + 1, "pc": pc})
+            m.d.top_comb += assign(resume_args, {"ftq_idx": unsafe_stall_ptr + 1, "pc": pc, "from_exception": from_exception})
 
-            # self.on_resume(m, ftq_idx=ftq_idx_stall + 1, pc=pc)
+            # self.on_resume(m, pc=pc)
 
         with Transaction().body(m, request=run_resume):
             self.on_resume(m, resume_args)
@@ -567,16 +563,15 @@ class StallController(Elaboratable):
                 "Trying to stall because of an unsafe instruction while being stalled because of an exception",
             )
             log.info(m, True, "Stalling the frontend because of an unsafe instruction")
-            m.d.sync += ftq_idx_stall.eq(ftq_idx)
+            m.d.sync += unsafe_stall_ptr.eq(ftq_idx)
             m.d.sync += stalled_unsafe.eq(1)
 
         # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
         # of exception report, both can happen at any time during normal excecution.
         # In case of simultaneous call, fetch will be correctly stalled, becasue separate signal is used
         @def_method(m, self.stall_exception)
-        def _(ftq_idx):
+        def _():
             log.info(m, ~stalled_exception, "Stalling the frontend because of an exception")
-            m.d.sync += ftq_idx_stall.eq(ftq_idx)
             m.d.sync += stalled_exception.eq(1)
 
         return m

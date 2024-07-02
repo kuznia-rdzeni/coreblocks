@@ -1,7 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from amaranth.lib.coding import PriorityEncoder
-from amaranth.utils import bits_for
 
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
@@ -290,23 +289,28 @@ class FetchUnit(Elaboratable):
             has_unsafe = Signal()
             m.d.av_comb += has_unsafe.eq(~unsafe_prio_encoder.n)
 
-            redirect_before_unsafe = Signal()
-            m.d.av_comb += redirect_before_unsafe.eq(predcheck_res.fb_instr_idx < unsafe_idx)
+            redirection_idx = Signal(range(fetch_width))
+            m.d.av_comb += redirection_idx.eq(
+                Mux(
+                    CfiType.valid(predcheck_res.block_prediction.cfi_type),
+                    predcheck_res.block_prediction.cfi_idx,
+                    self.gen_params.fetch_width - 1,
+                )
+            )
 
             redirect = Signal()
             unsafe_stall = Signal()
-            redirect_or_unsafe_idx = Signal(range(fetch_width))
+            last_instr_idx = Signal(range(fetch_width))
 
-            with m.If(predcheck_res.mispredicted & (~has_unsafe | redirect_before_unsafe)):
+            with m.If(~has_unsafe | (redirection_idx < unsafe_idx)):
                 m.d.av_comb += [
-                    redirect.eq(predcheck_res.target_valid),
-                    unsafe_stall.eq(~predcheck_res.target_valid),
-                    redirect_or_unsafe_idx.eq(predcheck_res.fb_instr_idx),
+                    redirect.eq(predcheck_res.mispredicted),
+                    last_instr_idx.eq(redirection_idx),
                 ]
             with m.Elif(has_unsafe):
                 m.d.av_comb += [
                     unsafe_stall.eq(1),
-                    redirect_or_unsafe_idx.eq(unsafe_idx),
+                    last_instr_idx.eq(unsafe_idx),
                 ]
 
             # This mask denotes what prefix of instructions we should enqueue.
@@ -314,7 +318,7 @@ class FetchUnit(Elaboratable):
             with m.If(redirect | unsafe_stall):
                 # If there is an instruction that redirects or stalls the frontend, enqueue
                 # instructions only up to that instruction.
-                m.d.av_comb += valid_instr_prefix.eq((1 << (redirect_or_unsafe_idx + 1)) - 1)
+                m.d.av_comb += valid_instr_prefix.eq((1 << (last_instr_idx + 1)) - 1)
             with m.Else():
                 m.d.av_comb += valid_instr_prefix.eq(C(1).replicate(fetch_width))
 
@@ -332,7 +336,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].access_fault.eq(access_fault),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
-                    raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.fb_instr_idx == i)),
+                    raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.block_prediction.cfi_idx == i)),
                 ]
 
             if Extension.C in self.gen_params.isa.extensions:
@@ -351,9 +355,11 @@ class FetchUnit(Elaboratable):
                         m,
                         ftq_idx=s1_data.ftq_idx,
                         fb_addr=fetch_block_addr,
+                        fb_last_instr_idx=last_instr_idx,
                         redirect=redirect,
                         stall=unsafe_stall,
-                        block_prediction=pred_data.block_prediction,
+                        block_prediction=predcheck_res.block_prediction,
+                        empty_block=(fetch_mask == 0),
                     )
 
                     # Make sure this is called only once to avoid a huge mux on arguments
@@ -365,37 +371,6 @@ class FetchUnit(Elaboratable):
         def _():
             m.d.sync += flushing_counter.eq(req_counter.count_next)
             m.d.sync += prev_half_v.eq(0)
-
-        return m
-
-
-class PipelineController(Elaboratable):
-    """ """
-
-    def __init__(self, stages_cnt: int, max_items: int) -> None:
-        self.stages_cnt = stages_cnt
-        self.max_items = max_items
-
-        self.enter = Method()
-        self.exit = Method(o=[("flush", 1)])
-        self.flush_youngest_n = Method(i=[("cnt", bits_for(max_items))])
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.req_counter = req_counter = Semaphore(self.max_items)
-
-        @def_method(m, self.enter)
-        def _():
-            req_counter.acquire(m)
-
-        @def_method(m, self.exit)
-        def _():
-            req_counter.release(m)
-
-        @def_method(m, self.flush_youngest_n)
-        def _():
-            pass
 
         return m
 
@@ -642,41 +617,45 @@ class PredictionChecker(Elaboratable):
             )
 
             ret = Signal.like(self.check.data_out)
+            m.d.av_comb += ret.block_prediction.eq(block_prediction)
 
-            with m.If(preceding_redirection):
-                self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx])
+            with m.If(preceding_redirection | mispredicted_cfi_type):
+                self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx], cond=preceding_redirection)
+                self.perf_mispredicted_cfi_type.incr(m, block_prediction.cfi_type, cond=~preceding_redirection)
+                m.d.av_comb += ret.mispredicted.eq(1)
                 m.d.av_comb += assign(
-                    ret,
+                    ret.block_prediction,
                     {
-                        "mispredicted": 1,
-                        "target_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
-                        "fb_instr_idx": pd_redirect_idx,
-                        "redirect_target": decoded_target_for_decoded_cfi,
-                    },
-                )
-            with m.Elif(mispredicted_cfi_type):
-                self.perf_mispredicted_cfi_type.incr(m, block_prediction.cfi_type)
-                fallthrough_addr = params.pc_from_fb(fb_addr + 1, 0)
-                m.d.av_comb += assign(
-                    ret,
-                    {
-                        "mispredicted": 1,
-                        "target_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
-                        "fb_instr_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
-                        "redirect_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
+                        "cfi_idx": pd_redirect_idx,
+                        "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
+                        "maybe_cfi_target": {
+                            "valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                            "value": decoded_target_for_decoded_cfi,
+                        },
                     },
                 )
             with m.Elif(mispredicted_cfi_target):
                 self.perf_mispredicted_cfi_target.incr(m, block_prediction.cfi_type)
                 m.d.av_comb += assign(
-                    ret,
+                    ret.block_prediction,
                     {
-                        "mispredicted": 1,
-                        "target_valid": 1,
-                        "fb_instr_idx": block_prediction.cfi_idx,
-                        "redirect_target": decoded_target_for_predicted_cfi,
+                        "maybe_cfi_target": {
+                            "valid": 1,
+                            "value": decoded_target_for_predicted_cfi,
+                        },
                     },
                 )
+
+            m.d.av_comb += ret.block_prediction.branch_mask.eq(
+                Cat(
+                    [
+                        CfiType.is_branch(predecoded[i].cfi_type)
+                        & ((i <= ret.block_prediction.cfi_idx) | ~CfiType.valid(ret.block_prediction.cfi_type))
+                        for i in range(self.gen_params.fetch_width)
+                    ]
+                )
+                & instr_valid
+            )
 
             return ret
 

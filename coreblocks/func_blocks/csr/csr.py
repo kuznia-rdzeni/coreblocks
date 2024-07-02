@@ -206,7 +206,13 @@ class CSRUnit(FuncBlock, Elaboratable):
             fetch_resume = self.dependency_manager.get_dependency(FetchResumeKey())
 
             with m.If(exception):
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc)
+                report(
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause.ILLEGAL_INSTRUCTION,
+                    pc=instr.pc,
+                    ftq_idx=instr.ftq_addr.ftq_idx,
+                )
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
@@ -218,6 +224,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                     rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
                     pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                    ftq_idx=instr.ftq_addr.ftq_idx,
                 )
 
             m.d.sync += exception.eq(0)

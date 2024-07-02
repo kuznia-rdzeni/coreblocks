@@ -508,19 +508,19 @@ class FetchLayouts:
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
 
+        block_prediction_field = gen_params.get(BranchPredictionLayouts).block_prediction_field
+
         self.pred_checker_i = make_layout(
             fields.fb_addr,
             ("instr_block_cross", 1),
             ("instr_valid", gen_params.fetch_width),
             ("predecoded", ArrayLayout(self.predecoded_instr, gen_params.fetch_width)),
-            gen_params.get(BranchPredictionLayouts).block_prediction_field,
+            block_prediction_field,
         )
 
         self.pred_checker_o = make_layout(
             ("mispredicted", 1),
-            ("target_valid", 1),
-            fields.fb_instr_idx,
-            ("redirect_target", gen_params.isa.xlen),
+            block_prediction_field,
         )
 
 
@@ -665,6 +665,7 @@ class CSRUnitLayouts:
                 "imm",
                 "csr",
                 "pc",
+                "ftq_addr",
             },
         )
 
@@ -687,6 +688,7 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            fields.ftq_idx,
         )
 
         self.report_o = make_layout(("accepted", 1))
@@ -754,7 +756,6 @@ class FetchTargetQueueLayouts:
         fields = gen_params.get(CommonLayoutFields)
         bp_layouts = gen_params.get(BranchPredictionLayouts)
 
-        self.stall = make_layout(fields.ftq_idx)
         self.resume = make_layout(fields.pc, ("from_exception", 1))
 
         self.consume_fetch_target = make_layout(
@@ -783,8 +784,7 @@ class FetchTargetQueueLayouts:
         )
 
         self.report_misprediction = make_layout(
-            fields.ftq_idx,
-            fields.fb_instr_idx,
+            fields.ftq_addr,
             fields.cfi_target,
         )
 

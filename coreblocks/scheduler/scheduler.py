@@ -162,6 +162,7 @@ class ROBAllocation(Elaboratable):
                 m,
                 rl_dst=instr.regs_l.rl_dst,
                 rp_dst=instr.regs_p.rp_dst,
+                fb_instr_idx=instr.ftq_addr.fb_instr_idx,
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
