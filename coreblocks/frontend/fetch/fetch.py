@@ -326,6 +326,8 @@ class FetchUnit(Elaboratable):
             raw_instrs = [Signal(self.layouts.raw_instr) for _ in range(fetch_width)]
             for i in range(fetch_width):
                 m.d.av_comb += [
+                    raw_instrs[i].ftq_addr.ftq_idx.eq(s1_data.ftq_idx),
+                    raw_instrs[i].ftq_addr.fb_instr_idx.eq(i),
                     raw_instrs[i].instr.eq(instrs[i]),
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].access_fault.eq(access_fault),

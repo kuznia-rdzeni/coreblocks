@@ -213,6 +213,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
         self.reg_alloc_out = make_layout(
@@ -222,6 +223,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
         self.renaming_in = self.reg_alloc_out
@@ -233,6 +235,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
         self.rob_allocate_in = self.renaming_out
@@ -244,6 +247,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
         self.rs_select_in = self.rob_allocate_out
@@ -257,6 +261,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
         self.rs_insert_in = self.rs_select_out
@@ -369,6 +374,7 @@ class RSFullDataLayout:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
 
@@ -423,6 +429,7 @@ class RSLayouts:
                 "s2_val",
                 "imm",
                 "pc",
+                "ftq_addr",
             },
         )
 
@@ -441,6 +448,7 @@ class RSLayouts:
                 "exec_fn",
                 "imm",
                 "pc",
+                "ftq_addr",
             },
         )
 
@@ -489,6 +497,7 @@ class FetchLayouts:
 
         self.raw_instr = make_layout(
             fields.instr,
+            fields.ftq_addr,
             fields.pc,
             self.access_fault,
             fields.rvc,
@@ -527,6 +536,7 @@ class DecodeLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_addr,
         )
 
 
@@ -547,6 +557,7 @@ class FuncUnitLayouts:
             fields.exec_fn,
             fields.imm,
             fields.pc,
+            fields.ftq_addr,
         )
 
         self.accept = make_layout(

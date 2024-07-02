@@ -98,6 +98,7 @@ class DecodeStage(Elaboratable):
                     "imm": instr_decoder.imm,
                     "csr": instr_decoder.csr,
                     "pc": raw.pc,
+                    "ftq_addr": raw.ftq_addr,
                 },
             )
 
