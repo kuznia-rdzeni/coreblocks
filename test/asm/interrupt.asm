@@ -1,3 +1,6 @@
+ _start:
+    .include "init_regs.s"
+
 # fibonacci spiced with interrupt handler (also with fibonacci)
     li x1, 0x200
     csrw mtvec, x1

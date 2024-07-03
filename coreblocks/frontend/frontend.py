@@ -24,9 +24,6 @@ class CoreFrontend(Elaboratable):
 
     Attributes
     ----------
-    inject_instr: Method
-        Inject a raw instruction (of type FetchLayouts.raw_instr) directly
-        into the instruction buffer.
     consume_instr: Method
         Consume a single decoded instruction.
     resume_from_exception: Method
@@ -65,7 +62,6 @@ class CoreFrontend(Elaboratable):
 
         self.decode_pipe = Pipe(self.gen_params.get(DecodeLayouts).decoded_instr)
 
-        self.inject_instr = self.instr_buffer.write
         self.consume_instr = self.decode_pipe.read
 
         self.resume = self.ftq.stall_ctrl.resume
