@@ -100,7 +100,7 @@ class FetchTargetQueue(Elaboratable):
 
         with Transaction(name="FTQ_Read_Target_Prediction").body(m):
             pred = self.bpu.read_target_pred(m)
-            log.info(
+            log.debug(
                 m,
                 True,
                 "Predicted next PC=0x{:x}, FTQ={}/{}, bpu_stage={}",
@@ -119,7 +119,7 @@ class FetchTargetQueue(Elaboratable):
 
         with Transaction(name="FTQ_Read_Prediction_Details").body(m):
             final_pred = self.bpu.read_pred_details(m)
-            log.info(
+            log.debug(
                 m, True, "Writing prediction details for FTQ={}/{}", final_pred.ftq_idx.parity, final_pred.ftq_idx.ptr
             )
             prediction_queue.write(
@@ -139,7 +139,7 @@ class FetchTargetQueue(Elaboratable):
 
         @def_method(m, self.ifu_writeback)
         def _(ftq_idx, fb_addr, fb_last_instr_idx, redirect, unsafe, block_prediction, empty_block):
-            log.info(m, True, "IFU writeback ftq={}/{}", ftq_idx.parity, ftq_idx.ptr)
+            log.debug(m, True, "IFU writeback ftq={}/{}", ftq_idx.parity, ftq_idx.ptr)
 
             is_jalr_without_target = Signal()
             m.d.av_comb += is_jalr_without_target.eq(
@@ -190,7 +190,7 @@ class FetchTargetQueue(Elaboratable):
 
         @def_method(m, self.commit, ready=commit_ready)
         def _(fb_instr_idx, exception):
-            log.info(m, True, "Committing instr #{} from FTQ={}/{}", fb_instr_idx, commit_ptr.parity, commit_ptr.ptr)
+            log.debug(m, True, "Committing instr #{} from FTQ={}/{}", fb_instr_idx, commit_ptr.parity, commit_ptr.ptr)
             predecode_data = predecode_mem.read_data
 
             with m.If(exception | (fb_instr_idx == predecode_data.fb_last_instr_idx)):
@@ -343,7 +343,7 @@ class PCQueue(Elaboratable):
         @def_method(m, self.write)
         def _(arg) -> None:
             ftq_idx = FTQPtr(arg.ftq_idx, gp=self.gen_params)
-            log.info(m, True, "PC queue write ftq={}/{} pc=0x{:x}", arg.ftq_idx.parity, arg.ftq_idx.ptr, arg.pc)
+            log.debug(m, True, "PC queue write ftq={}/{} pc=0x{:x}", arg.ftq_idx.parity, arg.ftq_idx.ptr, arg.pc)
             log.assertion(m, ftq_idx <= next_write_slot, "FTQ entry must be written in the next free slot or before")
             log.assertion(m, ~bpu_request_reg_valid)
 
@@ -380,7 +380,7 @@ class PCQueue(Elaboratable):
             with m.Else():
                 m.d.av_comb += assign(ret, write_forwarded_args)
 
-            log.info(m, True, "Consuming BPU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
+            log.debug(m, True, "Consuming BPU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             return ret
 
@@ -401,17 +401,16 @@ class PCQueue(Elaboratable):
                     ret, {"ftq_idx": self.ifu_consume_ptr, "pc": mem.read_data.pc, "bpu_stage": mem.read_data.bpu_stage}
                 )
 
-            log.info(m, True, "Consuming IFU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
+            log.debug(m, True, "Consuming IFU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             m.d.comb += consume_ptr_next.eq(FTQPtr(ret.ftq_idx, gp=self.gen_params) + 1)
-
 
             return ret
 
         @def_method(m, self.redirect)
         def _(ftq_idx, pc) -> None:
             log.assertion(m, ftq_idx >= self.oldest_ptr, "Cannot rollback before the commit ptr")
-            log.info(m, True, "Redirecting FTQ to pc:0x{:x} ftq_idx:{}/{}", pc, ftq_idx.parity, ftq_idx.ptr)
+            log.info(m, True, "Redirecting FTQ to pc=0x{:x} ftq_idx={}/{}", pc, ftq_idx.parity, ftq_idx.ptr)
 
             m.d.sync += assign(
                 bpu_request_reg, {"ftq_idx": ftq_idx, "pc": pc, "bpu_stage": 0, "global_branch_history": 0}
@@ -513,15 +512,15 @@ class StallController(Elaboratable):
             log.assertion(m, popcount(from_exception_args) <= 1)
             log.assertion(m, popcount(from_unsafe_args) <= 1)
 
-            result = Signal(layouts.resume)
-            m.d.comb += result.from_exception.eq(from_exception_args.any())
+            from_exception = Signal()
+            m.d.comb += from_exception.eq(from_exception_args.any())
+            pc = Signal.like(args[0].pc)
 
             for i, v in enumerate(args):
-                with m.If(
-                    (result.from_exception & from_exception_args[i]) | (~result.from_exception & from_unsafe_args[i])
-                ):
-                    m.d.comb += result.pc.eq(v.pc)
-            return result
+                with m.If((from_exception & from_exception_args[i]) | (~from_exception & from_unsafe_args[i])):
+                    m.d.comb += pc.eq(v.pc)
+
+            return {"from_exception": from_exception, "pc": pc}
 
         self.resume = Method(i=layouts.resume, nonexclusive=True, combiner=resume_combiner)
         self.stall_guard = Method(nonexclusive=True)

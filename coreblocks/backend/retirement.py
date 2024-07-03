@@ -5,14 +5,12 @@ from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
-from transactron.lib import logging
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 
-log = logging.HardwareLogger("retirement")
 
 class Retirement(Elaboratable):
     def __init__(
@@ -177,8 +175,6 @@ class Retirement(Elaboratable):
                     with m.Else():
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
-
-                    log.warning(m, True, "Retiring idx={} exception={} rob_id={} commit={}", rob_entry.rob_data.fb_instr_idx, rob_entry.exception, rob_entry.rob_id, commit)
 
                     # TODO pass commit signal
                     self.ftq_commit(m, fb_instr_idx=rob_entry.rob_data.fb_instr_idx, exception=rob_entry.exception)

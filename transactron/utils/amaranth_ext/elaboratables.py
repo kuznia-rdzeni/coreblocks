@@ -324,7 +324,7 @@ class MultiPriorityEncoder(Elaboratable):
                 raise ValueError(f"Name: {name} is already in use, so MultiPriorityEncoder can not be added with it.")
             except AttributeError:
                 setattr(m.submodules, name, prio_encoder)
-        m.d.comb += prio_encoder.input.eq(input)
+        m.d.top_comb += prio_encoder.input.eq(input)
         return list(zip(prio_encoder.outputs, prio_encoder.valids))
 
     @staticmethod

@@ -5,7 +5,7 @@ from amaranth.lib.coding import PriorityEncoder
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import MethodLayout, popcount, assign
+from transactron.utils import MethodLayout, popcount, assign, MultiPriorityEncoder
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from transactron import *
 
@@ -107,7 +107,7 @@ class FetchUnit(Elaboratable):
         # - consume a fetch target from the FTQ
         # - send a request to the instruction cache
         #
-        with Transaction(name="Fetch_Stage0").body(m) as tr:
+        with Transaction(name="Fetch_Stage0").body(m):
             req_counter.acquire(m)
 
             fetch_target = self.consume_fetch_target(m)
@@ -115,7 +115,14 @@ class FetchUnit(Elaboratable):
             self.icache.issue_req(m, addr=fetch_target.pc)
             s0_s1_fifo.write(m, fetch_target)
 
-            log.info(m, True, "IFU Stage 0 FTQ={}/{} pc=0x{:x}", fetch_target.ftq_idx.parity, fetch_target.ftq_idx.ptr, fetch_target.pc)
+            log.info(
+                m,
+                True,
+                "IFU Stage 0 FTQ={}/{} pc=0x{:x}",
+                fetch_target.ftq_idx.parity,
+                fetch_target.ftq_idx.ptr,
+                fetch_target.pc,
+            )
 
         #
         # State passed between stage 1 and stage 2
@@ -269,7 +276,16 @@ class FetchUnit(Elaboratable):
                 with branch(flushing_counter != 0):
                     pass
 
-            log.info(m, True, "IFU Stage 2 FTQ={}/{} discard={}", s1_data.ftq_idx.parity, s1_data.ftq_idx.ptr, pred_data.discard)
+            log.info(
+                m,
+                True,
+                "IFU Stage 2 FTQ={}/{} discard={} flushing={} run={}",
+                s1_data.ftq_idx.parity,
+                s1_data.ftq_idx.ptr,
+                pred_data.discard,
+                flushing_counter,
+                self.consume_prediction.run,
+            )
 
             # The method is guarded by the If to make sure that the metrics
             # are updated only if not flushing.
@@ -296,12 +312,16 @@ class FetchUnit(Elaboratable):
             has_unsafe = Signal()
             m.d.av_comb += has_unsafe.eq(~unsafe_prio_encoder.n)
 
+            last_in_instr_valid, _ = MultiPriorityEncoder.create_simple(
+                m, self.gen_params.fetch_width, instr_valid[::-1]
+            )
+
             redirection_idx = Signal(range(fetch_width))
             m.d.av_comb += redirection_idx.eq(
                 Mux(
                     CfiType.valid(predcheck_res.block_prediction.cfi_type),
                     predcheck_res.block_prediction.cfi_idx,
-                    self.gen_params.fetch_width - 1,
+                    (self.gen_params.fetch_width - 1) - last_in_instr_valid,
                 )
             )
 
@@ -350,7 +370,7 @@ class FetchUnit(Elaboratable):
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
 
-            with condition(m) as branch:
+            with condition(m, priority=False) as branch:
                 with branch((flushing_counter == 0) & ~pred_data.discard):
                     self.perf_fetch_redirects.incr(m, cond=redirect)
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
@@ -425,7 +445,6 @@ class Serializer(Elaboratable):
         @def_method(m, self.read, ready=~prio_encoder.n)
         def _():
             m.d.sync += valids.eq(valids & ~(1 << prio_encoder.o))
-            log.warning(m, True, "Pushing out instr pc=0x{:x}", buffer[prio_encoder.o].pc)
             return buffer[prio_encoder.o]
 
         @def_method(m, self.write, ready=prio_encoder.n | ((count == 1) & self.read.run))
@@ -627,10 +646,18 @@ class PredictionChecker(Elaboratable):
             ret = Signal.like(self.check.data_out)
             m.d.av_comb += ret.block_prediction.eq(block_prediction)
 
+            last_instr = Signal.like(block_prediction.cfi_idx)
+            m.d.av_comb += last_instr.eq(
+                Mux(CfiType.valid(block_prediction.cfi_type), block_prediction.cfi_idx, self.gen_params.fetch_width - 1)
+            )
+
             with m.If(preceding_redirection | mispredicted_cfi_type):
                 self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx], cond=preceding_redirection)
                 self.perf_mispredicted_cfi_type.incr(m, block_prediction.cfi_type, cond=~preceding_redirection)
                 m.d.av_comb += ret.mispredicted.eq(1)
+                m.d.av_comb += last_instr.eq(
+                    Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx)
+                )
                 m.d.av_comb += assign(
                     ret.block_prediction,
                     {
@@ -655,14 +682,9 @@ class PredictionChecker(Elaboratable):
                 )
 
             m.d.av_comb += ret.block_prediction.branch_mask.eq(
-                Cat(
-                    [
-                        CfiType.is_branch(predecoded[i].cfi_type)
-                        & ((i <= ret.block_prediction.cfi_idx) | ~CfiType.valid(ret.block_prediction.cfi_type))
-                        for i in range(self.gen_params.fetch_width)
-                    ]
-                )
+                Cat([CfiType.is_branch(predecoded[i].cfi_type) for i in range(self.gen_params.fetch_width)])
                 & instr_valid
+                & ((1 << (last_instr + 1)) - 1)
             )
 
             return ret
