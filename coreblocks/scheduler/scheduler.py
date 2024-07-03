@@ -11,13 +11,10 @@ from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.keys import CoreStateKey
-from transactron.lib import logging
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 
 
 __all__ = ["Scheduler"]
-
-log = logging.HardwareLogger("scheduler")
 
 
 class RegAllocation(Elaboratable):
@@ -160,8 +157,6 @@ class ROBAllocation(Elaboratable):
 
         with Transaction().body(m):
             instr = self.get_instr(m)
-
-            log.warning(m, True, "jaki kkrwa rob put ftq_idx={}/{}", instr.ftq_addr.ftq_idx.parity, instr.ftq_addr.ftq_idx.ptr)
 
             rob_id = self.rob_put(
                 m,
