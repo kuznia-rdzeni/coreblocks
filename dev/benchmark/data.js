@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1719410140509,
+  "lastUpdate": 1720016896736,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -12887,6 +12887,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e45413227a082e585812f2a1d1d8c9222ce6249e"
         },
         "date": 1719410134456,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4178698719523674,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.33741535166461933,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6549151571561538,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35511191772534784,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2902773842133434,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3267211625794732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4326590252008001,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "korbeusz@gmail.com",
+            "name": "Mateusz Biłyk",
+            "username": "Korbeusz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "29751c309914bb2126de2a708dce946eba4e948a",
+          "message": "add iterative multiplication unit (#692)",
+          "timestamp": "2024-07-03T16:15:58+02:00",
+          "tree_id": "6a83cb2bc2362bf5f6896b9d13d5422bf8add838",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/29751c309914bb2126de2a708dce946eba4e948a"
+        },
+        "date": 1720016892860,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
