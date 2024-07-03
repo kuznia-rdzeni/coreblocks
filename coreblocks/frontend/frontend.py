@@ -88,6 +88,8 @@ class CoreFrontend(Elaboratable):
             gen_params=self.gen_params, get_raw=self.instr_buffer.read, push_decoded=self.decode_pipe.write
         )
 
+        log.warning(m, True, "buff level {} write_run={}", self.instr_buffer.level, self.instr_buffer.write.run)
+
         @def_method(m, self.flush_and_stall)
         def _():
             self.ftq.stall(m)

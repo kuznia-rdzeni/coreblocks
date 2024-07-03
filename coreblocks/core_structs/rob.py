@@ -2,11 +2,13 @@ from amaranth import *
 from amaranth.lib.data import View
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
+from transactron.lib import logging
 from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.params import GenParams
 
 __all__ = ["ReorderBuffer"]
 
+log = logging.HardwareLogger("rob")
 
 class ReorderBuffer(Elaboratable):
     def __init__(self, gen_params: GenParams) -> None:
@@ -67,6 +69,7 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):
+            log.info(m, True, "put? KURWA")
             self.perf_rob_wait_time.start(m)
             m.d.av_comb += write_port.addr.eq(end_idx)
             m.d.av_comb += write_port.data.eq(arg)
