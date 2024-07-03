@@ -27,24 +27,28 @@ TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, Trans
 class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict[Transaction, list[Method]]()
+        self.exclusive_methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
         self.readiness_by_method_and_transaction = dict[tuple[Transaction, Method], ValueLike]()
         self.method_parents = defaultdict[Method, list[TransactionBase]](list)
 
-        def rec(transaction: Transaction, source: TransactionBase):
+        def rec(transaction: Transaction, source: TransactionBase, nonexclusive: bool):
             for method, (arg_rec, _) in source.method_uses.items():
                 if not method.defined:
                     raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
                 if method in self.methods_by_transaction[transaction]:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
+                if not method.nonexclusive and not nonexclusive:
+                    self.exclusive_methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
                 self.readiness_by_method_and_transaction[(transaction, method)] = method._validate_arguments(arg_rec)
-                rec(transaction, method)
+                rec(transaction, method, nonexclusive or method.nonexclusive)
 
         for transaction in transactions:
             self.methods_by_transaction[transaction] = []
-            rec(transaction, transaction)
+            self.exclusive_methods_by_transaction[transaction] = []
+            rec(transaction, transaction, False)
 
         for transaction_or_method in self.methods_and_transactions:
             for method in transaction_or_method.method_uses.keys():
@@ -116,8 +120,8 @@ class TransactionManager(Elaboratable):
         """
 
         def transactions_exclusive(trans1: Transaction, trans2: Transaction):
-            tms1 = [trans1] + method_map.methods_by_transaction[trans1]
-            tms2 = [trans2] + method_map.methods_by_transaction[trans2]
+            tms1 = [trans1] + method_map.exclusive_methods_by_transaction[trans1]
+            tms2 = [trans2] + method_map.exclusive_methods_by_transaction[trans2]
 
             # if first transaction is exclusive with the second transaction, or this is true for
             # any called methods, the transactions will never run at the same time
@@ -149,7 +153,12 @@ class TransactionManager(Elaboratable):
                 continue
             for transaction1 in method_map.transactions_for(method):
                 for transaction2 in method_map.transactions_for(method):
-                    if transaction1 is not transaction2 and not transactions_exclusive(transaction1, transaction2):
+                    if (
+                        transaction1 is not transaction2
+                        and not transactions_exclusive(transaction1, transaction2)
+                        and method in method_map.exclusive_methods_by_transaction[transaction1]
+                        and method in method_map.exclusive_methods_by_transaction[transaction2]
+                    ):
                         add_edge(transaction1, transaction2, Priority.UNDEFINED, True)
 
         relations = [
