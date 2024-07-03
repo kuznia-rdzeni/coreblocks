@@ -251,8 +251,6 @@ class FetchUnit(Elaboratable):
 
         m.submodules.prediction_checker = prediction_checker = PredictionChecker(self.gen_params)
 
-        log.info(m, True, "consume pred rdy={}, wb_rdy={} counter_rdy={}, pipe_rdy={} serial_rdy={} pred_check_rdy={}", self.consume_prediction.ready, self.ftq_writeback.ready, req_counter.release.ready, s1_s2_pipe.read.ready, serializer.write.ready, prediction_checker.check.ready)
-
         with Transaction(name="Fetch_Stage2").body(m):
             req_counter.release(m)
             s1_data = s1_s2_pipe.read(m)
@@ -268,7 +266,7 @@ class FetchUnit(Elaboratable):
             with condition(m) as branch:
                 with branch(flushing_counter == 0):
                     pred_data = self.consume_prediction(m, ftq_idx=s1_data.ftq_idx, bpu_stage=s1_data.bpu_stage)
-                with branch(True):
+                with branch(flushing_counter != 0):
                     pass
 
             log.info(m, True, "IFU Stage 2 FTQ={}/{} discard={}", s1_data.ftq_idx.parity, s1_data.ftq_idx.ptr, pred_data.discard)

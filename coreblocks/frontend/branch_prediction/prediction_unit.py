@@ -21,9 +21,6 @@ class BranchPredictionUnit(Elaboratable, BranchPredictionUnitInterface):
         self.update = Method(i=self.layouts.bpu_update)
         self.flush = Method(nonexclusive=True)
 
-        self.flush.add_conflict(self.read_target_pred, Priority.LEFT)
-        self.flush.add_conflict(self.read_pred_details, Priority.LEFT)
-
     def elaborate(self, platform):
         m = TModule()
 
