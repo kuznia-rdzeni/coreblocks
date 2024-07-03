@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1720016896736,
+  "lastUpdate": 1720016898817,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29496,6 +29496,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 802,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 972,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 5924,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "korbeusz@gmail.com",
+            "name": "Mateusz Biłyk",
+            "username": "Korbeusz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "29751c309914bb2126de2a708dce946eba4e948a",
+          "message": "add iterative multiplication unit (#692)",
+          "timestamp": "2024-07-03T16:15:58+02:00",
+          "tree_id": "6a83cb2bc2362bf5f6896b9d13d5422bf8add838",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/29751c309914bb2126de2a708dce946eba4e948a"
+        },
+        "date": 1720016898116,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 52.47,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24559,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 770,
             "unit": "LUT"
           },
           {
