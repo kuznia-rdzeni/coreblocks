@@ -19,7 +19,7 @@ class BranchPredictionUnit(Elaboratable, BranchPredictionUnitInterface):
         self.read_target_pred = Method(o=self.layouts.bpu_read_target_pred)
         self.read_pred_details = Method(o=self.layouts.bpu_read_pred_details)
         self.update = Method(i=self.layouts.bpu_update)
-        self.flush = Method()
+        self.flush = Method(nonexclusive=True)
 
         self.flush.add_conflict(self.read_target_pred, Priority.LEFT)
         self.flush.add_conflict(self.read_pred_details, Priority.LEFT)
@@ -37,7 +37,7 @@ class BranchPredictionUnit(Elaboratable, BranchPredictionUnitInterface):
         def _():
             m.d.sync += has_prediction.eq(0)
 
-            next_pc = fparams.pc_from_fb(fparams.fb_instr_idx(saved_pc) + 1, 0)
+            next_pc = fparams.pc_from_fb(fparams.fb_addr(saved_pc) + 1, 0)
             return {"ftq_idx": saved_ftq_idx, "pc": next_pc, "bpu_stage": 0, "global_branch_history": 0}
 
         @def_method(m, self.read_pred_details, ready=has_prediction)

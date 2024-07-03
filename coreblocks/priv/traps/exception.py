@@ -82,7 +82,7 @@ class ExceptionCauseRegister(Elaboratable):
         m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
 
         @def_method(m, report)
-        def _(cause, rob_id, pc, ftq_idx):
+        def _(cause, rob_id, pc):
             should_write = Signal()
 
             with m.If(self.valid & (self.rob_id == rob_id)):
@@ -105,8 +105,7 @@ class ExceptionCauseRegister(Elaboratable):
             m.d.sync += self.valid.eq(1)
 
             # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
-            with m.If(should_write):
-                self.fetch_stall_exception(m, ftq_idx=ftq_idx)
+            self.fetch_stall_exception(m)
 
         @def_method(m, self.get)
         def _():

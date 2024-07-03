@@ -176,6 +176,7 @@ class Retirement(Elaboratable):
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
 
+                    # TODO pass commit signal
                     self.ftq_commit(m, fb_instr_idx=rob_entry.rob_data.fb_instr_idx, exception=rob_entry.exception)
 
                     # Condition is used to avoid FRAT locking during normal operation
@@ -217,7 +218,7 @@ class Retirement(Elaboratable):
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
 
-                    self.fetch_continue(m, pc=resume_pc)
+                    self.fetch_continue(m, pc=resume_pc, from_exception=1)
 
                     # Release pending trap state - allow accepting new reports
                     self.exception_cause_clear(m)

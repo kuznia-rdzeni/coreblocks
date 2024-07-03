@@ -684,12 +684,7 @@ class ExceptionRegisterLayouts:
 
         self.valid: LayoutListField = ("valid", 1)
 
-        self.report = make_layout(
-            fields.cause,
-            fields.rob_id,
-            fields.pc,
-            fields.ftq_idx,
-        )
+        self.report = make_layout(fields.cause, fields.rob_id, fields.pc)
 
         self.report_o = make_layout(("accepted", 1))
 

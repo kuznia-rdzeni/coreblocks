@@ -90,15 +90,15 @@ class FetchTargetQueue(Elaboratable):
         ]
 
         initalized = Signal()
-        with Transaction(name="Reset").body(m, request=~initalized):
+        with Transaction(name="FTQ_Reset").body(m, request=~initalized):
             pc_queue.redirect(m, ftq_idx=FTQPtr(gp=self.gen_params), pc=self.gen_params.start_pc)
             m.d.sync += initalized.eq(1)
 
-        with Transaction(name="New_Prediction").body(m):
+        with Transaction(name="FTQ_New_Prediction").body(m, request=initalized):
             self.stall_ctrl.stall_guard(m)
             self.bpu.request(m, pc_queue.bpu_consume(m))
 
-        with Transaction(name="Read_Target_Prediction").body(m):
+        with Transaction(name="FTQ_Read_Target_Prediction").body(m):
             pred = self.bpu.read_target_pred(m)
             log.info(
                 m,
@@ -117,7 +117,7 @@ class FetchTargetQueue(Elaboratable):
                 global_branch_history=pred.global_branch_history,
             )
 
-        with Transaction(name="Read_Prediction_Details").body(m):
+        with Transaction(name="FTQ_Read_Prediction_Details").body(m):
             final_pred = self.bpu.read_pred_details(m)
             log.info(
                 m, True, "Writing prediction details for FTQ={}/{}", final_pred.ftq_idx.parity, final_pred.ftq_idx.ptr
@@ -130,7 +130,7 @@ class FetchTargetQueue(Elaboratable):
             )
             meta_mem.write(m, ftq_idx=final_pred.ftq_idx, data=final_pred.bpu_meta)
 
-        @def_method(m, self.consume_fetch_target)
+        @def_method(m, self.consume_fetch_target, ready=initalized)
         def _():
             self.stall_ctrl.stall_guard(m)
             return pc_queue.ifu_consume(m)
@@ -181,7 +181,7 @@ class FetchTargetQueue(Elaboratable):
             # we can simply make a new memory just with the `empty_block` bit, reading entry `commit_ptr + 1`
             # and advancing the commit pointer either by 1 or 2 depending on the emptiness bit.
             m.d.comb += commit_ready.eq(~predecode_mem.read_data.empty_block)
-            with Transaction(name="Empty_Block_Committer").body(m, request=predecode_mem.read_data.empty_block):
+            with Transaction(name="FTQ_Empty_Block_Committer").body(m, request=predecode_mem.read_data.empty_block):
                 log.debug(m, True, "Fetch block #{} is empty. Releasing the associated FTQ entry", commit_ptr.ptr)
                 pc_queue.pop(m)
                 m.d.comb += commit_ptr_next.eq(commit_ptr + 1)
@@ -387,6 +387,8 @@ class PCQueue(Elaboratable):
         consume_queue_nonempty = Signal()
         m.d.comb += consume_queue_nonempty.eq(next_write_slot != self.ifu_consume_ptr)
 
+        called = Signal()
+
         @def_method(m, self.ifu_consume, ready=consume_queue_nonempty | self.write.run)
         def _():
             ret = Signal.like(self.ifu_consume.data_out)
@@ -402,6 +404,7 @@ class PCQueue(Elaboratable):
             log.info(m, True, "Consuming IFU ftq={}/{} pc=0x{:x}", ret.ftq_idx.parity, ret.ftq_idx.ptr, ret.pc)
 
             m.d.comb += consume_ptr_next.eq(FTQPtr(ret.ftq_idx, gp=self.gen_params) + 1)
+
 
             return ret
 
@@ -419,6 +422,8 @@ class PCQueue(Elaboratable):
 
             m.d.sync += last_written_slot.eq(ftq_idx)
             m.d.comb += consume_ptr_next.eq(ftq_idx)
+
+            m.d.sync += called.eq(1)
 
         # todo: comment (to avoid conflits on methods)
         with Transaction().body(m, request=self.write.run | self.redirect.run):
@@ -548,7 +553,9 @@ class StallController(Elaboratable):
                 m.d.sync += stalled_exception.eq(0)
 
             m.d.comb += run_resume.eq(1)
-            m.d.top_comb += assign(resume_args, {"ftq_idx": unsafe_stall_ptr + 1, "pc": pc, "from_exception": from_exception})
+            m.d.top_comb += assign(
+                resume_args, {"ftq_idx": unsafe_stall_ptr + 1, "pc": pc, "from_exception": from_exception}
+            )
 
             # self.on_resume(m, pc=pc)
 

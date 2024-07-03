@@ -107,13 +107,15 @@ class FetchUnit(Elaboratable):
         # - consume a fetch target from the FTQ
         # - send a request to the instruction cache
         #
-        with Transaction(name="Fetch_Stage0").body(m):
+        with Transaction(name="Fetch_Stage0").body(m) as tr:
             req_counter.acquire(m)
 
             fetch_target = self.consume_fetch_target(m)
 
             self.icache.issue_req(m, addr=fetch_target.pc)
             s0_s1_fifo.write(m, fetch_target)
+
+            log.info(m, True, "IFU Stage 0 FTQ={}/{} pc=0x{:x}", fetch_target.ftq_idx.parity, fetch_target.ftq_idx.ptr, fetch_target.pc)
 
         #
         # State passed between stage 1 and stage 2
@@ -149,9 +151,12 @@ class FetchUnit(Elaboratable):
         prev_half = Signal(16)
         prev_half_addr = Signal(make_layout(fields.fb_addr))
         prev_half_v = Signal()
+
         with Transaction(name="Fetch_Stage1").body(m):
             target = s0_s1_fifo.read(m)
             cache_resp = self.icache.accept_res(m)
+
+            log.info(m, True, "IFU Stage 1 FTQ={}/{}", target.ftq_idx.parity, target.ftq_idx.ptr)
 
             # The address of the fetch block.
             fetch_block_addr = params.fb_addr(target.pc)
@@ -246,6 +251,8 @@ class FetchUnit(Elaboratable):
 
         m.submodules.prediction_checker = prediction_checker = PredictionChecker(self.gen_params)
 
+        log.info(m, True, "consume pred rdy={}, wb_rdy={} counter_rdy={}, pipe_rdy={} serial_rdy={} pred_check_rdy={}", self.consume_prediction.ready, self.ftq_writeback.ready, req_counter.release.ready, s1_s2_pipe.read.ready, serializer.write.ready, prediction_checker.check.ready)
+
         with Transaction(name="Fetch_Stage2").body(m):
             req_counter.release(m)
             s1_data = s1_s2_pipe.read(m)
@@ -263,6 +270,8 @@ class FetchUnit(Elaboratable):
                     pred_data = self.consume_prediction(m, ftq_idx=s1_data.ftq_idx, bpu_stage=s1_data.bpu_stage)
                 with branch(True):
                     pass
+
+            log.info(m, True, "IFU Stage 2 FTQ={}/{} discard={}", s1_data.ftq_idx.parity, s1_data.ftq_idx.ptr, pred_data.discard)
 
             # The method is guarded by the If to make sure that the metrics
             # are updated only if not flushing.
@@ -355,9 +364,9 @@ class FetchUnit(Elaboratable):
                         m,
                         ftq_idx=s1_data.ftq_idx,
                         fb_addr=fetch_block_addr,
-                        fb_last_instr_idx=last_instr_idx,
+                        fb_last_instr_idx=last_instr_idx[: self.gen_params.fetch_width_log],
                         redirect=redirect,
-                        stall=unsafe_stall,
+                        unsafe=unsafe_stall,
                         block_prediction=predcheck_res.block_prediction,
                         empty_block=(fetch_mask == 0),
                     )
@@ -418,6 +427,7 @@ class Serializer(Elaboratable):
         @def_method(m, self.read, ready=~prio_encoder.n)
         def _():
             m.d.sync += valids.eq(valids & ~(1 << prio_encoder.o))
+            log.warning(m, True, "Pushing out instr pc=0x{:x}", buffer[prio_encoder.o].pc)
             return buffer[prio_encoder.o]
 
         @def_method(m, self.write, ready=prio_encoder.n | ((count == 1) & self.read.run))
