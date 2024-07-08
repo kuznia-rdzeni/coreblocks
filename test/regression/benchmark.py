@@ -40,10 +40,12 @@ class MMIO(RandomAccessMemory):
     0x80000004-0x80000008 (int): return code of the program
     0x80000008-0x80000010 (uint64_t): the number of cycles spent during the benchmark
     0x80000010-0x80000018 (uint64_t): the number of instruction executed during the benchmark
+    0x80000018-0x8000001c (uintptr_t): mcause, if an exception occured
+    0x8000001c-0x80000020 (uintptr_t): mepc, if an exception occured
     """
 
     def __init__(self, on_finish: Callable[[], None]):
-        super().__init__(range(0x80000000, 0x80000000 + 24), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * 24)
+        super().__init__(range(0x80000000, 0x80000000 + 32), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * 32)
         self.on_finish = on_finish
 
     def write(self, req: WriteRequest) -> WriteReply:
@@ -54,13 +56,19 @@ class MMIO(RandomAccessMemory):
             return super().write(req)
 
     def return_code(self):
-        return int.from_bytes(self.data[4:8], "little")
+        return int.from_bytes(self.data[4:8], "little", signed=True)
 
     def cycle_cnt(self):
         return int.from_bytes(self.data[8:16], "little")
 
     def instr_cnt(self):
         return int.from_bytes(self.data[16:24], "little")
+
+    def mcause(self):
+        return int.from_bytes(self.data[24:28], "little")
+
+    def mepc(self):
+        return int.from_bytes(self.data[28:32], "little")
 
 
 def get_all_benchmark_names():
@@ -84,6 +92,11 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     if not result.success:
         raise RuntimeError("Simulation timed out")
+
+    if mmio.return_code() == -1:
+        raise RuntimeError(
+            f"An exception was thrown while executing the benchmark. mcause: {mmio.mcause()}, mepc: 0x{mmio.mepc():x}"
+        )
 
     if mmio.return_code() != 0:
         raise RuntimeError("The benchmark exited with a non-zero return code: %d" % mmio.return_code())
