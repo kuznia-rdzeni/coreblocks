@@ -6,6 +6,8 @@ from pathlib import Path
 from .memory import *
 from .common import SimulationBackend
 
+from coreblocks.arch import ExceptionCause
+
 test_dir = Path(__file__).parent.parent
 embench_dir = test_dir.joinpath("external/embench/build/src")
 results_dir = test_dir.joinpath("regression/benchmark_results")
@@ -94,8 +96,9 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
         raise RuntimeError("Simulation timed out")
 
     if mmio.return_code() == -1:
+        cause = ExceptionCause(mmio.mcause())
         raise RuntimeError(
-            f"An exception was thrown while executing the benchmark. mcause: {mmio.mcause()}, mepc: 0x{mmio.mepc():x}"
+            f"An exception was thrown while executing the benchmark. mcause: {cause.name}, mepc: 0x{mmio.mepc():x}"
         )
 
     if mmio.return_code() != 0:
