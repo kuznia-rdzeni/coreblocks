@@ -1,3 +1,6 @@
+_start:
+    .include "init_regs.s"
+
     li x1, 0x100 # set handler vector
     csrw mtvec, x1
     li x1, 0x10000 # enable custom interrupt 0
