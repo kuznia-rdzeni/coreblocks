@@ -2,13 +2,11 @@ from amaranth import *
 from amaranth.lib.wiring import connect
 from amaranth.sim import Passive
 
-from transactron.lib import AdapterTrans
-from transactron.utils import align_to_power_of_two, signed_to_int
+from transactron.utils import align_to_power_of_two
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator
 
 from coreblocks.core import Core
-from coreblocks.arch import Opcode, Funct3
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
@@ -44,8 +42,6 @@ class CoreTestElaboratable(Elaboratable):
 
         self.core = Core(gen_params=self.gen_params)
 
-        self.io_in = TestbenchIO(AdapterTrans(self.core.frontend.inject_instr))
-
         self.interrupt_level = Signal()
         self.interrupt_edge = Signal()
 
@@ -54,7 +50,6 @@ class CoreTestElaboratable(Elaboratable):
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
-        m.submodules.io_in = self.io_in
 
         connect(m, self.core.wb_instr, self.wb_mem_slave.bus)
         connect(m, self.core.wb_data, self.wb_mem_slave_data.bus)
@@ -71,21 +66,6 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def get_arch_reg_val(self, reg_id):
         return (yield self.m.core.RF.entries[(yield from self.get_phys_reg_rrat(reg_id))].reg_val)
-
-    def push_instr(self, opcode):
-        yield from self.m.io_in.call(instr=opcode)
-
-    def push_register_load_imm(self, reg_id, val):
-        addi_imm = signed_to_int(val & 0xFFF, 12)
-        lui_imm = (val & 0xFFFFF000) >> 12
-        # handle addi sign extension, see: https://stackoverflow.com/a/59546567
-        if val & 0x800:
-            lui_imm = (lui_imm + 1) & (0xFFFFF)
-
-        yield from self.push_instr(UTypeInstr(opcode=Opcode.LUI, rd=reg_id, imm=lui_imm << 12).encode())
-        yield from self.push_instr(
-            ITypeInstr(opcode=Opcode.OP_IMM, rd=reg_id, funct3=Funct3.ADD, rs1=reg_id, imm=addi_imm).encode()
-        )
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
@@ -105,6 +85,8 @@ class TestCoreAsmSourceBase(TestCoreBase):
                     # Specified manually, because toolchains from most distributions don't support new extensioins
                     # and this test should be accessible locally.
                     "-march=rv32im_zicsr",
+                    "-I",
+                    self.base_dir,
                     "-o",
                     asm_tmp.name,
                     self.base_dir + filename,
@@ -199,6 +181,8 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     hi: int
     edge_only: bool
 
+    reg_init_mem_offset: int = 0x100
+
     def setup_method(self):
         self.configuration = full_core_config.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
@@ -223,10 +207,6 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         main_cycles = 0
         int_count = 0
         handler_count = 0
-
-        # set up fibonacci max numbers
-        for reg_id, val in self.start_regvals.items():
-            yield from self.push_register_load_imm(reg_id, val)
 
         # wait for interrupt enable
         while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
@@ -289,7 +269,10 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
-        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src)
+        data_mem = [0] * (2**10)
+        for reg_id, val in self.start_regvals.items():
+            data_mem[self.reg_init_mem_offset // 4 + reg_id] = val
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src, data_mem=data_mem)
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt_process)
             sim.add_sync_process(self.clear_level_interrupt_procsess)
