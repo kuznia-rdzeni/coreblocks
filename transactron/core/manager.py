@@ -28,10 +28,11 @@ class MethodMap:
     def __init__(self, transactions: Iterable["Transaction"]):
         self.methods_by_transaction = dict[Transaction, list[Method]]()
         self.transactions_by_method = defaultdict[Method, list[Transaction]](list)
-        self.readiness_by_method_and_transaction = dict[tuple[Transaction, Method], ValueLike]()
+        self.readiness_by_call = dict[tuple[Transaction, Method], ValueLike]()
+        self.ancestors_by_call = dict[tuple[Transaction, Method], tuple[Method, ...]]()
         self.method_parents = defaultdict[Method, list[TransactionBase]](list)
 
-        def rec(transaction: Transaction, source: TransactionBase):
+        def rec(transaction: Transaction, source: TransactionBase, ancestors: tuple[Method, ...]):
             for method, (arg_rec, _) in source.method_uses.items():
                 if not method.defined:
                     raise RuntimeError(f"Trying to use method '{method.name}' which is not defined yet")
@@ -39,12 +40,13 @@ class MethodMap:
                     raise RuntimeError(f"Method '{method.name}' can't be called twice from the same transaction")
                 self.methods_by_transaction[transaction].append(method)
                 self.transactions_by_method[method].append(transaction)
-                self.readiness_by_method_and_transaction[(transaction, method)] = method._validate_arguments(arg_rec)
-                rec(transaction, method)
+                self.readiness_by_call[(transaction, method)] = method._validate_arguments(arg_rec)
+                self.ancestors_by_call[(transaction, method)] = new_ancestors = (method, *ancestors)
+                rec(transaction, method, new_ancestors)
 
         for transaction in transactions:
             self.methods_by_transaction[transaction] = []
-            rec(transaction, transaction)
+            rec(transaction, transaction, ())
 
         for transaction_or_method in self.methods_and_transactions:
             for method in transaction_or_method.method_uses.keys():
@@ -127,6 +129,12 @@ class TransactionManager(Elaboratable):
 
             return False
 
+        def calls_nonexclusive(trans1: Transaction, trans2: Transaction, method: Method):
+            ancestors1 = method_map.ancestors_by_call[(trans1, method)]
+            ancestors2 = method_map.ancestors_by_call[(trans2, method)]
+            common_ancestors = longest_common_prefix(ancestors1, ancestors2)
+            return common_ancestors[-1].nonexclusive
+
         cgr: TransactionGraph = {}  # Conflict graph
         pgr: TransactionGraph = {}  # Priority graph
 
@@ -145,11 +153,13 @@ class TransactionManager(Elaboratable):
             pgr[transaction] = set()
 
         for method in method_map.methods:
-            if method.nonexclusive:
-                continue
             for transaction1 in method_map.transactions_for(method):
                 for transaction2 in method_map.transactions_for(method):
-                    if transaction1 is not transaction2 and not transactions_exclusive(transaction1, transaction2):
+                    if (
+                        transaction1 is not transaction2
+                        and not transactions_exclusive(transaction1, transaction2)
+                        and not calls_nonexclusive(transaction1, transaction2, method)
+                    ):
                         add_edge(transaction1, transaction2, Priority.UNDEFINED, True)
 
         relations = [
@@ -328,7 +338,7 @@ class TransactionManager(Elaboratable):
 
         for transaction in self.transactions:
             ready = [
-                method_map.readiness_by_method_and_transaction[transaction, method]
+                method_map.readiness_by_call[transaction, method]
                 for method in method_map.methods_by_transaction[transaction]
             ]
             m.d.comb += transaction.runnable.eq(Cat(ready).all())
