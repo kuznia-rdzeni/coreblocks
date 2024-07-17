@@ -35,6 +35,10 @@ _start:
   li  x30,0
   li  x31,0
 
+  # initialize trap vector
+  la t0, trap_entry
+  csrw mtvec, t0
+
 .option push
 .option norelax
   la gp, __global_pointer$
@@ -73,3 +77,26 @@ _fill_block:
     j _fill_block
 .fb_end:
     ret
+
+
+  .align 2
+trap_entry:
+  // Set the start address of the MMIO
+  li t0, 0x80000000
+
+  csrr a0, mcause
+  sw a0, 24(t0)
+
+  csrr a0, mepc
+  sw a0, 28(t0)
+
+  // Store the return code
+  li a0, -1
+  sw a0, 4(t0)
+
+  // Signal that we finished the test
+  li a0, 0
+  sw a0, 0(t0)
+
+.trap_inf_loop:
+  j .trap_inf_loop
