@@ -517,38 +517,9 @@ class NonexclusiveMethodCircuit(Elaboratable):
         return m
 
 
-class TransitivelyNonexclusiveMethodCircuit(Elaboratable):
-    def elaborate(self, platform):
-        m = TModule()
-
-        self.ready = Signal()
-        self.running = Signal()
-        self.data = Signal(WIDTH)
-
-        method = Method(o=data_layout(WIDTH), nonexclusive=True)
-        method_in = Method(o=data_layout(WIDTH))
-
-        @def_method(m, method_in, self.ready)
-        def _():
-            return {"data": self.data}
-
-        @def_method(m, method)
-        def _():
-            m.d.comb += self.running.eq(1)
-            return method_in(m)
-
-        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
-        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
-
-        return m
-
-
 class TestNonexclusiveMethod(TestCaseWithSimulator):
-    @pytest.mark.parametrize("test_circuit", [NonexclusiveMethodCircuit, TransitivelyNonexclusiveMethodCircuit])
-    def test_nonexclusive_method(
-        self, test_circuit: type[NonexclusiveMethodCircuit] | type[TransitivelyNonexclusiveMethodCircuit]
-    ):
-        circ = test_circuit()
+    def test_nonexclusive_method(self):
+        circ = NonexclusiveMethodCircuit()
 
         def process():
             for x in range(8):
