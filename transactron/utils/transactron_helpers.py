@@ -1,7 +1,7 @@
 import sys
 from contextlib import contextmanager
 from typing import Optional, Any, Concatenate, TypeGuard, TypeVar
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from ._typing import ROGraph, GraphCC, SrcLoc, MethodLayout, MethodStruct, ShapeLike, LayoutList, LayoutListField
 from inspect import Parameter, signature
 from itertools import count
@@ -11,6 +11,7 @@ from amaranth.lib.data import StructLayout
 
 
 __all__ = [
+    "longest_common_prefix",
     "silence_mustuse",
     "get_caller_class_name",
     "def_helper",
@@ -58,6 +59,15 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
             cc = set()
 
     return ccs
+
+
+def longest_common_prefix(*seqs: Sequence[T]) -> Sequence[T]:
+    if not seqs:
+        raise ValueError("no arguments")
+    for i, letter_group in enumerate(zip(*seqs)):
+        if len(set(letter_group)) > 1:
+            return seqs[0][:i]
+    return min(seqs, key=lambda s: len(s))
 
 
 def has_first_param(func: Callable[..., T], name: str, tp: type[U]) -> TypeGuard[Callable[Concatenate[U, ...], T]]:

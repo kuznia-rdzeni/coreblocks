@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 import pytest
 import random
 from amaranth import *
@@ -554,6 +554,58 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
 
                 if t2en and mrdy:
                     assert (yield from circ.t2.get_outputs()) == {"data": x}
+
+        with self.run_simulation(circ) as sim:
+            sim.add_sync_process(process)
+
+
+class TwoNonexclusiveConflictCircuit(Elaboratable):
+    def __init__(self, two_nonexclusive: bool):
+        self.two_nonexclusive = two_nonexclusive
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        self.running1 = Signal()
+        self.running2 = Signal()
+
+        method1 = Method(o=data_layout(WIDTH), nonexclusive=True)
+        method2 = Method(o=data_layout(WIDTH), nonexclusive=self.two_nonexclusive)
+        method_in = Method(o=data_layout(WIDTH))
+
+        @def_method(m, method_in)
+        def _():
+            return {"data": 0}
+
+        @def_method(m, method1)
+        def _():
+            m.d.comb += self.running1.eq(1)
+            return method_in(m)
+
+        @def_method(m, method2)
+        def _():
+            m.d.comb += self.running2.eq(1)
+            return method_in(m)
+
+        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method1))
+        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method2))
+
+        return m
+
+
+class TestConflicting(TestCaseWithSimulator):
+    @pytest.mark.parametrize(
+        "test_circuit", [lambda: TwoNonexclusiveConflictCircuit(False), lambda: TwoNonexclusiveConflictCircuit(True)]
+    )
+    def test_conflicting(self, test_circuit: Callable[[], TwoNonexclusiveConflictCircuit]):
+        circ = test_circuit()
+
+        def process():
+            yield from circ.t1.enable()
+            yield from circ.t2.enable()
+            yield Settle()
+
+            assert not (yield circ.running1) or not (yield circ.running2)
 
         with self.run_simulation(circ) as sim:
             sim.add_sync_process(process)
