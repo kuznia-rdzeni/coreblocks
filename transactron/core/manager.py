@@ -529,7 +529,7 @@ class TransactionComponent(TransactionModule, Component):
     def elaborate(self, platform):
         m = super().elaborate(platform)
 
-        for name in self.signature.members:
-            connect(m, flipped(getattr(self, name)), getattr(self.elaboratable, name))
+        assert isinstance(self.elaboratable, Component)  # for typing
+        connect(m, flipped(self), self.elaboratable)
 
         return m
