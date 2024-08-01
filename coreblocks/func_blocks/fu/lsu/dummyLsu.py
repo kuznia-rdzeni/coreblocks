@@ -4,7 +4,6 @@ from amaranth import *
 from transactron import Method, def_method, Transaction, TModule
 from transactron.lib.connectors import FIFO, Forwarder
 from transactron.utils import DependencyContext
-from transactron.utils.transactron_helpers import extend_layout
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 
@@ -65,9 +64,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
-        m.submodules.results_noop = results_noop = FIFO(
-            extend_layout(self.lsu_layouts.accept, ("addr", self.gen_params.isa.xlen)), 2
-        )
+        m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
 
@@ -109,7 +106,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 
             with m.If(res["exception"]):
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"], addr=res["addr"])
+                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"], addr=addr)
             with m.Else():
                 issued.write(m, arg)
 
@@ -132,7 +129,7 @@ class LSUDummy(FuncUnit, Elaboratable):
                     m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=arg["addr"])
+                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"])
 
             self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
 

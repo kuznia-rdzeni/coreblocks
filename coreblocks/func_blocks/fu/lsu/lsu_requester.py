@@ -143,7 +143,7 @@ class LSURequester(Elaboratable):
                     Mux(store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED)
                 )
 
-            return {"exception": exception, "cause": cause, "addr": addr}
+            return {"exception": exception, "cause": cause}
 
         @def_method(m, self.accept)
         def _():

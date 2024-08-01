@@ -291,7 +291,7 @@ class InstrDecompress(Elaboratable):
 
         res = self.instr_mux(quadrant, quadrants)
 
-        # In case of illegal instruction, ouput `instr_in` to be able to save it into `mtval` CSR.
+        # In case of illegal instruction, output `instr_in` to be able to save it into `mtval` CSR.
         # Decoder would still recognize it as illegal because of quadrant != 0b11
         m.d.comb += self.instr_out.eq(Mux(res[1], res[0], self.instr_in))
 

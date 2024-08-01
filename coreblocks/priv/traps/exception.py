@@ -111,7 +111,7 @@ class ExceptionInformationRegister(Elaboratable):
 
         @def_method(m, self.get)
         def _():
-            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "valid": self.valid}
+            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "mtval": self.mtval, "valid": self.valid}
 
         @def_method(m, self.clear)
         def _():
