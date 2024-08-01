@@ -19,9 +19,6 @@ class CoreFrontend(Elaboratable):
 
     Attributes
     ----------
-    inject_instr: Method
-        Inject a raw instruction (of type FetchLayouts.raw_instr) directly
-        into the instruction buffer.
     consume_instr: Method
         Consume a single decoded instruction.
     resume_from_exception: Method
@@ -57,7 +54,6 @@ class CoreFrontend(Elaboratable):
         self.target_pred_resp = Method(o=jb_layouts.predicted_jump_target_resp)
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
 
-        self.inject_instr = self.instr_buffer.write
         self.consume_instr = self.decode_pipe.read
         self.resume_from_exception = self.fetch.resume_from_exception
         self.resume_from_unsafe = self.fetch.resume_from_unsafe
