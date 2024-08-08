@@ -141,9 +141,11 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
+        ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
+    name: str
     source_file: str
     cycle_count: int
     expected_regvals: dict[int, int]
@@ -160,6 +162,10 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
 
         bin_src = self.prepare_source(self.source_file)
+
+        if self.name == "mtval":
+            bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
+
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
