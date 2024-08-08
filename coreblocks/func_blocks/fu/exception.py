@@ -77,6 +77,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                 with OneHotCase(ExceptionUnitFn.Fn.ECALL):
                     # TODO: Switch privilege level when implemented
                     m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
+                    m.d.av_comb += mtval.eq(0)  # by SPEC
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
                     # With C extension access fault can be only on the second half of instruction, and mepc != mtval.
