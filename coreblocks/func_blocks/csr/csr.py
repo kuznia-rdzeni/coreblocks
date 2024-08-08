@@ -8,6 +8,7 @@ from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
+from coreblocks.arch.isa_consts import Opcode
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
@@ -188,7 +189,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += assign(instr, rs_data)
 
             with m.If(rs_data.exec_fn.op_type == OpType.CSR_IMM):  # Pass immediate as first operand
-                m.d.sync += instr.s1_val.eq(rs_data.imm)
+                m.d.sync += instr.s1_val.eq(rs_data.imm[0:5])
 
             m.d.sync += instr.valid.eq(1)
 
@@ -209,6 +210,21 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exception):
                 report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=0)
+                mtval = Signal(self.gen_params.isa.xlen)
+                # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise tval _must_ be 0)
+                m.d.av_comb += mtval[0:2].eq(0b11)
+                m.d.av_comb += mtval[2:7].eq(Opcode.SYSTEM)
+                m.d.av_comb += mtval[7:12].eq(instr.imm[32 - self.gen_params.isa.reg_cnt_log : 32])  # rl_rd
+                m.d.av_comb += mtval[12:15].eq(instr.exec_fn.funct3)
+                m.d.av_comb += mtval[15:20].eq(
+                    Mux(
+                        instr.exec_fn.op_type == OpType.CSR_IMM,
+                        instr.imm[0:5],
+                        instr.imm[32 - self.gen_params.isa.reg_cnt_log * 2 : 32 - self.gen_params.isa.reg_cnt_log],
+                    )
+                )  # rl_s1 or imm
+                m.d.av_comb += mtval[20:32].eq(instr.csr)
+                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
