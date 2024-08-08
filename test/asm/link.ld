@@ -5,7 +5,8 @@ start = 0;
 SECTIONS
 {
   .text : { *(.text) }
-  . = 0x100000000; /* start from 2**32 - trick to emulate Harvard architecture (.bss addresses will start from 0) */
+  . = 0x100000000; /* start from 2**32 - trick to emulate Harvard architecture (memory addresses will start from 0) */
+  .data : { *(.data) }
   .bss : { *(.bss) }
   _end = .;
 }

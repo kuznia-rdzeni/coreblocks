@@ -12,7 +12,6 @@ from coreblocks.params.instr import *
 from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
 from coreblocks.peripherals.wishbone import WishboneMemorySlave
 
-from typing import Optional
 import random
 import subprocess
 import tempfile
@@ -20,13 +19,10 @@ from parameterized import parameterized_class
 
 
 class CoreTestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: Optional[list[int]] = None):
+    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: list[int] = []):
         self.gen_params = gen_params
         self.instr_mem = instr_mem
-        if data_mem is None:
-            self.data_mem = [0] * (2**10)
-        else:
-            self.data_mem = data_mem
+        self.data_mem = data_mem
 
     def elaborate(self, platform):
         m = Module()
@@ -71,12 +67,10 @@ class TestCoreBase(TestCaseWithSimulator):
 class TestCoreAsmSourceBase(TestCoreBase):
     base_dir: str = "test/asm/"
 
-    def prepare_source(self, filename):
-        bin_src = []
+    def prepare_source(self, filename, *, c_extension=False):
         with (
             tempfile.NamedTemporaryFile() as asm_tmp,
             tempfile.NamedTemporaryFile() as ld_tmp,
-            tempfile.NamedTemporaryFile() as bin_tmp,
         ):
             subprocess.check_call(
                 [
@@ -84,7 +78,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
                     "-mabi=ilp32",
                     # Specified manually, because toolchains from most distributions don't support new extensioins
                     # and this test should be accessible locally.
-                    "-march=rv32im_zicsr",
+                    f"-march=rv32im{'c' if c_extension else ''}_zicsr",
                     "-I",
                     self.base_dir,
                     "-o",
@@ -104,16 +98,36 @@ class TestCoreAsmSourceBase(TestCoreBase):
                     ld_tmp.name,
                 ]
             )
-            subprocess.check_call(
-                ["riscv64-unknown-elf-objcopy", "-O", "binary", "-j", ".text", ld_tmp.name, bin_tmp.name]
-            )
-            code = bin_tmp.read()
-            for word_idx in range(0, len(code), 4):
-                word = code[word_idx : word_idx + 4]
-                bin_instr = int.from_bytes(word, "little")
-                bin_src.append(bin_instr)
 
-        return bin_src
+            def load_section(section: str):
+                with tempfile.NamedTemporaryFile() as bin_tmp:
+                    bin = []
+
+                    subprocess.check_call(
+                        [
+                            "riscv64-unknown-elf-objcopy",
+                            "-O",
+                            "binary",
+                            "-j",
+                            section,
+                            "--set-section-flags",
+                            f"{section}=alloc,load,contents",
+                            ld_tmp.name,
+                            bin_tmp.name,
+                        ]
+                    )
+
+                    data = bin_tmp.read()
+                    for word_idx in range(0, len(data), 4):
+                        word = data[word_idx : word_idx + 4]
+                        bin.append(int.from_bytes(word, "little"))
+
+                    return bin
+
+            return {
+                "text": load_section(".text"),
+                "data": load_section(".data") + load_section(".bss"),
+            }
 
 
 @parameterized_class(
@@ -146,7 +160,8 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
 
         bin_src = self.prepare_source(self.source_file)
-        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src)
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
+
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_and_check)
 
@@ -269,10 +284,9 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
-        data_mem = [0] * (2**10)
         for reg_id, val in self.start_regvals.items():
-            data_mem[self.reg_init_mem_offset // 4 + reg_id] = val
-        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src, data_mem=data_mem)
+            bin_src["data"][self.reg_init_mem_offset // 4 + reg_id] = val
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(self.run_with_interrupt_process)
             sim.add_sync_process(self.clear_level_interrupt_procsess)

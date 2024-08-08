@@ -1,3 +1,4 @@
+.macro INIT_REGS_LOAD
 # load the initial states of registers
 # the value of a register `n` is assumed to be stored under address `0x100 + n * 4`.
     lw  x1, 0x104(x0)
@@ -31,3 +32,9 @@
     lw  x29,0x174(x0)
     lw  x30,0x178(x0)
     lw  x31,0x17c(x0)
+.endm
+
+.macro INIT_REGS_ALLOCATION
+.org 0x100
+.skip 0x80
+.endm

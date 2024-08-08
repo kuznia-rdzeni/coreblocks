@@ -24,3 +24,6 @@ loop:
     bne x3, x4, loop
 infloop:
     j infloop
+
+.section .bss
+.skip 0xC
