@@ -1,5 +1,7 @@
+.include "init_regs.s"
+
 _start:
-    .include "init_regs.s"
+    INIT_REGS_LOAD
 
     li x1, 0x100 # set handler vector
     csrw mtvec, x1
@@ -26,3 +28,6 @@ skip:
 
 .org 0x100
     j handler
+
+.data
+    INIT_REGS_ALLOCATION
