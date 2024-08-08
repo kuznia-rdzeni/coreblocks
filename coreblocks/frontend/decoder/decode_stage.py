@@ -65,7 +65,7 @@ class DecodeStage(Elaboratable):
             ]
 
             exception_override = Signal()
-            m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault)
+            m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault.any())
             exception_funct = Signal(Funct3)
             with m.If(raw.access_fault):
                 m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
