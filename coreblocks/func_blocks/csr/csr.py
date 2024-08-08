@@ -209,7 +209,6 @@ class CSRUnit(FuncBlock, Elaboratable):
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
 
             with m.If(exception):
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=0)
                 mtval = Signal(self.gen_params.isa.xlen)
                 # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise tval _must_ be 0)
                 m.d.av_comb += mtval[0:2].eq(0b11)
