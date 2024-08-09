@@ -110,8 +110,6 @@ class TestCoreAsmSourceBase(TestCoreBase):
                             "binary",
                             "-j",
                             section,
-                            "--set-section-flags",
-                            f"{section}=alloc,load,contents",
                             ld_tmp.name,
                             bin_tmp.name,
                         ]
@@ -124,10 +122,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
 
                     return bin
 
-            return {
-                "text": load_section(".text"),
-                "data": load_section(".data") + load_section(".bss"),
-            }
+            return {"text": load_section(".text"), "data": load_section(".data")}
 
 
 @parameterized_class(
