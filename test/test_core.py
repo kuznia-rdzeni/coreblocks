@@ -110,8 +110,6 @@ class TestCoreAsmSourceBase(TestCoreBase):
                             "binary",
                             "-j",
                             section,
-                            "--set-section-flags",
-                            f"{section}=alloc,load,contents",
                             ld_tmp.name,
                             bin_tmp.name,
                         ]
@@ -124,10 +122,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
 
                     return bin
 
-            return {
-                "text": load_section(".text"),
-                "data": load_section(".data") + load_section(".bss"),
-            }
+            return {"text": load_section(".text"), "data": load_section(".data")}
 
 
 @parameterized_class(
@@ -162,10 +157,13 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
 
         bin_src = self.prepare_source(self.source_file)
+<<<<<<< HEAD
 
         if self.name == "mtval":
             bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
 
+=======
+>>>>>>> origin
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:

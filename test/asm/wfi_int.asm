@@ -29,5 +29,4 @@ skip:
 .org 0x100
     j handler
 
-.data
-    INIT_REGS_ALLOCATION
+INIT_REGS_ALLOCATION

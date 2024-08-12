@@ -101,5 +101,4 @@ fail:
     j int_handler
     li x31, 0xae  # should never happen
 
-.bss
-    INIT_REGS_ALLOCATION
+INIT_REGS_ALLOCATION

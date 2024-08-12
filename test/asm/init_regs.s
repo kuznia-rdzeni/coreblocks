@@ -35,6 +35,7 @@
 .endm
 
 .macro INIT_REGS_ALLOCATION
-.org 0x100
+.section .init_regs, "a", @nobits
 .skip 0x80
+.previous
 .endm
