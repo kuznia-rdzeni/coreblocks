@@ -157,13 +157,10 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
 
         bin_src = self.prepare_source(self.source_file)
-<<<<<<< HEAD
 
         if self.name == "mtval":
             bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
 
-=======
->>>>>>> origin
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:

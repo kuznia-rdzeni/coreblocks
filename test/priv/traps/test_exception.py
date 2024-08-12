@@ -57,7 +57,8 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
                 while saved_entry and report_rob == saved_entry["rob_id"]:
                     report_rob = random.randint(0, self.rob_max)
                 report_pc = random.randrange(2**self.gen_params.isa.xlen)
-                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
+                report_mtval = random.randrange(2**self.gen_params.isa.xlen)
+                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc, "mtval": report_mtval}
 
                 expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
                 yield from self.dut.report.call(report_arg)

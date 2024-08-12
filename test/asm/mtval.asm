@@ -27,8 +27,6 @@ pass:
     j pass
 
 
-# TODO: check if mepc can misalign
-
 handler:
     la x1, excpected_mtval
     add x1, x1, x8
