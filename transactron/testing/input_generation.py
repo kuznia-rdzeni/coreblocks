@@ -82,16 +82,18 @@ def generate_nops_in_list(draw: DrawFn, max_nops: int, generate_list: SearchStra
     return out_lst
 
 
-@composite
-def generate_method_input(draw: DrawFn, args: list[tuple[str, MethodLayout]]) -> dict[str, RecordIntDict]:
-    out = []
-    for name, layout in args:
-        out.append((name, draw(generate_based_on_layout(layout))))
-    return dict(out)
+# @composite
+# def generate_method_input(draw: DrawFn, args: MethodLayout) -> dict[str, RecordIntDict]:
+#    out = []
+#    for name, layout in args:
+#        out.append((name, draw(generate_based_on_layout(layout))))
+#    return dict(out)
 
 
 @composite
 def generate_process_input(
-    draw: DrawFn, elem_count: int, max_nops: int, layouts: list[tuple[str, MethodLayout]]
-) -> list[dict[str, RecordIntDict] | OpNOP]:
-    return draw(generate_nops_in_list(max_nops, generate_shrinkable_list(elem_count, generate_method_input(layouts))))
+    draw: DrawFn, elem_count: int, max_nops: int, layouts: MethodLayout
+) -> list[RecordIntDict | OpNOP]:
+    return draw(
+        generate_nops_in_list(max_nops, generate_shrinkable_list(elem_count, generate_based_on_layout(layouts)))
+    )
