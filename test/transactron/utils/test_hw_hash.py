@@ -4,52 +4,6 @@ import random
 from transactron.utils.amaranth_ext.hw_hash import *
 import pytest
 
-
-def rot(x, k) -> int:
-    return ((x) << (k)) | ((x) >> (32 - (k)))
-
-
-def lookup3(value, seed):
-    if seed is None:
-        seed = 0xDEADBEEF
-    a = (value & ((1 << 32) - 1)) + seed
-    b = ((value >> 32) & ((1 << 32) - 1)) + seed
-    c = ((value >> 64) & ((1 << 32) - 1)) + seed
-
-    a &= 0xFFFFFFFF
-    b &= 0xFFFFFFFF
-    c &= 0xFFFFFFFF
-    c ^= b
-    c &= 0xFFFFFFFF
-    c -= rot(b, 14)
-    c &= 0xFFFFFFFF
-    a ^= c
-    a &= 0xFFFFFFFF
-    a -= rot(c, 11)
-    a &= 0xFFFFFFFF
-    b ^= a
-    b &= 0xFFFFFFFF
-    b -= rot(a, 25)
-    b &= 0xFFFFFFFF
-    c ^= b
-    c &= 0xFFFFFFFF
-    c -= rot(b, 16)
-    c &= 0xFFFFFFFF
-    a ^= c
-    a &= 0xFFFFFFFF
-    a -= rot(c, 4)
-    a &= 0xFFFFFFFF
-    b ^= a
-    b &= 0xFFFFFFFF
-    b -= rot(a, 14)
-    b &= 0xFFFFFFFF
-    c ^= b
-    c &= 0xFFFFFFFF
-    c -= rot(b, 24)
-    c &= 0xFFFFFFFF
-    return c
-
-
 @pytest.mark.parametrize("model", [JenkinsHash96Bits, lambda: SipHash64Bits(2, 4), lambda: SipHash64Bits(1, 3)])
 @pytest.mark.parametrize("bits", [16, 32, 64, 96])
 @pytest.mark.parametrize("seed", [None, 0x573A8CF])
