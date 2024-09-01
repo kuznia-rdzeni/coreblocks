@@ -4,6 +4,7 @@ from typing import Literal, Optional, overload
 from collections.abc import Iterable
 from amaranth import *
 from transactron.utils._typing import HasElaborate, ModuleLike, ValueLike
+from transactron.utils.assign import add_to_submodules
 
 __all__ = [
     "OneHotSwitchDynamic",
@@ -316,14 +317,7 @@ class MultiPriorityEncoder(Elaboratable):
             on the second position.
         """
         prio_encoder = MultiPriorityEncoder(input_width, outputs_count)
-        if name is None:
-            m.submodules += prio_encoder
-        else:
-            try:
-                getattr(m.submodules, name)
-                raise ValueError(f"Name: {name} is already in use, so MultiPriorityEncoder can not be added with it.")
-            except AttributeError:
-                setattr(m.submodules, name, prio_encoder)
+        add_to_submodules(m, prio_encoder, name)
         m.d.comb += prio_encoder.input.eq(input)
         return list(zip(prio_encoder.outputs, prio_encoder.valids))
 
@@ -478,16 +472,7 @@ class RingMultiPriorityEncoder(Elaboratable):
             on the second position.
         """
         prio_encoder = RingMultiPriorityEncoder(input_width, outputs_count)
-        if name is None:
-            m.submodules += prio_encoder
-        else:
-            try:
-                getattr(m.submodules, name)
-                raise ValueError(
-                    f"Name: {name} is already in use, so RingMultiPriorityEncoder can not be added with it."
-                )
-            except AttributeError:
-                setattr(m.submodules, name, prio_encoder)
+        add_to_submodules(m, prio_encoder, name)
         m.d.comb += prio_encoder.input.eq(input)
         m.d.comb += prio_encoder.first.eq(first)
         m.d.comb += prio_encoder.last.eq(last)

@@ -5,10 +5,11 @@ from transactron.utils.transactron_helpers import from_method_layout, make_layou
 from ..core import *
 from ..utils import SrcLoc, get_src_loc, MultiPriorityEncoder
 from typing import Optional
-from transactron.utils import assign, AssignType, LayoutList, MethodLayout
+from transactron.utils import assign, AssignType, LayoutList, MethodLayout, ValueLike
 from .reqres import ArgumentsToResultsZipper
+from transactron.utils.amaranth_ext.hw_hash import JenkinsHash96Bits
 
-__all__ = ["MemoryBank", "ContentAddressableMemory", "AsyncMemoryBank"]
+__all__ = ["MemoryBank", "ContentAddressableMemory", "AsyncMemoryBank", "CountHashTab"]
 
 
 class MemoryBank(Elaboratable):
@@ -305,5 +306,116 @@ class AsyncMemoryBank(Elaboratable):
                 m.d.comb += write_port.en.eq(1)
             else:
                 m.d.comb += write_port.en.eq(arg.mask)
+
+        return m
+
+
+class CountHashTab(Elaboratable):
+    """Hash table that counts inputs
+
+    This is a hash table that can be used as a part of CountSketch. It uses the
+    JenkinsHash96Bits function to hash the input data.
+    The resulting 32bit Jenkins hash is first striped to the nearest not smaller power
+    of two and if it is greater than the size of hash table,
+    the size is subtracted from it. This can lead in unbalanced hashes!
+
+
+    Attributes
+    ----------
+    insert: Method
+        The insert method. Accepts a `data` to be hashed and counted in hash table.
+        The update is synchronous with an additional delay cycle.
+    query_req: Method
+        Receives `data` which frequency to read from the hash table.
+        The response can be queried with the `query_resp` method.
+    query_resp : Method
+        Ready only if there is a response available to read. Returns `count` value that
+        represents the number of hashed elements read from the table.
+    clear : Method
+        Zeros all fields in the hash table. No conflicts with other methods, but it haa the highest priority.
+    update_seed : Method
+        Gets an argument `seed` to be used to update the seed in the hash function. Please
+        note that this invalidates all stored values, so the table should be clear.
+    """
+
+    def __init__(self, size: int, counter_width: int, input_data_width: int):
+        """
+        Parameters
+        ----------
+        size : int
+            The number of fields in the hash table. It is recommended to be power of two.
+        counter_width : int
+            The width in bits of a field of the hash table. After the counter reaches maximum
+            it will overflow back to 0.
+        input_data_width : int
+            The width in bits of the input data. Cannot be greater than 96.
+        """
+        if input_data_width > 96:
+            raise ValueError(
+                "CountHashTab doesn't support input data longer than 96 bits because of "
+                + "implementation limits of hash functions."
+            )
+        self.size = size
+        self.counter_width = counter_width
+        self.input_data_width = input_data_width
+
+        self.insert = Method(i=[("data", self.input_data_width)])
+        self.query_req = Method(i=[("data", self.input_data_width)])
+        self.query_resp = Method(o=[("count", self.counter_width)])
+        self.clear = Method()
+        self.update_seed = Method(i=[("seed", 64)])
+
+        self.query_resp.schedule_before(self.query_req)
+
+    def postprocess_hash(self, m, hash_org: ValueLike) -> Signal:
+        lsb_hash = Signal(ceil_log2(self.size))
+        out_hash = Signal(ceil_log2(self.size))
+        m.d.top_comb += lsb_hash.eq(hash_org)
+        m.d.av_comb += out_hash.eq(lsb_hash)
+        # Check if self.size is not power of two
+        if self.size & (self.size - 1):
+            with m.If(lsb_hash >= self.size):
+                m.d.av_comb += out_hash.eq(lsb_hash - self.size)
+        return out_hash
+
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        insert_valid = Signal()
+        resp_valid = Signal()
+        insert_data = Signal(self.input_data_width)
+        query_data = Signal(self.input_data_width)
+        self.counters = Array([Signal(self.counter_width) for _ in range(self.size)])
+        hash_insert = self.postprocess_hash(m, JenkinsHash96Bits.create(m, insert_data, "hash_insert"))
+        hash_query = self.postprocess_hash(m, JenkinsHash96Bits.create(m, query_data, "hash_query"))
+
+        with m.If(insert_valid):
+            m.d.sync += self.counters[hash_insert].eq(self.counters[hash_insert] + 1)
+            m.d.sync += insert_valid.eq(0)
+
+        @def_method(m, self.insert)
+        def _(data):
+            m.d.sync += insert_data.eq(data)
+            m.d.sync += insert_valid.eq(1)
+
+        @def_method(m, self.query_resp, ready=resp_valid)
+        def _():
+            m.d.sync += resp_valid.eq(0)
+            return {"count": self.counters[hash_query]}
+
+        @def_method(m, self.query_req, ready=~resp_valid | self.query_resp.run)
+        def _(data):
+            m.d.sync += query_data.eq(data)
+            m.d.sync += resp_valid.eq(1)
+
+        @def_method(m, self.update_seed)
+        def _(seed):
+            m.d.sync += m.submodules.hash_insert.seed.eq(seed)
+            m.d.sync += m.submodules.hash_query.seed.eq(seed)
+
+        @def_method(m, self.clear)
+        def _():
+            for i in range(self.size):
+                m.d.sync += self.counters[i].eq(0)
 
         return m
