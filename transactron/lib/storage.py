@@ -311,11 +311,48 @@ class AsyncMemoryBank(Elaboratable):
 
 
 class CountHashTab(Elaboratable):
+    """Hash table that counts inputs
+
+    This is a hash table that can be used as a part of CountSketch. It uses the
+    JenkinsHash96Bits function to hash the input data. 
+    The resulting 32bit Jenkins hash is first striped to the nearest not smaller power
+    of two and if it is greater than the size of hash table,
+    the size is subtracted from it. This can lead in unbalanced hashes!
+
+
+    Attributes
+    ----------
+    insert: Method
+        The insert method. Accepts a `data` to be hashed and counted in hash table.
+        The update is synchronous with an additional delay cycle.
+    query_req: Method
+        Receives `data` which frequency to read from the hash table.
+        The response can be queried with the `query_resp` method.
+    query_resp : Method
+        Ready only if there is a response available to read. Returns `count` value that
+        represents the number of hashed elements read from the table.
+    clear : Method
+        Zeros all fields in the hash table. No conflicts with other methods, but it haa the highest priority.
+    update_seed : Method
+        Gets an argument `seed` to be used to update the seed in the hash function. Please
+        note that this invalidates all stored values, so the table should be clear.
+    """
     def __init__(self, size: int, counter_width: int, input_data_width: int):
+        """
+        Parameters
+        ----------
+        size : int
+            The number of fields in the hash table. It is recommended to be power of two.
+        counter_width : int
+            The width in bits of a field of the hash table. After the counter reaches maximum
+            it will overflow back to 0.
+        input_data_width : int
+            The width in bits of the input data. Cannot be greater than 96.
+        """
         if input_data_width > 96:
             raise ValueError(
-                "CountHashTab doesn't support input data longer than 96 bits because of limits "
-                + "of implementation of hash functions."
+                "CountHashTab doesn't support input data longer than 96 bits because of "
+                + "implementation limits of hash functions."
             )
         self.size = size
         self.counter_width = counter_width

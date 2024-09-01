@@ -231,8 +231,8 @@ def assign(
 def add_to_submodules(m: ModuleLike, hw_block: HasElaborate, name: Optional[str]):
     """Add hw_block to submodules
 
-    Add hw_block to submodules of `m` as ananymous submodule if name is None and
-    as named submodule otherwhise. Can raise ValueError if the name is already in use.
+    Add hw_block to submodules of `m` as anonymous submodule if name is None and
+    as a named submodule otherwise. May raise ValueError if the name is already in use.
     """
     if name is None:
         m.submodules += hw_block
