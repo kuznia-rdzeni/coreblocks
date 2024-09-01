@@ -4,6 +4,7 @@ import random
 from transactron.utils.amaranth_ext.hw_hash import *
 import pytest
 
+
 @pytest.mark.parametrize("model", [JenkinsHash96Bits, lambda: SipHash64Bits(2, 4), lambda: SipHash64Bits(1, 3)])
 @pytest.mark.parametrize("bits", [16, 32, 64, 96])
 @pytest.mark.parametrize("seed", [None, 0x573A8CF])

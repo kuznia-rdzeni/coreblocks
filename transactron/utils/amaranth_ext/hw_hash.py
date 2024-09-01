@@ -1,4 +1,8 @@
 from amaranth import *
+from transactron.utils._typing import ValueLike
+from typing import Optional
+from transactron.utils.assign import add_to_submodules
+from transactron.utils._typing import ModuleLike
 
 __all__ = ["JenkinsHash96Bits", "SipHash64Bits"]
 
@@ -68,6 +72,17 @@ class JenkinsHash96Bits(Elaboratable):
 
         return m
 
+    @staticmethod
+    def create(
+        m: ModuleLike,
+        input: ValueLike,
+        name: Optional[str] = None,
+    ) -> Signal:
+        hw_block = JenkinsHash96Bits()
+        add_to_submodules(m, hw_block, name)
+        m.d.comb += hw_block.value.eq(input)
+        return hw_block.out_hash
+
 
 class SipHash64Bits(Elaboratable):
     def __init__(self, c: int = 2, d: int = 4):
@@ -119,3 +134,16 @@ class SipHash64Bits(Elaboratable):
         m.d.comb += self.out_hash.eq(v0 ^ v1 ^ v2 ^ v3)
 
         return m
+
+    @staticmethod
+    def create(
+        m: ModuleLike,
+        input: ValueLike,
+        c: int = 2,
+        d: int = 4,
+        name: Optional[str] = None,
+    ) -> Signal:
+        hw_block = SipHash64Bits(c=c, d=d)
+        add_to_submodules(m, hw_block, name)
+        m.d.comb += hw_block.value.eq(input)
+        return hw_block.out_hash

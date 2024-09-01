@@ -5,7 +5,7 @@ from amaranth import *
 from amaranth.hdl import ShapeLike, ValueCastable
 from amaranth.hdl._ast import ArrayProxy, Slice
 from amaranth.lib import data
-from ._typing import ValueLike
+from ._typing import ValueLike, ModuleLike, HasElaborate
 
 if TYPE_CHECKING:
     from amaranth.hdl._ast import Assign
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 __all__ = [
     "AssignType",
     "assign",
+    "add_to_submodules",
 ]
 
 
@@ -225,3 +226,19 @@ def assign(
         rhs_val = Value.cast(rhs)
 
         yield lhs_val.eq(rhs_val)
+
+
+def add_to_submodules(m: ModuleLike, hw_block: HasElaborate, name: Optional[str]):
+    """Add hw_block to submodules
+
+    Add hw_block to submodules of `m` as ananymous submodule if name is None and
+    as named submodule otherwhise. Can raise ValueError if the name is already in use.
+    """
+    if name is None:
+        m.submodules += hw_block
+    else:
+        try:
+            getattr(m.submodules, name)
+            raise ValueError(f"Name: {name} is already in use, so {hw_block} can not be added with it.")
+        except AttributeError:
+            setattr(m.submodules, name, hw_block)

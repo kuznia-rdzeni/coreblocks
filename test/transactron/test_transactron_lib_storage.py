@@ -1,7 +1,7 @@
 from datetime import timedelta
 from hypothesis import given, settings, Phase
 from transactron.testing import *
-from transactron.lib.storage import ContentAddressableMemory
+from transactron.lib.storage import ContentAddressableMemory, CountHashTab
 
 
 class TestContentAddressableMemory(TestCaseWithSimulator):
@@ -133,3 +133,79 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
                 sim.add_sync_process(self.read_process(in_read))
                 sim.add_sync_process(self.write_process(in_write))
                 sim.add_sync_process(self.remove_process(in_remove))
+
+
+@pytest.mark.parametrize("size", [9, 16])
+class TestCountHashTab(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.inserted = False
+        self.insert_end = False
+        self.query_req_end = False
+        self.table_snapshots = []
+
+    def take_hash_table_snapshot(self):
+        table = []
+        for i in range(self.size):
+            table.append((yield self.circ._dut.counters[i]))
+        self.table_snapshots.append(table)
+
+    def insert_process(self, input):
+        def f():
+            self.insert_end = False
+            for in_val in input:
+                yield from self.circ.insert.call(data=in_val)
+                yield from self.take_hash_table_snapshot()
+            yield
+            yield Settle()
+            yield from self.take_hash_table_snapshot()
+            self.insert_end = True
+
+        return f
+
+    def query_req_process(self, input):
+        def f():
+            self.query_req_end = False
+            while not self.insert_end:
+                yield
+            for i in input:
+                yield from self.circ.query_req.call(data=i)
+            self.query_req_end = True
+
+        return f
+
+    def query_resp_process(self, input):
+        def f():
+            input_rev = list(reversed(input))
+            while not self.query_req_end:
+                count = yield from self.circ.query_resp.call()
+                in_val = input_rev.pop()
+                # Check if there is at least as many elements as we put inside (can be more because of aliasing)
+                assert count["count"] >= sum(map(lambda x: 1, filter(lambda x: x == in_val, input)))
+                assert count["count"] in self.table_snapshots[-1]
+
+        return f
+
+    @pytest.mark.parametrize("input_width", [6, 10, 32, 64])
+    def test_random_one_value(self, size, input_width):
+        random.seed(14)
+        self.size = size
+        n = random.randrange(1 << input_width)
+        input = [n] * random.randrange(16)
+        self.circ = SimpleTestCircuit(CountHashTab(size, 5, input_width))
+        with self.run_simulation(self.circ) as sim:
+            sim.add_sync_process(self.insert_process(input))
+            sim.add_sync_process(self.query_req_process(input))
+            sim.add_sync_process(self.query_resp_process(input))
+
+    @pytest.mark.parametrize("input_width", [6, 10, 32, 64])
+    def test_random_many_values(self, size, input_width):
+        random.seed(14)
+        self.size = size
+        input_length = 300
+        input = [random.randrange(1 << input_width)] * random.randrange(input_length)
+        self.circ = SimpleTestCircuit(CountHashTab(size, 9, input_width))
+        with self.run_simulation(self.circ) as sim:
+            sim.add_sync_process(self.insert_process(input))
+            sim.add_sync_process(self.query_req_process(input))
+            sim.add_sync_process(self.query_resp_process(input))
