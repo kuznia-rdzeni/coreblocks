@@ -9,7 +9,7 @@ __all__ = ["JenkinsHash96Bits", "SipHash64Bits"]
 
 class JenkinsHash96Bits(Elaboratable):
     """
-    Simplified implementation of the Lookup3 hash function which assumes that the input to be hashed is no longer than 96 bits.
+    Simplified implementation of the Lookup3 hash function.
 
     The Lookup3 function is a non-cryptographic hash function that can be used in hash tables and sketches.
     By default it supports arbitrary length input, but this implementation is simplified and
@@ -116,6 +116,7 @@ class SipHash64Bits(Elaboratable):
     out_hash : Signal(64)
         The calculated hash.
     """
+
     def __init__(self, c: int = 2, d: int = 4):
         """
         The default parameters are set to implement SipHash-2-4, which is secure
@@ -129,7 +130,7 @@ class SipHash64Bits(Elaboratable):
         d : int
             Number of the SipRound layers in the finalize part of mixing.
         """
-        self.seed = Signal(128, reset=0x8fe1a3b9d43a725cddb65e9fbbd79951) # Randomly chosen constant
+        self.seed = Signal(128, reset=0x8FE1A3B9D43A725CDDB65E9FBBD79951)  # Randomly chosen constant
         self.value = Signal(64)
         self.out_hash = Signal(64)
         self.mixing_layers = c
