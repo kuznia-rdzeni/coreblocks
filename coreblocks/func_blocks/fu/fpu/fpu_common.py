@@ -38,7 +38,7 @@ class FPURoundingParams:
     fpu_params: FPUParams
         FPU parameters
     is_rounded:bool
-        This flags indicates that the input number was already rounded. This creates simpler version of rounding module that only performs error checking and return corect number.
+        This flags indicates that the input number was already rounded. This creates simpler version of rounding module that only performs error checking and returns correct number.
     """
 
     def __init__(self, fpu_params: FPUParams, *, is_rounded: bool = False):
