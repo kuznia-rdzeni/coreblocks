@@ -210,7 +210,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)
-                # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise tval _must_ be 0)
+                # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise mtval must be 0)
                 m.d.av_comb += mtval[0:2].eq(0b11)
                 m.d.av_comb += mtval[2:7].eq(Opcode.SYSTEM)
                 m.d.av_comb += mtval[7:12].eq(instr.imm[32 - self.gen_params.isa.reg_cnt_log : 32])  # rl_rd
