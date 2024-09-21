@@ -61,17 +61,10 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
-        # MIE bit - global interrupt enable - part of mstatus CSR
-        self.mstatus_mie = CSRRegister(None, gen_params, width=1)
-        # MPIE bit - previous MIE - part of mstatus
-        self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
-        # MPP bit - previous priv mode - part of mstatus
-        self.mstatus_mpp = CSRRegister(None, gen_params, width=2, ro_bits=0b11, reset=PrivilegeLevel.MACHINE)
-        # TODO: filter xPP for only legal modes (when not read-only)
-        mstatus = dm.get_dependency(GenericCSRRegistersKey()).m_mode.mstatus
-        mstatus.add_field(3, self.mstatus_mie)
-        mstatus.add_field(7, self.mstatus_mpie)
-        mstatus.add_field(11, self.mstatus_mpp)
+        m_mode_csr = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode
+        self.mstatus_mie = m_mode_csr.mstatus_mpp
+        self.mstatus_mpie = m_mode_csr.mstatus_mpie
+        self.mstatus_mpp = m_mode_csr.mstatus_mpp
 
         mie_writeable = (
             # (1 << InterruptCauseNumber.MSI) TODO: CLINT
