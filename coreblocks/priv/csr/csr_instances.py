@@ -137,7 +137,8 @@ class MachineModeCSRRegisters(Elaboratable):
         mstatus.add_read_only_field(MstatusFieldOffsets.SUM, 1, 0)
         mstatus.add_read_only_field(MstatusFieldOffsets.MXR, 1, 0)
 
-        mstatus.add_read_only_field(MstatusFieldOffsets.TW, 1, 0)  # TODO: implement TW
+        self.mstatus_tw = CSRRegister(None, gen_params, width=1)
+        mstatus.add_field(MstatusFieldOffsets.TW, self.mstatus_tw)
 
         # future todo: implement actual state modification tracking of F and V registers and CSRs
         # State = 3 is DIRTY. Implementation is allowed to always set dirty for VS and FS, regardless of CSR updates

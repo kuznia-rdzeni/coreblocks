@@ -104,31 +104,26 @@ class PrivilegedFuncUnit(Elaboratable):
                 m.d.sync += finished.eq(1)
                 self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
+                illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_mode.read(m) != PrivilegeLevel.MACHINE)
+                # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
+                illegal_wfi = (
+                    (instr_fn == PrivilegedFn.Fn.WFI)
+                    & (priv_mode.read(m) == PrivilegeLevel.USER)
+                    & csr.m_mode.mstatus_tw.read(m)
+                )
+
                 with condition(m, nonblocking=True) as branch:
-                    with branch(
-                        info.side_fx
-                        & (instr_fn == PrivilegedFn.Fn.MRET)
-                        & (priv_mode.read(m) == PrivilegeLevel.MACHINE)
-                    ):
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
                         mret(m)
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                         flush_icache(m)
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI)):
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
                         m.d.sync += finished.eq(async_interrupt_active)
 
                 # NOTE: we depend on the fact that all instructions that could change privilege level are SYSTEM
                 # opcode, and stall the fetcher, so priv_mode would not change.
                 # Otherwise, all operations could only start after precommit.
-                # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
-                m.d.sync += illegal_instruction.eq(
-                    (instr_fn == PrivilegedFn.Fn.MRET & (priv_mode.read(m) != PrivilegeLevel.MACHINE))
-                    | (
-                        instr_fn
-                        == PrivilegedFn.Fn.WFI
-                        & (priv_mode.read(m) == PrivilegeLevel.USER)
-                        & csr.m_mode.mstatus_tw.read(m)
-                    )
-                )
+                m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():
