@@ -435,7 +435,9 @@ class CSRAddress(IntEnum, shape=12):
     DSCRATCH1 = 0x7B3  # Debug scratch register 1.
 
     # Internal Coreblocks CSRs
-    COREBLOCKS_TEST_CSR = 0x7FF  # used only for testbench verification
+    # used only for testbench verification
+    COREBLOCKS_TEST_PRIV_MODE = 0xCFF
+    COREBLOCKS_TEST_CSR = 0x7FF
 
 
 @unique

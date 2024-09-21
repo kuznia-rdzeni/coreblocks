@@ -15,6 +15,7 @@ from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitL
 from coreblocks.interface.keys import (
     CSRListKey,
     FetchResumeKey,
+    GenericCSRRegistersKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
@@ -128,8 +129,11 @@ class CSRUnit(FuncBlock, Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
-        # Temporary, until privileged spec is implemented
-        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.MACHINE)
+        priv_level = Signal(PrivilegeLevel)
+        with Transaction().body(m):
+            m.d.comb += priv_level.eq(
+                self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode.priv_mode.read(m)
+            )
 
         exe_side_fx = Signal()
 

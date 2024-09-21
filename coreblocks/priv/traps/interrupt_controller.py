@@ -55,7 +55,7 @@ class InternalInterruptController(Component):
         )
 
         self.gen_params = gen_params
-        dm = DependencyContext.get()
+        self.dm = DependencyContext.get()
 
         self.edge_reported_mask = self.gen_params.interrupt_custom_edge_trig_mask << ISA_RESERVED_INTERRUPTS
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
@@ -83,12 +83,12 @@ class InternalInterruptController(Component):
         self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
 
         self.interrupt_insert = Signal()
-        dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
+        self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
 
         self.interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
 
         self.mret = Method()
-        dm.add_dependency(MretKey(), self.mret)
+        self.dm.add_dependency(MretKey(), self.mret)
 
         self.entry = Method()
 
@@ -99,12 +99,14 @@ class InternalInterruptController(Component):
 
         m.submodules += [self.mstatus_mie, self.mstatus_mpie, self.mstatus_mpp, self.mie, self.mip]
 
+        priv_mode = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode.priv_mode
+
         interrupt_enable = Signal()
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
         with Transaction().body(m) as assign_trans:
             m.d.comb += [
-                interrupt_enable.eq(self.mstatus_mie.read(m).data),
+                interrupt_enable.eq(self.mstatus_mie.read(m).data | (priv_mode.read(m).data == PrivilegeLevel.USER)),
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data),
             ]
@@ -152,10 +154,14 @@ class InternalInterruptController(Component):
             with m.If(self.entry.run):
                 self.mstatus_mie.write(m, {"data": 0})
                 self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
+                self.mstatus_mpp.write(m, priv_mode.read(m))
+                priv_mode.write(m, PrivilegeLevel.MACHINE)
             with m.Elif(self.mret.run):
                 self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
                 self.mstatus_mpie.write(m, {"data": 1})
-                # TODO: Set mpp when other privilege modes are implemented
+                self.mstatus_mpp.write(m, PrivilegeLevel.USER if self.gen_params.user_mode else PrivilegeLevel.MACHINE)
+                priv_mode.write(m, self.mstatus_mpp.read(m))
+                # future todo: set MPRV=0 when self.mstatus_mpp.read(m) != PrivilegeLevel.MACHINE
 
         interrupt_priority = [
             InterruptCauseNumber.MEI,

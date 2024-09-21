@@ -80,6 +80,13 @@ class MachineModeCSRRegisters(Elaboratable):
         mepc_ro_bits = 0b1 if Extension.C in gen_params.isa.extensions else 0b11  # pc alignment (SPEC)
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
 
+        self.priv_mode = CSRRegister(
+            CSRAddress.COREBLOCKS_TEST_PRIV_MODE if gen_params._generate_test_hardware else None,
+            gen_params,
+            width=2,
+            reset=PrivilegeLevel.MACHINE,
+        )
+
     def elaborate(self, platform):
         m = Module()
 
