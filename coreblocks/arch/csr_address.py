@@ -1,5 +1,10 @@
 from amaranth.lib.enum import IntEnum, unique
 
+__all__ = [
+    "CSRAddress",
+    "MstatusFieldOffsets",
+]
+
 
 @unique
 class CSRAddress(IntEnum, shape=12):
@@ -431,3 +436,22 @@ class CSRAddress(IntEnum, shape=12):
 
     # Internal Coreblocks CSRs
     COREBLOCKS_TEST_CSR = 0x7FF  # used only for testbench verification
+
+
+@unique
+class MstatusFieldOffsets(IntEnum):
+    SIE = 1  # Supervisor Interrupt Enable
+    MIE = 3  # Machine Interrupt Enable
+    SPIE = 5  # Supervisor Previous Interrupt Enable
+    UBE = 6  # User Endianess Control
+    MPIE = 7  # Machine Previous Interrupt Enable
+    SPP = 8  # Supervisor Previous Pirvilege
+    VS = 9  # Vector Context Status
+    MPP = 11  # Machine Previous Pirvilege
+    FS = 13  # Float Context Status
+    XS = 15  # Additional Extension State Context Status
+    MPRV = 17  # Modify Pirvilege
+    UXL = 32  # User XLEN
+    SXL = 34  # Supervisor XLEN
+    SBE = 36  # Supervisor Endianess Control
+    MBE = 37  # Machine Endianess Contorol

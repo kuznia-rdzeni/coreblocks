@@ -2,7 +2,9 @@ from amaranth import *
 
 from typing import Optional
 from coreblocks.arch import CSRAddress
+from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
@@ -86,6 +88,61 @@ class MachineModeCSRRegisters(Elaboratable):
                 m.submodules[name] = value
 
         return m
+
+    def mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
+        self.gen_params = gen_params
+
+        def filter_legal_priv_mode(m: TModule, v: Value):
+            legal = Signal(1)
+            with m.Switch(v):
+                with m.Case(PrivilegeLevel.MACHINE):
+                    m.d.comb += legal.eq(1)
+                with m.Case(PrivilegeLevel.SUPERVISOR):
+                    m.d.comb += legal.eq(0)
+                with m.Case(PrivilegeLevel.USER):
+                    m.d.comb += legal.eq(gen_params.user_mode)
+                with m.Default():
+                    pass
+
+            return (v, legal)
+
+        # Fixed MXLEN/SXLEN/UXLEN = isa.xlen
+        if self.gen_params.isa.xlen == 64:
+            # Registers only exist in RV64
+            mstatus.add_read_only_field(
+                MstatusFieldOffsets.UXL, 2, XlenEncoding.W64 if self.gen_params.user_mode else 0
+            )
+
+        # Little-endianess
+        mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
+        if self.gen_params.isa.xlen == 32:
+            mstatush.add_read_only_field(MstatusFieldOffsets.SBE - mstatus.width, 1, 0)
+            mstatush.add_read_only_field(MstatusFieldOffsets.MBE - mstatus.width, 1, 0)
+        elif self.gen_params.isa.xlen == 64:
+            mstatus.add_read_only_field(MstatusFieldOffsets.SBE, 1, 0)
+            mstatus.add_read_only_field(MstatusFieldOffsets.MBE, 1, 0)
+
+        # future todo: Add support when PMP implemented, must be 0 when user mode not supported
+        mstatus.add_read_only_field(MstatusFieldOffsets.MPRV, 1, 0)
+
+        # future todo: implement actual state modification tracking of F and V registers and CSRs
+        # State = 3 is DIRTY. Implementation is allowed to always set dirty for VS and FS, regardless of CSR updates
+        mstatus.add_read_only_field(MstatusFieldOffsets.VS, 2, 3 if Extension.V in gen_params.isa.extensions else 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.FS, 2, 3 if Extension.F in gen_params.isa.extensions else 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.XS, 2, 0)
+        # SD field - set to one when one of the states is dirty
+        if self.gen_params.isa.xlen == 32:
+            mstatush.add_read_only_field(
+                mstatush.width - 1,
+                1,
+                Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
+            )
+        elif self.gen_params.isa.xlen == 64:
+            mstatus.add_read_only_field(
+                mstatus.width - 1,
+                1,
+                Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
+            )
 
 
 class GenericCSRRegisters(Elaboratable):
