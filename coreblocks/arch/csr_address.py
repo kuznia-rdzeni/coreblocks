@@ -451,6 +451,11 @@ class MstatusFieldOffsets(IntEnum):
     FS = 13  # Float Context Status
     XS = 15  # Additional Extension State Context Status
     MPRV = 17  # Modify Pirvilege
+    SUM = 18  # Supervisor User Memory Access
+    MXR = 19  # Make Executable Readable
+    TVM = 20  # Trap Virtual Memory
+    TW = 21  # Timeout Wait
+    TSR = 22  # Trap SRET
     UXL = 32  # User XLEN
     SXL = 34  # Supervisor XLEN
     SBE = 36  # Supervisor Endianess Control

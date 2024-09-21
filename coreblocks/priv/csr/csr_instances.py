@@ -97,14 +97,12 @@ class MachineModeCSRRegisters(Elaboratable):
             with m.Switch(v):
                 with m.Case(PrivilegeLevel.MACHINE):
                     m.d.comb += legal.eq(1)
-                with m.Case(PrivilegeLevel.SUPERVISOR):
-                    m.d.comb += legal.eq(0)
                 with m.Case(PrivilegeLevel.USER):
                     m.d.comb += legal.eq(gen_params.user_mode)
                 with m.Default():
                     pass
 
-            return (v, legal)
+            return (legal, v)
 
         # Fixed MXLEN/SXLEN/UXLEN = isa.xlen
         if self.gen_params.isa.xlen == 64:
@@ -112,6 +110,7 @@ class MachineModeCSRRegisters(Elaboratable):
             mstatus.add_read_only_field(
                 MstatusFieldOffsets.UXL, 2, XlenEncoding.W64 if self.gen_params.user_mode else 0
             )
+            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, 2, 0)
 
         # Little-endianess
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
@@ -124,6 +123,14 @@ class MachineModeCSRRegisters(Elaboratable):
 
         # future todo: Add support when PMP implemented, must be 0 when user mode not supported
         mstatus.add_read_only_field(MstatusFieldOffsets.MPRV, 1, 0)
+
+        # Supervisor mode not supported - read only 0
+        mstatus.add_read_only_field(MstatusFieldOffsets.TVM, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.TSR, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SUM, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.MXR, 1, 0)
+
+        mstatus.add_read_only_field(MstatusFieldOffsets.TW, 1, 0)  # TODO: implement TW
 
         # future todo: implement actual state modification tracking of F and V registers and CSRs
         # State = 3 is DIRTY. Implementation is allowed to always set dirty for VS and FS, regardless of CSR updates
