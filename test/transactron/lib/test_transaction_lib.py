@@ -188,7 +188,10 @@ class TestMemoryBank(TestCaseWithSimulator):
                 assert (yield from m.read_resp.call()) == {"data": d}
                 yield from self.random_wait(reader_resp_rand)
 
-        with self.run_simulation(m) as sim:
+        pipeline_test = writer_rand == 0 and reader_req_rand == 0 and reader_resp_rand == 0
+        max_cycles = test_count + 2 if pipeline_test else 100000
+
+        with self.run_simulation(m, max_cycles=max_cycles) as sim:
             sim.add_sync_process(reader_req)
             sim.add_sync_process(reader_resp)
             sim.add_sync_process(writer)
