@@ -96,18 +96,17 @@ class PrivilegedFuncUnit(Elaboratable):
 
         with Transaction().body(m, request=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(info.rob_id == instr_rob):
-                m.d.sync += finished.eq(1)
-                self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
+            info = precommit(m, instr_rob)
+            m.d.sync += finished.eq(1)
+            self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
-                with condition(m, nonblocking=True) as branch:
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET)):
-                        mret(m)
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
-                        flush_icache(m)
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI)):
-                        m.d.sync += finished.eq(async_interrupt_active)
+            with condition(m, nonblocking=True) as branch:
+                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET)):
+                    mret(m)
+                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
+                    flush_icache(m)
+                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI)):
+                    m.d.sync += finished.eq(async_interrupt_active)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():
