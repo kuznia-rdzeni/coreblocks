@@ -138,7 +138,7 @@ class TestPipe(TestFifoBase):
 
 
 class TestMemoryBank(TestCaseWithSimulator):
-    test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
+    test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17), (9, 0, 0, 0, 18)]
 
     @parameterized.expand(tc + tr for tc in test_conf for tr in [(False,), (True,)])
     def test_mem(
@@ -178,11 +178,15 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         def reader_resp():
             for cycle in range(test_count):
+                for _ in range(2):
+                    yield Settle()
                 while not read_req_queue:
-                    yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
+                    yield from self.random_wait(reader_resp_rand or 1, min_cycle_cnt=1)
+                    for _ in range(2):
+                        yield Settle()
                 d = read_req_queue.popleft()
                 assert (yield from m.read_resp.call()) == {"data": d}
-                yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
+                yield from self.random_wait(reader_resp_rand)
 
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader_req)
