@@ -35,6 +35,7 @@ class MemoryBank(Elaboratable):
         data_layout: LayoutList,
         elem_count: int,
         granularity: Optional[int] = None,
+        transparent: bool = False,
         src_loc: int | SrcLoc = 0,
     ):
         """
@@ -47,6 +48,8 @@ class MemoryBank(Elaboratable):
         granularity: Optional[int]
             Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+        transparent: bool
+            Read port transparency, false by default.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -57,7 +60,7 @@ class MemoryBank(Elaboratable):
         self.granularity = granularity
         self.width = from_method_layout(self.data_layout).size
         self.addr_width = bits_for(self.elem_count - 1)
-        self.safe_writes = False
+        self.transparent = transparent
 
         self.read_req_layout: LayoutList = [("addr", self.addr_width)]
         write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
@@ -74,7 +77,7 @@ class MemoryBank(Elaboratable):
         m = TModule()
 
         mem = Memory(width=self.width, depth=self.elem_count)
-        m.submodules.read_port = read_port = mem.read_port(transparent=False)
+        m.submodules.read_port = read_port = mem.read_port(transparent=self.transparent)
         m.submodules.write_port = write_port = mem.write_port()
         read_output_valid = Signal()
         overflow_valid = Signal()

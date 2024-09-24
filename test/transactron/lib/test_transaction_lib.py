@@ -140,12 +140,16 @@ class TestPipe(TestFifoBase):
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
 
-    @parameterized.expand(test_conf)
-    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed):
+    @parameterized.expand(tc + tr for tc in test_conf for tr in [(False,), (True,)])
+    def test_mem(
+        self, max_addr: int, writer_rand: int, reader_req_rand: int, reader_resp_rand: int, seed: int, transparent: bool
+    ):
         test_count = 200
 
         data_width = 6
-        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
+        m = SimpleTestCircuit(
+            MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, transparent=transparent)
+        )
 
         data: list[int] = list(0 for _ in range(max_addr))
         read_req_queue = deque()
@@ -157,7 +161,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 d = random.randrange(2**data_width)
                 a = random.randrange(max_addr)
                 yield from m.write.call(data=d, addr=a)
-                for _ in range(2):
+                for _ in range(2 if not transparent else 0):
                     yield Settle()
                 data[a] = d
                 yield from self.random_wait(writer_rand)
