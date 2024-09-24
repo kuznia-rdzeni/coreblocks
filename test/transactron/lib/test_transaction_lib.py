@@ -1,10 +1,9 @@
 import pytest
 from itertools import product
 import random
-import itertools
 from operator import and_
 from functools import reduce
-from amaranth.sim import Settle, Passive
+from amaranth.sim import Settle
 from typing import Optional, TypeAlias
 from parameterized import parameterized
 from collections import deque
@@ -141,20 +140,15 @@ class TestPipe(TestFifoBase):
 class TestMemoryBank(TestCaseWithSimulator):
     test_conf = [(9, 3, 3, 3, 14), (16, 1, 1, 3, 15), (16, 1, 1, 1, 16), (12, 3, 1, 1, 17)]
 
-    parametrized_input = [tc + sf for tc, sf in itertools.product(test_conf, [(True,), (False,)])]
-
-    @parameterized.expand(parametrized_input)
-    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed, safe_writes):
+    @parameterized.expand(test_conf)
+    def test_mem(self, max_addr, writer_rand, reader_req_rand, reader_resp_rand, seed):
         test_count = 200
 
         data_width = 6
-        m = SimpleTestCircuit(
-            MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=safe_writes)
-        )
+        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr))
 
         data: list[int] = list(0 for _ in range(max_addr))
         read_req_queue = deque()
-        addr_queue = deque()
 
         random.seed(seed)
 
@@ -166,7 +160,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 for _ in range(2):
                     yield Settle()
                 data[a] = d
-                yield from self.random_wait(writer_rand, min_cycle_cnt=1)
+                yield from self.random_wait(writer_rand)
 
         def reader_req():
             for cycle in range(test_count):
@@ -174,12 +168,9 @@ class TestMemoryBank(TestCaseWithSimulator):
                 yield from m.read_req.call(addr=a)
                 for _ in range(1):
                     yield Settle()
-                if safe_writes:
-                    d = data[a]
-                    read_req_queue.append(d)
-                else:
-                    addr_queue.append((cycle, a))
-                yield from self.random_wait(reader_req_rand, min_cycle_cnt=1)
+                d = data[a]
+                read_req_queue.append(d)
+                yield from self.random_wait(reader_req_rand)
 
         def reader_resp():
             for cycle in range(test_count):
@@ -189,57 +180,10 @@ class TestMemoryBank(TestCaseWithSimulator):
                 assert (yield from m.read_resp.call()) == {"data": d}
                 yield from self.random_wait(reader_resp_rand, min_cycle_cnt=1)
 
-        def internal_reader_resp():
-            assert m._dut._internal_read_resp_trans is not None
-            yield Passive()
-            while True:
-                if addr_queue:
-                    instr, a = addr_queue[0]
-                else:
-                    yield
-                    continue
-                d = data[a]
-                # check when internal method has been run to capture
-                # memory state for tests purposes
-                if (yield m._dut._internal_read_resp_trans.grant):
-                    addr_queue.popleft()
-                    read_req_queue.append(d)
-                yield
-
         with self.run_simulation(m) as sim:
             sim.add_sync_process(reader_req)
             sim.add_sync_process(reader_resp)
             sim.add_sync_process(writer)
-            if not safe_writes:
-                sim.add_sync_process(internal_reader_resp)
-
-    def test_pipelined(self):
-        data_width = 6
-        max_addr = 9
-        m = SimpleTestCircuit(MemoryBank(data_layout=[("data", data_width)], elem_count=max_addr, safe_writes=False))
-
-        random.seed(14)
-
-        def process():
-            a = 3
-            d1 = random.randrange(2**data_width)
-            yield from m.write.call_init(data=d1, addr=a)
-            yield from m.read_req.call_init(addr=a)
-            yield
-            d2 = random.randrange(2**data_width)
-            yield from m.write.call_init(data=d2, addr=a)
-            yield from m.read_resp.call_init()
-            yield
-            yield from m.write.disable()
-            yield from m.read_req.disable()
-            ret_d1 = (yield from m.read_resp.call_result())["data"]
-            assert d1 == ret_d1
-            yield
-            ret_d2 = (yield from m.read_resp.call_result())["data"]
-            assert d2 == ret_d2
-
-        with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
 
 
 class TestAsyncMemoryBank(TestCaseWithSimulator):
