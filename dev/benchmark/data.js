@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1723380739522,
+  "lastUpdate": 1727254076538,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -13335,6 +13335,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/26cc87019cc6e7d274d412f7cab35fc6d4312bf1"
         },
         "date": 1723380733250,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5b96b1a064760af38c1f8522c0dbc06ffb939736",
+          "message": "Add `def_methods` (#731)\n\nCo-authored-by: lekcyjna123 <34948061+lekcyjna123@users.noreply.github.com>",
+          "timestamp": "2024-09-25T10:35:40+02:00",
+          "tree_id": "309c4a48bdeae1cd30f67e7f3fb907c42799f5ff",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5b96b1a064760af38c1f8522c0dbc06ffb939736"
+        },
+        "date": 1727254073373,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
