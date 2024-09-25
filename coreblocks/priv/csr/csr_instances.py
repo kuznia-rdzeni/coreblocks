@@ -2,6 +2,7 @@ from amaranth import *
 
 from typing import Optional
 from coreblocks.arch import CSRAddress
+from coreblocks.arch.isa import Extension
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
@@ -74,8 +75,8 @@ class MachineModeCSRRegisters(Elaboratable):
         # set `MODE` as fixed to 0 - Direct mode "All exceptions set pc to BASE"
         self.mtvec = CSRRegister(CSRAddress.MTVEC, gen_params, ro_bits=0b11)
 
-        # TODO: set low bits R/O based on gp align
-        self.mepc = CSRRegister(CSRAddress.MEPC, gen_params)
+        mepc_ro_bits = 0b1 if Extension.C in gen_params.isa.extensions else 0b11  # pc alignment (SPEC)
+        self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
 
     def elaborate(self, platform):
         m = Module()

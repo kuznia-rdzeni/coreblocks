@@ -5,8 +5,7 @@ from transactron.utils.transactron_helpers import from_method_layout, make_layou
 from ..core import *
 from ..utils import SrcLoc, get_src_loc, MultiPriorityEncoder
 from typing import Optional
-from transactron.utils import assign, AssignType, LayoutList, MethodLayout
-from .reqres import ArgumentsToResultsZipper
+from transactron.utils import LayoutList, MethodLayout
 
 __all__ = ["MemoryBank", "ContentAddressableMemory", "AsyncMemoryBank"]
 
@@ -36,7 +35,7 @@ class MemoryBank(Elaboratable):
         data_layout: LayoutList,
         elem_count: int,
         granularity: Optional[int] = None,
-        safe_writes: bool = True,
+        transparent: bool = False,
         src_loc: int | SrcLoc = 0,
     ):
         """
@@ -49,10 +48,10 @@ class MemoryBank(Elaboratable):
         granularity: Optional[int]
             Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
-        safe_writes: bool
-            Set to `False` if an optimisation can be done to increase throughput of writes. This will cause that
-            writes will be reordered with respect to reads eg. in sequence "read A, write A X", read can return
-            "X" even when write was called later. By default `True`, which disable optimisation.
+        transparent: bool
+            Read port transparency, false by default. When a read port is transparent, if a given memory address
+            is read and written in the same clock cycle, the read returns the written value instead of the value
+            which was in the memory in that cycle.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -63,7 +62,7 @@ class MemoryBank(Elaboratable):
         self.granularity = granularity
         self.width = from_method_layout(self.data_layout).size
         self.addr_width = bits_for(self.elem_count - 1)
-        self.safe_writes = safe_writes
+        self.transparent = transparent
 
         self.read_req_layout: LayoutList = [("addr", self.addr_width)]
         write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
@@ -80,60 +79,44 @@ class MemoryBank(Elaboratable):
         m = TModule()
 
         mem = Memory(width=self.width, depth=self.elem_count)
-        m.submodules.read_port = read_port = mem.read_port()
+        m.submodules.read_port = read_port = mem.read_port(transparent=self.transparent)
         m.submodules.write_port = write_port = mem.write_port()
         read_output_valid = Signal()
-        prev_read_addr = Signal(self.addr_width)
-        write_pending = Signal()
-        write_req = Signal()
-        write_args = Signal(self.write_layout)
-        write_args_prev = Signal(self.write_layout)
-        m.d.comb += read_port.addr.eq(prev_read_addr)
+        overflow_valid = Signal()
+        overflow_data = Signal(self.width)
 
-        zipper = ArgumentsToResultsZipper([("valid", 1)], self.data_layout)
-        m.submodules.zipper = zipper
+        # The read request method can be called at most twice when not reading the response.
+        # The first result is stored in the overflow buffer, the second - in the read value buffer of the memory.
+        # If the responses are always read as they arrive, overflow is never written and no stalls occur.
 
-        self._internal_read_resp_trans = Transaction(src_loc=self.src_loc)
-        with self._internal_read_resp_trans.body(m, request=read_output_valid):
-            m.d.sync += read_output_valid.eq(0)
-            zipper.write_results(m, read_port.data)
+        with m.If(read_output_valid & ~overflow_valid & self.read_req.run & ~self.read_resp.run):
+            m.d.sync += overflow_valid.eq(1)
+            m.d.sync += overflow_data.eq(read_port.data)
 
-        write_trans = Transaction(src_loc=self.src_loc)
-        with write_trans.body(m, request=write_req | (~read_output_valid & write_pending)):
-            if self.safe_writes:
-                with m.If(write_pending):
-                    m.d.comb += assign(write_args, write_args_prev, fields=AssignType.ALL)
-            m.d.sync += write_pending.eq(0)
-            m.d.comb += write_port.addr.eq(write_args.addr)
-            m.d.comb += write_port.data.eq(write_args.data)
+        @def_method(m, self.read_resp, read_output_valid | overflow_valid)
+        def _():
+            with m.If(overflow_valid):
+                m.d.sync += overflow_valid.eq(0)
+            with m.Else():
+                m.d.sync += read_output_valid.eq(0)
+            return Mux(overflow_valid, overflow_data, read_port.data)
+
+        m.d.comb += read_port.en.eq(0)  # because the init value is 1
+
+        @def_method(m, self.read_req, ~overflow_valid)
+        def _(addr):
+            m.d.sync += read_output_valid.eq(1)
+            m.d.comb += read_port.en.eq(1)
+            m.d.comb += read_port.addr.eq(addr)
+
+        @def_method(m, self.write)
+        def _(arg):
+            m.d.comb += write_port.addr.eq(arg.addr)
+            m.d.comb += write_port.data.eq(arg.data)
             if self.granularity is None:
                 m.d.comb += write_port.en.eq(1)
             else:
-                m.d.comb += write_port.en.eq(write_args.mask)
-
-        @def_method(m, self.read_resp)
-        def _():
-            output = zipper.read(m)
-            return output.results
-
-        @def_method(m, self.read_req, ~write_pending)
-        def _(addr):
-            m.d.sync += read_output_valid.eq(1)
-            m.d.comb += read_port.addr.eq(addr)
-            m.d.sync += prev_read_addr.eq(addr)
-            zipper.write_args(m, valid=1)
-
-        @def_method(m, self.write, ~write_pending)
-        def _(arg):
-            if self.safe_writes:
-                with m.If((arg.addr == read_port.addr) & (read_output_valid | self.read_req.run)):
-                    m.d.sync += write_pending.eq(1)
-                    m.d.sync += assign(write_args_prev, arg, fields=AssignType.ALL)
-                with m.Else():
-                    m.d.comb += write_req.eq(1)
-            else:
-                m.d.comb += write_req.eq(1)
-            m.d.comb += assign(write_args, arg, fields=AssignType.ALL)
+                m.d.comb += write_port.en.eq(arg.mask)
 
         return m
 
