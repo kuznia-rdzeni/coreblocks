@@ -90,7 +90,6 @@ class MemoryBank(Elaboratable):
         # If the responses are always read as they arrive, overflow is never written and no stalls occur.
 
         with m.If(read_output_valid & ~overflow_valid & self.read_req.run & ~self.read_resp.run):
-            m.d.sync += read_output_valid.eq(0)
             m.d.sync += overflow_valid.eq(1)
             m.d.sync += overflow_data.eq(read_port.data)
 
