@@ -158,7 +158,7 @@ class TestDefMethods(TestCaseWithSimulator):
             for k, method in enumerate(circuit.methods):
                 val = random.randrange(0, 2**3)
                 ret = yield from method.call(foo=val)
-                assert ret["foo"] == val + k % 2**3
+                assert ret["foo"] == (val + k) % 2**3
 
         with self.run_simulation(circuit) as sim:
             sim.add_sync_process(test_process)

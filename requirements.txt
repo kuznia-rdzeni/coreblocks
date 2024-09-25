@@ -1,4 +1,4 @@
 ./amaranth-stubs/  # can't use -e -- pyright doesn't see the stubs then :(
 amaranth-yosys==0.35.0.0.post81
-git+https://github.com/amaranth-lang/amaranth@f48b8650c4df42b3260c4791b18fad7991af0541
+git+https://github.com/amaranth-lang/amaranth@6d65dc1366da2313e8e6a77d5093ddd6acdec8aa
 dataclasses-json==0.6.3
