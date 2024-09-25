@@ -7,6 +7,7 @@ from amaranth.sim import *
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
+from transactron.testing.infrastructure import SimpleTestCircuit
 from transactron.utils import MethodStruct
 from transactron.lib import *
 
@@ -124,6 +125,43 @@ class TestDefMethod(TestCaseWithSimulator):
 
         with pytest.raises(TypeError):
             self.do_test_definition(definition)
+
+
+class TestDefMethods(TestCaseWithSimulator):
+    class CircuitTestModule(Elaboratable):
+        def __init__(self, method_definition):
+            self.methods = [
+                Method(
+                    i=[("foo", 3)],
+                    o=[("foo", 3)],
+                )
+                for _ in range(4)
+            ]
+
+            self.method_definition = method_definition
+
+        def elaborate(self, platform):
+            m = TModule()
+            m._MustUse__silence = True  # type: ignore
+
+            def_methods(m, self.methods)(self.method_definition)
+
+            return m
+
+    def test_basic_methods(self):
+        def definition(idx: int, foo: Value):
+            return {"foo": foo + idx}
+
+        circuit = SimpleTestCircuit(TestDefMethods.CircuitTestModule(definition))
+
+        def test_process():
+            for k, method in enumerate(circuit.methods):
+                val = random.randrange(0, 2**3)
+                ret = yield from method.call(foo=val)
+                assert ret["foo"] == val + k % 2**3
+
+        with self.run_simulation(circuit) as sim:
+            sim.add_sync_process(test_process)
 
 
 class AdapterCircuit(Elaboratable):
