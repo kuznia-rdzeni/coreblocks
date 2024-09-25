@@ -49,7 +49,9 @@ class MemoryBank(Elaboratable):
             Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
         transparent: bool
-            Read port transparency, false by default.
+            Read port transparency, false by default. When a read port is transparent, if a given memory address
+            is read and written in the same clock cycle, the read returns the written value instead of the value
+            which was in the memory in that cycle.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
