@@ -76,7 +76,7 @@ class TestLog(TestCaseWithSimulator):
                 yield m.input.eq(i)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(proc)
+            sim.add_process(proc)
 
         assert re.search(
             r"WARNING  test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
@@ -86,7 +86,7 @@ class TestLog(TestCaseWithSimulator):
         for i in range(0, 50, 2):
             assert re.search(
                 r"WARNING  test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
-                + f"Input is even! input={i}, counter={i + 2}",
+                + f"Input is even! input={i}, counter={i + 1}",
                 caplog.text,
             )
 
@@ -99,7 +99,7 @@ class TestLog(TestCaseWithSimulator):
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+                sim.add_process(proc)
 
         assert re.search(
             r"ERROR    test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
@@ -116,7 +116,7 @@ class TestLog(TestCaseWithSimulator):
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+                sim.add_process(proc)
 
         assert re.search(
             r"ERROR    test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] Output differs",

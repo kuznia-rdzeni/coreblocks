@@ -153,7 +153,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut = CSRUnitTestCircuit(self.gen_params, self.csr_count)
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_test)
+            sim.add_process(self.process_test)
 
     exception_csr_numbers = [
         0xC00,  # read_only
@@ -201,7 +201,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_exception_test)
+            sim.add_process(self.process_exception_test)
 
 
 class TestCSRRegister(TestCaseWithSimulator):
@@ -266,7 +266,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.randomized_process_test)
+            sim.add_process(self.randomized_process_test)
 
     def filtermap_process_test(self):
         prev_value = 0
@@ -318,7 +318,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         )
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.filtermap_process_test)
+            sim.add_process(self.filtermap_process_test)
 
     def comb_process_test(self):
         yield from self.dut.read.enable()
@@ -357,7 +357,7 @@ class TestCSRRegister(TestCaseWithSimulator):
 
         random.seed(4326)
 
-        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, reset=0xAB))
+        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, init=0xAB))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.comb_process_test)
+            sim.add_process(self.comb_process_test)

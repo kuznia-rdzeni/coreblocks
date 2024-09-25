@@ -149,8 +149,8 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.refiller_process)
+            sim.add_process(self.wishbone_slave)
+            sim.add_process(self.refiller_process)
 
 
 class ICacheBypassTestCircuit(Elaboratable):
@@ -267,8 +267,8 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.user_process)
+            sim.add_process(self.wishbone_slave)
+            sim.add_process(self.user_process)
 
 
 class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
@@ -459,7 +459,7 @@ class TestICache(TestCaseWithSimulator):
             assert len(self.refill_requests) == 0
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(cache_user_process)
+            sim.add_process(cache_user_process)
 
     def test_2_way(self):
         self.init_module(2, 4)
@@ -477,7 +477,7 @@ class TestICache(TestCaseWithSimulator):
             assert len(self.refill_requests) == 0
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(cache_process)
+            sim.add_process(cache_process)
 
     # Tests whether the cache is fully pipelined and the latency between requests and response is exactly one cycle.
     def test_pipeline(self):
@@ -573,7 +573,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.disable()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(cache_process)
+            sim.add_process(cache_process)
 
     def test_flush(self):
         self.init_module(2, 4)
@@ -656,7 +656,7 @@ class TestICache(TestCaseWithSimulator):
             self.expect_refill(0x00010000)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(cache_process)
+            sim.add_process(cache_process)
 
     def test_errors(self):
         self.init_module(1, 4)
@@ -753,7 +753,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.expect_resp(wait=True)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(cache_process)
+            sim.add_process(cache_process)
 
     def test_random(self):
         self.init_module(4, 8)
@@ -793,6 +793,6 @@ class TestICache(TestCaseWithSimulator):
                     yield Tick()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(sender)
-            sim.add_sync_process(receiver)
-            sim.add_sync_process(refiller_ctrl)
+            sim.add_process(sender)
+            sim.add_process(receiver)
+            sim.add_process(refiller_ctrl)

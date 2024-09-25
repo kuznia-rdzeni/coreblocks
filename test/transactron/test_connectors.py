@@ -43,4 +43,4 @@ class TestStableSelectingNetwork(TestCaseWithSimulator):
                 yield Tick()
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

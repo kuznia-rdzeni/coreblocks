@@ -66,7 +66,7 @@ class TestSimultaneousDiamond(TestCaseWithSimulator):
                     assert not any(dones.values())
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class UnsatisfiableTriangleTestCircuit(Elaboratable):
@@ -169,4 +169,4 @@ class TestTransitivity(TestCaseWithSimulator):
                     assert result in possibles
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

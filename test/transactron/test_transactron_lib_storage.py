@@ -129,7 +129,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
         with self.reinitialize_fixtures():
             self.setUp()
             with self.run_simulation(self.circ, max_cycles=500) as sim:
-                sim.add_sync_process(self.push_process(in_push))
-                sim.add_sync_process(self.read_process(in_read))
-                sim.add_sync_process(self.write_process(in_write))
-                sim.add_sync_process(self.remove_process(in_remove))
+                sim.add_process(self.push_process(in_push))
+                sim.add_process(self.read_process(in_read))
+                sim.add_process(self.write_process(in_write))
+                sim.add_process(self.remove_process(in_remove))

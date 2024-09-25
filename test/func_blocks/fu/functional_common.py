@@ -186,8 +186,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             self.max_wait = 10
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_sync_process(self.producer)
-            sim.add_sync_process(self.consumer)
-            sim.add_sync_process(self.exception_consumer)
+            sim.add_process(self.producer)
+            sim.add_process(self.consumer)
+            sim.add_process(self.exception_consumer)
             if pipeline_test:
-                sim.add_sync_process(self.pipeline_verifier)
+                sim.add_process(self.pipeline_verifier)

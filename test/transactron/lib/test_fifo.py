@@ -75,5 +75,5 @@ class TestBasicFifo(TestCaseWithSimulator):
                 yield from fifoc.fifo_read.disable()
 
         with self.run_simulation(fifoc) as sim:
-            sim.add_sync_process(source)
-            sim.add_sync_process(target)
+            sim.add_process(source)
+            sim.add_process(target)

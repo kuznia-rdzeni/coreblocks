@@ -17,8 +17,8 @@ class _VCDWriterExt(_VCDWriter):
     def close(self, timestamp):
         def save_signal(value: Value):
             for signal in value._rhs_signals():  # type: ignore
-                if signal in self.gtkw_names:
-                    for name in self.gtkw_names[signal]:
+                if signal in self.gtkw_signal_names:
+                    for name in self.gtkw_signal_names[signal]:
                         self.gtkw_save.trace(name)
 
         def gtkw_traces(traces):

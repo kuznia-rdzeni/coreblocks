@@ -158,7 +158,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.run_and_check)
+            sim.add_process(self.run_and_check)
 
 
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
@@ -283,5 +283,5 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             bin_src["data"][self.reg_init_mem_offset // 4 + reg_id] = val
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.run_with_interrupt_process)
-            sim.add_sync_process(self.clear_level_interrupt_procsess)
+            sim.add_process(self.run_with_interrupt_process)
+            sim.add_process(self.clear_level_interrupt_procsess)

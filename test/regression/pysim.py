@@ -141,19 +141,19 @@ class PySimulation(SimulationBackend):
             self.cycle_cnt = 0
 
             sim = PysimSimulator(core, max_cycles=timeout_cycles, traces_file=self.traces_file)
-            sim.add_sync_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
-            sim.add_sync_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
+            sim.add_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
+            sim.add_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
 
             def on_error():
                 raise RuntimeError("Simulation finished due to an error")
 
-            sim.add_sync_process(make_logging_process(self.log_level, self.log_filter, on_error))
+            sim.add_process(make_logging_process(self.log_level, self.log_filter, on_error))
 
             profile = None
             if "__TRANSACTRON_PROFILE" in os.environ:
                 transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
                 profile = Profile()
-                sim.add_sync_process(profiler_process(transaction_manager, profile))
+                sim.add_process(profiler_process(transaction_manager, profile))
 
             metric_values: dict[str, dict[str, int]] = {}
 
@@ -167,7 +167,7 @@ class PySimulation(SimulationBackend):
                             metric_name, reg_name
                         )
 
-            sim.add_sync_process(self._waiter(on_finish=on_sim_finish))
+            sim.add_process(self._waiter(on_finish=on_sim_finish))
             success = sim.run()
 
             self.pretty_dump_metrics(metric_values)

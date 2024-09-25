@@ -60,12 +60,12 @@ class DoubleCounterCSR(Elaboratable):
 
 class MachineModeCSRRegisters(Elaboratable):
     def __init__(self, gen_params: GenParams):
-        self.mvendorid = CSRRegister(CSRAddress.MVENDORID, gen_params, reset=0)
-        self.marchid = CSRRegister(CSRAddress.MARCHID, gen_params, reset=gen_params.marchid)
-        self.mimpid = CSRRegister(CSRAddress.MIMPID, gen_params, reset=gen_params.mimpid)
-        self.mhartid = CSRRegister(CSRAddress.MHARTID, gen_params, reset=0)
+        self.mvendorid = CSRRegister(CSRAddress.MVENDORID, gen_params, init=0)
+        self.marchid = CSRRegister(CSRAddress.MARCHID, gen_params, init=gen_params.marchid)
+        self.mimpid = CSRRegister(CSRAddress.MIMPID, gen_params, init=gen_params.mimpid)
+        self.mhartid = CSRRegister(CSRAddress.MHARTID, gen_params, init=0)
         self.mscratch = CSRRegister(CSRAddress.MSCRATCH, gen_params)
-        self.mconfigptr = CSRRegister(CSRAddress.MCONFIGPTR, gen_params, reset=0)
+        self.mconfigptr = CSRRegister(CSRAddress.MCONFIGPTR, gen_params, init=0)
 
         self.mstatus = AliasedCSR(CSRAddress.MSTATUS, gen_params)
 

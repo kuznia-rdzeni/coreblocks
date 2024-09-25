@@ -28,4 +28,4 @@ class TestNow(TestCaseWithSimulator):
 
     def test_random(self):
         with self.run_simulation(self.m, 50) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)

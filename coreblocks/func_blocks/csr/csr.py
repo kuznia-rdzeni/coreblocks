@@ -129,7 +129,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         )
 
         # Temporary, until privileged spec is implemented
-        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.MACHINE)
+        priv_level = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
 
         exe_side_fx = Signal()
 

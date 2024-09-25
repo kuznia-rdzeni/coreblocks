@@ -294,4 +294,4 @@ class TestInstrDecompress(TestCaseWithSimulator):
                 yield Tick()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

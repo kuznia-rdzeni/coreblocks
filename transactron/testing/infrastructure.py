@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import functools
+import warnings
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
 from abc import ABC
@@ -21,6 +22,7 @@ from transactron.lib import AdapterTrans
 from transactron.core.keys import TransactionManagerKey
 from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
+
 
 T = TypeVar("T")
 _T_nested_collection: TypeAlias = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
@@ -195,9 +197,9 @@ class PysimSimulator(Simulator):
 
         self.deadline = clk_period * max_cycles
 
-    def add_sync_process(self, f: Callable[[], TestGen]):
+    def add_process(self, f: Callable[[], TestGen]):
         f_wrapped = SyncProcessWrapper(f)
-        super().add_sync_process(f_wrapped._wrapping_function)
+        super().add_process(f_wrapped._wrapping_function)
 
     def run(self) -> bool:
         with self.ctx:
@@ -219,12 +221,12 @@ class TestCaseWithSimulator:
         for key in dir(self):
             val = getattr(self, key)
             if hasattr(val, "_transactron_testing_process"):
-                sim.add_sync_process(val)
+                sim.add_process(val)
 
     def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         for key, val in frame_locals.items():
             if hasattr(val, "_transactron_testing_process"):
-                sim.add_sync_process(val)
+                sim.add_process(val)
 
     def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         self.add_class_mocks(sim)
@@ -328,9 +330,13 @@ class TestCaseWithSimulator:
         for f in self._transactron_sim_processes_to_add:
             ret = f()
             if ret is not None:
-                sim.add_sync_process(ret)
+                sim.add_process(ret)
 
-        res = sim.run()
+        with warnings.catch_warnings():
+            # TODO: figure out testing without settles!
+            warnings.filterwarnings("ignore", r"The `Settle` command is deprecated per RFC 27\.")
+
+            res = sim.run()
         assert res, "Simulation time limit exceeded"
 
     def tick(self, cycle_cnt: int = 1):

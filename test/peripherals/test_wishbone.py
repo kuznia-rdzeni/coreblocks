@@ -137,9 +137,9 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
 
         with self.run_simulation(twbm) as sim:
-            sim.add_sync_process(process)
-            sim.add_sync_process(result_process)
-            sim.add_sync_process(slave)
+            sim.add_process(process)
+            sim.add_process(result_process)
+            sim.add_process(slave)
 
 
 class TestWishboneMuxer(TestCaseWithSimulator):
@@ -180,7 +180,7 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             yield from wb_master.master_verify(1)
 
         with self.run_simulation(mux) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TestWishboneAribiter(TestCaseWithSimulator):
@@ -239,7 +239,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[1].master_verify()
 
         with self.run_simulation(arb) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TestPipelinedWishboneMaster(TestCaseWithSimulator):
@@ -303,9 +303,9 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
                 yield Tick()
 
         with self.run_simulation(pwbm) as sim:
-            sim.add_sync_process(request_process)
-            sim.add_sync_process(verify_process)
-            sim.add_sync_process(slave_process)
+            sim.add_process(request_process)
+            sim.add_process(verify_process)
+            sim.add_process(slave_process)
 
 
 class WishboneMemorySlaveCircuit(Elaboratable):
@@ -389,6 +389,6 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                     assert (yield self.m.mem_slave.mem[req["addr"]]) == mem_state[req["addr"]]
 
         with self.run_simulation(self.m, max_cycles=3000) as sim:
-            sim.add_sync_process(request_process)
-            sim.add_sync_process(result_process)
-            sim.add_sync_process(write_process)
+            sim.add_process(request_process)
+            sim.add_process(result_process)
+            sim.add_process(write_process)

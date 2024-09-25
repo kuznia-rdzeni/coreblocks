@@ -258,6 +258,6 @@ class TestAXILiteMaster(TestCaseWithSimulator):
             assert resp["resp"] == 1
 
         with self.run_simulation(almt) as sim:
-            sim.add_sync_process(master_process)
-            sim.add_sync_process(slave_process)
-            sim.add_sync_process(result_process)
+            sim.add_process(master_process)
+            sim.add_process(slave_process)
+            sim.add_process(result_process)

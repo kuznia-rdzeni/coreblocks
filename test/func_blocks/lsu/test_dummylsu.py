@@ -248,9 +248,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             assert arg == self.exception_queue.pop()
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.inserter)
-            sim.add_sync_process(self.consumer)
+            sim.add_process(self.wishbone_slave)
+            sim.add_process(self.inserter)
+            sim.add_process(self.consumer)
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
@@ -305,7 +305,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.one_instr_test)
+            sim.add_process(self.one_instr_test)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
@@ -410,10 +410,10 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.inserter)
-            sim.add_sync_process(self.get_resulter)
-            sim.add_sync_process(self.precommiter)
+            sim.add_process(self.wishbone_slave)
+            sim.add_process(self.inserter)
+            sim.add_process(self.get_resulter)
+            sim.add_process(self.precommiter)
 
 
 class TestDummyLSUFence(TestCaseWithSimulator):
@@ -448,4 +448,4 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)

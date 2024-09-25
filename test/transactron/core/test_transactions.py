@@ -76,7 +76,7 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0, 0)
 
         with self.run_simulation(sched) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     def test_multi(self):
         sched = Scheduler(4)
@@ -100,7 +100,7 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0b0010, 0b0010)
 
         with self.run_simulation(sched) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TransactionConflictTestCircuit(Elaboratable):
@@ -192,9 +192,9 @@ class TestTransactionConflict(TestCaseWithSimulator):
         self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
 
         with self.run_simulation(self.m, add_transaction_module=False) as sim:
-            sim.add_sync_process(self.make_in1_process(prob1))
-            sim.add_sync_process(self.make_in2_process(prob2))
-            sim.add_sync_process(self.make_out_process(probout))
+            sim.add_process(self.make_in1_process(prob1))
+            sim.add_process(self.make_in2_process(prob2))
+            sim.add_process(self.make_out_process(probout))
 
         assert not self.in_expected
         assert not self.out1_expected
@@ -374,7 +374,7 @@ class TestNested(TestCaseWithSimulator):
                 assert (yield m.t2) == r1 * r2
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
@@ -420,7 +420,7 @@ class TestScheduleBefore(TestCaseWithSimulator):
                 assert not (yield m.t2)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class SingleCallerTestCircuit(Elaboratable):

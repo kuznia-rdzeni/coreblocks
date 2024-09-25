@@ -54,6 +54,6 @@ class TestValidateArguments(TestCaseWithSimulator):
         self.m = ValidateArgumentsTestCircuit()
         self.accepted_val = 0
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.changer)
-            sim.add_sync_process(self.control_caller(self.m.caller1, self.m.method))
-            sim.add_sync_process(self.control_caller(self.m.caller2, self.m.method))
+            sim.add_process(self.changer)
+            sim.add_process(self.control_caller(self.m.caller1, self.m.method))
+            sim.add_process(self.control_caller(self.m.caller2, self.m.method))

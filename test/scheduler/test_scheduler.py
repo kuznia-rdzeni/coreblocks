@@ -380,12 +380,10 @@ class TestScheduler(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             for i in range(self.rs_count):
-                sim.add_sync_process(
+                sim.add_process(
                     self.make_output_process(io=self.m.rs_insert[i], output_queues=[self.expected_rs_entry_queue[i]])
                 )
-                sim.add_sync_process(rs_alloc_process(self.m.rs_alloc[i], i))
-            sim.add_sync_process(
-                self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
-            )
-            sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
-            sim.add_sync_process(instr_input_process)
+                sim.add_process(rs_alloc_process(self.m.rs_alloc[i], i))
+            sim.add_process(self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue]))
+            sim.add_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
+            sim.add_process(instr_input_process)

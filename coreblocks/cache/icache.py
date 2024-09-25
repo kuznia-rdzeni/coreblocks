@@ -156,7 +156,7 @@ class ICache(Elaboratable, CacheInterface):
         with Transaction().body(m):
             self.perf_flushes.incr(m, cond=flush_finish)
 
-        with m.FSM(reset="FLUSH") as fsm:
+        with m.FSM(init="FLUSH") as fsm:
             with m.State("FLUSH"):
                 with m.If(flush_finish):
                     m.next = "LOOKUP"
@@ -172,7 +172,7 @@ class ICache(Elaboratable, CacheInterface):
                     m.next = "LOOKUP"
 
         # Replacement policy
-        way_selector = Signal(self.params.num_of_ways, reset=1)
+        way_selector = Signal(self.params.num_of_ways, init=1)
         with m.If(refill_finish):
             m.d.sync += way_selector.eq(way_selector.rotate_left(1))
 

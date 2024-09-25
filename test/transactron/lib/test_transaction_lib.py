@@ -56,8 +56,8 @@ class TestFifoBase(TestCaseWithSimulator):
                 yield from self.random_wait(reader_rand)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(reader)
-            sim.add_sync_process(writer)
+            sim.add_process(reader)
+            sim.add_process(writer)
 
 
 class TestFIFO(TestFifoBase):
@@ -125,7 +125,7 @@ class TestForwarder(TestFifoBase):
                 yield from forward_check(x)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TestPipe(TestFifoBase):
@@ -193,9 +193,9 @@ class TestMemoryBank(TestCaseWithSimulator):
         max_cycles = test_count + 2 if pipeline_test else 100000
 
         with self.run_simulation(m, max_cycles=max_cycles) as sim:
-            sim.add_sync_process(reader_req)
-            sim.add_sync_process(reader_resp)
-            sim.add_sync_process(writer)
+            sim.add_process(reader_req)
+            sim.add_process(reader_resp)
+            sim.add_process(writer)
 
 
 class TestAsyncMemoryBank(TestCaseWithSimulator):
@@ -231,8 +231,8 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
                 yield from self.random_wait(reader_rand, min_cycle_cnt=1)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(reader)
-            sim.add_sync_process(writer)
+            sim.add_process(reader)
+            sim.add_process(writer)
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
@@ -326,17 +326,17 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         self.count = 1
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.consumer)
+            sim.add_process(self.consumer)
             for i in range(self.count):
-                sim.add_sync_process(self.generate_producer(i))
+                sim.add_process(self.generate_producer(i))
 
     def test_many_out(self):
         self.count = 4
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.consumer)
+            sim.add_process(self.consumer)
             for i in range(self.count):
-                sim.add_sync_process(self.generate_producer(i))
+                sim.add_process(self.generate_producer(i))
 
 
 class MethodMapTestCircuit(Elaboratable):
@@ -416,18 +416,18 @@ class TestMethodTransformer(TestCaseWithSimulator):
     def test_method_transformer(self):
         self.m = MethodMapTestCircuit(4, False, False)
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.source)
-            sim.add_sync_process(self.target)
+            sim.add_process(self.source)
+            sim.add_process(self.target)
 
     def test_method_transformer_dicts(self):
         self.m = MethodMapTestCircuit(4, False, True)
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.source)
+            sim.add_process(self.source)
 
     def test_method_transformer_with_methods(self):
         self.m = MethodMapTestCircuit(4, True, True)
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.source)
+            sim.add_process(self.source)
 
 
 class TestMethodFilter(TestCaseWithSimulator):
@@ -461,7 +461,7 @@ class TestMethodFilter(TestCaseWithSimulator):
         )
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.source)
+            sim.add_process(self.source)
 
     @parameterized.expand([(True,), (False,)])
     def test_method_filter(self, use_condition):
@@ -473,7 +473,7 @@ class TestMethodFilter(TestCaseWithSimulator):
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition, use_condition=use_condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.source)
+            sim.add_process(self.source)
 
 
 class MethodProductTestCircuit(Elaboratable):
@@ -546,9 +546,9 @@ class TestMethodProduct(TestCaseWithSimulator):
                 assert val == data
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(method_process)
+            sim.add_process(method_process)
             for k in range(targets):
-                sim.add_sync_process(target_process(k))
+                sim.add_process(target_process(k))
 
 
 class TestSerializer(TestCaseWithSimulator):
@@ -615,8 +615,8 @@ class TestSerializer(TestCaseWithSimulator):
     def test_serial(self):
         with self.run_simulation(self.m) as sim:
             for i in range(self.port_count):
-                sim.add_sync_process(self.requestor(i))
-                sim.add_sync_process(self.responder(i))
+                sim.add_process(self.requestor(i))
+                sim.add_process(self.responder(i))
 
 
 class TestMethodTryProduct(TestCaseWithSimulator):
@@ -654,9 +654,9 @@ class TestMethodTryProduct(TestCaseWithSimulator):
                     assert val == {}
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(method_process)
+            sim.add_process(method_process)
             for k in range(targets):
-                sim.add_sync_process(target_process(k))
+                sim.add_process(target_process(k))
 
 
 class MethodTryProductTestCircuit(Elaboratable):
@@ -758,4 +758,4 @@ class TestCondition(TestCaseWithSimulator):
                     assert selection in [c1, 2 * c2, 3 * c3]
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

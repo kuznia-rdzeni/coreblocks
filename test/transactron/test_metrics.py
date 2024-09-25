@@ -92,7 +92,7 @@ class TestHwCounter(TestCaseWithSimulator):
                     called_cnt += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     def test_counter_with_condition_in_method(self):
         m = SimpleTestCircuit(CounterWithConditionInMethodCircuit())
@@ -117,7 +117,7 @@ class TestHwCounter(TestCaseWithSimulator):
                     called_cnt += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     def test_counter_with_condition_without_method(self):
         m = CounterWithoutMethodCircuit()
@@ -139,7 +139,7 @@ class TestHwCounter(TestCaseWithSimulator):
                     called_cnt += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
 
 class OneHotEnum(IntFlag):
@@ -200,7 +200,7 @@ class TestTaggedCounter(TestCaseWithSimulator):
                 counts[tag] += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     def test_one_hot_enum(self):
         self.do_test_enum(OneHotEnum, [e.value for e in OneHotEnum])
@@ -306,7 +306,7 @@ class TestHwHistogram(TestCaseWithSimulator):
                 assert total_count == (yield histogram.count.value)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
 
 class TestLatencyMeasurerBase(TestCaseWithSimulator):
@@ -379,8 +379,8 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
             self.check_latencies(m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+            sim.add_process(producer)
+            sim.add_process(consumer)
 
 
 @parameterized_class(
@@ -458,8 +458,8 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
             self.check_latencies(m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+            sim.add_process(producer)
+            sim.add_process(consumer)
 
 
 class MetricManagerTestCircuit(Elaboratable):
@@ -544,4 +544,4 @@ class TestMetricsManager(TestCaseWithSimulator):
                 assert counters[2] == (yield metrics_manager.get_register_value("bar.baz.counter3", "count"))
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)

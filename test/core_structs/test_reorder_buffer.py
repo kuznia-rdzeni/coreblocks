@@ -82,9 +82,9 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.log_regs = self.gen_params.isa.reg_cnt
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.gen_input)
-            sim.add_sync_process(self.do_updates)
-            sim.add_sync_process(self.do_retire)
+            sim.add_process(self.gen_input)
+            sim.add_process(self.do_updates)
+            sim.add_process(self.do_retire)
 
 
 class TestFullDoneCase(TestCaseWithSimulator):
@@ -130,5 +130,5 @@ class TestFullDoneCase(TestCaseWithSimulator):
         self.phys_regs = 2**self.gen_params.phys_regs_bits
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.gen_input)
-            sim.add_sync_process(self.do_retire)
+            sim.add_process(self.gen_input)
+            sim.add_process(self.do_retire)
