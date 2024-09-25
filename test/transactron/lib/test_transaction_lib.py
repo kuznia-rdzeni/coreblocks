@@ -179,11 +179,11 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         def reader_resp():
             for cycle in range(test_count):
-                for _ in range(2):
+                for _ in range(3):
                     yield Settle()
                 while not read_req_queue:
                     yield from self.random_wait(reader_resp_rand or 1, min_cycle_cnt=1)
-                    for _ in range(2):
+                    for _ in range(3):
                         yield Settle()
                 d = read_req_queue.popleft()
                 assert (yield from m.read_resp.call()) == {"data": d}
