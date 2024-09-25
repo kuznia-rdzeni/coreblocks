@@ -2,6 +2,7 @@ from typing import Iterable, Mapping
 from contextlib import contextmanager
 from amaranth.lib.data import View
 from amaranth.sim.pysim import _VCDWriter
+from amaranth.sim import Tick
 from amaranth import *
 from transactron.utils import flatten_signals
 
@@ -64,7 +65,7 @@ def write_vcd_ext(engine, vcd_file, gtkw_file, traces):
     vcd_writer = _VCDWriterExt(engine._fragment, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=traces)
     try:
         engine._vcd_writers.append(vcd_writer)
-        yield
+        yield Tick()
     finally:
         vcd_writer.close(engine.now)
         engine._vcd_writers.remove(vcd_writer)

@@ -1,6 +1,6 @@
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 from amaranth import *
 
 from coreblocks.frontend.decoder.rvc import InstrDecompress
@@ -291,7 +291,7 @@ class TestInstrDecompress(TestCaseWithSimulator):
                 yield Settle()
 
                 assert (yield self.m.instr_out) == (yield expected)
-                yield
+                yield Tick()
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(process)

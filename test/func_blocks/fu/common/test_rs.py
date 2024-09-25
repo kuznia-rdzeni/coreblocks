@@ -2,7 +2,7 @@ import random
 from collections import deque
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 
 from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
@@ -90,7 +90,7 @@ class TestRS(TestCaseWithSimulator):
         for data in self.data_list:
             yield Settle()  # so that select_process can insert into the queue
             while not self.select_queue:
-                yield
+                yield Tick()
                 yield Settle()
             rs_entry_id = self.select_queue.pop()
             yield from self.m.insert.call({"rs_entry_id": rs_entry_id, "rs_data": data})
@@ -103,7 +103,7 @@ class TestRS(TestCaseWithSimulator):
         while not self.finished:
             yield Settle()  # so that insert_process can insert into the set
             if not self.regs_to_update:
-                yield
+                yield Tick()
                 continue
             reg_id = random.choice(list(self.regs_to_update))
             self.regs_to_update.discard(reg_id)
@@ -124,11 +124,11 @@ class TestRS(TestCaseWithSimulator):
         for k in range(len(self.data_list)):
             yield Settle()
             while not (yield from self.m.get_ready_list[0].done()):
-                yield
+                yield Tick()
             ready_list = (yield from self.m.get_ready_list[0].call_result())["ready_list"]
             possible_ids = [i for i in range(2**self.rs_entries_bits) if ready_list & (1 << i)]
             if not possible_ids:
-                yield
+                yield Tick()
                 continue
             rs_entry_id = random.choice(possible_ids)
             k = self.rs_entries[rs_entry_id]

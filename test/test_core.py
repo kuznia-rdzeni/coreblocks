@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import connect
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Tick
 
 from transactron.utils import align_to_power_of_two
 
@@ -146,7 +146,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
     def run_and_check(self):
         for _ in range(self.cycle_count):
-            yield
+            yield Tick()
 
         for reg_id, val in self.expected_regvals.items():
             assert (yield from self.get_arch_reg_val(reg_id)) == val
@@ -204,14 +204,14 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         yield Passive()
         while True:
             while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
-                yield
+                yield Tick()
 
             if (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 2:
                 assert False, "`fail` called"
 
             yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
             yield self.m.interrupt_level.eq(0)
-            yield
+            yield Tick()
 
     def run_with_interrupt_process(self):
         main_cycles = 0
@@ -220,7 +220,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
         # wait for interrupt enable
         while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
-            yield
+            yield Tick()
 
         def do_interrupt():
             count = 0
@@ -232,7 +232,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0 and not self.edge_only:
                 yield self.m.interrupt_level.eq(1)
                 count += 1
-            yield
+            yield Tick()
             yield self.m.interrupt_edge.eq(0)
             return count
 
@@ -248,28 +248,28 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
             # wait for the interrupt to get registered
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 1:
-                yield
+                yield Tick()
 
             # trigger interrupt during execution of ISR handler (blocked-pending) with some chance
             early_interrupt = random.random() < 0.4
             if early_interrupt:
                 # wait until interrupts are cleared, so it won't be missed
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:
-                    yield
+                    yield Tick()
 
                 assert (yield from self.get_arch_reg_val(30)) == int_count
 
                 int_count += yield from do_interrupt()
             else:
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:
-                    yield
+                    yield Tick()
                 assert (yield from self.get_arch_reg_val(30)) == int_count
 
             handler_count += 1
 
             # wait until ISR returns
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
-                yield
+                yield Tick()
 
         assert (yield from self.get_arch_reg_val(30)) == int_count
         assert (yield from self.get_arch_reg_val(27)) == handler_count

@@ -800,7 +800,7 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 assert in1 != self.bad_number or not out_t1
                 assert in2 != self.bad_number or not out_t2
 
-                yield
+                yield Tick()
 
         with self.run_simulation(self.circ, 100) as sim:
             sim.add_sync_process(process)

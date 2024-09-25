@@ -14,7 +14,7 @@ class AXILiteInterfaceWrapper:
 
     def slave_ra_wait(self):
         while not (yield self.axi_lite.read_address.valid):
-            yield
+            yield Tick()
 
     def slave_ra_verify(self, exp_addr, prot):
         assert (yield self.axi_lite.read_address.valid)
@@ -23,14 +23,14 @@ class AXILiteInterfaceWrapper:
 
     def slave_rd_wait(self):
         while not (yield self.axi_lite.read_data.rdy):
-            yield
+            yield Tick()
 
     def slave_rd_respond(self, data, resp=0):
         assert (yield self.axi_lite.read_data.rdy)
         yield self.axi_lite.read_data.data.eq(data)
         yield self.axi_lite.read_data.resp.eq(resp)
         yield self.axi_lite.read_data.valid.eq(1)
-        yield
+        yield Tick()
         yield self.axi_lite.read_data.valid.eq(0)
 
     def slave_wa_ready(self, rdy=1):
@@ -38,7 +38,7 @@ class AXILiteInterfaceWrapper:
 
     def slave_wa_wait(self):
         while not (yield self.axi_lite.write_address.valid):
-            yield
+            yield Tick()
 
     def slave_wa_verify(self, exp_addr, prot):
         assert (yield self.axi_lite.write_address.valid)
@@ -50,7 +50,7 @@ class AXILiteInterfaceWrapper:
 
     def slave_wd_wait(self):
         while not (yield self.axi_lite.write_data.valid):
-            yield
+            yield Tick()
 
     def slave_wd_verify(self, exp_data, strb):
         assert (yield self.axi_lite.write_data.valid)
@@ -59,13 +59,13 @@ class AXILiteInterfaceWrapper:
 
     def slave_wr_wait(self):
         while not (yield self.axi_lite.write_response.rdy):
-            yield
+            yield Tick()
 
     def slave_wr_respond(self, resp=0):
         assert (yield self.axi_lite.write_response.rdy)
         yield self.axi_lite.write_response.resp.eq(resp)
         yield self.axi_lite.write_response.valid.eq(1)
-        yield
+        yield Tick()
         yield self.axi_lite.write_response.valid.eq(0)
 
 
@@ -201,12 +201,12 @@ class TestAXILiteMaster(TestCaseWithSimulator):
 
             yield from slave.slave_ra_wait()
             for _ in range(2):
-                yield
+                yield Tick()
             yield from slave.slave_ra_ready(1)
             yield from slave.slave_ra_verify(1, 1)
             # wait for next rising edge
-            yield
-            yield
+            yield Tick()
+            yield Tick()
 
             yield from slave.slave_ra_wait()
             yield from slave.slave_ra_verify(2, 1)
@@ -247,7 +247,7 @@ class TestAXILiteMaster(TestCaseWithSimulator):
             assert resp["resp"] == 0
 
             for _ in range(5):
-                yield
+                yield Tick()
 
             resp = yield from almt.read_data_response_adapter.call()
             assert resp["data"] == 3

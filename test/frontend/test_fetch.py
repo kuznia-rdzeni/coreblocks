@@ -6,7 +6,7 @@ from parameterized import parameterized_class
 import random
 
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Tick
 from coreblocks.interface.keys import FetchResumeKey
 
 from transactron.core import Method
@@ -138,10 +138,10 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         while True:
             while len(self.input_q) == 0:
-                yield
+                yield Tick()
 
             while random.random() < 0.5:
-                yield
+                yield Tick()
 
             req_addr = self.input_q.popleft() & ~(self.gen_params.fetch_block_bytes - 1)
 
@@ -194,7 +194,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
                 # Empty the pipeline
                 yield from self.clean_fifo.call_try()
-                yield
+                yield Tick()
 
                 resume_pc = instr["next_pc"]
                 if access_fault:

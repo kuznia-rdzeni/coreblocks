@@ -4,7 +4,7 @@ from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.lib.data import View
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 from parameterized import parameterized_class
 from coreblocks.interface.keys import CoreStateKey
 from coreblocks.interface.layouts import ROBLayouts, RetirementLayouts
@@ -173,7 +173,7 @@ class TestScheduler(TestCaseWithSimulator):
                         return None
                 else:
                     # if no element available, wait and retry on the next clock cycle
-                    yield
+                    yield Tick()
 
             # merge queue element with all previous ones (dict merge)
             item = item | partial_item

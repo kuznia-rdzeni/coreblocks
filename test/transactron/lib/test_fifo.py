@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 
 from transactron.lib import AdapterTrans, BasicFifo
 
@@ -63,10 +63,10 @@ class TestBasicFifo(TestCaseWithSimulator):
         def target():
             while not self.done or expq:
                 if random.randint(0, 1):
-                    yield
+                    yield Tick()
 
                 yield from fifoc.fifo_read.call_init()
-                yield
+                yield Tick()
 
                 v = yield from fifoc.fifo_read.call_result()
                 if v is not None:

@@ -138,10 +138,13 @@ class SyncProcessWrapper:
                 # call orginal test process and catch data yielded by it in `command` variable
                 command = org_coroutine.send(response)
                 # If process wait for new cycle
-                if command is None:
-                    self.current_cycle += 1
+                if command is None or isinstance(command, Tick):
+                    command = command or Tick()
+                    # TODO: use of other domains can mess up the counter!
+                    if command.domain == "sync":
+                        self.current_cycle += 1
                     # forward to amaranth
-                    yield
+                    yield command
                 elif isinstance(command, Now):
                     response = self.current_cycle
                 # Pass everything else to amaranth simulator without modifications
@@ -210,7 +213,7 @@ class TestCaseWithSimulator:
     def configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
         with DependencyContext(self.dependency_manager):
-            yield
+            yield Tick()
 
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
@@ -336,7 +339,7 @@ class TestCaseWithSimulator:
         """
 
         for _ in range(cycle_cnt):
-            yield
+            yield Tick()
 
     def random_wait(self, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
@@ -349,7 +352,7 @@ class TestCaseWithSimulator:
         Wait till the first success, where there is `prob` probability for success in each cycle.
         """
         while random.random() > prob:
-            yield
+            yield Tick()
 
     def multi_settle(self, settle_count: int = 1):
         for _ in range(settle_count):

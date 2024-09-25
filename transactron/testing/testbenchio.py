@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.sim import Settle, Passive
+from amaranth.sim import Settle, Passive, Tick
 from typing import Optional, Callable
 from transactron.lib import AdapterBase
 from transactron.lib.adapters import Adapter
@@ -33,7 +33,7 @@ class TestbenchIO(Elaboratable):
 
     def wait_until_done(self) -> TestGen[None]:
         while (yield self.adapter.done) != 1:
-            yield
+            yield Tick()
 
     def set_inputs(self, data: RecordValueDict = {}) -> TestGen[None]:
         yield from assign(self.adapter.data_in, data)
@@ -58,7 +58,7 @@ class TestbenchIO(Elaboratable):
 
     def call_do(self) -> TestGen[RecordIntDict]:
         while (outputs := (yield from self.call_result())) is None:
-            yield
+            yield Tick()
         yield from self.disable()
         return outputs
 
@@ -70,7 +70,7 @@ class TestbenchIO(Elaboratable):
         if not data:
             data = kwdata
         yield from self.call_init(data)
-        yield
+        yield Tick()
         outputs = yield from self.call_result()
         yield from self.disable()
         return outputs
@@ -81,7 +81,7 @@ class TestbenchIO(Elaboratable):
         if not data:
             data = kwdata
         yield from self.call_init(data)
-        yield
+        yield Tick()
         return (yield from self.call_do())
 
     # Operations for Adapter
@@ -117,7 +117,7 @@ class TestbenchIO(Elaboratable):
             yield Settle()
         yield from handle_validate_arguments()
         while (arg := (yield from self.method_argument())) is None:
-            yield
+            yield Tick()
 
             yield from self.set_enable(enable())
             for _ in range(extra_settle_count + 1):
@@ -126,7 +126,7 @@ class TestbenchIO(Elaboratable):
 
         ret_out = mock_def_helper(self, function, arg)
         yield from self.method_return(ret_out or {})
-        yield
+        yield Tick()
 
     def method_handle_loop(
         self,

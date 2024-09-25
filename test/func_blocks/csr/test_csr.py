@@ -234,7 +234,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 fu_read = True
                 yield from self.dut._fu_read.enable()
 
-            yield
+            yield Tick()
             yield Settle()
 
             exp_read_data = exp_write_data if fu_write or write else previous_data
@@ -329,19 +329,19 @@ class TestCSRRegister(TestCaseWithSimulator):
         yield from self.dut._fu_write.call_do()
         assert (yield from self.dut.read_comb.call_result())["data"] == 0xFFFF
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xAB
-        yield
+        yield Tick()
         assert (yield from self.dut.read.call_result())["data"] == 0xFFFB
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xFFFB
-        yield
+        yield Tick()
 
         yield from self.dut._fu_write.call_init({"data": 0x0FFF})
         yield from self.dut.write.call_init({"data": 0xAAAA})
         yield from self.dut._fu_write.call_do()
         yield from self.dut.write.call_do()
         assert (yield from self.dut.read_comb.call_result()) == {"data": 0x0FFF, "read": 1, "written": 1}
-        yield
+        yield Tick()
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xAAAA
-        yield
+        yield Tick()
 
         # single cycle
         yield from self.dut._fu_write.call_init({"data": 0x0BBB})
@@ -349,7 +349,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         update_val = (yield from self.dut.read_comb.call_result())["data"] | 0xD000
         yield from self.dut.write.call_init({"data": update_val})
         yield from self.dut.write.call_do()
-        yield
+        yield Tick()
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xDBBB
 
     def test_comb(self):

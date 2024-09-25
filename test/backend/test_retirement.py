@@ -142,14 +142,14 @@ class TestRetirement(TestCaseWithSimulator):
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
-                yield
+                yield Tick()
         assert not self.submit_q
         assert not self.rf_free_q
 
     def precommit_process(self):
         yield from self.retc.precommit_adapter.call_init()
         while self.precommit_q:
-            yield
+            yield Tick()
             info = yield from self.retc.precommit_adapter.call_result()
             assert info is not None
             assert info["side_fx"]

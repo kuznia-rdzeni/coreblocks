@@ -3,7 +3,7 @@ from parameterized import parameterized_class
 import random
 
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive, Settle
+from amaranth.sim import Passive, Settle, Tick
 from amaranth.utils import exact_log2
 
 from transactron.lib import AdapterTrans, Adapter
@@ -107,9 +107,9 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
             addr = (yield self.test_module.wb_ctrl.wb.adr) << exact_log2(self.cp.word_width_bytes)
 
-            yield
+            yield Tick()
             while random.random() < 0.5:
-                yield
+                yield Tick()
 
             err = 1 if addr in self.bad_addresses else 0
 
@@ -230,7 +230,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             addr = (yield self.m.wb_ctrl.wb.adr) << exact_log2(self.cp.word_width_bytes)
 
             while random.random() < 0.5:
-                yield
+                yield Tick()
 
             err = 1 if addr in self.bad_addrs else 0
 
@@ -248,7 +248,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             yield from self.m.issue_req.call(addr=req_addr)
 
             while random.random() < 0.5:
-                yield
+                yield Tick()
 
             ret = yield from self.m.accept_res.call()
 
@@ -263,7 +263,7 @@ class TestICacheBypass(TestCaseWithSimulator):
                 assert ret["fetch_block"] == data
 
             while random.random() < 0.5:
-                yield
+                yield Tick()
 
     def test(self):
         with self.run_simulation(self.m) as sim:
@@ -421,7 +421,7 @@ class TestICache(TestCaseWithSimulator):
         yield from self.send_req(addr)
         yield from self.m.accept_res.enable()
         yield from self.expect_resp(wait=True)
-        yield
+        yield Tick()
         yield from self.m.accept_res.disable()
 
     def test_1_way(self):
@@ -504,11 +504,11 @@ class TestICache(TestCaseWithSimulator):
                 assert (yield from self.m.issue_req.done())
 
                 # After a cycle the response should be ready
-                yield
+                yield Tick()
                 yield from self.expect_resp()
                 yield from self.m.issue_req.disable()
 
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
             yield from self.tick(5)
@@ -522,12 +522,12 @@ class TestICache(TestCaseWithSimulator):
 
             yield from self.m.accept_res.enable()
             yield from self.expect_resp()
-            yield
+            yield Tick()
             yield from self.expect_resp()
             yield from self.send_req(addr=0x0001000C)
             yield from self.expect_resp()
 
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
             yield from self.tick(5)
@@ -539,9 +539,9 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.expect_resp()
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
             yield from self.tick(3)
@@ -553,9 +553,9 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp()
-            yield
+            yield Tick()
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
             yield from self.tick(3)
@@ -567,9 +567,9 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
         with self.run_simulation(self.m) as sim:
@@ -613,7 +613,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.call_cache(0x00010000)
             self.expect_refill(0x00010000)
 
-            yield
+            yield Tick()
 
             # Try to execute issue_req and flush_cache methods at the same time
             yield from self.m.issue_req.call_init(addr=0x00010000)
@@ -622,25 +622,25 @@ class TestICache(TestCaseWithSimulator):
             yield Settle()
             assert not (yield from self.m.issue_req.done())
             assert (yield from self.m.flush_cache.done())
-            yield
+            yield Tick()
             yield from self.m.flush_cache.call_do()
             yield from self.m.issue_req.call_do()
             self.assert_resp((yield from self.m.accept_res.call()))
             self.expect_refill(0x00010000)
 
-            yield
+            yield Tick()
 
             # Schedule two requests and then flush
             yield from self.send_req(0x00000000 + self.cp.line_size_bytes)
             yield from self.send_req(0x00010000)
 
             yield from self.m.flush_cache.call_init()
-            yield
+            yield Tick()
             # We cannot flush until there are two pending requests
             assert not (yield from self.m.flush_cache.done())
-            yield
+            yield Tick()
             yield from self.m.flush_cache.disable()
-            yield
+            yield Tick()
 
             # Accept the first response
             self.assert_resp((yield from self.m.accept_res.call()))
@@ -684,7 +684,7 @@ class TestICache(TestCaseWithSimulator):
             # Test how pipelining works with errors
 
             yield from self.m.accept_res.disable()
-            yield
+            yield Tick()
 
             # Schedule two requests, the first one causing an error
             yield from self.send_req(addr=0x00020000)
@@ -693,9 +693,9 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
             yield from self.tick(3)
@@ -709,9 +709,9 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
 
             yield from self.tick(3)
@@ -723,11 +723,11 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
 
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
             yield from self.m.accept_res.disable()
-            yield
+            yield Tick()
 
             # The second request will cause an error
             yield from self.send_req(addr=0x00021004)
@@ -738,7 +738,7 @@ class TestICache(TestCaseWithSimulator):
             # Accept the first response
             yield from self.m.accept_res.enable()
             yield from self.expect_resp(wait=True)
-            yield
+            yield Tick()
 
             # Wait before accepting the second response
             yield from self.m.accept_res.disable()
@@ -746,7 +746,7 @@ class TestICache(TestCaseWithSimulator):
             yield from self.m.accept_res.enable()
             yield from self.expect_resp(wait=True)
 
-            yield
+            yield Tick()
 
             # This request should not cause an error
             yield from self.send_req(addr=0x00011000)
@@ -780,17 +780,17 @@ class TestICache(TestCaseWithSimulator):
                 yield from self.send_req(random.randrange(0, max_addr, 4))
 
                 while random.random() < 0.5:
-                    yield
+                    yield Tick()
 
         def receiver():
             for _ in range(iterations):
                 while len(self.issued_requests) == 0:
-                    yield
+                    yield Tick()
 
                 self.assert_resp((yield from self.m.accept_res.call()))
 
                 while random.random() < 0.2:
-                    yield
+                    yield Tick()
 
         with self.run_simulation(self.m) as sim:
             sim.add_sync_process(sender)

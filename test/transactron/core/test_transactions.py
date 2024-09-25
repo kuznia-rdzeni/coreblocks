@@ -57,7 +57,7 @@ class TestScheduler(TestCaseWithSimulator):
 
     def sim_step(self, sched, request, expected_grant):
         yield sched.requests.eq(request)
-        yield
+        yield Tick()
 
         if request == 0:
             assert not (yield sched.valid)
@@ -136,7 +136,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         def process():
             for i in src:
                 while random.random() >= prob:
-                    yield
+                    yield Tick()
                 tgt(i)
                 r = yield from io.call(data=i)
                 chk(r["data"])
@@ -369,7 +369,7 @@ class TestNested(TestCaseWithSimulator):
             for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
-                yield
+                yield Tick()
                 assert (yield m.t1) == r1
                 assert (yield m.t2) == r1 * r2
 
@@ -415,7 +415,7 @@ class TestScheduleBefore(TestCaseWithSimulator):
             for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
-                yield
+                yield Tick()
                 assert (yield m.t1) == r1
                 assert not (yield m.t2)
 

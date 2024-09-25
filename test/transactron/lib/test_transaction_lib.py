@@ -3,7 +3,7 @@ from itertools import product
 import random
 from operator import and_
 from functools import reduce
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 from typing import Optional, TypeAlias
 from parameterized import parameterized
 from collections import deque
@@ -92,7 +92,7 @@ class TestForwarder(TestFifoBase):
             yield Settle()
             assert (yield from m.read.call_result()) == {"data": x}
             assert (yield from m.write.call_result()) is not None
-            yield
+            yield Tick()
 
         def process():
             # test forwarding behavior
@@ -104,13 +104,13 @@ class TestForwarder(TestFifoBase):
             yield from m.write.call_init(data=42)
             yield Settle()
             assert (yield from m.write.call_result()) is not None
-            yield
+            yield Tick()
 
             # writes are not possible now
             yield from m.write.call_init(data=84)
             yield Settle()
             assert (yield from m.write.call_result()) is None
-            yield
+            yield Tick()
 
             # read from the overflow buffer, writes still blocked
             yield from m.read.enable()
@@ -118,7 +118,7 @@ class TestForwarder(TestFifoBase):
             yield Settle()
             assert (yield from m.read.call_result()) == {"data": 42}
             assert (yield from m.write.call_result()) is None
-            yield
+            yield Tick()
 
             # forwarding now works again
             for x in range(4):
@@ -530,13 +530,13 @@ class TestMethodProduct(TestCaseWithSimulator):
                 for k in range(targets):
                     method_en[k] = bool(i & (1 << k))
 
-                yield
+                yield Tick()
                 assert (yield from m.method.call_try(data=0)) is None
 
             # otherwise, the call succeeds
             for k in range(targets):
                 method_en[k] = True
-            yield
+            yield Tick()
 
             data = random.randint(0, (1 << iosize) - 1)
             val = (yield from m.method.call(data=data))["data"]
@@ -643,7 +643,7 @@ class TestMethodTryProduct(TestCaseWithSimulator):
 
                 active_targets = sum(method_en)
 
-                yield
+                yield Tick()
 
                 data = random.randint(0, (1 << iosize) - 1)
                 val = yield from m.method.call(data=data)

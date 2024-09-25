@@ -2,7 +2,7 @@ import re
 import os
 import logging
 
-from amaranth.sim import Passive, Settle
+from amaranth.sim import Passive, Settle, Tick
 from amaranth.utils import exact_log2
 from amaranth import *
 
@@ -83,7 +83,7 @@ class PySimulation(SimulationBackend):
                         rty = 1
 
                 for _ in range(delay):
-                    yield
+                    yield Tick()
 
                 yield from wb_ctrl.slave_respond(resp_data, ack=ack, err=err, rty=rty)
 
@@ -95,7 +95,7 @@ class PySimulation(SimulationBackend):
         def f():
             while self.running:
                 self.cycle_cnt += 1
-                yield
+                yield Tick()
 
             yield from on_finish()
 
