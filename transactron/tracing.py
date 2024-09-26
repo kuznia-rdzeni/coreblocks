@@ -7,6 +7,7 @@ import warnings
 from amaranth.hdl import Elaboratable, Fragment, Instance
 from amaranth.hdl._xfrm import FragmentTransformer
 from amaranth.hdl import _dsl, _ir, _mem, _xfrm
+from amaranth_types import SrcLoc
 from transactron.utils import HasElaborate
 from . import core
 
@@ -79,7 +80,7 @@ class TracingFragmentTransformer(FragmentTransformer):
 
 class TracingFragment(Fragment):
     _tracing_original: Elaboratable
-    subfragments: list[tuple[Elaboratable, str]]
+    subfragments: list[tuple[Elaboratable, str, SrcLoc]]
 
     if DIAGNOSTICS:
 
