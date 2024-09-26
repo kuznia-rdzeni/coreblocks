@@ -118,12 +118,15 @@ class MachineModeCSRRegisters(Elaboratable):
 
         # MIE bit - global interrupt enable
         self.mstatus_mie = CSRRegister(None, gen_params, width=1)
+        mstatus.add_field(MstatusFieldOffsets.MIE, self.mstatus_mie)
         # MPIE bit - previous MIE
         self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
+        mstatus.add_field(MstatusFieldOffsets.MPIE, self.mstatus_mpie)
         # MPP bit - previous priv mode
         self.mstatus_mpp = CSRRegister(
             None, gen_params, width=2, fu_write_filtermap=filter_legal_priv_mode, reset=PrivilegeLevel.MACHINE
         )
+        mstatus.add_field(MstatusFieldOffsets.MPP, self.mstatus_mpp)
 
         # Fixed MXLEN/SXLEN/UXLEN = isa.xlen
         if gen_params.isa.xlen == 64:
