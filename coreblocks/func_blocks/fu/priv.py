@@ -104,12 +104,14 @@ class PrivilegedFuncUnit(Elaboratable):
                 m.d.sync += finished.eq(1)
                 self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
-                illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_mode.read(m) != PrivilegeLevel.MACHINE)
+                priv_mode = priv_mode.read(m).data
+
+                illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_mode != PrivilegeLevel.MACHINE)
                 # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
                 illegal_wfi = (
                     (instr_fn == PrivilegedFn.Fn.WFI)
-                    & (priv_mode.read(m) == PrivilegeLevel.USER)
-                    & csr.m_mode.mstatus_tw.read(m)
+                    & (priv_mode == PrivilegeLevel.USER)
+                    & csr.m_mode.mstatus_tw.read(m).data
                 )
 
                 with condition(m, nonblocking=True) as branch:

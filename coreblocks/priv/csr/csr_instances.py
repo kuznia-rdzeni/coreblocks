@@ -83,11 +83,14 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
 
         self.priv_mode = CSRRegister(
-            CSRAddress.COREBLOCKS_TEST_PRIV_MODE if gen_params._generate_test_hardware else None,
+            None,
             gen_params,
             width=2,
             reset=PrivilegeLevel.MACHINE,
         )
+        if gen_params._generate_test_hardware:
+            self.priv_mode_public = AliasedCSR(CSRAddress.COREBLOCKS_TEST_PRIV_MODE, gen_params)
+            self.priv_mode_public.add_field(0, self.priv_mode)
 
         self.mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
 
