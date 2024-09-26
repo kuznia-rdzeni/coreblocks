@@ -145,8 +145,11 @@ class MachineModeCSRRegisters(Elaboratable):
         mstatus.add_read_only_field(MstatusFieldOffsets.MXR, 1, 0)
         mstatus.add_read_only_field(MstatusFieldOffsets.TVM, 1, 0)
         mstatus.add_read_only_field(MstatusFieldOffsets.TSR, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SPP, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SPIE, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SIE, 1, 0)
 
-        self.mstatus_tw = CSRRegister(None, gen_params, width=1)
+        self.mstatus_tw = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.TW, self.mstatus_tw)
 
         # Extension Context Status bits
