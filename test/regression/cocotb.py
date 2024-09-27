@@ -159,7 +159,6 @@ class CocotbSimulation(SimulationBackend):
                 elif component[0] == "\\":
                     obj = obj._id(component[1:], extended=False)
                 else:
-                    print(dir(obj))
                     raise
 
         return obj
