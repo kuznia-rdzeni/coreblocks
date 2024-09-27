@@ -175,6 +175,10 @@ class HwMetric(ABC, MetricModel):
     def metrics_enabled(self) -> bool:
         return DependencyContext.get().get_dependency(HwMetricsEnabledKey())
 
+    # To restore hashability lost by dataclass subclassing
+    def __hash__(self):
+        return object.__hash__(self)
+
 
 class HwCounter(Elaboratable, HwMetric):
     """Hardware Counter
