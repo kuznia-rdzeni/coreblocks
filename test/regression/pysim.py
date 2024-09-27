@@ -149,6 +149,10 @@ class PySimulation(SimulationBackend):
 
             sim.add_process(make_logging_process(self.log_level, self.log_filter, on_error))
 
+            # This enables logging in benchmarks. TODO: after unifying regression testing, remove.
+            logging.basicConfig()
+            logging.getLogger().setLevel(self.log_level)
+
             profile = None
             if "__TRANSACTRON_PROFILE" in os.environ:
                 transaction_manager = DependencyContext.get().get_dependency(TransactionManagerKey())
