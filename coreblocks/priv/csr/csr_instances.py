@@ -143,8 +143,8 @@ class MachineModeCSRRegisters(Elaboratable):
             mstatus.add_read_only_field(MstatusFieldOffsets.SBE, 1, 0)
             mstatus.add_read_only_field(MstatusFieldOffsets.MBE, 1, 0)
 
-        # future todo: Add support when PMP implemented, must be 0 when user mode not supported
-        mstatus.add_read_only_field(MstatusFieldOffsets.MPRV, 1, 0)
+        self.mstatus_mprv = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.MPRV, self.mstatus_mprv)
 
         # Supervisor mode not supported - read only 0 supervisor bits
         mstatus.add_read_only_field(MstatusFieldOffsets.SUM, 1, 0)

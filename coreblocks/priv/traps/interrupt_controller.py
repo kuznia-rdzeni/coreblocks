@@ -61,7 +61,7 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
-        m_mode_csr = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode
+        self.m_mode_csr = m_mode_csr = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
@@ -153,8 +153,10 @@ class InternalInterruptController(Component):
                 self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
                 self.mstatus_mpie.write(m, {"data": 1})
                 self.mstatus_mpp.write(m, PrivilegeLevel.USER if self.gen_params.user_mode else PrivilegeLevel.MACHINE)
-                priv_mode.write(m, self.mstatus_mpp.read(m).data)
-                # future todo: set MPRV=0 when self.mstatus_mpp.read(m) != PrivilegeLevel.MACHINE
+                mpp = self.mstatus_mpp.read(m).data
+                priv_mode.write(m, mpp)
+                with m.If(mpp != PrivilegeLevel.MACHINE):
+                    self.m_mode_csr.mstatus_mprv.write(m, 0)
 
         interrupt_priority = [
             InterruptCauseNumber.MEI,
