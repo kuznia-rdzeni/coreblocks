@@ -34,7 +34,7 @@ class FPURoundingParams:
     """FPU rounding module signature
 
     Parameters
-    -----------
+    ----------
     fpu_params: FPUParams
         FPU parameters
     is_rounded:bool
