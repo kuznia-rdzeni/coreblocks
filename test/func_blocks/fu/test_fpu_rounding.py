@@ -6,6 +6,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
 )
 from transactron import TModule
 from transactron.lib import AdapterTrans
+from parameterized import parameterized
 from transactron.testing import *
 from amaranth import *
 
@@ -46,21 +47,38 @@ class TestFPURounding(TestCaseWithSimulator):
             self.max_sub_norm_sig = (2 ** (self.params.sig_width - 1)) - 1
             self.qnan = 3 << (self.params.sig_width - 2) | 1
 
-    def test_manual(self):
-        params = FPUParams(sig_width=24, exp_width=8)
+    params = FPUParams(sig_width=24, exp_width=8)
+    help_values = HelpValues(params)
+
+    tie_to_even_inc_array = [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+    ]
+    tie_to_away_inc_array = [0, 1, 0, 1, 0, 1, 0, 1]
+    round_up_inc_array = [0, 1, 1, 1, 0, 0, 0, 0]
+    round_down_inc_array = [0, 0, 0, 0, 0, 1, 1, 1]
+    round_zero_inc_array = [0, 0, 0, 0, 0, 0, 0, 0]
+
+    @parameterized.expand([(params, help_values)])
+    def test_special_cases(self, params: FPUParams, help_values: HelpValues):
         fpurt = TestFPURounding.FPURoundingModule(params)
-        help_values = TestFPURounding.HelpValues(params)
 
         def other_cases_test(request_adapter: TestbenchIO, is_input_not_rounded: bool):
             input_values_dict = {}
             input_values_dict["sign"] = 0
             input_values_dict["sig"] = help_values.not_max_norm_even_sig
             input_values_dict["exp"] = help_values.not_max_norm_exp
-            input_values_dict["guard_bit"] = 0
+            input_values_dict["round_bit"] = 0
             input_values_dict["sticky_bit"] = 0
             input_values_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_AWAY
-            input_values_dict["errors"] = 0
-            input_values_dict["input_nan"] = 0
+            input_values_dict["invalid_operation"] = 0
+            input_values_dict["division_by_zero"] = 0
             input_values_dict["input_inf"] = 0
 
             # No errors
@@ -86,7 +104,7 @@ class TestFPURounding(TestCaseWithSimulator):
             input_values_dict["sig"] = (
                 help_values.sub_norm_sig if is_input_not_rounded else help_values.sub_norm_sig + 1
             )
-            input_values_dict["guard_bit"] = 1
+            input_values_dict["round_bit"] = 1
 
             resp = yield from request_adapter.call(input_values_dict)
 
@@ -97,25 +115,26 @@ class TestFPURounding(TestCaseWithSimulator):
 
             # underflow no rounding
 
-            input_values_dict["guard_bit"] = 0
-            input_values_dict["sig"] = help_values.sub_norm_sig
+            input_values_dict["round_bit"] = 0
+            input_values_dict["sig"] = 0
 
             resp = yield from request_adapter.call(input_values_dict)
 
             assert resp["sign"] == 0
             assert resp["exp"] == 0
-            assert resp["sig"] == help_values.sub_norm_sig
+            assert resp["sig"] == 0
             assert resp["errors"] == 24
 
             # invalid operation
 
             input_values_dict["exp"] = help_values.max_exp
             input_values_dict["sig"] = help_values.qnan
-            input_values_dict["errors"] = 1
+            input_values_dict["invalid_operation"] = 1
+            input_values_dict["division_by_zero"] = 0
 
             resp = yield from request_adapter.call(input_values_dict)
 
-            assert resp["sign"] == 0
+            assert resp["sign"] == input_values_dict["sign"]
             assert resp["exp"] == input_values_dict["exp"]
             assert resp["sig"] == input_values_dict["sig"]
             assert resp["errors"] == 1
@@ -124,19 +143,21 @@ class TestFPURounding(TestCaseWithSimulator):
 
             input_values_dict["exp"] = help_values.max_exp
             input_values_dict["sig"] = 0
-            input_values_dict["errors"] = 2
+            input_values_dict["invalid_operation"] = 0
+            input_values_dict["division_by_zero"] = 1
 
             resp = yield from request_adapter.call(input_values_dict)
-            assert resp["sign"] == 0
+            assert resp["sign"] == input_values_dict["sign"]
             assert resp["exp"] == input_values_dict["exp"]
             assert resp["sig"] == input_values_dict["sig"]
             assert resp["errors"] == 2
 
             # overflow but no guard and sticky bits
 
-            input_values_dict["guard_bit"] = 0
+            input_values_dict["round_bit"] = 0
             input_values_dict["sticky_bit"] = 0
-            input_values_dict["errors"] = 0
+            input_values_dict["invalid_operation"] = 0
+            input_values_dict["division_by_zero"] = 0
 
             resp = yield from request_adapter.call(input_values_dict)
 
@@ -162,7 +183,6 @@ class TestFPURounding(TestCaseWithSimulator):
             input_values_dict["exp"] = help_values.max_exp
             input_values_dict["sig"] = help_values.qnan
             input_values_dict["sticky_bit"] = 1
-            input_values_dict["input_nan"] = 1
             input_values_dict["input_inf"] = 0
 
             resp = yield from request_adapter.call(input_values_dict)
@@ -177,7 +197,6 @@ class TestFPURounding(TestCaseWithSimulator):
             input_values_dict["sign"] = 1
             input_values_dict["exp"] = help_values.max_exp
             input_values_dict["sig"] = 0
-            input_values_dict["input_nan"] = 0
             input_values_dict["input_inf"] = 1
 
             resp = yield from request_adapter.call(input_values_dict)
@@ -193,9 +212,8 @@ class TestFPURounding(TestCaseWithSimulator):
                 input_values_dict["exp"] = 0
                 input_values_dict["sig"] = help_values.max_sub_norm_sig
                 input_values_dict["sticky_bit"] = 1
-                input_values_dict["guard_bit"] = 1
+                input_values_dict["round_bit"] = 1
                 input_values_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_AWAY
-                input_values_dict["input_nan"] = 0
                 input_values_dict["input_inf"] = 0
 
                 resp = yield from request_adapter.call(input_values_dict)
@@ -204,13 +222,81 @@ class TestFPURounding(TestCaseWithSimulator):
                 assert resp["sig"] == input_values_dict["sig"] + 1
                 assert resp["errors"] == 16
 
+        def test_process():
+            yield from other_cases_test(fpurt.rounding_request_adapter, True)
+            yield from other_cases_test(fpurt.input_rounded_rounding_request_adapter, False)
+
+        with self.run_simulation(fpurt) as sim:
+            sim.add_sync_process(test_process)
+
+    @parameterized.expand(
+        [
+            (
+                params,
+                help_values,
+                RoundingModes.ROUND_NEAREST_EVEN,
+                tie_to_away_inc_array,
+                0,
+                help_values.max_exp,
+                0,
+                help_values.max_exp,
+            ),
+            (
+                params,
+                help_values,
+                RoundingModes.ROUND_NEAREST_AWAY,
+                tie_to_away_inc_array,
+                0,
+                help_values.max_exp,
+                0,
+                help_values.max_exp,
+            ),
+            (
+                params,
+                help_values,
+                RoundingModes.ROUND_UP,
+                round_up_inc_array,
+                0,
+                help_values.max_exp,
+                help_values.max_sig,
+                help_values.max_norm_exp,
+            ),
+            (
+                params,
+                help_values,
+                RoundingModes.ROUND_DOWN,
+                round_down_inc_array,
+                help_values.max_sig,
+                help_values.max_norm_exp,
+                0,
+                help_values.max_exp,
+            ),
+            (
+                params,
+                help_values,
+                RoundingModes.ROUND_ZERO,
+                round_zero_inc_array,
+                help_values.max_sig,
+                help_values.max_norm_exp,
+                help_values.max_sig,
+                help_values.max_norm_exp,
+            ),
+        ]
+    )
+    def test_rounding(
+        self,
+        params: FPUParams,
+        help_values: HelpValues,
+        rm: RoundingModes,
+        inc_arr: list,
+        plus_oveflow_sig: int,
+        plus_overflow_exp: int,
+        minus_overflow_sig: int,
+        minus_overflow_exp: int,
+    ):
+        fpurt = TestFPURounding.FPURoundingModule(params)
+
         def one_rounding_mode_test(
-            rm: RoundingModes,
-            inc_arr: list,
-            plus_oveflow_sig: int,
-            plus_overflow_exp: int,
-            minus_overflow_sig: int,
-            minus_overflow_exp: int,
             request_adapter: TestbenchIO,
             is_input_not_rounded: bool,
         ):
@@ -226,11 +312,11 @@ class TestFPURounding(TestCaseWithSimulator):
                 if is_input_not_rounded and rm != RoundingModes.ROUND_DOWN and rm != RoundingModes.ROUND_ZERO
                 else help_values.max_exp
             )
-            input_values_dict["guard_bit"] = 1
+            input_values_dict["round_bit"] = 1
             input_values_dict["sticky_bit"] = 1
             input_values_dict["rounding_mode"] = rm
-            input_values_dict["errors"] = 0
-            input_values_dict["input_nan"] = 0
+            input_values_dict["invalid_operation"] = 0
+            input_values_dict["division_by_zero"] = 0
             input_values_dict["input_inf"] = 0
 
             # overflow detection
@@ -263,7 +349,7 @@ class TestFPURounding(TestCaseWithSimulator):
 
             for i in range(4):
                 input_values_dict["sign"] = 0
-                input_values_dict["guard_bit"] = i & 1
+                input_values_dict["round_bit"] = i & 1
                 input_values_dict["sticky_bit"] = (i >> 1) & 1
                 input_values_dict["sig"] = (
                     help_values.not_max_norm_sig if is_input_not_rounded else help_values.not_max_norm_sig + inc_arr[i]
@@ -296,7 +382,7 @@ class TestFPURounding(TestCaseWithSimulator):
 
             if rm == RoundingModes.ROUND_NEAREST_EVEN:
                 input_values_dict["sticky_bit"] = 0
-                input_values_dict["guard_bit"] = 1
+                input_values_dict["round_bit"] = 1
 
                 # tie, no increment
                 input_values_dict["sign"] = 1
@@ -316,78 +402,9 @@ class TestFPURounding(TestCaseWithSimulator):
                 assert resp["sig"] == help_values.not_max_norm_even_sig
                 assert resp["errors"] == 16
 
-        def all_rounding_modes_test(request_adapter: TestbenchIO, is_input_not_rounded: bool):
-            tie_to_even_inc_array = [
-                0,
-                1,
-                0,
-                1,
-                0,
-                1,
-                0,
-                1,
-            ]
-            tie_to_away_inc_array = [0, 1, 0, 1, 0, 1, 0, 1]
-            round_up_inc_array = [0, 1, 1, 1, 0, 0, 0, 0]
-            round_down_inc_array = [0, 0, 0, 0, 0, 1, 1, 1]
-            round_zero_inc_array = [0, 0, 0, 0, 0, 0, 0, 0]
-
-            yield from one_rounding_mode_test(
-                RoundingModes.ROUND_NEAREST_EVEN,
-                tie_to_even_inc_array,
-                0,
-                help_values.max_exp,
-                0,
-                help_values.max_exp,
-                request_adapter,
-                is_input_not_rounded,
-            )
-            yield from one_rounding_mode_test(
-                RoundingModes.ROUND_NEAREST_AWAY,
-                tie_to_away_inc_array,
-                0,
-                help_values.max_exp,
-                0,
-                help_values.max_exp,
-                request_adapter,
-                is_input_not_rounded,
-            )
-            yield from one_rounding_mode_test(
-                RoundingModes.ROUND_UP,
-                round_up_inc_array,
-                0,
-                help_values.max_exp,
-                help_values.max_sig,
-                help_values.max_norm_exp,
-                request_adapter,
-                is_input_not_rounded,
-            )
-            yield from one_rounding_mode_test(
-                RoundingModes.ROUND_DOWN,
-                round_down_inc_array,
-                help_values.max_sig,
-                help_values.max_norm_exp,
-                0,
-                help_values.max_exp,
-                request_adapter,
-                is_input_not_rounded,
-            )
-            yield from one_rounding_mode_test(
-                RoundingModes.ROUND_ZERO,
-                round_zero_inc_array,
-                help_values.max_sig,
-                help_values.max_norm_exp,
-                help_values.max_sig,
-                help_values.max_norm_exp,
-                request_adapter,
-                is_input_not_rounded,
-            )
-
         def test_process():
-            yield from all_rounding_modes_test(fpurt.rounding_request_adapter, True)
-            yield from other_cases_test(fpurt.rounding_request_adapter, True)
-            yield from all_rounding_modes_test(fpurt.input_rounded_rounding_request_adapter, False)
-            yield from other_cases_test(fpurt.input_rounded_rounding_request_adapter, False)
+            yield from one_rounding_mode_test(fpurt.rounding_request_adapter, True)
+            yield from one_rounding_mode_test(fpurt.input_rounded_rounding_request_adapter, False)
 
         with self.run_simulation(fpurt) as sim:
             sim.add_sync_process(test_process)
