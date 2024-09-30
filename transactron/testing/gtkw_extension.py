@@ -8,10 +8,8 @@ from transactron.utils import flatten_signals
 
 
 class _VCDWriterExt(_VCDWriter):
-    def __init__(self, fragment, *, vcd_file, gtkw_file, traces):
-        super().__init__(
-            fragment=fragment, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=list(flatten_signals(traces))
-        )
+    def __init__(self, design, *, vcd_file, gtkw_file, traces):
+        super().__init__(design=design, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=list(flatten_signals(traces)))
         self._tree_traces = traces
 
     def close(self, timestamp):
@@ -62,7 +60,7 @@ class _VCDWriterExt(_VCDWriter):
 
 @contextmanager
 def write_vcd_ext(engine, vcd_file, gtkw_file, traces):
-    vcd_writer = _VCDWriterExt(engine._fragment, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=traces)
+    vcd_writer = _VCDWriterExt(engine._design, vcd_file=vcd_file, gtkw_file=gtkw_file, traces=traces)
     try:
         engine._vcd_writers.append(vcd_writer)
         yield Tick()

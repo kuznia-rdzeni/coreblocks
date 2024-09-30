@@ -184,7 +184,7 @@ class PysimSimulator(Simulator):
             # TODO: try to merge with Amaranth.
             if isinstance(extra_signals, Callable):
                 extra_signals = extra_signals()
-            clocks = [d.clk for d in cast(Any, self)._fragment.domains.values()]
+            clocks = [d.clk for d in cast(Any, self)._design.fragment.domains.values()]
 
             self.ctx = write_vcd_ext(
                 cast(Any, self)._engine,
