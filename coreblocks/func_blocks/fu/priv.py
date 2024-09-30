@@ -122,9 +122,6 @@ class PrivilegedFuncUnit(Elaboratable):
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
                         m.d.sync += finished.eq(async_interrupt_active)
 
-                # NOTE: we depend on the fact that all instructions that could change privilege level are SYSTEM
-                # opcode, and stall the fetcher, so priv_mode would not change.
-                # Otherwise, all operations could only start after precommit.
                 m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
