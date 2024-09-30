@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from unittest.case import TestCase
 import pytest
 from amaranth import *
@@ -207,6 +208,10 @@ class SchedulingTestCircuit(Elaboratable):
         self.r2 = Signal()
         self.t1 = Signal()
         self.t2 = Signal()
+
+    @abstractmethod
+    def elaborate(self, platform) -> TModule:
+        raise NotImplementedError
 
 
 class PriorityTestCircuit(SchedulingTestCircuit):
