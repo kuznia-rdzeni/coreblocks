@@ -10,10 +10,11 @@ from amaranth.sim import Passive
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.arch import Funct3, Funct7
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, GenericCSRRegistersKey
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
@@ -99,12 +100,14 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.gen_params = GenParams(test_core_config)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.csrs = GenericCSRRegisters(self.gen_params)
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.csrs)
 
         self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
-        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock)
+        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()

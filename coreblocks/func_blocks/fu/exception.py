@@ -70,13 +70,13 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
 
             cause = Signal(ExceptionCause)
 
-            priv_level = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode.priv_mode
+            priv_level = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode.priv_mode.read(m).data
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.comb += cause.eq(ExceptionCause.BREAKPOINT)
                 with OneHotCase(ExceptionUnitFn.Fn.ECALL):
-                    with m.Switch(priv_level.read(m).data):
+                    with m.Switch(priv_level):
                         with m.Case(PrivilegeLevel.MACHINE):
                             m.d.comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
                         with m.Case(PrivilegeLevel.USER):

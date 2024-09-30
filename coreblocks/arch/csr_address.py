@@ -436,7 +436,7 @@ class CSRAddress(IntEnum, shape=12):
 
     # Internal Coreblocks CSRs
     # used only for testbench verification
-    COREBLOCKS_TEST_PRIV_MODE = 0xCFF
+    COREBLOCKS_TEST_PRIV_MODE = 0x8FF
     COREBLOCKS_TEST_CSR = 0x7FF
 
 
