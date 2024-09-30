@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
+from amaranth.lib.memory import Memory
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
@@ -18,7 +19,7 @@ class ReorderBuffer(Elaboratable):
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
-        self.data = Memory(width=layouts.data_layout.size, depth=2**self.params.rob_entries_bits)
+        self.data = Memory(shape=layouts.data_layout.size, depth=2**self.params.rob_entries_bits, init=[])
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
@@ -45,8 +46,9 @@ class ReorderBuffer(Elaboratable):
         peek_possible = start_idx != end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
-        m.submodules.read_port = read_port = self.data.read_port()
-        m.submodules.write_port = write_port = self.data.write_port()
+        m.submodules.data = self.data
+        write_port = self.data.write_port()
+        read_port = self.data.read_port(transparent_for=[write_port])
 
         m.d.comb += read_port.addr.eq(start_idx)
 

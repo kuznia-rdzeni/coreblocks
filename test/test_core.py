@@ -30,10 +30,10 @@ class CoreTestElaboratable(Elaboratable):
         # Align the size of the memory to the length of a cache line.
         instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=self.gen_params.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
+            wb_params=self.gen_params.wb_params, shape=32, depth=instr_mem_depth, init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=self.gen_params.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+            wb_params=self.gen_params.wb_params, shape=32, depth=len(self.data_mem), init=self.data_mem
         )
 
         self.core = Core(gen_params=self.gen_params)

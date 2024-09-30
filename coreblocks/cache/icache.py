@@ -3,6 +3,7 @@ import operator
 
 from amaranth import *
 from amaranth.lib.data import View
+from amaranth.lib.memory import Memory
 from amaranth.utils import exact_log2
 
 from transactron.core import def_method, Priority, TModule
@@ -329,27 +330,25 @@ class ICacheMemory(Elaboratable):
         for i in range(self.params.num_of_ways):
             way_wr = self.way_wr_en[i]
 
-            tag_mem = Memory(width=len(Value.cast(self.tag_wr_data)), depth=self.params.num_of_sets)
-            tag_mem_rp = tag_mem.read_port()
+            tag_mem = Memory(shape=self.tag_data_layout, depth=self.params.num_of_sets, init=[])
             tag_mem_wp = tag_mem.write_port()
-            m.submodules[f"tag_mem_{i}_rp"] = tag_mem_rp
-            m.submodules[f"tag_mem_{i}_wp"] = tag_mem_wp
+            tag_mem_rp = tag_mem.read_port(transparent_for=[tag_mem_wp])
+            m.submodules[f"tag_mem_{i}"] = tag_mem
 
-            m.d.comb += [  # remove Value.cast after Amaranth upgrade
-                assign(Value.cast(self.tag_rd_data[i]), tag_mem_rp.data),
+            m.d.comb += [
+                assign(self.tag_rd_data[i], tag_mem_rp.data),
                 tag_mem_rp.addr.eq(self.tag_rd_index),
                 tag_mem_wp.addr.eq(self.tag_wr_index),
-                assign(tag_mem_wp.data, Value.cast(self.tag_wr_data)),
+                assign(tag_mem_wp.data, self.tag_wr_data),
                 tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
             data_mem = Memory(
-                width=self.fetch_block_bits, depth=self.params.num_of_sets * self.params.fetch_blocks_in_line
+                shape=self.fetch_block_bits, depth=self.params.num_of_sets * self.params.fetch_blocks_in_line, init=[]
             )
-            data_mem_rp = data_mem.read_port()
             data_mem_wp = data_mem.write_port()
-            m.submodules[f"data_mem_{i}_rp"] = data_mem_rp
-            m.submodules[f"data_mem_{i}_wp"] = data_mem_wp
+            data_mem_rp = data_mem.read_port(transparent_for=[data_mem_wp])
+            m.submodules[f"data_mem_{i}"] = data_mem
 
             # We address the data RAM using fetch blocks, so we have to
             # discard a few least significant bits from the address.
