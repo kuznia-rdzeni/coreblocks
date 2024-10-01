@@ -3,7 +3,7 @@ import operator
 
 from amaranth import *
 from amaranth.lib.data import View
-from amaranth.lib.memory import Memory
+import amaranth.lib.memory as memory
 from amaranth.utils import exact_log2
 
 from transactron.core import def_method, Priority, TModule
@@ -330,7 +330,7 @@ class ICacheMemory(Elaboratable):
         for i in range(self.params.num_of_ways):
             way_wr = self.way_wr_en[i]
 
-            tag_mem = Memory(shape=self.tag_data_layout, depth=self.params.num_of_sets, init=[])
+            tag_mem = memory.Memory(shape=self.tag_data_layout, depth=self.params.num_of_sets, init=[])
             tag_mem_wp = tag_mem.write_port()
             tag_mem_rp = tag_mem.read_port(transparent_for=[tag_mem_wp])
             m.submodules[f"tag_mem_{i}"] = tag_mem
@@ -343,7 +343,7 @@ class ICacheMemory(Elaboratable):
                 tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
-            data_mem = Memory(
+            data_mem = memory.Memory(
                 shape=self.fetch_block_bits, depth=self.params.num_of_sets * self.params.fetch_blocks_in_line, init=[]
             )
             data_mem_wp = data_mem.write_port()

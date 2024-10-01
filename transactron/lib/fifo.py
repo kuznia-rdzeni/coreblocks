@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.memory import Memory
+import amaranth.lib.memory as memory
 from transactron import Method, def_method, Priority, TModule
 from transactron.utils._typing import ValueLike, MethodLayout, SrcLoc, MethodStruct
 from transactron.utils.amaranth_ext import mod_incr
@@ -49,7 +49,7 @@ class BasicFifo(Elaboratable):
         self.clear = Method(src_loc=src_loc)
         self.head = Signal(from_method_layout(layout))
 
-        self.buff = Memory(shape=self.width, depth=self.depth, init=[])
+        self.buff = memory.Memory(shape=self.width, depth=self.depth, init=[])
 
         self.write_ready = Signal()
         self.read_ready = Signal()

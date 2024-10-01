@@ -386,7 +386,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 yield Tick()
 
                 if req["we"]:
-                    assert (yield self.m.mem_slave.mem.data[req["addr"]]) == mem_state[req["addr"]]
+                    assert (yield Value.cast(self.m.mem_slave.mem.data[req["addr"]])) == mem_state[req["addr"]]
 
         with self.run_simulation(self.m, max_cycles=3000) as sim:
             sim.add_process(request_process)

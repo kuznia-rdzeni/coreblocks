@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.memory import Memory
+import amaranth.lib.memory as memory
 from amaranth.lib.wiring import PureInterface, Signature, In, Out, Component
 from functools import reduce
 from typing import Protocol, cast
@@ -527,7 +527,7 @@ class WishboneMemorySlave(Component):
         if self.granularity not in (8, 16, 32, 64):
             raise RuntimeError("Granularity has to be one of: 8, 16, 32, 64")
 
-        self.mem = Memory(**kwargs)
+        self.mem = memory.Memory(**kwargs)
 
     def elaborate(self, platform):
         m = TModule()

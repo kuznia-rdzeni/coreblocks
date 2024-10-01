@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from amaranth.lib.memory import Memory
+import amaranth.lib.memory as memory
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
@@ -19,7 +19,7 @@ class ReorderBuffer(Elaboratable):
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
-        self.data = Memory(shape=layouts.data_layout.size, depth=2**self.params.rob_entries_bits, init=[])
+        self.data = memory.Memory(shape=layouts.data_layout.size, depth=2**self.params.rob_entries_bits, init=[])
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
