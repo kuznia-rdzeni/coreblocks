@@ -28,7 +28,7 @@ from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
 from transactron.lib import AdapterTrans
-from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface, WishboneSignature
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
 from constants.ecp5_platforms import (
     ResourceBuilder,
     append_resources,
@@ -80,7 +80,7 @@ class SynthesisCore(Component):
     wb: WishboneInterface
 
     def __init__(self, gen_params: GenParams):
-        super().__init__({"wb": Out(WishboneSignature(gen_params.wb_params))})
+        super().__init__({"wb": Out(WishboneInterface(gen_params.wb_params).signature)})
         self.gen_params = gen_params
 
     def elaborate(self, platform):
