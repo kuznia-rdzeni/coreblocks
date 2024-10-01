@@ -48,7 +48,7 @@ class ReorderBuffer(Elaboratable):
 
         m.submodules.data = self.data
         write_port = self.data.write_port()
-        read_port = self.data.read_port()
+        read_port = self.data.read_port(transparent_for=[write_port])
 
         m.d.comb += read_port.addr.eq(start_idx)
 
