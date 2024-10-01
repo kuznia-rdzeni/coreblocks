@@ -23,7 +23,7 @@ class FPURoudningMethodLayout:
             ("exp", fpu_params.exp_width),
             ("round_bit", 1),
             ("sticky_bit", 1),
-            ("rounding_mode", Shape.cast(RoundingModes)),
+            ("rounding_mode", RoundingModes),
             ("invalid_operation", 1),
             ("division_by_zero", 1),
             ("input_inf", 1),

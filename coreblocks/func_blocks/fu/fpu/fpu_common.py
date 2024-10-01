@@ -1,7 +1,7 @@
 from amaranth.lib import enum
 
 
-class RoundingModes(enum.Enum, shape=3):
+class RoundingModes(enum.Enum):
     ROUND_UP = 3
     ROUND_DOWN = 2
     ROUND_ZERO = 1
