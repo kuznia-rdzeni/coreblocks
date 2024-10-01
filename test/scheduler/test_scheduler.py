@@ -270,7 +270,7 @@ class TestScheduler(TestCaseWithSimulator):
         def check(got, expected):
             rl_dst = yield View(
                 self.gen_params.get(ROBLayouts).data_layout,
-                C((yield self.m.rob.data[got["rs_data"]["rob_id"]]), self.gen_params.get(ROBLayouts).data_layout.size),
+                C((yield self.m.rob.data.data[got["rs_data"]["rob_id"]]), self.gen_params.get(ROBLayouts).data_layout.size),
             ).rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]

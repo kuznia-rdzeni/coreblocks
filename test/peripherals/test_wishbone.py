@@ -333,7 +333,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
 
         self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
         self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width, granularity=16)
-        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize})
+        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize, "init": []})
 
         self.sel_width = self.wb_params.data_width // self.wb_params.granularity
 
@@ -386,7 +386,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 yield Tick()
 
                 if req["we"]:
-                    assert (yield self.m.mem_slave.mem[req["addr"]]) == mem_state[req["addr"]]
+                    assert (yield self.m.mem_slave.mem.data[req["addr"]]) == mem_state[req["addr"]]
 
         with self.run_simulation(self.m, max_cycles=3000) as sim:
             sim.add_process(request_process)
