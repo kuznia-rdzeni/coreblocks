@@ -186,10 +186,11 @@ class CSRUnit(FuncBlock, Elaboratable):
         @def_method(m, self.insert)
         def _(rs_entry_id, rs_data):
             m.d.sync += assign(instr, rs_data)
-            m.d.sync += instr.valid.eq(1)
 
             with m.If(rs_data.exec_fn.op_type == OpType.CSR_IMM):  # Pass immediate as first operand
                 m.d.sync += instr.s1_val.eq(rs_data.imm)
+
+            m.d.sync += instr.valid.eq(1)
 
         @def_method(m, self.update)
         def _(reg_id, reg_val):
