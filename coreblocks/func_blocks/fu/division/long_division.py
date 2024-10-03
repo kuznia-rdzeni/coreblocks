@@ -87,16 +87,15 @@ class RecursiveDivison(Elaboratable):
         m.d.comb += rec_div.divisor.eq(self.divisor)
 
         # Single step as described in article
-        quotient_msb = Signal()
         with m.If(concat >= self.divisor):
-            m.d.comb += quotient_msb.eq(1)
+            m.d.comb += self.quotient[self.step_count - 1].eq(1)
             m.d.comb += rec_div.input_remainder.eq(concat - self.divisor)
         with m.Else():
-            m.d.comb += quotient_msb.eq(0)
+            m.d.comb += self.quotient[self.step_count - 1].eq(0)
             m.d.comb += rec_div.input_remainder.eq(concat)
 
         # wiring up rest of result from recursive module
-        m.d.comb += self.quotient.eq(Cat(rec_div.quotient[: (self.step_count - 1)], quotient_msb))
+        m.d.comb += self.quotient[: (self.step_count - 1)].eq(rec_div.quotient)
         m.d.comb += self.remainder.eq(rec_div.remainder)
 
         # partial remainder
