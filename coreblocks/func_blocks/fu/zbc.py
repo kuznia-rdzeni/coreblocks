@@ -201,7 +201,7 @@ class ZbcUnit(Elaboratable):
 
         @def_method(m, self.issue)
         def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):
-            m.d.comb += decoder.exec_fn.eq(exec_fn)
+            m.d.av_comb += decoder.exec_fn.eq(exec_fn)
 
             i1 = s1_val
             i2 = Mux(imm, imm, s2_val)
@@ -213,28 +213,28 @@ class ZbcUnit(Elaboratable):
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ZbcFn.Fn.CLMUL):
-                    m.d.comb += high_res.eq(0)
-                    m.d.comb += rev_res.eq(0)
-                    m.d.comb += value1.eq(i1)
-                    m.d.comb += value2.eq(i2)
+                    m.d.av_comb += high_res.eq(0)
+                    m.d.av_comb += rev_res.eq(0)
+                    m.d.av_comb += value1.eq(i1)
+                    m.d.av_comb += value2.eq(i2)
                 with OneHotCase(ZbcFn.Fn.CLMULH):
-                    m.d.comb += high_res.eq(1)
-                    m.d.comb += rev_res.eq(0)
-                    m.d.comb += value1.eq(i1)
-                    m.d.comb += value2.eq(i2)
+                    m.d.av_comb += high_res.eq(1)
+                    m.d.av_comb += rev_res.eq(0)
+                    m.d.av_comb += value1.eq(i1)
+                    m.d.av_comb += value2.eq(i2)
                 with OneHotCase(ZbcFn.Fn.CLMULR):
                     # clmulr is equivalent to bit-reversing the inputs,
                     # performing a clmul,
                     # then bit-reversing the output.
-                    m.d.comb += high_res.eq(0)
-                    m.d.comb += rev_res.eq(1)
-                    m.d.comb += value1.eq(i1[::-1])
-                    m.d.comb += value2.eq(i2[::-1])
+                    m.d.av_comb += high_res.eq(0)
+                    m.d.av_comb += rev_res.eq(1)
+                    m.d.av_comb += value1.eq(i1[::-1])
+                    m.d.av_comb += value2.eq(i2[::-1])
 
             params_fifo.write(m, rob_id=rob_id, rp_dst=rp_dst, high_res=high_res, rev_res=rev_res)
 
-            m.d.comb += clmul.i1.eq(value1)
-            m.d.comb += clmul.i2.eq(value2)
+            m.d.av_comb += clmul.i1.eq(value1)
+            m.d.av_comb += clmul.i2.eq(value2)
             m.d.comb += clmul.reset.eq(1)
 
         return m

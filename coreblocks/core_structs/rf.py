@@ -15,7 +15,10 @@ class RegisterFile(Elaboratable):
         layouts = gen_params.get(RFLayouts)
         self.internal_layout = make_layout(("reg_val", gen_params.isa.xlen), ("valid", 1))
         self.read_layout = layouts.rf_read_out
-        self.entries = Array(Signal(self.internal_layout) for _ in range(2**gen_params.phys_regs_bits))
+        self.entries = Array(
+            Signal(self.internal_layout, reset={"reg_val": 0, "valid": k == 0})
+            for k in range(2**gen_params.phys_regs_bits)
+        )
 
         self.read1 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
         self.read2 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
@@ -43,15 +46,10 @@ class RegisterFile(Elaboratable):
         being_written = Signal(self.gen_params.phys_regs_bits)
         written_value = Signal(self.gen_params.isa.xlen)
 
-        # Register 0 always valid (this field won't be updated in methods below) - not sure
-        # how to set 0th entry valid signal at initialization stage so doing it here instead
-        # with a 1-cycle delay. I believe this has to be in sync domain like every other
-        # RF entry or else bad things will happen.
-        m.d.sync += self.entries[0].valid.eq(1)
-
         @def_method(m, self.read1)
         def _(reg_id: Value):
-            forward = being_written == reg_id
+            forward = Signal()
+            m.d.av_comb += forward.eq((being_written == reg_id) & (reg_id != 0))
             return {
                 "reg_val": Mux(forward, written_value, self.entries[reg_id].reg_val),
                 "valid": Mux(forward, 1, self.entries[reg_id].valid),
@@ -59,7 +57,8 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.read2)
         def _(reg_id: Value):
-            forward = being_written == reg_id
+            forward = Signal()
+            m.d.av_comb += forward.eq((being_written == reg_id) & (reg_id != 0))
             return {
                 "reg_val": Mux(forward, written_value, self.entries[reg_id].reg_val),
                 "valid": Mux(forward, 1, self.entries[reg_id].valid),
@@ -69,7 +68,7 @@ class RegisterFile(Elaboratable):
         def _(reg_id: Value, reg_val: Value):
             zero_reg = reg_id == 0
             m.d.comb += being_written.eq(reg_id)
-            m.d.comb += written_value.eq(Mux(zero_reg, 0, reg_val))
+            m.d.av_comb += written_value.eq(reg_val)
             with m.If(~(zero_reg)):
                 m.d.sync += self.entries[reg_id].reg_val.eq(reg_val)
                 m.d.sync += self.entries[reg_id].valid.eq(1)
