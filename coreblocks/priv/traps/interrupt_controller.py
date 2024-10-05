@@ -66,7 +66,7 @@ class InternalInterruptController(Component):
         # MPIE bit - previous MIE - part of mstatus
         self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
         # MPP bit - previous priv mode - part of mstatus
-        self.mstatus_mpp = CSRRegister(None, gen_params, width=2, ro_bits=0b11, reset=PrivilegeLevel.MACHINE)
+        self.mstatus_mpp = CSRRegister(None, gen_params, width=2, ro_bits=0b11, init=PrivilegeLevel.MACHINE)
         # TODO: filter xPP for only legal modes (when not read-only)
         mstatus = dm.get_dependency(GenericCSRRegistersKey()).m_mode.mstatus
         mstatus.add_field(3, self.mstatus_mie)

@@ -1,7 +1,7 @@
 from typing import Optional, cast
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 
 from collections import deque
 from enum import Enum
@@ -112,10 +112,10 @@ class TestWakeupSelect(TestCaseWithSimulator):
                 if issued is not None:
                     assert issued == self.taken.popleft()
                     issued_count += 1
-            yield
+            yield Tick()
         assert inserted_count != 0
         assert inserted_count == issued_count
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)

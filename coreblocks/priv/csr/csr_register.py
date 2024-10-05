@@ -61,7 +61,7 @@ class CSRRegister(Elaboratable):
         *,
         width: Optional[int] = None,
         ro_bits: int = 0,
-        reset: int | Enum = 0,
+        init: int | Enum = 0,
         fu_write_priority: bool = True,
         fu_write_filtermap: Optional[Callable[[TModule, Value], tuple[ValueLike, ValueLike]]] = None,
         fu_read_map: Optional[Callable[[TModule, Value], ValueLike]] = None,
@@ -83,7 +83,7 @@ class CSRRegister(Elaboratable):
             Note that this parameter is only required if there are some read-only
             bits in read-write register. Writes to read-only registers specified
             by upper 2 bits of CSR address set to `0b11` are discarded by `CSRUnit`.
-        reset: int | Enum
+        init: int | Enum
             Reset value of CSR.
         fu_write_priority: bool
             Priority of CSR instruction write over `write` method, if both are called at the same cycle.
@@ -131,7 +131,7 @@ class CSRRegister(Elaboratable):
         self._fu_read = self.fu_read_map.method
         self._fu_write = self.fu_write_filter.method
 
-        self.value = Signal(self.width, reset=reset)
+        self.value = Signal(self.width, init=init)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list

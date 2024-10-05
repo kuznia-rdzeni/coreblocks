@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Optional
 from amaranth import *
 from amaranth.lib.wiring import Component, In, Out
@@ -26,6 +27,10 @@ class AdapterBase(Component):
 
     def debug_signals(self) -> SignalBundle:
         return [self.en, self.done, self.data_in, self.data_out]
+
+    @abstractmethod
+    def elaborate(self, platform) -> TModule:
+        raise NotImplementedError()
 
 
 class AdapterTrans(AdapterBase):

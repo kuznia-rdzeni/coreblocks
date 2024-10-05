@@ -150,14 +150,14 @@ class TestBackend(TestCaseWithSimulator):
         self.fu_count = 1
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.consumer)
+            sim.add_process(self.consumer)
             for i in range(self.fu_count):
-                sim.add_sync_process(self.generate_producer(i))
+                sim.add_process(self.generate_producer(i))
 
     def test_many_out(self):
         self.fu_count = 4
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.consumer)
+            sim.add_process(self.consumer)
             for i in range(self.fu_count):
-                sim.add_sync_process(self.generate_producer(i))
+                sim.add_process(self.generate_producer(i))

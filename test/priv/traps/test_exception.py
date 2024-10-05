@@ -76,4 +76,4 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
             return {"start": self.rob_id, "end": 0}
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process_test)
+            sim.add_process(process_test)

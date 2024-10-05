@@ -99,7 +99,7 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
         while True:
             yield Tick("sync_neg")
             yield from handle_logs()
-            yield
+            yield Tick()
             _sim_cycle += 1
 
     return log_process

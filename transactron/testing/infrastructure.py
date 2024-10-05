@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import functools
+import warnings
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
 from abc import ABC
@@ -21,6 +22,7 @@ from transactron.lib import AdapterTrans
 from transactron.core.keys import TransactionManagerKey
 from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
+
 
 T = TypeVar("T")
 _T_nested_collection: TypeAlias = T | list["_T_nested_collection[T]"] | dict[str, "_T_nested_collection[T]"]
@@ -138,10 +140,13 @@ class SyncProcessWrapper:
                 # call orginal test process and catch data yielded by it in `command` variable
                 command = org_coroutine.send(response)
                 # If process wait for new cycle
-                if command is None:
-                    self.current_cycle += 1
+                if command is None or isinstance(command, Tick):
+                    command = command or Tick()
+                    # TODO: use of other domains can mess up the counter!
+                    if command.domain == "sync":
+                        self.current_cycle += 1
                     # forward to amaranth
-                    yield
+                    yield command
                 elif isinstance(command, Now):
                     response = self.current_cycle
                 # Pass everything else to amaranth simulator without modifications
@@ -179,7 +184,7 @@ class PysimSimulator(Simulator):
             # TODO: try to merge with Amaranth.
             if isinstance(extra_signals, Callable):
                 extra_signals = extra_signals()
-            clocks = [d.clk for d in cast(Any, self)._fragment.domains.values()]
+            clocks = [d.clk for d in cast(Any, self)._design.fragment.domains.values()]
 
             self.ctx = write_vcd_ext(
                 cast(Any, self)._engine,
@@ -192,9 +197,9 @@ class PysimSimulator(Simulator):
 
         self.deadline = clk_period * max_cycles
 
-    def add_sync_process(self, f: Callable[[], TestGen]):
+    def add_process(self, f: Callable[[], TestGen]):
         f_wrapped = SyncProcessWrapper(f)
-        super().add_sync_process(f_wrapped._wrapping_function)
+        super().add_process(f_wrapped._wrapping_function)
 
     def run(self) -> bool:
         with self.ctx:
@@ -210,18 +215,18 @@ class TestCaseWithSimulator:
     def configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
         with DependencyContext(self.dependency_manager):
-            yield
+            yield Tick()
 
     def add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
             if hasattr(val, "_transactron_testing_process"):
-                sim.add_sync_process(val)
+                sim.add_process(val)
 
     def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         for key, val in frame_locals.items():
             if hasattr(val, "_transactron_testing_process"):
-                sim.add_sync_process(val)
+                sim.add_process(val)
 
     def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         self.add_class_mocks(sim)
@@ -325,9 +330,13 @@ class TestCaseWithSimulator:
         for f in self._transactron_sim_processes_to_add:
             ret = f()
             if ret is not None:
-                sim.add_sync_process(ret)
+                sim.add_process(ret)
 
-        res = sim.run()
+        with warnings.catch_warnings():
+            # TODO: figure out testing without settles!
+            warnings.filterwarnings("ignore", r"The `Settle` command is deprecated per RFC 27\.")
+
+            res = sim.run()
         assert res, "Simulation time limit exceeded"
 
     def tick(self, cycle_cnt: int = 1):
@@ -336,7 +345,7 @@ class TestCaseWithSimulator:
         """
 
         for _ in range(cycle_cnt):
-            yield
+            yield Tick()
 
     def random_wait(self, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
@@ -349,7 +358,7 @@ class TestCaseWithSimulator:
         Wait till the first success, where there is `prob` probability for success in each cycle.
         """
         while random.random() > prob:
-            yield
+            yield Tick()
 
     def multi_settle(self, settle_count: int = 1):
         for _ in range(settle_count):
