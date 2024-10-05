@@ -48,7 +48,8 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.read1)
         def _(reg_id: Value):
-            forward = (being_written == reg_id) & (reg_id != 0)
+            forward = Signal()
+            m.d.av_comb += forward.eq((being_written == reg_id) & (reg_id != 0))
             return {
                 "reg_val": Mux(forward, written_value, self.entries[reg_id].reg_val),
                 "valid": Mux(forward, 1, self.entries[reg_id].valid),
@@ -56,7 +57,8 @@ class RegisterFile(Elaboratable):
 
         @def_method(m, self.read2)
         def _(reg_id: Value):
-            forward = (being_written == reg_id) & (reg_id != 0)
+            forward = Signal()
+            m.d.av_comb += forward.eq((being_written == reg_id) & (reg_id != 0))
             return {
                 "reg_val": Mux(forward, written_value, self.entries[reg_id].reg_val),
                 "valid": Mux(forward, 1, self.entries[reg_id].valid),
