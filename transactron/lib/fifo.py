@@ -1,4 +1,5 @@
 from amaranth import *
+import amaranth.lib.memory as memory
 from transactron import Method, def_method, Priority, TModule
 from transactron.utils._typing import ValueLike, MethodLayout, SrcLoc, MethodStruct
 from transactron.utils.amaranth_ext import mod_incr
@@ -48,7 +49,7 @@ class BasicFifo(Elaboratable):
         self.clear = Method(src_loc=src_loc)
         self.head = Signal(from_method_layout(layout))
 
-        self.buff = Memory(width=self.width, depth=self.depth)
+        self.buff = memory.Memory(shape=self.width, depth=self.depth, init=[])
 
         self.write_ready = Signal()
         self.read_ready = Signal()
@@ -68,8 +69,9 @@ class BasicFifo(Elaboratable):
         next_read_idx = Signal.like(self.read_idx)
         m.d.comb += next_read_idx.eq(mod_incr(self.read_idx, self.depth))
 
-        m.submodules.buff_rdport = self.buff_rdport = self.buff.read_port(domain="sync", transparent=True)
-        m.submodules.buff_wrport = self.buff_wrport = self.buff.write_port()
+        m.submodules.buff = self.buff
+        self.buff_wrport = self.buff.write_port()
+        self.buff_rdport = self.buff.read_port(domain="sync", transparent_for=[self.buff_wrport])
 
         m.d.comb += self.read_ready.eq(self.level != 0)
         m.d.comb += self.write_ready.eq(self.level != self.depth)

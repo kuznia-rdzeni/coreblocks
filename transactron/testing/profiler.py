@@ -32,6 +32,6 @@ def profiler_process(transaction_manager: TransactionManager, profile: Profile):
             cprof = CycleProfile.make(samples, profile_data)
             profile.cycles.append(cprof)
 
-            yield
+            yield Tick()
 
     return process

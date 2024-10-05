@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from unittest.case import TestCase
 import pytest
 from amaranth import *
@@ -57,7 +58,7 @@ class TestScheduler(TestCaseWithSimulator):
 
     def sim_step(self, sched, request, expected_grant):
         yield sched.requests.eq(request)
-        yield
+        yield Tick()
 
         if request == 0:
             assert not (yield sched.valid)
@@ -76,7 +77,7 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0, 0)
 
         with self.run_simulation(sched) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     def test_multi(self):
         sched = Scheduler(4)
@@ -100,7 +101,7 @@ class TestScheduler(TestCaseWithSimulator):
             yield from self.sim_step(sched, 0b0010, 0b0010)
 
         with self.run_simulation(sched) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TransactionConflictTestCircuit(Elaboratable):
@@ -136,7 +137,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
         def process():
             for i in src:
                 while random.random() >= prob:
-                    yield
+                    yield Tick()
                 tgt(i)
                 r = yield from io.call(data=i)
                 chk(r["data"])
@@ -192,9 +193,9 @@ class TestTransactionConflict(TestCaseWithSimulator):
         self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
 
         with self.run_simulation(self.m, add_transaction_module=False) as sim:
-            sim.add_sync_process(self.make_in1_process(prob1))
-            sim.add_sync_process(self.make_in2_process(prob2))
-            sim.add_sync_process(self.make_out_process(probout))
+            sim.add_process(self.make_in1_process(prob1))
+            sim.add_process(self.make_in2_process(prob2))
+            sim.add_process(self.make_out_process(probout))
 
         assert not self.in_expected
         assert not self.out1_expected
@@ -207,6 +208,10 @@ class SchedulingTestCircuit(Elaboratable):
         self.r2 = Signal()
         self.t1 = Signal()
         self.t2 = Signal()
+
+    @abstractmethod
+    def elaborate(self, platform) -> TModule:
+        raise NotImplementedError
 
 
 class PriorityTestCircuit(SchedulingTestCircuit):
@@ -369,12 +374,12 @@ class TestNested(TestCaseWithSimulator):
             for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
-                yield
+                yield Tick()
                 assert (yield m.t1) == r1
                 assert (yield m.t2) == r1 * r2
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
@@ -415,12 +420,12 @@ class TestScheduleBefore(TestCaseWithSimulator):
             for r1, r2 in to_do:
                 yield m.r1.eq(r1)
                 yield m.r2.eq(r2)
-                yield
+                yield Tick()
                 assert (yield m.t1) == r1
                 assert not (yield m.t2)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class SingleCallerTestCircuit(Elaboratable):

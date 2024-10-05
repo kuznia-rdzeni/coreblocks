@@ -51,7 +51,7 @@ class TestSimultaneousDiamond(TestCaseWithSimulator):
                 for k, n in enumerate(methods):
                     enables[n] = bool(i & (1 << k))
                     yield from methods[n].set_enable(enables[n])
-                yield
+                yield Tick()
                 dones: dict[str, bool] = {}
                 for n in methods:
                     dones[n] = bool((yield from methods[n].done()))
@@ -66,7 +66,7 @@ class TestSimultaneousDiamond(TestCaseWithSimulator):
                     assert not any(dones.values())
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class UnsatisfiableTriangleTestCircuit(Elaboratable):
@@ -169,4 +169,4 @@ class TestTransitivity(TestCaseWithSimulator):
                     assert result in possibles
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

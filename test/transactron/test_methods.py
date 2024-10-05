@@ -158,10 +158,10 @@ class TestDefMethods(TestCaseWithSimulator):
             for k, method in enumerate(circuit.methods):
                 val = random.randrange(0, 2**3)
                 ret = yield from method.call(foo=val)
-                assert ret["foo"] == val + k % 2**3
+                assert ret["foo"] == (val + k) % 2**3
 
         with self.run_simulation(circuit) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
 
 class AdapterCircuit(Elaboratable):
@@ -398,7 +398,7 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
                 assert out["data"] == n * 4
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class ConditionalCallCircuit(Elaboratable):
@@ -507,7 +507,7 @@ class TestConditionals(TestCaseWithSimulator):
             assert not (yield from circ.tb.done())
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     @parameterized.expand(
         [
@@ -531,7 +531,7 @@ class TestConditionals(TestCaseWithSimulator):
             assert (yield from circ.tb.done())
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class NonexclusiveMethodCircuit(Elaboratable):
@@ -594,7 +594,7 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
                     assert (yield from circ.t2.get_outputs()) == {"data": x}
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TwoNonexclusiveConflictCircuit(Elaboratable):
@@ -646,7 +646,7 @@ class TestConflicting(TestCaseWithSimulator):
             assert not (yield circ.running1) or not (yield circ.running2)
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class CustomCombinerMethodCircuit(Elaboratable):
@@ -721,7 +721,7 @@ class TestCustomCombinerMethod(TestCaseWithSimulator):
                     assert (yield from circ.t2.get_outputs()) == {"data": val1e ^ val2e}
 
         with self.run_simulation(circ) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class DataDependentConditionalCircuit(Elaboratable):
@@ -800,10 +800,10 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 assert in1 != self.bad_number or not out_t1
                 assert in2 != self.bad_number or not out_t2
 
-                yield
+                yield Tick()
 
         with self.run_simulation(self.circ, 100) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
     def test_random_arg(self):
         self.base_random(lambda arg: arg.data != self.bad_number)

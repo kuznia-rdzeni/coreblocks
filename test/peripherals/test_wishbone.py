@@ -32,7 +32,7 @@ class WishboneInterfaceWrapper:
 
     def slave_wait(self):
         while not ((yield self.wb.stb) and (yield self.wb.cyc)):
-            yield
+            yield Tick()
 
     def slave_verify(self, exp_addr, exp_data, exp_we, exp_sel=0):
         assert (yield self.wb.stb) and (yield self.wb.cyc)
@@ -50,14 +50,14 @@ class WishboneInterfaceWrapper:
         yield self.wb.ack.eq(ack)
         yield self.wb.err.eq(err)
         yield self.wb.rty.eq(rty)
-        yield
+        yield Tick()
         yield self.wb.ack.eq(0)
         yield self.wb.err.eq(0)
         yield self.wb.rty.eq(0)
 
     def wait_ack(self):
         while not ((yield self.wb.stb) and (yield self.wb.cyc) and (yield self.wb.ack)):
-            yield
+            yield Tick()
 
 
 class TestWishboneMaster(TestCaseWithSimulator):
@@ -80,8 +80,8 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield from twbm.requestAdapter.call(addr=2, data=0, we=0, sel=1)
 
             # read request after delay
-            yield
-            yield
+            yield Tick()
+            yield Tick()
             yield from twbm.requestAdapter.call(addr=1, data=0, we=0, sel=1)
 
             # write request
@@ -124,7 +124,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield  # consecutive request
             yield from wwb.slave_verify(3, 5, 1, 0)
             yield from wwb.slave_respond(0)
-            yield
+            yield Tick()
 
             yield  # consecutive request
             yield from wwb.slave_verify(2, 0, 0, 0)
@@ -137,9 +137,9 @@ class TestWishboneMaster(TestCaseWithSimulator):
             yield from wwb.slave_respond(1, ack=1, err=1, rty=0)
 
         with self.run_simulation(twbm) as sim:
-            sim.add_sync_process(process)
-            sim.add_sync_process(result_process)
-            sim.add_sync_process(slave)
+            sim.add_process(process)
+            sim.add_process(result_process)
+            sim.add_process(slave)
 
 
 class TestWishboneMuxer(TestCaseWithSimulator):
@@ -153,34 +153,34 @@ class TestWishboneMuxer(TestCaseWithSimulator):
             # check full communiaction
             yield from wb_master.master_set(2, 0, 1)
             yield mux.sselTGA.eq(0b0001)
-            yield
+            yield Tick()
             yield from slaves[0].slave_verify(2, 0, 1)
             assert not (yield slaves[1].wb.stb)
             yield from slaves[0].slave_respond(4)
             yield from wb_master.master_verify(4)
             yield from wb_master.master_release(release_cyc=0)
-            yield
+            yield Tick()
             # select without releasing cyc (only on stb)
             yield from wb_master.master_set(3, 0, 0)
             yield mux.sselTGA.eq(0b0010)
-            yield
+            yield Tick()
             assert not (yield slaves[0].wb.stb)
             yield from slaves[1].slave_verify(3, 0, 0)
             yield from slaves[1].slave_respond(5)
             yield from wb_master.master_verify(5)
             yield from wb_master.master_release()
-            yield
+            yield Tick()
 
             # normal selection
             yield from wb_master.master_set(6, 0, 0)
             yield mux.sselTGA.eq(0b1000)
-            yield
+            yield Tick()
             yield from slaves[3].slave_verify(6, 0, 0)
             yield from slaves[3].slave_respond(1)
             yield from wb_master.master_verify(1)
 
         with self.run_simulation(mux) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TestWishboneAribiter(TestCaseWithSimulator):
@@ -199,7 +199,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[0].master_verify()
             assert not (yield masters[1].wb.ack)
             yield from masters[0].master_release()
-            yield
+            yield Tick()
 
             # check if bus is granted to next master if previous ends cycle
             yield from slave.slave_wait()
@@ -208,7 +208,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[1].master_verify()
             assert not (yield masters[0].wb.ack)
             yield from masters[1].master_release()
-            yield
+            yield Tick()
 
             # check round robin behaviour (2 masters requesting *2)
             yield from masters[0].master_set(1, 0, 0)
@@ -219,7 +219,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[0].master_verify(3)
             yield from masters[0].master_release()
             yield from masters[1].master_release()
-            yield
+            yield Tick()
             assert not (yield slave.wb.cyc)
 
             yield from masters[0].master_set(1, 0, 0)
@@ -231,7 +231,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
 
             # check if releasing stb keeps grant
             yield from masters[1].master_release(release_cyc=0)
-            yield
+            yield Tick()
             yield from masters[1].master_set(3, 0, 0)
             yield from slave.slave_wait()
             yield from slave.slave_verify(3, 0, 0)
@@ -239,7 +239,7 @@ class TestWishboneAribiter(TestCaseWithSimulator):
             yield from masters[1].master_verify()
 
         with self.run_simulation(arb) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)
 
 
 class TestPipelinedWishboneMaster(TestCaseWithSimulator):
@@ -268,7 +268,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
         def verify_process():
             for _ in range(requests):
                 while random.random() < 0.8:
-                    yield
+                    yield Tick()
 
                 result = yield from pwbm.result.call()
                 cres = res_queue.pop()
@@ -300,12 +300,12 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
 
                 yield wbw.stall.eq(random.random() < 0.3)
 
-                yield
+                yield Tick()
 
         with self.run_simulation(pwbm) as sim:
-            sim.add_sync_process(request_process)
-            sim.add_sync_process(verify_process)
-            sim.add_sync_process(slave_process)
+            sim.add_process(request_process)
+            sim.add_process(verify_process)
+            sim.add_process(slave_process)
 
 
 class WishboneMemorySlaveCircuit(Elaboratable):
@@ -333,7 +333,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
 
         self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
         self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width, granularity=16)
-        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize})
+        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize, "init": []})
 
         self.sel_width = self.wb_params.data_width // self.wb_params.granularity
 
@@ -357,13 +357,13 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 wr_queue.appendleft(req)
 
                 while random.random() < 0.2:
-                    yield
+                    yield Tick()
                 yield from self.m.request.call(req)
 
         def result_process():
             for _ in range(self.iters):
                 while random.random() < 0.2:
-                    yield
+                    yield Tick()
                 res = yield from self.m.result.call()
                 req = req_queue.pop()
 
@@ -383,12 +383,12 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                             mem_state[req["addr"]] &= ~granularity_mask
                             mem_state[req["addr"]] |= req["data"] & granularity_mask
 
-                yield
+                yield Tick()
 
                 if req["we"]:
-                    assert (yield self.m.mem_slave.mem[req["addr"]]) == mem_state[req["addr"]]
+                    assert (yield Value.cast(self.m.mem_slave.mem.data[req["addr"]])) == mem_state[req["addr"]]
 
         with self.run_simulation(self.m, max_cycles=3000) as sim:
-            sim.add_sync_process(request_process)
-            sim.add_sync_process(result_process)
-            sim.add_sync_process(write_process)
+            sim.add_process(request_process)
+            sim.add_process(result_process)
+            sim.add_process(write_process)

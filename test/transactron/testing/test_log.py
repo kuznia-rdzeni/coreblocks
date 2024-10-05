@@ -1,5 +1,7 @@
 import pytest
+import re
 from amaranth import *
+from amaranth.sim import Tick
 
 from transactron import *
 from transactron.testing import TestCaseWithSimulator
@@ -70,51 +72,53 @@ class TestLog(TestCaseWithSimulator):
 
         def proc():
             for i in range(50):
-                yield
+                yield Tick()
                 yield m.input.eq(i)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(proc)
+            sim.add_process(proc)
 
-        assert (
-            "WARNING  test_logger:logging.py:83 [test/transactron/testing/test_log.py:22] "
-            + "Log triggered under Amaranth If value+3=0x2d"
-            in caplog.text
+        assert re.search(
+            r"WARNING  test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
+            + r"Log triggered under Amaranth If value\+3=0x2d",
+            caplog.text,
         )
         for i in range(0, 50, 2):
-            expected_msg = (
-                "WARNING  test_logger:logging.py:83 [test/transactron/testing/test_log.py:24] "
-                + f"Input is even! input={i}, counter={i + 2}"
+            assert re.search(
+                r"WARNING  test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
+                + f"Input is even! input={i}, counter={i + 1}",
+                caplog.text,
             )
-            assert expected_msg in caplog.text
 
     def test_error_log(self, caplog):
         m = ErrorLogTest()
 
         def proc():
-            yield
+            yield Tick()
             yield m.input.eq(1)
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+                sim.add_process(proc)
 
-        extected_out = (
-            "ERROR    test_logger:logging.py:83 [test/transactron/testing/test_log.py:41] "
-            + "Input is different than output! input=0x1 output=0x0"
+        assert re.search(
+            r"ERROR    test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
+            + "Input is different than output! input=0x1 output=0x0",
+            caplog.text,
         )
-        assert extected_out in caplog.text
 
     def test_assertion(self, caplog):
         m = AssertionTest()
 
         def proc():
-            yield
+            yield Tick()
             yield m.input.eq(1)
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
-                sim.add_sync_process(proc)
+                sim.add_process(proc)
 
-        extected_out = "ERROR    test_logger:logging.py:83 [test/transactron/testing/test_log.py:62] Output differs"
-        assert extected_out in caplog.text
+        assert re.search(
+            r"ERROR    test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] Output differs",
+            caplog.text,
+        )
