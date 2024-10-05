@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1728168724683,
+  "lastUpdate": 1728168726569,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -40394,6 +40394,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1726,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1152,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9141,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "87cb8f5134d793390ec582c0027b4a8ac6d0e3c8",
+          "message": "More uses of av_comb, slight refactor of RF (#722)",
+          "timestamp": "2024-10-06T00:41:03+02:00",
+          "tree_id": "e7ce8512747a210c29e1ebf9d1b9f400d5205b67",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/87cb8f5134d793390ec582c0027b4a8ac6d0e3c8"
+        },
+        "date": 1728168725851,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.14,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24589,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1758,
             "unit": "LUT"
           },
           {
