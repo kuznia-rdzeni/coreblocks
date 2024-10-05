@@ -153,12 +153,12 @@ class CSRRegister(Elaboratable):
 
         @def_method(m, self.write)
         def _(data):
-            m.d.av_comb += write_internal.data.eq(data)
+            m.d.comb += write_internal.data.eq(data)
             m.d.comb += write_internal.active.eq(1)
 
         @def_method(m, self._internal_fu_write)
         def _(data):
-            m.d.av_comb += fu_write_internal.data.eq(data)
+            m.d.comb += fu_write_internal.data.eq(data)
             m.d.comb += fu_write_internal.active.eq(1)
             m.d.sync += self.side_effects.write.eq(1)
 
