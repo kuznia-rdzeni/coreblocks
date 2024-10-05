@@ -70,7 +70,7 @@ class Retirement(Elaboratable):
         m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
-        side_fx = Signal(reset=1)
+        side_fx = Signal(init=1)
 
         def free_phys_reg(rp_dst: Value):
             # mark reg in Register File as free
@@ -129,7 +129,7 @@ class Retirement(Elaboratable):
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
-                        arch_trap = Signal(reset=1)
+                        arch_trap = Signal(init=1)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR

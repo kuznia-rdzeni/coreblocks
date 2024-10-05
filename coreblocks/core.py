@@ -161,7 +161,7 @@ class Core(Component):
         )
 
         # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
-        free_rf_reg = Signal(self.gen_params.phys_regs_bits, reset=1)
+        free_rf_reg = Signal(self.gen_params.phys_regs_bits, init=1)
         with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
             free_rf_fifo.write(m, free_rf_reg)
             m.d.sync += free_rf_reg.eq(free_rf_reg + 1)

@@ -3,7 +3,7 @@ from typing import Callable
 from amaranth import *
 from amaranth.lib import data
 from amaranth.lib.enum import Enum
-from amaranth.hdl._ast import ArrayProxy, Slice
+from amaranth.hdl._ast import ArrayProxy, SwitchValue, Slice
 
 from transactron.utils._typing import MethodLayout
 from transactron.utils import AssignType, assign
@@ -143,11 +143,14 @@ class TestAssign(TestCase):
         self.assertIs_AP(alist[0].rhs, self.extrr(rhs).a)
 
     def assertIs_AP(self, expr1, expr2):  # noqa: N802
-        if isinstance(expr1, ArrayProxy) and isinstance(expr2, ArrayProxy):
+        expr1 = Value.cast(expr1)
+        expr2 = Value.cast(expr2)
+        if isinstance(expr1, SwitchValue) and isinstance(expr2, SwitchValue):
             # new proxies are created on each index, structural equality is needed
-            self.assertIs(expr1.index, expr2.index)
-            assert len(expr1.elems) == len(expr2.elems)
-            for x, y in zip(expr1.elems, expr2.elems):
+            self.assertIs(expr1.test, expr2.test)
+            assert len(expr1.cases) == len(expr2.cases)
+            for (px, x), (py, y) in zip(expr1.cases, expr2.cases):
+                self.assertEqual(px, py)
                 self.assertIs_AP(x, y)
         elif isinstance(expr1, Slice) and isinstance(expr2, Slice):
             self.assertIs_AP(expr1.value, expr2.value)

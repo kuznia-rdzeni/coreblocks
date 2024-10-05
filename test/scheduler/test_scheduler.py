@@ -4,7 +4,7 @@ from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
 from amaranth.lib.data import View
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 from parameterized import parameterized_class
 from coreblocks.interface.keys import CoreStateKey
 from coreblocks.interface.layouts import ROBLayouts, RetirementLayouts
@@ -173,7 +173,7 @@ class TestScheduler(TestCaseWithSimulator):
                         return None
                 else:
                     # if no element available, wait and retry on the next clock cycle
-                    yield
+                    yield Tick()
 
             # merge queue element with all previous ones (dict merge)
             item = item | partial_item
@@ -269,7 +269,11 @@ class TestScheduler(TestCaseWithSimulator):
     def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(got, expected):
             rl_dst = yield View(
-                self.gen_params.get(ROBLayouts).data_layout, self.m.rob.data[got["rs_data"]["rob_id"]]
+                self.gen_params.get(ROBLayouts).data_layout,
+                C(
+                    (yield Value.cast(self.m.rob.data.data[got["rs_data"]["rob_id"]])),
+                    self.gen_params.get(ROBLayouts).data_layout.size,
+                ),
             ).rl_dst
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
@@ -379,12 +383,10 @@ class TestScheduler(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             for i in range(self.rs_count):
-                sim.add_sync_process(
+                sim.add_process(
                     self.make_output_process(io=self.m.rs_insert[i], output_queues=[self.expected_rs_entry_queue[i]])
                 )
-                sim.add_sync_process(rs_alloc_process(self.m.rs_alloc[i], i))
-            sim.add_sync_process(
-                self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue])
-            )
-            sim.add_sync_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
-            sim.add_sync_process(instr_input_process)
+                sim.add_process(rs_alloc_process(self.m.rs_alloc[i], i))
+            sim.add_process(self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue]))
+            sim.add_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
+            sim.add_process(instr_input_process)

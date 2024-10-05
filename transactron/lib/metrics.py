@@ -85,7 +85,7 @@ class HwMetricRegister(MetricRegisterModel):
         Amaranth signal representing the value of the register.
     """
 
-    def __init__(self, name: str, width_bits: int, description: str = "", reset: int = 0):
+    def __init__(self, name: str, width_bits: int, description: str = "", init: int = 0):
         """
         Parameters
         ----------
@@ -96,12 +96,12 @@ class HwMetricRegister(MetricRegisterModel):
             The bit-width of the register.
         description: str
             A brief description of the metric's purpose.
-        reset: int
+        init: int
             The reset value of the register.
         """
         super().__init__(name, description, width_bits)
 
-        self.value = Signal(width_bits, reset=reset, name=name)
+        self.value = Signal(width_bits, init=init, name=name)
 
 
 @dataclass(frozen=True)
@@ -174,6 +174,10 @@ class HwMetric(ABC, MetricModel):
 
     def metrics_enabled(self) -> bool:
         return DependencyContext.get().get_dependency(HwMetricsEnabledKey())
+
+    # To restore hashability lost by dataclass subclassing
+    def __hash__(self):
+        return object.__hash__(self)
 
 
 class HwCounter(Elaboratable, HwMetric):
@@ -399,7 +403,7 @@ class HwExpHistogram(Elaboratable, HwMetric):
             "min",
             self.sample_width,
             "the minimum of all observed values",
-            reset=(1 << self.sample_width) - 1,
+            init=(1 << self.sample_width) - 1,
         )
         self.max = HwMetricRegister("max", self.sample_width, "the maximum of all observed values")
 

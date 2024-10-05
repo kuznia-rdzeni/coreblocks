@@ -144,7 +144,7 @@ class LongDivider(DividerBase):
             self.ipc, xlen, partial_remainder_count=self.partial_remainder_count
         )
 
-        ready = Signal(1, reset=1)
+        ready = Signal(1, init=1)
 
         dividend = Signal(unsigned(xlen))
         divisor = Signal(unsigned(xlen))

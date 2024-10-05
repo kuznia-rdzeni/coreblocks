@@ -40,7 +40,7 @@ class TestPMADirect(TestCaseWithSimulator):
         self.test_module = PMAChecker(self.gen_params)
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)
 
 
 class PMAIndirectTestCircuit(Elaboratable):
@@ -127,4 +127,4 @@ class TestPMAIndirect(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)
