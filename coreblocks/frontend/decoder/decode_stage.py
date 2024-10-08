@@ -65,7 +65,7 @@ class DecodeStage(Elaboratable):
             ]
 
             exception_override = Signal()
-            m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault)
+            m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault.any())
             exception_funct = Signal(Funct3)
             with m.If(raw.access_fault):
                 m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
@@ -95,7 +95,9 @@ class DecodeStage(Elaboratable):
                         "rl_s1": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
                         "rl_s2": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
                     },
-                    "imm": instr_decoder.imm,
+                    "imm": Mux(
+                        ~exception_override, instr_decoder.imm, Mux(raw.access_fault, raw.access_fault, raw.instr)
+                    ),
                     "csr": instr_decoder.csr,
                     "pc": raw.pc,
                 },

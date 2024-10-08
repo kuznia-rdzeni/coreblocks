@@ -1,7 +1,7 @@
 from amaranth import *
 from coreblocks.interface.layouts import ROBLayouts
 
-from coreblocks.priv.traps.exception import ExceptionCauseRegister
+from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.params import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.params.configurations import test_core_config
@@ -13,7 +13,7 @@ from transactron.testing import *
 import random
 
 
-class TestExceptionCauseRegister(TestCaseWithSimulator):
+class TestExceptionInformationRegister(TestCaseWithSimulator):
     rob_max = 7
 
     def should_update(self, new_arg, old_arg, rob_start) -> bool:
@@ -36,7 +36,7 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
         self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
         self.fetch_stall_mock = TestbenchIO(Adapter())
         self.dut = SimpleTestCircuit(
-            ExceptionCauseRegister(
+            ExceptionInformationRegister(
                 self.gen_params, self.rob_idx_mock.adapter.iface, self.fetch_stall_mock.adapter.iface
             )
         )
@@ -57,7 +57,8 @@ class TestExceptionCauseRegister(TestCaseWithSimulator):
                 while saved_entry and report_rob == saved_entry["rob_id"]:
                     report_rob = random.randint(0, self.rob_max)
                 report_pc = random.randrange(2**self.gen_params.isa.xlen)
-                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc}
+                report_mtval = random.randrange(2**self.gen_params.isa.xlen)
+                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc, "mtval": report_mtval}
 
                 expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
                 yield from self.dut.report.call(report_arg)
