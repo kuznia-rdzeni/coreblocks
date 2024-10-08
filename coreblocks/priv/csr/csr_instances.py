@@ -85,7 +85,7 @@ class MachineModeCSRRegisters(Elaboratable):
         self.priv_mode = CSRRegister(
             None,
             gen_params,
-            width=2,
+            width=Shape.cast(PrivilegeLevel),
             reset=PrivilegeLevel.MACHINE,
         )
         if gen_params._generate_test_hardware:
@@ -108,11 +108,11 @@ class MachineModeCSRRegisters(Elaboratable):
             legal = Signal(1)
             with m.Switch(v):
                 with m.Case(PrivilegeLevel.MACHINE):
-                    m.d.comb += legal.eq(1)
+                    m.d.av_comb += legal.eq(1)
                 with m.Case(PrivilegeLevel.USER):
-                    m.d.comb += legal.eq(gen_params.user_mode)
+                    m.d.ab_comb += legal.eq(gen_params.user_mode)
                 with m.Default():
-                    pass
+                    m.d.av_comb += legal.eq(0)
 
             return (legal, v)
 
@@ -122,17 +122,23 @@ class MachineModeCSRRegisters(Elaboratable):
         # MPIE bit - previous MIE
         self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
         mstatus.add_field(MstatusFieldOffsets.MPIE, self.mstatus_mpie)
-        # MPP bit - previous priv mode
+        # MPP field - previous priv mode
         self.mstatus_mpp = CSRRegister(
-            None, gen_params, width=2, fu_write_filtermap=filter_legal_priv_mode, reset=PrivilegeLevel.MACHINE
+            None,
+            gen_params,
+            width=Shape.cast(PrivilegeLevel),
+            fu_write_filtermap=filter_legal_priv_mode,
+            reset=PrivilegeLevel.MACHINE,
         )
         mstatus.add_field(MstatusFieldOffsets.MPP, self.mstatus_mpp)
 
         # Fixed MXLEN/SXLEN/UXLEN = isa.xlen
         if gen_params.isa.xlen == 64:
             # Registers only exist in RV64
-            mstatus.add_read_only_field(MstatusFieldOffsets.UXL, 2, XlenEncoding.W64 if gen_params.user_mode else 0)
-            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, 2, 0)
+            mstatus.add_read_only_field(
+                MstatusFieldOffsets.UXL, Shape.cast(XlenEncoding), XlenEncoding.W64 if gen_params.user_mode else 0
+            )
+            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, Shape.cast(XlenEncoding), 0)
 
         # Little-endianess
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
@@ -165,18 +171,11 @@ class MachineModeCSRRegisters(Elaboratable):
         mstatus.add_read_only_field(MstatusFieldOffsets.FS, 2, 3 if Extension.F in gen_params.isa.extensions else 0)
         mstatus.add_read_only_field(MstatusFieldOffsets.XS, 2, 0)
         # SD field - set to one when one of the states is dirty
-        if gen_params.isa.xlen == 32:
-            mstatush.add_read_only_field(
-                mstatush.width - 1,
-                1,
-                Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
-            )
-        elif gen_params.isa.xlen == 64:
-            mstatus.add_read_only_field(
-                mstatus.width - 1,
-                1,
-                Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
-            )
+        mstatus.add_read_only_field(
+            MstatusFieldOffsets.SD % mstatus.width,  # SD is last bit of `mstatus` (depends on xlen)
+            1,
+            Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
+        )
 
 
 class GenericCSRRegisters(Elaboratable):

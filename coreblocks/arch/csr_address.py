@@ -436,8 +436,8 @@ class CSRAddress(IntEnum, shape=12):
 
     # Internal Coreblocks CSRs
     # used only for testbench verification
-    COREBLOCKS_TEST_PRIV_MODE = 0x8FF
     COREBLOCKS_TEST_CSR = 0x7FF
+    COREBLOCKS_TEST_PRIV_MODE = 0x8FF
 
 
 @unique
@@ -462,3 +462,4 @@ class MstatusFieldOffsets(IntEnum):
     SXL = 34  # Supervisor XLEN
     SBE = 36  # Supervisor Endianess Control
     MBE = 37  # Machine Endianess Contorol
+    SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus

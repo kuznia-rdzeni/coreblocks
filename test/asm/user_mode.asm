@@ -3,9 +3,12 @@ _start:
 
     la x1, trap_handler
     csrw mtvec, x1
-    
+
     li x1, 0b11 << 11
     csrc mstatus, x1 # User mode to mpp
+
+    li x1, 0b10 << 11
+    csrs mstatus, x1 # Invalid mpp mode, write should be ignored
 
     la x1, user_code
     csrw mepc, x1
@@ -18,7 +21,7 @@ user_code:
     ecall
 
     j fail
-    
+
 user_code2:
     wfi
     j fail
@@ -38,7 +41,7 @@ trap_handler:
     li x2, 0b11 << 11
     and x1, x1, x2 # mpp
     bnez x1, fail
-    
+
     csrr x1, 0x8FF # custom - current priv mode
     li x2, 0b11 # machine mode
     bne x1, x2, fail
@@ -52,7 +55,7 @@ case0:
     csrr x1, mcause
     li x2, 8 # ECALL_FROM_U
     bne x1, x2, fail
-    
+
     li x1, 1<<17
     csrs mie, x1 # enable fixed level interrupt
 
@@ -69,7 +72,7 @@ case1:
     csrr x1, mcause
     li x2, 0x80000011 # interrupt 17
     bne x1, x2, fail
-    
+
     li x1, 1<<21
     csrs mstatus, x1 # enable TW
 
@@ -80,20 +83,19 @@ case1:
 case2:
     addi x3, x3, -1
     bgtz x3, case3
-    
+
     csrr x1, mcause
-    li x2, 2 # ILLEGAL_INSTRUCTION 
+    li x2, 2 # ILLEGAL_INSTRUCTION
     bne x1, x2, fail
-    
+
     la x1, user_code3
     csrw mepc, x1
     mret
 
 case3:
     csrr x1, mcause
-    li x2, 2 # ILLEGAL_INSTRUCTION 
+    li x2, 2 # ILLEGAL_INSTRUCTION
     bne x1, x2, fail
-    
+
     addi x4, x4, 1
     j pass
-   
