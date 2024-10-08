@@ -164,7 +164,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut = CSRUnitTestCircuit(self.gen_params, self.csr_count)
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_test)
+            sim.add_process(self.process_test)
 
     exception_csr_numbers = [
         0xCC0,  # read_only
@@ -217,7 +217,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_exception_test)
+            sim.add_process(self.process_exception_test)
 
 
 class TestCSRRegister(TestCaseWithSimulator):
@@ -250,7 +250,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 fu_read = True
                 yield from self.dut._fu_read.enable()
 
-            yield
+            yield Tick()
             yield Settle()
 
             exp_read_data = exp_write_data if fu_write or write else previous_data
@@ -282,7 +282,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.randomized_process_test)
+            sim.add_process(self.randomized_process_test)
 
     def filtermap_process_test(self):
         prev_value = 0
@@ -334,7 +334,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         )
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.filtermap_process_test)
+            sim.add_process(self.filtermap_process_test)
 
     def comb_process_test(self):
         yield from self.dut.read.enable()
@@ -345,19 +345,19 @@ class TestCSRRegister(TestCaseWithSimulator):
         yield from self.dut._fu_write.call_do()
         assert (yield from self.dut.read_comb.call_result())["data"] == 0xFFFF
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xAB
-        yield
+        yield Tick()
         assert (yield from self.dut.read.call_result())["data"] == 0xFFFB
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xFFFB
-        yield
+        yield Tick()
 
         yield from self.dut._fu_write.call_init({"data": 0x0FFF})
         yield from self.dut.write.call_init({"data": 0xAAAA})
         yield from self.dut._fu_write.call_do()
         yield from self.dut.write.call_do()
         assert (yield from self.dut.read_comb.call_result()) == {"data": 0x0FFF, "read": 1, "written": 1}
-        yield
+        yield Tick()
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xAAAA
-        yield
+        yield Tick()
 
         # single cycle
         yield from self.dut._fu_write.call_init({"data": 0x0BBB})
@@ -365,7 +365,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         update_val = (yield from self.dut.read_comb.call_result())["data"] | 0xD000
         yield from self.dut.write.call_init({"data": update_val})
         yield from self.dut.write.call_do()
-        yield
+        yield Tick()
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xDBBB
 
     def test_comb(self):
@@ -373,7 +373,7 @@ class TestCSRRegister(TestCaseWithSimulator):
 
         random.seed(4326)
 
-        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, reset=0xAB))
+        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, init=0xAB))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.comb_process_test)
+            sim.add_process(self.comb_process_test)

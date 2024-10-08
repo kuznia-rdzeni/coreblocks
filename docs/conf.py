@@ -14,6 +14,7 @@ needs_sphinx = "5.1.0"
 # Add any extenstions here. These could be both Sphinx or custom ones.
 extensions = [
     "myst_parser",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.ifconfig",
     "sphinx.ext.extlinks",
@@ -104,3 +105,14 @@ autodoc_class_signature = "separated"
 
 # Auto generate anchors for # - ### headers
 myst_heading_anchors = 3
+
+# Compatibility with Amaranth docstrings
+rst_prolog = """
+.. role:: py(code)
+   :language: python
+"""
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "amaranth": ("https://amaranth-lang.org/docs/amaranth/latest/", None),
+}

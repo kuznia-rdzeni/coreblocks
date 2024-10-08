@@ -6,7 +6,7 @@ from collections import deque
 from typing import Generic, TypeVar
 
 from amaranth import Elaboratable, Signal
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Tick
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
@@ -180,7 +180,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         while True:
             assert (yield self.m.issue.adapter.iface.ready)
             assert (yield self.m.issue.adapter.en) == (yield self.m.issue.adapter.done)
-            yield
+            yield Tick()
 
     def run_standard_fu_test(self, pipeline_test=False):
         if pipeline_test:
@@ -189,8 +189,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             self.max_wait = 10
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_sync_process(self.producer)
-            sim.add_sync_process(self.consumer)
-            sim.add_sync_process(self.exception_consumer)
+            sim.add_process(self.producer)
+            sim.add_process(self.consumer)
+            sim.add_process(self.exception_consumer)
             if pipeline_test:
-                sim.add_sync_process(self.pipeline_verifier)
+                sim.add_process(self.pipeline_verifier)

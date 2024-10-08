@@ -1,4 +1,4 @@
-from amaranth.sim import Passive, Settle
+from amaranth.sim import Passive, Settle, Tick
 
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
@@ -14,7 +14,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
             while self.regs_left_queue.empty():
-                yield
+                yield Tick()
 
             while self.rand.random() < 0.5:
                 yield  # to slow down puts
@@ -31,7 +31,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             while self.rand.random() < 0.5:
                 yield  # to slow down execution
             if len(self.to_execute_list) == 0:
-                yield
+                yield Tick()
             else:
                 idx = self.rand.randint(0, len(self.to_execute_list) - 1)
                 rob_id, executed = self.to_execute_list.pop(idx)
@@ -43,7 +43,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         while True:
             if self.retire_queue.empty():
                 self.m.retire.enable()
-                yield
+                yield Tick()
                 is_ready = yield self.m.retire.adapter.done
                 assert is_ready == 0  # transaction should not be ready if there is nothing to retire
             else:
@@ -82,9 +82,9 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.log_regs = self.gen_params.isa.reg_cnt
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.gen_input)
-            sim.add_sync_process(self.do_updates)
-            sim.add_sync_process(self.do_retire)
+            sim.add_process(self.gen_input)
+            sim.add_process(self.do_updates)
+            sim.add_process(self.do_retire)
 
 
 class TestFullDoneCase(TestCaseWithSimulator):
@@ -97,7 +97,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
 
     def do_single_update(self):
         while len(self.to_execute_list) == 0:
-            yield
+            yield Tick()
 
         rob_id = self.to_execute_list.pop(0)
         yield from self.m.mark_done.call(rob_id)
@@ -113,7 +113,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
             yield from self.m.retire.call()
 
         yield from self.m.retire.enable()
-        yield
+        yield Tick()
         res = yield self.m.retire.adapter.done
         assert res == 0  # should be disabled, since we have read all elements
 
@@ -130,5 +130,5 @@ class TestFullDoneCase(TestCaseWithSimulator):
         self.phys_regs = 2**self.gen_params.phys_regs_bits
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.gen_input)
-            sim.add_sync_process(self.do_retire)
+            sim.add_process(self.gen_input)
+            sim.add_process(self.do_retire)

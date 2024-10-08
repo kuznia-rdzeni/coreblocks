@@ -7,6 +7,8 @@ import warnings
 from amaranth.hdl import Elaboratable, Fragment, Instance
 from amaranth.hdl._xfrm import FragmentTransformer
 from amaranth.hdl import _dsl, _ir, _mem, _xfrm
+from amaranth.lib import memory  # type: ignore
+from amaranth_types import SrcLoc
 from transactron.utils import HasElaborate
 from . import core
 
@@ -16,7 +18,7 @@ modules_with_fragment: tuple = core, _ir, _dsl, _mem, _xfrm
 # List of Fragment subclasses which should be patched to inherit from TracingFragment.
 # The first element of the tuple is a subclass name to patch, and the second element
 # of the tuple is tuple with modules in which the patched subclass should be installed.
-fragment_subclasses_to_patch = [("MemoryInstance", (_mem, _xfrm))]
+fragment_subclasses_to_patch = [("MemoryInstance", (memory, _mem, _xfrm))]
 
 DIAGNOSTICS = False
 orig_on_fragment = FragmentTransformer.on_fragment
@@ -79,7 +81,7 @@ class TracingFragmentTransformer(FragmentTransformer):
 
 class TracingFragment(Fragment):
     _tracing_original: Elaboratable
-    subfragments: list[tuple[Elaboratable, str]]
+    subfragments: list[tuple[Elaboratable, str, SrcLoc]]
 
     if DIAGNOSTICS:
 

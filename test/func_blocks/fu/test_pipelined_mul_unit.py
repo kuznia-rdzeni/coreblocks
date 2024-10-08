@@ -80,5 +80,5 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
                 yield from self.m.issue.call(req)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+            sim.add_process(producer)
+            sim.add_process(consumer)

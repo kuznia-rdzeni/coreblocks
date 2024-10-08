@@ -1,7 +1,7 @@
 import random
 from collections import deque
 
-from amaranth.sim import Settle, Passive
+from amaranth.sim import Settle, Passive, Tick
 
 from transactron.lib import Adapter
 from transactron.utils import int_to_signed, signed_to_int
@@ -222,7 +222,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
             while req["rob_id"] not in self.free_rob_id:
-                yield
+                yield Tick()
             self.free_rob_id.remove(req["rob_id"])
             yield from self.test_module.issue.call(req)
             yield from self.random_wait(self.max_wait)
@@ -248,9 +248,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             assert arg == self.exception_queue.pop()
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.inserter)
-            sim.add_sync_process(self.consumer)
+            sim.add_process(self.wishbone_slave)
+            sim.add_process(self.inserter)
+            sim.add_process(self.consumer)
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
@@ -305,7 +305,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.one_instr_test)
+            sim.add_process(self.one_instr_test)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
@@ -400,7 +400,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         yield Passive()
         while True:
             while len(self.precommit_data) == 0:
-                yield
+                yield Tick()
             rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
             yield from self.test_module.precommit.call(rob_id=rob_id, side_fx=1)
 
@@ -410,10 +410,10 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.wishbone_slave)
-            sim.add_sync_process(self.inserter)
-            sim.add_sync_process(self.get_resulter)
-            sim.add_sync_process(self.precommiter)
+            sim.add_process(self.wishbone_slave)
+            sim.add_process(self.inserter)
+            sim.add_process(self.get_resulter)
+            sim.add_process(self.precommiter)
 
 
 class TestDummyLSUFence(TestCaseWithSimulator):
@@ -448,4 +448,4 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)

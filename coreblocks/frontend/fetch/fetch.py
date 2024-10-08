@@ -93,7 +93,7 @@ class FetchUnit(Elaboratable):
         def flush():
             m.d.comb += flush_now.eq(1)
 
-        current_pc = Signal(self.gen_params.isa.xlen, reset=self.gen_params.start_pc)
+        current_pc = Signal(self.gen_params.isa.xlen, init=self.gen_params.start_pc)
 
         stalled_unsafe = Signal()
         stalled_exception = Signal()

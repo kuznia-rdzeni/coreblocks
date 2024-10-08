@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import connect
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Tick
 
 from transactron.utils import align_to_power_of_two
 
@@ -31,10 +31,10 @@ class CoreTestElaboratable(Elaboratable):
         # Align the size of the memory to the length of a cache line.
         instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
         self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=self.gen_params.wb_params, width=32, depth=instr_mem_depth, init=self.instr_mem
+            wb_params=self.gen_params.wb_params, shape=32, depth=instr_mem_depth, init=self.instr_mem
         )
         self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=self.gen_params.wb_params, width=32, depth=len(self.data_mem), init=self.data_mem
+            wb_params=self.gen_params.wb_params, shape=32, depth=len(self.data_mem), init=self.data_mem
         )
 
         self.core = Core(gen_params=self.gen_params)
@@ -147,7 +147,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
     def run_and_check(self):
         for _ in range(self.cycle_count):
-            yield
+            yield Tick()
 
         for reg_id, val in self.expected_regvals.items():
             assert (yield from self.get_arch_reg_val(reg_id)) == val
@@ -159,7 +159,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.run_and_check)
+            sim.add_process(self.run_and_check)
 
 
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
@@ -205,14 +205,14 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         yield Passive()
         while True:
             while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
-                yield
+                yield Tick()
 
             if (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 2:
                 assert False, "`fail` called"
 
             yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
             yield self.m.interrupt_level.eq(0)
-            yield
+            yield Tick()
 
     def run_with_interrupt_process(self):
         main_cycles = 0
@@ -221,7 +221,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
         # wait for interrupt enable
         while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
-            yield
+            yield Tick()
 
         def do_interrupt():
             count = 0
@@ -233,7 +233,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0 and not self.edge_only:
                 yield self.m.interrupt_level.eq(1)
                 count += 1
-            yield
+            yield Tick()
             yield self.m.interrupt_edge.eq(0)
             return count
 
@@ -249,28 +249,28 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
             # wait for the interrupt to get registered
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 1:
-                yield
+                yield Tick()
 
             # trigger interrupt during execution of ISR handler (blocked-pending) with some chance
             early_interrupt = random.random() < 0.4
             if early_interrupt:
                 # wait until interrupts are cleared, so it won't be missed
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:
-                    yield
+                    yield Tick()
 
                 assert (yield from self.get_arch_reg_val(30)) == int_count
 
                 int_count += yield from do_interrupt()
             else:
                 while (yield self.m.core.interrupt_controller.mip.value) != 0:
-                    yield
+                    yield Tick()
                 assert (yield from self.get_arch_reg_val(30)) == int_count
 
             handler_count += 1
 
             # wait until ISR returns
             while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
-                yield
+                yield Tick()
 
         assert (yield from self.get_arch_reg_val(30)) == int_count
         assert (yield from self.get_arch_reg_val(27)) == handler_count
@@ -284,8 +284,8 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             bin_src["data"][self.reg_init_mem_offset // 4 + reg_id] = val
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.run_with_interrupt_process)
-            sim.add_sync_process(self.clear_level_interrupt_procsess)
+            sim.add_process(self.run_with_interrupt_process)
+            sim.add__process(self.clear_level_interrupt_procsess)
 
 
 @parameterized_class(
@@ -312,29 +312,29 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
         # wait for interrupt enable
         while (yield self.m.core.interrupt_controller.mie.value) == 0 and cycles < self.cycle_count:
             cycles += 1
-            yield
+            yield Tick()
 
         while cycles < self.cycle_count:
             yield from self.random_wait(5)
             yield self.m.interrupt_level.eq(1)
-            yield
+            yield Tick()
 
             # wait for the interrupt to get registered
             while (
                 yield self.m.core.csr_generic.m_mode.priv_mode.value
             ) != PrivilegeLevel.MACHINE and cycles < self.cycle_count:
                 cycles += 1
-                yield
+                yield Tick()
 
             yield self.m.interrupt_level.eq(0)
-            yield
+            yield Tick()
 
             # wait until ISR returns
             while (
                 yield self.m.core.csr_generic.m_mode.priv_mode.value
             ) == PrivilegeLevel.MACHINE and cycles < self.cycle_count:
                 cycles += 1
-                yield
+                yield Tick()
 
         for reg_id, val in self.expected_regvals.items():
             assert (yield from self.get_arch_reg_val(reg_id)) == val
@@ -344,4 +344,4 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.run_with_interrupt_process)
+            sim.add_process(self.run_with_interrupt_process)

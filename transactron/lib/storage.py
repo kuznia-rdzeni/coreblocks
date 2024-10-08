@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.utils import *
+import amaranth.lib.memory as memory
 
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
 from ..core import *
@@ -78,9 +79,9 @@ class MemoryBank(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        mem = Memory(width=self.width, depth=self.elem_count)
-        m.submodules.read_port = read_port = mem.read_port(transparent=self.transparent)
-        m.submodules.write_port = write_port = mem.write_port()
+        m.submodules.mem = mem = memory.Memory(shape=self.width, depth=self.elem_count, init=[])
+        write_port = mem.write_port()
+        read_port = mem.read_port(transparent_for=[write_port] if self.transparent else [])
         read_output_valid = Signal()
         overflow_valid = Signal()
         overflow_data = Signal(self.width)
@@ -271,9 +272,10 @@ class AsyncMemoryBank(Elaboratable):
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
-        mem = Memory(width=self.width, depth=self.elem_count)
-        m.submodules.read_port = read_port = mem.read_port(domain="comb")
-        m.submodules.write_port = write_port = mem.write_port()
+        mem = memory.Memory(shape=self.width, depth=self.elem_count, init=[])
+        m.submodules.mem = mem
+        write_port = mem.write_port()
+        read_port = mem.read_port(domain="comb")
 
         @def_method(m, self.read)
         def _(addr):
