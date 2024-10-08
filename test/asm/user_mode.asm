@@ -1,3 +1,8 @@
+# User mode test
+# runs `user_code`* in user mode that ends with control transfer via excpetion
+# or interrupt to trap_handler.
+# trap_handler verifies trap cause and priv mode change
+
 _start:
     li x4, 0
 
@@ -5,28 +10,32 @@ _start:
     csrw mtvec, x1
 
     li x1, 0b11 << 11
-    csrc mstatus, x1 # User mode to mpp
+    csrc mstatus, x1 # Set transfer to User mode to mpp
 
     li x1, 0b10 << 11
-    csrs mstatus, x1 # Invalid mpp mode, write should be ignored
+    csrs mstatus, x1 # Invalid mpp mode, check if write is ignored
 
     la x1, user_code
     csrw mepc, x1
-    mret # go to user mode
+    mret # go to user_code in user mode
 
 user_code:
-    csrr x1, 0x8FF # custom - current priv mode
-    bnez x1, fail
+    # case0 - test ecall from user mode
+    csrr x1, 0x8FF # custom testbech CSR - check current priv mode
+    bnez x1, fail # user mode = 0
 
     ecall
 
     j fail
 
 user_code2:
+    # case1 - standard interrupt entry from user mode
+    # case2 - wfi should be illegal in user mode when mstatus.TW is set
     wfi
     j fail
 
 user_code3:
+    # case3 - test write to CSR not accesible from user mode
     csrr x1, mstatus
     j fail
 

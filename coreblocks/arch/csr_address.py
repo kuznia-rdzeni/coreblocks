@@ -436,7 +436,10 @@ class CSRAddress(IntEnum, shape=12):
 
     # Internal Coreblocks CSRs
     # used only for testbench verification
+
+    # CSR for custom communication with testbenches
     COREBLOCKS_TEST_CSR = 0x7FF
+    # CSR providing writable current privilege mode (U-mode accesible)
     COREBLOCKS_TEST_PRIV_MODE = 0x8FF
 
 
