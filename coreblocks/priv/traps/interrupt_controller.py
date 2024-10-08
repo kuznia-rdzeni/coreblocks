@@ -5,7 +5,7 @@ from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params.genparams import GenParams
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, GenericCSRRegistersKey, MretKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, CSRInstancesKey, MretKey
 
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
@@ -61,7 +61,7 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
-        self.m_mode_csr = m_mode_csr = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode
+        self.m_mode_csr = m_mode_csr = self.dm.get_dependency(CSRInstancesKey()).m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
@@ -92,7 +92,7 @@ class InternalInterruptController(Component):
 
         m.submodules += [self.mie, self.mip]
 
-        priv_mode = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode.priv_mode
+        priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
 
         interrupt_enable = Signal()
         mie = Signal(self.gen_params.isa.xlen)

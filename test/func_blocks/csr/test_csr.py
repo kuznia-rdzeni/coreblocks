@@ -14,7 +14,7 @@ from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
-    GenericCSRRegistersKey,
+    CSRInstancesKey,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel
 from transactron.utils.dependencies import DependencyContext
@@ -49,7 +49,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
-        DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.csr_instances)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 

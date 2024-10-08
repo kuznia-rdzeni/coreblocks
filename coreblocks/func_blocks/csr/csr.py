@@ -15,7 +15,7 @@ from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitL
 from coreblocks.interface.keys import (
     CSRListKey,
     FetchResumeKey,
-    GenericCSRRegistersKey,
+    CSRInstancesKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
@@ -141,7 +141,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                     with m.Case(csr_number):
                         priv_valid = Signal()
                         current_priv_mode = self.dependency_manager.get_dependency(
-                            GenericCSRRegistersKey()
+                            CSRInstancesKey()
                         ).m_mode.priv_mode.read(m)
                         m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 

@@ -11,7 +11,7 @@ from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     FetchResumeKey,
-    GenericCSRRegistersKey,
+    CSRInstancesKey,
     CommonBusDataKey,
 )
 from coreblocks.params.genparams import GenParams
@@ -89,7 +89,7 @@ class Core(Component):
         )
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
-        self.connections.add_dependency(GenericCSRRegistersKey(), self.csr_generic)
+        self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)
 
         self.interrupt_controller = InternalInterruptController(self.gen_params)
 

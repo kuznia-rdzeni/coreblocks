@@ -10,7 +10,7 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
-from coreblocks.interface.keys import ExceptionReportKey, GenericCSRRegistersKey
+from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
@@ -70,7 +70,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
 
             cause = Signal(ExceptionCause)
 
-            priv_level = self.dm.get_dependency(GenericCSRRegistersKey()).m_mode.priv_mode.read(m).data
+            priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):

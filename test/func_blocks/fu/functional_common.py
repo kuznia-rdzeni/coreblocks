@@ -14,7 +14,7 @@ from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.arch import Funct3, Funct7
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, GenericCSRRegistersKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, CSRInstancesKey
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
@@ -104,7 +104,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
-        DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.csrs)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 
         self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
         self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)

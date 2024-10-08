@@ -19,7 +19,7 @@ from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
-    GenericCSRRegistersKey,
+    CSRInstancesKey,
     InstructionPrecommitKey,
     FetchResumeKey,
     FlushICacheKey,
@@ -81,7 +81,7 @@ class PrivilegedFuncUnit(Elaboratable):
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
         exception_report = self.dm.get_dependency(ExceptionReportKey())
-        csr = self.dm.get_dependency(GenericCSRRegistersKey())
+        csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
 
