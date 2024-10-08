@@ -285,7 +285,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.run_with_interrupt_process)
-            sim.add__process(self.clear_level_interrupt_procsess)
+            sim.add_process(self.clear_level_interrupt_procsess)
 
 
 @parameterized_class(

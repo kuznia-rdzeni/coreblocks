@@ -85,8 +85,8 @@ class MachineModeCSRRegisters(Elaboratable):
         self.priv_mode = CSRRegister(
             None,
             gen_params,
-            width=Shape.cast(PrivilegeLevel),
-            reset=PrivilegeLevel.MACHINE,
+            width=PrivilegeLevel.as_shape().width,
+            init=PrivilegeLevel.MACHINE,
         )
         if gen_params._generate_test_hardware:
             self.priv_mode_public = AliasedCSR(CSRAddress.COREBLOCKS_TEST_PRIV_MODE, gen_params)
@@ -110,7 +110,7 @@ class MachineModeCSRRegisters(Elaboratable):
                 with m.Case(PrivilegeLevel.MACHINE):
                     m.d.av_comb += legal.eq(1)
                 with m.Case(PrivilegeLevel.USER):
-                    m.d.ab_comb += legal.eq(gen_params.user_mode)
+                    m.d.av_comb += legal.eq(gen_params.user_mode)
                 with m.Default():
                     m.d.av_comb += legal.eq(0)
 
@@ -126,9 +126,9 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mstatus_mpp = CSRRegister(
             None,
             gen_params,
-            width=Shape.cast(PrivilegeLevel),
+            width=PrivilegeLevel.as_shape().width,
             fu_write_filtermap=filter_legal_priv_mode,
-            reset=PrivilegeLevel.MACHINE,
+            init=PrivilegeLevel.MACHINE,
         )
         mstatus.add_field(MstatusFieldOffsets.MPP, self.mstatus_mpp)
 
@@ -136,9 +136,9 @@ class MachineModeCSRRegisters(Elaboratable):
         if gen_params.isa.xlen == 64:
             # Registers only exist in RV64
             mstatus.add_read_only_field(
-                MstatusFieldOffsets.UXL, Shape.cast(XlenEncoding), XlenEncoding.W64 if gen_params.user_mode else 0
+                MstatusFieldOffsets.UXL, XlenEncoding.as_shape().width, XlenEncoding.W64 if gen_params.user_mode else 0
             )
-            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, Shape.cast(XlenEncoding), 0)
+            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, XlenEncoding.as_shape().width, 0)
 
         # Little-endianess
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
