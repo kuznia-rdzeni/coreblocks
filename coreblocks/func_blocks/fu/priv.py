@@ -23,6 +23,7 @@ from coreblocks.interface.keys import (
     InstructionPrecommitKey,
     FetchResumeKey,
     FlushICacheKey,
+    WaitForInterruptResumeKey,
 )
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
@@ -80,6 +81,7 @@ class PrivilegedFuncUnit(Elaboratable):
 
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
+        wfi_resume = self.dm.get_dependency(WaitForInterruptResumeKey())
         exception_report = self.dm.get_dependency(ExceptionReportKey())
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
@@ -120,7 +122,9 @@ class PrivilegedFuncUnit(Elaboratable):
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                         flush_icache(m)
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
-                        m.d.sync += finished.eq(async_interrupt_active)
+                        # async_interrupt_active implies wfi_resume. WFI should continue normal execution
+                        # when interrupt is enabled in xie, but disabled via global mstatus.xIE
+                        m.d.sync += finished.eq(wfi_resume)
 
                 m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 

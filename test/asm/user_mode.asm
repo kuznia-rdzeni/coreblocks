@@ -68,7 +68,7 @@ case0:
     li x1, 1<<17
     csrs mie, x1 # enable fixed level interrupt
 
-    # MIE = 0, but interrupts are active in U-MODE (when enabled in mie)
+    # mstatus.MIE = 0, but interrupts are active in U-MODE (when enabled in mie)
 
     la x1, user_code2
     csrw mepc, x1

@@ -68,6 +68,11 @@ class AsyncInterruptInsertSignalKey(SimpleKey[Signal]):
 
 
 @dataclass(frozen=True)
+class WaitForInterruptResumeKey(SimpleKey[Signal]):
+    pass
+
+
+@dataclass(frozen=True)
 class MretKey(SimpleKey[Method]):
     pass
 

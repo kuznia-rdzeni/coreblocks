@@ -289,15 +289,17 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
 
 @parameterized_class(
-    ("source_file", "cycle_count", "expected_regvals"),
+    ("source_file", "cycle_count", "expected_regvals", "always_mmode"),
     [
-        ("user_mode.asm", 1000, {4: 5}),
+        ("user_mode.asm", 1000, {4: 5}, False),
+        ("wfi_no_mie.asm", 250, {8: 8}, True),  # only using level enable
     ],
 )
 class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
     source_file: str
     cycle_count: int
     expected_regvals: dict[int, int]
+    always_mmode: bool
 
     def setup_method(self):
         self.configuration = full_core_config.replace(
@@ -313,11 +315,15 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
         while (yield self.m.core.interrupt_controller.mie.value) == 0 and cycles < self.cycle_count:
             cycles += 1
             yield Tick()
+        yield from self.random_wait(5)
 
         while cycles < self.cycle_count:
-            yield from self.random_wait(5)
             yield self.m.interrupt_level.eq(1)
+            cycles += 1
             yield Tick()
+
+            if self.always_mmode:  # if test happens only in m_mode, just enable fixed interrupt
+                continue
 
             # wait for the interrupt to get registered
             while (
@@ -335,6 +341,8 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
             ) == PrivilegeLevel.MACHINE and cycles < self.cycle_count:
                 cycles += 1
                 yield Tick()
+
+            yield from self.random_wait(5)
 
         for reg_id, val in self.expected_regvals.items():
             assert (yield from self.get_arch_reg_val(reg_id)) == val
