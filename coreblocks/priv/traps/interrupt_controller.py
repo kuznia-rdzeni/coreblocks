@@ -5,7 +5,12 @@ from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params.genparams import GenParams
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, CSRInstancesKey, MretKey
+from coreblocks.interface.keys import (
+    AsyncInterruptInsertSignalKey,
+    CSRInstancesKey,
+    MretKey,
+    WaitForInterruptResumeKey,
+)
 
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
@@ -78,6 +83,9 @@ class InternalInterruptController(Component):
         self.interrupt_insert = Signal()
         self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
 
+        self.wfi_resume = Signal()
+        self.dm.add_dependency(WaitForInterruptResumeKey(), self.wfi_resume)
+
         self.interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
 
         self.mret = Method()
@@ -107,6 +115,9 @@ class InternalInterruptController(Component):
 
         interrupt_pending = (mie & mip).any()
         m.d.comb += self.interrupt_insert.eq(interrupt_pending & interrupt_enable)
+
+        # WFI is independent of global mstatus.xIE and mideleg
+        m.d.comb += self.wfi_resume.eq(interrupt_pending)
 
         edge_report_interrupt = Signal(self.gen_params.isa.xlen)
         level_report_interrupt = Signal(self.gen_params.isa.xlen)
