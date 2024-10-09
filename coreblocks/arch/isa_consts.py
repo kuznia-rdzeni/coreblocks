@@ -12,6 +12,7 @@ __all__ = [
     "Registers",
     "PrivilegeLevel",
     "InterruptCauseNumber",
+    "XlenEncoding",
 ]
 
 
@@ -172,3 +173,10 @@ class InterruptCauseNumber(IntEnum):
     MTI = 7  # machine timer interrupt
     SEI = 9  # supervisor external interrupt
     MEI = 11  # machine external interrupt
+
+
+@unique
+class XlenEncoding(IntEnum, shape=2):
+    W32 = 1
+    W64 = 2
+    W128 = 3

@@ -5,11 +5,18 @@ from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import (
+    AsyncInterruptInsertSignalKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
+    CSRInstancesKey,
+)
+from coreblocks.arch.isa_consts import PrivilegeLevel
 from transactron.utils.dependencies import DependencyContext
 
 from transactron.testing import *
@@ -38,8 +45,11 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
+        m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
+        m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 
@@ -55,7 +65,8 @@ class CSRUnitTestCircuit(Elaboratable):
             make_csr(i)
 
         if not self.only_legal:
-            make_csr(0xC00)  # read-only csr
+            make_csr(0xCC0)  # read-only csr
+            make_csr(0x7FE)  # machine mode only
 
         return m
 
@@ -156,15 +167,20 @@ class TestCSRUnit(TestCaseWithSimulator):
             sim.add_process(self.process_test)
 
     exception_csr_numbers = [
-        0xC00,  # read_only
+        0xCC0,  # read_only
         0xFFF,  # nonexistent
-        # 0x100 TODO: check priv level when implemented
+        0x7FE,  # missing priv
     ]
 
     def process_exception_test(self):
         yield from self.dut.fetch_resume.enable()
         yield from self.dut.exception_report.enable()
         for csr in self.exception_csr_numbers:
+            if csr == 0x7FE:
+                yield from self.dut.priv_io.call(data=PrivilegeLevel.USER)
+            else:
+                yield from self.dut.priv_io.call(data=PrivilegeLevel.MACHINE)
+
             yield from self.random_wait_geom()
 
             yield from self.dut.select.call()
