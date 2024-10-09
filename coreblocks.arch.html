@@ -92,10 +92,15 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.csr_address.CSRAddress">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.csr_address.</span></span><span class="sig-name descname"><span class="pre">CSRAddress</span></span><a class="headerlink" href="#coreblocks.arch.csr_address.CSRAddress" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.csr_address.CSRAddress.COREBLOCKS_TEST_CSR">
 <span class="sig-name descname"><span class="pre">COREBLOCKS_TEST_CSR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2047</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.CSRAddress.COREBLOCKS_TEST_CSR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.CSRAddress.COREBLOCKS_TEST_PRIV_MODE">
+<span class="sig-name descname"><span class="pre">COREBLOCKS_TEST_PRIV_MODE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2303</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.CSRAddress.COREBLOCKS_TEST_PRIV_MODE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -1945,13 +1950,129 @@
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.csr_address.</span></span><span class="sig-name descname"><span class="pre">MstatusFieldOffsets</span></span><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.FS">
+<span class="sig-name descname"><span class="pre">FS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">13</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.FS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.MBE">
+<span class="sig-name descname"><span class="pre">MBE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">37</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.MBE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.MIE">
+<span class="sig-name descname"><span class="pre">MIE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.MIE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.MPIE">
+<span class="sig-name descname"><span class="pre">MPIE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.MPIE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.MPP">
+<span class="sig-name descname"><span class="pre">MPP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.MPP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.MPRV">
+<span class="sig-name descname"><span class="pre">MPRV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">17</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.MPRV" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.MXR">
+<span class="sig-name descname"><span class="pre">MXR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">19</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.MXR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SBE">
+<span class="sig-name descname"><span class="pre">SBE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">36</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SBE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SD">
+<span class="sig-name descname"><span class="pre">SD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SD" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SIE">
+<span class="sig-name descname"><span class="pre">SIE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SIE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SPIE">
+<span class="sig-name descname"><span class="pre">SPIE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SPIE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SPP">
+<span class="sig-name descname"><span class="pre">SPP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SPP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SUM">
+<span class="sig-name descname"><span class="pre">SUM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SUM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.SXL">
+<span class="sig-name descname"><span class="pre">SXL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">34</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.SXL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.TSR">
+<span class="sig-name descname"><span class="pre">TSR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">22</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.TSR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.TVM">
+<span class="sig-name descname"><span class="pre">TVM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.TVM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.TW">
+<span class="sig-name descname"><span class="pre">TW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">21</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.TW" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.UBE">
+<span class="sig-name descname"><span class="pre">UBE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.UBE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.UXL">
+<span class="sig-name descname"><span class="pre">UXL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.UXL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.VS">
+<span class="sig-name descname"><span class="pre">VS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.VS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.XS">
+<span class="sig-name descname"><span class="pre">XS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15</span></em><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.XS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.csr_address.MstatusFieldOffsets.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.csr_address.MstatusFieldOffsets.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-coreblocks.arch.isa">
 <span id="coreblocks-arch-isa-module"></span><h2>coreblocks.arch.isa module<a class="headerlink" href="#module-coreblocks.arch.isa" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa.Extension">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa.</span></span><span class="sig-name descname"><span class="pre">Extension</span></span><a class="headerlink" href="#coreblocks.arch.isa.Extension" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntFlag" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntFlag" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
 <p>Enum of available RISC-V extensions.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa.Extension.A">
@@ -2179,7 +2300,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa.ISA">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa.</span></span><span class="sig-name descname"><span class="pre">ISA</span></span><a class="headerlink" href="#coreblocks.arch.isa.ISA" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p><cite>ISA</cite> is a class that gathers all ISA-specific configurations.</p>
 <p>For each of the numeric configuration value <cite>val</cite>, a corresponding
 <cite>val_log</cite> field is provided if relevant.</p>
@@ -2201,7 +2322,7 @@
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.isa.ISA.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">isa_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.isa.ISA.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">isa_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.isa.ISA.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -2221,7 +2342,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.ExceptionCause">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">ExceptionCause</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.ExceptionCause" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.ExceptionCause.BREAKPOINT">
 <span class="sig-name descname"><span class="pre">BREAKPOINT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.ExceptionCause.BREAKPOINT" title="Permalink to this definition"></a></dt>
@@ -2302,7 +2423,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.FenceFm">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">FenceFm</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.FenceFm" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.FenceFm.NONE">
 <span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.FenceFm.NONE" title="Permalink to this definition"></a></dt>
@@ -2323,7 +2444,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.FenceTarget">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">FenceTarget</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.FenceTarget" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntFlag" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntFlag" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.FenceTarget.DEV_I">
 <span class="sig-name descname"><span class="pre">DEV_I</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.FenceTarget.DEV_I" title="Permalink to this definition"></a></dt>
@@ -2354,7 +2475,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Funct12">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">Funct12</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.Funct12" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Funct12.CLZ">
 <span class="sig-name descname"><span class="pre">CLZ</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1536</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.Funct12.CLZ" title="Permalink to this definition"></a></dt>
@@ -2435,7 +2556,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Funct3">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">Funct3</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.Funct3" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Funct3.ADD">
 <span class="sig-name descname"><span class="pre">ADD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.Funct3.ADD" title="Permalink to this definition"></a></dt>
@@ -2801,7 +2922,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Funct7">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">Funct7</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.Funct7" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Funct7.ADD">
 <span class="sig-name descname"><span class="pre">ADD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.Funct7.ADD" title="Permalink to this definition"></a></dt>
@@ -2977,7 +3098,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.InstrType">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">InstrType</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.InstrType" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.InstrType.B">
 <span class="sig-name descname"><span class="pre">B</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.InstrType.B" title="Permalink to this definition"></a></dt>
@@ -3013,7 +3134,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.InterruptCauseNumber">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">InterruptCauseNumber</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.InterruptCauseNumber" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.InterruptCauseNumber.MEI">
 <span class="sig-name descname"><span class="pre">MEI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">11</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.InterruptCauseNumber.MEI" title="Permalink to this definition"></a></dt>
@@ -3054,7 +3175,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Opcode">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">Opcode</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.Opcode" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Opcode.AUIPC">
 <span class="sig-name descname"><span class="pre">AUIPC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.Opcode.AUIPC" title="Permalink to this definition"></a></dt>
@@ -3145,7 +3266,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.PrivilegeLevel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">PrivilegeLevel</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.PrivilegeLevel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.PrivilegeLevel.MACHINE">
 <span class="sig-name descname"><span class="pre">MACHINE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.PrivilegeLevel.MACHINE" title="Permalink to this definition"></a></dt>
@@ -3171,7 +3292,7 @@ machine-dependent <cite>arch</cite> option for details.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Registers">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">Registers</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.Registers" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.isa_consts.Registers.A0">
 <span class="sig-name descname"><span class="pre">A0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.Registers.A0" title="Permalink to this definition"></a></dt>
@@ -3504,13 +3625,39 @@ machine-dependent <cite>arch</cite> option for details.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.arch.isa_consts.XlenEncoding">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.isa_consts.</span></span><span class="sig-name descname"><span class="pre">XlenEncoding</span></span><a class="headerlink" href="#coreblocks.arch.isa_consts.XlenEncoding" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntEnum" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.isa_consts.XlenEncoding.W128">
+<span class="sig-name descname"><span class="pre">W128</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.XlenEncoding.W128" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.isa_consts.XlenEncoding.W32">
+<span class="sig-name descname"><span class="pre">W32</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.XlenEncoding.W32" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.isa_consts.XlenEncoding.W64">
+<span class="sig-name descname"><span class="pre">W64</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.arch.isa_consts.XlenEncoding.W64" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.isa_consts.XlenEncoding.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.isa_consts.XlenEncoding.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-coreblocks.arch.optypes">
 <span id="coreblocks-arch-optypes-module"></span><h2>coreblocks.arch.optypes module<a class="headerlink" href="#module-coreblocks.arch.optypes" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.optypes.</span></span><span class="sig-name descname"><span class="pre">CfiType</span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <p>Types of control flow instructions.</p>
 <p>There are 4 main types: invalid, branch, JAL, and JALR. CALL and RET are
 just special cases of respectively JAL and JALR and thus the encoding
@@ -3555,22 +3702,22 @@ to get the CFI type.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_branch">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_branch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.12)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_branch" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_branch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_branch" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_jal">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.12)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jal" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jal" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_jalr">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jalr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.12)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jalr" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jalr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jalr" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.valid">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.12)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev66)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.valid" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><span class="pre">enum.Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">amaranth.hdl._ast.ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev68)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.valid" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -3578,7 +3725,7 @@ to get the CFI type.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.OpType">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.optypes.</span></span><span class="sig-name descname"><span class="pre">OpType</span></span><a class="headerlink" href="#coreblocks.arch.optypes.OpType" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a></p>
 <p>Enum of operation types. Do not confuse with Opcode.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.OpType.ADDRESS_GENERATION">
@@ -3776,7 +3923,7 @@ to get the CFI type.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 22:41 2024-10-05.
+      <span class="lastupdated">Last updated on 09:37 2024-10-09.
       </span></p>
   </div>
 

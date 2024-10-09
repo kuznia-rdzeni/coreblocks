@@ -446,6 +446,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.__new__">__new__() (coreblocks.arch.csr_address.CSRAddress method)</a>
 
       <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.__new__">(coreblocks.arch.csr_address.MstatusFieldOffsets method)</a>
+</li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.__new__">(coreblocks.arch.isa.Extension method)</a>
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.__new__">(coreblocks.arch.isa_consts.ExceptionCause method)</a>
@@ -467,6 +469,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel.__new__">(coreblocks.arch.isa_consts.PrivilegeLevel method)</a>
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.__new__">(coreblocks.arch.isa_consts.Registers method)</a>
+</li>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.XlenEncoding.__new__">(coreblocks.arch.isa_consts.XlenEncoding method)</a>
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.__new__">(coreblocks.arch.optypes.CfiType method)</a>
 </li>
@@ -550,6 +554,8 @@
       <li><a href="transactron.testing.html#transactron.testing.infrastructure.TestCaseWithSimulator.add_local_mocks">add_local_mocks() (transactron.testing.infrastructure.TestCaseWithSimulator method)</a>
 </li>
       <li><a href="transactron.testing.html#transactron.testing.infrastructure.PysimSimulator.add_process">add_process() (transactron.testing.infrastructure.PysimSimulator method)</a>
+</li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.aliased.AliasedCSR.add_read_only_field">add_read_only_field() (coreblocks.priv.csr.aliased.AliasedCSR method)</a>
 </li>
       <li><a href="transactron.lib.html#transactron.lib.metrics.HwMetric.add_registers">add_registers() (transactron.lib.metrics.HwMetric method)</a>
 </li>
@@ -1369,6 +1375,8 @@
       </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.COREBLOCKS_TEST_CSR">COREBLOCKS_TEST_CSR (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.COREBLOCKS_TEST_PRIV_MODE">COREBLOCKS_TEST_PRIV_MODE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="transactron.testing.html#transactron.testing.infrastructure.CoreblocksCommand">CoreblocksCommand (class in transactron.testing.infrastructure)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.configurations.CoreConfiguration">CoreConfiguration (class in coreblocks.params.configurations)</a>
@@ -1796,6 +1804,8 @@
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.from_method_layout">from_method_layout() (in module transactron.utils.transactron_helpers)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend_params.FrontendParams">FrontendParams (class in coreblocks.frontend.frontend_params)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.FS">FS (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="transactron.core.html#transactron.core.tmodule.TModule.FSM">FSM() (transactron.core.tmodule.TModule method)</a>
 </li>
@@ -2441,6 +2451,8 @@
       </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MAXU">MAXU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MBE">MBE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MCAUSE">MCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MCONFIGPTR">MCONFIGPTR (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2766,7 +2778,11 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MIDELEG">MIDELEG (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MIE">MIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MIE">(coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MIMPID">MIMPID (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MIN">MIN (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -2775,12 +2791,12 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.MIN">(coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MINSTRET">MINSTRET (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MINSTRETH">MINSTRETH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MINU">MINU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MIP">MIP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3050,6 +3066,12 @@
       </ul></li>
       <li><a href="transactron.utils.amaranth_ext.html#transactron.utils.amaranth_ext.elaboratables.ModuleConnector">ModuleConnector (class in transactron.utils.amaranth_ext.elaboratables)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPIE">MPIE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPP">MPP (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPRV">MPRV (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct12.MRET">MRET (coreblocks.arch.isa_consts.Funct12 attribute)</a>
 
       <ul>
@@ -3083,6 +3105,10 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MSTATEEN3H">MSTATEEN3H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MSTATUS">MSTATUS (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters.mstatus_fields_implementation">mstatus_fields_implementation() (coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters method)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets">MstatusFieldOffsets (class in coreblocks.arch.csr_address)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MSTATUSH">MSTATUSH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
@@ -3147,6 +3173,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MULW">MULW (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MVENDORID">MVENDORID (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MXR">MXR (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -3700,6 +3728,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SATP">SATP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SBE">SBE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SCAUSE">SCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="transactron.core.html#transactron.core.transaction_base.TransactionBase.schedule_before">schedule_before() (transactron.core.transaction_base.TransactionBase method)</a>
@@ -3735,6 +3765,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SCOUNTINHIBIT">SCOUNTINHIBIT (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SCOUNTOVF">SCOUNTOVF (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SD">SD (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InterruptCauseNumber.SEI">SEI (coreblocks.arch.isa_consts.InterruptCauseNumber attribute)</a>
 </li>
@@ -3820,10 +3852,14 @@
 </li>
       <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.exception.should_update_prioriy">should_update_prioriy() (in module coreblocks.priv.traps.exception)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SIE">SIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SIE">(coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SIE">SIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
       <li><a href="transactron.utils.html#transactron.utils.data_repr.signed_to_int">signed_to_int() (in module transactron.utils.data_repr)</a>
 </li>
       <li><a href="transactron.utils.html#transactron.utils.transactron_helpers.silence_mustuse">silence_mustuse() (in module transactron.utils.transactron_helpers)</a>
@@ -3865,6 +3901,10 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.SLTU">SLTU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.SP">SP (coreblocks.arch.isa_consts.Registers attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SPIE">SPIE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SPP">SPP (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.SR">SR (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
@@ -3964,9 +4004,13 @@
       </ul></li>
       <li><a href="transactron.html#transactron.tracing.TracingFragment.subfragments">subfragments (transactron.tracing.TracingFragment attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SUM">SUM (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel.SUPERVISOR">SUPERVISOR (coreblocks.arch.isa_consts.PrivilegeLevel attribute)</a>
 </li>
       <li><a href="transactron.core.html#transactron.core.tmodule.TModule.Switch">Switch() (transactron.core.tmodule.TModule method)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SXL">SXL (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="transactron.testing.html#transactron.testing.infrastructure.SyncProcessWrapper">SyncProcessWrapper (class in transactron.testing.infrastructure)</a>
 </li>
@@ -4167,8 +4211,6 @@
         <li><a href="transactron.html#module-transactron.graph">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib
 
@@ -4176,6 +4218,8 @@
         <li><a href="transactron.lib.html#module-transactron.lib">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     transactron.lib.adapters
 
@@ -4426,6 +4470,12 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.FenceFm.TSO">TSO (coreblocks.arch.isa_consts.FenceFm attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.TSR">TSR (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.TVM">TVM (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.TW">TW (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -4433,6 +4483,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InstrType.U">U (coreblocks.arch.isa_consts.InstrType attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.UBE">UBE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.UNARY_BIT_MANIPULATION_1">UNARY_BIT_MANIPULATION_1 (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
@@ -4464,6 +4516,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.UTypeInstr">UTypeInstr (class in coreblocks.params.instr)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.UXL">UXL (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -4476,14 +4530,16 @@
 </li>
       <li><a href="transactron.core.html#transactron.core.manager.TransactionManager.visual_graph">visual_graph() (transactron.core.manager.TransactionManager method)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.VS">VS (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSATP">VSATP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSCAUSE">VSCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSEPC">VSEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSEPC">VSEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSIE">VSIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSIP">VSIP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -4503,6 +4559,12 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.W">W (coreblocks.arch.isa_consts.Funct3 attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.XlenEncoding.W128">W128 (coreblocks.arch.isa_consts.XlenEncoding attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.XlenEncoding.W32">W32 (coreblocks.arch.isa_consts.XlenEncoding attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.XlenEncoding.W64">W64 (coreblocks.arch.isa_consts.XlenEncoding attribute)</a>
 </li>
       <li><a href="transactron.testing.html#transactron.testing.testbenchio.TestbenchIO.wait_until_done">wait_until_done() (transactron.testing.testbenchio.TestbenchIO method)</a>
 </li>
@@ -4528,10 +4590,10 @@
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.priv.PrivilegedFn.Fn.WFI">(coreblocks.func_blocks.fu.priv.PrivilegedFn.Fn attribute)</a>
 </li>
       </ul></li>
-      <li><a href="transactron.lib.html#transactron.lib.metrics.MetricRegisterModel.width">width (transactron.lib.metrics.MetricRegisterModel attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="transactron.lib.html#transactron.lib.metrics.MetricRegisterModel.width">width (transactron.lib.metrics.MetricRegisterModel attribute)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneArbiter">WishboneArbiter (class in coreblocks.peripherals.wishbone)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.wishbone.WishboneInterface">WishboneInterface (class in coreblocks.peripherals.wishbone)</a>
@@ -4602,10 +4664,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.X25">X25 (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.X26">X26 (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.X27">X27 (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.X28">X28 (coreblocks.arch.isa_consts.Registers attribute)</a>
@@ -4634,6 +4696,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.XINTSUPERVISOR">XINTSUPERVISOR (coreblocks.arch.isa.Extension attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.XlenEncoding">XlenEncoding (class in coreblocks.arch.isa_consts)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.XNOR">XNOR (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 
       <ul>
@@ -4646,6 +4710,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.XOR">(coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.XS">XS (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -4733,7 +4799,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 22:41 2024-10-05.
+      <span class="lastupdated">Last updated on 09:37 2024-10-09.
       </span></p>
   </div>
 
