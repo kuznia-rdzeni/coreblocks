@@ -8,7 +8,7 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 
 
@@ -67,7 +67,7 @@ class Retirement(Elaboratable):
 
         m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
-        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(init=1)

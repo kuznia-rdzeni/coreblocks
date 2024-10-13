@@ -1,5 +1,10 @@
 from amaranth.lib.enum import IntEnum, unique
 
+__all__ = [
+    "CSRAddress",
+    "MstatusFieldOffsets",
+]
+
 
 @unique
 class CSRAddress(IntEnum, shape=12):
@@ -430,4 +435,34 @@ class CSRAddress(IntEnum, shape=12):
     DSCRATCH1 = 0x7B3  # Debug scratch register 1.
 
     # Internal Coreblocks CSRs
-    COREBLOCKS_TEST_CSR = 0x7FF  # used only for testbench verification
+    # used only for testbench verification
+
+    # CSR for custom communication with testbenches
+    COREBLOCKS_TEST_CSR = 0x7FF
+    # CSR providing writable current privilege mode (U-mode accesible)
+    COREBLOCKS_TEST_PRIV_MODE = 0x8FF
+
+
+@unique
+class MstatusFieldOffsets(IntEnum):
+    SIE = 1  # Supervisor Interrupt Enable
+    MIE = 3  # Machine Interrupt Enable
+    SPIE = 5  # Supervisor Previous Interrupt Enable
+    UBE = 6  # User Endianess Control
+    MPIE = 7  # Machine Previous Interrupt Enable
+    SPP = 8  # Supervisor Previous Pirvilege
+    VS = 9  # Vector Context Status
+    MPP = 11  # Machine Previous Pirvilege
+    FS = 13  # Float Context Status
+    XS = 15  # Additional Extension State Context Status
+    MPRV = 17  # Modify Pirvilege
+    SUM = 18  # Supervisor User Memory Access
+    MXR = 19  # Make Executable Readable
+    TVM = 20  # Trap Virtual Memory
+    TW = 21  # Timeout Wait
+    TSR = 22  # Trap SRET
+    UXL = 32  # User XLEN
+    SXL = 34  # Supervisor XLEN
+    SBE = 36  # Supervisor Endianess Control
+    MBE = 37  # Machine Endianess Contorol
+    SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus

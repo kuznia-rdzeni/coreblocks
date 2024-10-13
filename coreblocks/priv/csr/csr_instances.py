@@ -2,7 +2,9 @@ from amaranth import *
 
 from typing import Optional
 from coreblocks.arch import CSRAddress
+from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
@@ -68,6 +70,8 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mconfigptr = CSRRegister(CSRAddress.MCONFIGPTR, gen_params, init=0)
 
         self.mstatus = AliasedCSR(CSRAddress.MSTATUS, gen_params)
+        if gen_params.isa.xlen == 32:
+            self.mstatush = AliasedCSR(CSRAddress.MSTATUSH, gen_params)
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
@@ -80,6 +84,18 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mtval = CSRRegister(CSRAddress.MTVAL, gen_params)
 
+        self.priv_mode = CSRRegister(
+            None,
+            gen_params,
+            width=PrivilegeLevel.as_shape().width,
+            init=PrivilegeLevel.MACHINE,
+        )
+        if gen_params._generate_test_hardware:
+            self.priv_mode_public = AliasedCSR(CSRAddress.COREBLOCKS_TEST_PRIV_MODE, gen_params)
+            self.priv_mode_public.add_field(0, self.priv_mode)
+
+        self.mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
+
     def elaborate(self, platform):
         m = Module()
 
@@ -88,6 +104,80 @@ class MachineModeCSRRegisters(Elaboratable):
                 m.submodules[name] = value
 
         return m
+
+    def mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
+        def filter_legal_priv_mode(m: TModule, v: Value):
+            legal = Signal(1)
+            with m.Switch(v):
+                with m.Case(PrivilegeLevel.MACHINE):
+                    m.d.av_comb += legal.eq(1)
+                with m.Case(PrivilegeLevel.USER):
+                    m.d.av_comb += legal.eq(gen_params.user_mode)
+                with m.Default():
+                    m.d.av_comb += legal.eq(0)
+
+            return (legal, v)
+
+        # MIE bit - global interrupt enable
+        self.mstatus_mie = CSRRegister(None, gen_params, width=1)
+        mstatus.add_field(MstatusFieldOffsets.MIE, self.mstatus_mie)
+        # MPIE bit - previous MIE
+        self.mstatus_mpie = CSRRegister(None, gen_params, width=1)
+        mstatus.add_field(MstatusFieldOffsets.MPIE, self.mstatus_mpie)
+        # MPP field - previous priv mode
+        self.mstatus_mpp = CSRRegister(
+            None,
+            gen_params,
+            width=PrivilegeLevel.as_shape().width,
+            fu_write_filtermap=filter_legal_priv_mode,
+            init=PrivilegeLevel.MACHINE,
+        )
+        mstatus.add_field(MstatusFieldOffsets.MPP, self.mstatus_mpp)
+
+        # Fixed MXLEN/SXLEN/UXLEN = isa.xlen
+        if gen_params.isa.xlen == 64:
+            # Registers only exist in RV64
+            mstatus.add_read_only_field(
+                MstatusFieldOffsets.UXL, XlenEncoding.as_shape().width, XlenEncoding.W64 if gen_params.user_mode else 0
+            )
+            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, XlenEncoding.as_shape().width, 0)
+
+        # Little-endianess
+        mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
+        if gen_params.isa.xlen == 32:
+            mstatush.add_read_only_field(MstatusFieldOffsets.SBE - mstatus.width, 1, 0)
+            mstatush.add_read_only_field(MstatusFieldOffsets.MBE - mstatus.width, 1, 0)
+        elif gen_params.isa.xlen == 64:
+            mstatus.add_read_only_field(MstatusFieldOffsets.SBE, 1, 0)
+            mstatus.add_read_only_field(MstatusFieldOffsets.MBE, 1, 0)
+
+        self.mstatus_mprv = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.MPRV, self.mstatus_mprv)
+
+        # Supervisor mode not supported - read only 0 supervisor bits
+        mstatus.add_read_only_field(MstatusFieldOffsets.SUM, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.MXR, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.TVM, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.TSR, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SPP, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SPIE, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SIE, 1, 0)
+
+        self.mstatus_tw = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.TW, self.mstatus_tw)
+
+        # Extension Context Status bits
+        # future todo: implement actual state modification tracking of F and V registers and CSRs
+        # State = 3 is DIRTY. Implementation is allowed to always set dirty for VS and FS, regardless of CSR updates
+        mstatus.add_read_only_field(MstatusFieldOffsets.VS, 2, 3 if Extension.V in gen_params.isa.extensions else 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.FS, 2, 3 if Extension.F in gen_params.isa.extensions else 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.XS, 2, 0)
+        # SD field - set to one when one of the states is dirty
+        mstatus.add_read_only_field(
+            MstatusFieldOffsets.SD % mstatus.width,  # SD is last bit of `mstatus` (depends on xlen)
+            1,
+            Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
+        )
 
 
 class GenericCSRRegisters(Elaboratable):

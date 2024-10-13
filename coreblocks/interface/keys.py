@@ -18,7 +18,7 @@ __all__ = [
     "PredictedJumpTargetKey",
     "FetchResumeKey",
     "ExceptionReportKey",
-    "GenericCSRRegistersKey",
+    "CSRInstancesKey",
     "AsyncInterruptInsertSignalKey",
     "MretKey",
     "CoreStateKey",
@@ -58,7 +58,7 @@ class ExceptionReportKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class GenericCSRRegistersKey(SimpleKey["GenericCSRRegisters"]):
+class CSRInstancesKey(SimpleKey["GenericCSRRegisters"]):
     pass
 
 

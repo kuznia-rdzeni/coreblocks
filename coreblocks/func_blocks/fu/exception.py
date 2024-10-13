@@ -1,5 +1,6 @@
 from typing import Sequence
 from amaranth import *
+from coreblocks.arch.isa_consts import PrivilegeLevel
 from transactron.utils.dependencies import DependencyContext
 
 from transactron import *
@@ -9,7 +10,7 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
-from coreblocks.interface.keys import ExceptionReportKey
+from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
@@ -50,8 +51,8 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
-        dm = DependencyContext.get()
-        self.report = dm.get_dependency(ExceptionReportKey())
+        self.dm = DependencyContext.get()
+        self.report = self.dm.get_dependency(ExceptionReportKey())
 
     def elaborate(self, platform):
         m = TModule()
@@ -70,13 +71,18 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
             cause = Signal(ExceptionCause)
             mtval = Signal(self.gen_params.isa.xlen)
 
+            priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
+
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
                     m.d.av_comb += mtval.eq(arg.pc)
                 with OneHotCase(ExceptionUnitFn.Fn.ECALL):
-                    # TODO: Switch privilege level when implemented
-                    m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
+                    with m.Switch(priv_level):
+                        with m.Case(PrivilegeLevel.MACHINE):
+                            m.d.comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
+                        with m.Case(PrivilegeLevel.USER):
+                            m.d.comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_U)
                     m.d.av_comb += mtval.eq(0)  # by SPEC
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)

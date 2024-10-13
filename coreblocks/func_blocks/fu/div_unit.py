@@ -84,7 +84,7 @@ class DivUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             flip_sign = Signal(1)  # if result is negative number
@@ -98,27 +98,27 @@ class DivUnit(FuncUnit, Elaboratable):
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(DivFn.Fn.DIVU):
-                    m.d.comb += flip_sign.eq(0)
-                    m.d.comb += rem_res.eq(0)
-                    m.d.comb += dividend.eq(i1)
-                    m.d.comb += divisor.eq(i2)
+                    m.d.av_comb += flip_sign.eq(0)
+                    m.d.av_comb += rem_res.eq(0)
+                    m.d.av_comb += dividend.eq(i1)
+                    m.d.av_comb += divisor.eq(i2)
                 with OneHotCase(DivFn.Fn.DIV):
                     # quotient is negative if divisor and dividend have different signs
-                    m.d.comb += flip_sign.eq(i1[sign_bit] ^ i2[sign_bit])
-                    m.d.comb += rem_res.eq(0)
-                    m.d.comb += dividend.eq(_abs(i1))
-                    m.d.comb += divisor.eq(_abs(i2))
+                    m.d.av_comb += flip_sign.eq(i1[sign_bit] ^ i2[sign_bit])
+                    m.d.av_comb += rem_res.eq(0)
+                    m.d.av_comb += dividend.eq(_abs(i1))
+                    m.d.av_comb += divisor.eq(_abs(i2))
                 with OneHotCase(DivFn.Fn.REMU):
-                    m.d.comb += flip_sign.eq(0)
-                    m.d.comb += rem_res.eq(1)
-                    m.d.comb += dividend.eq(i1)
-                    m.d.comb += divisor.eq(i2)
+                    m.d.av_comb += flip_sign.eq(0)
+                    m.d.av_comb += rem_res.eq(1)
+                    m.d.av_comb += dividend.eq(i1)
+                    m.d.av_comb += divisor.eq(i2)
                 with OneHotCase(DivFn.Fn.REM):
                     # sign of remainder is equal to sign of dividend
-                    m.d.comb += flip_sign.eq(i1[sign_bit])
-                    m.d.comb += rem_res.eq(1)
-                    m.d.comb += dividend.eq(_abs(i1))
-                    m.d.comb += divisor.eq(_abs(i2))
+                    m.d.av_comb += flip_sign.eq(i1[sign_bit])
+                    m.d.av_comb += rem_res.eq(1)
+                    m.d.av_comb += dividend.eq(_abs(i1))
+                    m.d.av_comb += divisor.eq(_abs(i2))
 
             params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, flip_sign=flip_sign, rem_res=rem_res)
 

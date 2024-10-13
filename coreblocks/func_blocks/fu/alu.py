@@ -240,11 +240,11 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += alu.fn.eq(decoder.decode_fn)
+            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += alu.fn.eq(decoder.decode_fn)
 
-            m.d.comb += alu.in1.eq(arg.s1_val)
-            m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
+            m.d.av_comb += alu.in1.eq(arg.s1_val)
+            m.d.av_comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
             self.perf_instr.incr(m, decoder.decode_fn)
 

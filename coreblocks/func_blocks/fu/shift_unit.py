@@ -98,11 +98,11 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += shift_alu.fn.eq(decoder.decode_fn)
+            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += shift_alu.fn.eq(decoder.decode_fn)
 
-            m.d.comb += shift_alu.in1.eq(arg.s1_val)
-            m.d.comb += shift_alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
+            m.d.av_comb += shift_alu.in1.eq(arg.s1_val)
+            m.d.av_comb += shift_alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
             fifo.write(m, rob_id=arg.rob_id, result=shift_alu.out, rp_dst=arg.rp_dst, exception=0)
 

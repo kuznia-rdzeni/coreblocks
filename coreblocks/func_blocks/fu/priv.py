@@ -2,6 +2,7 @@ from amaranth import *
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
+from coreblocks.arch.isa_consts import PrivilegeLevel
 
 
 from transactron import *
@@ -18,7 +19,7 @@ from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
-    GenericCSRRegistersKey,
+    CSRInstancesKey,
     InstructionPrecommitKey,
     FetchResumeKey,
     FlushICacheKey,
@@ -71,6 +72,7 @@ class PrivilegedFuncUnit(Elaboratable):
 
         instr_valid = Signal()
         finished = Signal()
+        illegal_instruction = Signal()
 
         instr_rob = Signal(self.gp.rob_entries_bits)
         instr_pc = Signal(self.gp.isa.xlen)
@@ -79,7 +81,8 @@ class PrivilegedFuncUnit(Elaboratable):
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
         exception_report = self.dm.get_dependency(ExceptionReportKey())
-        csr = self.dm.get_dependency(GenericCSRRegistersKey())
+        csr = self.dm.get_dependency(CSRInstancesKey())
+        priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
 
         m.submodules.fetch_resume_fifo = self.fetch_resume_fifo
@@ -101,13 +104,25 @@ class PrivilegedFuncUnit(Elaboratable):
                 m.d.sync += finished.eq(1)
                 self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
+                priv_data = priv_mode.read(m).data
+
+                illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_data != PrivilegeLevel.MACHINE)
+                # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
+                illegal_wfi = (
+                    (instr_fn == PrivilegedFn.Fn.WFI)
+                    & (priv_data == PrivilegeLevel.USER)
+                    & csr.m_mode.mstatus_tw.read(m).data
+                )
+
                 with condition(m, nonblocking=True) as branch:
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET)):
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
                         mret(m)
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                         flush_icache(m)
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI)):
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
                         m.d.sync += finished.eq(async_interrupt_active)
+
+                m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():
@@ -125,13 +140,19 @@ class PrivilegedFuncUnit(Elaboratable):
                 with OneHotCase(PrivilegedFn.Fn.WFI):
                     m.d.av_comb += ret_pc.eq(instr_pc + 4)
 
+            with m.If(illegal_instruction):
+                m.d.av_comb += ret_pc.eq(instr_pc)
+
             exception = Signal()
-            with m.If(async_interrupt_active):
+            with m.If(illegal_instruction):
+                m.d.comb += exception.eq(1)
+                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob)
+            with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
                 # mret() method is called from precommit() that was executed at least one cycle earlier (because
                 # of finished condition). If calling mret() caused interrupt to be active, it is already represented
-                # by updated async_interrupt_active singal.
+                # by updated async_interrupt_active signal.
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
                 # would normally return to (mepc value is preserved)
                 m.d.comb += exception.eq(1)
