@@ -28,20 +28,3 @@ class FPUParams:
     ):
         self.sig_width = sig_width
         self.exp_width = exp_width
-
-
-class FPURoundingParams:
-    """FPU rounding module signature
-
-    Parameters
-    ----------
-    fpu_params: FPUParams
-        FPU parameters
-    is_rounded:bool
-        This flags indicates that the input number was already rounded.
-        This creates simpler version of rounding module that only performs error checking and returns correct number.
-    """
-
-    def __init__(self, fpu_params: FPUParams, *, is_rounded: bool = False):
-        self.fpu_params = fpu_params
-        self.is_rounded = is_rounded
