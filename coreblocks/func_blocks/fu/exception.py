@@ -8,7 +8,7 @@ from transactron.lib import FIFO
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts
+from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts
 from transactron.utils import OneHotSwitch
 from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 
@@ -88,7 +88,9 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
                     # With C extension access fault can be only on the second half of instruction, and mepc != mtval.
                     # This information is passed in imm field
-                    m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
+                    m.d.av_comb += mtval.eq(
+                        arg.pc + ((arg.imm & FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF).any() << 1)
+                    )
                 with OneHotCase(ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION):
                     m.d.av_comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
                     m.d.av_comb += mtval.eq(arg.imm)  # passed instruction bytes

@@ -1,6 +1,7 @@
 from typing import Optional
 from amaranth import signed
 from amaranth.lib.data import ArrayLayout
+from amaranth.lib.enum import IntFlag, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
@@ -441,11 +442,20 @@ class ICacheLayouts:
 class FetchLayouts:
     """Layouts used in the fetcher."""
 
+    class AccessFaultFlag(IntFlag):
+        # standard access fault when accessing instruction
+        # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
+        ACCESS_FAULT = auto()
+        # with C extension (2-byte alignment enabled) fault condition
+        # could only affect second half of 4-byte instruction.
+        # Bit set if this is the case
+        ACCESS_FAULT_ON_SECOND_HALF = auto()
+
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.access_fault: LayoutListField = ("access_fault", 2)
-        """Instruction fetch failed."""
+        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.AccessFaultFlag)
+        """Instruction fetch errors. See `FetchLayouts.AccessFaultFlag` fields documentation"""
 
         self.raw_instr = make_layout(
             fields.instr,

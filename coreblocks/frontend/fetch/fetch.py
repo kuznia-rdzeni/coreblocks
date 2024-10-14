@@ -323,18 +323,22 @@ class FetchUnit(Elaboratable):
                 m.d.av_comb += [
                     raw_instrs[i].instr.eq(instrs[i]),
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
-                    raw_instrs[i].access_fault.eq(access_fault),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
                     raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.fb_instr_idx == i)),
+                    raw_instrs[i].access_fault.eq(
+                        Mux(s1_data.access_fault, FetchLayouts.AccessFaultFlag.ACCESS_FAULT, 0)
+                    ),
                 ]
 
             if Extension.C in self.gen_params.isa.extensions:
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
                     with m.If(s1_data.access_fault):
+                        # Mark that access fault happened only at second (current) half.
+                        # If fault happened on the first half `instr_block_cross` would be false
                         m.d.av_comb += raw_instrs[0].access_fault.eq(
-                            0b10
-                        )  # Mark that access fault happened only at second half
+                            FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF
+                        )
 
             with condition(m) as branch:
                 with branch(flushing_counter == 0):
