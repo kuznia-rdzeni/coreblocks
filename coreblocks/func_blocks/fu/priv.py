@@ -146,7 +146,7 @@ class PrivilegedFuncUnit(Elaboratable):
             exception = Signal()
             with m.If(illegal_instruction):
                 m.d.comb += exception.eq(1)
-                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob)
+                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=0)
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
