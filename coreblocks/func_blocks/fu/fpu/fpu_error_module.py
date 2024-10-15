@@ -8,7 +8,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
 
 class FPUErrorMethodLayout:
     """FPU error checking module layouts for methods
-    
+
     Parameters
     ----------
     fpu_params: FPUParams
