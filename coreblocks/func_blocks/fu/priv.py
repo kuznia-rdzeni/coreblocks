@@ -2,7 +2,7 @@ from amaranth import *
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
-from coreblocks.arch.isa_consts import PrivilegeLevel
+from coreblocks.arch.isa_consts import Funct12, Funct3, Opcode, PrivilegeLevel
 
 
 from transactron import *
@@ -45,17 +45,17 @@ class PrivilegedFn(DecoderManager):
 
 
 class PrivilegedFuncUnit(Elaboratable):
-    def __init__(self, gp: GenParams):
-        self.gp = gp
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
         self.priv_fn = PrivilegedFn()
 
-        self.layouts = layouts = gp.get(FuncUnitLayouts)
+        self.layouts = layouts = gen_params.get(FuncUnitLayouts)
         self.dm = DependencyContext.get()
 
         self.issue = Method(i=layouts.issue)
         self.accept = Method(o=layouts.accept)
 
-        self.fetch_resume_fifo = BasicFifo(self.gp.get(FetchLayouts).resume, 2)
+        self.fetch_resume_fifo = BasicFifo(self.gen_params.get(FetchLayouts).resume, 2)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
@@ -68,14 +68,14 @@ class PrivilegedFuncUnit(Elaboratable):
 
         m.submodules += [self.perf_instr]
 
-        m.submodules.decoder = decoder = self.priv_fn.get_decoder(self.gp)
+        m.submodules.decoder = decoder = self.priv_fn.get_decoder(self.gen_params)
 
         instr_valid = Signal()
         finished = Signal()
         illegal_instruction = Signal()
 
-        instr_rob = Signal(self.gp.rob_entries_bits)
-        instr_pc = Signal(self.gp.isa.xlen)
+        instr_rob = Signal(self.gen_params.rob_entries_bits)
+        instr_pc = Signal(self.gen_params.isa.xlen)
         instr_fn = self.priv_fn.get_function()
 
         mret = self.dm.get_dependency(MretKey())
@@ -129,7 +129,7 @@ class PrivilegedFuncUnit(Elaboratable):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
-            ret_pc = Signal(self.gp.isa.xlen)
+            ret_pc = Signal(self.gen_params.isa.xlen)
 
             with OneHotSwitch(m, instr_fn) as OneHotCase:
                 with OneHotCase(PrivilegedFn.Fn.MRET):
@@ -145,8 +145,21 @@ class PrivilegedFuncUnit(Elaboratable):
 
             exception = Signal()
             with m.If(illegal_instruction):
-                m.d.comb += exception.eq(1)
-                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob)
+                m.d.av_comb += exception.eq(1)
+
+                # Replace with const zero if turns out not worth to re-encode instruction
+                instr = Signal(self.gen_params.isa.xlen)
+                m.d.av_comb += instr[0:2].eq(0b11)
+                m.d.av_comb += instr[2:7].eq(Opcode.SYSTEM)
+                m.d.av_comb += instr[7:12].eq(0)
+                m.d.av_comb += instr[12:15].eq(Funct3.PRIV)
+                m.d.av_comb += instr[15:20].eq(0)
+                m.d.av_comb += instr[20:32].eq(Mux(instr_fn == PrivilegedFn.Fn.MRET, Funct12.WFI, Funct12.MRET))
+                log.error(
+                    m, (instr_fn != PrivilegedFn.Fn.MRET) & (instr_fn != PrivilegedFn.Fn.WFI), "missing Funct12 case"
+                )
+
+                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr)
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
@@ -155,8 +168,10 @@ class PrivilegedFuncUnit(Elaboratable):
                 # by updated async_interrupt_active signal.
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
                 # would normally return to (mepc value is preserved)
-                m.d.comb += exception.eq(1)
-                exception_report(m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob)
+                m.d.av_comb += exception.eq(1)
+                exception_report(
+                    m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
+                )
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch

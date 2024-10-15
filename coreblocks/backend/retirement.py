@@ -162,6 +162,7 @@ class Retirement(Elaboratable):
                             # Register RISC-V architectural trap in CSRs
                             m_csr.mcause.write(m, cause_entry)
                             m_csr.mepc.write(m, cause_register.pc)
+                            m_csr.mtval.write(m, cause_register.mtval)
                             self.trap_entry(m)
 
                         # Fetch is already stalled by ExceptionCauseRegister

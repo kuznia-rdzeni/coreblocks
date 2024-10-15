@@ -317,6 +317,14 @@ class InstrDecoder(Elaboratable):
                 self.rs1_v.eq(0),
             ]
 
+        # HACK: pass logical registers in unused high bits of CSR instruction for `mtval` reconstruction
+        with m.If((self.optype == OpType.CSR_REG) | (self.optype == OpType.CSR_IMM)):
+            m.d.comb += self.imm[32 - self.gen_params.isa.reg_cnt_log : 32].eq(self.rd)
+            m.d.comb += self.imm[32 - self.gen_params.isa.reg_cnt_log * 2 : 32 - self.gen_params.isa.reg_cnt_log].eq(
+                self.rs1
+            )
+            assert 32 - self.gen_params.isa.reg_cnt_log * 2 >= 5
+
         # Instruction simplification
 
         # lui rd, imm -> addi rd, x0, (imm << 12)

@@ -217,7 +217,11 @@ class TestDecoder(TestCaseWithSimulator):
                 assert (yield self.decoder.rs2_v) == (test.rs2 is not None)
 
                 if test.imm is not None:
-                    assert (yield self.decoder.imm.as_signed()) == test.imm
+                    if test.csr is not None:
+                        # in CSR instruction additional fields are passed in unused bits of imm field
+                        assert (yield self.decoder.imm.as_signed() & ((2**5) - 1)) == test.imm
+                    else:
+                        assert (yield self.decoder.imm.as_signed()) == test.imm
 
                 if test.succ is not None:
                     assert (yield self.decoder.succ) == test.succ

@@ -19,6 +19,8 @@ __all__ = [
     "mock_def_helper",
     "get_src_loc",
     "from_method_layout",
+    "make_layout",
+    "extend_layout",
 ]
 
 T = TypeVar("T")
@@ -145,6 +147,10 @@ def from_layout_field(shape: ShapeLike | LayoutList) -> ShapeLike:
 
 def make_layout(*fields: LayoutListField) -> StructLayout:
     return from_method_layout(fields)
+
+
+def extend_layout(layout: StructLayout, *fields: LayoutListField) -> StructLayout:
+    return StructLayout(layout.members | from_method_layout(fields).members)
 
 
 def from_method_layout(layout: MethodLayout) -> StructLayout:
