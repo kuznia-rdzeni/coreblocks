@@ -103,7 +103,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
         rd = random.randint(0, 15)
         rs1 = 0 if imm_op else random.randint(0, 15)
-        imm = random.randint(0, 2**self.gen_params.isa.xlen - 1)
+        imm = random.randint(0, 2**5 - 1)
         rs1_val = random.randint(0, 2**self.gen_params.isa.xlen - 1) if rs1 else 0
         operand_val = imm if imm_op else rs1_val
         csr = random.choice(list(self.dut.csr.keys()))
@@ -207,7 +207,8 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             assert res["exception"] == 1
             report = yield from self.dut.exception_report.call_result()
-            assert report is not None
+            assert isinstance(report, dict)
+            report.pop("mtval")  # mtval tested in mtval.asm test
             assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report
 
     def test_exception(self):

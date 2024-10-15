@@ -143,10 +143,18 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             cause = None
             if "exception" in results:
                 cause = results["exception"]
-                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": results.setdefault("exception_pc", pc)})
+                self.exceptions.append(
+                    {
+                        "rob_id": rob_id,
+                        "cause": cause,
+                        "pc": results.setdefault("exception_pc", pc),
+                        "mtval": results.setdefault("mtval", 0),
+                    }
+                )
 
                 results.pop("exception")
                 results.pop("exception_pc")
+                results.pop("mtval")
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
 

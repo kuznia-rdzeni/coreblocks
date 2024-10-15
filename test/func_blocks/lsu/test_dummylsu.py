@@ -168,6 +168,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                             ExceptionCause.LOAD_ADDRESS_MISALIGNED if misaligned else ExceptionCause.LOAD_ACCESS_FAULT
                         ),
                         "pc": 0,
+                        "mtval": addr,
                     }
                 )
 

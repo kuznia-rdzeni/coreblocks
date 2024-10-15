@@ -1,10 +1,11 @@
 from typing import Optional
 from amaranth import signed
-from amaranth.lib.data import StructLayout, ArrayLayout
+from amaranth.lib.data import ArrayLayout
+from amaranth.lib.enum import IntFlag, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
-from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.utils.transactron_helpers import from_method_layout, make_layout, extend_layout
 
 __all__ = [
     "CommonLayoutFields",
@@ -441,11 +442,20 @@ class ICacheLayouts:
 class FetchLayouts:
     """Layouts used in the fetcher."""
 
+    class AccessFaultFlag(IntFlag):
+        # standard access fault when accessing instruction
+        # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
+        ACCESS_FAULT = auto()
+        # with C extension (2-byte alignment enabled) fault condition
+        # could only affect second half of 4-byte instruction.
+        # Bit set if this is the case
+        ACCESS_FAULT_ON_SECOND_HALF = auto()
+
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.access_fault: LayoutListField = ("access_fault", 1)
-        """Instruction fetch failed."""
+        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.AccessFaultFlag)
+        """Instruction fetch errors. See `FetchLayouts.AccessFaultFlag` fields documentation"""
 
         self.raw_instr = make_layout(
             fields.instr,
@@ -581,7 +591,7 @@ class LSULayouts:
 
         self.issue_out = make_layout(fields.exception, fields.cause)
 
-        self.accept = make_layout(fields.data, fields.exception, fields.cause)
+        self.accept = make_layout(fields.data, fields.exception, fields.cause, fields.addr)
 
 
 class CSRRegisterLayouts:
@@ -634,10 +644,13 @@ class CSRUnitLayouts:
 
 
 class ExceptionRegisterLayouts:
-    """Layouts used in the exception register."""
+    """Layouts used in the exception information register."""
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+
+        self.mtval: LayoutListField = ("mtval", gen_params.isa.xlen)
+        """ Value to set for mtval CSR register """
 
         self.valid: LayoutListField = ("valid", 1)
 
@@ -645,9 +658,10 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            self.mtval,
         )
 
-        self.get = StructLayout(self.report.members | make_layout(self.valid).members)
+        self.get = extend_layout(self.report, self.valid)
 
 
 class InternalInterruptControllerLayouts:
