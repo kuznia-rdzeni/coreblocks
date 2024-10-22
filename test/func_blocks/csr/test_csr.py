@@ -5,11 +5,18 @@ from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import (
+    AsyncInterruptInsertSignalKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
+    CSRInstancesKey,
+)
+from coreblocks.arch.isa_consts import PrivilegeLevel
 from transactron.utils.dependencies import DependencyContext
 
 from transactron.testing import *
@@ -38,8 +45,11 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
+        m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
+        m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 
@@ -55,7 +65,8 @@ class CSRUnitTestCircuit(Elaboratable):
             make_csr(i)
 
         if not self.only_legal:
-            make_csr(0xC00)  # read-only csr
+            make_csr(0xCC0)  # read-only csr
+            make_csr(0x7FE)  # machine mode only
 
         return m
 
@@ -92,7 +103,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
         rd = random.randint(0, 15)
         rs1 = 0 if imm_op else random.randint(0, 15)
-        imm = random.randint(0, 2**self.gen_params.isa.xlen - 1)
+        imm = random.randint(0, 2**5 - 1)
         rs1_val = random.randint(0, 2**self.gen_params.isa.xlen - 1) if rs1 else 0
         operand_val = imm if imm_op else rs1_val
         csr = random.choice(list(self.dut.csr.keys()))
@@ -153,18 +164,23 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut = CSRUnitTestCircuit(self.gen_params, self.csr_count)
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_test)
+            sim.add_process(self.process_test)
 
     exception_csr_numbers = [
-        0xC00,  # read_only
+        0xCC0,  # read_only
         0xFFF,  # nonexistent
-        # 0x100 TODO: check priv level when implemented
+        0x7FE,  # missing priv
     ]
 
     def process_exception_test(self):
         yield from self.dut.fetch_resume.enable()
         yield from self.dut.exception_report.enable()
         for csr in self.exception_csr_numbers:
+            if csr == 0x7FE:
+                yield from self.dut.priv_io.call(data=PrivilegeLevel.USER)
+            else:
+                yield from self.dut.priv_io.call(data=PrivilegeLevel.MACHINE)
+
             yield from self.random_wait_geom()
 
             yield from self.dut.select.call()
@@ -191,7 +207,8 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             assert res["exception"] == 1
             report = yield from self.dut.exception_report.call_result()
-            assert report is not None
+            assert isinstance(report, dict)
+            report.pop("mtval")  # mtval tested in mtval.asm test
             assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report
 
     def test_exception(self):
@@ -201,7 +218,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.process_exception_test)
+            sim.add_process(self.process_exception_test)
 
 
 class TestCSRRegister(TestCaseWithSimulator):
@@ -234,7 +251,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 fu_read = True
                 yield from self.dut._fu_read.enable()
 
-            yield
+            yield Tick()
             yield Settle()
 
             exp_read_data = exp_write_data if fu_write or write else previous_data
@@ -266,7 +283,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.randomized_process_test)
+            sim.add_process(self.randomized_process_test)
 
     def filtermap_process_test(self):
         prev_value = 0
@@ -318,7 +335,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         )
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.filtermap_process_test)
+            sim.add_process(self.filtermap_process_test)
 
     def comb_process_test(self):
         yield from self.dut.read.enable()
@@ -329,19 +346,19 @@ class TestCSRRegister(TestCaseWithSimulator):
         yield from self.dut._fu_write.call_do()
         assert (yield from self.dut.read_comb.call_result())["data"] == 0xFFFF
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xAB
-        yield
+        yield Tick()
         assert (yield from self.dut.read.call_result())["data"] == 0xFFFB
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xFFFB
-        yield
+        yield Tick()
 
         yield from self.dut._fu_write.call_init({"data": 0x0FFF})
         yield from self.dut.write.call_init({"data": 0xAAAA})
         yield from self.dut._fu_write.call_do()
         yield from self.dut.write.call_do()
         assert (yield from self.dut.read_comb.call_result()) == {"data": 0x0FFF, "read": 1, "written": 1}
-        yield
+        yield Tick()
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xAAAA
-        yield
+        yield Tick()
 
         # single cycle
         yield from self.dut._fu_write.call_init({"data": 0x0BBB})
@@ -349,7 +366,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         update_val = (yield from self.dut.read_comb.call_result())["data"] | 0xD000
         yield from self.dut.write.call_init({"data": update_val})
         yield from self.dut.write.call_do()
-        yield
+        yield Tick()
         assert (yield from self.dut._fu_read.call_result())["data"] == 0xDBBB
 
     def test_comb(self):
@@ -357,7 +374,7 @@ class TestCSRRegister(TestCaseWithSimulator):
 
         random.seed(4326)
 
-        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, reset=0xAB))
+        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, init=0xAB))
 
         with self.run_simulation(self.dut) as sim:
-            sim.add_sync_process(self.comb_process_test)
+            sim.add_process(self.comb_process_test)

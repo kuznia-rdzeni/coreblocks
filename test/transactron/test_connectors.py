@@ -1,7 +1,7 @@
 import random
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 
 from transactron.lib import StableSelectingNetwork
 from transactron.testing import TestCaseWithSimulator
@@ -40,7 +40,7 @@ class TestStableSelectingNetwork(TestCaseWithSimulator):
                     assert out == expected_output_prefix[i]
 
                 assert (yield m.output_cnt) == total
-                yield
+                yield Tick()
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

@@ -143,7 +143,7 @@ class MulUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             value1 = Signal(self.gen_params.isa.xlen)  # input value for multiplier submodule
@@ -161,25 +161,25 @@ class MulUnit(FuncUnit, Elaboratable):
                     # In this case we care only about lower part of number, so it does not matter if it is
                     # interpreted as binary number or U2 encoded number, so we set result to be interpreted as
                     # non-negative number.
-                    m.d.comb += negative_res.eq(0)
-                    m.d.comb += high_res.eq(0)
-                    m.d.comb += value1.eq(i1)
-                    m.d.comb += value2.eq(i2)
+                    m.d.av_comb += negative_res.eq(0)
+                    m.d.av_comb += high_res.eq(0)
+                    m.d.av_comb += value1.eq(i1)
+                    m.d.av_comb += value2.eq(i2)
                 with OneHotCase(MulFn.Fn.MULH):
-                    m.d.comb += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
-                    m.d.comb += high_res.eq(1)
-                    m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
-                    m.d.comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
+                    m.d.av_comb += negative_res.eq(i1[sign_bit] ^ i2[sign_bit])
+                    m.d.av_comb += high_res.eq(1)
+                    m.d.av_comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
+                    m.d.av_comb += value2.eq(Mux(i2[sign_bit], -i2, i2))
                 with OneHotCase(MulFn.Fn.MULHU):
-                    m.d.comb += negative_res.eq(0)
-                    m.d.comb += high_res.eq(1)
-                    m.d.comb += value1.eq(i1)
-                    m.d.comb += value2.eq(i2)
+                    m.d.av_comb += negative_res.eq(0)
+                    m.d.av_comb += high_res.eq(1)
+                    m.d.av_comb += value1.eq(i1)
+                    m.d.av_comb += value2.eq(i2)
                 with OneHotCase(MulFn.Fn.MULHSU):
-                    m.d.comb += negative_res.eq(i1[sign_bit])
-                    m.d.comb += high_res.eq(1)
-                    m.d.comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
-                    m.d.comb += value2.eq(i2)
+                    m.d.av_comb += negative_res.eq(i1[sign_bit])
+                    m.d.av_comb += high_res.eq(1)
+                    m.d.av_comb += value1.eq(Mux(i1[sign_bit], -i1, i1))
+                    m.d.av_comb += value2.eq(i2)
                 # Prepared for RV64
                 #
                 # with OneHotCase(MulFn.Fn.MULW):

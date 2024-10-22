@@ -7,7 +7,7 @@ from enum import IntFlag, IntEnum, auto, Enum
 from parameterized import parameterized_class
 
 from amaranth import *
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 
 from transactron.lib.metrics import *
 from transactron import *
@@ -82,7 +82,7 @@ class TestHwCounter(TestCaseWithSimulator):
                 if call_now:
                     yield from m.method.call()
                 else:
-                    yield
+                    yield Tick()
 
                 # Note that it takes one cycle to update the register value, so here
                 # we are comparing the "previous" values.
@@ -92,7 +92,7 @@ class TestHwCounter(TestCaseWithSimulator):
                     called_cnt += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     def test_counter_with_condition_in_method(self):
         m = SimpleTestCircuit(CounterWithConditionInMethodCircuit())
@@ -107,7 +107,7 @@ class TestHwCounter(TestCaseWithSimulator):
                 if call_now:
                     yield from m.method.call(cond=condition)
                 else:
-                    yield
+                    yield Tick()
 
                 # Note that it takes one cycle to update the register value, so here
                 # we are comparing the "previous" values.
@@ -117,7 +117,7 @@ class TestHwCounter(TestCaseWithSimulator):
                     called_cnt += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     def test_counter_with_condition_without_method(self):
         m = CounterWithoutMethodCircuit()
@@ -129,7 +129,7 @@ class TestHwCounter(TestCaseWithSimulator):
                 condition = random.randint(0, 1)
 
                 yield m.cond.eq(condition)
-                yield
+                yield Tick()
 
                 # Note that it takes one cycle to update the register value, so here
                 # we are comparing the "previous" values.
@@ -139,7 +139,7 @@ class TestHwCounter(TestCaseWithSimulator):
                     called_cnt += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
 
 class OneHotEnum(IntFlag):
@@ -193,14 +193,14 @@ class TestTaggedCounter(TestCaseWithSimulator):
 
                 yield m.cond.eq(1)
                 yield m.tag.eq(tag)
-                yield
+                yield Tick()
                 yield m.cond.eq(0)
-                yield
+                yield Tick()
 
                 counts[tag] += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     def test_one_hot_enum(self):
         self.do_test_enum(OneHotEnum, [e.value for e in OneHotEnum])
@@ -283,9 +283,9 @@ class TestHwHistogram(TestCaseWithSimulator):
                             buckets[i] += 1
                             break
                     yield from m.method.call(data=value)
-                    yield
+                    yield Tick()
                 else:
-                    yield
+                    yield Tick()
 
                 histogram = m._dut.histogram
                 # Skip the assertion if the min is still uninitialized
@@ -306,7 +306,7 @@ class TestHwHistogram(TestCaseWithSimulator):
                 assert total_count == (yield histogram.count.value)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
 
 class TestLatencyMeasurerBase(TestCaseWithSimulator):
@@ -379,8 +379,8 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
             self.check_latencies(m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+            sim.add_process(producer)
+            sim.add_process(consumer)
 
 
 @parameterized_class(
@@ -417,7 +417,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
 
             for _ in range(200):
                 while not free_slots:
-                    yield
+                    yield Tick()
                     continue
                 yield Settle()
 
@@ -437,7 +437,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
         def consumer():
             while not finish:
                 while not used_slots:
-                    yield
+                    yield Tick()
                     continue
 
                 slot_id = random.choice(used_slots)
@@ -458,8 +458,8 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
             self.check_latencies(m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(producer)
-            sim.add_sync_process(consumer)
+            sim.add_process(producer)
+            sim.add_process(consumer)
 
 
 class MetricManagerTestCircuit(Elaboratable):
@@ -533,7 +533,7 @@ class TestMetricsManager(TestCaseWithSimulator):
                 rand = [random.randint(0, 1) for _ in range(3)]
 
                 yield from m.incr_counters.call(counter1=rand[0], counter2=rand[1], counter3=rand[2])
-                yield
+                yield Tick()
 
                 for i in range(3):
                     if rand[i] == 1:
@@ -544,4 +544,4 @@ class TestMetricsManager(TestCaseWithSimulator):
                 assert counters[2] == (yield metrics_manager.get_register_value("bar.baz.counter3", "count"))
 
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)

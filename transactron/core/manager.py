@@ -6,6 +6,8 @@ from amaranth import *
 from amaranth.lib.wiring import Component, connect, flipped
 from itertools import chain, filterfalse, product
 
+from amaranth_types import AbstractComponent
+
 from transactron.utils import *
 from transactron.utils.transactron_helpers import _graph_ccs
 from transactron.graph import OwnershipGraph, Direction
@@ -506,7 +508,7 @@ class TransactionComponent(TransactionModule, Component):
 
     def __init__(
         self,
-        component: Component,
+        component: AbstractComponent,
         dependency_manager: Optional[DependencyManager] = None,
         transaction_manager: Optional[TransactionManager] = None,
     ):
@@ -529,7 +531,7 @@ class TransactionComponent(TransactionModule, Component):
     def elaborate(self, platform):
         m = super().elaborate(platform)
 
-        for name in self.signature.members:
-            connect(m, flipped(getattr(self, name)), getattr(self.elaboratable, name))
+        assert isinstance(self.elaboratable, Component)  # for typing
+        connect(m, flipped(self), self.elaboratable)
 
         return m

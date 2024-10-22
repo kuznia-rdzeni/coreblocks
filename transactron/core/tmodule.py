@@ -242,9 +242,9 @@ class TModule(ModuleLike, Elaboratable):
                     yield
 
     @contextmanager
-    def FSM(self, reset: Optional[str] = None, domain: str = "sync", name: str = "fsm"):  # noqa: N802
+    def FSM(self, init: Optional[str] = None, domain: str = "sync", name: str = "fsm"):  # noqa: N802
         old_fsm = self.fsm
-        with self.main_module.FSM(reset, domain, name) as fsm:
+        with self.main_module.FSM(init, domain, name) as fsm:
             self.fsm = fsm
             with self.path_builder.enter(EnterType.PUSH):
                 yield fsm

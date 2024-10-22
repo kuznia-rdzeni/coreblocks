@@ -162,7 +162,7 @@ class Scheduler(Elaboratable):
         self.count = count
 
         self.requests = Signal(count)
-        self.grant = Signal(count, reset=1)
+        self.grant = Signal(count, init=1)
         self.valid = Signal()
 
     def elaborate(self, platform):

@@ -47,7 +47,7 @@ class PipelinedMul(Elaboratable):
 
         self.ready = Signal()
         self.issue = Signal()
-        self.step = Signal(range(self.number_of_steps + 1), reset=self.number_of_steps)
+        self.step = Signal(range(self.number_of_steps + 1), init=self.number_of_steps)
         self.i1 = Signal(self.n_padding)
         self.i2 = Signal(self.n_padding)
         self.result = Signal(2 * n)

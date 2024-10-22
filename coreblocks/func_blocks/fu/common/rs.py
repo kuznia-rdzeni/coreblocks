@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
@@ -58,6 +59,10 @@ class RSBase(Elaboratable):
             bucket_count=self.rs_entries_bits + 1,
             sample_width=self.rs_entries_bits + 1,
         )
+
+    @abstractmethod
+    def elaborate(self, platform) -> TModule:
+        raise NotImplementedError
 
     def _elaborate(self, m: TModule, selected_id: Value, select_possible: Value, take_vector: Value):
         m.submodules += [self.perf_rs_wait_time, self.perf_num_full]

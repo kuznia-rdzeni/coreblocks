@@ -83,6 +83,8 @@ class _CoreConfigurationDataClass:
         Bit mask specifing if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
+    user_mode: bool
+        Enable User Mode.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -127,6 +129,8 @@ class _CoreConfigurationDataClass:
 
     interrupt_custom_count: int = 0
     interrupt_custom_edge_trig_mask: int = 0
+
+    user_mode: bool = True
 
     allow_partial_extensions: bool = False
 

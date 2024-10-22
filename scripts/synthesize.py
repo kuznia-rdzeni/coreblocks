@@ -6,6 +6,7 @@ import sys
 import argparse
 
 from amaranth.build import Platform
+from amaranth.build.res import PortGroup
 from amaranth import *
 from amaranth.lib.wiring import Component, Flow, Out, connect, flipped
 
@@ -61,7 +62,7 @@ class InterfaceConnector(Elaboratable):
         m = Module()
 
         pins = platform.request(self.name, self.number)
-        assert isinstance(pins, Record)
+        assert isinstance(pins, PortGroup)
 
         for hier_name, member, v in self.interface.signature.flatten(self.interface):
             name = "__".join(str(x) for x in hier_name)

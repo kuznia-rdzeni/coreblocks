@@ -8,7 +8,7 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 
 
@@ -67,10 +67,10 @@ class Retirement(Elaboratable):
 
         m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
-        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
-        side_fx = Signal(reset=1)
+        side_fx = Signal(init=1)
 
         def free_phys_reg(rp_dst: Value):
             # mark reg in Register File as free
@@ -129,7 +129,7 @@ class Retirement(Elaboratable):
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
-                        arch_trap = Signal(reset=1)
+                        arch_trap = Signal(init=1)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
@@ -162,6 +162,7 @@ class Retirement(Elaboratable):
                             # Register RISC-V architectural trap in CSRs
                             m_csr.mcause.write(m, cause_entry)
                             m_csr.mepc.write(m, cause_register.pc)
+                            m_csr.mtval.write(m, cause_register.mtval)
                             self.trap_entry(m)
 
                         # Fetch is already stalled by ExceptionCauseRegister

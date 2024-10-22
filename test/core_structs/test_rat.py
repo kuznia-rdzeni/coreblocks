@@ -44,7 +44,7 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
 
         self.gen_input()
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.do_rename)
+            sim.add_process(self.do_rename)
 
 
 class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
@@ -81,4 +81,4 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
 
         self.gen_input()
         with self.run_simulation(m) as sim:
-            sim.add_sync_process(self.do_commit)
+            sim.add_process(self.do_commit)

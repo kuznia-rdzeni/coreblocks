@@ -172,6 +172,6 @@ class LSURequester(Elaboratable):
                     Mux(request_args.store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
                 )
 
-            return {"data": data, "exception": exception, "cause": cause}
+            return {"data": data, "exception": exception, "cause": cause, "addr": request_args.addr}
 
         return m

@@ -77,7 +77,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             with m.If(~is_fence):
                 requests.write(m, arg)
             with m.Else():
-                results_noop.write(m, data=0, exception=0, cause=0)
+                results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
@@ -106,14 +106,14 @@ class LSUDummy(FuncUnit, Elaboratable):
 
             with m.If(res["exception"]):
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"])
+                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"], addr=addr)
             with m.Else():
                 issued.write(m, arg)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, request=flush):
             arg = requests.read(m)
-            results_noop.write(m, data=0, exception=0, cause=0)
+            results_noop.write(m, data=0, exception=0, cause=0, addr=0)
             issued_noop.write(m, arg)
 
         @def_method(m, self.accept)
@@ -129,7 +129,7 @@ class LSUDummy(FuncUnit, Elaboratable):
                     m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"])
+                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"])
 
             self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
 

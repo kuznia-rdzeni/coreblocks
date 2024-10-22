@@ -217,7 +217,7 @@ def assign(
             if valuelike_shape(lhs) != valuelike_shape(rhs):
                 raise ValueError(
                     "Shapes not matching: lhs: {} {} rhs: {} {}".format(
-                        valuelike_shape(lhs), lhs, valuelike_shape(rhs), rhs
+                        valuelike_shape(lhs), repr(lhs), valuelike_shape(rhs), repr(rhs)
                     )
                 )
 

@@ -37,10 +37,10 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
                 yield from self.multi_settle(4)
                 elem = input_lst.pop()
                 if isinstance(elem, OpNOP):
-                    yield
+                    yield Tick()
                     continue
                 if input_verification is not None and not input_verification(elem):
-                    yield
+                    yield Tick()
                     continue
                 response = yield from method.call(**elem)
                 yield from self.multi_settle(settle_count)
@@ -52,7 +52,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
                 if state_change is not None:
                     # It is standard python function by purpose to don't allow accessing circuit
                     state_change(elem, response)
-                yield
+                yield Tick()
 
         return f
 
@@ -129,7 +129,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
         with self.reinitialize_fixtures():
             self.setUp()
             with self.run_simulation(self.circ, max_cycles=500) as sim:
-                sim.add_sync_process(self.push_process(in_push))
-                sim.add_sync_process(self.read_process(in_read))
-                sim.add_sync_process(self.write_process(in_write))
-                sim.add_sync_process(self.remove_process(in_remove))
+                sim.add_process(self.push_process(in_push))
+                sim.add_process(self.read_process(in_read))
+                sim.add_process(self.write_process(in_write))
+                sim.add_process(self.remove_process(in_remove))

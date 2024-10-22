@@ -139,7 +139,6 @@ class RISCVInstr(ABC, ValueCastable):
         const = Const.cast(self.as_value())
         return const.value  # type: ignore
 
-    @ValueCastable.lowermethod
     def as_value(self) -> Value:
         parts: list[tuple[int, Value]] = []
 

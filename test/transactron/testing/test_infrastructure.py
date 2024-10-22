@@ -24,8 +24,8 @@ class TestNow(TestCaseWithSimulator):
             now = yield Now()
             assert k == now
 
-            yield
+            yield Tick()
 
     def test_random(self):
         with self.run_simulation(self.m, 50) as sim:
-            sim.add_sync_process(self.process)
+            sim.add_process(self.process)

@@ -6,7 +6,7 @@ from parameterized import parameterized_class
 import random
 
 from amaranth import Elaboratable, Module
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Tick
 from coreblocks.interface.keys import FetchResumeKey
 
 from transactron.core import Method
@@ -138,10 +138,10 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         while True:
             while len(self.input_q) == 0:
-                yield
+                yield Tick()
 
             while random.random() < 0.5:
-                yield
+                yield Tick()
 
             req_addr = self.input_q.popleft() & ~(self.gen_params.fetch_block_bytes - 1)
 
@@ -194,7 +194,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
                 # Empty the pipeline
                 yield from self.clean_fifo.call_try()
-                yield
+                yield Tick()
 
                 resume_pc = instr["next_pc"]
                 if access_fault:
@@ -209,8 +209,8 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     def run_sim(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.cache_process)
-            sim.add_sync_process(self.fetch_out_check)
+            sim.add_process(self.cache_process)
+            sim.add_process(self.fetch_out_check)
 
     def test_simple_no_jumps(self):
         for _ in range(50):
@@ -389,8 +389,8 @@ class TestFetchUnit(TestCaseWithSimulator):
                     self.gen_branch(offset, taken=random.randrange(2) == 0)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.cache_process)
-            sim.add_sync_process(self.fetch_out_check)
+            sim.add_process(self.cache_process)
+            sim.add_process(self.fetch_out_check)
 
 
 @dataclass(frozen=True)
@@ -636,7 +636,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
             self.assert_resp(ret, mispredicted=False)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(proc)
+            sim.add_process(proc)
 
     def test_preceding_redirection(self):
         instr_width = self.gen_params.min_instr_width_bytes
@@ -735,7 +735,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
             )
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(proc)
+            sim.add_process(proc)
 
     def test_mispredicted_cfi_type(self):
         instr_width = self.gen_params.min_instr_width_bytes
@@ -781,7 +781,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
             )
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(proc)
+            sim.add_process(proc)
 
     def test_mispredicted_cfi_target(self):
         instr_width = self.gen_params.min_instr_width_bytes
@@ -825,4 +825,4 @@ class TestPredictionChecker(TestCaseWithSimulator):
             )
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(proc)
+            sim.add_process(proc)

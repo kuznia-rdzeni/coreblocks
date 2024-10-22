@@ -6,14 +6,15 @@ from collections import deque
 from typing import Generic, TypeVar
 
 from amaranth import Elaboratable, Signal
-from amaranth.sim import Passive
+from amaranth.sim import Passive, Tick
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.arch import Funct3, Funct7
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, CSRInstancesKey
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
@@ -99,12 +100,14 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.gen_params = GenParams(test_core_config)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.csrs = GenericCSRRegisters(self.gen_params)
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 
         self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
-        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock)
+        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
@@ -140,10 +143,18 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             cause = None
             if "exception" in results:
                 cause = results["exception"]
-                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": results.setdefault("exception_pc", pc)})
+                self.exceptions.append(
+                    {
+                        "rob_id": rob_id,
+                        "cause": cause,
+                        "pc": results.setdefault("exception_pc", pc),
+                        "mtval": results.setdefault("mtval", 0),
+                    }
+                )
 
                 results.pop("exception")
                 results.pop("exception_pc")
+                results.pop("mtval")
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
 
@@ -177,7 +188,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         while True:
             assert (yield self.m.issue.adapter.iface.ready)
             assert (yield self.m.issue.adapter.en) == (yield self.m.issue.adapter.done)
-            yield
+            yield Tick()
 
     def run_standard_fu_test(self, pipeline_test=False):
         if pipeline_test:
@@ -186,8 +197,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             self.max_wait = 10
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_sync_process(self.producer)
-            sim.add_sync_process(self.consumer)
-            sim.add_sync_process(self.exception_consumer)
+            sim.add_process(self.producer)
+            sim.add_process(self.consumer)
+            sim.add_process(self.exception_consumer)
             if pipeline_test:
-                sim.add_sync_process(self.pipeline_verifier)
+                sim.add_process(self.pipeline_verifier)

@@ -79,4 +79,4 @@ class TestDecode(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.decode_test_proc)
+            sim.add_process(self.decode_test_proc)

@@ -59,4 +59,4 @@ class TestAdapterTrans(TestCaseWithSimulator):
         self.m = ModuleConnector(echo=self.echo, consumer=self.consumer)
 
         with self.run_simulation(self.m, max_cycles=100) as sim:
-            sim.add_sync_process(self.proc)
+            sim.add_process(self.proc)

@@ -58,7 +58,7 @@ class OwnershipGraph:
                         self.remember_field(owner_id, field, obj)
                 if isinstance(owner, Fragment):
                     assert isinstance(owner, TracingFragment)
-                    for obj, field in owner.subfragments:
+                    for obj, field, _ in owner.subfragments:
                         self.remember_field(owner_id, field, obj)
                 try:
                     owner = owner._elaborated  # type: ignore

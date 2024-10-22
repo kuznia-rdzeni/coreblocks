@@ -1,4 +1,5 @@
 from amaranth import *
+import amaranth.lib.memory as memory
 from amaranth.lib.wiring import PureInterface, Signature, In, Out, Component
 from functools import reduce
 from typing import Protocol, cast
@@ -516,23 +517,24 @@ class WishboneMemorySlave(Component):
 
     def __init__(self, wb_params: WishboneParameters, **kwargs):
         super().__init__({"bus": In(WishboneSignature(wb_params))})
-        if "width" not in kwargs:
-            kwargs["width"] = wb_params.data_width
-        if kwargs["width"] not in (8, 16, 32, 64):
-            raise RuntimeError("Memory width has to be one of: 8, 16, 32, 64")
+        if "shape" not in kwargs:
+            kwargs["shape"] = wb_params.data_width
+        if kwargs["shape"] not in (8, 16, 32, 64):
+            raise RuntimeError("Memory shape has to be one of: 8, 16, 32, 64")
         if "depth" not in kwargs:
             kwargs["depth"] = 2**wb_params.addr_width
         self.granularity = wb_params.granularity
         if self.granularity not in (8, 16, 32, 64):
             raise RuntimeError("Granularity has to be one of: 8, 16, 32, 64")
 
-        self.mem = Memory(**kwargs)
+        self.mem = memory.Memory(**kwargs)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.rdport = rdport = self.mem.read_port()
-        m.submodules.wrport = wrport = self.mem.write_port(granularity=self.granularity)
+        m.submodules.mem = self.mem
+        wrport = self.mem.write_port(granularity=self.granularity)
+        rdport = self.mem.read_port()
 
         with m.FSM():
             with m.State("Start"):

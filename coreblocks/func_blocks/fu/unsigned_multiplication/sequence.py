@@ -42,7 +42,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
         self.i1 = Signal(unsigned(n))
         self.i2 = Signal(unsigned(n))
         self.result = Signal(unsigned(n * 2))
-        self.confirm = Signal(reset=0)
+        self.confirm = Signal()
         self.reset = Signal()
 
     def elaborate(self, platform) -> TModule:
@@ -135,7 +135,7 @@ class SequentialUnsignedMul(MulBaseUnsigned):
         m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
         m.submodules.multiplier = multiplier = RecursiveWithSingleDSPMul(dsp, self.gen_params.isa.xlen)
 
-        accepted = Signal(1, reset=1)
+        accepted = Signal(1, init=1)
         m.d.sync += multiplier.reset.eq(0)
 
         @def_method(m, self.issue, ready=accepted)

@@ -1,6 +1,6 @@
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 from amaranth import *
 
 from coreblocks.frontend.decoder.rvc import InstrDecompress
@@ -284,14 +284,21 @@ class TestInstrDecompress(TestCaseWithSimulator):
         self.m = InstrDecompress(self.gen_params)
 
         def process():
+            illegal = Signal(32)
+            yield illegal.eq(IllegalInstr())
+
             for instr_in, instr_out in self.test_cases:
                 yield self.m.instr_in.eq(instr_in)
                 expected = Signal(32)
                 yield expected.eq(instr_out)
                 yield Settle()
 
+                if (yield expected) == (yield illegal):
+                    yield expected.eq(instr_in)  # for exception handling
+                    yield Settle()
+
                 assert (yield self.m.instr_out) == (yield expected)
-                yield
+                yield Tick()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(process)
+            sim.add_process(process)

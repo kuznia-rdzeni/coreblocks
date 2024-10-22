@@ -14,7 +14,7 @@ SIM_BUILD = build/benchmark
 
 # Yosys/Amaranth borkedness workaround
 ifeq ($(SIM),verilator)
-  EXTRA_ARGS += -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-UNSIGNED -Wno-CMPCONST
+  EXTRA_ARGS += -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-UNSIGNED -Wno-CMPCONST -Wno-LITENDIAN
   BUILD_ARGS += -j`nproc`
 endif
 

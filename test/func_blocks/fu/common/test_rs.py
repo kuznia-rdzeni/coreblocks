@@ -2,7 +2,7 @@ import random
 from collections import deque
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle
+from amaranth.sim import Settle, Tick
 
 from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
 
@@ -75,10 +75,10 @@ class TestRS(TestCaseWithSimulator):
         self.finished = False
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.select_process)
-            sim.add_sync_process(self.insert_process)
-            sim.add_sync_process(self.update_process)
-            sim.add_sync_process(self.take_process)
+            sim.add_process(self.select_process)
+            sim.add_process(self.insert_process)
+            sim.add_process(self.update_process)
+            sim.add_process(self.take_process)
 
     def select_process(self):
         for k in range(len(self.data_list)):
@@ -90,7 +90,7 @@ class TestRS(TestCaseWithSimulator):
         for data in self.data_list:
             yield Settle()  # so that select_process can insert into the queue
             while not self.select_queue:
-                yield
+                yield Tick()
                 yield Settle()
             rs_entry_id = self.select_queue.pop()
             yield from self.m.insert.call({"rs_entry_id": rs_entry_id, "rs_data": data})
@@ -103,7 +103,7 @@ class TestRS(TestCaseWithSimulator):
         while not self.finished:
             yield Settle()  # so that insert_process can insert into the set
             if not self.regs_to_update:
-                yield
+                yield Tick()
                 continue
             reg_id = random.choice(list(self.regs_to_update))
             self.regs_to_update.discard(reg_id)
@@ -124,11 +124,11 @@ class TestRS(TestCaseWithSimulator):
         for k in range(len(self.data_list)):
             yield Settle()
             while not (yield from self.m.get_ready_list[0].done()):
-                yield
+                yield Tick()
             ready_list = (yield from self.m.get_ready_list[0].call_result())["ready_list"]
             possible_ids = [i for i in range(2**self.rs_entries_bits) if ready_list & (1 << i)]
             if not possible_ids:
-                yield
+                yield Tick()
                 continue
             rs_entry_id = random.choice(possible_ids)
             k = self.rs_entries[rs_entry_id]
@@ -171,7 +171,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.simulation_process)
+            sim.add_process(self.simulation_process)
 
     def simulation_process(self):
         # After each insert, entry should be marked as full
@@ -216,7 +216,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.simulation_process)
+            sim.add_process(self.simulation_process)
 
     def simulation_process(self):
         # In the beginning the select method should be ready and id should be selectable
@@ -279,7 +279,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.simulation_process)
+            sim.add_process(self.simulation_process)
 
     def simulation_process(self):
         # Insert all reacords
@@ -370,7 +370,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.simulation_process)
+            sim.add_process(self.simulation_process)
 
     def simulation_process(self):
         # After each insert, entry should be marked as full
@@ -469,7 +469,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.simulation_process)
+            sim.add_process(self.simulation_process)
 
     def simulation_process(self):
         # After each insert, entry should be marked as full
@@ -525,7 +525,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.simulation_process)
+            sim.add_process(self.simulation_process)
 
     def simulation_process(self):
         # After each insert, entry should be marked as full

@@ -120,14 +120,16 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
 
     exception = None
     exception_pc = pc
+    mtval = 0
     if next_pc & 0b11 != 0:
         exception = ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED
+        mtval = next_pc
     elif misprediction:
         exception = ExceptionCause._COREBLOCKS_MISPREDICTION
         exception_pc = next_pc
 
     return {"result": res, "from_pc": pc, "next_pc": next_pc, "misprediction": misprediction} | (
-        {"exception": exception, "exception_pc": exception_pc} if exception is not None else {}
+        {"exception": exception, "exception_pc": exception_pc, "mtval": mtval} if exception is not None else {}
     )
 
 
