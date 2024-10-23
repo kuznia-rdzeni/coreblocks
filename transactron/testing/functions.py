@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import Layout, StructLayout, View
-from amaranth.sim.core import Command
+from amaranth.sim._pycoro import Command
 from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
 from transactron.utils._typing import RecordIntDict
 

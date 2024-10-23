@@ -16,7 +16,7 @@ class RegisterFile(Elaboratable):
         self.internal_layout = make_layout(("reg_val", gen_params.isa.xlen), ("valid", 1))
         self.read_layout = layouts.rf_read_out
         self.entries = Array(
-            Signal(self.internal_layout, reset={"reg_val": 0, "valid": k == 0})
+            Signal(self.internal_layout, init={"reg_val": 0, "valid": k == 0})
             for k in range(2**gen_params.phys_regs_bits)
         )
 

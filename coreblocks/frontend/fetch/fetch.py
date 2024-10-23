@@ -1,6 +1,5 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from amaranth.lib.coding import PriorityEncoder
 from coreblocks.interface.keys import FetchResumeKey
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
@@ -8,6 +7,7 @@ from transactron.lib.simultaneous import condition
 from transactron.utils import MethodLayout, popcount, assign
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
