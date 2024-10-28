@@ -8,6 +8,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.testing.infrastructure import SimpleTestCircuit
+from transactron.testing.testbenchio import AsyncTestbenchIO
 from transactron.utils import MethodStruct
 from transactron.lib import *
 
@@ -152,16 +153,16 @@ class TestDefMethods(TestCaseWithSimulator):
         def definition(idx: int, foo: Value):
             return {"foo": foo + idx}
 
-        circuit = SimpleTestCircuit(TestDefMethods.CircuitTestModule(definition))
+        circuit = SimpleTestCircuit(TestDefMethods.CircuitTestModule(definition), True)
 
-        def test_process():
+        async def test_process(sim):
             for k, method in enumerate(circuit.methods):
                 val = random.randrange(0, 2**3)
-                ret = yield from method.call(foo=val)
+                ret = await method.call(sim, foo=val)
                 assert ret["foo"] == (val + k) % 2**3
 
         with self.run_simulation(circuit) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
 
 class AdapterCircuit(Elaboratable):
@@ -365,7 +366,7 @@ class QuadrupleCircuit(Elaboratable):
         m = TModule()
 
         m.submodules.quadruple = self.quadruple
-        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
+        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(self.quadruple.quadruple))
 
         return m
 
@@ -392,13 +393,13 @@ class TestQuadrupleCircuits(TestCaseWithSimulator):
     def test(self, quadruple):
         circ = QuadrupleCircuit(quadruple())
 
-        def process():
+        async def process(sim):
             for n in range(1 << (WIDTH - 2)):
-                out = yield from circ.tb.call(data=n)
+                out = await circ.tb.call(sim, data=n)
                 assert out["data"] == n * 4
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class ConditionalCallCircuit(Elaboratable):
@@ -407,8 +408,8 @@ class ConditionalCallCircuit(Elaboratable):
 
         meth = Method(i=data_layout(1))
 
-        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
-        m.submodules.out = self.out = TestbenchIO(Adapter())
+        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(meth))
+        m.submodules.out = self.out = AsyncTestbenchIO(Adapter())
 
         @def_method(m, meth)
         def _(arg):
@@ -425,7 +426,7 @@ class ConditionalMethodCircuit1(Elaboratable):
         meth = Method()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
+        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(meth))
 
         @def_method(m, meth, ready=self.ready)
         def _(arg):
@@ -441,7 +442,7 @@ class ConditionalMethodCircuit2(Elaboratable):
         meth = Method()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
+        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(meth))
 
         with m.If(self.ready):
 
@@ -457,7 +458,7 @@ class ConditionalTransactionCircuit1(Elaboratable):
         m = TModule()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = TestbenchIO(Adapter())
+        m.submodules.tb = self.tb = AsyncTestbenchIO(Adapter())
 
         with Transaction().body(m, request=self.ready):
             self.tb.adapter.iface(m)
@@ -470,7 +471,7 @@ class ConditionalTransactionCircuit2(Elaboratable):
         m = TModule()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = TestbenchIO(Adapter())
+        m.submodules.tb = self.tb = AsyncTestbenchIO(Adapter())
 
         with m.If(self.ready):
             with Transaction().body(m):
@@ -483,31 +484,27 @@ class TestConditionals(TestCaseWithSimulator):
     def test_conditional_call(self):
         circ = ConditionalCallCircuit()
 
-        def process():
-            yield from circ.out.disable()
-            yield from circ.tb.call_init(data=0)
-            yield Settle()
-            assert not (yield from circ.out.done())
-            assert not (yield from circ.tb.done())
+        async def process(sim):
+            circ.out.disable(sim)
+            circ.tb.call_init(sim, data=0)
+            *_, out_done, tb_done = await sim.tick().sample(circ.out.adapter.done, circ.tb.adapter.done)
+            assert not out_done and not tb_done
 
-            yield from circ.out.enable()
-            yield Settle()
-            assert not (yield from circ.out.done())
-            assert (yield from circ.tb.done())
+            circ.out.enable(sim)
+            *_, out_done, tb_done = await sim.tick().sample(circ.out.adapter.done, circ.tb.adapter.done)
+            assert not out_done and tb_done
 
-            yield from circ.tb.call_init(data=1)
-            yield Settle()
-            assert (yield from circ.out.done())
-            assert (yield from circ.tb.done())
+            circ.tb.call_init(sim, data=1)
+            *_, out_done, tb_done = await sim.tick().sample(circ.out.adapter.done, circ.tb.adapter.done)
+            assert out_done and tb_done
 
             # the argument is still 1 but the method is not called
-            yield from circ.tb.disable()
-            yield Settle()
-            assert not (yield from circ.out.done())
-            assert not (yield from circ.tb.done())
+            circ.tb.disable(sim)
+            *_, out_done, tb_done = await sim.tick().sample(circ.out.adapter.done, circ.tb.adapter.done)
+            assert not out_done and not tb_done
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     @parameterized.expand(
         [
@@ -520,18 +517,18 @@ class TestConditionals(TestCaseWithSimulator):
     def test_conditional(self, elaboratable):
         circ = elaboratable()
 
-        def process():
-            yield from circ.tb.enable()
-            yield circ.ready.eq(0)
-            yield Settle()
-            assert not (yield from circ.tb.done())
+        async def process(sim):
+            circ.tb.enable(sim)
+            sim.set(circ.ready, 0)
+            *_, tb_done = await sim.tick().sample(circ.tb.adapter.done)
+            assert not tb_done
 
-            yield circ.ready.eq(1)
-            yield Settle()
-            assert (yield from circ.tb.done())
+            sim.set(circ.ready, 1)
+            *_, tb_done = await sim.tick().sample(circ.tb.adapter.done)
+            assert tb_done
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class NonexclusiveMethodCircuit(Elaboratable):
@@ -549,8 +546,8 @@ class NonexclusiveMethodCircuit(Elaboratable):
             m.d.comb += self.running.eq(1)
             return {"data": self.data}
 
-        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
-        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
+        m.submodules.t1 = self.t1 = AsyncTestbenchIO(AdapterTrans(method))
+        m.submodules.t2 = self.t2 = AsyncTestbenchIO(AdapterTrans(method))
 
         return m
 
@@ -559,42 +556,31 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
     def test_nonexclusive_method(self):
         circ = NonexclusiveMethodCircuit()
 
-        def process():
+        async def process(sim):
             for x in range(8):
                 t1en = bool(x & 1)
                 t2en = bool(x & 2)
                 mrdy = bool(x & 4)
 
-                if t1en:
-                    yield from circ.t1.enable()
-                else:
-                    yield from circ.t1.disable()
+                circ.t1.set_enable(sim, t1en)
+                circ.t2.set_enable(sim, t2en)
+                sim.set(circ.ready, int(mrdy))
+                sim.set(circ.data, x)
 
-                if t2en:
-                    yield from circ.t2.enable()
-                else:
-                    yield from circ.t2.disable()
+                *_, running, t1_done, t2_done, t1_outputs, t2_outputs = await sim.tick().sample(circ.running, circ.t1.done, circ.t2.done, circ.t1.outputs, circ.t2.outputs)
 
-                if mrdy:
-                    yield circ.ready.eq(1)
-                else:
-                    yield circ.ready.eq(0)
-
-                yield circ.data.eq(x)
-                yield Settle()
-
-                assert bool((yield circ.running)) == ((t1en or t2en) and mrdy)
-                assert bool((yield from circ.t1.done())) == (t1en and mrdy)
-                assert bool((yield from circ.t2.done())) == (t2en and mrdy)
+                assert bool(running) == ((t1en or t2en) and mrdy)
+                assert bool(t1_done) == (t1en and mrdy)
+                assert bool(t2_done) == (t2en and mrdy)
 
                 if t1en and mrdy:
-                    assert (yield from circ.t1.get_outputs()) == {"data": x}
+                    assert t1_outputs["data"] == x
 
                 if t2en and mrdy:
-                    assert (yield from circ.t2.get_outputs()) == {"data": x}
+                    assert t2_outputs["data"] == x
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class TwoNonexclusiveConflictCircuit(Elaboratable):

@@ -29,6 +29,14 @@ class AsyncTestbenchIO(Elaboratable):
     def disable(self, sim: ProcessContext):
         self.set_enable(sim, False)
 
+    @property
+    def done(self):
+        return self.adapter.done
+
+    @property
+    def outputs(self):
+        return self.adapter.data_out
+
     def set_inputs(self, sim: ProcessContext, data):
         sim.set(self.adapter.data_in, data)
 
@@ -52,13 +60,13 @@ class AsyncTestbenchIO(Elaboratable):
         self.set_inputs(sim, data)
 
     async def call_result(self, sim: ProcessContext):
-        data, done = await self.sample_outputs_done(sim)
+        *_, data, done = await self.sample_outputs_done(sim)
         if done:
             return data
         return None
 
     async def call_do(self, sim: ProcessContext):
-        outputs = await self.sample_outputs_until_done(sim)
+        *_, outputs = await self.sample_outputs_until_done(sim)
         self.disable(sim)
         return outputs
 

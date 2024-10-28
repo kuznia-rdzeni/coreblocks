@@ -5,6 +5,7 @@ import os
 import random
 import functools
 import warnings
+import asyncio
 from contextlib import contextmanager, nullcontext
 from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
 from abc import ABC
@@ -12,7 +13,7 @@ from amaranth import *
 from amaranth.sim import *
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
-from .testbenchio import TestbenchIO
+from .testbenchio import AsyncTestbenchIO, TestbenchIO
 from .profiler import profiler_process, Profile
 from .functions import TestGen
 from .logging import make_logging_process, parse_logging_level, _LogFormatter
@@ -43,9 +44,10 @@ _T_HasElaborate = TypeVar("_T_HasElaborate", bound=HasElaborate)
 
 
 class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
-    def __init__(self, dut: _T_HasElaborate):
+    def __init__(self, dut: _T_HasElaborate, async_tb: bool = False):
         self._dut = dut
-        self._io: dict[str, _T_nested_collection[TestbenchIO]] = {}
+        self._io: dict[str, _T_nested_collection[TestbenchIO | AsyncTestbenchIO]] = {}
+        self._testbenchio = AsyncTestbenchIO if async_tb else TestbenchIO
 
     def __getattr__(self, name: str) -> Any:
         try:
@@ -56,7 +58,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
             container: _T_nested_collection[Method],
-        ) -> tuple[_T_nested_collection["TestbenchIO"], Union[ModuleConnector, "TestbenchIO"]]:
+        ) -> tuple[_T_nested_collection["TestbenchIO | AsyncTestbenchIO"], Union[ModuleConnector, "TestbenchIO | AsyncTestbenchIO"]]:
             if isinstance(container, list):
                 tb_list = []
                 mc_list = []
@@ -74,7 +76,7 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
                     mc_dict[name] = mc
                 return tb_dict, ModuleConnector(*mc_dict)
             else:
-                tb = TestbenchIO(AdapterTrans(container))
+                tb = self._testbenchio(AdapterTrans(container))
                 return tb, tb
 
         m = Module()
@@ -197,9 +199,12 @@ class PysimSimulator(Simulator):
 
         self.deadline = clk_period * max_cycles
 
-    def add_process(self, f: Callable[[], TestGen]):
-        f_wrapped = SyncProcessWrapper(f)
-        super().add_process(f_wrapped._wrapping_function)
+    def add_process(self, process: Callable[[], TestGen]):
+        if asyncio.iscoroutinefunction(process):
+            super().add_process(process)
+        else:
+            f_wrapped = SyncProcessWrapper(process)
+            super().add_process(f_wrapped._wrapping_function)
 
     def run(self) -> bool:
         with self.ctx:

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from unittest.case import TestCase
+from amaranth_types import HasElaborate
 import pytest
 from amaranth import *
 from amaranth.sim import *
@@ -11,7 +12,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
 
 from transactron import *
 from transactron.lib import Adapter, AdapterTrans
@@ -56,52 +57,52 @@ class TestScheduler(TestCaseWithSimulator):
         assert len(sched.grant) == cnt
         assert len(sched.valid) == 1
 
-    def sim_step(self, sched, request, expected_grant):
-        yield sched.requests.eq(request)
-        yield Tick()
+    async def sim_step(self, sim, sched: Scheduler, request: int, expected_grant: int):
+        sim.set(sched.requests, request)
+        _, _, valid, grant = await sim.tick().sample(sched.valid, sched.grant)
 
         if request == 0:
-            assert not (yield sched.valid)
+            assert not valid
         else:
-            assert (yield sched.grant) == expected_grant
-            assert (yield sched.valid)
+            assert grant == expected_grant
+            assert valid
 
     def test_single(self):
         sched = Scheduler(1)
         self.count_test(sched, 1)
 
-        def process():
-            yield from self.sim_step(sched, 0, 0)
-            yield from self.sim_step(sched, 1, 1)
-            yield from self.sim_step(sched, 1, 1)
-            yield from self.sim_step(sched, 0, 0)
+        async def process(sim):
+            await self.sim_step(sim, sched, 0, 0)
+            await self.sim_step(sim, sched, 1, 1)
+            await self.sim_step(sim, sched, 1, 1)
+            await self.sim_step(sim, sched, 0, 0)
 
         with self.run_simulation(sched) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     def test_multi(self):
         sched = Scheduler(4)
         self.count_test(sched, 4)
 
-        def process():
-            yield from self.sim_step(sched, 0b0000, 0b0000)
-            yield from self.sim_step(sched, 0b1010, 0b0010)
-            yield from self.sim_step(sched, 0b1010, 0b1000)
-            yield from self.sim_step(sched, 0b1010, 0b0010)
-            yield from self.sim_step(sched, 0b1001, 0b1000)
-            yield from self.sim_step(sched, 0b1001, 0b0001)
+        async def process(sim):
+            await self.sim_step(sim, sched, 0b0000, 0b0000)
+            await self.sim_step(sim, sched, 0b1010, 0b0010)
+            await self.sim_step(sim, sched, 0b1010, 0b1000)
+            await self.sim_step(sim, sched, 0b1010, 0b0010)
+            await self.sim_step(sim, sched, 0b1001, 0b1000)
+            await self.sim_step(sim, sched, 0b1001, 0b0001)
 
-            yield from self.sim_step(sched, 0b1111, 0b0010)
-            yield from self.sim_step(sched, 0b1111, 0b0100)
-            yield from self.sim_step(sched, 0b1111, 0b1000)
-            yield from self.sim_step(sched, 0b1111, 0b0001)
+            await self.sim_step(sim, sched, 0b1111, 0b0010)
+            await self.sim_step(sim, sched, 0b1111, 0b0100)
+            await self.sim_step(sim, sched, 0b1111, 0b1000)
+            await self.sim_step(sim, sched, 0b1111, 0b0001)
 
-            yield from self.sim_step(sched, 0b0000, 0b0000)
-            yield from self.sim_step(sched, 0b0010, 0b0010)
-            yield from self.sim_step(sched, 0b0010, 0b0010)
+            await self.sim_step(sim, sched, 0b0000, 0b0000)
+            await self.sim_step(sim, sched, 0b0010, 0b0010)
+            await self.sim_step(sim, sched, 0b0010, 0b0010)
 
         with self.run_simulation(sched) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class TransactionConflictTestCircuit(Elaboratable):
@@ -112,9 +113,9 @@ class TransactionConflictTestCircuit(Elaboratable):
         m = TModule()
         tm = TransactionModule(m, DependencyContext.get(), TransactionManager(self.scheduler))
         adapter = Adapter(i=data_layout(32), o=data_layout(32))
-        m.submodules.out = self.out = TestbenchIO(adapter)
-        m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
-        m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
+        m.submodules.out = self.out = AsyncTestbenchIO(adapter)
+        m.submodules.in1 = self.in1 = AsyncTestbenchIO(AdapterTrans(adapter.iface))
+        m.submodules.in2 = self.in2 = AsyncTestbenchIO(AdapterTrans(adapter.iface))
         return tm
 
 
@@ -132,14 +133,15 @@ class TestTransactionConflict(TestCaseWithSimulator):
         random.seed(42)
 
     def make_process(
-        self, io: TestbenchIO, prob: float, src: Iterable[int], tgt: Callable[[int], None], chk: Callable[[int], None]
+        self, io: AsyncTestbenchIO, prob: float, src: Iterable[int], tgt: Callable[[int], None], chk: Callable[[int], None]
     ):
-        def process():
+        async def process(sim):
             for i in src:
                 while random.random() >= prob:
-                    yield Tick()
+                    await sim.tick()
                 tgt(i)
-                r = yield from io.call(data=i)
+                r = await io.call(sim, data=i)
+                print(r)
                 chk(r["data"])
 
         return process
@@ -193,9 +195,9 @@ class TestTransactionConflict(TestCaseWithSimulator):
         self.m = TransactionConflictTestCircuit(self.__class__.scheduler)
 
         with self.run_simulation(self.m, add_transaction_module=False) as sim:
-            sim.add_process(self.make_in1_process(prob1))
-            sim.add_process(self.make_in2_process(prob2))
-            sim.add_process(self.make_out_process(probout))
+            sim.add_testbench(self.make_in1_process(prob1))
+            sim.add_testbench(self.make_in2_process(prob2))
+            sim.add_testbench(self.make_out_process(probout))
 
         assert not self.in_expected
         assert not self.out1_expected
@@ -210,7 +212,7 @@ class SchedulingTestCircuit(Elaboratable):
         self.t2 = Signal()
 
     @abstractmethod
-    def elaborate(self, platform) -> TModule:
+    def elaborate(self, platform) -> HasElaborate:
         raise NotImplementedError
 
 
@@ -283,22 +285,22 @@ class TestTransactionPriorities(TestCaseWithSimulator):
     def test_priorities(self, priority: Priority):
         m = self.circuit(priority)
 
-        def process():
+        async def process(sim):
             to_do = 5 * [(0, 1), (1, 0), (1, 1)]
             random.shuffle(to_do)
             for r1, r2 in to_do:
-                yield m.r1.eq(r1)
-                yield m.r2.eq(r2)
-                yield Settle()
-                assert (yield m.t1) != (yield m.t2)
+                sim.set(m.r1, r1)
+                sim.set(m.r2, r2)
+                _, t1, t2 = await sim.delay(1e-9).sample(m.t1, m.t2)
+                assert t1 != t2
                 if r1 == 1 and r2 == 1:
                     if priority == Priority.LEFT:
-                        assert (yield m.t1)
+                        assert t1
                     if priority == Priority.RIGHT:
-                        assert (yield m.t2)
+                        assert t2
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     @parameterized.expand([(Priority.UNDEFINED,), (Priority.LEFT,), (Priority.RIGHT,)])
     def test_unsatisfiable(self, priority: Priority):
@@ -368,18 +370,18 @@ class TestNested(TestCaseWithSimulator):
     def test_scheduling(self):
         m = self.circuit()
 
-        def process():
+        async def process(sim):
             to_do = 5 * [(0, 1), (1, 0), (1, 1)]
             random.shuffle(to_do)
             for r1, r2 in to_do:
-                yield m.r1.eq(r1)
-                yield m.r2.eq(r2)
-                yield Tick()
-                assert (yield m.t1) == r1
-                assert (yield m.t2) == r1 * r2
+                sim.set(m.r1, r1)
+                sim.set(m.r2, r2)
+                *_, t1, t2 = await sim.tick().sample(m.t1, m.t2)
+                assert t1 == r1
+                assert t2 == r1 * r2
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class ScheduleBeforeTestCircuit(SchedulingTestCircuit):
@@ -414,18 +416,18 @@ class TestScheduleBefore(TestCaseWithSimulator):
     def test_schedule_before(self):
         m = ScheduleBeforeTestCircuit()
 
-        def process():
+        async def process(sim):
             to_do = 5 * [(0, 1), (1, 0), (1, 1)]
             random.shuffle(to_do)
             for r1, r2 in to_do:
-                yield m.r1.eq(r1)
-                yield m.r2.eq(r2)
-                yield Tick()
-                assert (yield m.t1) == r1
-                assert not (yield m.t2)
+                sim.set(m.r1, r1)
+                sim.set(m.r2, r2)
+                *_, t1, t2 = await sim.tick().sample(m.t1, m.t2)
+                assert t1 == r1
+                assert not t2
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class SingleCallerTestCircuit(Elaboratable):
