@@ -1,15 +1,48 @@
 import random
 from collections import deque
+from collections.abc import Iterable
 from parameterized import parameterized_class
 
-from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
+from transactron.lib import Adapter
+from transactron.testing import (
+    SimpleTestCircuit,
+    TestCaseWithSimulator,
+    TestbenchContext,
+    TestbenchIO,
+    def_method_mock,
+)
+from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.func_blocks.fu.common.rs import RS, RSBase
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
+from coreblocks.interface.keys import CoreStateKey
+from coreblocks.interface.layouts import RetirementLayouts
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import OpType
 from transactron.testing.functions import data_const_to_dict
+
+
+class RSTestCircuit(SimpleTestCircuit):
+    def __init__(
+        self,
+        gen_params: GenParams,
+        dut: type[RSBase],
+        rs_entries: int,
+        rs_number: int,
+        ready_for: Iterable[Iterable[OpType]] | None,
+    ):
+        super().__init__(dut(gen_params, rs_entries, rs_number, ready_for))
+        self.gen_params = gen_params
+
+    def elaborate(self, platform):
+        m = super().elaborate(platform)
+        m.submodules.core_state = self.core_state = TestbenchIO(
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
+        )
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+
+        return m
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:
@@ -66,12 +99,16 @@ class TestRS(TestCaseWithSimulator):
         random.seed(42)
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(self.rs_elaboratable(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.m = RSTestCircuit(self.gen_params, self.rs_elaboratable, 2**self.rs_entries_bits, 0, None)
         self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits)
         self.select_queue: deque[int] = deque()
         self.regs_to_update: set[int] = set()
         self.rs_entries: dict[int, int] = {}
         self.finished = False
+
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.select_process)
@@ -142,7 +179,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.m = RSTestCircuit(self.gen_params, RS, 2**self.rs_entries_bits, 0, None)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -185,7 +222,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.m = RSTestCircuit(self.gen_params, RS, 2**self.rs_entries_bits, 0, None)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -243,7 +280,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.m = RSTestCircuit(self.gen_params, RS, 2**self.rs_entries_bits, 0, None)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -266,6 +303,10 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             for id in range(2**self.rs_entries_bits)
         ]
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
+
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.simulation_process)
@@ -329,7 +370,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.m = RSTestCircuit(self.gen_params, RS, 2**self.rs_entries_bits, 0, None)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -352,6 +393,10 @@ class TestRSMethodTake(TestCaseWithSimulator):
             for id in range(2**self.rs_entries_bits)
         ]
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
+
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.simulation_process)
@@ -417,11 +462,102 @@ class TestRSMethodTake(TestCaseWithSimulator):
         assert sim.get(self.m._dut.get_ready_list[0].ready) == 0
 
 
+class TestRSMethodTakeFlushing(TestCaseWithSimulator):
+    def test_take_flushing(self):
+        self.gen_params = GenParams(test_core_config)
+        self.rs_entries_bits = self.gen_params.max_rs_entries_bits
+        self.m = RSTestCircuit(self.gen_params, RS, 2**self.rs_entries_bits, 0, None)
+        self.insert_list = [
+            {
+                "rs_entry_id": id,
+                "rs_data": {
+                    "rp_s1": id * 2,
+                    "rp_s2": id * 2,
+                    "rp_dst": id * 2,
+                    "rob_id": id,
+                    "exec_fn": {
+                        "op_type": 1,
+                        "funct3": 2,
+                        "funct7": 4,
+                    },
+                    "s1_val": id,
+                    "s2_val": id,
+                    "imm": id,
+                    "pc": id,
+                },
+            }
+            for id in range(2)
+        ]
+        self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
+
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 1}
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(self.simulation_process)
+
+    async def simulation_process(self, sim: TestbenchContext):
+        # After each insert, entry should be marked as full
+        for record in self.insert_list:
+            await self.m.insert.call(sim, record)
+
+        # Check data integrity
+        for expected, record in zip(self.check_list, self.m._dut.data):
+            assert expected == data_const_to_dict(sim.get(record))
+
+        # Take first instruction
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=0))
+        for key in data:
+            assert data[key] == self.check_list[0]["rs_data"][key]
+
+        # Take second instuction
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=1))
+        for key in data:
+            assert data[key] == self.check_list[1]["rs_data"][key]
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 0
+
+        # Insert two new instructions and take them
+        reg_id = 4
+        entry_data = {
+            "rp_s1": reg_id,
+            "rp_s2": reg_id,
+            "rp_dst": 1,
+            "rob_id": 12,
+            "exec_fn": {
+                "op_type": 1,
+                "funct3": 2,
+                "funct7": 4,
+            },
+            "s1_val": 0,
+            "s2_val": 0,
+            "imm": 1,
+            "pc": 40,
+        }
+
+        for index in range(2):
+            await self.m.insert.call(sim, rs_entry_id=index, rs_data=entry_data)
+            assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+            assert sim.get(self.m._dut.data_ready[index]) == 1
+
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=0))
+        for key in data:
+            assert data[key] == entry_data[key]
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=1))
+        for key in data:
+            assert data[key] == entry_data[key]
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 0
+
+
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
+        self.m = RSTestCircuit(self.gen_params, RS, 2**self.rs_entries_bits, 0, None)
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -444,6 +580,10 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
             for id in range(2**self.rs_entries_bits)
         ]
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
+
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.simulation_process)
@@ -473,8 +613,12 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries = self.gen_params.max_rs_entries
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(
-            RS(self.gen_params, 2**self.rs_entries_bits, 0, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]]),
+        self.m = RSTestCircuit(
+            self.gen_params,
+            RS,
+            2**self.rs_entries_bits,
+            0,
+            [[OpType(1), OpType(2)], [OpType(3), OpType(4)]],
         )
         self.insert_list = [
             {
@@ -497,6 +641,10 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
             for id in range(self.rs_entries)
         ]
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
+
+        @def_method_mock(lambda: self.m.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.simulation_process)
