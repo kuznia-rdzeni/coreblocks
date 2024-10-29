@@ -7,12 +7,10 @@ from enum import IntFlag, IntEnum, auto, Enum
 from parameterized import parameterized_class
 
 from amaranth import *
-from amaranth.sim import Settle, Tick
 
 from transactron.lib.metrics import *
 from transactron import *
 from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
-from transactron.testing.infrastructure import Now
 from transactron.utils.dependencies import DependencyContext
 
 

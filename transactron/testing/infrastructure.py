@@ -1,4 +1,5 @@
 import sys
+from amaranth_types import TestCoroutine
 import pytest
 import logging
 import os
@@ -11,6 +12,7 @@ from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast
 from abc import ABC
 from amaranth import *
 from amaranth.sim import *
+from amaranth.sim._async import ProcessContext
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import AsyncTestbenchIO, TestbenchIO
@@ -202,7 +204,7 @@ class PysimSimulator(Simulator):
 
         self.deadline = clk_period * max_cycles
 
-    def add_process(self, process: Callable[[], TestGen]):
+    def add_process(self, process: Callable[[], TestGen[None]] | Callable[[ProcessContext], TestCoroutine[None]]):
         if asyncio.iscoroutinefunction(process):
             super().add_process(process)
         else:

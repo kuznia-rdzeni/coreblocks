@@ -4,11 +4,10 @@ import random
 from amaranth import *
 from amaranth.sim import *
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
 
 from transactron import *
 from transactron.testing.infrastructure import SimpleTestCircuit
-from transactron.testing.testbenchio import AsyncTestbenchIO
 from transactron.utils import MethodStruct
 from transactron.lib import *
 
