@@ -188,7 +188,6 @@ class TestFPUError(TestCaseWithSimulator):
             for i in range(len(test_cases)):
 
                 resp = yield from fpue.error_checking_request_adapter.call(test_cases[i])
-                print(i)
                 assert resp["sign"] == expected_results[i]["sign"]
                 assert resp["exp"] == expected_results[i]["exp"]
                 assert resp["sig"] == expected_results[i]["sig"]
