@@ -567,7 +567,9 @@ class TestNonexclusiveMethod(TestCaseWithSimulator):
                 sim.set(circ.ready, int(mrdy))
                 sim.set(circ.data, x)
 
-                *_, running, t1_done, t2_done, t1_outputs, t2_outputs = await sim.tick().sample(circ.running, circ.t1.done, circ.t2.done, circ.t1.outputs, circ.t2.outputs)
+                *_, running, t1_done, t2_done, t1_outputs, t2_outputs = await sim.delay(1e-9).sample(
+                    circ.running, circ.t1.done, circ.t2.done, circ.t1.outputs, circ.t2.outputs
+                )
 
                 assert bool(running) == ((t1en or t2en) and mrdy)
                 assert bool(t1_done) == (t1en and mrdy)
@@ -611,8 +613,8 @@ class TwoNonexclusiveConflictCircuit(Elaboratable):
             m.d.comb += self.running2.eq(1)
             return method_in(m)
 
-        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method1))
-        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method2))
+        m.submodules.t1 = self.t1 = AsyncTestbenchIO(AdapterTrans(method1))
+        m.submodules.t2 = self.t2 = AsyncTestbenchIO(AdapterTrans(method2))
 
         return m
 
@@ -624,15 +626,15 @@ class TestConflicting(TestCaseWithSimulator):
     def test_conflicting(self, test_circuit: Callable[[], TwoNonexclusiveConflictCircuit]):
         circ = test_circuit()
 
-        def process():
-            yield from circ.t1.enable()
-            yield from circ.t2.enable()
-            yield Settle()
+        async def process(sim):
+            circ.t1.enable(sim)
+            circ.t2.enable(sim)
+            *_, running1, running2 = await sim.delay(1e-9).sample(circ.running1, circ.running2)
 
-            assert not (yield circ.running1) or not (yield circ.running2)
+            assert not running1 or not running2
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class CustomCombinerMethodCircuit(Elaboratable):
@@ -655,8 +657,8 @@ class CustomCombinerMethodCircuit(Elaboratable):
             m.d.comb += self.running.eq(1)
             return {"data": data}
 
-        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
-        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
+        m.submodules.t1 = self.t1 = AsyncTestbenchIO(AdapterTrans(method))
+        m.submodules.t2 = self.t2 = AsyncTestbenchIO(AdapterTrans(method))
 
         return m
 
@@ -665,7 +667,7 @@ class TestCustomCombinerMethod(TestCaseWithSimulator):
     def test_custom_combiner_method(self):
         circ = CustomCombinerMethodCircuit()
 
-        def process():
+        async def process(sim):
             for x in range(8):
                 t1en = bool(x & 1)
                 t2en = bool(x & 2)
@@ -676,38 +678,30 @@ class TestCustomCombinerMethod(TestCaseWithSimulator):
                 val1e = val1 if t1en else 0
                 val2e = val2 if t2en else 0
 
-                yield from circ.t1.call_init(data=val1)
-                yield from circ.t2.call_init(data=val2)
+                circ.t1.call_init(sim, data=val1)
+                circ.t2.call_init(sim, data=val2)
 
-                if t1en:
-                    yield from circ.t1.enable()
-                else:
-                    yield from circ.t1.disable()
+                circ.t1.set_enable(sim, t1en)
+                circ.t2.set_enable(sim, t2en)
 
-                if t2en:
-                    yield from circ.t2.enable()
-                else:
-                    yield from circ.t2.disable()
+                sim.set(circ.ready, int(mrdy))
 
-                if mrdy:
-                    yield circ.ready.eq(1)
-                else:
-                    yield circ.ready.eq(0)
+                *_, running, t1_done, t2_done, t1_outputs, t2_outputs = await sim.delay(1e-9).sample(
+                    circ.running, circ.t1.done, circ.t2.done, circ.t1.outputs, circ.t2.outputs
+                )
 
-                yield Settle()
-
-                assert bool((yield circ.running)) == ((t1en or t2en) and mrdy)
-                assert bool((yield from circ.t1.done())) == (t1en and mrdy)
-                assert bool((yield from circ.t2.done())) == (t2en and mrdy)
+                assert bool(running) == ((t1en or t2en) and mrdy)
+                assert bool(t1_done) == (t1en and mrdy)
+                assert bool(t2_done) == (t2en and mrdy)
 
                 if t1en and mrdy:
-                    assert (yield from circ.t1.get_outputs()) == {"data": val1e ^ val2e}
+                    assert t1_outputs["data"] == val1e ^ val2e
 
                 if t2en and mrdy:
-                    assert (yield from circ.t2.get_outputs()) == {"data": val1e ^ val2e}
+                    assert t2_outputs["data"] == val1e ^ val2e
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class DataDependentConditionalCircuit(Elaboratable):
@@ -715,8 +709,8 @@ class DataDependentConditionalCircuit(Elaboratable):
         self.method = Method(i=data_layout(n))
         self.ready_function = ready_function
 
-        self.in_t1 = Signal(from_method_layout(data_layout(n)))
-        self.in_t2 = Signal(from_method_layout(data_layout(n)))
+        self.in_t1 = Signal(n)
+        self.in_t2 = Signal(n)
         self.ready = Signal()
         self.req_t1 = Signal()
         self.req_t2 = Signal()
@@ -734,11 +728,11 @@ class DataDependentConditionalCircuit(Elaboratable):
 
         with Transaction().body(m, request=self.req_t1):
             m.d.comb += self.out_t1.eq(1)
-            self.method(m, self.in_t1)
+            self.method(m, data=self.in_t1)
 
         with Transaction().body(m, request=self.req_t2):
             m.d.comb += self.out_t2.eq(1)
-            self.method(m, self.in_t2)
+            self.method(m, data=self.in_t2)
 
         return m
 
@@ -753,7 +747,7 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
         random.seed(14)
         self.circ = DataDependentConditionalCircuit(n=self.n, ready_function=f)
 
-        def process():
+        async def process(sim):
             for _ in range(self.test_number):
                 in1 = random.randrange(0, 2**self.n)
                 in2 = random.randrange(0, 2**self.n)
@@ -761,16 +755,15 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 req_t1 = random.randrange(2)
                 req_t2 = random.randrange(2)
 
-                yield self.circ.in_t1.eq(in1)
-                yield self.circ.in_t2.eq(in2)
-                yield self.circ.req_t1.eq(req_t1)
-                yield self.circ.req_t2.eq(req_t2)
-                yield self.circ.ready.eq(m_ready)
-                yield Settle()
+                sim.set(self.circ.in_t1, in1)
+                sim.set(self.circ.in_t2, in2)
+                sim.set(self.circ.req_t1, req_t1)
+                sim.set(self.circ.req_t2, req_t2)
+                sim.set(self.circ.ready, m_ready)
 
-                out_m = yield self.circ.out_m
-                out_t1 = yield self.circ.out_t1
-                out_t2 = yield self.circ.out_t2
+                *_, out_m, out_t1, out_t2 = await sim.delay(1e-9).sample(
+                    self.circ.out_m, self.circ.out_t1, self.circ.out_t2
+                )
 
                 if not m_ready or (not req_t1 or in1 == self.bad_number) and (not req_t2 or in2 == self.bad_number):
                     assert out_m == 0
@@ -786,10 +779,10 @@ class TestDataDependentConditionalMethod(TestCaseWithSimulator):
                 assert in1 != self.bad_number or not out_t1
                 assert in2 != self.bad_number or not out_t2
 
-                yield Tick()
+                await sim.tick()
 
         with self.run_simulation(self.circ, 100) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     def test_random_arg(self):
         self.base_random(lambda arg: arg.data != self.bad_number)

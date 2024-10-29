@@ -133,7 +133,12 @@ class TestTransactionConflict(TestCaseWithSimulator):
         random.seed(42)
 
     def make_process(
-        self, io: AsyncTestbenchIO, prob: float, src: Iterable[int], tgt: Callable[[int], None], chk: Callable[[int], None]
+        self,
+        io: AsyncTestbenchIO,
+        prob: float,
+        src: Iterable[int],
+        tgt: Callable[[int], None],
+        chk: Callable[[int], None],
     ):
         async def process(sim):
             for i in src:

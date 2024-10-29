@@ -58,7 +58,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
             container: _T_nested_collection[Method],
-        ) -> tuple[_T_nested_collection["TestbenchIO | AsyncTestbenchIO"], Union[ModuleConnector, "TestbenchIO | AsyncTestbenchIO"]]:
+        ) -> tuple[
+            _T_nested_collection["TestbenchIO | AsyncTestbenchIO"],
+            Union[ModuleConnector, "TestbenchIO | AsyncTestbenchIO"],
+        ]:
             if isinstance(container, list):
                 tb_list = []
                 mc_list = []
@@ -364,6 +367,27 @@ class TestCaseWithSimulator:
         """
         while random.random() > prob:
             yield Tick()
+
+    async def async_tick(self, sim, cycle_cnt: int = 1):
+        """
+        Yields for the given number of cycles.
+        """
+
+        for _ in range(cycle_cnt):
+            await sim.tick()
+
+    async def async_random_wait(self, sim, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
+        """
+        Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt]
+        """
+        await self.async_tick(random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
+
+    async def async_random_wait_geom(self, sim, prob: float = 0.5):
+        """
+        Wait till the first success, where there is `prob` probability for success in each cycle.
+        """
+        while random.random() > prob:
+            await sim.tick()
 
     def multi_settle(self, settle_count: int = 1):
         for _ in range(settle_count):
