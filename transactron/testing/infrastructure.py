@@ -25,6 +25,7 @@ from transactron.lib import AdapterTrans
 from transactron.core.keys import TransactionManagerKey
 from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
+from transactron.testing.sugar import MethodMock
 
 
 T = TypeVar("T")
@@ -222,34 +223,43 @@ class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
     @contextmanager
-    def configure_dependency_context(self):
+    def _configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
         with DependencyContext(self.dependency_manager):
             yield Tick()
 
-    def add_class_mocks(self, sim: PysimSimulator) -> None:
+    def _add_mock(self, sim: PysimSimulator, val: MethodMock | Callable[[], TestGen[None]]):
+        if isinstance(val, MethodMock):
+            sim.add_process(val.output_process)
+            if val.validate_arguments is not None:
+                sim.add_process(val.validate_arguments_process)
+            sim.add_testbench(val.effect_process)
+        else:
+            sim.add_process(val)
+
+    def _add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
             if hasattr(val, "_transactron_testing_process"):
-                sim.add_process(val)
+                self._add_mock(sim, val)
 
-    def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+    def _add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         for key, val in frame_locals.items():
             if hasattr(val, "_transactron_testing_process"):
-                sim.add_process(val)
+                self._add_mock(sim, val)
 
-    def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
-        self.add_class_mocks(sim)
-        self.add_local_mocks(sim, frame_locals)
+    def _add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        self._add_class_mocks(sim)
+        self._add_local_mocks(sim, frame_locals)
 
-    def configure_traces(self):
+    def _configure_traces(self):
         traces_file = None
         if "__TRANSACTRON_DUMP_TRACES" in os.environ:
             traces_file = self._transactron_current_output_file_name
         self._transactron_infrastructure_traces_file = traces_file
 
     @contextmanager
-    def configure_profiles(self):
+    def _configure_profiles(self):
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
 
@@ -274,7 +284,7 @@ class TestCaseWithSimulator:
             profile.encode(f"{profile_dir}/{profile_file}.json")
 
     @contextmanager
-    def configure_logging(self):
+    def _configure_logging(self):
         def on_error():
             assert False, "Simulation finished due to an error"
 
@@ -302,10 +312,10 @@ class TestCaseWithSimulator:
             self._transactron_base_output_file_name + "_" + str(self._transactron_hypothesis_iter_counter)
         )
         self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
-        with self.configure_dependency_context():
-            self.configure_traces()
-            with self.configure_profiles():
-                with self.configure_logging():
+        with self._configure_dependency_context():
+            self._configure_traces()
+            with self._configure_profiles():
+                with self._configure_logging():
                     yield
         self._transactron_hypothesis_iter_counter += 1
 
@@ -333,7 +343,7 @@ class TestCaseWithSimulator:
             traces_file=self._transactron_infrastructure_traces_file,
             clk_period=clk_period,
         )
-        self.add_all_mocks(sim, sys._getframe(2).f_locals)
+        self._add_all_mocks(sim, sys._getframe(2).f_locals)
 
         yield sim
 

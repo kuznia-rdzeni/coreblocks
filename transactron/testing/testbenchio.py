@@ -1,7 +1,8 @@
 from amaranth import *
 from amaranth.sim import Settle, Passive, Tick
-from amaranth.sim._async import ProcessContext
 from typing import Optional, Callable
+
+from amaranth_types import AnySimulatorContext
 from transactron.lib import AdapterBase
 from transactron.lib.adapters import Adapter
 from transactron.utils import ValueLike, SignalBundle, mock_def_helper, assign
@@ -20,13 +21,13 @@ class AsyncTestbenchIO(Elaboratable):
 
     # Low-level operations
 
-    def set_enable(self, sim: ProcessContext, en):
+    def set_enable(self, sim: AnySimulatorContext, en):
         sim.set(self.adapter.en, 1 if en else 0)
 
-    def enable(self, sim: ProcessContext):
+    def enable(self, sim: AnySimulatorContext):
         self.set_enable(sim, True)
 
-    def disable(self, sim: ProcessContext):
+    def disable(self, sim: AnySimulatorContext):
         self.set_enable(sim, False)
 
     @property
@@ -37,21 +38,21 @@ class AsyncTestbenchIO(Elaboratable):
     def outputs(self):
         return self.adapter.data_out
 
-    def set_inputs(self, sim: ProcessContext, data):
+    def set_inputs(self, sim: AnySimulatorContext, data):
         sim.set(self.adapter.data_in, data)
 
-    def sample_outputs(self, sim: ProcessContext):
+    def sample_outputs(self, sim: AnySimulatorContext):
         return sim.tick().sample(self.adapter.data_out)
 
-    def sample_outputs_until_done(self, sim: ProcessContext):
+    def sample_outputs_until_done(self, sim: AnySimulatorContext):
         return self.sample_outputs(sim).until(self.adapter.done)
 
-    def sample_outputs_done(self, sim: ProcessContext):
+    def sample_outputs_done(self, sim: AnySimulatorContext):
         return sim.tick().sample(self.adapter.data_out, self.adapter.done)
 
     # Operations for AdapterTrans
 
-    def call_init(self, sim: ProcessContext, data={}, /, **kwdata):
+    def call_init(self, sim: AnySimulatorContext, data={}, /, **kwdata):
         if data and kwdata:
             raise TypeError("call_init() takes either a single dict or keyword arguments")
         if not data:
@@ -59,18 +60,18 @@ class AsyncTestbenchIO(Elaboratable):
         self.enable(sim)
         self.set_inputs(sim, data)
 
-    async def call_result(self, sim: ProcessContext):
+    async def call_result(self, sim: AnySimulatorContext):
         *_, data, done = await self.sample_outputs_done(sim)
         if done:
             return data
         return None
 
-    async def call_do(self, sim: ProcessContext):
+    async def call_do(self, sim: AnySimulatorContext):
         *_, outputs = await self.sample_outputs_until_done(sim)
         self.disable(sim)
         return outputs
 
-    async def call_try(self, sim: ProcessContext, data={}, /, **kwdata):
+    async def call_try(self, sim: AnySimulatorContext, data={}, /, **kwdata):
         if data and kwdata:
             raise TypeError("call_try() takes either a single dict or keyword arguments")
         if not data:
@@ -80,21 +81,13 @@ class AsyncTestbenchIO(Elaboratable):
         self.disable(sim)
         return outputs
 
-    async def call(self, sim: ProcessContext, data={}, /, **kwdata):
+    async def call(self, sim: AnySimulatorContext, data={}, /, **kwdata):
         if data and kwdata:
             raise TypeError("call() takes either a single dict or keyword arguments")
         if not data:
             data = kwdata
         self.call_init(sim, data)
         return await self.call_do(sim)
-
-    # Operations for Adapter
-
-    def method_argument(self, sim: ProcessContext):
-        return self.call_result(sim)
-
-    def method_return(self, sim: ProcessContext, data):
-        self.set_inputs(sim, data)
 
 
 class TestbenchIO(Elaboratable):
