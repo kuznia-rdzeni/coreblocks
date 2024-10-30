@@ -228,25 +228,26 @@ class TestCaseWithSimulator:
         with DependencyContext(self.dependency_manager):
             yield Tick()
 
-    def _add_mock(self, sim: PysimSimulator, val: MethodMock | Callable[[], TestGen[None]]):
-        if isinstance(val, MethodMock):
-            sim.add_process(val.output_process)
-            if val.validate_arguments is not None:
-                sim.add_process(val.validate_arguments_process)
-            sim.add_testbench(val.effect_process)
-        else:
-            sim.add_process(val)
+    def add_mock(self, sim: PysimSimulator, val: MethodMock):
+        sim.add_process(val.output_process)
+        if val.validate_arguments is not None:
+            sim.add_process(val.validate_arguments_process)
+        sim.add_testbench(val.effect_process)
 
     def _add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
             if hasattr(val, "_transactron_testing_process"):
-                self._add_mock(sim, val)
+                sim.add_process(val)
+            elif hasattr(val, "_transactron_method_mock"):
+                self.add_mock(sim, val())
 
     def _add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         for key, val in frame_locals.items():
             if hasattr(val, "_transactron_testing_process"):
-                self._add_mock(sim, val)
+                sim.add_process(val)
+            elif hasattr(val, "_transactron_method_mock"):
+                self.add_mock(sim, val())
 
     def _add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         self._add_class_mocks(sim)

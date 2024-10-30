@@ -8,6 +8,7 @@ from itertools import count
 from amaranth import *
 from amaranth import tracer
 from amaranth.lib.data import StructLayout
+import amaranth.lib.data as data
 
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "def_helper",
     "method_def_helper",
     "mock_def_helper",
+    "async_mock_def_helper",
     "get_src_loc",
     "from_method_layout",
     "make_layout",
@@ -101,6 +103,13 @@ def def_helper(description, func: Callable[..., T], tp: type[U], arg: U, /, **kw
 
 def mock_def_helper(tb, func: Callable[..., T], arg: Mapping[str, Any]) -> T:
     return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], arg, **arg)
+
+
+def async_mock_def_helper(tb, func: Callable[..., T], arg: "data.Const[StructLayout]") -> T:
+    marg = {}
+    for k, _ in arg.shape():
+        marg[k] = arg[k]
+    return def_helper(f"mock definition for {tb}", func, Mapping[str, Any], marg, **marg)
 
 
 def method_def_helper(method, func: Callable[..., T], arg: MethodStruct) -> T:

@@ -1,10 +1,11 @@
+from contextlib import contextmanager
 import functools
 from typing import Callable, Any, Optional
 
 from amaranth_types import AnySimulatorContext
 
 from transactron.lib.adapters import Adapter
-from transactron.utils.transactron_helpers import mock_def_helper
+from transactron.utils.transactron_helpers import async_mock_def_helper
 from .testbenchio import AsyncTestbenchIO, TestbenchIO, TestGen
 from transactron.utils._typing import RecordIntDict
 
@@ -24,8 +25,19 @@ class MethodMock:
         self.enable = enable
         self._effects: list[Callable[[], None]] = []
 
-    def effect(self, effect: Callable[[], None]):
-        self._effects.append(effect)
+    _current_mock: Optional["MethodMock"] = None
+
+    @staticmethod
+    def effect(effect: Callable[[], None]):
+        assert MethodMock._current_mock is not None
+        MethodMock._current_mock._effects.append(effect)
+
+    @contextmanager
+    def _context(self):
+        assert MethodMock._current_mock is None
+        MethodMock._current_mock = self
+        yield
+        MethodMock._current_mock = None
 
     async def output_process(
         self,
@@ -35,21 +47,34 @@ class MethodMock:
             if not done:
                 continue
             self._effects = []
-            sim.set(self.adapter.data_in, mock_def_helper(self, self.function, arg))
+            with self._context():
+                sim.set(self.adapter.data_in, async_mock_def_helper(self, self.function, arg))
 
     async def validate_arguments_process(self, sim: AnySimulatorContext) -> None:
         assert self.validate_arguments is not None
         async for args in sim.changed(*(a for a, _ in self.adapter.validators)):
             assert len(args) == len(self.adapter.validators)  # TODO: remove later
             for arg, r in zip(args, (r for _, r in self.adapter.validators)):
-                sim.set(r, mock_def_helper(self, self.validate_arguments, arg))
+                sim.set(r, async_mock_def_helper(self, self.validate_arguments, arg))
 
     async def effect_process(self, sim: AnySimulatorContext) -> None:
         async for *_, done in sim.tick().sample(self.adapter.done):
+            # First, perform pending effects, updating internal state.
             with sim.critical():
                 if done:
                     for eff in self._effects:
                         eff()
+
+            # Next, update combinational signals taking the new state into account.
+            # In case the input signals get updated later, the other processes will perform the update again.
+            self._effects = []
+            if self.validate_arguments is not None:
+                for a, r in self.adapter.validators:
+                    sim.set(r, async_mock_def_helper(self, self.validate_arguments, sim.get(a)))
+            with self._context():
+                sim.set(
+                    self.adapter.data_in, async_mock_def_helper(self, self.function, sim.get(self.adapter.data_out))
+                )
             sim.set(self.adapter.en, self.enable())
 
 
@@ -206,7 +231,7 @@ def async_def_method_mock(
             assert isinstance(tb.adapter, Adapter)
             return MethodMock(tb.adapter, f, **kw)
 
-        mock._transactron_testing_process = 1  # type: ignore
+        mock._transactron_method_mock = 1  # type: ignore
         return mock
 
     return decorator
