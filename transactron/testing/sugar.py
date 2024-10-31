@@ -157,7 +157,7 @@ def def_method_mock(
 
 
 def async_def_method_mock(
-    tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], **kwargs
+    tb_getter: Callable[[], AsyncTestbenchIO] | Callable[[Any], AsyncTestbenchIO], **kwargs
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[AnySimulatorContext], MethodMock]]:
     """
     TODO: better description!

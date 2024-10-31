@@ -232,7 +232,7 @@ class TestCaseWithSimulator:
         sim.add_process(val.output_process)
         if val.validate_arguments is not None:
             sim.add_process(val.validate_arguments_process)
-        sim.add_testbench(val.effect_process)
+        sim.add_testbench(val.effect_process, background=True)
 
     def _add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
