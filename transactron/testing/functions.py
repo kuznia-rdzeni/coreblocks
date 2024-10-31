@@ -1,4 +1,5 @@
 from amaranth import *
+import amaranth.lib.data as data
 from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.sim._pycoro import Command
 from typing import TypeVar, Any, Generator, TypeAlias, TYPE_CHECKING, Union
@@ -12,6 +13,14 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 TestGen: TypeAlias = Generator[Union[Command, Value, "Statement", "CoreblocksCommand", None], Any, T]
+MethodData: TypeAlias = "data.Const[data.StructLayout]"
+
+
+def data_const_to_dict(c: "data.Const[data.Layout]"):
+    ret = {}
+    for k, _ in c.shape():
+        ret[k] = c[k]
+    return ret
 
 
 def get_outputs(field: View) -> TestGen[RecordIntDict]:

@@ -3,15 +3,16 @@ import random
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
-from amaranth.lib.data import View
-from amaranth.sim import Settle, Tick
+from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 from coreblocks.interface.keys import CoreStateKey
-from coreblocks.interface.layouts import ROBLayouts, RetirementLayouts
+from coreblocks.interface.layouts import RetirementLayouts
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
 from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
+from transactron.testing.functions import MethodData, data_const_to_dict
+from transactron.testing.sugar import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.core_structs.rf import RegisterFile
@@ -22,7 +23,7 @@ from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestGen, TestbenchIO, def_method_mock
+from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, async_def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -69,8 +70,8 @@ class SchedulerTestCircuit(Elaboratable):
             alloc_adapter = Adapter(o=rs_layouts.rs.select_out)
             insert_adapter = Adapter(i=rs_layouts.rs.insert_in)
 
-            select_test = TestbenchIO(alloc_adapter)
-            insert_test = TestbenchIO(insert_adapter)
+            select_test = AsyncTestbenchIO(alloc_adapter)
+            insert_test = AsyncTestbenchIO(insert_adapter)
 
             method_rs_alloc.append(alloc_adapter)
             method_rs_insert.append(insert_adapter)
@@ -82,13 +83,13 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
 
         # mocked input and output
-        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
-        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
-        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
-        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
-        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
-        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
-        m.submodules.core_state = self.core_state = TestbenchIO(
+        m.submodules.rf_write = self.rf_write = AsyncTestbenchIO(AdapterTrans(self.rf.write))
+        m.submodules.rf_free = self.rf_free = AsyncTestbenchIO(AdapterTrans(self.rf.free))
+        m.submodules.rob_markdone = self.rob_done = AsyncTestbenchIO(AdapterTrans(self.rob.mark_done))
+        m.submodules.rob_retire = self.rob_retire = AsyncTestbenchIO(AdapterTrans(self.rob.retire))
+        m.submodules.instr_input = self.instr_inp = AsyncTestbenchIO(AdapterTrans(instr_fifo.write))
+        m.submodules.free_rf_inp = self.free_rf_inp = AsyncTestbenchIO(AdapterTrans(free_rf_fifo.write))
+        m.submodules.core_state = self.core_state = AsyncTestbenchIO(
             Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
@@ -157,7 +158,7 @@ class TestScheduler(TestCaseWithSimulator):
         self.free_regs_queue.append({"reg_id": reg_id})
         self.expected_phys_reg_queue.append(reg_id)
 
-    def queue_gather(self, queues: Iterable[deque]):
+    async def queue_gather(self, sim: TestbenchContext, queues: Iterable[deque]):
         # Iterate over all 'queues' and take one element from each, gathering
         # all key-value pairs into 'item'.
         item = {}
@@ -166,6 +167,7 @@ class TestScheduler(TestCaseWithSimulator):
             # retry until we get an element
             while partial_item is None:
                 # get element from one queue
+                await sim.delay(1e-9)
                 if q:
                     partial_item = q.popleft()
                     # None signals to end the process
@@ -173,7 +175,7 @@ class TestScheduler(TestCaseWithSimulator):
                         return None
                 else:
                     # if no element available, wait and retry on the next clock cycle
-                    yield Tick()
+                    await sim.tick()
 
             # merge queue element with all previous ones (dict merge)
             item = item | partial_item
@@ -182,10 +184,10 @@ class TestScheduler(TestCaseWithSimulator):
     def make_queue_process(
         self,
         *,
-        io: TestbenchIO,
+        io: AsyncTestbenchIO,
         input_queues: Optional[Iterable[deque]] = None,
         output_queues: Optional[Iterable[deque]] = None,
-        check: Optional[Callable[[RecordIntDict, RecordIntDict], TestGen[None]]] = None,
+        check: Optional[Callable[[TestbenchContext, MethodData, dict], None]] = None,
         always_enable: bool = False,
     ):
         """Create queue gather-and-test process
@@ -205,8 +207,8 @@ class TestScheduler(TestCaseWithSimulator):
 
         Parameters
         ----------
-        io : TestbenchIO
-            TestbenchIO to call with items gathered from `input_queues`.
+        io : AsyncTestbenchIO
+            AsyncTestbenchIO to call with items gathered from `input_queues`.
         input_queues : deque[dict], optional
             Queue of dictionaries containing fields and values of a record to call
             `io` with. Different fields may be split across multiple queues.
@@ -235,76 +237,71 @@ class TestScheduler(TestCaseWithSimulator):
             If neither `input_queues` nor `output_queues` are supplied.
         """
 
-        def queue_process():
+        async def queue_process(sim: TestbenchContext):
             if always_enable:
-                yield from io.enable()
+                io.enable(sim)
             while True:
                 inputs = {}
                 outputs = {}
                 # gather items from both queues
                 if input_queues is not None:
-                    inputs = yield from self.queue_gather(input_queues)
+                    inputs = await self.queue_gather(sim, input_queues)
                 if output_queues is not None:
-                    outputs = yield from self.queue_gather(output_queues)
+                    outputs = await self.queue_gather(sim, output_queues)
 
                 # Check if queues signalled to end the process
                 if inputs is None or outputs is None:
                     return
 
-                result = yield from io.call(inputs)
+                result = await io.call(sim, inputs)
                 if always_enable:
-                    yield from io.enable()
+                    io.enable(sim)
 
                 # this could possibly be extended to automatically compare 'results' and
                 # 'outputs' if check is None but that needs some dict deepcompare
                 if check is not None:
-                    yield Settle()
-                    yield from check(result, outputs)
+                    check(sim, result, outputs)
 
         if output_queues is None and input_queues is None:
             raise ValueError("Either output_queues or input_queues must be supplied")
 
         return queue_process
 
-    def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
-        def check(got, expected):
-            rl_dst = yield View(
-                self.gen_params.get(ROBLayouts).data_layout,
-                C(
-                    (yield Value.cast(self.m.rob.data.data[got["rs_data"]["rob_id"]])),
-                    self.gen_params.get(ROBLayouts).data_layout.size,
-                ),
-            ).rl_dst
+    def make_output_process(self, io: AsyncTestbenchIO, output_queues: Iterable[deque]):
+        def check(sim: TestbenchContext, got: MethodData, expected: dict):
+            print("check", expected)
+            # TODO: better stubs for Memory?
+            rl_dst = sim.get(self.m.rob.data.data[got.rs_data.rob_id].rl_dst)  # type: ignore
             s1 = self.rf_state[expected["rp_s1"]]
             s2 = self.rf_state[expected["rp_s2"]]
 
             # if source operand register ids are 0 then we already have values
-            assert got["rs_data"]["rp_s1"] == (expected["rp_s1"] if not s1.valid else 0)
-            assert got["rs_data"]["rp_s2"] == (expected["rp_s2"] if not s2.valid else 0)
-            assert got["rs_data"]["rp_dst"] == expected["rp_dst"]
-            assert got["rs_data"]["exec_fn"] == expected["exec_fn"]
-            assert got["rs_entry_id"] == expected["rs_entry_id"]
-            assert got["rs_data"]["s1_val"] == (s1.value if s1.valid else 0)
-            assert got["rs_data"]["s2_val"] == (s2.value if s2.valid else 0)
+            assert got.rs_data.rp_s1 == (expected["rp_s1"] if not s1.valid else 0)
+            assert got.rs_data.rp_s2 == (expected["rp_s2"] if not s2.valid else 0)
+            assert got.rs_data.rp_dst == expected["rp_dst"]
+            assert data_const_to_dict(got.rs_data.exec_fn) == expected["exec_fn"]
+            assert got.rs_entry_id == expected["rs_entry_id"]
+            assert got.rs_data.s1_val == (s1.value if s1.valid else 0)
+            assert got.rs_data.s2_val == (s2.value if s2.valid else 0)
             assert rl_dst == expected["rl_dst"]
 
             # recycle physical register number
-            if got["rs_data"]["rp_dst"] != 0:
-                self.free_phys_reg(got["rs_data"]["rp_dst"])
+            if got.rs_data.rp_dst != 0:
+                self.free_phys_reg(got.rs_data.rp_dst)
             # recycle ROB entry
-            self.free_ROB_entries_queue.append({"rob_id": got["rs_data"]["rob_id"]})
+            self.free_ROB_entries_queue.append({"rob_id": got.rs_data.rob_id})
 
         return self.make_queue_process(io=io, output_queues=output_queues, check=check, always_enable=True)
 
     def test_randomized(self):
-        def instr_input_process():
-            yield from self.m.rob_retire.enable()
+        async def instr_input_process(sim: TestbenchContext):
+            self.m.rob_retire.enable(sim)
 
             # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
-                yield from self.m.rf_write.call(reg_id=i, reg_val=self.rf_state[i].value)
+                await self.m.rf_write.call(sim, reg_id=i, reg_val=self.rf_state[i].value)
                 if not self.rf_state[i].valid:
-                    yield from self.m.rf_free.call(reg_id=i)
+                    await self.m.rf_free.call(sim, reg_id=i)
 
             op_types_set = set()
             for rs in self.optype_sets:
@@ -338,7 +335,8 @@ class TestScheduler(TestCaseWithSimulator):
                 )
                 self.current_RAT[rl_dst] = rp_dst
 
-                yield from self.m.instr_inp.call(
+                await self.m.instr_inp.call(
+                    sim,
                     {
                         "exec_fn": {
                             "op_type": op_type,
@@ -351,42 +349,45 @@ class TestScheduler(TestCaseWithSimulator):
                             "rl_dst": rl_dst,
                         },
                         "imm": immediate,
-                    }
+                    },
                 )
             # Terminate other processes
             self.expected_rename_queue.append(None)
             self.free_regs_queue.append(None)
             self.free_ROB_entries_queue.append(None)
 
-        def rs_alloc_process(io: TestbenchIO, rs_id: int):
-            @def_method_mock(lambda: io)
+        def rs_alloc_process(io: AsyncTestbenchIO, rs_id: int):
+            @async_def_method_mock(lambda: io)
             def process():
                 random_entry = random.randrange(self.gen_params.max_rs_entries)
-                expected = self.expected_rename_queue.popleft()
-                expected["rs_entry_id"] = random_entry
-                self.expected_rs_entry_queue[rs_id].append(expected)
 
-                # if last instruction was allocated stop simulation
-                self.allocated_instr_count += 1
-                if self.allocated_instr_count == self.instr_count:
-                    for i in range(self.rs_count):
-                        self.expected_rs_entry_queue[i].append(None)
+                @MethodMock.effect
+                def eff():
+                    expected = self.expected_rename_queue.popleft()
+                    expected["rs_entry_id"] = random_entry
+                    self.expected_rs_entry_queue[rs_id].append(expected)
+
+                    # if last instruction was allocated stop simulation
+                    self.allocated_instr_count += 1
+                    if self.allocated_instr_count == self.instr_count:
+                        for i in range(self.rs_count):
+                            self.expected_rs_entry_queue[i].append(None)
 
                 return {"rs_entry_id": random_entry}
 
-            return process
+            return process()
 
-        @def_method_mock(lambda: self.m.core_state)
+        @async_def_method_mock(lambda: self.m.core_state)
         def core_state_mock():
             # TODO: flushing test
             return {"flushing": 0}
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             for i in range(self.rs_count):
-                sim.add_process(
+                sim.add_testbench(
                     self.make_output_process(io=self.m.rs_insert[i], output_queues=[self.expected_rs_entry_queue[i]])
                 )
-                sim.add_process(rs_alloc_process(self.m.rs_alloc[i], i))
-            sim.add_process(self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue]))
-            sim.add_process(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
-            sim.add_process(instr_input_process)
+                self.add_mock(sim, rs_alloc_process(self.m.rs_alloc[i], i))
+            sim.add_testbench(self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue]))
+            sim.add_testbench(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
+            sim.add_testbench(instr_input_process)

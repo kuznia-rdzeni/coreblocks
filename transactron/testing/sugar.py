@@ -158,7 +158,7 @@ def def_method_mock(
 
 def async_def_method_mock(
     tb_getter: Callable[[], AsyncTestbenchIO] | Callable[[Any], AsyncTestbenchIO], **kwargs
-) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[AnySimulatorContext], MethodMock]]:
+) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], MethodMock]]:
     """
     TODO: better description!
 
@@ -213,7 +213,7 @@ def async_def_method_mock(
     ```
     """
 
-    def decorator(func: Callable[..., Optional[RecordIntDict]]) -> Callable[[AnySimulatorContext], MethodMock]:
+    def decorator(func: Callable[..., Optional[RecordIntDict]]) -> Callable[[], MethodMock]:
         @functools.wraps(func)
         def mock(func_self=None, /) -> MethodMock:
             f = func

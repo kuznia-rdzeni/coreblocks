@@ -7,7 +7,7 @@ from transactron.lib import AdapterBase
 from transactron.lib.adapters import Adapter
 from transactron.utils import ValueLike, SignalBundle, mock_def_helper, assign
 from transactron.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
-from .functions import get_outputs, TestGen
+from .functions import MethodData, get_outputs, TestGen
 
 
 class AsyncTestbenchIO(Elaboratable):
@@ -60,18 +60,18 @@ class AsyncTestbenchIO(Elaboratable):
         self.enable(sim)
         self.set_inputs(sim, data)
 
-    async def call_result(self, sim: AnySimulatorContext):
+    async def call_result(self, sim: AnySimulatorContext) -> Optional[MethodData]:
         *_, data, done = await self.sample_outputs_done(sim)
         if done:
             return data
         return None
 
-    async def call_do(self, sim: AnySimulatorContext):
+    async def call_do(self, sim: AnySimulatorContext) -> MethodData:
         *_, outputs = await self.sample_outputs_until_done(sim)
         self.disable(sim)
         return outputs
 
-    async def call_try(self, sim: AnySimulatorContext, data={}, /, **kwdata):
+    async def call_try(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> Optional[MethodData]:
         if data and kwdata:
             raise TypeError("call_try() takes either a single dict or keyword arguments")
         if not data:
@@ -81,7 +81,7 @@ class AsyncTestbenchIO(Elaboratable):
         self.disable(sim)
         return outputs
 
-    async def call(self, sim: AnySimulatorContext, data={}, /, **kwdata):
+    async def call(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> MethodData:
         if data and kwdata:
             raise TypeError("call() takes either a single dict or keyword arguments")
         if not data:
