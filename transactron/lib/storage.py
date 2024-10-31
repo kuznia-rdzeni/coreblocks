@@ -30,11 +30,14 @@ class MemoryBank(Elaboratable):
         The write methods, one for each write port. Accepts write address `addr`, `data` in form of `data_layout`
         and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
     read_req: Method
-        The only method from `read_reqs`, if the memory has a single read port.
+        The only method from `read_reqs`, if the memory has a single read port. If it has more ports, this method
+        is unavailable and `read_reqs` should be used instead.
     read_resp: Method
-        The only method from `read_resps`, if the memory has a single read port.
+        The only method from `read_resps`, if the memory has a single read port. If it has more ports, this method
+        is unavailable and `read_resps` should be used instead.
     write: Method
-        The only method from `writes`, if the memory has a single write port.
+        The only method from `writes`, if the memory has a single write port. If it has more ports, this method
+        is unavailable and `writes` should be used instead.
     """
 
     def __init__(
