@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1728979143074,
+  "lastUpdate": 1730490390942,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -13847,6 +13847,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c3edca0a02a58864786b699417d3a17f9cf3c8c7"
         },
         "date": 1728979135062,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7577e593802db10ff32d700076e5a2e93075e59c",
+          "message": "Multiport `MemoryBank` (#736)",
+          "timestamp": "2024-11-01T20:35:18+01:00",
+          "tree_id": "a8b4c312117ac929f4111c3749244a89b0a145b2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7577e593802db10ff32d700076e5a2e93075e59c"
+        },
+        "date": 1730490387158,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
