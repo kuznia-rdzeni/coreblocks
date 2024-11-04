@@ -116,15 +116,6 @@ class TestLZA(TestCaseWithSimulator):
             ]
             for i in range(len(test_cases)):
                 resp = yield from lza.predict_request_adapter.call(test_cases[i])
-                print(f"Case: {i}")
-                print("{:024b}".format(test_cases[i]["sig_a"]))
-                print("{:024b}".format(test_cases[i]["sig_b"]))
-                print("G,T,Z")
-                print("{:026b}".format(resp["G"]))
-                print("{:026b}".format(resp["T"]))
-                print("{:026b}".format(resp["Z"]))
-                print("{:026b}".format(resp["f"]))
-                print("{:026b}".format(resp["L"]))
                 assert resp["shift_amount"] == expected_results[i]["shift_amount"]
                 assert resp["is_zero"] == expected_results[i]["is_zero"]
 
