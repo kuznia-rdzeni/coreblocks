@@ -1,5 +1,5 @@
 import sys
-from amaranth_types import TestCoroutine
+from amaranth_types import AnySimulatorContext, TestCoroutine
 import pytest
 import logging
 import os
@@ -381,7 +381,7 @@ class TestCaseWithSimulator:
         while random.random() > prob:
             yield Tick()
 
-    async def async_tick(self, sim, cycle_cnt: int = 1):
+    async def async_tick(self, sim: AnySimulatorContext, cycle_cnt: int = 1):
         """
         Yields for the given number of cycles.
         """
@@ -389,13 +389,13 @@ class TestCaseWithSimulator:
         for _ in range(cycle_cnt):
             await sim.tick()
 
-    async def async_random_wait(self, sim, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
+    async def async_random_wait(self, sim: AnySimulatorContext, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
         Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt]
         """
-        await self.async_tick(random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
+        await self.async_tick(sim, random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
 
-    async def async_random_wait_geom(self, sim, prob: float = 0.5):
+    async def async_random_wait_geom(self, sim: AnySimulatorContext, prob: float = 0.5):
         """
         Wait till the first success, where there is `prob` probability for success in each cycle.
         """
