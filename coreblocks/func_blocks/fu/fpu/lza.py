@@ -20,11 +20,6 @@ class LZAMethodLayout:
         self.predict_out_layout = [
             ("shift_amount", range(fpu_params.sig_width)),
             ("is_zero", 1),
-            ("G", fpu_params.sig_width + 2),
-            ("T", fpu_params.sig_width + 2),
-            ("Z", fpu_params.sig_width + 2),
-            ("f", fpu_params.sig_width + 1),
-            ("L", fpu_params.sig_width + 1),
         ]
 
 
@@ -58,47 +53,34 @@ class LZAModule(Elaboratable):
 
         @def_method(m, self.predict_request)
         def _(arg):
-            T = Signal(self.lza_params.sig_width + 2)
-            G = Signal(self.lza_params.sig_width + 2)
-            Z = Signal(self.lza_params.sig_width + 2)
-            f = Signal(self.lza_params.sig_width + 1)
-            L = Signal(self.lza_params.sig_width + 1)
+            t = Signal(self.lza_params.sig_width + 1)
+            g = Signal(self.lza_params.sig_width + 1)
+            z = Signal(self.lza_params.sig_width + 1)
+            f = Signal(self.lza_params.sig_width)
             shift_amount = Signal(range(self.lza_params.sig_width))
             is_zero = Signal(1)
 
-            m.d.av_comb += T.eq((arg.sig_a ^ arg.sig_b) << 1)
-            m.d.av_comb += G.eq((arg.sig_a & arg.sig_b) << 1)
-            m.d.av_comb += Z.eq(((~(arg.sig_a) & ~(arg.sig_b)) << 1))
-            m.d.av_comb += T[-1].eq(1)
+            m.d.av_comb += t.eq((arg.sig_a ^ arg.sig_b) << 1)
+            m.d.av_comb += g.eq((arg.sig_a & arg.sig_b) << 1)
+            m.d.av_comb += z.eq(((~(arg.sig_a) & ~(arg.sig_b)) << 1))
             with m.If(arg.carry):
-                m.d.av_comb += G[0].eq(arg.carry)
+                m.d.av_comb += g[0].eq(1)
             with m.Else():
-                m.d.av_comb += Z[0].eq(1)
+                m.d.av_comb += z[0].eq(1)
 
-            for i in reversed(range(1, self.lza_params.sig_width + 2)):
-                m.d.av_comb += f[i - 1].eq((T[i] ^ ~(Z[i - 1])))
-
-            for i in range(self.lza_params.sig_width + 1):
-                if i == (self.lza_params.sig_width):
-                    m.d.av_comb += L[i].eq(f[i])
-                else:
-                    m.d.av_comb += L[i].eq(((~(f[(i + 1) : self.lza_params.sig_width + 1]).any()) & f[i]))
+            for i in reversed(range(1, self.lza_params.sig_width + 1)):
+                m.d.av_comb += f[i - 1].eq((t[i] ^ ~(z[i - 1])))
 
             m.d.av_comb += shift_amount.eq(0)
-            for i in range(self.lza_params.sig_width):
-                with m.If(L[self.lza_params.sig_width - i - 1]):
+            for i in reversed(range(self.lza_params.sig_width)):
+                with m.If(f[self.lza_params.sig_width - i - 1]):
                     m.d.av_comb += shift_amount.eq(i)
 
-            m.d.av_comb += is_zero.eq((arg.carry & T[1 : self.lza_params.sig_width + 1].all()))
+            m.d.av_comb += is_zero.eq((arg.carry & t[1 : self.lza_params.sig_width].all()))
 
             return {
                 "shift_amount": shift_amount,
                 "is_zero": is_zero,
-                "G": G,
-                "T": T,
-                "Z": Z,
-                "f": f,
-                "L": L,
             }
 
         return m
