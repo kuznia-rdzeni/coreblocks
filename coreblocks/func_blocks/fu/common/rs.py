@@ -2,7 +2,6 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
-from amaranth.lib.coding import PriorityEncoder
 from transactron import Method, Transaction, def_method, TModule
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
@@ -11,6 +10,7 @@ from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.utils import RecordDict
 from transactron.utils import assign
 from transactron.utils.assign import AssignType
+from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 
