@@ -60,8 +60,10 @@ class Retirement(Elaboratable):
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
+        # The argument is only used in argument validation, it is not needed in the method body.
+        # A dummy combiner is provided.
         self.precommit = Method(
-            i=layouts.precommit_in, o=layouts.precommit_out, nonexclusive=True, combiner=lambda m, args, runs: args[0]
+            i=layouts.precommit_in, o=layouts.precommit_out, nonexclusive=True, combiner=lambda m, args, runs: 0
         )
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
