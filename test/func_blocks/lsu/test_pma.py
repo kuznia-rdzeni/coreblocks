@@ -6,7 +6,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
@@ -75,6 +75,9 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
@@ -133,6 +136,10 @@ class TestPMAIndirect(TestCaseWithSimulator):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             assert False
+
+        @def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_process(self.process)
