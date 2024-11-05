@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1730802066588,
+  "lastUpdate": 1730802070133,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -41199,6 +41199,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 25320,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1790,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1248,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9298,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "468ae39267ad0f178707a5c26e8bc5d6f9a5697b",
+          "message": "Update Amaranth to before RFC 36 (#738)",
+          "timestamp": "2024-11-05T11:06:42+01:00",
+          "tree_id": "0d0e317d627f9a09d22c4f1b159792edab1291e6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/468ae39267ad0f178707a5c26e8bc5d6f9a5697b"
+        },
+        "date": 1730802069385,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.98,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 25541,
             "unit": "LUT4"
           },
           {
