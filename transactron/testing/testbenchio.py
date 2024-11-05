@@ -99,7 +99,6 @@ class TestbenchIO(Elaboratable):
         enable: Optional[Callable[[], bool]] = None,
         validate_arguments: Optional[Callable[..., bool]] = None,
         extra_settle_count: int = 0,
-        disable_after: bool = True,
     ) -> TestGen[None]:
         enable = enable or (lambda: True)
         yield from self.set_enable(enable())
@@ -145,7 +144,6 @@ class TestbenchIO(Elaboratable):
                 enable=enable,
                 validate_arguments=validate_arguments,
                 extra_settle_count=extra_settle_count,
-                disable_after=False,
             )
 
     # Debug signals
