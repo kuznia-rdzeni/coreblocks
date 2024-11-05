@@ -135,6 +135,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         with Transaction().body(m, request=(ready_to_process & ~done)):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
             info = precommit(m, instr.rob_id)
+            m.d.top_comb += exe_side_fx.eq(info.side_fx)
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
@@ -150,7 +151,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                         with m.If(priv_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
-                                with m.If(info.side_fx):
+                                with m.If(exe_side_fx):
                                     m.d.comb += read_val.eq(read(m))
                                 m.d.sync += current_result.eq(read_val)
 
@@ -168,7 +169,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                                             m.d.comb += write_val.eq(read_val | instr.s1_val)
                                         with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
                                             m.d.comb += write_val.eq(read_val & (~instr.s1_val))
-                                    with m.If(info.side_fx):
+                                    with m.If(exe_side_fx):
                                         write(m, write_val)
 
                         with m.Else():
