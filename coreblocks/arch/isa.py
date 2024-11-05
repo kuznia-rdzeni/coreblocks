@@ -57,6 +57,8 @@ class Extension(enum.IntFlag):
     ZICNTR = auto()
     #: Enables hardware performance counters
     ZIHPM = auto()
+    #: Enables branchless conditional integer opertions
+    ZICOND = auto()
     #: Misaligned atomic operations
     ZAM = auto()
     #: Half precision floating-point operations (16-bit)

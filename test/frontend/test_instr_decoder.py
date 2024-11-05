@@ -170,11 +170,20 @@ class TestDecoder(TestCaseWithSimulator):
             op=OpType.UNARY_BIT_MANIPULATION_1,
         ),
     ]
+    DECODER_TESTS_ZICOND = [
+        #      CZERO    RS2   RS1   EQZ   RD     OP
+        # nez 0b0000111 00000 00000 111 00000 0110011
+        # eqz 0b0000111 00000 00000 101 00000 0110011
+        # CZERO.NEZ
+        InstrTest(0x0E007033, Opcode.OP, Funct3.CZERONEZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
+        # CZERO.EQZ
+        InstrTest(0x0E005033, Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
+    ]
 
     def setup_method(self):
         self.gen_params = GenParams(
             test_core_config.replace(
-                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB
+                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB | Extension.ZICOND
             )
         )
         self.decoder = InstrDecoder(self.gen_params)
@@ -263,6 +272,9 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_zbb(self):
         self.do_test(self.DECODER_TESTS_ZBB)
+
+    def test_zicond(self):
+        self.do_test(self.DECODER_TESTS_ZICOND)
 
 
 class TestDecoderEExtLegal(TestCaseWithSimulator):
