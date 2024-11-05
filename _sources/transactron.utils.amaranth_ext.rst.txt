@@ -4,6 +4,14 @@ transactron.utils.amaranth\_ext package
 Submodules
 ----------
 
+transactron.utils.amaranth\_ext.coding module
+---------------------------------------------
+
+.. automodule:: transactron.utils.amaranth_ext.coding
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.utils.amaranth\_ext.elaboratables module
 ----------------------------------------------------
 

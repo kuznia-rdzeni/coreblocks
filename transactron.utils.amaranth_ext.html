@@ -87,6 +87,170 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-transactron.utils.amaranth_ext.coding">
+<span id="transactron-utils-amaranth-ext-coding-module"></span><h2>transactron.utils.amaranth_ext.coding module<a class="headerlink" href="#module-transactron.utils.amaranth_ext.coding" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.Decoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.coding.</span></span><span class="sig-name descname"><span class="pre">Decoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.Decoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Decode binary to one-hot.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">n</span></code> is low, only the <code class="docutils literal notranslate"><span class="pre">i</span></code>-th bit in <code class="docutils literal notranslate"><span class="pre">o</span></code> is asserted.
+If <code class="docutils literal notranslate"><span class="pre">n</span></code> is high, <code class="docutils literal notranslate"><span class="pre">o</span></code> is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>width</strong><span class="classifier">int</span></dt><dd><p>Bit width of the output.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">Signal(range(width)), in</span></dt><dd><p>Input binary.</p>
+</dd>
+<dt><strong>o</strong><span class="classifier">Signal(width), out</span></dt><dd><p>Decoded one-hot.</p>
+</dd>
+<dt><strong>n</strong><span class="classifier">Signal, in</span></dt><dd><p>Invalid, no output bits are to be asserted.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.Decoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.Decoder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.Encoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.coding.</span></span><span class="sig-name descname"><span class="pre">Encoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.Encoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Encode one-hot to binary.</p>
+<p>If one bit in <code class="docutils literal notranslate"><span class="pre">i</span></code> is asserted, <code class="docutils literal notranslate"><span class="pre">n</span></code> is low and <code class="docutils literal notranslate"><span class="pre">o</span></code> indicates the asserted bit.
+Otherwise, <code class="docutils literal notranslate"><span class="pre">n</span></code> is high and <code class="docutils literal notranslate"><span class="pre">o</span></code> is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>width</strong><span class="classifier">int</span></dt><dd><p>Bit width of the input</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">Signal(width), in</span></dt><dd><p>One-hot input.</p>
+</dd>
+<dt><strong>o</strong><span class="classifier">Signal(range(width)), out</span></dt><dd><p>Encoded natural binary.</p>
+</dd>
+<dt><strong>n</strong><span class="classifier">Signal, out</span></dt><dd><p>Invalid: either none or multiple input bits are asserted.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.Encoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.Encoder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.GrayDecoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.coding.</span></span><span class="sig-name descname"><span class="pre">GrayDecoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.GrayDecoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Decode Gray code to binary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>width</strong><span class="classifier">int</span></dt><dd><p>Bit width.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">Signal(width), in</span></dt><dd><p>Gray code input.</p>
+</dd>
+<dt><strong>o</strong><span class="classifier">Signal(width), out</span></dt><dd><p>Decoded natural binary.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.GrayDecoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.GrayDecoder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.GrayEncoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.coding.</span></span><span class="sig-name descname"><span class="pre">GrayEncoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.GrayEncoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Encode binary to Gray code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>width</strong><span class="classifier">int</span></dt><dd><p>Bit width.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">Signal(width), in</span></dt><dd><p>Natural binary input.</p>
+</dd>
+<dt><strong>o</strong><span class="classifier">Signal(width), out</span></dt><dd><p>Encoded Gray code.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.GrayEncoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.GrayEncoder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.PriorityDecoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.coding.</span></span><span class="sig-name descname"><span class="pre">PriorityDecoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.PriorityDecoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#transactron.utils.amaranth_ext.coding.Decoder" title="transactron.utils.amaranth_ext.coding.Decoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">Decoder</span></code></a></p>
+<p>Decode binary to priority request.</p>
+<p>Identical to <a class="reference internal" href="#transactron.utils.amaranth_ext.coding.Decoder" title="transactron.utils.amaranth_ext.coding.Decoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">Decoder</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.PriorityEncoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">transactron.utils.amaranth_ext.coding.</span></span><span class="sig-name descname"><span class="pre">PriorityEncoder</span></span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.PriorityEncoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Priority encode requests to binary.</p>
+<p>If any bit in <code class="docutils literal notranslate"><span class="pre">i</span></code> is asserted, <code class="docutils literal notranslate"><span class="pre">n</span></code> is low and <code class="docutils literal notranslate"><span class="pre">o</span></code> indicates the least significant
+asserted bit.
+Otherwise, <code class="docutils literal notranslate"><span class="pre">n</span></code> is high and <code class="docutils literal notranslate"><span class="pre">o</span></code> is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>width</strong><span class="classifier">int</span></dt><dd><p>Bit width of the input.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">Signal(width), in</span></dt><dd><p>Input requests.</p>
+</dd>
+<dt><strong>o</strong><span class="classifier">Signal(range(width)), out</span></dt><dd><p>Encoded natural binary.</p>
+</dd>
+<dt><strong>n</strong><span class="classifier">Signal, out</span></dt><dd><p>Invalid: no input bits are asserted.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="transactron.utils.amaranth_ext.coding.PriorityEncoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.utils.amaranth_ext.coding.PriorityEncoder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-transactron.utils.amaranth_ext.elaboratables">
 <span id="transactron-utils-amaranth-ext-elaboratables-module"></span><h2>transactron.utils.amaranth_ext.elaboratables module<a class="headerlink" href="#module-transactron.utils.amaranth_ext.elaboratables" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -478,7 +642,7 @@ one-hot encoding.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 19:36 2024-11-01.
+      <span class="lastupdated">Last updated on 10:07 2024-11-05.
       </span></p>
   </div>
 
