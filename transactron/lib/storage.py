@@ -14,20 +14,30 @@ __all__ = ["MemoryBank", "ContentAddressableMemory", "AsyncMemoryBank"]
 class MemoryBank(Elaboratable):
     """MemoryBank module.
 
-    Provides a transactional interface to synchronous Amaranth Memory with one
-    read and one write port. It supports optionally writing with given granularity.
+    Provides a transactional interface to synchronous Amaranth Memory with arbitrary
+    number of read and write ports. It supports optionally writing with given granularity.
 
     Attributes
     ----------
-    read_req: Method
-        The read request method. Accepts an `addr` from which data should be read.
-        Only ready if there is there is a place to buffer response.
-    read_resp: Method
-        The read response method. Return `data_layout` View which was saved on `addr` given by last
-        `read_req` method call. Only ready after `read_req` call.
-    write: Method
-        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
+    read_reqs: list[Method]
+        The read request methods, one for each read port. Accepts an `addr` from which data should be read.
+        Only ready if there is there is a place to buffer response. After calling `read_reqs[i]`, the result
+        will be available via the method `read_resps[i]`.
+    read_resps: list[Method]
+        The read response methods, one for each read port. Return `data_layout` View which was saved on `addr` given
+        by last corresponding `read_reqs` method call. Only ready after corresponding `read_reqs` call.
+    writes: list[Method]
+        The write methods, one for each write port. Accepts write address `addr`, `data` in form of `data_layout`
         and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
+    read_req: Method
+        The only method from `read_reqs`, if the memory has a single read port. If it has more ports, this method
+        is unavailable and `read_reqs` should be used instead.
+    read_resp: Method
+        The only method from `read_resps`, if the memory has a single read port. If it has more ports, this method
+        is unavailable and `read_resps` should be used instead.
+    write: Method
+        The only method from `writes`, if the memory has a single write port. If it has more ports, this method
+        is unavailable and `writes` should be used instead.
     """
 
     def __init__(
@@ -37,6 +47,8 @@ class MemoryBank(Elaboratable):
         elem_count: int,
         granularity: Optional[int] = None,
         transparent: bool = False,
+        read_ports: int = 1,
+        write_ports: int = 1,
         src_loc: int | SrcLoc = 0,
     ):
         """
@@ -53,6 +65,10 @@ class MemoryBank(Elaboratable):
             Read port transparency, false by default. When a read port is transparent, if a given memory address
             is read and written in the same clock cycle, the read returns the written value instead of the value
             which was in the memory in that cycle.
+        read_ports: int
+            Number of read ports.
+        write_ports: int
+            Number of write ports.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -64,60 +80,71 @@ class MemoryBank(Elaboratable):
         self.width = from_method_layout(self.data_layout).size
         self.addr_width = bits_for(self.elem_count - 1)
         self.transparent = transparent
+        self.reads_ports = read_ports
+        self.writes_ports = write_ports
 
-        self.read_req_layout: LayoutList = [("addr", self.addr_width)]
+        self.read_reqs_layout: LayoutList = [("addr", self.addr_width)]
         write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
         if self.granularity is not None:
             write_layout.append(("mask", self.width // self.granularity))
-        self.write_layout = make_layout(*write_layout)
+        self.writes_layout = make_layout(*write_layout)
 
-        self.read_req = Method(i=self.read_req_layout, src_loc=self.src_loc)
-        self.read_resp = Method(o=self.data_layout, src_loc=self.src_loc)
-        self.write = Method(i=self.write_layout, src_loc=self.src_loc)
-        self._internal_read_resp_trans = None
+        self.read_reqs = [Method(i=self.read_reqs_layout, src_loc=self.src_loc) for _ in range(read_ports)]
+        self.read_resps = [Method(o=self.data_layout, src_loc=self.src_loc) for _ in range(read_ports)]
+        self.writes = [Method(i=self.writes_layout, src_loc=self.src_loc) for _ in range(write_ports)]
+
+        if read_ports == 1:
+            self.read_req = self.read_reqs[0]
+            self.read_resp = self.read_resps[0]
+        if write_ports == 1:
+            self.write = self.writes[0]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         m.submodules.mem = mem = memory.Memory(shape=self.width, depth=self.elem_count, init=[])
-        write_port = mem.write_port()
-        read_port = mem.read_port(transparent_for=[write_port] if self.transparent else [])
-        read_output_valid = Signal()
-        overflow_valid = Signal()
-        overflow_data = Signal(self.width)
+        write_port = [mem.write_port() for _ in range(self.writes_ports)]
+        read_port = [
+            mem.read_port(transparent_for=write_port if self.transparent else []) for _ in range(self.reads_ports)
+        ]
+        read_output_valid = [Signal() for _ in range(self.reads_ports)]
+        overflow_valid = [Signal() for _ in range(self.reads_ports)]
+        overflow_data = [Signal(self.width) for _ in range(self.reads_ports)]
 
         # The read request method can be called at most twice when not reading the response.
         # The first result is stored in the overflow buffer, the second - in the read value buffer of the memory.
         # If the responses are always read as they arrive, overflow is never written and no stalls occur.
 
-        with m.If(read_output_valid & ~overflow_valid & self.read_req.run & ~self.read_resp.run):
-            m.d.sync += overflow_valid.eq(1)
-            m.d.sync += overflow_data.eq(read_port.data)
+        for i in range(self.reads_ports):
+            with m.If(read_output_valid[i] & ~overflow_valid[i] & self.read_reqs[i].run & ~self.read_resps[i].run):
+                m.d.sync += overflow_valid[i].eq(1)
+                m.d.sync += overflow_data[i].eq(read_port[i].data)
 
-        @def_method(m, self.read_resp, read_output_valid | overflow_valid)
-        def _():
-            with m.If(overflow_valid):
-                m.d.sync += overflow_valid.eq(0)
+        @def_methods(m, self.read_resps, lambda i: read_output_valid[i] | overflow_valid[i])
+        def _(i: int):
+            with m.If(overflow_valid[i]):
+                m.d.sync += overflow_valid[i].eq(0)
             with m.Else():
-                m.d.sync += read_output_valid.eq(0)
-            return Mux(overflow_valid, overflow_data, read_port.data)
+                m.d.sync += read_output_valid[i].eq(0)
+            return Mux(overflow_valid[i], overflow_data[i], read_port[i].data)
 
-        m.d.comb += read_port.en.eq(0)  # because the init value is 1
+        for i in range(self.reads_ports):
+            m.d.comb += read_port[i].en.eq(0)  # because the init value is 1
 
-        @def_method(m, self.read_req, ~overflow_valid)
-        def _(addr):
-            m.d.sync += read_output_valid.eq(1)
-            m.d.comb += read_port.en.eq(1)
-            m.d.comb += read_port.addr.eq(addr)
+        @def_methods(m, self.read_reqs, lambda i: ~overflow_valid[i])
+        def _(i: int, addr):
+            m.d.sync += read_output_valid[i].eq(1)
+            m.d.comb += read_port[i].en.eq(1)
+            m.d.comb += read_port[i].addr.eq(addr)
 
-        @def_method(m, self.write)
-        def _(arg):
-            m.d.comb += write_port.addr.eq(arg.addr)
-            m.d.comb += write_port.data.eq(arg.data)
+        @def_methods(m, self.writes)
+        def _(i: int, arg):
+            m.d.comb += write_port[i].addr.eq(arg.addr)
+            m.d.comb += write_port[i].data.eq(arg.data)
             if self.granularity is None:
-                m.d.comb += write_port.en.eq(1)
+                m.d.comb += write_port[i].en.eq(1)
             else:
-                m.d.comb += write_port.en.eq(arg.mask)
+                m.d.comb += write_port[i].en.eq(arg.mask)
 
         return m
 
@@ -222,22 +249,33 @@ class ContentAddressableMemory(Elaboratable):
 class AsyncMemoryBank(Elaboratable):
     """AsyncMemoryBank module.
 
-    Provides a transactional interface to asynchronous Amaranth Memory with one
-    read and one write port. It supports optionally writing with given granularity.
+    Provides a transactional interface to asynchronous Amaranth Memory with arbitrary number of
+    read and write ports. It supports optionally writing with given granularity.
 
     Attributes
     ----------
-    read: Method
-        The read method. Accepts an `addr` from which data should be read.
+    reads: list[Method]
+        The read methods, one for each read port. Accepts an `addr` from which data should be read.
         The read response method. Return `data_layout` View which was saved on `addr` given by last
-        `read_req` method call.
-    write: Method
-        The write method. Accepts `addr` where data should be saved, `data` in form of `data_layout`
+        `write` method call.
+    writes: list[Method]
+        The write methods, one for each write port. Accepts write address `addr`, `data` in form of `data_layout`
         and optionally `mask` if `granularity` is not None. `1` in mask means that appropriate part should be written.
+    read: Method
+        The only method from `reads`, if the memory has a single read port.
+    write: Method
+        The only method from `writes`, if the memory has a single write port.
     """
 
     def __init__(
-        self, *, data_layout: LayoutList, elem_count: int, granularity: Optional[int] = None, src_loc: int | SrcLoc = 0
+        self,
+        *,
+        data_layout: LayoutList,
+        elem_count: int,
+        granularity: Optional[int] = None,
+        read_ports: int = 1,
+        write_ports: int = 1,
+        src_loc: int | SrcLoc = 0,
     ):
         """
         Parameters
@@ -249,6 +287,10 @@ class AsyncMemoryBank(Elaboratable):
         granularity: Optional[int]
             Granularity of write, forwarded to Amaranth. If `None` the whole structure is always saved at once.
             If not, the width of `data_layout` is split into `granularity` parts, which can be saved independently.
+        read_ports: int
+            Number of read ports.
+        write_ports: int
+            Number of write ports.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -259,36 +301,45 @@ class AsyncMemoryBank(Elaboratable):
         self.granularity = granularity
         self.width = from_method_layout(self.data_layout).size
         self.addr_width = bits_for(self.elem_count - 1)
+        self.reads_ports = read_ports
+        self.writes_ports = write_ports
 
-        self.read_req_layout: LayoutList = [("addr", self.addr_width)]
+        self.read_reqs_layout: LayoutList = [("addr", self.addr_width)]
         write_layout = [("addr", self.addr_width), ("data", self.data_layout)]
         if self.granularity is not None:
             write_layout.append(("mask", self.width // self.granularity))
-        self.write_layout = make_layout(*write_layout)
+        self.writes_layout = make_layout(*write_layout)
 
-        self.read = Method(i=self.read_req_layout, o=self.data_layout, src_loc=self.src_loc)
-        self.write = Method(i=self.write_layout, src_loc=self.src_loc)
+        self.reads = [
+            Method(i=self.read_reqs_layout, o=self.data_layout, src_loc=self.src_loc) for _ in range(read_ports)
+        ]
+        self.writes = [Method(i=self.writes_layout, src_loc=self.src_loc) for _ in range(write_ports)]
+
+        if read_ports == 1:
+            self.read = self.reads[0]
+        if write_ports == 1:
+            self.write = self.writes[0]
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
 
         mem = memory.Memory(shape=self.width, depth=self.elem_count, init=[])
         m.submodules.mem = mem
-        write_port = mem.write_port()
-        read_port = mem.read_port(domain="comb")
+        write_port = [mem.write_port() for _ in range(self.writes_ports)]
+        read_port = [mem.read_port(domain="comb") for _ in range(self.reads_ports)]
 
-        @def_method(m, self.read)
-        def _(addr):
-            m.d.comb += read_port.addr.eq(addr)
-            return read_port.data
+        @def_methods(m, self.reads)
+        def _(i: int, addr):
+            m.d.comb += read_port[i].addr.eq(addr)
+            return read_port[i].data
 
-        @def_method(m, self.write)
-        def _(arg):
-            m.d.comb += write_port.addr.eq(arg.addr)
-            m.d.comb += write_port.data.eq(arg.data)
+        @def_methods(m, self.writes)
+        def _(i: int, arg):
+            m.d.comb += write_port[i].addr.eq(arg.addr)
+            m.d.comb += write_port[i].data.eq(arg.data)
             if self.granularity is None:
-                m.d.comb += write_port.en.eq(1)
+                m.d.comb += write_port[i].en.eq(1)
             else:
-                m.d.comb += write_port.en.eq(arg.mask)
+                m.d.comb += write_port[i].en.eq(arg.mask)
 
         return m
