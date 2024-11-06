@@ -18,12 +18,15 @@ class MethodMock:
         *,
         validate_arguments: Optional[Callable[..., bool]] = None,
         enable: Callable[[], bool] = lambda: True,
+        delay: float | int = 0,
     ):
         self.adapter = adapter
         self.function = function
         self.validate_arguments = validate_arguments
         self.enable = enable
+        self.delay = delay
         self._effects: list[Callable[[], None]] = []
+        self._freeze = False
 
     _current_mock: Optional["MethodMock"] = None
 
@@ -36,15 +39,20 @@ class MethodMock:
     def _context(self):
         assert MethodMock._current_mock is None
         MethodMock._current_mock = self
-        yield
-        MethodMock._current_mock = None
+        try:
+            yield
+        finally:
+            MethodMock._current_mock = None
 
     async def output_process(
         self,
         sim: AnySimulatorContext,
     ) -> None:
-        async for *_, done, arg in sim.changed(self.adapter.done, self.adapter.data_out):
-            if not done:
+        sync = sim._design.lookup_domain("sync", None)  # type: ignore
+        async for *_, done, arg, clk in sim.changed(self.adapter.done, self.adapter.data_out).edge(sync.clk, 1):
+            if clk:
+                self._freeze = True
+            if not done or self._freeze:
                 continue
             self._effects = []
             with self._context():
@@ -52,8 +60,13 @@ class MethodMock:
 
     async def validate_arguments_process(self, sim: AnySimulatorContext) -> None:
         assert self.validate_arguments is not None
-        async for args in sim.changed(*(a for a, _ in self.adapter.validators)):
+        sync = sim._design.lookup_domain("sync", None)  # type: ignore
+        async for args, clk in sim.changed(*(a for a, _ in self.adapter.validators)).edge(sync.clk, 1):
             assert len(args) == len(self.adapter.validators)  # TODO: remove later
+            if clk:
+                self._freeze = True
+            if self._freeze:
+                continue
             for arg, r in zip(args, (r for _, r in self.adapter.validators)):
                 sim.set(r, async_mock_def_helper(self, self.validate_arguments, arg))
 
@@ -67,10 +80,12 @@ class MethodMock:
 
             # Ensure that the effects of all mocks are applied
             await sim.delay(1e-12)
+            await sim.delay(self.delay)
 
             # Next, update combinational signals taking the new state into account.
             # In case the input signals get updated later, the other processes will perform the update again.
             self._effects = []
+            self._freeze = False
             if self.validate_arguments is not None:
                 for a, r in self.adapter.validators:
                     sim.set(r, async_mock_def_helper(self, self.validate_arguments, sim.get(a)))
