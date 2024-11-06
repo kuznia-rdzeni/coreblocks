@@ -65,6 +65,9 @@ class MethodMock:
                     for eff in self._effects:
                         eff()
 
+            # Ensure that the effects of all mocks are applied
+            await sim.delay(1e-12)
+
             # Next, update combinational signals taking the new state into account.
             # In case the input signals get updated later, the other processes will perform the update again.
             self._effects = []
