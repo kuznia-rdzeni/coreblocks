@@ -1,9 +1,9 @@
 from amaranth import *
-from amaranth.sim import Settle, Tick
+from amaranth_types.types import TestbenchContext
 
 from transactron.lib import AdapterTrans, BasicFifo
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
 from collections import deque
 from parameterized import parameterized_class
 import random
@@ -18,9 +18,9 @@ class BasicFifoTestCircuit(Elaboratable):
 
         m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth)
 
-        m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
-        m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
-        m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
+        m.submodules.fifo_read = self.fifo_read = AsyncTestbenchIO(AdapterTrans(self.fifo.read))
+        m.submodules.fifo_write = self.fifo_write = AsyncTestbenchIO(AdapterTrans(self.fifo.write))
+        m.submodules.fifo_clear = self.fifo_clear = AsyncTestbenchIO(AdapterTrans(self.fifo.clear))
 
         return m
 
@@ -44,36 +44,30 @@ class TestBasicFifo(TestCaseWithSimulator):
 
         self.done = False
 
-        def source():
+        async def source(sim: TestbenchContext):
             for _ in range(cycles):
-                if random.randint(0, 1):
-                    yield  # random delay
+                await self.async_random_wait_geom(sim, 0.5)
 
                 v = random.randint(0, (2**fifoc.fifo.width) - 1)
-                yield from fifoc.fifo_write.call(data=v)
                 expq.appendleft(v)
+                await fifoc.fifo_write.call(sim, data=v)
 
                 if random.random() < 0.005:
-                    yield from fifoc.fifo_clear.call()
-                    yield Settle()
+                    await fifoc.fifo_clear.call(sim)
+                    await sim.delay(1e-9)
                     expq.clear()
 
             self.done = True
 
-        def target():
+        async def target(sim: TestbenchContext):
             while not self.done or expq:
-                if random.randint(0, 1):
-                    yield Tick()
+                await self.async_random_wait_geom(sim, 0.5)
 
-                yield from fifoc.fifo_read.call_init()
-                yield Tick()
+                v = await fifoc.fifo_read.call_try(sim)
 
-                v = yield from fifoc.fifo_read.call_result()
                 if v is not None:
-                    assert v["data"] == expq.pop()
-
-                yield from fifoc.fifo_read.disable()
+                    assert v.data == expq.pop()
 
         with self.run_simulation(fifoc) as sim:
-            sim.add_process(source)
-            sim.add_process(target)
+            sim.add_testbench(source)
+            sim.add_testbench(target)

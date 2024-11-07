@@ -1,8 +1,10 @@
+import itertools
 from amaranth import *
 from amaranth.sim import Settle, Passive, Tick
-from typing import Optional, Callable
+from typing import Any, Optional, Callable
 
 from amaranth_types import AnySimulatorContext
+from amaranth_types.types import TestbenchContext
 from transactron.lib import AdapterBase
 from transactron.lib.adapters import Adapter
 from transactron.utils import ValueLike, SignalBundle, mock_def_helper, assign
@@ -41,6 +43,12 @@ class AsyncTestbenchIO(Elaboratable):
     def set_inputs(self, sim: AnySimulatorContext, data):
         sim.set(self.adapter.data_in, data)
 
+    def get_done(self, sim: TestbenchContext):
+        return sim.get(self.adapter.done)
+
+    def get_outputs(self, sim: TestbenchContext) -> MethodData:
+        return sim.get(self.adapter.data_out)
+
     def sample_outputs(self, sim: AnySimulatorContext):
         return sim.tick().sample(self.adapter.data_out)
 
@@ -60,6 +68,18 @@ class AsyncTestbenchIO(Elaboratable):
         self.enable(sim)
         self.set_inputs(sim, data)
 
+    async def get_call_result(self, sim: TestbenchContext) -> Optional[MethodData]:
+        if self.get_done(sim):
+            return self.get_outputs(sim)
+        return None
+
+    @staticmethod
+    async def calls_results(sim: AnySimulatorContext, *tbios: "AsyncTestbenchIO") -> tuple[Optional[MethodData], ...]:
+        results = await sim.tick().sample(*itertools.chain.from_iterable((tbio.outputs, tbio.done) for tbio in tbios))
+        # TODO: use itertools.batched after upgrading to Python 3.12
+        it = iter(results[-2 * len(tbios) :])
+        return tuple(outputs if done else None for outputs, done in iter(lambda: tuple(itertools.islice(it, 2)), ()))
+
     async def call_result(self, sim: AnySimulatorContext) -> Optional[MethodData]:
         *_, data, done = await self.sample_outputs_done(sim)
         if done:
@@ -69,6 +89,15 @@ class AsyncTestbenchIO(Elaboratable):
     async def call_do(self, sim: AnySimulatorContext) -> MethodData:
         *_, outputs = await self.sample_outputs_until_done(sim)
         self.disable(sim)
+        return outputs
+
+    @staticmethod
+    async def calls_try(sim: AnySimulatorContext, *calls: tuple["AsyncTestbenchIO", Any]):
+        for tbio, data in calls:
+            tbio.call_init(sim, data)
+        outputs = await AsyncTestbenchIO.calls_results(sim, *(tbio for tbio, _ in calls))
+        for tbio, _ in calls:
+            tbio.disable(sim)
         return outputs
 
     async def call_try(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> Optional[MethodData]:

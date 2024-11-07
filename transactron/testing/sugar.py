@@ -56,7 +56,8 @@ class MethodMock:
                 continue
             self._effects = []
             with self._context():
-                sim.set(self.adapter.data_in, async_mock_def_helper(self, self.function, arg))
+                ret = async_mock_def_helper(self, self.function, arg)
+            sim.set(self.adapter.data_in, ret)
 
     async def validate_arguments_process(self, sim: AnySimulatorContext) -> None:
         assert self.validate_arguments is not None
@@ -90,9 +91,8 @@ class MethodMock:
                 for a, r in self.adapter.validators:
                     sim.set(r, async_mock_def_helper(self, self.validate_arguments, sim.get(a)))
             with self._context():
-                sim.set(
-                    self.adapter.data_in, async_mock_def_helper(self, self.function, sim.get(self.adapter.data_out))
-                )
+                ret = async_mock_def_helper(self, self.function, sim.get(self.adapter.data_out))
+            sim.set(self.adapter.data_in, ret)
             sim.set(self.adapter.en, self.enable())
 
 
