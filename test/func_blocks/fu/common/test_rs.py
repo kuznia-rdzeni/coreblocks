@@ -125,7 +125,7 @@ class TestRS(TestCaseWithSimulator):
         for k in range(len(self.data_list)):
             while not self.m.get_ready_list[0].get_done(sim):
                 await sim.tick()
-            ready_list = (await self.m.get_ready_list[0].get_call_result(sim)).ready_list
+            ready_list = (self.m.get_ready_list[0].get_call_result(sim)).ready_list
             possible_ids = [i for i in range(2**self.rs_entries_bits) if ready_list & (1 << i)]
             while not possible_ids:
                 await sim.tick()
