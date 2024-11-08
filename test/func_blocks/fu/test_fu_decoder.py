@@ -1,7 +1,6 @@
 import random
-from typing import Sequence, Generator
-from amaranth import *
-from amaranth.sim import *
+from collections.abc import Sequence
+from amaranth_types.types import TestbenchContext
 
 from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator
 
@@ -31,21 +30,19 @@ class TestFuDecoder(TestCaseWithSimulator):
 
         return acc
 
-    def handle_signals(self, decoder: Decoder, exec_fn: dict[str, int]) -> Generator:
-        yield decoder.exec_fn.op_type.eq(exec_fn["op_type"])
-        yield decoder.exec_fn.funct3.eq(exec_fn["funct3"])
-        yield decoder.exec_fn.funct7.eq(exec_fn["funct7"])
+    async def handle_signals(self, sim: TestbenchContext, decoder: Decoder, exec_fn: dict[str, int]):
+        sim.set(decoder.exec_fn.op_type, exec_fn["op_type"])
+        sim.set(decoder.exec_fn.funct3, exec_fn["funct3"])
+        sim.set(decoder.exec_fn.funct7, exec_fn["funct7"])
 
-        yield Settle()
-
-        return (yield decoder.decode_fn)
+        return sim.get(decoder.decode_fn)
 
     def run_test_case(self, decoder_manager: DecoderManager, test_inputs: Sequence[tuple]) -> None:
         instructions = decoder_manager.get_instructions()
         decoder = decoder_manager.get_decoder(self.gen_params)
         op_type_dependent = len(decoder_manager.get_op_types()) != 1
 
-        def process():
+        async def process(sim: TestbenchContext):
             for test_input in test_inputs:
                 exec_fn = {
                     "op_type": test_input[1],
@@ -53,15 +50,15 @@ class TestFuDecoder(TestCaseWithSimulator):
                     "funct7": test_input[3] if len(test_input) >= 4 else 0,
                 }
 
-                returned = yield from self.handle_signals(decoder, exec_fn)
+                returned = await self.handle_signals(sim, decoder, exec_fn)
                 expected = self.expected_results(instructions, op_type_dependent, exec_fn)
 
                 assert returned == expected
 
-        test_circuit = SimpleTestCircuit(decoder)
+        test_circuit = SimpleTestCircuit(decoder, async_tb=True)
 
         with self.run_simulation(test_circuit) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     def generate_random_instructions(self) -> Sequence[tuple]:
         random.seed(42)

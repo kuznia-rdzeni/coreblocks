@@ -68,7 +68,7 @@ class AsyncTestbenchIO(Elaboratable):
         self.enable(sim)
         self.set_inputs(sim, data)
 
-    async def get_call_result(self, sim: TestbenchContext) -> Optional[MethodData]:
+    def get_call_result(self, sim: TestbenchContext) -> Optional[MethodData]:
         if self.get_done(sim):
             return self.get_outputs(sim)
         return None

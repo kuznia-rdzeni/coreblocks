@@ -2,7 +2,7 @@ import random
 import math
 from collections import deque
 
-from amaranth.sim import Settle
+from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 
 from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
@@ -11,6 +11,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from transactron.testing.functions import data_const_to_dict
 
 
 @parameterized_class(
@@ -28,7 +29,9 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
 
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
-        self.m = SimpleTestCircuit(PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number))
+        self.m = SimpleTestCircuit(
+            PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number), async_tb=True
+        )
         self.n_padding = self.dsp_width * 2 ** (math.ceil(math.log2(self.gen_params.isa.xlen / self.dsp_width)))
         self.number_of_chunks = self.n_padding // self.dsp_width
         self.number_of_multiplications = self.number_of_chunks**2
@@ -57,14 +60,14 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
             )
 
     def test_pipeline(self):
-        def consumer():
+        async def consumer(sim: TestbenchContext):
             time = 0
             while self.responses:
-                res = yield from self.m.accept.call_try()
+                res = await self.m.accept.call_try(sim)
                 time += 1
                 if res is not None:
                     expected = self.responses.pop()
-                    assert expected == res
+                    assert expected == data_const_to_dict(res)
 
             assert (
                 time
@@ -73,12 +76,11 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
                 + 2
             )
 
-        def producer():
+        async def producer(sim: TestbenchContext):
             while self.requests:
                 req = self.requests.pop()
-                yield Settle()
-                yield from self.m.issue.call(req)
+                await self.m.issue.call(sim, req)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(producer)
-            sim.add_process(consumer)
+            sim.add_testbench(producer)
+            sim.add_testbench(consumer)

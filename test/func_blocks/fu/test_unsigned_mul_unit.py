@@ -1,8 +1,7 @@
 import random
 from collections import deque
-from typing import Type
 
-from amaranth.sim import Settle
+from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 
 from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned
@@ -15,6 +14,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from transactron.testing.functions import data_const_to_dict
 
 
 @parameterized_class(
@@ -39,11 +39,11 @@ from coreblocks.params.configurations import test_core_config
     ],
 )
 class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
-    mul_unit: Type[MulBaseUnsigned]
+    mul_unit: type[MulBaseUnsigned]
 
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
-        self.m = SimpleTestCircuit(self.mul_unit(self.gen_params))
+        self.m = SimpleTestCircuit(self.mul_unit(self.gen_params), async_tb=True)
         self.waiting_time = 10
 
         random.seed(1050)
@@ -68,20 +68,19 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
             )
 
     def test_pipeline(self):
-        def consumer():
+        async def consumer(sim: TestbenchContext):
             while self.responses:
                 expected = self.responses.pop()
-                result = yield from self.m.accept.call()
-                assert expected == result
-                yield from self.random_wait(self.waiting_time)
+                result = await self.m.accept.call(sim)
+                assert expected == data_const_to_dict(result)
+                await self.async_random_wait(sim, self.waiting_time)
 
-        def producer():
+        async def producer(sim: TestbenchContext):
             while self.requests:
                 req = self.requests.pop()
-                yield Settle()
-                yield from self.m.issue.call(req)
-                yield from self.random_wait(self.waiting_time)
+                await self.m.issue.call(sim, req)
+                await self.async_random_wait(sim, self.waiting_time)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(producer)
-            sim.add_process(consumer)
+            sim.add_testbench(producer)
+            sim.add_testbench(consumer)
