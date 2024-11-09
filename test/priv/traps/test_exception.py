@@ -33,21 +33,22 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
 
         self.cycles = 256
 
-        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
-        self.fetch_stall_mock = TestbenchIO(Adapter())
+        self.rob_idx_mock = AsyncTestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
+        self.fetch_stall_mock = AsyncTestbenchIO(Adapter())
         self.dut = SimpleTestCircuit(
             ExceptionInformationRegister(
                 self.gen_params, self.rob_idx_mock.adapter.iface, self.fetch_stall_mock.adapter.iface
-            )
+            ),
+            async_tb=True,
         )
         m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock, fetch_stall_mock=self.fetch_stall_mock)
 
         self.rob_id = 0
 
-        def process_test():
+        async def process_test(sim: TestbenchContext):
             saved_entry = None
 
-            yield from self.fetch_stall_mock.enable()
+            self.fetch_stall_mock.enable(sim)
             for _ in range(self.cycles):
                 self.rob_id = random.randint(0, self.rob_max)
 
@@ -61,20 +62,21 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc, "mtval": report_mtval}
 
                 expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
-                yield from self.dut.report.call(report_arg)
-                yield  # additional FIFO delay
+                await self.dut.report.call(sim, report_arg)
+                # additional FIFO delay
+                *_, fetch_stall_mock_done = await self.fetch_stall_mock.sample_outputs_done(sim)
 
-                assert (yield from self.fetch_stall_mock.done())
+                assert fetch_stall_mock_done
 
-                new_state = yield from self.dut.get.call()
+                new_state = data_const_to_dict(await self.dut.get.call(sim))
 
                 assert new_state == expected | {"valid": 1}  # type: ignore
 
                 saved_entry = new_state
 
-        @def_method_mock(lambda: self.rob_idx_mock)
+        @async_def_method_mock(lambda: self.rob_idx_mock)
         def process_rob_idx_mock():
             return {"start": self.rob_id, "end": 0}
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process_test)
+            sim.add_testbench(process_test)
