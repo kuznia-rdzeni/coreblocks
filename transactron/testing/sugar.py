@@ -62,7 +62,7 @@ class MethodMock:
     async def validate_arguments_process(self, sim: AnySimulatorContext) -> None:
         assert self.validate_arguments is not None
         sync = sim._design.lookup_domain("sync", None)  # type: ignore
-        async for args, clk in sim.changed(*(a for a, _ in self.adapter.validators)).edge(sync.clk, 1):
+        async for *args, clk in sim.changed(*(a for a, _ in self.adapter.validators)).edge(sync.clk, 1):
             assert len(args) == len(self.adapter.validators)  # TODO: remove later
             if clk:
                 self._freeze = True
