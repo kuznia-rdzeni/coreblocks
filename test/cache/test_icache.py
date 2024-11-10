@@ -19,6 +19,7 @@ from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, async_def_method_mock
 from transactron.testing.functions import MethodData
 from transactron.testing.sugar import MethodMock
+from transactron.testing.testbenchio import CallTrigger
 from ..peripherals.test_wishbone import AsyncWishboneInterfaceWrapper
 
 
@@ -612,16 +613,13 @@ class TestICache(TestCaseWithSimulator):
             self.expect_refill(0x00010000)
 
             # Try to execute issue_req and flush_cache methods at the same time
-            self.m.issue_req.call_init(sim, addr=0x00010000)
             self.issued_requests.append(0x00010000)
-            self.m.flush_cache.call_init(sim)
-            *_, issue_req_done, flush_cache_done = await sim.tick().sample(
-                self.m.issue_req.done, self.m.flush_cache.done
+            issue_req_res, flush_cache_res = (
+                await CallTrigger(sim).call(self.m.issue_req, addr=0x00010000).call(self.m.flush_cache)
             )
-            assert not issue_req_done
-            assert flush_cache_done
-            self.m.flush_cache.disable(sim)
-            await self.m.issue_req.call_do(sim)
+            assert issue_req_res is None
+            assert flush_cache_res is not None
+            await self.m.issue_req.call(sim, addr=0x00010000)
             self.assert_resp(await self.m.accept_res.call(sim))
             self.expect_refill(0x00010000)
 

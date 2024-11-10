@@ -12,6 +12,7 @@ from amaranth import *
 from transactron import *
 from transactron.lib import *
 from transactron.testing.sugar import MethodMock
+from transactron.testing.testbenchio import CallTrigger
 from transactron.utils._typing import ModuleLike, MethodStruct, RecordDict
 from transactron.utils import ModuleConnector
 from transactron.testing import (
@@ -88,7 +89,7 @@ class TestForwarder(TestFifoBase):
         m = SimpleTestCircuit(Forwarder(data_layout(iosize)), async_tb=True)
 
         async def forward_check(sim: TestbenchContext, x: int):
-            read_res, write_res = await AsyncTestbenchIO.calls_try(sim, (m.read, {}), (m.write, {"data": x}))
+            read_res, write_res = await CallTrigger(sim).call(m.read).call(m.write, data=x)
             assert read_res is not None and read_res.data == x
             assert write_res is not None
 
@@ -106,7 +107,7 @@ class TestForwarder(TestFifoBase):
             assert res is None
 
             # read from the overflow buffer, writes still blocked
-            read_res, write_res = await AsyncTestbenchIO.calls_try(sim, (m.read, {}), (m.write, {"data": 111}))
+            read_res, write_res = await CallTrigger(sim).call(m.read).call(m.write, data=111)
             assert read_res is not None and read_res.data == 42
             assert write_res is None
 

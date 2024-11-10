@@ -8,6 +8,7 @@ from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_la
 from transactron import *
 from transactron.testing.sugar import async_def_method_mock
 from transactron.lib import *
+from transactron.testing.testbenchio import CallTrigger
 
 
 class ValidateArgumentsTestCircuit(Elaboratable):
@@ -31,16 +32,12 @@ class TestValidateArguments(TestCaseWithSimulator):
             for _ in range(100):
                 val = random.randrange(2)
                 pre_accepted_val = self.accepted_val
-                caller.call_init(sim, data=val)
-                *_, caller_done, caller_data, method_done = await sim.tick().sample(
-                    caller.done, caller.outputs, method.done
-                )
-                caller.disable(sim)
-                if caller_done:
+                caller_data, method_data = await CallTrigger(sim).call(caller, data=val).sample(method)
+                if caller_data is not None:
                     assert val == pre_accepted_val
                     assert caller_data.data == val
                 else:
-                    assert val != pre_accepted_val or val == pre_accepted_val and method_done
+                    assert val != pre_accepted_val or val == pre_accepted_val and method_data is not None
 
         return process
 

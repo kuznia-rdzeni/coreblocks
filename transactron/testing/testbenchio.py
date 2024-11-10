@@ -1,3 +1,4 @@
+from collections.abc import Generator, Iterable
 import itertools
 from amaranth import *
 from amaranth.sim import Settle, Passive, Tick
@@ -10,6 +11,72 @@ from transactron.lib.adapters import Adapter
 from transactron.utils import ValueLike, SignalBundle, mock_def_helper, assign
 from transactron.utils._typing import RecordIntDictRet, RecordValueDict, RecordIntDict
 from .functions import MethodData, get_outputs, TestGen
+
+
+class CallTrigger:
+    def __init__(
+        self,
+        sim: AnySimulatorContext,
+        calls: Iterable[ValueLike | tuple["AsyncTestbenchIO", Optional[dict[str, Any]]]] = (),
+    ):
+        self.sim = sim
+        self.calls_and_values: list[ValueLike | tuple[AsyncTestbenchIO, Optional[dict[str, Any]]]] = list(calls)
+
+    def sample(self, *values: "ValueLike | AsyncTestbenchIO"):
+        new_calls_and_values: list[ValueLike | tuple["AsyncTestbenchIO", None]] = []
+        for value in values:
+            if isinstance(value, AsyncTestbenchIO):
+                new_calls_and_values.append((value, None))
+            else:
+                new_calls_and_values.append(value)
+        return CallTrigger(self.sim, (*self.calls_and_values, *new_calls_and_values))
+
+    def call(self, tbio: "AsyncTestbenchIO", data: dict[str, Any] = {}, /, **kwdata):
+        if data and kwdata:
+            raise TypeError("call() takes either a single dict or keyword arguments")
+        return CallTrigger(self.sim, (*self.calls_and_values, (tbio, data or kwdata)))
+
+    async def until_done(self) -> Any:
+        call = self.__aiter__()
+        while True:
+            results = await call.__anext__()
+            if any(res is not None for res in results):
+                return results
+
+    def __await__(self) -> Generator:
+        only_calls = [t for t in self.calls_and_values if isinstance(t, tuple)]
+        only_values = [t for t in self.calls_and_values if not isinstance(t, tuple)]
+        for tbio, data in only_calls:
+            if data is not None:
+                tbio.call_init(self.sim, data)
+        trigger = (
+            self.sim.tick()
+            .sample(*itertools.chain.from_iterable((tbio.outputs, tbio.done) for tbio, _ in only_calls))
+            .sample(*only_values)
+        )
+        _, _, *results = yield from trigger.__await__()
+        for tbio, data in only_calls:
+            if data is not None:
+                tbio.disable(self.sim)
+        # TODO: use itertools.batched after upgrading to Python 3.12
+        values_it = iter(results[2 * len(only_calls) :])
+        calls_base_it = iter(results[: 2 * len(only_calls)])
+        calls_it = (
+            outputs if done else None for outputs, done in iter(lambda: tuple(itertools.islice(calls_base_it, 2)), ())
+        )
+
+        def ret():
+            for v in self.calls_and_values:
+                if isinstance(v, tuple):
+                    yield next(calls_it)
+                else:
+                    yield next(values_it)
+
+        return tuple(ret())
+
+    async def __aiter__(self):
+        while True:
+            yield await self
 
 
 class AsyncTestbenchIO(Elaboratable):
@@ -73,13 +140,6 @@ class AsyncTestbenchIO(Elaboratable):
             return self.get_outputs(sim)
         return None
 
-    @staticmethod
-    async def calls_results(sim: AnySimulatorContext, *tbios: "AsyncTestbenchIO") -> tuple[Optional[MethodData], ...]:
-        results = await sim.tick().sample(*itertools.chain.from_iterable((tbio.outputs, tbio.done) for tbio in tbios))
-        # TODO: use itertools.batched after upgrading to Python 3.12
-        it = iter(results[-2 * len(tbios) :])
-        return tuple(outputs if done else None for outputs, done in iter(lambda: tuple(itertools.islice(it, 2)), ()))
-
     async def call_result(self, sim: AnySimulatorContext) -> Optional[MethodData]:
         *_, data, done = await self.sample_outputs_done(sim)
         if done:
@@ -91,32 +151,11 @@ class AsyncTestbenchIO(Elaboratable):
         self.disable(sim)
         return outputs
 
-    @staticmethod
-    async def calls_try(sim: AnySimulatorContext, *calls: tuple["AsyncTestbenchIO", Any]):
-        for tbio, data in calls:
-            tbio.call_init(sim, data)
-        outputs = await AsyncTestbenchIO.calls_results(sim, *(tbio for tbio, _ in calls))
-        for tbio, _ in calls:
-            tbio.disable(sim)
-        return outputs
-
     async def call_try(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> Optional[MethodData]:
-        if data and kwdata:
-            raise TypeError("call_try() takes either a single dict or keyword arguments")
-        if not data:
-            data = kwdata
-        self.call_init(sim, data)
-        outputs = await self.call_result(sim)
-        self.disable(sim)
-        return outputs
+        return (await CallTrigger(sim).call(self, data, **kwdata))[0]
 
     async def call(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> MethodData:
-        if data and kwdata:
-            raise TypeError("call() takes either a single dict or keyword arguments")
-        if not data:
-            data = kwdata
-        self.call_init(sim, data)
-        return await self.call_do(sim)
+        return (await CallTrigger(sim).call(self, data, **kwdata).until_done())[0]
 
 
 class TestbenchIO(Elaboratable):

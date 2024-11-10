@@ -8,6 +8,8 @@ from coreblocks.params.configurations import test_core_config
 from collections import deque
 from random import Random
 
+from transactron.testing.testbenchio import CallTrigger
+
 
 class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
     def gen_input(self):
@@ -63,9 +65,12 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
     async def do_commit(self, sim: TestbenchContext):
         for _ in range(self.test_steps):
             to_execute = self.to_execute_list.pop()
-            self.m.peek.call_init(sim, rl_dst=to_execute["rl"])
-            self.m.commit.call_init(sim, rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
-            *_, peek_res, res = await sim.tick().sample(self.m.peek.outputs, self.m.commit.outputs)
+            peek_res, res = (
+                await CallTrigger(sim)
+                .call(self.m.peek, rl_dst=to_execute["rl"])
+                .call(self.m.commit, rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
+            )
+            assert peek_res is not None and res is not None
             assert res.old_rp_dst == self.expected_entries[to_execute["rl"]]
             assert peek_res.old_rp_dst == res["old_rp_dst"]
 

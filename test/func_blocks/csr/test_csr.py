@@ -145,14 +145,11 @@ class TestCSRUnit(TestCaseWithSimulator):
             self.dut.precommit.call_init(sim, side_fx=1)  # TODO: sensible precommit handling
 
             await self.async_random_wait_geom(sim)
-            self.dut.accept.call_init(sim)
-            *_, res, resume_done = (
-                await sim.tick().sample(self.dut.accept.outputs, self.dut.fetch_resume.done).until(self.dut.accept.done)
-            )
-            self.dut.accept.disable(sim)
+            res, resume_res = await CallTrigger(sim).call(self.dut.accept).call(self.dut.fetch_resume).until_done()
+            self.dut.fetch_resume.enable(sim)
             self.dut.precommit.disable(sim)
 
-            assert resume_done
+            assert res is not None and resume_res is not None
             assert res.rp_dst == op["exp"]["exp_read"]["rp_dst"]
             if op["exp"]["exp_read"]["rp_dst"]:
                 assert res.result == op["exp"]["exp_read"]["result"]
