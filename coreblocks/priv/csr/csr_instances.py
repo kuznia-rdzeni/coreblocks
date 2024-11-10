@@ -208,8 +208,7 @@ class MachineModeCSRRegisters(Elaboratable):
         # 7 - Hypervisor, 18 - Supervisor, 23 - Custom Extensions
 
         xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
-        if gen_params.isa.xlen in xml_field_mapping:
-            misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
+        misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
 
         return misa_value
 
