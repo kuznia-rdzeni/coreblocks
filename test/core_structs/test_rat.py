@@ -1,3 +1,4 @@
+from amaranth_types.types import TestbenchContext
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
 
 from coreblocks.core_structs.rat import FRAT, RRAT
@@ -18,14 +19,18 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
 
             self.to_execute_list.append({"rl": rl, "rp": rp, "rl_s1": rl_s1, "rl_s2": rl_s2})
 
-    def do_rename(self):
+    async def do_rename(self, sim: TestbenchContext):
         for _ in range(self.test_steps):
             to_execute = self.to_execute_list.pop()
-            res = yield from self.m.rename.call(
-                rl_dst=to_execute["rl"], rp_dst=to_execute["rp"], rl_s1=to_execute["rl_s1"], rl_s2=to_execute["rl_s2"]
+            res = await self.m.rename.call(
+                sim,
+                rl_dst=to_execute["rl"],
+                rp_dst=to_execute["rp"],
+                rl_s1=to_execute["rl_s1"],
+                rl_s2=to_execute["rl_s2"],
             )
-            assert res["rp_s1"] == self.expected_entries[to_execute["rl_s1"]]
-            assert res["rp_s2"] == self.expected_entries[to_execute["rl_s2"]]
+            assert res.rp_s1 == self.expected_entries[to_execute["rl_s1"]]
+            assert res.rp_s2 == self.expected_entries[to_execute["rl_s2"]]
 
             self.expected_entries[to_execute["rl"]] = to_execute["rp"]
 
@@ -33,7 +38,7 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
-        m = SimpleTestCircuit(FRAT(gen_params=self.gen_params))
+        m = SimpleTestCircuit(FRAT(gen_params=self.gen_params), async_tb=True)
         self.m = m
 
         self.log_regs = self.gen_params.isa.reg_cnt
@@ -44,7 +49,7 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
 
         self.gen_input()
         with self.run_simulation(m) as sim:
-            sim.add_process(self.do_rename)
+            sim.add_testbench(self.do_rename)
 
 
 class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
@@ -55,14 +60,14 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
 
             self.to_execute_list.append({"rl": rl, "rp": rp})
 
-    def do_commit(self):
+    async def do_commit(self, sim: TestbenchContext):
         for _ in range(self.test_steps):
             to_execute = self.to_execute_list.pop()
-            yield from self.m.peek.call_init(rl_dst=to_execute["rl"])
-            res = yield from self.m.commit.call(rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
-            peek_res = yield from self.m.peek.call_do()
-            assert res["old_rp_dst"] == self.expected_entries[to_execute["rl"]]
-            assert peek_res["old_rp_dst"] == res["old_rp_dst"]
+            self.m.peek.call_init(sim, rl_dst=to_execute["rl"])
+            self.m.commit.call_init(sim, rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
+            *_, peek_res, res = await sim.tick().sample(self.m.peek.outputs, self.m.commit.outputs)
+            assert res.old_rp_dst == self.expected_entries[to_execute["rl"]]
+            assert peek_res.old_rp_dst == res["old_rp_dst"]
 
             self.expected_entries[to_execute["rl"]] = to_execute["rp"]
 
@@ -70,7 +75,7 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
-        m = SimpleTestCircuit(RRAT(gen_params=self.gen_params))
+        m = SimpleTestCircuit(RRAT(gen_params=self.gen_params), async_tb=True)
         self.m = m
 
         self.log_regs = self.gen_params.isa.reg_cnt
@@ -81,4 +86,4 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
 
         self.gen_input()
         with self.run_simulation(m) as sim:
-            sim.add_process(self.do_commit)
+            sim.add_testbench(self.do_commit)
