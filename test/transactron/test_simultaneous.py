@@ -1,4 +1,4 @@
-from amaranth_types import AnySimulatorContext
+from amaranth_types.types import TestbenchContext
 import pytest
 from itertools import product
 from typing import Optional
@@ -45,19 +45,19 @@ class SimultaneousDiamondTestCircuit(Elaboratable):
 
 class TestSimultaneousDiamond(TestCaseWithSimulator):
     def test_diamond(self):
-        circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit())
+        circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit(), async_tb=True)
 
-        def process():
+        async def process(sim: TestbenchContext):
             methods = {"l": circ.method_l, "r": circ.method_r, "u": circ.method_u, "d": circ.method_d}
             for i in range(1 << len(methods)):
                 enables: dict[str, bool] = {}
                 for k, n in enumerate(methods):
                     enables[n] = bool(i & (1 << k))
-                    yield from methods[n].set_enable(enables[n])
-                yield Tick()
+                    methods[n].set_enable(sim, enables[n])
                 dones: dict[str, bool] = {}
                 for n in methods:
-                    dones[n] = bool((yield from methods[n].done()))
+                    dones[n] = bool(methods[n].get_done(sim))
+                await sim.tick()
                 for n in methods:
                     if not enables[n]:
                         assert not dones[n]
@@ -69,7 +69,7 @@ class TestSimultaneousDiamond(TestCaseWithSimulator):
                     assert not any(dones.values())
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class UnsatisfiableTriangleTestCircuit(Elaboratable):
@@ -157,7 +157,7 @@ class TestTransitivity(TestCaseWithSimulator):
                 nonlocal result
                 result = data
 
-        async def process(sim: AnySimulatorContext):
+        async def process(sim: TestbenchContext):
             nonlocal result
             for source, data, reqv1, reqv2 in product([circ.source1, circ.source2], [0, 1, 2, 3], [0, 1], [0, 1]):
                 result = None
