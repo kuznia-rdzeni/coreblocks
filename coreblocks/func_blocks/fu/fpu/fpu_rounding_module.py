@@ -31,7 +31,7 @@ class FPURoudningMethodLayout:
         ]
 
 
-class FPUrounding(Elaboratable):
+class FPURounding(Elaboratable):
     """FPU Rounding module
 
     Parameters

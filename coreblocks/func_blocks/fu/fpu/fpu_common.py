@@ -9,13 +9,22 @@ class RoundingModes(enum.Enum):
     ROUND_NEAREST_AWAY = 4
 
 
+class Errors(enum.IntFlag):
+    INVALID_OPERATION = 0
+    DIVISION_BY_ZERO = 1
+    OVERFLOW = 2
+    UNDERFLOW = 3
+    INEXACT = 4
+
+
+
 class FPUParams:
     """FPU parameters
 
     Parameters
     ----------
     sig_width: int
-        Width of significand
+        Width of significand, including implicit bit
     exp_width: int
         Width of exponent
     """

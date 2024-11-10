@@ -3,6 +3,7 @@ from transactron import TModule, Method, def_method
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     RoundingModes,
     FPUParams,
+    Errors,
 )
 
 
@@ -30,7 +31,7 @@ class FPUErrorMethodLayout:
             ("sign", 1),
             ("sig", fpu_params.sig_width),
             ("exp", fpu_params.exp_width),
-            ("errors", 5),
+            ("errors",len(Errors)),
         ]
 
 
