@@ -9,13 +9,12 @@ class RoundingModes(enum.Enum):
     ROUND_NEAREST_AWAY = 4
 
 
-class Errors(enum.IntFlag):
+class Errors(enum.IntFlag, shape=5):
     INVALID_OPERATION = 0
     DIVISION_BY_ZERO = 1
     OVERFLOW = 2
     UNDERFLOW = 3
     INEXACT = 4
-
 
 
 class FPUParams:

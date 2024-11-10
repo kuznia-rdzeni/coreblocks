@@ -31,7 +31,7 @@ class FPUErrorMethodLayout:
             ("sign", 1),
             ("sig", fpu_params.sig_width),
             ("exp", fpu_params.exp_width),
-            ("errors",len(Errors)),
+            ("errors", Shape.cast(Errors)),
         ]
 
 
@@ -153,11 +153,11 @@ class FPUErrorModule(Elaboratable):
                 m.d.av_comb += final_sig.eq(arg.sig)
                 m.d.av_comb += final_sign.eq(arg.sign)
 
-            m.d.av_comb += final_errors[0].eq(arg.invalid_operation)
-            m.d.av_comb += final_errors[1].eq(arg.division_by_zero)
-            m.d.av_comb += final_errors[2].eq(overflow)
-            m.d.av_comb += final_errors[3].eq(underflow)
-            m.d.av_comb += final_errors[4].eq(inexact)
+            m.d.av_comb += final_errors[Errors.INVALID_OPERATION].eq(arg.invalid_operation)
+            m.d.av_comb += final_errors[Errors.DIVISION_BY_ZERO].eq(arg.division_by_zero)
+            m.d.av_comb += final_errors[Errors.OVERFLOW].eq(overflow)
+            m.d.av_comb += final_errors[Errors.UNDERFLOW].eq(underflow)
+            m.d.av_comb += final_errors[Errors.INEXACT].eq(inexact)
 
             return {
                 "exp": final_exp,
