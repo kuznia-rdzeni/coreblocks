@@ -273,4 +273,4 @@ class TestFPURounding(TestCaseWithSimulator):
             yield from one_rounding_mode_test()
 
         with self.run_simulation(fpurt) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)

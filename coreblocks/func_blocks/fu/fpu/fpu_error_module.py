@@ -17,6 +17,11 @@ class FPUErrorMethodLayout:
     """
 
     def __init__(self, *, fpu_params: FPUParams):
+        """
+        input_inf is a flag that comes from previous stage.
+        Its purpose is to indicate that the infinity on input
+        is a result of infinity arithmetic and not a result of overflow
+        """
         self.error_in_layout = [
             ("sign", 1),
             ("sig", fpu_params.sig_width),
@@ -31,7 +36,7 @@ class FPUErrorMethodLayout:
             ("sign", 1),
             ("sig", fpu_params.sig_width),
             ("exp", fpu_params.exp_width),
-            ("errors", Shape.cast(Errors)),
+            ("errors", Errors),
         ]
 
 
@@ -153,11 +158,13 @@ class FPUErrorModule(Elaboratable):
                 m.d.av_comb += final_sig.eq(arg.sig)
                 m.d.av_comb += final_sign.eq(arg.sign)
 
-            m.d.av_comb += final_errors[Errors.INVALID_OPERATION].eq(arg.invalid_operation)
-            m.d.av_comb += final_errors[Errors.DIVISION_BY_ZERO].eq(arg.division_by_zero)
-            m.d.av_comb += final_errors[Errors.OVERFLOW].eq(overflow)
-            m.d.av_comb += final_errors[Errors.UNDERFLOW].eq(underflow)
-            m.d.av_comb += final_errors[Errors.INEXACT].eq(inexact)
+            m.d.av_comb += final_errors.eq(
+                Mux(arg.invalid_operation, Errors.INVALID_OPERATION, 0)
+                | Mux(arg.division_by_zero, Errors.DIVISION_BY_ZERO, 0)
+                | Mux(overflow, Errors.OVERFLOW, 0)
+                | Mux(underflow, Errors.UNDERFLOW, 0)
+                | Mux(inexact, Errors.INEXACT, 0)
+            )
 
             return {
                 "exp": final_exp,

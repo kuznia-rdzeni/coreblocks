@@ -2,6 +2,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_error_module import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     RoundingModes,
     FPUParams,
+    Errors,
 )
 from transactron import TModule
 from transactron.lib import AdapterTrans
@@ -166,16 +167,16 @@ class TestFPUError(TestCaseWithSimulator):
                     "sign": 0,
                     "sig": help_values.not_max_norm_even_sig,
                     "exp": help_values.not_max_norm_exp,
-                    "errors": 16,
+                    "errors": Errors.INEXACT,
                 },
                 # underflow
-                {"sign": 0, "sig": help_values.sub_norm_sig, "exp": 0, "errors": 24},
+                {"sign": 0, "sig": help_values.sub_norm_sig, "exp": 0, "errors": Errors.UNDERFLOW | Errors.INEXACT},
                 # invalid operation
-                {"sign": 0, "sig": help_values.qnan, "exp": help_values.max_exp, "errors": 1},
+                {"sign": 0, "sig": help_values.qnan, "exp": help_values.max_exp, "errors": Errors.INVALID_OPERATION},
                 # division by zero
-                {"sign": 0, "sig": 0, "exp": help_values.max_exp, "errors": 2},
+                {"sign": 0, "sig": 0, "exp": help_values.max_exp, "errors": Errors.DIVISION_BY_ZERO},
                 # overflow but no round and sticky bits
-                {"sign": 0, "sig": 0, "exp": help_values.max_exp, "errors": 20},
+                {"sign": 0, "sig": 0, "exp": help_values.max_exp, "errors": Errors.INEXACT | Errors.OVERFLOW},
                 # tininess but no underflow
                 {"sign": 0, "sig": help_values.sub_norm_sig, "exp": 0, "errors": 0},
                 # one of inputs was qnan
@@ -183,7 +184,7 @@ class TestFPUError(TestCaseWithSimulator):
                 # one of inputs was inf
                 {"sign": 1, "sig": 0, "exp": help_values.max_exp, "errors": 0},
                 # subnormal number become normalized after rounding
-                {"sign": 1, "sig": help_values.min_norm_sig, "exp": 1, "errors": 16},
+                {"sign": 1, "sig": help_values.min_norm_sig, "exp": 1, "errors": Errors.INEXACT},
             ]
             for i in range(len(test_cases)):
 
@@ -197,7 +198,7 @@ class TestFPUError(TestCaseWithSimulator):
             yield from other_cases_test()
 
         with self.run_simulation(fpue) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
 
     @parameterized.expand(
         [
@@ -301,4 +302,4 @@ class TestFPUError(TestCaseWithSimulator):
             yield from one_rounding_mode_test()
 
         with self.run_simulation(fpue) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
