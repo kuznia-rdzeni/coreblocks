@@ -6,7 +6,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
@@ -64,10 +64,19 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
+        layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(o=self.gen.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=layouts.precommit_in,
+                o=layouts.precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -101,7 +110,9 @@ class TestPMAIndirect(TestCaseWithSimulator):
                     wb_requested = (yield wb.stb) and (yield wb.cyc)
                     assert not wb_requested
 
-                yield from self.test_module.precommit.call(rob_id=1, side_fx=1)
+                yield from self.test_module.precommit.method_handle(
+                    function=lambda rob_id: {"side_fx": 1}, validate_arguments=lambda rob_id: rob_id == 1
+                )
 
             yield from self.test_module.io_in.slave_wait()
             yield from self.test_module.io_in.slave_respond((addr << (addr % 4) * 8))
@@ -125,6 +136,10 @@ class TestPMAIndirect(TestCaseWithSimulator):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             assert False
+
+        @def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_process(self.process)

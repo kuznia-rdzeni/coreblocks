@@ -23,7 +23,7 @@ from transactron.testing import *
 
 
 class CSRUnitTestCircuit(Elaboratable):
-    def __init__(self, gen_params, csr_count, only_legal=True):
+    def __init__(self, gen_params: GenParams, csr_count: int, only_legal=True):
         self.gen_params = gen_params
         self.csr_count = csr_count
         self.only_legal = only_legal
@@ -32,7 +32,12 @@ class CSRUnitTestCircuit(Elaboratable):
         m = Module()
 
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=self.gen_params.get(RetirementLayouts).precommit_in,
+                o=self.gen_params.get(RetirementLayouts).precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
@@ -142,7 +147,9 @@ class TestCSRUnit(TestCaseWithSimulator):
                 yield from self.dut.update.call(reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
             yield from self.random_wait_geom()
-            yield from self.dut.precommit.call(side_fx=1)
+            yield from self.dut.precommit.method_handle(
+                function=lambda rob_id: {"side_fx": 1}, validate_arguments=lambda rob_id: True
+            )
 
             yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
@@ -185,7 +192,7 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             yield from self.dut.select.call()
 
-            rob_id = random.randrange(2**self.gen_params.rob_entries_bits)
+            csr_rob_id = random.randrange(2**self.gen_params.rob_entries_bits)
             yield from self.dut.insert.call(
                 rs_data={
                     "exec_fn": {"op_type": OpType.CSR_REG, "funct3": Funct3.CSRRW, "funct7": 0},
@@ -195,21 +202,24 @@ class TestCSRUnit(TestCaseWithSimulator):
                     "rp_dst": 2,
                     "imm": 0,
                     "csr": csr,
-                    "rob_id": rob_id,
+                    "rob_id": csr_rob_id,
                 }
             )
 
             yield from self.random_wait_geom()
-            yield from self.dut.precommit.call(rob_id=rob_id, side_fx=1)
+            yield from self.dut.precommit.method_handle(
+                function=lambda rob_id: {"side_fx": 1}, validate_arguments=lambda rob_id: rob_id == csr_rob_id
+            )
 
             yield from self.random_wait_geom()
             res = yield from self.dut.accept.call()
 
             assert res["exception"] == 1
             report = yield from self.dut.exception_report.call_result()
+            assert report is not None
             assert isinstance(report, dict)
             report.pop("mtval")  # mtval tested in mtval.asm test
-            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report
+            assert {"rob_id": csr_rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report
 
     def test_exception(self):
         self.gen_params = GenParams(test_core_config)

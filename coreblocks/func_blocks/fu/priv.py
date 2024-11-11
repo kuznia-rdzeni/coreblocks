@@ -101,32 +101,31 @@ class PrivilegedFuncUnit(Elaboratable):
 
         with Transaction().body(m, request=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(info.rob_id == instr_rob):
-                m.d.sync += finished.eq(1)
-                self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
+            info = precommit(m, instr_rob)
+            m.d.sync += finished.eq(1)
+            self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
 
-                priv_data = priv_mode.read(m).data
+            priv_data = priv_mode.read(m).data
 
-                illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_data != PrivilegeLevel.MACHINE)
-                # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
-                illegal_wfi = (
-                    (instr_fn == PrivilegedFn.Fn.WFI)
-                    & (priv_data == PrivilegeLevel.USER)
-                    & csr.m_mode.mstatus_tw.read(m).data
-                )
+            illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_data != PrivilegeLevel.MACHINE)
+            # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
+            illegal_wfi = (
+                (instr_fn == PrivilegedFn.Fn.WFI)
+                & (priv_data == PrivilegeLevel.USER)
+                & csr.m_mode.mstatus_tw.read(m).data
+            )
 
-                with condition(m, nonblocking=True) as branch:
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
-                        mret(m)
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
-                        flush_icache(m)
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
-                        # async_interrupt_active implies wfi_resume. WFI should continue normal execution
-                        # when interrupt is enabled in xie, but disabled via global mstatus.xIE
-                        m.d.sync += finished.eq(wfi_resume)
+            with condition(m, nonblocking=True) as branch:
+                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
+                    mret(m)
+                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
+                    flush_icache(m)
+                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
+                    # async_interrupt_active implies wfi_resume. WFI should continue normal execution
+                    # when interrupt is enabled in xie, but disabled via global mstatus.xIE
+                    m.d.sync += finished.eq(wfi_resume)
 
-                m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
+            m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
         @def_method(m, self.accept, ready=instr_valid & finished)
         def _():

@@ -355,7 +355,9 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit = make_layout(fields.rob_id, fields.side_fx)
+        self.precommit_in = make_layout(fields.rob_id)
+
+        self.precommit_out = make_layout(fields.side_fx)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """
@@ -581,10 +583,6 @@ class LSULayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        retirement = gen_params.get(RetirementLayouts)
-
-        self.precommit = retirement.precommit
-
         self.store: LayoutListField = ("store", 1)
 
         self.issue = make_layout(fields.addr, fields.data, fields.funct3, self.store)
@@ -637,10 +635,6 @@ class CSRUnitLayouts:
         )
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
-
-        retirement = gen_params.get(RetirementLayouts)
-
-        self.precommit = retirement.precommit
 
 
 class ExceptionRegisterLayouts:

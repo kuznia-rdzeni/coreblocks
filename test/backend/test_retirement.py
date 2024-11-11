@@ -147,13 +147,10 @@ class TestRetirement(TestCaseWithSimulator):
         assert not self.rf_free_q
 
     def precommit_process(self):
-        yield from self.retc.precommit_adapter.call_init()
         while self.precommit_q:
-            yield Tick()
-            info = yield from self.retc.precommit_adapter.call_result()
+            info = yield from self.retc.precommit_adapter.call_try(rob_id=self.precommit_q[0])
             assert info is not None
             assert info["side_fx"]
-            assert self.precommit_q[0] == info["rob_id"]
             self.precommit_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
