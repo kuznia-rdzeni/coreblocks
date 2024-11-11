@@ -337,6 +337,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         return producer
 
     async def consumer(self, sim: TestbenchContext):
+        # TODO: this test doesn't test anything, needs to be fixed!
         while reduce(and_, self.producer_end, True):
             result = await self.m.output.call_do(sim)
 
