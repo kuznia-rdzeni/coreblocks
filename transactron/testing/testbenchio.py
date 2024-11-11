@@ -1,6 +1,6 @@
 from collections.abc import Generator, Iterable
-import itertools
 from amaranth import *
+from amaranth.lib.data import View, StructLayout
 from amaranth.sim import Settle, Passive, Tick
 from typing import Any, Optional, Callable
 
@@ -46,24 +46,27 @@ class CallTrigger:
     def __await__(self) -> Generator:
         only_calls = [t for t in self.calls_and_values if isinstance(t, tuple)]
         only_values = [t for t in self.calls_and_values if not isinstance(t, tuple)]
+
         for tbio, data in only_calls:
             if data is not None:
                 tbio.call_init(self.sim, data)
+
+        def layout_for(tbio: AsyncTestbenchIO):
+            return StructLayout({"outputs": tbio.adapter.iface.layout_out, "done": 1})
+
         trigger = (
             self.sim.tick()
-            .sample(*itertools.chain.from_iterable((tbio.outputs, tbio.done) for tbio, _ in only_calls))
+            .sample(*(View(layout_for(tbio), Cat(tbio.outputs, tbio.done)) for tbio, _ in only_calls))
             .sample(*only_values)
         )
         _, _, *results = yield from trigger.__await__()
+
         for tbio, data in only_calls:
             if data is not None:
                 tbio.disable(self.sim)
-        # TODO: use itertools.batched after upgrading to Python 3.12
-        values_it = iter(results[2 * len(only_calls) :])
-        calls_base_it = iter(results[: 2 * len(only_calls)])
-        calls_it = (
-            outputs if done else None for outputs, done in iter(lambda: tuple(itertools.islice(calls_base_it, 2)), ())
-        )
+
+        values_it = iter(results[len(only_calls) :])
+        calls_it = (s.outputs if s.done else None for s in results[: len(only_calls)])
 
         def ret():
             for v in self.calls_and_values:
