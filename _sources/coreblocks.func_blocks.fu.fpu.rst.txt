@@ -1,0 +1,37 @@
+coreblocks.func\_blocks.fu.fpu package
+======================================
+
+Submodules
+----------
+
+coreblocks.func\_blocks.fu.fpu.fpu\_common module
+-------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_common
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.fpu.fpu\_error\_module module
+--------------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_error_module
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.fpu.fpu\_rounding\_module module
+-----------------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_rounding_module
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu
+   :members:
+   :undoc-members:
+   :show-inheritance:
