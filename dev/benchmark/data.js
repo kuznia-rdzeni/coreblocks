@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731406196986,
+  "lastUpdate": 1731406198438,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -41690,6 +41690,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1790,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1248,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9298,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "def471b58e222f953ebce4eba7643e036e2aae31",
+          "message": "Implement `misa` CSR (#743)",
+          "timestamp": "2024-11-12T10:55:18+01:00",
+          "tree_id": "259a081cf4a50e6df906099aee7da81b76e35478",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/def471b58e222f953ebce4eba7643e036e2aae31"
+        },
+        "date": 1731406197950,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 39.65,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 27388,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1758,
             "unit": "LUT"
           },
           {
