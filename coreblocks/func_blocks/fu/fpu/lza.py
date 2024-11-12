@@ -33,17 +33,17 @@ class LZAMethodLayout:
 class LZAModule(Elaboratable):
     """LZA module
     Based on: https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf
-    After performing subtracion we may have to normalize floating point number and
-    for that we have to know the number of leading zeros.
-    Most basic approach includes using LZC (leading zero counter) after subtracion.
-    More advanced approach includes using LZA (Leading Zero Anticipator) to predict number
+    After performing subtracion, we may have to normalize floating point numbers and
+    For that, we have to know the number of leading zeros.
+    The most basic approach includes using LZC (leading zero counter) after subtracion,
+    a more advanced approach includes using LZA (Leading Zero Anticipator) to predict the number of
     leading zeroes. It is worth noting that this LZA module works under assumptions that
     significands are in two's complement and that before complementation sig_a was greater
-    or equal to sig_b. Another think worth noting is that LZA works with error = 1.
-    That means that if 'n' is the result of LZA module the in reality to normalize
+    or equal to sig_b. Another thing worth noting is that LZA works with error = 1.
+    That means that if 'n' is the result of the LZA module, in reality, to normalize
     number we may have to shift left by 'n' or 'n+1'. There are few techniques of
-    dealing with that error like specialy designed shifters or predicting the error
-    but most basic approach is to just use multiplexer after shifter to perform
+    dealing with that error like specially designed shifters or predicting the error
+    but the most basic approach is to just use multiplexer after shifter to perform
     one more shift left if necessary.
 
     Parameters
