@@ -92,57 +92,6 @@ class AsyncWishboneInterfaceWrapper:
         await sim.tick().until(self.wb.stb & self.wb.cyc & self.wb.ack)
 
 
-# TODO remove
-class WishboneInterfaceWrapper:
-    def __init__(self, wishbone_interface: WishboneInterface):
-        self.wb = wishbone_interface
-
-    def master_set(self, addr, data, we):
-        yield self.wb.dat_w.eq(data)
-        yield self.wb.adr.eq(addr)
-        yield self.wb.we.eq(we)
-        yield self.wb.cyc.eq(1)
-        yield self.wb.stb.eq(1)
-
-    def master_release(self, release_cyc=1):
-        yield self.wb.stb.eq(0)
-        if release_cyc:
-            yield self.wb.cyc.eq(0)
-
-    def master_verify(self, exp_data=0):
-        assert (yield self.wb.ack)
-        assert (yield self.wb.dat_r) == exp_data
-
-    def slave_wait(self):
-        while not ((yield self.wb.stb) and (yield self.wb.cyc)):
-            yield Tick()
-
-    def slave_verify(self, exp_addr, exp_data, exp_we, exp_sel=0):
-        assert (yield self.wb.stb) and (yield self.wb.cyc)
-
-        assert (yield self.wb.adr) == exp_addr
-        assert (yield self.wb.we) == exp_we
-        assert (yield self.wb.sel) == exp_sel
-        if exp_we:
-            assert (yield self.wb.dat_w) == exp_data
-
-    def slave_respond(self, data, ack=1, err=0, rty=0):
-        assert (yield self.wb.stb) and (yield self.wb.cyc)
-
-        yield self.wb.dat_r.eq(data)
-        yield self.wb.ack.eq(ack)
-        yield self.wb.err.eq(err)
-        yield self.wb.rty.eq(rty)
-        yield Tick()
-        yield self.wb.ack.eq(0)
-        yield self.wb.err.eq(0)
-        yield self.wb.rty.eq(0)
-
-    def wait_ack(self):
-        while not ((yield self.wb.stb) and (yield self.wb.cyc) and (yield self.wb.ack)):
-            yield Tick()
-
-
 class TestWishboneMaster(TestCaseWithSimulator):
     class WishboneMasterTestModule(Elaboratable):
         def __init__(self):
