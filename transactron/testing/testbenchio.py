@@ -52,7 +52,7 @@ class CallTrigger:
                 tbio.call_init(self.sim, data)
 
         def layout_for(tbio: AsyncTestbenchIO):
-            return StructLayout({"outputs": tbio.adapter.iface.layout_out, "done": 1})
+            return StructLayout({"outputs": tbio.adapter.data_out.shape(), "done": 1})
 
         trigger = (
             self.sim.tick()
@@ -280,6 +280,7 @@ class TestbenchIO(Elaboratable):
         ret_out = mock_def_helper(self, function, arg)
         yield from self.method_return(ret_out or {})
         yield Tick()
+        yield from self.set_enable(False)
 
     def method_handle_loop(
         self,
@@ -292,7 +293,10 @@ class TestbenchIO(Elaboratable):
         yield Passive()
         while True:
             yield from self.method_handle(
-                function, enable=enable, validate_arguments=validate_arguments, extra_settle_count=extra_settle_count
+                function,
+                enable=enable,
+                validate_arguments=validate_arguments,
+                extra_settle_count=extra_settle_count,
             )
 
     # Debug signals

@@ -1,3 +1,4 @@
+import random
 from amaranth_types.types import TestbenchContext
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker, PMARegion
 
@@ -6,7 +7,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
 from transactron.testing.sugar import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
@@ -64,10 +65,19 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
+        layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = AsyncTestbenchIO(
-            Adapter(o=self.gen.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=layouts.precommit_in,
+                o=layouts.precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+
+        m.submodules.core_state = self.core_state = AsyncTestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -101,8 +111,6 @@ class TestPMAIndirect(TestCaseWithSimulator):
                     wb_requested = sim.get(wb.stb) and sim.get(wb.cyc)
                     assert not wb_requested
 
-                await self.test_module.precommit.call(sim, rob_id=1, side_fx=1)
-
             await self.test_module.io_in.slave_wait(sim)
             await self.test_module.io_in.slave_respond(sim, (addr << (addr % 4) * 8))
             v = await self.test_module.accept.call(sim)
@@ -126,6 +134,18 @@ class TestPMAIndirect(TestCaseWithSimulator):
             @MethodMock.effect
             def eff():
                 assert False
+
+        @async_def_method_mock(
+            lambda: self.test_module.precommit,
+            validate_arguments=lambda rob_id: rob_id == 1,
+            enable=lambda: random.random() < 0.5,
+        )
+        def precommiter(rob_id):
+            return {"side_fx": 1}
+
+        @async_def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.process)

@@ -23,7 +23,7 @@ from transactron.testing import *
 
 
 class CSRUnitTestCircuit(Elaboratable):
-    def __init__(self, gen_params, csr_count, only_legal=True):
+    def __init__(self, gen_params: GenParams, csr_count: int, only_legal=True):
         self.gen_params = gen_params
         self.csr_count = csr_count
         self.only_legal = only_legal
@@ -32,7 +32,12 @@ class CSRUnitTestCircuit(Elaboratable):
         m = Module()
 
         m.submodules.precommit = self.precommit = AsyncTestbenchIO(
-            Adapter(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=self.gen_params.get(RetirementLayouts).precommit_in,
+                o=self.gen_params.get(RetirementLayouts).precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
@@ -142,11 +147,13 @@ class TestCSRUnit(TestCaseWithSimulator):
                 await self.dut.update.call(sim, reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
             await self.async_random_wait_geom(sim)
+            # TODO: this is a hack, a real method mock should be used
+            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+                sim.set(r, 1)
             self.dut.precommit.call_init(sim, side_fx=1)  # TODO: sensible precommit handling
 
             await self.async_random_wait_geom(sim)
-            res, resume_res = await CallTrigger(sim).call(self.dut.accept).call(self.dut.fetch_resume).until_done()
-            self.dut.fetch_resume.enable(sim)
+            res, resume_res = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.fetch_resume).until_done()
             self.dut.precommit.disable(sim)
 
             assert res is not None and resume_res is not None
@@ -203,20 +210,17 @@ class TestCSRUnit(TestCaseWithSimulator):
             )
 
             await self.async_random_wait_geom(sim)
-            self.dut.precommit.call_init(sim, rob_id=rob_id, side_fx=1)
+            # TODO: this is a hack, a real method mock should be used
+            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+                sim.set(r, 1)
+            self.dut.precommit.call_init(sim, side_fx=1)
 
             await self.async_random_wait_geom(sim)
-            self.dut.accept.call_init(sim)
-            *_, res, report_done, report = (
-                await sim.tick()
-                .sample(self.dut.accept.outputs, self.dut.exception_report.done, self.dut.exception_report.outputs)
-                .until(self.dut.accept.done)
-            )
-            self.dut.accept.disable(sim)
+            res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
             self.dut.precommit.disable(sim)
 
             assert res["exception"] == 1
-            assert report_done
+            assert report is not None
             report_dict = data_const_to_dict(report)
             report_dict.pop("mtval")  # mtval tested in mtval.asm test
             assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
