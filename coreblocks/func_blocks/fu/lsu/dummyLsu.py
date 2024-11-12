@@ -15,7 +15,7 @@ from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
-from coreblocks.interface.keys import ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
 __all__ = ["LSUDummy", "LSUComponent"]
 
@@ -54,6 +54,11 @@ class LSUDummy(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
         flush = Signal()  # exception handling, requests are not issued
+
+        with Transaction().body(m):
+            core_state = self.dependency_manager.get_dependency(CoreStateKey())
+            state = core_state(m)
+            m.d.comb += flush.eq(state.flushing)
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
@@ -142,11 +147,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         with Transaction().body(m):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(info.rob_id == request_rob_id):
-                m.d.comb += rob_id_match.eq(1)
-            with m.If(~info.side_fx):
-                m.d.comb += flush.eq(1)
+            precommit(m, request_rob_id)
+            m.d.comb += rob_id_match.eq(1)
 
         return m
 
