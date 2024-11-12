@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731310676554,
+  "lastUpdate": 1731406195505,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14103,6 +14103,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4472a57533735707e43d1aab2d7ceee068dace0b"
         },
         "date": 1731310669848,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "def471b58e222f953ebce4eba7643e036e2aae31",
+          "message": "Implement `misa` CSR (#743)",
+          "timestamp": "2024-11-12T10:55:18+01:00",
+          "tree_id": "259a081cf4a50e6df906099aee7da81b76e35478",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/def471b58e222f953ebce4eba7643e036e2aae31"
+        },
+        "date": 1731406191480,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
