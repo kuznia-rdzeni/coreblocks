@@ -213,8 +213,16 @@ class Retirement(Elaboratable):
                     self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
-                    # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m).data & ~(0b11))
+                    mtvec_offset = Signal(self.gen_params.isa.xlen)
+                    mtvec = m_csr.mtvec.read(m).data
+                    mcause = m_csr.mcause.read(m).data
+
+                    # mtvec without mode is [mxlen-1:2], mode is two last bits.
+                    # When mode=1 (Vectored), interrupts set pc to base + 4 * cause_number
+                    with m.If(mcause & (mtvec << (self.gen_params.isa.xlen - 1))):
+                        m.d.av_comb += mtvec_offset.eq(mcause << 2)
+
+                    m.d.av_comb += handler_pc.eq((mtvec & ~(0b11)) + mtvec_offset)
 
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)

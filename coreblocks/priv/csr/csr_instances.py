@@ -75,9 +75,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
-        # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
-        # set `MODE` as fixed to 0 - Direct mode "All exceptions set pc to BASE"
-        self.mtvec = CSRRegister(CSRAddress.MTVEC, gen_params, ro_bits=0b11)
+        self.mtvec = CSRRegister(CSRAddress.MTVEC, gen_params)
 
         mepc_ro_bits = 0b1 if Extension.C in gen_params.isa.extensions else 0b11  # pc alignment (SPEC)
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
