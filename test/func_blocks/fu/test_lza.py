@@ -1,5 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.lza import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
+from random import randint
 from transactron import TModule
 from transactron.lib import AdapterTrans
 from transactron.testing import *
@@ -36,6 +37,27 @@ class TestLZA(TestCaseWithSimulator):
         params = FPUParams(sig_width=24, exp_width=8)
         help_values = TestLZA.HelpValues(params)
         lza = TestLZA.LZAModuleTest(params)
+
+        def clz(sig_a, sig_b, carry):
+            zeros = 0
+            msb_bit_mask = 1 << (params.sig_width - 1)
+            sum = sig_a + sig_b + carry
+            while 1:
+                if not (sum & msb_bit_mask):
+                    zeros += 1
+                    sum = sum << 1
+                else:
+                    return zeros
+
+        def random_test():
+            xor_mask = (2**params.sig_width) - 1
+            sig_a = randint(1 << (params.sig_width - 1), (2**params.sig_width) - 1)
+            sig_b = randint(1 << (params.sig_width - 1), sig_a)
+            sig_b = (sig_b ^ xor_mask) | (1 << params.sig_width)
+            resp = yield from lza.predict_request_adapter.call({"sig_a": sig_a, "sig_b": sig_b, "carry": 0})
+            pred_lz = resp["shift_amount"]
+            true_lz = clz(sig_a, sig_b, 0)
+            assert pred_lz == true_lz or (pred_lz + 1) == true_lz
 
         def lza_test():
             test_cases = [
@@ -121,6 +143,7 @@ class TestLZA(TestCaseWithSimulator):
 
         def test_process():
             yield from lza_test()
+            yield from random_test()
 
         with self.run_simulation(lza) as sim:
-            sim.add_sync_process(test_process)
+            sim.add_process(test_process)
