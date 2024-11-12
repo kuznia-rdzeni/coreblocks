@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1731406198438,
+  "lastUpdate": 1731424725992,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14167,6 +14167,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/def471b58e222f953ebce4eba7643e036e2aae31"
         },
         "date": 1731406191480,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "34565a3f1e040546d0a6711d17fa863f07e2acd4",
+          "message": "FPU rounding module (#728)",
+          "timestamp": "2024-11-12T16:04:31+01:00",
+          "tree_id": "1928a12e10ec8730fbba547c44034810ec657b22",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/34565a3f1e040546d0a6711d17fa863f07e2acd4"
+        },
+        "date": 1731424721865,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
