@@ -39,28 +39,28 @@ class RetirementTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
-        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
+        m.submodules.mock_rob_peek = self.mock_rob_peek = AsyncTestbenchIO(
             Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
         )
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter())
+        m.submodules.mock_rob_retire = self.mock_rob_retire = AsyncTestbenchIO(Adapter())
 
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
+        m.submodules.mock_rf_free = self.mock_rf_free = AsyncTestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
+        m.submodules.mock_exception_cause = self.mock_exception_cause = AsyncTestbenchIO(
             Adapter(o=exception_layouts.get, nonexclusive=True)
         )
-        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
+        m.submodules.mock_exception_clear = self.mock_exception_clear = AsyncTestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
-        m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = AsyncTestbenchIO(Adapter(i=fetch_layouts.resume))
+        m.submodules.mock_instr_decrement = self.mock_instr_decrement = AsyncTestbenchIO(
             Adapter(o=core_instr_counter_layouts.decrement)
         )
-        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
-        m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
+        m.submodules.mock_trap_entry = self.mock_trap_entry = AsyncTestbenchIO(Adapter())
+        m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = AsyncTestbenchIO(
             Adapter(o=interrupt_controller_layouts.interrupt_cause)
         )
 
@@ -81,10 +81,10 @@ class RetirementTestCircuit(Elaboratable):
             async_interrupt_cause=self.mock_async_interrupt_cause.adapter.iface,
         )
 
-        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
+        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = AsyncTestbenchIO(AdapterTrans(self.free_rf.read))
 
         precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
-        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans(precommit))
+        m.submodules.precommit_adapter = self.precommit_adapter = AsyncTestbenchIO(AdapterTrans(precommit))
 
         return m
 
@@ -120,73 +120,78 @@ class TestRetirement(TestCaseWithSimulator):
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
-    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
+    @async_def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q))
     def retire_process(self):
-        self.submit_q.popleft()
+        @MethodMock.effect
+        def eff():
+            self.submit_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
+    @async_def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
-        return self.submit_q[0]
+        if self.submit_q:
+            return self.submit_q[0]
 
-    def free_reg_process(self):
+    async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
-            reg = yield from self.retc.free_rf_adapter.call()
+            reg = await self.retc.free_rf_adapter.call(sim)
             assert reg["reg_id"] == self.rf_exp_q.popleft()
 
-    def rat_process(self):
+    async def rat_process(self, sim: TestbenchContext):
         while self.rat_map_q:
             current_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            while (yield self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+            while sim.get(self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
-                yield Tick()
+                await sim.tick()
         assert not self.submit_q
         assert not self.rf_free_q
 
-    def precommit_process(self):
-        yield from self.retc.precommit_adapter.call_init()
+    async def precommit_process(self, sim: TestbenchContext):
+        await sim.tick()  # TODO mocks inactive during first cycle
+        self.retc.precommit_adapter.call_init(sim)
         while self.precommit_q:
-            yield Tick()
-            info = yield from self.retc.precommit_adapter.call_result()
+            info = await self.retc.precommit_adapter.call_result(sim)
             assert info is not None
             assert info["side_fx"]
             assert self.precommit_q[0] == info["rob_id"]
             self.precommit_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
+    @async_def_method_mock(lambda self: self.retc.mock_rf_free)
     def rf_free_process(self, reg_id):
-        assert reg_id == self.rf_free_q.popleft()
+        @MethodMock.effect
+        def eff():
+            assert reg_id == self.rf_free_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_exception_cause)
+    @async_def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
         return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
 
-    @def_method_mock(lambda self: self.retc.mock_exception_clear)
+    @async_def_method_mock(lambda self: self.retc.mock_exception_clear)
     def exception_clear_process(self):
         pass
 
-    @def_method_mock(lambda self: self.retc.mock_instr_decrement)
+    @async_def_method_mock(lambda self: self.retc.mock_instr_decrement)
     def instr_decrement_process(self):
         return {"empty": 0}
 
-    @def_method_mock(lambda self: self.retc.mock_trap_entry)
+    @async_def_method_mock(lambda self: self.retc.mock_trap_entry)
     def mock_trap_entry_process(self):
         pass
 
-    @def_method_mock(lambda self: self.retc.mock_fetch_continue)
-    def mock_fetch_continue_process(self):
+    @async_def_method_mock(lambda self: self.retc.mock_fetch_continue)
+    def mock_fetch_continue_process(self, pc):
         pass
 
-    @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
+    @async_def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
 
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
         with self.run_simulation(self.retc) as sim:
-            sim.add_process(self.free_reg_process)
-            sim.add_process(self.rat_process)
-            sim.add_process(self.precommit_process)
+            sim.add_testbench(self.free_reg_process)
+            sim.add_testbench(self.rat_process)
+            sim.add_testbench(self.precommit_process)

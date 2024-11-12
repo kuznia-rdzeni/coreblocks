@@ -1,7 +1,6 @@
 from typing import Optional, cast
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth.sim import Settle, Tick
 
 from collections import deque
 from enum import Enum
