@@ -20,7 +20,7 @@ from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, async_d
 from transactron.testing.functions import MethodData
 from transactron.testing.sugar import MethodMock
 from transactron.testing.testbenchio import CallTrigger
-from ..peripherals.test_wishbone import AsyncWishboneInterfaceWrapper
+from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
@@ -51,7 +51,7 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
         m.submodules.start_refill = self.start_refill
         m.submodules.accept_refill = self.accept_refill
 
-        self.wb_ctrl = AsyncWishboneInterfaceWrapper(self.wb_master.wb_master)
+        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -172,7 +172,7 @@ class ICacheBypassTestCircuit(Elaboratable):
         m.submodules.issue_req = self.issue_req = AsyncTestbenchIO(AdapterTrans(self.bypass.issue_req))
         m.submodules.accept_res = self.accept_res = AsyncTestbenchIO(AdapterTrans(self.bypass.accept_res))
 
-        self.wb_ctrl = AsyncWishboneInterfaceWrapper(self.wb_master.wb_master)
+        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 

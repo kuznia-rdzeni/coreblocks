@@ -14,7 +14,7 @@ from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLay
 from coreblocks.peripherals.wishbone import *
 from transactron.testing import AsyncTestbenchIO, TestCaseWithSimulator, async_def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from test.peripherals.test_wishbone import AsyncWishboneInterfaceWrapper
+from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class TestPMADirect(TestCaseWithSimulator):
@@ -83,7 +83,7 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         m.submodules.issue_mock = self.issue = AsyncTestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_mock = self.accept = AsyncTestbenchIO(AdapterTrans(func_unit.accept))
-        self.io_in = AsyncWishboneInterfaceWrapper(self.bus.wb_master)
+        self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus = self.bus
         m.submodules.bus_master_adapter = self.bus_master_adapter
         return m

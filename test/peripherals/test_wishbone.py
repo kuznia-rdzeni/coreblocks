@@ -12,7 +12,7 @@ from transactron.lib import AdapterTrans
 from transactron.testing import *
 
 
-class AsyncWishboneInterfaceWrapper:
+class WishboneInterfaceWrapper:
     def __init__(self, wishbone_interface: WishboneInterface):
         self.wb = wishbone_interface
 
@@ -141,7 +141,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
             assert resp["err"]
 
         async def slave(sim: TestbenchContext):
-            wwb = AsyncWishboneInterfaceWrapper(twbm.wbm.wb_master)
+            wwb = WishboneInterfaceWrapper(twbm.wbm.wb_master)
 
             await wwb.slave_wait_and_verify(sim, 2, 0, 0, 1)
             await wwb.slave_respond(sim, 8)
@@ -170,8 +170,8 @@ class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
         num_slaves = 4
         mux = WishboneMuxer(WishboneParameters(), num_slaves, Signal(num_slaves))
-        slaves = [AsyncWishboneInterfaceWrapper(slave) for slave in mux.slaves]
-        wb_master = AsyncWishboneInterfaceWrapper(mux.master_wb)
+        slaves = [WishboneInterfaceWrapper(slave) for slave in mux.slaves]
+        wb_master = WishboneInterfaceWrapper(mux.master_wb)
 
         async def process(sim: TestbenchContext):
             # check full communiaction
@@ -204,8 +204,8 @@ class TestWishboneMuxer(TestCaseWithSimulator):
 class TestWishboneArbiter(TestCaseWithSimulator):
     def test_manual(self):
         arb = WishboneArbiter(WishboneParameters(), 2)
-        slave = AsyncWishboneInterfaceWrapper(arb.slave_wb)
-        masters = [AsyncWishboneInterfaceWrapper(master) for master in arb.masters]
+        slave = WishboneInterfaceWrapper(arb.slave_wb)
+        masters = [WishboneInterfaceWrapper(master) for master in arb.masters]
 
         async def process(sim: TestbenchContext):
             masters[0].master_set(sim, 2, 3, 1)

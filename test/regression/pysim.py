@@ -20,7 +20,7 @@ from transactron.testing import (
 )
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
-from ..peripherals.test_wishbone import AsyncWishboneInterfaceWrapper
+from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
@@ -40,7 +40,7 @@ class PySimulation(SimulationBackend):
         self.metrics_manager = HardwareMetricsManager()
 
     def _wishbone_slave(
-        self, mem_model: CoreMemoryModel, wb_ctrl: AsyncWishboneInterfaceWrapper, is_instr_bus: bool, delay: int = 0
+        self, mem_model: CoreMemoryModel, wb_ctrl: WishboneInterfaceWrapper, is_instr_bus: bool, delay: int = 0
     ):
         async def f(sim: TestbenchContext):
             while True:
@@ -129,8 +129,8 @@ class PySimulation(SimulationBackend):
         with DependencyContext(DependencyManager()):
             core = Core(gen_params=self.gp)
 
-            wb_instr_ctrl = AsyncWishboneInterfaceWrapper(core.wb_instr)
-            wb_data_ctrl = AsyncWishboneInterfaceWrapper(core.wb_data)
+            wb_instr_ctrl = WishboneInterfaceWrapper(core.wb_instr)
+            wb_data_ctrl = WishboneInterfaceWrapper(core.wb_data)
 
             self.running = True
             self.cycle_cnt = 0

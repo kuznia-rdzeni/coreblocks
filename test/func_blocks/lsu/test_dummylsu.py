@@ -16,7 +16,7 @@ from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLay
 from coreblocks.peripherals.wishbone import *
 from transactron.testing import AsyncTestbenchIO, TestCaseWithSimulator, async_def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from test.peripherals.test_wishbone import AsyncWishboneInterfaceWrapper
+from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 def generate_aligned_addr(max_reg_val: int) -> int:
@@ -103,7 +103,7 @@ class DummyLSUTestCircuit(Elaboratable):
 
         m.submodules.issue_mock = self.issue = AsyncTestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_mock = self.accept = AsyncTestbenchIO(AdapterTrans(func_unit.accept))
-        self.io_in = AsyncWishboneInterfaceWrapper(self.bus.wb_master)
+        self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.bus = self.bus
         return m
