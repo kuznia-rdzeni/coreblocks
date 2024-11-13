@@ -45,7 +45,7 @@ class TestFPUError(TestCaseWithSimulator):
     def test_special_cases(self, params: FPUParams, help_values: HelpValues):
         fpue = TestFPUError.FPUErrorModule(params)
 
-        def other_cases_test():
+        async def other_cases_test(sim: TestbenchContext):
             test_cases = [
                 # No errors
                 {
@@ -53,7 +53,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.not_max_norm_even_sig,
                     "exp": help_values.not_max_norm_exp,
                     "inexact": 0,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -64,7 +64,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.not_max_norm_even_sig,
                     "exp": help_values.not_max_norm_exp,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -75,7 +75,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.sub_norm_sig,
                     "exp": 0,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -86,7 +86,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.qnan,
                     "exp": help_values.max_exp,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 1,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -97,7 +97,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": 0,
                     "exp": help_values.max_exp,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 1,
                     "input_inf": 0,
@@ -108,7 +108,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": 0,
                     "exp": help_values.max_exp,
                     "inexact": 0,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -119,7 +119,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.sub_norm_sig,
                     "exp": 0,
                     "inexact": 0,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -130,7 +130,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.qnan,
                     "exp": help_values.max_exp,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -141,7 +141,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": 0,
                     "exp": help_values.max_exp,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 1,
@@ -152,7 +152,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sig": help_values.min_norm_sig,
                     "exp": 0,
                     "inexact": 1,
-                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
+                    "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY.value,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
                     "input_inf": 0,
@@ -188,17 +188,17 @@ class TestFPUError(TestCaseWithSimulator):
             ]
             for i in range(len(test_cases)):
 
-                resp = yield from fpue.error_checking_request_adapter.call(test_cases[i])
-                assert resp["sign"] == expected_results[i]["sign"]
-                assert resp["exp"] == expected_results[i]["exp"]
-                assert resp["sig"] == expected_results[i]["sig"]
-                assert resp["errors"] == expected_results[i]["errors"]
+                resp = await fpue.error_checking_request_adapter.call(sim, test_cases[i])
+                assert resp.sign == expected_results[i]["sign"]
+                assert resp.exp == expected_results[i]["exp"]
+                assert resp.sig == expected_results[i]["sig"]
+                assert resp.errors == expected_results[i]["errors"]
 
-        def test_process():
-            yield from other_cases_test()
+        async def test_process(sim: TestbenchContext):
+            await other_cases_test(sim)
 
         with self.run_simulation(fpue) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
     @parameterized.expand(
         [
@@ -261,14 +261,15 @@ class TestFPUError(TestCaseWithSimulator):
     ):
         fpue = TestFPUError.FPUErrorModule(params)
 
-        def one_rounding_mode_test():
+        async def one_rounding_mode_test(sim: TestbenchContext):
+            rm_int = rm.value  # TODO: workaround for amaranth bug
             test_cases = [
                 # overflow detection
                 {
                     "sign": 0,
                     "sig": 0,
                     "exp": help_values.max_exp,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                     "inexact": 0,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
@@ -278,7 +279,7 @@ class TestFPUError(TestCaseWithSimulator):
                     "sign": 1,
                     "sig": 0,
                     "exp": help_values.max_exp,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                     "inexact": 0,
                     "invalid_operation": 0,
                     "division_by_zero": 0,
@@ -292,14 +293,14 @@ class TestFPUError(TestCaseWithSimulator):
             ]
 
             for i in range(len(test_cases)):
-                resp = yield from fpue.error_checking_request_adapter.call(test_cases[i])
+                resp = await fpue.error_checking_request_adapter.call(sim, test_cases[i])
                 assert resp["sign"] == expected_results[i]["sign"]
                 assert resp["exp"] == expected_results[i]["exp"]
                 assert resp["sig"] == expected_results[i]["sig"]
                 assert resp["errors"] == expected_results[i]["errors"]
 
-        def test_process():
-            yield from one_rounding_mode_test()
+        async def test_process(sim: TestbenchContext):
+            await one_rounding_mode_test(sim)
 
         with self.run_simulation(fpue) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)

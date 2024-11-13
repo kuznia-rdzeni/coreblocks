@@ -95,7 +95,8 @@ class TestFPURounding(TestCaseWithSimulator):
     ):
         fpurt = TestFPURounding.FPURoundingModule(params)
 
-        def one_rounding_mode_test():
+        async def one_rounding_mode_test(sim: TestbenchContext):
+            rm_int = rm.value  # TODO: workaround for Amaranth bug
             test_cases = [
                 # carry after increment
                 {
@@ -104,7 +105,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 1,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 # no overflow 00
                 {
@@ -113,7 +114,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 0,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 {
                     "sign": 1,
@@ -121,7 +122,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 0,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 # no overflow 10
                 {
@@ -130,7 +131,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 {
                     "sign": 1,
@@ -138,7 +139,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 # no overflow 01
                 {
@@ -147,7 +148,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 1,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 {
                     "sign": 1,
@@ -155,7 +156,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 1,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 # no overflow 11
                 {
@@ -164,7 +165,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 1,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 {
                     "sign": 1,
@@ -172,7 +173,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 1,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 # Round to nearest tie to even
                 {
@@ -181,7 +182,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
                 {
                     "sign": 0,
@@ -189,7 +190,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm,
+                    "rounding_mode": rm_int,
                 },
             ]
             expected_results = [
@@ -264,13 +265,13 @@ class TestFPURounding(TestCaseWithSimulator):
 
             for i in range(num_of_test_cases):
 
-                resp = yield from fpurt.rounding_request_adapter.call(test_cases[i])
-                assert resp["exp"] == expected_results[i]["exp"]
-                assert resp["sig"] == expected_results[i]["sig"]
-                assert resp["inexact"] == expected_results[i]["inexact"]
+                resp = await fpurt.rounding_request_adapter.call(sim, test_cases[i])
+                assert resp.exp == expected_results[i]["exp"]
+                assert resp.sig == expected_results[i]["sig"]
+                assert resp.inexact == expected_results[i]["inexact"]
 
-        def test_process():
-            yield from one_rounding_mode_test()
+        async def test_process(sim: TestbenchContext):
+            await one_rounding_mode_test(sim)
 
         with self.run_simulation(fpurt) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
