@@ -21,7 +21,7 @@ class MethodMock:
         *,
         validate_arguments: Optional[Callable[..., bool]] = None,
         enable: Callable[[], bool] = lambda: True,
-        delay: float | int = 0,
+        delay: float = 0,
     ):
         self.adapter = adapter
         self.function = function
@@ -103,21 +103,21 @@ def async_def_method_mock(
     tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], **kwargs
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], MethodMock]]:
     """
-    TODO: better description!
-
     Decorator function to create method mock handlers. It should be applied on
     a function which describes functionality which we want to invoke on method call.
-    Such function will be wrapped by `method_handle_loop` and called on each
-    method invocation.
+    This function will be called on every clock cycle when the method is active,
+    and also on combinational changes to inputs.
 
-    Function `f` should take only one argument `arg` - data used in function
-    invocation - and should return data to be sent as response to the method call.
+    The decorated function can have a single argument `arg`, which receives
+    the arguments passed to a method as a `data.Const`, or multiple named arguments,
+    which correspond to named arguments of the method.
 
-    Function `f` can also be a method and take two arguments `self` and `arg`,
-    the data to be passed on to invoke a method.  It should return data to be sent
-    as response to the method call.
+    This decorator can be applied to function definitions or method definitions.
+    When applied to a method definition, lambdas passed to `async_def_method_mock`
+    need to take a `self` argument, which should be the first.
 
-    Instead of the `arg` argument, the data can be split into keyword arguments.
+    Any side effects (state modification, assertions, etc.) need to be guarded
+    using the `MethodMock.effect` decorator.
 
     Make sure to defer accessing state, since decorators are evaluated eagerly
     during function declaration.
@@ -125,9 +125,15 @@ def async_def_method_mock(
     Parameters
     ----------
     tb_getter : Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO]
-        Function to get the TestbenchIO providing appropriate `method_handle_loop`.
-    **kwargs
-        Arguments passed to `method_handle_loop`.
+        Function to get the TestbenchIO of the mocked method.
+    enable : Callable[[], bool] | Callable[[Any], bool]
+        Function which decides if the method is enabled in a given clock cycle.
+    validate_arguments : Callable[..., bool]
+        Function which validates call arguments. This applies only to Adapters
+        with `with_validate_arguments` set to True.
+    delay : float
+        Simulation time delay for method mock calling. Used for synchronization
+        between different mocks and testbench processes.
 
     Example
     -------
