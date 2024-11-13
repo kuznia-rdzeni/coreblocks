@@ -8,6 +8,7 @@ from amaranth_types.types import TestbenchContext
 
 from transactron.core.keys import TransactionManagerKey
 from transactron.profiler import Profile
+from transactron.testing.tick_count import make_tick_count_process
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
@@ -143,6 +144,7 @@ class PySimulation(SimulationBackend):
                 raise RuntimeError("Simulation finished due to an error")
 
             sim.add_process(make_logging_process(self.log_level, self.log_filter, on_error))
+            sim.add_process(make_tick_count_process())
 
             # This enables logging in benchmarks. TODO: after unifying regression testing, remove.
             logging.basicConfig()
