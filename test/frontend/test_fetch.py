@@ -15,7 +15,7 @@ from transactron.testing.sugar import MethodMock
 from transactron.utils import ModuleConnector
 from transactron.testing import (
     TestCaseWithSimulator,
-    AsyncTestbenchIO,
+    TestbenchIO,
     async_def_method_mock,
     SimpleTestCircuit,
 )
@@ -33,8 +33,8 @@ class MockedICache(Elaboratable, CacheInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.issue_req_io = AsyncTestbenchIO(Adapter(i=layouts.issue_req))
-        self.accept_res_io = AsyncTestbenchIO(Adapter(o=layouts.accept_res))
+        self.issue_req_io = TestbenchIO(Adapter(i=layouts.issue_req))
+        self.accept_res_io = TestbenchIO(Adapter(o=layouts.accept_res))
 
         self.issue_req = self.issue_req_io.adapter.iface
         self.accept_res = self.accept_res_io.adapter.iface
@@ -75,12 +75,12 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
-        self.io_out = AsyncTestbenchIO(AdapterTrans(fifo.read))
-        self.clean_fifo = AsyncTestbenchIO(AdapterTrans(fifo.clear))
-        self.fetch_resume_mock = AsyncTestbenchIO(Adapter())
+        self.io_out = TestbenchIO(AdapterTrans(fifo.read))
+        self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
+        self.fetch_resume_mock = TestbenchIO(Adapter())
         DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume_mock.adapter.iface)
 
-        self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write), async_tb=True)
+        self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))
 
         self.m = ModuleConnector(self.icache, fifo, self.io_out, self.clean_fifo, self.fetch)
 
@@ -144,7 +144,7 @@ class TestFetchUnit(TestCaseWithSimulator):
             while len(self.input_q) == 0:
                 await sim.tick()
 
-            await self.async_random_wait_geom(sim, 0.5)
+            await self.random_wait_geom(sim, 0.5)
 
             req_addr = self.input_q.popleft() & ~(self.gen_params.fetch_block_bytes - 1)
 
@@ -200,9 +200,9 @@ class TestFetchUnit(TestCaseWithSimulator):
                 assert v["instr"] == instr_data
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
-                await self.async_random_wait(sim, 5)
+                await self.random_wait(sim, 5)
                 await self.fetch.stall_exception.call(sim)
-                await self.async_random_wait(sim, 5)
+                await self.random_wait(sim, 5)
 
                 # Empty the pipeline
                 await self.clean_fifo.call_try(sim)
@@ -434,7 +434,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
             test_core_config.replace(compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log)
         )
 
-        self.m = SimpleTestCircuit(PredictionChecker(self.gen_params), async_tb=True)
+        self.m = SimpleTestCircuit(PredictionChecker(self.gen_params))
 
     async def check(
         self,

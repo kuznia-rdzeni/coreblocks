@@ -20,7 +20,7 @@ from transactron.testing import (
     TestCaseWithSimulator,
     data_layout,
     async_def_method_mock,
-    AsyncTestbenchIO,
+    TestbenchIO,
 )
 
 
@@ -43,19 +43,19 @@ class TestFifoBase(TestCaseWithSimulator):
     ):
         iosize = 8
 
-        m = SimpleTestCircuit(fifo_class(data_layout(iosize), **fifo_kwargs), async_tb=True)
+        m = SimpleTestCircuit(fifo_class(data_layout(iosize), **fifo_kwargs))
 
         random.seed(1337)
 
         async def writer(sim: TestbenchContext):
             for i in range(2**iosize):
                 await m.write.call(sim, data=i)
-                await self.async_random_wait(sim, writer_rand)
+                await self.random_wait(sim, writer_rand)
 
         async def reader(sim: TestbenchContext):
             for i in range(2**iosize):
                 assert (await m.read.call(sim)).data == i
-                await self.async_random_wait(sim, reader_rand)
+                await self.random_wait(sim, reader_rand)
 
         with self.run_simulation(m) as sim:
             sim.add_testbench(reader)
@@ -86,7 +86,7 @@ class TestForwarder(TestFifoBase):
     def test_forwarding(self):
         iosize = 8
 
-        m = SimpleTestCircuit(Forwarder(data_layout(iosize)), async_tb=True)
+        m = SimpleTestCircuit(Forwarder(data_layout(iosize)))
 
         async def forward_check(sim: TestbenchContext, x: int):
             read_res, write_res = await CallTrigger(sim).call(m.read).call(m.write, data=x)
@@ -157,7 +157,6 @@ class TestMemoryBank(TestCaseWithSimulator):
                 read_ports=read_ports,
                 write_ports=write_ports,
             ),
-            async_tb=True,
         )
 
         data: list[int] = [0 for _ in range(max_addr)]
@@ -173,7 +172,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                     await m.writes[i].call(sim, data={"data": d}, addr=a)
                     await sim.delay(1e-9 * (i + 2 if not transparent else i))
                     data[a] = d
-                    await self.async_random_wait(sim, writer_rand)
+                    await self.random_wait(sim, writer_rand)
 
             return process
 
@@ -185,7 +184,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                     await sim.delay(1e-9 * (1 if not transparent else write_ports + 2))
                     d = data[a]
                     read_req_queues[i].append(d)
-                    await self.async_random_wait(sim, reader_req_rand)
+                    await self.random_wait(sim, reader_req_rand)
 
             return process
 
@@ -194,11 +193,11 @@ class TestMemoryBank(TestCaseWithSimulator):
                 for cycle in range(test_count):
                     await sim.delay(1e-9 * (write_ports + 3))
                     while not read_req_queues[i]:
-                        await self.async_random_wait(sim, reader_resp_rand or 1, min_cycle_cnt=1)
+                        await self.random_wait(sim, reader_resp_rand or 1, min_cycle_cnt=1)
                         await sim.delay(1e-9 * (write_ports + 3))
                     d = read_req_queues[i].popleft()
                     assert (await m.read_resps[i].call(sim)).data == d
-                    await self.async_random_wait(sim, reader_resp_rand)
+                    await self.random_wait(sim, reader_resp_rand)
 
             return process
 
@@ -227,7 +226,6 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
             AsyncMemoryBank(
                 data_layout=[("data", data_width)], elem_count=max_addr, read_ports=read_ports, write_ports=write_ports
             ),
-            async_tb=True,
         )
 
         data: list[int] = list(0 for i in range(max_addr))
@@ -242,7 +240,7 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
                     await m.writes[i].call(sim, data={"data": d}, addr=a)
                     await sim.delay(1e-9 * (i + 2))
                     data[a] = d
-                    await self.async_random_wait(sim, writer_rand, min_cycle_cnt=1)
+                    await self.random_wait(sim, writer_rand, min_cycle_cnt=1)
 
             return process
 
@@ -254,7 +252,7 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
                     await sim.delay(1e-9)
                     expected_d = data[a]
                     assert d["data"] == expected_d
-                    await self.async_random_wait(sim, reader_rand, min_cycle_cnt=1)
+                    await self.random_wait(sim, reader_rand, min_cycle_cnt=1)
 
             return process
 
@@ -269,20 +267,20 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
     def __init__(self, count: int, lay: MethodLayout):
         self.count = count
         self.lay = lay
-        self.inputs: list[AsyncTestbenchIO] = []
+        self.inputs: list[TestbenchIO] = []
 
     def elaborate(self, platform):
         m = TModule()
 
         get_results = []
         for i in range(self.count):
-            input = AsyncTestbenchIO(Adapter(o=self.lay))
+            input = TestbenchIO(Adapter(o=self.lay))
             get_results.append(input.adapter.iface)
             m.submodules[f"input_{i}"] = input
             self.inputs.append(input)
 
         # Create ManyToOneConnectTrans, which will serialize results from different inputs
-        output = AsyncTestbenchIO(Adapter(i=self.lay))
+        output = TestbenchIO(Adapter(i=self.lay))
         m.submodules.output = self.output = output
         m.submodules.fu_arbitration = ManyToOneConnectTrans(get_results=get_results, put_result=output.adapter.iface)
 
@@ -331,7 +329,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
             inputs = self.inputs[i]
             for field1, field2 in inputs:
                 self.m.inputs[i].call_init(sim, field1=field1, field2=field2)
-                await self.async_random_wait(sim, self.max_wait)
+                await self.random_wait(sim, self.max_wait)
             self.producer_end[i] = True
 
         return producer
@@ -349,7 +347,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     @pytest.mark.parametrize("count", [1, 4])
     def test(self, count: int):
@@ -395,7 +393,7 @@ class MethodMapTestCircuit(Elaboratable):
             itransform = itransform_rec
             otransform = otransform_rec
 
-        m.submodules.target = self.target = AsyncTestbenchIO(Adapter(i=layout, o=layout))
+        m.submodules.target = self.target = TestbenchIO(Adapter(i=layout, o=layout))
 
         if self.use_methods:
             imeth = Method(i=layout, o=layout)
@@ -417,7 +415,7 @@ class MethodMapTestCircuit(Elaboratable):
                 o_transform=(layout, otransform),
             )
 
-        m.submodules.source = self.source = AsyncTestbenchIO(AdapterTrans(trans.use(m)))
+        m.submodules.source = self.source = TestbenchIO(AdapterTrans(trans.use(m)))
 
         return m
 
@@ -455,8 +453,8 @@ class TestMethodFilter(TestCaseWithSimulator):
     def initialize(self):
         self.iosize = 4
         self.layout = data_layout(self.iosize)
-        self.target = AsyncTestbenchIO(Adapter(i=self.layout, o=self.layout))
-        self.cmeth = AsyncTestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
+        self.target = TestbenchIO(Adapter(i=self.layout, o=self.layout))
+        self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
 
     async def source(self, sim: TestbenchContext):
         for i in range(2**self.iosize):
@@ -476,7 +474,7 @@ class TestMethodFilter(TestCaseWithSimulator):
 
     def test_method_filter_with_methods(self):
         self.initialize()
-        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface), async_tb=True)
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
             sim.add_testbench(self.source)
@@ -488,9 +486,7 @@ class TestMethodFilter(TestCaseWithSimulator):
         def condition(_, v):
             return v.data[0]
 
-        self.tc = SimpleTestCircuit(
-            MethodFilter(self.target.adapter.iface, condition, use_condition=use_condition), async_tb=True
-        )
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition, use_condition=use_condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
             sim.add_testbench(self.source)
@@ -501,7 +497,7 @@ class MethodProductTestCircuit(Elaboratable):
         self.iosize = iosize
         self.targets = targets
         self.add_combiner = add_combiner
-        self.target: list[AsyncTestbenchIO] = []
+        self.target: list[TestbenchIO] = []
 
     def elaborate(self, platform):
         m = TModule()
@@ -511,7 +507,7 @@ class MethodProductTestCircuit(Elaboratable):
         methods = []
 
         for k in range(self.targets):
-            tgt = AsyncTestbenchIO(Adapter(i=layout, o=layout))
+            tgt = TestbenchIO(Adapter(i=layout, o=layout))
             methods.append(tgt.adapter.iface)
             self.target.append(tgt)
             m.submodules += tgt
@@ -522,7 +518,7 @@ class MethodProductTestCircuit(Elaboratable):
 
         product = MethodProduct(methods, combiner)
 
-        m.submodules.method = self.method = AsyncTestbenchIO(AdapterTrans(product.use(m)))
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.use(m)))
 
         return m
 
@@ -582,8 +578,8 @@ class TestSerializer(TestCaseWithSimulator):
 
         layout = [("field", self.data_width)]
 
-        self.req_method = AsyncTestbenchIO(Adapter(i=layout))
-        self.resp_method = AsyncTestbenchIO(Adapter(o=layout))
+        self.req_method = TestbenchIO(Adapter(i=layout))
+        self.resp_method = TestbenchIO(Adapter(o=layout))
 
         self.test_circuit = SimpleTestCircuit(
             Serializer(
@@ -591,7 +587,6 @@ class TestSerializer(TestCaseWithSimulator):
                 serialized_req_method=self.req_method.adapter.iface,
                 serialized_resp_method=self.resp_method.adapter.iface,
             ),
-            async_tb=True,
         )
         self.m = ModuleConnector(
             test_circuit=self.test_circuit, req_method=self.req_method, resp_method=self.resp_method
@@ -626,7 +621,7 @@ class TestSerializer(TestCaseWithSimulator):
                 d = random.randrange(2**self.data_width)
                 await self.test_circuit.serialize_in[i].call(sim, field=d)
                 self.port_data[i].append(d)
-                await self.async_random_wait(sim, self.requestor_rand, min_cycle_cnt=1)
+                await self.random_wait(sim, self.requestor_rand, min_cycle_cnt=1)
 
         return f
 
@@ -635,7 +630,7 @@ class TestSerializer(TestCaseWithSimulator):
             for _ in range(self.test_count):
                 data_out = await self.test_circuit.serialize_out[i].call(sim)
                 assert self.port_data[i].popleft() == data_out.field
-                await self.async_random_wait(sim, self.requestor_rand, min_cycle_cnt=1)
+                await self.random_wait(sim, self.requestor_rand, min_cycle_cnt=1)
 
         return f
 
@@ -691,7 +686,7 @@ class MethodTryProductTestCircuit(Elaboratable):
         self.iosize = iosize
         self.targets = targets
         self.add_combiner = add_combiner
-        self.target: list[AsyncTestbenchIO] = []
+        self.target: list[TestbenchIO] = []
 
     def elaborate(self, platform):
         m = TModule()
@@ -701,7 +696,7 @@ class MethodTryProductTestCircuit(Elaboratable):
         methods = []
 
         for k in range(self.targets):
-            tgt = AsyncTestbenchIO(Adapter(i=layout, o=layout))
+            tgt = TestbenchIO(Adapter(i=layout, o=layout))
             methods.append(tgt.adapter.iface)
             self.target.append(tgt)
             m.submodules += tgt
@@ -712,7 +707,7 @@ class MethodTryProductTestCircuit(Elaboratable):
 
         product = MethodTryProduct(methods, combiner)
 
-        m.submodules.method = self.method = AsyncTestbenchIO(AdapterTrans(product.use(m)))
+        m.submodules.method = self.method = TestbenchIO(AdapterTrans(product.use(m)))
 
         return m
 
@@ -749,11 +744,10 @@ class TestCondition(TestCaseWithSimulator):
     @pytest.mark.parametrize("priority", [False, True])
     @pytest.mark.parametrize("catchall", [False, True])
     def test_condition(self, nonblocking: bool, priority: bool, catchall: bool):
-        target = AsyncTestbenchIO(Adapter(i=[("cond", 2)]))
+        target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
         circ = SimpleTestCircuit(
             ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall),
-            async_tb=True,
         )
         m = ModuleConnector(test_circuit=circ, target=target)
 

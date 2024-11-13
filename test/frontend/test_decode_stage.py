@@ -1,8 +1,8 @@
 from amaranth_types.types import TestbenchContext
 import pytest
 from transactron.lib import AdapterTrans, FIFO
-
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, SimpleTestCircuit, ModuleConnector
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit
 
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.params import GenParams
@@ -19,8 +19,8 @@ class TestDecode(TestCaseWithSimulator):
         fifo_in = FIFO(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         fifo_out = FIFO(self.gen_params.get(DecodeLayouts).decoded_instr, depth=2)
 
-        self.fifo_in_write = AsyncTestbenchIO(AdapterTrans(fifo_in.write))
-        self.fifo_out_read = AsyncTestbenchIO(AdapterTrans(fifo_out.read))
+        self.fifo_in_write = TestbenchIO(AdapterTrans(fifo_in.write))
+        self.fifo_out_read = TestbenchIO(AdapterTrans(fifo_out.read))
 
         self.decode = DecodeStage(self.gen_params, fifo_in.read, fifo_out.write)
         self.m = SimpleTestCircuit(

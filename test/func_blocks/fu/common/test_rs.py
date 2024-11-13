@@ -67,9 +67,7 @@ class TestRS(TestCaseWithSimulator):
         random.seed(42)
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(
-            self.rs_elaboratable(self.gen_params, 2**self.rs_entries_bits, 0, None), async_tb=True
-        )
+        self.m = SimpleTestCircuit(self.rs_elaboratable(self.gen_params, 2**self.rs_entries_bits, 0, None))
         self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits)
         self.select_queue: deque[int] = deque()
         self.regs_to_update: set[int] = set()
@@ -145,7 +143,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
     def test_insert(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None), async_tb=True)
+        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -188,7 +186,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
     def test_select(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None), async_tb=True)
+        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -246,7 +244,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
     def test_update(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None), async_tb=True)
+        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -332,7 +330,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
     def test_take(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None), async_tb=True)
+        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -424,7 +422,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
     def test_get_ready_list(self):
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None), async_tb=True)
+        self.m = SimpleTestCircuit(RS(self.gen_params, 2**self.rs_entries_bits, 0, None))
         self.insert_list = [
             {
                 "rs_entry_id": id,
@@ -478,7 +476,6 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
         self.m = SimpleTestCircuit(
             RS(self.gen_params, 2**self.rs_entries_bits, 0, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]]),
-            async_tb=True,
         )
         self.insert_list = [
             {

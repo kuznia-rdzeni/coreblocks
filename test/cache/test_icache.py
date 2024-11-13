@@ -16,7 +16,7 @@ from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, async_def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, async_def_method_mock
 from transactron.testing.functions import MethodData
 from transactron.testing.sugar import MethodMock
 from transactron.testing.testbenchio import CallTrigger
@@ -42,8 +42,8 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
         )
 
-        self.start_refill = AsyncTestbenchIO(AdapterTrans(self.refiller.start_refill))
-        self.accept_refill = AsyncTestbenchIO(AdapterTrans(self.refiller.accept_refill))
+        self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
+        self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
 
         m.submodules.wb_master = self.wb_master
         m.submodules.bus_master_adapter = self.bus_master_adapter
@@ -109,7 +109,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
             addr = adr << exact_log2(self.cp.word_width_bytes)
 
-            await self.async_random_wait_geom(sim, 0.5)
+            await self.random_wait_geom(sim, 0.5)
 
             err = 1 if addr in self.bad_addresses else 0
 
@@ -169,8 +169,8 @@ class ICacheBypassTestCircuit(Elaboratable):
         m.submodules.bypass = self.bypass = ICacheBypass(
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
         )
-        m.submodules.issue_req = self.issue_req = AsyncTestbenchIO(AdapterTrans(self.bypass.issue_req))
-        m.submodules.accept_res = self.accept_res = AsyncTestbenchIO(AdapterTrans(self.bypass.accept_res))
+        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
+        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
 
         self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
@@ -225,7 +225,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             # Wishbone is addressing words, so we need to shift it a bit to get the real address.
             addr = adr << exact_log2(self.cp.word_width_bytes)
 
-            await self.async_random_wait_geom(sim, 0.5)
+            await self.random_wait_geom(sim, 0.5)
 
             err = 1 if addr in self.bad_addrs else 0
 
@@ -240,7 +240,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             req_addr = self.requests.popleft() & ~(self.cp.fetch_block_bytes - 1)
             await self.m.issue_req.call(sim, addr=req_addr)
 
-            await self.async_random_wait_geom(sim, 0.5)
+            await self.random_wait_geom(sim, 0.5)
 
             ret = await self.m.accept_res.call(sim)
 
@@ -254,7 +254,7 @@ class TestICacheBypass(TestCaseWithSimulator):
                     data |= self.mem[req_addr + 4] << 32
                 assert ret["fetch_block"] == data
 
-            await self.async_random_wait_geom(sim, 0.5)
+            await self.random_wait_geom(sim, 0.5)
 
     def test(self):
         with self.run_simulation(self.m) as sim:
@@ -266,8 +266,8 @@ class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.start_refill_mock = AsyncTestbenchIO(Adapter(i=layouts.start_refill))
-        self.accept_refill_mock = AsyncTestbenchIO(Adapter(o=layouts.accept_refill))
+        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
+        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
 
         self.start_refill = self.start_refill_mock.adapter.iface
         self.accept_refill = self.accept_refill_mock.adapter.iface
@@ -291,9 +291,9 @@ class ICacheTestCircuit(Elaboratable):
 
         m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gen_params)
         m.submodules.cache = self.cache = ICache(self.gen_params.get(ICacheLayouts), self.cp, self.refiller)
-        m.submodules.issue_req = self.issue_req = AsyncTestbenchIO(AdapterTrans(self.cache.issue_req))
-        m.submodules.accept_res = self.accept_res = AsyncTestbenchIO(AdapterTrans(self.cache.accept_res))
-        m.submodules.flush_cache = self.flush_cache = AsyncTestbenchIO(AdapterTrans(self.cache.flush))
+        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
+        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
+        m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
 
         return m
 
@@ -491,7 +491,7 @@ class TestICache(TestCaseWithSimulator):
                 await self.call_cache(sim, addr)
                 self.expect_refill(addr)
 
-            await self.async_tick(sim, 4)
+            await self.tick(sim, 4)
 
             # Create a stream of requests to ensure the pipeline is working
             self.m.accept_res.enable(sim)
@@ -508,14 +508,14 @@ class TestICache(TestCaseWithSimulator):
 
             self.m.accept_res.disable(sim)
 
-            await self.async_tick(sim, 4)
+            await self.tick(sim, 4)
 
             # Check how the cache handles queuing the requests
             await self.send_req(sim, addr=0x00010000 + 3 * self.cp.line_size_bytes)
             await self.send_req(sim, addr=0x00010004)
 
             # Wait a few cycles. There are two requests queued
-            await self.async_tick(sim, 4)
+            await self.tick(sim, 4)
 
             self.m.accept_res.enable(sim)
             await self.expect_resp(
@@ -531,7 +531,7 @@ class TestICache(TestCaseWithSimulator):
 
             self.m.accept_res.disable(sim)
 
-            await self.async_tick(sim, 4)
+            await self.tick(sim, 4)
 
             # Schedule two requests, the first one causing a cache miss
             await self.send_req(sim, addr=0x00020000)
@@ -545,7 +545,7 @@ class TestICache(TestCaseWithSimulator):
             )
             self.m.accept_res.disable(sim)
 
-            await self.async_tick(sim, 2)
+            await self.tick(sim, 2)
 
             # Schedule two requests, the second one causing a cache miss
             await self.send_req(sim, addr=0x00020004)
@@ -559,7 +559,7 @@ class TestICache(TestCaseWithSimulator):
             await self.expect_resp(sim, wait=True)
             self.m.accept_res.disable(sim)
 
-            await self.async_tick(sim, 2)
+            await self.tick(sim, 2)
 
             # Schedule two requests, both causing a cache miss
             await self.send_req(sim, addr=0x00040000)
@@ -686,13 +686,13 @@ class TestICache(TestCaseWithSimulator):
             await self.expect_resp(sim, wait=True)
             self.m.accept_res.disable(sim)
 
-            await self.async_tick(sim, 3)
+            await self.tick(sim, 3)
 
             # Schedule two requests, the second one causing an error
             await self.send_req(sim, addr=0x00021004)
             await self.send_req(sim, addr=0x00030000)
 
-            await self.async_tick(sim, 10)
+            await self.tick(sim, 10)
 
             self.m.accept_res.enable(sim)
 
@@ -700,7 +700,7 @@ class TestICache(TestCaseWithSimulator):
             await self.expect_resp(sim, wait=True)
             self.m.accept_res.disable(sim)
 
-            await self.async_tick(sim, 3)
+            await self.tick(sim, 3)
 
             # Schedule two requests, both causing an error
             await self.send_req(sim, addr=0x00020000)
@@ -716,7 +716,7 @@ class TestICache(TestCaseWithSimulator):
             await self.send_req(sim, addr=0x00021004)
             await self.send_req(sim, addr=0x00030000)
 
-            await self.async_tick(sim, 10)
+            await self.tick(sim, 10)
 
             # Accept the first response
             self.m.accept_res.enable(sim)
@@ -724,7 +724,7 @@ class TestICache(TestCaseWithSimulator):
 
             # Wait before accepting the second response
             self.m.accept_res.disable(sim)
-            await self.async_tick(sim, 10)
+            await self.tick(sim, 10)
             self.m.accept_res.enable(sim)
             await self.expect_resp(sim, wait=True)
 
@@ -747,16 +747,16 @@ class TestICache(TestCaseWithSimulator):
 
         async def refiller_ctrl(sim: TestbenchContext):
             while True:
-                await self.async_random_wait_geom(sim, 0.4)
+                await self.random_wait_geom(sim, 0.4)
                 self.accept_refill_request = False
 
-                await self.async_random_wait_geom(sim, 0.7)
+                await self.random_wait_geom(sim, 0.7)
                 self.accept_refill_request = True
 
         async def sender(sim: TestbenchContext):
             for _ in range(iterations):
                 await self.send_req(sim, random.randrange(0, max_addr, 4))
-                await self.async_random_wait_geom(sim, 0.5)
+                await self.random_wait_geom(sim, 0.5)
 
         async def receiver(sim: TestbenchContext):
             for _ in range(iterations):
@@ -764,7 +764,7 @@ class TestICache(TestCaseWithSimulator):
                     await sim.tick()
 
                 self.assert_resp(await self.m.accept_res.call(sim))
-                await self.async_random_wait_geom(sim, 0.2)
+                await self.random_wait_geom(sim, 0.2)
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(sender)

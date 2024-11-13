@@ -3,7 +3,7 @@ from amaranth import *
 from amaranth.sim import *
 from amaranth_types.types import TestbenchContext
 
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.testing.sugar import async_def_method_mock
@@ -15,9 +15,9 @@ class ValidateArgumentsTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        self.method = AsyncTestbenchIO(Adapter(i=data_layout(1), o=data_layout(1)).set(with_validate_arguments=True))
-        self.caller1 = AsyncTestbenchIO(AdapterTrans(self.method.adapter.iface))
-        self.caller2 = AsyncTestbenchIO(AdapterTrans(self.method.adapter.iface))
+        self.method = TestbenchIO(Adapter(i=data_layout(1), o=data_layout(1)).set(with_validate_arguments=True))
+        self.caller1 = TestbenchIO(AdapterTrans(self.method.adapter.iface))
+        self.caller2 = TestbenchIO(AdapterTrans(self.method.adapter.iface))
 
         m.submodules += [self.method, self.caller1, self.caller2]
 
@@ -25,7 +25,7 @@ class ValidateArgumentsTestCircuit(Elaboratable):
 
 
 class TestValidateArguments(TestCaseWithSimulator):
-    def control_caller(self, caller: AsyncTestbenchIO, method: AsyncTestbenchIO):
+    def control_caller(self, caller: TestbenchIO, method: TestbenchIO):
         async def process(sim: TestbenchContext):
             await sim.tick()
             await sim.tick()
@@ -46,7 +46,7 @@ class TestValidateArguments(TestCaseWithSimulator):
 
     async def changer(self, sim: TestbenchContext):
         for _ in range(50):
-            await sim.tick("sync_neg")
+            await sim.tick()
         self.accepted_val = 1
 
     @async_def_method_mock(tb_getter=lambda self: self.m.method, validate_arguments=validate_arguments)

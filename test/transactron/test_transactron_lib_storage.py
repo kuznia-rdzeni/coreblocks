@@ -16,7 +16,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
         self.entries_count = 8
 
         self.circ = SimpleTestCircuit(
-            ContentAddressableMemory(self.addr_layout, self.content_layout, self.entries_count), async_tb=True
+            ContentAddressableMemory(self.addr_layout, self.content_layout, self.entries_count)
         )
 
         self.memory = {}

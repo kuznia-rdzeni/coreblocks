@@ -12,7 +12,7 @@ from transactron.testing.sugar import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import AsyncTestbenchIO, TestCaseWithSimulator, async_def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, async_def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
@@ -59,14 +59,14 @@ class PMAIndirectTestCircuit(Elaboratable):
         self.bus = WishboneMaster(wb_params)
         self.bus_master_adapter = WishboneMasterAdapter(self.bus)
 
-        m.submodules.exception_report = self.exception_report = AsyncTestbenchIO(
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
-        m.submodules.precommit = self.precommit = AsyncTestbenchIO(
+        m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
                 i=layouts.precommit_in,
                 o=layouts.precommit_out,
@@ -76,13 +76,13 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
-        m.submodules.core_state = self.core_state = AsyncTestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
-        m.submodules.issue_mock = self.issue = AsyncTestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_mock = self.accept = AsyncTestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
+        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
         self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus = self.bus
         m.submodules.bus_master_adapter = self.bus_master_adapter

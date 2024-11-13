@@ -5,7 +5,7 @@ from typing import Optional
 from amaranth import *
 from amaranth.sim import *
 from transactron.testing.sugar import MethodMock, async_def_method_mock
-from transactron.testing.testbenchio import AsyncTestbenchIO
+from transactron.testing.testbenchio import TestbenchIO
 
 from transactron.utils import ModuleConnector
 
@@ -45,7 +45,7 @@ class SimultaneousDiamondTestCircuit(Elaboratable):
 
 class TestSimultaneousDiamond(TestCaseWithSimulator):
     def test_diamond(self):
-        circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit(), async_tb=True)
+        circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit())
 
         async def process(sim: TestbenchContext):
             methods = {"l": circ.method_l, "r": circ.method_r, "u": circ.method_u, "d": circ.method_d}
@@ -141,11 +141,11 @@ class TransitivityTestCircuit(Elaboratable):
 
 class TestTransitivity(TestCaseWithSimulator):
     def test_transitivity(self):
-        target = AsyncTestbenchIO(Adapter(i=[("data", 2)]))
+        target = TestbenchIO(Adapter(i=[("data", 2)]))
         req1 = Signal()
         req2 = Signal()
 
-        circ = SimpleTestCircuit(TransitivityTestCircuit(target.adapter.iface, req1, req2), async_tb=True)
+        circ = SimpleTestCircuit(TransitivityTestCircuit(target.adapter.iface, req1, req2))
         m = ModuleConnector(test_circuit=circ, target=target)
 
         result: Optional[int]

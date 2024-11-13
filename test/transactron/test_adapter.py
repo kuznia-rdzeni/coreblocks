@@ -4,7 +4,8 @@ from amaranth_types.types import TestbenchContext
 from transactron import Method, def_method, TModule
 
 
-from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, ModuleConnector
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 
 class Echo(Elaboratable):
@@ -54,8 +55,8 @@ class TestAdapterTrans(TestCaseWithSimulator):
             assert expected == obtained
 
     def test_single(self):
-        self.echo = SimpleTestCircuit(Echo(), async_tb=True)
-        self.consumer = SimpleTestCircuit(Consumer(), async_tb=True)
+        self.echo = SimpleTestCircuit(Echo())
+        self.consumer = SimpleTestCircuit(Consumer())
         self.m = ModuleConnector(echo=self.echo, consumer=self.consumer)
 
         with self.run_simulation(self.m, max_cycles=100) as sim:

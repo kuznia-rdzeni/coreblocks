@@ -151,7 +151,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
     configuration: CoreConfiguration
 
     async def run_and_check(self, sim: TestbenchContext):
-        await self.async_tick(sim, self.cycle_count)
+        await self.tick(sim, self.cycle_count)
 
         for reg_id, val in self.expected_regvals.items():
             assert self.get_arch_reg_val(sim, reg_id) == val
@@ -248,7 +248,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 # run main code for some semi-random amount of cycles
                 c = random.randrange(self.lo, self.hi)
                 main_cycles += c
-                await self.async_tick(sim, c)
+                await self.tick(sim, c)
                 # trigger an interrupt
                 int_count += await do_interrupt()
 
@@ -322,7 +322,7 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
                     break
 
         await wait_or_timeout(self.m.core.interrupt_controller.mie.value, lambda value: value != 0)
-        await self.async_random_wait(sim, 5)
+        await self.random_wait(sim, 5)
 
         while self.cycles < self.cycle_count:
             sim.set(self.m.interrupt_level, 1)
@@ -343,7 +343,7 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
                 self.m.core.csr_generic.m_mode.priv_mode.value, lambda value: value != PrivilegeLevel.MACHINE
             )
 
-            await self.async_random_wait(sim, 5)
+            await self.random_wait(sim, 5)
 
         for reg_id, val in self.expected_regvals.items():
             assert self.get_arch_reg_val(sim, reg_id) == val

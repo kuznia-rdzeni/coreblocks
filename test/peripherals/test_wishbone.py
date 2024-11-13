@@ -3,7 +3,7 @@ import random
 from collections import deque
 
 from amaranth.lib.wiring import connect
-from amaranth_types.types import TestbenchContext
+from amaranth_types import AnySimulatorContext, ValueLike
 
 from coreblocks.peripherals.wishbone import *
 
@@ -100,8 +100,8 @@ class TestWishboneMaster(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = Module()
             m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-            m.submodules.rqa = self.requestAdapter = AsyncTestbenchIO(AdapterTrans(wbm.request))
-            m.submodules.rsa = self.resultAdapter = AsyncTestbenchIO(AdapterTrans(wbm.result))
+            m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
+            m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
             return m
 
     def test_manual(self):
@@ -259,7 +259,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
 
         random.seed(42)
         wb_params = WishboneParameters()
-        pwbm = SimpleTestCircuit(PipelinedWishboneMaster((wb_params)), async_tb=True)
+        pwbm = SimpleTestCircuit(PipelinedWishboneMaster((wb_params)))
 
         async def request_process(sim: TestbenchContext):
             for _ in range(requests):
@@ -274,7 +274,7 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
 
         async def verify_process(sim: TestbenchContext):
             for _ in range(requests):
-                await self.async_random_wait_geom(sim, 0.8)
+                await self.random_wait_geom(sim, 0.8)
 
                 result = await pwbm.result.call(sim)
                 cres = res_queue.pop()
@@ -322,8 +322,8 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
         m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params, **self.mem_args)
         m.submodules.mem_master = self.mem_master = WishboneMaster(self.wb_params)
-        m.submodules.request = self.request = AsyncTestbenchIO(AdapterTrans(self.mem_master.request))
-        m.submodules.result = self.result = AsyncTestbenchIO(AdapterTrans(self.mem_master.result))
+        m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
+        m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
 
         connect(m, self.mem_master.wb_master, self.mem_slave.bus)
 
@@ -358,12 +358,12 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 }
                 req_queue.appendleft(req)
 
-                await self.async_random_wait_geom(sim, 0.2)
+                await self.random_wait_geom(sim, 0.2)
                 await self.m.request.call(sim, req)
 
         async def result_process(sim: TestbenchContext):
             for _ in range(self.iters):
-                await self.async_random_wait_geom(sim, 0.2)
+                await self.random_wait_geom(sim, 0.2)
                 res = await self.m.result.call(sim)
                 req = req_queue.pop()
 

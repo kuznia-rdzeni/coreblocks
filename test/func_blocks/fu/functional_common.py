@@ -21,8 +21,7 @@ from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
 from transactron.testing import (
     RecordIntDict,
-    RecordIntDictRet,
-    AsyncTestbenchIO,
+    TestbenchIO,
     TestCaseWithSimulator,
     SimpleTestCircuit,
 )
@@ -106,20 +105,20 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config)
 
-        self.report_mock = AsyncTestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
         self.csrs = GenericCSRRegisters(self.gen_params)
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 
-        self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params), async_tb=True)
+        self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
         self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
-        self.responses = deque[RecordIntDictRet]()
-        self.exceptions = deque[RecordIntDictRet]()
+        self.responses = deque[RecordIntDict]()
+        self.exceptions = deque[RecordIntDict]()
 
         max_int = 2**self.gen_params.isa.xlen - 1
         functions = list(self.ops.keys())
@@ -170,13 +169,13 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             expected = self.responses.pop()
             result = await self.m.accept.call(sim)
             assert expected == data_const_to_dict(result)
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     async def producer(self, sim: TestbenchContext):
         while self.requests:
             req = self.requests.pop()
             await self.m.issue.call(sim, req)
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     async def exception_consumer(self, sim: TestbenchContext):
         # This is a background testbench so that extra calls can be detected reliably
@@ -185,7 +184,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
                 expected = self.exceptions.pop()
                 result = await self.report_mock.call(sim)
                 assert expected == data_const_to_dict(result)
-                await self.async_random_wait(sim, self.max_wait)
+                await self.random_wait(sim, self.max_wait)
 
         # keep partialy dependent tests from hanging up and detect extra calls
         result = await self.report_mock.call(sim)

@@ -1,5 +1,5 @@
 from amaranth import *
-from random import random
+import random
 
 from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
@@ -17,6 +17,7 @@ from coreblocks.interface.keys import (
     CSRInstancesKey,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel
+from transactron.lib.adapters import AdapterTrans
 from transactron.utils.dependencies import DependencyContext
 
 from transactron.testing import *
@@ -31,7 +32,7 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.precommit = self.precommit = AsyncTestbenchIO(
+        m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
                 i=self.gen_params.get(RetirementLayouts).precommit_in,
                 o=self.gen_params.get(RetirementLayouts).precommit_out,
@@ -43,20 +44,20 @@ class CSRUnitTestCircuit(Elaboratable):
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
-        m.submodules.select = self.select = AsyncTestbenchIO(AdapterTrans(self.dut.select))
-        m.submodules.insert = self.insert = AsyncTestbenchIO(AdapterTrans(self.dut.insert))
-        m.submodules.update = self.update = AsyncTestbenchIO(AdapterTrans(self.dut.update))
-        m.submodules.accept = self.accept = AsyncTestbenchIO(AdapterTrans(self.dut.get_result))
-        m.submodules.exception_report = self.exception_report = AsyncTestbenchIO(
+        m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
+        m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
+        m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
+        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
-        m.submodules.priv_io = self.priv_io = AsyncTestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
+        m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        m.submodules.fetch_resume = self.fetch_resume = AsyncTestbenchIO(AdapterTrans(self.dut.fetch_resume))
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
 
         self.csr = {}
 
@@ -134,7 +135,7 @@ class TestCSRUnit(TestCaseWithSimulator):
         self.dut.fetch_resume.enable(sim)
         self.dut.exception_report.enable(sim)
         for _ in range(self.cycles):
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
 
             op = self.generate_instruction(sim)
 
@@ -142,17 +143,17 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             await self.dut.insert.call(sim, rs_data=op["instr"])
 
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
             if op["exp"]["rs1"]["rp_s1"]:
                 await self.dut.update.call(sim, reg_id=op["exp"]["rs1"]["rp_s1"], reg_val=op["exp"]["rs1"]["value"])
 
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
             for _, r in self.dut.precommit.adapter.validators:  # type: ignore
                 sim.set(r, 1)
             self.dut.precommit.call_init(sim, side_fx=1)  # TODO: sensible precommit handling
 
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
             res, resume_res = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.fetch_resume).until_done()
             self.dut.precommit.disable(sim)
 
@@ -190,7 +191,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             else:
                 await self.dut.priv_io.call(sim, data=PrivilegeLevel.MACHINE)
 
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
 
             await self.dut.select.call(sim)
 
@@ -209,13 +210,13 @@ class TestCSRUnit(TestCaseWithSimulator):
                 },
             )
 
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
             for _, r in self.dut.precommit.adapter.validators:  # type: ignore
                 sim.set(r, 1)
             self.dut.precommit.call_init(sim, side_fx=1)
 
-            await self.async_random_wait_geom(sim)
+            await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
             self.dut.precommit.disable(sim)
 
@@ -293,7 +294,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.cycles = 200
         self.ro_mask = 0b101
 
-        self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask), async_tb=True)
+        self.dut = SimpleTestCircuit(CSRRegister(0, self.gen_params, ro_bits=self.ro_mask))
 
         with self.run_simulation(self.dut) as sim:
             sim.add_testbench(self.randomized_process_test)
@@ -345,7 +346,6 @@ class TestCSRRegister(TestCaseWithSimulator):
                 fu_read_map=lambda _, v: v << 1,
                 fu_write_filtermap=write_filtermap,
             ),
-            async_tb=True,
         )
 
         with self.run_simulation(self.dut) as sim:
@@ -391,9 +391,7 @@ class TestCSRRegister(TestCaseWithSimulator):
 
         random.seed(4326)
 
-        self.dut = SimpleTestCircuit(
-            CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, init=0xAB), async_tb=True
-        )
+        self.dut = SimpleTestCircuit(CSRRegister(None, gen_params, ro_bits=0b1111, fu_write_priority=False, init=0xAB))
 
         with self.run_simulation(self.dut) as sim:
             sim.add_testbench(self.comb_process_test)

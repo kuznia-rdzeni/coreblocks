@@ -11,7 +11,7 @@ from coreblocks.arch import OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from transactron.lib import FIFO, Adapter, AdapterTrans
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO
 from transactron.testing.functions import data_const_to_dict
 from transactron.testing.sugar import MethodMock, async_def_method_mock
 
@@ -34,10 +34,10 @@ class RSSelector(Elaboratable):
         m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
 
         # mocked input and output
-        m.submodules.instr_in = self.instr_in = AsyncTestbenchIO(AdapterTrans(instr_fifo.write))
-        m.submodules.instr_out = self.instr_out = AsyncTestbenchIO(AdapterTrans(out_fifo.read))
-        m.submodules.rs1_alloc = self.rs1_alloc = AsyncTestbenchIO(Adapter(o=rs_layouts.rs.select_out))
-        m.submodules.rs2_alloc = self.rs2_alloc = AsyncTestbenchIO(Adapter(o=rs_layouts.rs.select_out))
+        m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans(instr_fifo.write))
+        m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
+        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
+        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
 
         # rs selector
         m.submodules.selector = self.selector = RSSelection(
@@ -94,13 +94,11 @@ class TestRSSelect(TestCaseWithSimulator):
 
                 self.instr_in.append(instr)
                 await self.m.instr_in.call(sim, instr)
-                await self.async_random_wait(sim, random_wait)
+                await self.random_wait(sim, random_wait)
 
         return process
 
-    def create_rs_alloc_process(
-        self, io: AsyncTestbenchIO, rs_id: int, rs_optypes: set[OpType], enable_prob: float = 1
-    ):
+    def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], enable_prob: float = 1):
         @async_def_method_mock(lambda: io, enable=lambda: random.random() <= enable_prob)
         def process():
             random_entry = random.randrange(self.gen_params.max_rs_entries)
@@ -123,7 +121,7 @@ class TestRSSelect(TestCaseWithSimulator):
                 result = await self.m.instr_out.call(sim)
                 outputs = self.expected_out.popleft()
 
-                await self.async_random_wait(sim, random_wait)
+                await self.random_wait(sim, random_wait)
                 assert data_const_to_dict(result) == outputs
 
         return process

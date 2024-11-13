@@ -9,7 +9,7 @@ from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.interface.layouts import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO
 
 
 class BackendTestCircuit(Elaboratable):
@@ -38,7 +38,7 @@ class BackendTestCircuit(Elaboratable):
             get_results.append(fifo.read)
             m.submodules[f"fu_fifo_{i}"] = fifo
 
-            fifo_in = AsyncTestbenchIO(AdapterTrans(fifo.write))
+            fifo_in = TestbenchIO(AdapterTrans(fifo.write))
             m.submodules[f"fu_fifo_{i}_in"] = fifo_in
             self.fu_fifo_ins.append(fifo_in)
 
@@ -50,11 +50,11 @@ class BackendTestCircuit(Elaboratable):
         )
 
         # Create stubs for interfaces used by result announcement
-        self.rs_announce_val_tbio = AsyncTestbenchIO(Adapter(i=self.lay_rs_write, o=self.lay_rs_write))
+        self.rs_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rs_write, o=self.lay_rs_write))
         m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
-        self.rf_announce_val_tbio = AsyncTestbenchIO(Adapter(i=self.lay_rf_write, o=self.lay_rf_write))
+        self.rf_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rf_write, o=self.lay_rf_write))
         m.submodules.rf_announce_val_tbio = self.rf_announce_val_tbio
-        self.rob_mark_done_tbio = AsyncTestbenchIO(Adapter(i=self.lay_rob_mark_done, o=self.lay_rob_mark_done))
+        self.rob_mark_done_tbio = TestbenchIO(Adapter(i=self.lay_rob_mark_done, o=self.lay_rob_mark_done))
         m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
 
         # Create result announcement
@@ -108,9 +108,9 @@ class TestBackend(TestCaseWithSimulator):
         async def producer(sim: TestbenchContext):
             inputs = self.fu_inputs[i]
             for rob_id, result, rp_dst in inputs:
-                io: AsyncTestbenchIO = self.m.fu_fifo_ins[i]
+                io: TestbenchIO = self.m.fu_fifo_ins[i]
                 io.call_init(sim, rob_id=rob_id, result=result, rp_dst=rp_dst)
-                await self.async_random_wait(sim, self.max_wait)
+                await self.random_wait(sim, self.max_wait)
             self.producer_end[i] = True
 
         return producer
@@ -146,7 +146,7 @@ class TestBackend(TestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     def test_one_out(self):
         self.fu_count = 1

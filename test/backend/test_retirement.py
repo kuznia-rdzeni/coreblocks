@@ -12,6 +12,7 @@ from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ROBLayouts, RFLayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
+from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
 from collections import deque
@@ -39,28 +40,28 @@ class RetirementTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
 
-        m.submodules.mock_rob_peek = self.mock_rob_peek = AsyncTestbenchIO(
+        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
             Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
         )
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = AsyncTestbenchIO(Adapter())
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter())
 
-        m.submodules.mock_rf_free = self.mock_rf_free = AsyncTestbenchIO(Adapter(i=rf_layouts.rf_free))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
 
-        m.submodules.mock_exception_cause = self.mock_exception_cause = AsyncTestbenchIO(
+        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
             Adapter(o=exception_layouts.get, nonexclusive=True)
         )
-        m.submodules.mock_exception_clear = self.mock_exception_clear = AsyncTestbenchIO(Adapter())
+        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = AsyncTestbenchIO(Adapter(i=fetch_layouts.resume))
-        m.submodules.mock_instr_decrement = self.mock_instr_decrement = AsyncTestbenchIO(
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
+        m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter(o=core_instr_counter_layouts.decrement)
         )
-        m.submodules.mock_trap_entry = self.mock_trap_entry = AsyncTestbenchIO(Adapter())
-        m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = AsyncTestbenchIO(
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
+        m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
             Adapter(o=interrupt_controller_layouts.interrupt_cause)
         )
 
@@ -81,10 +82,10 @@ class RetirementTestCircuit(Elaboratable):
             async_interrupt_cause=self.mock_async_interrupt_cause.adapter.iface,
         )
 
-        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = AsyncTestbenchIO(AdapterTrans(self.free_rf.read))
+        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
         precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
-        m.submodules.precommit_adapter = self.precommit_adapter = AsyncTestbenchIO(AdapterTrans(precommit))
+        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans(precommit))
 
         return m
 

@@ -29,9 +29,7 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
 
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
-        self.m = SimpleTestCircuit(
-            PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number), async_tb=True
-        )
+        self.m = SimpleTestCircuit(PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number))
         self.n_padding = self.dsp_width * 2 ** (math.ceil(math.log2(self.gen_params.isa.xlen / self.dsp_width)))
         self.number_of_chunks = self.n_padding // self.dsp_width
         self.number_of_multiplications = self.number_of_chunks**2

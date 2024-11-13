@@ -17,7 +17,7 @@ from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from transactron.testing import RecordIntDict, TestCaseWithSimulator, AsyncTestbenchIO
+from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestbenchIO
 from transactron.testing.functions import data_const_to_dict
 
 
@@ -32,9 +32,9 @@ class WakeupTestCircuit(Elaboratable):
         ready_mock = Adapter(o=self.layouts.get_ready_list_out)
         take_row_mock = Adapter(i=self.layouts.take_in, o=self.layouts.take_out)
         issue_mock = Adapter(i=self.layouts.take_out)
-        m.submodules.ready_mock = self.ready_mock = AsyncTestbenchIO(ready_mock)
-        m.submodules.take_row_mock = self.take_row_mock = AsyncTestbenchIO(take_row_mock)
-        m.submodules.issue_mock = self.issue_mock = AsyncTestbenchIO(issue_mock)
+        m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
+        m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
+        m.submodules.issue_mock = self.issue_mock = TestbenchIO(issue_mock)
         m.submodules.wakeup_select = WakeupSelect(
             gen_params=self.gen_params, get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
         )

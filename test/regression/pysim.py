@@ -7,6 +7,7 @@ from amaranth import *
 from amaranth_types.types import TestbenchContext
 
 from transactron.core.keys import TransactionManagerKey
+from transactron.profiler import Profile
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
@@ -14,7 +15,6 @@ from .common import SimulationBackend, SimulationExecutionResult
 from transactron.testing import (
     PysimSimulator,
     profiler_process,
-    Profile,
     make_logging_process,
     parse_logging_level,
 )

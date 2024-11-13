@@ -33,13 +33,12 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
 
         self.cycles = 256
 
-        self.rob_idx_mock = AsyncTestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
-        self.fetch_stall_mock = AsyncTestbenchIO(Adapter())
+        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
+        self.fetch_stall_mock = TestbenchIO(Adapter())
         self.dut = SimpleTestCircuit(
             ExceptionInformationRegister(
                 self.gen_params, self.rob_idx_mock.adapter.iface, self.fetch_stall_mock.adapter.iface
             ),
-            async_tb=True,
         )
         m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock, fetch_stall_mock=self.fetch_stall_mock)
 

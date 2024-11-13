@@ -43,7 +43,7 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
 
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
-        self.m = SimpleTestCircuit(self.mul_unit(self.gen_params), async_tb=True)
+        self.m = SimpleTestCircuit(self.mul_unit(self.gen_params))
         self.waiting_time = 10
 
         random.seed(1050)
@@ -73,13 +73,13 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
                 expected = self.responses.pop()
                 result = await self.m.accept.call(sim)
                 assert expected == data_const_to_dict(result)
-                await self.async_random_wait(sim, self.waiting_time)
+                await self.random_wait(sim, self.waiting_time)
 
         async def producer(sim: TestbenchContext):
             while self.requests:
                 req = self.requests.pop()
                 await self.m.issue.call(sim, req)
-                await self.async_random_wait(sim, self.waiting_time)
+                await self.random_wait(sim, self.waiting_time)
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(producer)

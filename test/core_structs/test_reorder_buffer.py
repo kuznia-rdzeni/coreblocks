@@ -17,7 +17,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             while self.regs_left_queue.empty():
                 await sim.tick()
 
-            await self.async_random_wait_geom(sim, 0.5)  # to slow down puts
+            await self.random_wait_geom(sim, 0.5)  # to slow down puts
             log_reg = self.rand.randint(0, self.log_regs - 1)
             phys_reg = self.regs_left_queue.get()
             regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
@@ -27,7 +27,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
 
     async def do_updates(self, sim: TestbenchContext):
         while True:
-            await self.async_random_wait_geom(sim, 0.5)  # to slow down execution
+            await self.random_wait_geom(sim, 0.5)  # to slow down execution
             if len(self.to_execute_list) == 0:
                 await sim.tick()
             else:
@@ -64,7 +64,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.gen_params = GenParams(
             test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6)
         )  # smaller size means better coverage
-        m = SimpleTestCircuit(ReorderBuffer(self.gen_params), async_tb=True)
+        m = SimpleTestCircuit(ReorderBuffer(self.gen_params))
         self.m = m
 
         self.regs_left_queue = Queue()
@@ -115,7 +115,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
 
         self.gen_params = GenParams(test_core_config)
         self.test_steps = 2**self.gen_params.rob_entries_bits
-        m = SimpleTestCircuit(ReorderBuffer(self.gen_params), async_tb=True)
+        m = SimpleTestCircuit(ReorderBuffer(self.gen_params))
         self.m = m
         self.to_execute_list = []
 

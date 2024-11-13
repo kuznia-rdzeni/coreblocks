@@ -3,7 +3,7 @@ from amaranth_types.types import TestbenchContext
 
 from transactron.lib import AdapterTrans, BasicFifo
 
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 from collections import deque
 from parameterized import parameterized_class
 import random
@@ -18,9 +18,9 @@ class BasicFifoTestCircuit(Elaboratable):
 
         m.submodules.fifo = self.fifo = BasicFifo(layout=data_layout(8), depth=self.depth)
 
-        m.submodules.fifo_read = self.fifo_read = AsyncTestbenchIO(AdapterTrans(self.fifo.read))
-        m.submodules.fifo_write = self.fifo_write = AsyncTestbenchIO(AdapterTrans(self.fifo.write))
-        m.submodules.fifo_clear = self.fifo_clear = AsyncTestbenchIO(AdapterTrans(self.fifo.clear))
+        m.submodules.fifo_read = self.fifo_read = TestbenchIO(AdapterTrans(self.fifo.read))
+        m.submodules.fifo_write = self.fifo_write = TestbenchIO(AdapterTrans(self.fifo.write))
+        m.submodules.fifo_clear = self.fifo_clear = TestbenchIO(AdapterTrans(self.fifo.clear))
 
         return m
 
@@ -46,7 +46,7 @@ class TestBasicFifo(TestCaseWithSimulator):
 
         async def source(sim: TestbenchContext):
             for _ in range(cycles):
-                await self.async_random_wait_geom(sim, 0.5)
+                await self.random_wait_geom(sim, 0.5)
 
                 v = random.randint(0, (2**fifoc.fifo.width) - 1)
                 expq.appendleft(v)
@@ -61,7 +61,7 @@ class TestBasicFifo(TestCaseWithSimulator):
 
         async def target(sim: TestbenchContext):
             while not self.done or expq:
-                await self.async_random_wait_geom(sim, 0.5)
+                await self.random_wait_geom(sim, 0.5)
 
                 v = await fifoc.fifo_read.call_try(sim)
 

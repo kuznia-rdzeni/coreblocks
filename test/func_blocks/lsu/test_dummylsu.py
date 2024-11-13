@@ -14,7 +14,7 @@ from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, Instruct
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import AsyncTestbenchIO, TestCaseWithSimulator, async_def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, async_def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
@@ -79,14 +79,14 @@ class DummyLSUTestCircuit(Elaboratable):
         self.bus = WishboneMaster(wb_params)
         self.bus_master_adapter = WishboneMasterAdapter(self.bus)
 
-        m.submodules.exception_report = self.exception_report = AsyncTestbenchIO(
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
-        m.submodules.precommit = self.precommit = AsyncTestbenchIO(
+        m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
                 i=layouts.precommit_in,
                 o=layouts.precommit_out,
@@ -96,13 +96,13 @@ class DummyLSUTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
-        m.submodules.core_state = self.core_state = AsyncTestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
-        m.submodules.issue_mock = self.issue = AsyncTestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_mock = self.accept = AsyncTestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
+        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
         self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
         m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.bus = self.bus
@@ -210,7 +210,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             mask = generated_data["mask"]
             sign = generated_data["sign"]
             await self.test_module.io_in.slave_wait_and_verify(sim, generated_data["addr"], 0, 0, mask)
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
             resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
             data_shift = (mask & -mask).bit_length() - 1
@@ -232,7 +232,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 await sim.tick()
             self.free_rob_id.remove(req["rob_id"])
             await self.test_module.issue.call(sim, req)
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     async def consumer(self, sim: TestbenchContext):
         for i in range(self.tests_number):
@@ -247,7 +247,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 assert v["result"] == self.returned_data.pop()
             assert v["exception"] == exc["err"]
 
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     def test(self):
         @async_def_method_mock(lambda: self.test_module.exception_report)
@@ -394,7 +394,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
             await self.test_module.io_in.slave_wait_and_verify(sim, generated_data["addr"], data, 1, mask)
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
             await self.test_module.io_in.slave_respond(sim, 0)
 
@@ -404,7 +404,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             self.get_result_data.appendleft(req["rob_id"])
             await self.test_module.issue.call(sim, req)
             self.precommit_data.appendleft(req["rob_id"])
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     async def get_resulter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
@@ -412,7 +412,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             rob_id = self.get_result_data.pop()
             assert v["rob_id"] == rob_id
             assert v["rp_dst"] == 0
-            await self.async_random_wait(sim, self.max_wait)
+            await self.random_wait(sim, self.max_wait)
             self.precommit_data.pop()  # retire
 
     def precommit_validate(self, rob_id):

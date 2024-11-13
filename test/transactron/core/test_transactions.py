@@ -12,7 +12,7 @@ from collections import deque
 from typing import Iterable, Callable
 from parameterized import parameterized, parameterized_class
 
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.lib import Adapter, AdapterTrans
@@ -113,9 +113,9 @@ class TransactionConflictTestCircuit(Elaboratable):
         m = TModule()
         tm = TransactionModule(m, DependencyContext.get(), TransactionManager(self.scheduler))
         adapter = Adapter(i=data_layout(32), o=data_layout(32))
-        m.submodules.out = self.out = AsyncTestbenchIO(adapter)
-        m.submodules.in1 = self.in1 = AsyncTestbenchIO(AdapterTrans(adapter.iface))
-        m.submodules.in2 = self.in2 = AsyncTestbenchIO(AdapterTrans(adapter.iface))
+        m.submodules.out = self.out = TestbenchIO(adapter)
+        m.submodules.in1 = self.in1 = TestbenchIO(AdapterTrans(adapter.iface))
+        m.submodules.in2 = self.in2 = TestbenchIO(AdapterTrans(adapter.iface))
         return tm
 
 
@@ -134,7 +134,7 @@ class TestTransactionConflict(TestCaseWithSimulator):
 
     def make_process(
         self,
-        io: AsyncTestbenchIO,
+        io: TestbenchIO,
         prob: float,
         src: Iterable[int],
         tgt: Callable[[int], None],

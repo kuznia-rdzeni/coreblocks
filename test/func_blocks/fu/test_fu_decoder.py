@@ -55,7 +55,7 @@ class TestFuDecoder(TestCaseWithSimulator):
 
                 assert returned == expected
 
-        test_circuit = SimpleTestCircuit(decoder, async_tb=True)
+        test_circuit = SimpleTestCircuit(decoder)
 
         with self.run_simulation(test_circuit) as sim:
             sim.add_testbench(process)

@@ -23,7 +23,7 @@ from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, async_def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, async_def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -70,8 +70,8 @@ class SchedulerTestCircuit(Elaboratable):
             alloc_adapter = Adapter(o=rs_layouts.rs.select_out)
             insert_adapter = Adapter(i=rs_layouts.rs.insert_in)
 
-            select_test = AsyncTestbenchIO(alloc_adapter)
-            insert_test = AsyncTestbenchIO(insert_adapter)
+            select_test = TestbenchIO(alloc_adapter)
+            insert_test = TestbenchIO(insert_adapter)
 
             method_rs_alloc.append(alloc_adapter)
             method_rs_insert.append(insert_adapter)
@@ -83,13 +83,13 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
 
         # mocked input and output
-        m.submodules.rf_write = self.rf_write = AsyncTestbenchIO(AdapterTrans(self.rf.write))
-        m.submodules.rf_free = self.rf_free = AsyncTestbenchIO(AdapterTrans(self.rf.free))
-        m.submodules.rob_markdone = self.rob_done = AsyncTestbenchIO(AdapterTrans(self.rob.mark_done))
-        m.submodules.rob_retire = self.rob_retire = AsyncTestbenchIO(AdapterTrans(self.rob.retire))
-        m.submodules.instr_input = self.instr_inp = AsyncTestbenchIO(AdapterTrans(instr_fifo.write))
-        m.submodules.free_rf_inp = self.free_rf_inp = AsyncTestbenchIO(AdapterTrans(free_rf_fifo.write))
-        m.submodules.core_state = self.core_state = AsyncTestbenchIO(
+        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
+        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
+        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
+        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
+        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
+        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
+        m.submodules.core_state = self.core_state = TestbenchIO(
             Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
@@ -184,7 +184,7 @@ class TestScheduler(TestCaseWithSimulator):
     def make_queue_process(
         self,
         *,
-        io: AsyncTestbenchIO,
+        io: TestbenchIO,
         input_queues: Optional[Iterable[deque]] = None,
         output_queues: Optional[Iterable[deque]] = None,
         check: Optional[Callable[[TestbenchContext, MethodData, dict], None]] = None,
@@ -267,7 +267,7 @@ class TestScheduler(TestCaseWithSimulator):
 
         return queue_process
 
-    def make_output_process(self, io: AsyncTestbenchIO, output_queues: Iterable[deque]):
+    def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(sim: TestbenchContext, got: MethodData, expected: dict):
             print("check", expected)
             # TODO: better stubs for Memory?
@@ -356,7 +356,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_regs_queue.append(None)
             self.free_ROB_entries_queue.append(None)
 
-        def rs_alloc_process(io: AsyncTestbenchIO, rs_id: int):
+        def rs_alloc_process(io: TestbenchIO, rs_id: int):
             @async_def_method_mock(lambda: io)
             def process():
                 random_entry = random.randrange(self.gen_params.max_rs_entries)

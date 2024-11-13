@@ -69,7 +69,7 @@ class TestHwCounter(TestCaseWithSimulator):
         random.seed(42)
 
     def test_counter_in_method(self):
-        m = SimpleTestCircuit(CounterInMethodCircuit(), async_tb=True)
+        m = SimpleTestCircuit(CounterInMethodCircuit())
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         async def test_process(sim):
@@ -89,7 +89,7 @@ class TestHwCounter(TestCaseWithSimulator):
             sim.add_testbench(test_process)
 
     def test_counter_with_condition_in_method(self):
-        m = SimpleTestCircuit(CounterWithConditionInMethodCircuit(), async_tb=True)
+        m = SimpleTestCircuit(CounterWithConditionInMethodCircuit())
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         async def test_process(sim):
@@ -244,9 +244,7 @@ class TestHwHistogram(TestCaseWithSimulator):
     def test_histogram(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(
-            ExpHistogramCircuit(bucket_cnt=self.bucket_count, sample_width=self.sample_width), async_tb=True
-        )
+        m = SimpleTestCircuit(ExpHistogramCircuit(bucket_cnt=self.bucket_count, sample_width=self.sample_width))
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         max_sample_value = 2**self.sample_width - 1
@@ -329,9 +327,7 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
     def test_latency_measurer(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(
-            FIFOLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300), async_tb=True
-        )
+        m = SimpleTestCircuit(FIFOLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         latencies: list[int] = []
@@ -357,7 +353,7 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
                 await m._start.call(sim)
 
                 event_queue.put(time)
-                await self.async_random_wait_geom(sim, 0.8)
+                await self.random_wait_geom(sim, 0.8)
 
             finish = True
 
@@ -367,7 +363,7 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
 
                 latencies.append(time - event_queue.get())
 
-                await self.async_random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
+                await self.random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
 
             self.check_latencies(sim, m, latencies)
 
@@ -395,9 +391,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
     def test_latency_measurer(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(
-            TaggedLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300), async_tb=True
-        )
+        m = SimpleTestCircuit(TaggedLatencyMeasurer("latency", slots_number=self.slots_number, max_latency=300))
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
         latencies: list[int] = []
@@ -433,7 +427,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
                 free_slots.remove(slot_id)
                 used_slots.append(slot_id)
 
-                await self.async_random_wait_geom(sim, 0.8)
+                await self.random_wait_geom(sim, 0.8)
 
             finish = True
 
@@ -452,7 +446,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
                 used_slots.remove(slot_id)
                 free_slots.append(slot_id)
 
-                await self.async_random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
+                await self.random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
 
             self.check_latencies(sim, m, latencies)
 
@@ -522,7 +516,7 @@ class TestMetricsManager(TestCaseWithSimulator):
     def test_returned_reg_values(self):
         random.seed(42)
 
-        m = SimpleTestCircuit(MetricManagerTestCircuit(), async_tb=True)
+        m = SimpleTestCircuit(MetricManagerTestCircuit())
         metrics_manager = HardwareMetricsManager()
 
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)

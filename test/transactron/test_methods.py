@@ -4,7 +4,7 @@ import random
 from amaranth import *
 from amaranth.sim import *
 
-from transactron.testing import TestCaseWithSimulator, AsyncTestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
 from transactron.testing.infrastructure import SimpleTestCircuit
@@ -152,7 +152,7 @@ class TestDefMethods(TestCaseWithSimulator):
         def definition(idx: int, foo: Value):
             return {"foo": foo + idx}
 
-        circuit = SimpleTestCircuit(TestDefMethods.CircuitTestModule(definition), True)
+        circuit = SimpleTestCircuit(TestDefMethods.CircuitTestModule(definition))
 
         async def test_process(sim):
             for k, method in enumerate(circuit.methods):
@@ -365,7 +365,7 @@ class QuadrupleCircuit(Elaboratable):
         m = TModule()
 
         m.submodules.quadruple = self.quadruple
-        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(self.quadruple.quadruple))
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(self.quadruple.quadruple))
 
         return m
 
@@ -407,8 +407,8 @@ class ConditionalCallCircuit(Elaboratable):
 
         meth = Method(i=data_layout(1))
 
-        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(meth))
-        m.submodules.out = self.out = AsyncTestbenchIO(Adapter())
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
+        m.submodules.out = self.out = TestbenchIO(Adapter())
 
         @def_method(m, meth)
         def _(arg):
@@ -425,7 +425,7 @@ class ConditionalMethodCircuit1(Elaboratable):
         meth = Method()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(meth))
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
 
         @def_method(m, meth, ready=self.ready)
         def _(arg):
@@ -441,7 +441,7 @@ class ConditionalMethodCircuit2(Elaboratable):
         meth = Method()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = AsyncTestbenchIO(AdapterTrans(meth))
+        m.submodules.tb = self.tb = TestbenchIO(AdapterTrans(meth))
 
         with m.If(self.ready):
 
@@ -457,7 +457,7 @@ class ConditionalTransactionCircuit1(Elaboratable):
         m = TModule()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = AsyncTestbenchIO(Adapter())
+        m.submodules.tb = self.tb = TestbenchIO(Adapter())
 
         with Transaction().body(m, request=self.ready):
             self.tb.adapter.iface(m)
@@ -470,7 +470,7 @@ class ConditionalTransactionCircuit2(Elaboratable):
         m = TModule()
 
         self.ready = Signal()
-        m.submodules.tb = self.tb = AsyncTestbenchIO(Adapter())
+        m.submodules.tb = self.tb = TestbenchIO(Adapter())
 
         with m.If(self.ready):
             with Transaction().body(m):
@@ -545,8 +545,8 @@ class NonexclusiveMethodCircuit(Elaboratable):
             m.d.comb += self.running.eq(1)
             return {"data": self.data}
 
-        m.submodules.t1 = self.t1 = AsyncTestbenchIO(AdapterTrans(method))
-        m.submodules.t2 = self.t2 = AsyncTestbenchIO(AdapterTrans(method))
+        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
+        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
 
         return m
 
@@ -612,8 +612,8 @@ class TwoNonexclusiveConflictCircuit(Elaboratable):
             m.d.comb += self.running2.eq(1)
             return method_in(m)
 
-        m.submodules.t1 = self.t1 = AsyncTestbenchIO(AdapterTrans(method1))
-        m.submodules.t2 = self.t2 = AsyncTestbenchIO(AdapterTrans(method2))
+        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method1))
+        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method2))
 
         return m
 
@@ -656,8 +656,8 @@ class CustomCombinerMethodCircuit(Elaboratable):
             m.d.comb += self.running.eq(1)
             return {"data": data}
 
-        m.submodules.t1 = self.t1 = AsyncTestbenchIO(AdapterTrans(method))
-        m.submodules.t2 = self.t2 = AsyncTestbenchIO(AdapterTrans(method))
+        m.submodules.t1 = self.t1 = TestbenchIO(AdapterTrans(method))
+        m.submodules.t2 = self.t2 = TestbenchIO(AdapterTrans(method))
 
         return m
 

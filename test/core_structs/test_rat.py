@@ -40,7 +40,7 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
-        m = SimpleTestCircuit(FRAT(gen_params=self.gen_params), async_tb=True)
+        m = SimpleTestCircuit(FRAT(gen_params=self.gen_params))
         self.m = m
 
         self.log_regs = self.gen_params.isa.reg_cnt
@@ -80,7 +80,7 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
-        m = SimpleTestCircuit(RRAT(gen_params=self.gen_params), async_tb=True)
+        m = SimpleTestCircuit(RRAT(gen_params=self.gen_params))
         self.m = m
 
         self.log_regs = self.gen_params.isa.reg_cnt
