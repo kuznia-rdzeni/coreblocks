@@ -3,6 +3,7 @@ import random
 import queue
 from typing import Type
 from enum import IntFlag, IntEnum, auto, Enum
+from amaranth_types.types import TestbenchContext
 
 from parameterized import parameterized_class
 
@@ -337,39 +338,31 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
 
         finish = False
 
-        # TODO: timer in testing infrastructure
-        time = 0
-
-        async def timer(sim):
-            nonlocal time
-
-            while True:
-                await sim.tick()
-                time += 1
-
-        async def producer(sim):
+        async def producer(sim: TestbenchContext):
             nonlocal finish
+            ticks = DependencyContext.get().get_dependency(TicksKey())
 
             for _ in range(200):
                 await m._start.call(sim)
 
-                event_queue.put(time)
+                event_queue.put(sim.get(ticks))
                 await self.random_wait_geom(sim, 0.8)
 
             finish = True
 
-        async def consumer(sim):
+        async def consumer(sim: TestbenchContext):
+            ticks = DependencyContext.get().get_dependency(TicksKey())
+
             while not finish:
                 await m._stop.call(sim)
 
-                latencies.append(time - event_queue.get())
+                latencies.append(sim.get(ticks) - event_queue.get())
 
                 await self.random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
 
             self.check_latencies(sim, m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(timer)
             sim.add_testbench(producer)
             sim.add_testbench(consumer)
 

@@ -4,6 +4,7 @@ from amaranth import *
 from amaranth.lib.wiring import connect
 from amaranth_types import ValueLike
 from amaranth_types.types import ProcessContext, TestbenchContext
+from transactron.testing.tick_count import TicksKey
 
 from transactron.utils import align_to_power_of_two
 
@@ -20,6 +21,8 @@ import random
 import subprocess
 import tempfile
 from parameterized import parameterized_class
+
+from transactron.utils.dependencies import DependencyContext
 
 
 class CoreTestElaboratable(Elaboratable):
@@ -308,23 +311,19 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
         random.seed(161453)
 
-    # TODO: global cycle counter?
-    async def cycle_counter_process(self, sim: ProcessContext):
-        self.cycles = 0
-        async for _ in sim.tick():
-            self.cycles += 1
-
     async def run_with_interrupt_process(self, sim: TestbenchContext):
+        ticks = DependencyContext.get().get_dependency(TicksKey())
+
         # wait for interrupt enable
         async def wait_or_timeout(cond: ValueLike, pred: Callable[[Any], bool]):
             async for *_, value in sim.tick().sample(cond):
-                if pred(value) or self.cycles >= self.cycle_count:
+                if pred(value) or sim.get(ticks) >= self.cycle_count:
                     break
 
         await wait_or_timeout(self.m.core.interrupt_controller.mie.value, lambda value: value != 0)
         await self.random_wait(sim, 5)
 
-        while self.cycles < self.cycle_count:
+        while sim.get(ticks) < self.cycle_count:
             sim.set(self.m.interrupt_level, 1)
 
             if self.always_mmode:  # if test happens only in m_mode, just enable fixed interrupt
@@ -353,5 +352,4 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.cycle_counter_process)
             sim.add_testbench(self.run_with_interrupt_process)
