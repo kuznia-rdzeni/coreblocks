@@ -14,7 +14,7 @@ from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, Instruct
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, async_def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
@@ -250,17 +250,17 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             await self.random_wait(sim, self.max_wait)
 
     def test(self):
-        @async_def_method_mock(lambda: self.test_module.exception_report)
+        @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             @MethodMock.effect
             def eff():
                 assert arg == self.exception_queue.pop()
 
-        @async_def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
         def precommiter(rob_id):
             return {"side_fx": 1}
 
-        @async_def_method_mock(lambda: self.test_module.core_state)
+        @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
             return {"flushing": 0}
 
@@ -315,13 +315,13 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         assert v["result"] == data
 
     def test(self):
-        @async_def_method_mock(lambda: self.test_module.exception_report)
+        @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             @MethodMock.effect
             def eff():
                 assert False
 
-        @async_def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
         def precommiter(rob_id):
             return {"side_fx": 1}
 
@@ -418,12 +418,12 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def precommit_validate(self, rob_id):
         return len(self.precommit_data) > 0 and rob_id == self.precommit_data[-1]
 
-    @async_def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
+    @def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
     def precommiter(self, rob_id):
         return {"side_fx": 1}
 
     def test(self):
-        @async_def_method_mock(lambda: self.test_module.exception_report)
+        @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             @MethodMock.effect
             def eff():
@@ -461,13 +461,13 @@ class TestDummyLSUFence(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
-        @async_def_method_mock(lambda: self.test_module.exception_report)
+        @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             @MethodMock.effect
             def eff():
                 assert False
 
-        @async_def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
         def precommiter(rob_id):
             return {"side_fx": 1}
 

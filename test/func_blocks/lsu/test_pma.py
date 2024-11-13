@@ -12,7 +12,7 @@ from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, async_def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
@@ -129,13 +129,13 @@ class TestPMAIndirect(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
         self.test_module = PMAIndirectTestCircuit(self.gen_params)
 
-        @async_def_method_mock(lambda: self.test_module.exception_report)
+        @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
             @MethodMock.effect
             def eff():
                 assert False
 
-        @async_def_method_mock(
+        @def_method_mock(
             lambda: self.test_module.precommit,
             validate_arguments=lambda rob_id: rob_id == 1,
             enable=lambda: random.random() < 0.5,
@@ -143,7 +143,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
         def precommiter(rob_id):
             return {"side_fx": 1}
 
-        @async_def_method_mock(lambda: self.test_module.core_state)
+        @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
             return {"flushing": 0}
 

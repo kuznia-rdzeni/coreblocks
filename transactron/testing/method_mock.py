@@ -10,7 +10,7 @@ from .testbenchio import TestbenchIO
 from transactron.utils._typing import RecordIntDict
 
 
-__all__ = ["MethodMock", "async_def_method_mock"]
+__all__ = ["MethodMock", "def_method_mock"]
 
 
 class MethodMock:
@@ -99,7 +99,7 @@ class MethodMock:
             sim.set(self.adapter.en, self.enable())
 
 
-def async_def_method_mock(
+def def_method_mock(
     tb_getter: Callable[[], TestbenchIO] | Callable[[Any], TestbenchIO], **kwargs
 ) -> Callable[[Callable[..., Optional[RecordIntDict]]], Callable[[], MethodMock]]:
     """

@@ -13,7 +13,7 @@ from coreblocks.scheduler.scheduler import RSSelection
 from transactron.lib import FIFO, Adapter, AdapterTrans
 from transactron.testing import TestCaseWithSimulator, TestbenchIO
 from transactron.testing.functions import data_const_to_dict
-from transactron.testing.method_mock import MethodMock, async_def_method_mock
+from transactron.testing.method_mock import MethodMock, def_method_mock
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
@@ -99,7 +99,7 @@ class TestRSSelect(TestCaseWithSimulator):
         return process
 
     def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], enable_prob: float = 1):
-        @async_def_method_mock(lambda: io, enable=lambda: random.random() <= enable_prob)
+        @def_method_mock(lambda: io, enable=lambda: random.random() <= enable_prob)
         def process():
             random_entry = random.randrange(self.gen_params.max_rs_entries)
 

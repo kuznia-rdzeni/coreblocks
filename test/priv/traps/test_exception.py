@@ -73,7 +73,7 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
 
                 saved_entry = new_state
 
-        @async_def_method_mock(lambda: self.rob_idx_mock)
+        @def_method_mock(lambda: self.rob_idx_mock)
         def process_rob_idx_mock():
             return {"start": self.rob_id, "end": 0}
 

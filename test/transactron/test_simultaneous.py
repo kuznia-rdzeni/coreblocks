@@ -4,7 +4,7 @@ from itertools import product
 from typing import Optional
 from amaranth import *
 from amaranth.sim import *
-from transactron.testing.method_mock import MethodMock, async_def_method_mock
+from transactron.testing.method_mock import MethodMock, def_method_mock
 from transactron.testing.testbenchio import TestbenchIO
 
 from transactron.utils import ModuleConnector
@@ -150,7 +150,7 @@ class TestTransitivity(TestCaseWithSimulator):
 
         result: Optional[int]
 
-        @async_def_method_mock(lambda: target)
+        @def_method_mock(lambda: target)
         def target_process(data: int):
             @MethodMock.effect
             def eff():

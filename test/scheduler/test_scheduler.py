@@ -23,7 +23,7 @@ from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, async_def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 
 class SchedulerTestCircuit(Elaboratable):
@@ -356,7 +356,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_ROB_entries_queue.append(None)
 
         def rs_alloc_process(io: TestbenchIO, rs_id: int):
-            @async_def_method_mock(lambda: io)
+            @def_method_mock(lambda: io)
             def process():
                 random_entry = random.randrange(self.gen_params.max_rs_entries)
 
@@ -376,7 +376,7 @@ class TestScheduler(TestCaseWithSimulator):
 
             return process()
 
-        @async_def_method_mock(lambda: self.m.core_state)
+        @def_method_mock(lambda: self.m.core_state)
         def core_state_mock():
             # TODO: flushing test
             return {"flushing": 0}

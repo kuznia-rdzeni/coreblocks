@@ -6,7 +6,7 @@ from amaranth_types.types import TestbenchContext
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
-from transactron.testing.method_mock import async_def_method_mock
+from transactron.testing.method_mock import def_method_mock
 from transactron.lib import *
 from transactron.testing.testbenchio import CallTrigger
 
@@ -49,7 +49,7 @@ class TestValidateArguments(TestCaseWithSimulator):
             await sim.tick()
         self.accepted_val = 1
 
-    @async_def_method_mock(tb_getter=lambda self: self.m.method, validate_arguments=validate_arguments)
+    @def_method_mock(tb_getter=lambda self: self.m.method, validate_arguments=validate_arguments)
     def method_mock(self, data: int):
         return {"data": data}
 

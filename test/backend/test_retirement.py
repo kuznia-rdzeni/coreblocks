@@ -121,13 +121,13 @@ class TestRetirement(TestCaseWithSimulator):
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
-    @async_def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q))
+    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q))
     def retire_process(self):
         @MethodMock.effect
         def eff():
             self.submit_q.popleft()
 
-    @async_def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
+    @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
         if self.submit_q:
             return self.submit_q[0]
@@ -158,33 +158,33 @@ class TestRetirement(TestCaseWithSimulator):
             assert info["side_fx"]
             self.precommit_q.popleft()
 
-    @async_def_method_mock(lambda self: self.retc.mock_rf_free)
+    @def_method_mock(lambda self: self.retc.mock_rf_free)
     def rf_free_process(self, reg_id):
         @MethodMock.effect
         def eff():
             assert reg_id == self.rf_free_q.popleft()
 
-    @async_def_method_mock(lambda self: self.retc.mock_exception_cause)
+    @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
         return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
 
-    @async_def_method_mock(lambda self: self.retc.mock_exception_clear)
+    @def_method_mock(lambda self: self.retc.mock_exception_clear)
     def exception_clear_process(self):
         pass
 
-    @async_def_method_mock(lambda self: self.retc.mock_instr_decrement)
+    @def_method_mock(lambda self: self.retc.mock_instr_decrement)
     def instr_decrement_process(self):
         return {"empty": 0}
 
-    @async_def_method_mock(lambda self: self.retc.mock_trap_entry)
+    @def_method_mock(lambda self: self.retc.mock_trap_entry)
     def mock_trap_entry_process(self):
         pass
 
-    @async_def_method_mock(lambda self: self.retc.mock_fetch_continue)
+    @def_method_mock(lambda self: self.retc.mock_fetch_continue)
     def mock_fetch_continue_process(self, pc):
         pass
 
-    @async_def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
+    @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
 

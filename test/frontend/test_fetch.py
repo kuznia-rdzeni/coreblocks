@@ -16,7 +16,7 @@ from transactron.utils import ModuleConnector
 from transactron.testing import (
     TestCaseWithSimulator,
     TestbenchIO,
-    async_def_method_mock,
+    def_method_mock,
     SimpleTestCircuit,
 )
 
@@ -165,7 +165,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
             self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
 
-    @async_def_method_mock(
+    @def_method_mock(
         lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
     def issue_req_mock(self, addr):
@@ -173,7 +173,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         def eff():
             self.input_q.append(addr)
 
-    @async_def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
+    @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
         @MethodMock.effect
         def eff():

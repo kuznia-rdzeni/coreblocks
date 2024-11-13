@@ -19,7 +19,7 @@ from transactron.testing import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
     data_layout,
-    async_def_method_mock,
+    def_method_mock,
     TestbenchIO,
 )
 
@@ -429,7 +429,7 @@ class TestMethodTransformer(TestCaseWithSimulator):
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
             assert v.data == (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1)
 
-    @async_def_method_mock(lambda self: self.m.target)
+    @def_method_mock(lambda self: self.m.target)
     def target(self, data):
         return {"data": (data << 1) | (data >> (self.m.iosize - 1))}
 
@@ -464,11 +464,11 @@ class TestMethodFilter(TestCaseWithSimulator):
             else:
                 assert v.data == 0
 
-    @async_def_method_mock(lambda self: self.target)
+    @def_method_mock(lambda self: self.target)
     def target_mock(self, data):
         return {"data": data + 1}
 
-    @async_def_method_mock(lambda self: self.cmeth)
+    @def_method_mock(lambda self: self.cmeth)
     def cmeth_mock(self, data):
         return {"data": data % 2}
 
@@ -534,7 +534,7 @@ class TestMethodProduct(TestCaseWithSimulator):
         method_en = [False] * targets
 
         def target_process(k: int):
-            @async_def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
+            @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
             def mock(data):
                 return {"data": data + k}
 
@@ -599,14 +599,14 @@ class TestSerializer(TestCaseWithSimulator):
 
         self.got_request = False
 
-    @async_def_method_mock(lambda self: self.req_method, enable=lambda self: not self.got_request)
+    @def_method_mock(lambda self: self.req_method, enable=lambda self: not self.got_request)
     def serial_req_mock(self, field):
         @MethodMock.effect
         def eff():
             self.serialized_data.append(field)
             self.got_request = True
 
-    @async_def_method_mock(lambda self: self.resp_method, enable=lambda self: self.got_request)
+    @def_method_mock(lambda self: self.resp_method, enable=lambda self: self.got_request)
     def serial_resp_mock(self):
         @MethodMock.effect
         def eff():
@@ -652,7 +652,7 @@ class TestMethodTryProduct(TestCaseWithSimulator):
         method_en = [False] * targets
 
         def target_process(k: int):
-            @async_def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
+            @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
             def mock(data):
                 return {"data": data + k}
 
@@ -753,7 +753,7 @@ class TestCondition(TestCaseWithSimulator):
 
         selection: Optional[int]
 
-        @async_def_method_mock(lambda: target)
+        @def_method_mock(lambda: target)
         def target_process(cond):
             @MethodMock.effect
             def eff():

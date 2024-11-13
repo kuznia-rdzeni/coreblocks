@@ -16,7 +16,7 @@ from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, async_def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
 from transactron.testing.functions import MethodData
 from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
@@ -341,9 +341,7 @@ class TestICache(TestCaseWithSimulator):
         self.cp = self.gen_params.icache_params
         self.m = ICacheTestCircuit(self.gen_params)
 
-    @async_def_method_mock(
-        lambda self: self.m.refiller.start_refill_mock, enable=lambda self: self.accept_refill_request
-    )
+    @def_method_mock(lambda self: self.m.refiller.start_refill_mock, enable=lambda self: self.accept_refill_request)
     def start_refill_mock(self, addr):
         @MethodMock.effect
         def eff():
@@ -355,7 +353,7 @@ class TestICache(TestCaseWithSimulator):
     def enen(self):
         return self.refill_in_fly
 
-    @async_def_method_mock(lambda self: self.m.refiller.accept_refill_mock, enable=enen)
+    @def_method_mock(lambda self: self.m.refiller.accept_refill_mock, enable=enen)
     def accept_refill_mock(self):
         addr = self.refill_addr + self.refill_block_cnt * self.cp.fetch_block_bytes
 
