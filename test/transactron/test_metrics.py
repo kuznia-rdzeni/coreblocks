@@ -11,6 +11,7 @@ from amaranth import *
 from transactron.lib.metrics import *
 from transactron import *
 from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.testing.tick_count import TicksKey
 from transactron.utils.dependencies import DependencyContext
 
 
@@ -402,18 +403,10 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
 
         finish = False
 
-        # TODO: timer in testing infrastructure
-        time = 0
-
-        async def timer(sim):
-            nonlocal time
-
-            while True:
-                await sim.tick()
-                time += 1
-
         async def producer(sim):
             nonlocal finish
+
+            tick_count = DependencyContext.get().get_dependency(TicksKey())
 
             for _ in range(200):
                 while not free_slots:
@@ -423,7 +416,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
                 slot_id = random.choice(free_slots)
                 await m._start.call(sim, slot=slot_id)
 
-                events[slot_id] = time
+                events[slot_id] = sim.get(tick_count)
                 free_slots.remove(slot_id)
                 used_slots.append(slot_id)
 
@@ -432,6 +425,8 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
             finish = True
 
         async def consumer(sim):
+            tick_count = DependencyContext.get().get_dependency(TicksKey())
+
             while not finish:
                 while not used_slots:
                     await sim.tick()
@@ -442,7 +437,7 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
 
                 await sim.delay(2e-9)
 
-                latencies.append(time - events[slot_id])
+                latencies.append(sim.get(tick_count) - events[slot_id])
                 used_slots.remove(slot_id)
                 free_slots.append(slot_id)
 
@@ -451,7 +446,6 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
             self.check_latencies(sim, m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(timer)
             sim.add_testbench(producer)
             sim.add_testbench(consumer)
 
