@@ -18,7 +18,7 @@ from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, async_def_method_mock
 from transactron.testing.functions import MethodData
-from transactron.testing.sugar import MethodMock
+from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 

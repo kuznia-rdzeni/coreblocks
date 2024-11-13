@@ -17,12 +17,12 @@ from .profiler import profiler_process, Profile
 from .logging import make_logging_process, parse_logging_level, _LogFormatter
 from .tick_count import make_tick_count_process
 from .gtkw_extension import write_vcd_ext
+from .method_mock import MethodMock
 from transactron import Method
 from transactron.lib import AdapterTrans
 from transactron.core.keys import TransactionManagerKey
 from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
-from transactron.testing.sugar import MethodMock
 
 
 __all__ = ["SimpleTestCircuit", "PysimSimulator", "TestCaseWithSimulator"]

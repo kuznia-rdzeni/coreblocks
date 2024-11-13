@@ -13,7 +13,7 @@ from coreblocks.scheduler.scheduler import RSSelection
 from transactron.lib import FIFO, Adapter, AdapterTrans
 from transactron.testing import TestCaseWithSimulator, TestbenchIO
 from transactron.testing.functions import data_const_to_dict
-from transactron.testing.sugar import MethodMock, async_def_method_mock
+from transactron.testing.method_mock import MethodMock, async_def_method_mock
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}

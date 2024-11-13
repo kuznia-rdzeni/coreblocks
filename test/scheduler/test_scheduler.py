@@ -12,7 +12,7 @@ from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.testing.functions import MethodData, data_const_to_dict
-from transactron.testing.sugar import MethodMock
+from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.core_structs.rf import RegisterFile

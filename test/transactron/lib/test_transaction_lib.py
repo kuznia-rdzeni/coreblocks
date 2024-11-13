@@ -11,7 +11,7 @@ from collections import deque
 from amaranth import *
 from transactron import *
 from transactron.lib import *
-from transactron.testing.sugar import MethodMock
+from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
 from transactron.utils._typing import ModuleLike, MethodStruct, RecordDict
 from transactron.utils import ModuleConnector

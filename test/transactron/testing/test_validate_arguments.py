@@ -6,7 +6,7 @@ from amaranth_types.types import TestbenchContext
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
 
 from transactron import *
-from transactron.testing.sugar import async_def_method_mock
+from transactron.testing.method_mock import async_def_method_mock
 from transactron.lib import *
 from transactron.testing.testbenchio import CallTrigger
 

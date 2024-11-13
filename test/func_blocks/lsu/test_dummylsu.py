@@ -4,7 +4,7 @@ from collections import deque
 from amaranth_types.types import TestbenchContext
 
 from transactron.lib import Adapter
-from transactron.testing.sugar import MethodMock
+from transactron.testing.method_mock import MethodMock
 from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy

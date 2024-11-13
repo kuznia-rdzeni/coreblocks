@@ -8,7 +8,7 @@ from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
 from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
-from transactron.testing.sugar import MethodMock
+from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
