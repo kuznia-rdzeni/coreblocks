@@ -146,7 +146,6 @@ class TestTransactionConflict(TestCaseWithSimulator):
                     await sim.tick()
                 tgt(i)
                 r = await io.call(sim, data=i)
-                print(r)
                 chk(r["data"])
 
         return process

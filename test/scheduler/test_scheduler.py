@@ -269,7 +269,6 @@ class TestScheduler(TestCaseWithSimulator):
 
     def make_output_process(self, io: TestbenchIO, output_queues: Iterable[deque]):
         def check(sim: TestbenchContext, got: MethodData, expected: dict):
-            print("check", expected)
             # TODO: better stubs for Memory?
             rl_dst = sim.get(self.m.rob.data.data[got.rs_data.rob_id].rl_dst)  # type: ignore
             s1 = self.rf_state[expected["rp_s1"]]

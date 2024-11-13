@@ -240,12 +240,10 @@ class TestAXILiteMaster(TestCaseWithSimulator):
             for _ in range(5):
                 await sim.tick()
 
-            print("almost last call")
             resp = await almt.read_data_response_adapter.call(sim)
             assert resp["data"] == 3
             assert resp["resp"] == 1
 
-            print("last call")
             resp = await almt.read_data_response_adapter.call(sim)
             assert resp["data"] == 4
             assert resp["resp"] == 1
