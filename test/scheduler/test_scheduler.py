@@ -207,8 +207,8 @@ class TestScheduler(TestCaseWithSimulator):
 
         Parameters
         ----------
-        io : AsyncTestbenchIO
-            AsyncTestbenchIO to call with items gathered from `input_queues`.
+        io : TestbenchIO
+            TestbenchIO to call with items gathered from `input_queues`.
         input_queues : deque[dict], optional
             Queue of dictionaries containing fields and values of a record to call
             `io` with. Different fields may be split across multiple queues.

@@ -314,7 +314,7 @@ class TestCaseWithSimulator:
 
     async def tick(self, sim: AnySimulatorContext, cycle_cnt: int = 1):
         """
-        Yields for the given number of cycles.
+        Waits for the given number of cycles.
         """
         for _ in range(cycle_cnt):
             await sim.tick()
