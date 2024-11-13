@@ -62,7 +62,7 @@ class CoreFrontend(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        if self.icache_refiller:
+        if self.gen_params.icache_params.enable:
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 

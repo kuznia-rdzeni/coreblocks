@@ -402,7 +402,12 @@ class FetchUnit(Elaboratable):
         if self.gen_params.extra_verification:
             expect_unstall_unsafe = Signal()
             prev_stalled_unsafe = Signal()
-            unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
+            dependencies = DependencyContext.get()
+            if dependencies.dependency_provided(FetchResumeKey()):
+                unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
+            else:
+                unifier_ready = C(0)
+
             m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
             with m.FSM("running"):
                 with m.State("running"):

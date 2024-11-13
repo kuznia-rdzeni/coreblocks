@@ -28,7 +28,7 @@ class TestConfigurationsISAString(TestCase):
             "rv32imcbzicsr_zifencei_xintmachinemode",
             "rv32imcbzicsr_zifencei_xintmachinemode",
         ),
-        ISAStrTest(tiny_core_config, "rv32e", "rv32", "rv32e"),
+        ISAStrTest(tiny_core_config, "rv32e", "rv32e", "rv32e"),
         ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
     ]
 
