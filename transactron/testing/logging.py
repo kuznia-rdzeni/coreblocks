@@ -97,7 +97,7 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
         ticks = DependencyContext.get().get_dependency(TicksKey())
 
         async for _, _, ticks_val, combined_trigger_val, *record_vals in (
-            sim.tick("sync_neg")
+            sim.tick()
             .sample(ticks, combined_trigger)
             .sample(*itertools.chain(*([record.trigger] + record.fields for record in records)))
         ):

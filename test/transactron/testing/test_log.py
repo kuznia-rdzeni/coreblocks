@@ -95,6 +95,7 @@ class TestLog(TestCaseWithSimulator):
         async def proc(sim: TestbenchContext):
             await sim.tick()
             sim.set(m.input, 1)
+            await sim.tick()  # A log after the last tick is not handled
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
@@ -112,6 +113,7 @@ class TestLog(TestCaseWithSimulator):
         async def proc(sim: TestbenchContext):
             await sim.tick()
             sim.set(m.input, 1)
+            await sim.tick()  # A log after the last tick is not handled
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
