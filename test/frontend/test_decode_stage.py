@@ -1,8 +1,7 @@
-from amaranth_types.types import TestbenchContext
 import pytest
 from transactron.lib import AdapterTrans, FIFO
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.params import GenParams

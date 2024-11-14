@@ -3,7 +3,6 @@ import random
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 from coreblocks.interface.keys import CoreStateKey
 from coreblocks.interface.layouts import RetirementLayouts
@@ -23,7 +22,7 @@ from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
 
 
 class SchedulerTestCircuit(Elaboratable):

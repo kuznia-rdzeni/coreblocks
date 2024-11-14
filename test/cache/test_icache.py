@@ -1,6 +1,4 @@
 from collections import deque
-from amaranth_types import AnySimulatorContext
-from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 import random
 
@@ -16,7 +14,7 @@ from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
 from transactron.testing.functions import MethodData
 from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
@@ -118,7 +116,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
             await self.test_module.wb_ctrl.slave_respond(sim, data, err=err)
 
-    async def refiller_process(self, sim: AnySimulatorContext):
+    async def refiller_process(self, sim: TestbenchContext):
         while self.requests:
             req_addr = self.requests.pop()
             await self.test_module.start_refill.call(sim, addr=req_addr)
@@ -389,11 +387,11 @@ class TestICache(TestCaseWithSimulator):
         self.bad_addrs.add(addr)
         self.bad_cache_lines.add(addr & ~((1 << self.cp.offset_bits) - 1))
 
-    async def send_req(self, sim: AnySimulatorContext, addr: int):
+    async def send_req(self, sim: TestbenchContext, addr: int):
         self.issued_requests.append(addr)
         await self.m.issue_req.call(sim, addr=addr)
 
-    async def expect_resp(self, sim: AnySimulatorContext, wait=False):
+    async def expect_resp(self, sim: TestbenchContext, wait=False):
         if wait:
             *_, resp = await self.m.accept_res.sample_outputs_until_done(sim)
         else:
@@ -417,7 +415,7 @@ class TestICache(TestCaseWithSimulator):
     def expect_refill(self, addr: int):
         assert self.refill_requests.popleft() == addr
 
-    async def call_cache(self, sim: AnySimulatorContext, addr: int):
+    async def call_cache(self, sim: TestbenchContext, addr: int):
         await self.send_req(sim, addr)
         self.m.accept_res.enable(sim)
         await self.expect_resp(sim, wait=True)

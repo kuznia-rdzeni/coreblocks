@@ -1,5 +1,4 @@
-from amaranth_types.types import TestbenchContext
-from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.params import GenParams

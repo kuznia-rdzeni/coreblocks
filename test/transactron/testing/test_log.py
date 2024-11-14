@@ -1,10 +1,9 @@
-from amaranth_types.types import TestbenchContext
 import pytest
 import re
 from amaranth import *
 
 from transactron import *
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 from transactron.lib import logging
 
 LOGGER_NAME = "test_logger"

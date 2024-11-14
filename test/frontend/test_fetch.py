@@ -1,4 +1,3 @@
-from amaranth_types.types import ProcessContext, TestbenchContext
 import pytest
 from typing import Optional
 from collections import deque
@@ -18,6 +17,8 @@ from transactron.testing import (
     TestbenchIO,
     def_method_mock,
     SimpleTestCircuit,
+    TestbenchContext,
+    ProcessContext,
 )
 
 from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker

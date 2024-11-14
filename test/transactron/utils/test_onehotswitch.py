@@ -1,10 +1,9 @@
 from amaranth import *
 from amaranth.sim import *
-from amaranth_types.types import TestbenchContext
 
 from transactron.utils import OneHotSwitch
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from parameterized import parameterized
 

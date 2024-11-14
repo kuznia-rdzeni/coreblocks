@@ -1,5 +1,4 @@
 import sys
-from amaranth_types import AnySimulatorContext
 import pytest
 import logging
 import os
@@ -10,6 +9,7 @@ from collections.abc import Callable
 from typing import TypeVar, Generic, Type, TypeGuard, Any, cast, TypeAlias, Optional
 from amaranth import *
 from amaranth.sim import *
+from amaranth.sim._async import SimulatorContext
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
@@ -312,20 +312,20 @@ class TestCaseWithSimulator:
         res = sim.run()
         assert res, "Simulation time limit exceeded"
 
-    async def tick(self, sim: AnySimulatorContext, cycle_cnt: int = 1):
+    async def tick(self, sim: SimulatorContext, cycle_cnt: int = 1):
         """
         Waits for the given number of cycles.
         """
         for _ in range(cycle_cnt):
             await sim.tick()
 
-    async def random_wait(self, sim: AnySimulatorContext, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
+    async def random_wait(self, sim: SimulatorContext, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
         Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt]
         """
         await self.tick(sim, random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
 
-    async def random_wait_geom(self, sim: AnySimulatorContext, prob: float = 0.5):
+    async def random_wait_geom(self, sim: SimulatorContext, prob: float = 0.5):
         """
         Wait till the first success, where there is `prob` probability for success in each cycle.
         """

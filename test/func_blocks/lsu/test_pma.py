@@ -1,5 +1,4 @@
 import random
-from amaranth_types.types import TestbenchContext
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker, PMARegion
 
 from transactron.lib import Adapter
@@ -12,7 +11,7 @@ from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 

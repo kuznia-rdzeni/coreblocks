@@ -2,7 +2,6 @@ import unittest
 import random
 
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 from transactron.testing import *
 from transactron.utils import (
     align_to_power_of_two,

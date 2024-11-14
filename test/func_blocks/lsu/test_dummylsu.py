@@ -1,8 +1,6 @@
 import random
 from collections import deque
 
-from amaranth_types.types import TestbenchContext
-
 from transactron.lib import Adapter
 from transactron.testing.method_mock import MethodMock
 from transactron.utils import int_to_signed, signed_to_int
@@ -14,7 +12,7 @@ from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, Instruct
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 

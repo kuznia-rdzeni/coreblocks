@@ -4,7 +4,6 @@ import logging
 
 from amaranth.utils import exact_log2
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 
 from transactron.core.keys import TransactionManagerKey
 from transactron.profiler import Profile
@@ -18,6 +17,7 @@ from transactron.testing import (
     profiler_process,
     make_logging_process,
     parse_logging_level,
+    TestbenchContext,
 )
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager

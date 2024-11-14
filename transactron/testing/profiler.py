@@ -1,6 +1,6 @@
 from amaranth import Cat
 from amaranth.lib.data import StructLayout, View
-from amaranth_types.types import ProcessContext
+from amaranth.sim._async import ProcessContext
 from transactron.core import TransactionManager
 from transactron.core.manager import MethodMap
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileData, ProfileSamples, TransactionSamples

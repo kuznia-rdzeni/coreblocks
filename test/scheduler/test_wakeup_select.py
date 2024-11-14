@@ -7,8 +7,6 @@ from enum import Enum
 from inspect import isclass
 import random
 
-from amaranth_types.types import TestbenchContext
-
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts
 from coreblocks.params.configurations import test_core_config
@@ -17,7 +15,7 @@ from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestbenchIO
+from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestbenchIO, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 
 

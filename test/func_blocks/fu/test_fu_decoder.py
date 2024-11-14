@@ -1,8 +1,7 @@
 import random
 from collections.abc import Sequence
-from amaranth_types.types import TestbenchContext
 
-from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager, Decoder
 from coreblocks.arch import OpType, Funct3, Funct7

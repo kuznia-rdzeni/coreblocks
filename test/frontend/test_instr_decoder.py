@@ -1,7 +1,6 @@
 from amaranth.sim import *
-from amaranth_types.types import TestbenchContext
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config

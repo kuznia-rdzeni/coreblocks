@@ -3,7 +3,7 @@ import random
 from collections import deque
 
 from amaranth.lib.wiring import connect
-from amaranth_types import AnySimulatorContext, ValueLike
+from amaranth_types import ValueLike
 
 from coreblocks.peripherals.wishbone import *
 
@@ -16,19 +16,19 @@ class WishboneInterfaceWrapper:
     def __init__(self, wishbone_interface: WishboneInterface):
         self.wb = wishbone_interface
 
-    def master_set(self, sim: AnySimulatorContext, addr: int, data: int, we: int):
+    def master_set(self, sim: SimulatorContext, addr: int, data: int, we: int):
         sim.set(self.wb.dat_w, data)
         sim.set(self.wb.adr, addr)
         sim.set(self.wb.we, we)
         sim.set(self.wb.cyc, 1)
         sim.set(self.wb.stb, 1)
 
-    def master_release(self, sim: AnySimulatorContext, release_cyc: bool = True):
+    def master_release(self, sim: SimulatorContext, release_cyc: bool = True):
         sim.set(self.wb.stb, 0)
         if release_cyc:
             sim.set(self.wb.cyc, 0)
 
-    async def slave_wait(self, sim: AnySimulatorContext):
+    async def slave_wait(self, sim: SimulatorContext):
         *_, adr, we, sel, dat_w = (
             await sim.tick()
             .sample(self.wb.adr, self.wb.we, self.wb.sel, self.wb.dat_w)
@@ -37,7 +37,7 @@ class WishboneInterfaceWrapper:
         return adr, we, sel, dat_w
 
     async def slave_wait_and_verify(
-        self, sim: AnySimulatorContext, exp_addr: int, exp_data: int, exp_we: int, exp_sel: int = 0
+        self, sim: SimulatorContext, exp_addr: int, exp_data: int, exp_we: int, exp_sel: int = 0
     ):
         adr, we, sel, dat_w = await self.slave_wait(sim)
 
@@ -48,7 +48,7 @@ class WishboneInterfaceWrapper:
             assert dat_w == exp_data
 
     async def slave_tick_and_verify(
-        self, sim: AnySimulatorContext, exp_addr: int, exp_data: int, exp_we: int, exp_sel: int = 0
+        self, sim: SimulatorContext, exp_addr: int, exp_data: int, exp_we: int, exp_sel: int = 0
     ):
         *_, adr, we, sel, dat_w, stb, cyc = await sim.tick().sample(
             self.wb.adr, self.wb.we, self.wb.sel, self.wb.dat_w, self.wb.stb, self.wb.cyc
@@ -63,7 +63,7 @@ class WishboneInterfaceWrapper:
 
     async def slave_respond(
         self,
-        sim: AnySimulatorContext,
+        sim: SimulatorContext,
         data: int,
         ack: int = 1,
         err: int = 0,
@@ -83,12 +83,12 @@ class WishboneInterfaceWrapper:
         return ret
 
     async def slave_respond_master_verify(
-        self, sim: AnySimulatorContext, master: WishboneInterface, data: int, ack: int = 1, err: int = 0, rty: int = 0
+        self, sim: SimulatorContext, master: WishboneInterface, data: int, ack: int = 1, err: int = 0, rty: int = 0
     ):
         *_, ack, dat_r = await self.slave_respond(sim, data, ack, err, rty, sample=[master.ack, master.dat_r])
         assert ack and dat_r == data
 
-    async def wait_ack(self, sim: AnySimulatorContext):
+    async def wait_ack(self, sim: SimulatorContext):
         await sim.tick().until(self.wb.stb & self.wb.cyc & self.wb.ack)
 
 

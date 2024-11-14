@@ -2,7 +2,6 @@ from collections import deque
 import random
 
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
@@ -11,7 +10,7 @@ from coreblocks.arch import OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from transactron.lib import FIFO, Adapter, AdapterTrans
-from transactron.testing import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 from transactron.testing.method_mock import MethodMock, def_method_mock
 

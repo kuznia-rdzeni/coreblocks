@@ -1,4 +1,3 @@
-from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 
 from amaranth import *
@@ -9,7 +8,7 @@ from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ValueLike
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 COMMON_TESTS = [
     # Illegal instruction

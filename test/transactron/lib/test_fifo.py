@@ -1,9 +1,8 @@
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 
 from transactron.lib import AdapterTrans, BasicFifo
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout, TestbenchContext
 from collections import deque
 from parameterized import parameterized_class
 import random

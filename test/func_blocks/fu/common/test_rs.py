@@ -1,9 +1,8 @@
 import random
 from collections import deque
-from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 
-from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.func_blocks.fu.common.rs import RS, RSBase
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS

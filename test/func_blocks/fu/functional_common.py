@@ -1,7 +1,6 @@
 from dataclasses import asdict, dataclass
 from itertools import product
 import random
-from amaranth_types.types import ProcessContext, TestbenchContext
 import pytest
 from collections import deque
 from typing import Generic, TypeVar
@@ -24,6 +23,8 @@ from transactron.testing import (
     TestbenchIO,
     TestCaseWithSimulator,
     SimpleTestCircuit,
+    ProcessContext,
+    TestbenchContext,
 )
 from transactron.utils import ModuleConnector
 

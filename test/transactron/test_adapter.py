@@ -1,10 +1,8 @@
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 
 from transactron import Method, def_method, TModule
 
-
-from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, TestbenchContext
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 

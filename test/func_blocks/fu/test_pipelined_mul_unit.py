@@ -2,12 +2,11 @@ import random
 import math
 from collections import deque
 
-from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 
 from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
 
-from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config

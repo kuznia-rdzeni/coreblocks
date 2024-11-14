@@ -1,4 +1,3 @@
-from amaranth_types.types import TestbenchContext
 import pytest
 from itertools import product
 from typing import Optional
@@ -9,7 +8,7 @@ from transactron.testing.testbenchio import TestbenchIO
 
 from transactron.utils import ModuleConnector
 
-from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
 
 from transactron import *
 from transactron.lib import Adapter, Connect, ConnectTrans

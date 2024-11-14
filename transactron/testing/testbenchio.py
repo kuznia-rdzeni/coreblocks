@@ -1,10 +1,9 @@
 from collections.abc import Generator, Iterable
 from amaranth import *
 from amaranth.lib.data import View, StructLayout
+from amaranth.sim._async import SimulatorContext, TestbenchContext
 from typing import Any, Optional
 
-from amaranth_types import AnySimulatorContext
-from amaranth_types.types import TestbenchContext
 from transactron.lib import AdapterBase
 from transactron.utils import ValueLike
 from .functions import MethodData
@@ -16,7 +15,7 @@ __all__ = ["CallTrigger", "TestbenchIO"]
 class CallTrigger:
     def __init__(
         self,
-        sim: AnySimulatorContext,
+        sim: SimulatorContext,
         calls: Iterable[ValueLike | tuple["TestbenchIO", Optional[dict[str, Any]]]] = (),
     ):
         self.sim = sim
@@ -93,13 +92,13 @@ class TestbenchIO(Elaboratable):
 
     # Low-level operations
 
-    def set_enable(self, sim: AnySimulatorContext, en):
+    def set_enable(self, sim: SimulatorContext, en):
         sim.set(self.adapter.en, 1 if en else 0)
 
-    def enable(self, sim: AnySimulatorContext):
+    def enable(self, sim: SimulatorContext):
         self.set_enable(sim, True)
 
-    def disable(self, sim: AnySimulatorContext):
+    def disable(self, sim: SimulatorContext):
         self.set_enable(sim, False)
 
     @property
@@ -110,7 +109,7 @@ class TestbenchIO(Elaboratable):
     def outputs(self):
         return self.adapter.data_out
 
-    def set_inputs(self, sim: AnySimulatorContext, data):
+    def set_inputs(self, sim: SimulatorContext, data):
         sim.set(self.adapter.data_in, data)
 
     def get_done(self, sim: TestbenchContext):
@@ -119,18 +118,18 @@ class TestbenchIO(Elaboratable):
     def get_outputs(self, sim: TestbenchContext) -> MethodData:
         return sim.get(self.adapter.data_out)
 
-    def sample_outputs(self, sim: AnySimulatorContext):
+    def sample_outputs(self, sim: SimulatorContext):
         return sim.tick().sample(self.adapter.data_out)
 
-    def sample_outputs_until_done(self, sim: AnySimulatorContext):
+    def sample_outputs_until_done(self, sim: SimulatorContext):
         return self.sample_outputs(sim).until(self.adapter.done)
 
-    def sample_outputs_done(self, sim: AnySimulatorContext):
+    def sample_outputs_done(self, sim: SimulatorContext):
         return sim.tick().sample(self.adapter.data_out, self.adapter.done)
 
     # Operations for AdapterTrans
 
-    def call_init(self, sim: AnySimulatorContext, data={}, /, **kwdata):
+    def call_init(self, sim: SimulatorContext, data={}, /, **kwdata):
         if data and kwdata:
             raise TypeError("call_init() takes either a single dict or keyword arguments")
         if not data:
@@ -143,19 +142,19 @@ class TestbenchIO(Elaboratable):
             return self.get_outputs(sim)
         return None
 
-    async def call_result(self, sim: AnySimulatorContext) -> Optional[MethodData]:
+    async def call_result(self, sim: SimulatorContext) -> Optional[MethodData]:
         *_, data, done = await self.sample_outputs_done(sim)
         if done:
             return data
         return None
 
-    async def call_do(self, sim: AnySimulatorContext) -> MethodData:
+    async def call_do(self, sim: SimulatorContext) -> MethodData:
         *_, outputs = await self.sample_outputs_until_done(sim)
         self.disable(sim)
         return outputs
 
-    async def call_try(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> Optional[MethodData]:
+    async def call_try(self, sim: SimulatorContext, data={}, /, **kwdata) -> Optional[MethodData]:
         return (await CallTrigger(sim).call(self, data, **kwdata))[0]
 
-    async def call(self, sim: AnySimulatorContext, data={}, /, **kwdata) -> MethodData:
+    async def call(self, sim: SimulatorContext, data={}, /, **kwdata) -> MethodData:
         return (await CallTrigger(sim).call(self, data, **kwdata).until_done())[0]

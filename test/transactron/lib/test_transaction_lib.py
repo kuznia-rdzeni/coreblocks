@@ -1,4 +1,3 @@
-from amaranth_types.types import TestbenchContext
 import pytest
 from itertools import product
 import random
@@ -21,6 +20,7 @@ from transactron.testing import (
     data_layout,
     def_method_mock,
     TestbenchIO,
+    TestbenchContext,
 )
 
 

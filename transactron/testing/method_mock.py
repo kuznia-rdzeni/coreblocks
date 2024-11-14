@@ -2,8 +2,7 @@ from contextlib import contextmanager
 import functools
 from typing import Callable, Any, Optional
 
-from amaranth_types import AnySimulatorContext
-
+from amaranth.sim._async import SimulatorContext
 from transactron.lib.adapters import Adapter
 from transactron.utils.transactron_helpers import async_mock_def_helper
 from .testbenchio import TestbenchIO
@@ -49,7 +48,7 @@ class MethodMock:
 
     async def output_process(
         self,
-        sim: AnySimulatorContext,
+        sim: SimulatorContext,
     ) -> None:
         sync = sim._design.lookup_domain("sync", None)  # type: ignore
         async for *_, done, arg, clk in sim.changed(self.adapter.done, self.adapter.data_out).edge(sync.clk, 1):
@@ -62,7 +61,7 @@ class MethodMock:
                 ret = async_mock_def_helper(self, self.function, arg)
             sim.set(self.adapter.data_in, ret)
 
-    async def validate_arguments_process(self, sim: AnySimulatorContext) -> None:
+    async def validate_arguments_process(self, sim: SimulatorContext) -> None:
         assert self.validate_arguments is not None
         sync = sim._design.lookup_domain("sync", None)  # type: ignore
         async for *args, clk in sim.changed(*(a for a, _ in self.adapter.validators)).edge(sync.clk, 1):
@@ -74,7 +73,7 @@ class MethodMock:
             for arg, r in zip(args, (r for _, r in self.adapter.validators)):
                 sim.set(r, async_mock_def_helper(self, self.validate_arguments, arg))
 
-    async def effect_process(self, sim: AnySimulatorContext) -> None:
+    async def effect_process(self, sim: SimulatorContext) -> None:
         async for *_, done in sim.tick().sample(self.adapter.done):
             # First, perform pending effects, updating internal state.
             with sim.critical():

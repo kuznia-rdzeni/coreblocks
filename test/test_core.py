@@ -3,12 +3,11 @@ from typing import Any
 from amaranth import *
 from amaranth.lib.wiring import connect
 from amaranth_types import ValueLike
-from amaranth_types.types import ProcessContext, TestbenchContext
 from transactron.testing.tick_count import TicksKey
 
 from transactron.utils import align_to_power_of_two
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, ProcessContext, TestbenchContext
 
 from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.core import Core

@@ -3,13 +3,12 @@ from operator import and_
 from functools import reduce
 
 from amaranth import *
-from amaranth_types.types import TestbenchContext
 from transactron.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
 from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.interface.layouts import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from transactron.testing import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
 
 
 class BackendTestCircuit(Elaboratable):

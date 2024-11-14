@@ -3,7 +3,6 @@ import random
 import queue
 from typing import Type
 from enum import IntFlag, IntEnum, auto, Enum
-from amaranth_types.types import TestbenchContext
 
 from parameterized import parameterized_class
 
@@ -11,7 +10,7 @@ from amaranth import *
 
 from transactron.lib.metrics import *
 from transactron import *
-from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, TestbenchContext
 from transactron.testing.tick_count import TicksKey
 from transactron.utils.dependencies import DependencyContext
 

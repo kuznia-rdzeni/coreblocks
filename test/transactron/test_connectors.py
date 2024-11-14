@@ -1,9 +1,8 @@
 import random
-from amaranth_types.types import TestbenchContext
 from parameterized import parameterized_class
 
 from transactron.lib import StableSelectingNetwork
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 
 @parameterized_class(
