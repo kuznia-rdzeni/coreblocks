@@ -163,7 +163,19 @@ class PysimSimulator(Simulator):
         else:
             self.ctx = nullcontext()
 
-        self.deadline = clk_period * max_cycles
+        self.timeouted = False
+
+        async def timeout_testbench(sim: SimulatorContext):
+            await sim.delay(clk_period * max_cycles)
+            self.timeouted = True
+
+        self.add_testbench(timeout_testbench, background=True)
+
+    def run(self) -> bool:
+        with self.ctx:
+            super().run()
+
+        return not self.timeouted
 
 
 class TestCaseWithSimulator:
@@ -296,18 +308,13 @@ class TestCaseWithSimulator:
 
         yield sim
 
-        async def timeout_testbench(sim: SimulatorContext):
-            await sim.delay(max_cycles * clk_period)
-            raise Exception(f"Simulation time limit exceeded ({max_cycles} clock cycles)")
-
-        sim.add_testbench(timeout_testbench, background=True)
-
         for f in self._transactron_sim_processes_to_add:
             ret = f()
             if ret is not None:
                 sim.add_process(ret)
 
-        sim.run()
+        res = sim.run()
+        assert res, "Simulation time limit exceeded"
 
     async def tick(self, sim: SimulatorContext, cycle_cnt: int = 1):
         """
