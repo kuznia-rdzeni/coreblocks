@@ -16,7 +16,6 @@ from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
 from .logging import make_logging_process, parse_logging_level, _LogFormatter
 from .tick_count import make_tick_count_process
-from .gtkw_extension import write_vcd_ext
 from .method_mock import MethodMock
 from transactron import Method
 from transactron.lib import AdapterTrans
@@ -156,8 +155,7 @@ class PysimSimulator(Simulator):
                 extra_signals = extra_signals()
             clocks = [d.clk for d in cast(Any, self)._design.fragment.domains.values()]
 
-            self.ctx = write_vcd_ext(
-                cast(Any, self)._engine,
+            self.ctx = self.write_vcd(
                 f"{traces_dir}/{traces_file}.vcd",
                 f"{traces_dir}/{traces_file}.gtkw",
                 traces=[clocks, extra_signals],
@@ -166,12 +164,6 @@ class PysimSimulator(Simulator):
             self.ctx = nullcontext()
 
         self.deadline = clk_period * max_cycles
-
-    def run(self) -> bool:
-        with self.ctx:
-            self.run_until(self.deadline)
-
-        return not self.advance()
 
 
 class TestCaseWithSimulator:
@@ -304,13 +296,18 @@ class TestCaseWithSimulator:
 
         yield sim
 
+        async def timeout_testbench(sim: SimulatorContext):
+            await sim.delay(max_cycles * clk_period)
+            raise Exception(f"Simulation time limit exceeded ({max_cycles} clock cycles)")
+
+        sim.add_testbench(timeout_testbench, background=True)
+
         for f in self._transactron_sim_processes_to_add:
             ret = f()
             if ret is not None:
                 sim.add_process(ret)
 
-        res = sim.run()
-        assert res, "Simulation time limit exceeded"
+        sim.run()
 
     async def tick(self, sim: SimulatorContext, cycle_cnt: int = 1):
         """
