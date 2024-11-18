@@ -115,6 +115,9 @@ def def_method_mock(
     When applied to a method definition, lambdas passed to `def_method_mock`
     need to take a `self` argument, which should be the first.
 
+    Mocks defined at class level or at test level are automatically discovered and
+    don't need to be manually added to the simulation.
+
     Any side effects (state modification, assertions, etc.) need to be guarded
     using the `MethodMock.effect` decorator.
 
@@ -137,25 +140,13 @@ def def_method_mock(
     Example
     -------
     ```
-    m = TestCircuit()
-    def target_process(k: int):
-        @def_method_mock(lambda: m.target[k])
-        def process(arg):
-            return {"data": arg["data"] + k}
-        return process
-    ```
-    or equivalently
-    ```
-    m = TestCircuit()
-    def target_process(k: int):
-        @def_method_mock(lambda: m.target[k], settle=1, enable=False)
-        def process(data):
-            return {"data": data + k}
-        return process
+    @def_method_mock(lambda: m.target[k])
+    def process(arg):
+        return {"data": arg["data"] + k}
     ```
     or for class methods
     ```
-    @def_method_mock(lambda self: self.target[k], settle=1, enable=False)
+    @def_method_mock(lambda self: self.target[k])
     def process(self, data):
         return {"data": data + k}
     ```
