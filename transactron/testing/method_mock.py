@@ -112,7 +112,7 @@ def def_method_mock(
     which correspond to named arguments of the method.
 
     This decorator can be applied to function definitions or method definitions.
-    When applied to a method definition, lambdas passed to `async_def_method_mock`
+    When applied to a method definition, lambdas passed to `def_method_mock`
     need to take a `self` argument, which should be the first.
 
     Any side effects (state modification, assertions, etc.) need to be guarded
