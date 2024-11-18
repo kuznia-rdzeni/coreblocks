@@ -129,8 +129,7 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
-        if self.submit_q:
-            return self.submit_q[0]
+        return self.submit_q[0]
 
     async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
@@ -151,7 +150,6 @@ class TestRetirement(TestCaseWithSimulator):
         assert not self.rf_free_q
 
     async def precommit_process(self, sim: TestbenchContext):
-        await sim.tick()  # TODO mocks inactive during first cycle
         while self.precommit_q:
             info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None

@@ -64,7 +64,9 @@ class MethodMock:
     async def validate_arguments_process(self, sim: SimulatorContext) -> None:
         assert self.validate_arguments is not None
         sync = sim._design.lookup_domain("sync", None)  # type: ignore
-        async for *args, clk in sim.changed(*(a for a, _ in self.adapter.validators)).edge(sync.clk, 1):
+        async for *args, clk, _ in (
+            sim.changed(*(a for a, _ in self.adapter.validators)).edge(sync.clk, 1).edge(self.adapter.en, 1)
+        ):
             assert len(args) == len(self.adapter.validators)  # TODO: remove later
             if clk:
                 self._freeze = True
@@ -74,27 +76,24 @@ class MethodMock:
                 sim.set(r, async_mock_def_helper(self, self.validate_arguments, arg))
 
     async def effect_process(self, sim: SimulatorContext) -> None:
+        sim.set(self.adapter.en, self.enable())
         async for *_, done in sim.tick().sample(self.adapter.done):
+            # Disabling the method on each cycle forces an edge when it is reenabled again.
+            # The method body won't be executed until the effects are done.
+            sim.set(self.adapter.en, False)
+
             # First, perform pending effects, updating internal state.
             with sim.critical():
                 if done:
                     for eff in self._effects:
                         eff()
 
-            # Ensure that the effects of all mocks are applied
-            await sim.delay(1e-12)
+            # Ensure that the effects of all mocks are applied. Delay 0 also does this!
             await sim.delay(self.delay)
 
-            # Next, update combinational signals taking the new state into account.
-            # In case the input signals get updated later, the other processes will perform the update again.
+            # Next, enable the method. The output will be updated by a combinational process.
             self._effects = []
             self._freeze = False
-            if self.validate_arguments is not None:
-                for a, r in self.adapter.validators:
-                    sim.set(r, async_mock_def_helper(self, self.validate_arguments, sim.get(a)))
-            with self._context():
-                ret = async_mock_def_helper(self, self.function, sim.get(self.adapter.data_out))
-            sim.set(self.adapter.data_in, ret)
             sim.set(self.adapter.en, self.enable())
 
 
