@@ -4,6 +4,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
 from math import log2
 from transactron.utils.amaranth_ext import count_leading_zeros
 
+
 def nearestpow2(n):
     a = int(log2(n))
     if 2**a == n:
@@ -14,7 +15,7 @@ def nearestpow2(n):
 
 class LZAMethodLayout:
     """LZA module layouts for methods
-    
+
     Parameters
     ----------
     fpu_params: FPUParams
