@@ -19,12 +19,12 @@ class LZAMethodLayout:
         ]
         self.predict_out_layout = [
             ("shift_amount", range(fpu_params.sig_width)),
-            ("is_zero",1),
-            ("G",fpu_params.sig_width + 2),
-            ("T",fpu_params.sig_width + 2),
-            ("Z",fpu_params.sig_width + 2),
-            ("f",fpu_params.sig_width + 1),
-            ("L",fpu_params.sig_width + 1),
+            ("is_zero", 1),
+            ("G", fpu_params.sig_width + 2),
+            ("T", fpu_params.sig_width + 2),
+            ("Z", fpu_params.sig_width + 2),
+            ("f", fpu_params.sig_width + 1),
+            ("L", fpu_params.sig_width + 1),
         ]
 
 
@@ -75,31 +75,30 @@ class LZAModule(Elaboratable):
             with m.Else():
                 m.d.av_comb += Z[0].eq(1)
 
-            for i in reversed(range(1,self.lza_params.sig_width + 2)):
-                m.d.av_comb += f[i-1].eq((T[i] ^ ~(Z[i-1])))
+            for i in reversed(range(1, self.lza_params.sig_width + 2)):
+                m.d.av_comb += f[i - 1].eq((T[i] ^ ~(Z[i - 1])))
 
             for i in range(self.lza_params.sig_width + 1):
-                if (i == (self.lza_params.sig_width)):
+                if i == (self.lza_params.sig_width):
                     m.d.av_comb += L[i].eq(f[i])
                 else:
-                    m.d.av_comb += L[i].eq(((~(f[(i+1):self.lza_params.sig_width+1]).any()) & f[i]))
+                    m.d.av_comb += L[i].eq(((~(f[(i + 1) : self.lza_params.sig_width + 1]).any()) & f[i]))
 
-            m.d.av_comb +=  shift_amount.eq(0)
+            m.d.av_comb += shift_amount.eq(0)
             for i in range(self.lza_params.sig_width):
-                with m.If(L[self.lza_params.sig_width-i-1]):
+                with m.If(L[self.lza_params.sig_width - i - 1]):
                     m.d.av_comb += shift_amount.eq(i)
 
-            m.d.av_comb += is_zero.eq((arg.carry & T[1:self.lza_params.sig_width+1].all()))
+            m.d.av_comb += is_zero.eq((arg.carry & T[1 : self.lza_params.sig_width + 1].all()))
 
             return {
-                "shift_amount" : shift_amount,
+                "shift_amount": shift_amount,
                 "is_zero": is_zero,
-                "G":G,
-                "T":T,
-                "Z":Z,
-                "f":f,
-                "L":L,
+                "G": G,
+                "T": T,
+                "Z": Z,
+                "f": f,
+                "L": L,
             }
+
         return m
-            
-            
