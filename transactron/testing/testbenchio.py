@@ -36,9 +36,7 @@ class CallTrigger:
         return CallTrigger(self.sim, (*self.calls_and_values, (tbio, data or kwdata)))
 
     async def until_done(self) -> Any:
-        call = self.__aiter__()
-        while True:
-            results = await call.__anext__()
+        async for results in self:
             if any(res is not None for res in results):
                 return results
 
