@@ -13,15 +13,41 @@ __all__ = ["CallTrigger", "TestbenchIO"]
 
 
 class CallTrigger:
+    """A trigger which allows to call multiple methods and sample signals.
+
+    The `call()` and `call_try()` methods on a `TestbenchIO` always wait at least one clock cycle. It follows
+    that these methods can't be used to perform calls to multiple methods in a single clock cycle. Usually
+    this is not a problem, as different methods can be called from different simulation processes. But in cases
+    when more control over the time when different calls happen is needed, this trigger class allows to call
+    many methods in a single clock cycle.
+    """
+
     def __init__(
         self,
         sim: SimulatorContext,
-        calls: Iterable[ValueLike | tuple["TestbenchIO", Optional[dict[str, Any]]]] = (),
+        _calls: Iterable[ValueLike | tuple["TestbenchIO", Optional[dict[str, Any]]]] = (),
     ):
+        """
+        Parameters
+        ----------
+        sim: SimulatorContext
+            Amaranth simulator context.
+        """
         self.sim = sim
-        self.calls_and_values: list[ValueLike | tuple[TestbenchIO, Optional[dict[str, Any]]]] = list(calls)
+        self.calls_and_values: list[ValueLike | tuple[TestbenchIO, Optional[dict[str, Any]]]] = list(_calls)
 
     def sample(self, *values: "ValueLike | TestbenchIO"):
+        """Sample a signal or a method result on a clock edge.
+
+        Values are sampled like in standard Amaranth `TickTrigger`. Sampling a method result works like `call()`,
+        but the method is not called - another process can do that instead. If the method was not called, the
+        sampled value is `None`.
+
+        Parameters
+        ----------
+        *values: ValueLike | TestbenchIO
+            Value or method to sample.
+        """
         new_calls_and_values: list[ValueLike | tuple["TestbenchIO", None]] = []
         for value in values:
             if isinstance(value, TestbenchIO):
@@ -31,11 +57,33 @@ class CallTrigger:
         return CallTrigger(self.sim, (*self.calls_and_values, *new_calls_and_values))
 
     def call(self, tbio: "TestbenchIO", data: dict[str, Any] = {}, /, **kwdata):
+        """Call a method and sample its result.
+
+        Adds a method call to the trigger. The method result is sampled on a clock edge. If the call did not
+        succeed, the sampled value is `None`.
+
+        Parameters
+        ----------
+        tbio: TestbenchIO
+            The method to call.
+        data: dict[str, Any]
+            Method call arguments stored in a dict.
+        **kwdata: Any
+            Method call arguments passed as keyword arguments. If keyword arguments are used,
+            the `data` argument should not be provided.
+        """
         if data and kwdata:
             raise TypeError("call() takes either a single dict or keyword arguments")
         return CallTrigger(self.sim, (*self.calls_and_values, (tbio, data or kwdata)))
 
     async def until_done(self) -> Any:
+        """Wait until at least one of the calls succeeds.
+
+        The `CallTrigger` normally acts like `TickTrigger`, e.g. awaiting on it advances the clock to the next
+        clock edge. It is possible that none of the calls could not be performed, for example because the called
+        methods were not enabled. In case we only want to focus on the cycles when one of the calls succeeded,
+        `until_done` can be used. This works like `until()` in `TickTrigger`.
+        """
         async for results in self:
             if any(res is not None for res in results):
                 return results
