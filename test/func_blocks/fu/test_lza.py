@@ -7,6 +7,18 @@ from transactron.testing import *
 from amaranth import *
 
 
+def clz(sig_a, sig_b, carry, sig_width):
+    zeros = 0
+    msb_bit_mask = 1 << (sig_width - 1)
+    sum = sig_a + sig_b + carry
+    while 1:
+        if not (sum & msb_bit_mask):
+            zeros += 1
+            sum = sum << 1
+        else:
+            return zeros
+
+
 class TestLZA(TestCaseWithSimulator):
     class LZAModuleTest(Elaboratable):
         def __init__(self, params: FPUParams):
@@ -38,26 +50,17 @@ class TestLZA(TestCaseWithSimulator):
         help_values = TestLZA.HelpValues(params)
         lza = TestLZA.LZAModuleTest(params)
 
-        def clz(sig_a, sig_b, carry):
-            zeros = 0
-            msb_bit_mask = 1 << (params.sig_width - 1)
-            sum = sig_a + sig_b + carry
-            while 1:
-                if not (sum & msb_bit_mask):
-                    zeros += 1
-                    sum = sum << 1
-                else:
-                    return zeros
-
-        def random_test():
+        def random_test(seed, iters):
             xor_mask = (2**params.sig_width) - 1
-            sig_a = randint(1 << (params.sig_width - 1), (2**params.sig_width) - 1)
-            sig_b = randint(1 << (params.sig_width - 1), sig_a)
-            sig_b = (sig_b ^ xor_mask) | (1 << params.sig_width)
-            resp = yield from lza.predict_request_adapter.call({"sig_a": sig_a, "sig_b": sig_b, "carry": 0})
-            pred_lz = resp["shift_amount"]
-            true_lz = clz(sig_a, sig_b, 0)
-            assert pred_lz == true_lz or (pred_lz + 1) == true_lz
+            random.seed(seed)
+            for _ in range(iters):
+                sig_a = randint(1 << (params.sig_width - 1), (2**params.sig_width) - 1)
+                sig_b = randint(1 << (params.sig_width - 1), sig_a)
+                sig_b = (sig_b ^ xor_mask) | (1 << params.sig_width)
+                resp = yield from lza.predict_request_adapter.call({"sig_a": sig_a, "sig_b": sig_b, "carry": 0})
+                pred_lz = resp["shift_amount"]
+                true_lz = clz(sig_a, sig_b, 0, params.sig_width)
+                assert pred_lz == true_lz or (pred_lz + 1) == true_lz
 
         def lza_test():
             test_cases = [
@@ -143,7 +146,7 @@ class TestLZA(TestCaseWithSimulator):
 
         def test_process():
             yield from lza_test()
-            yield from random_test()
+            yield from random_test(2024, 20)
 
         with self.run_simulation(lza) as sim:
             sim.add_process(test_process)
