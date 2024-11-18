@@ -27,7 +27,6 @@ class TestValidateArguments(TestCaseWithSimulator):
     def control_caller(self, caller: TestbenchIO, method: TestbenchIO):
         async def process(sim: TestbenchContext):
             await sim.tick()
-            await sim.tick()
             for _ in range(100):
                 val = random.randrange(2)
                 pre_accepted_val = self.accepted_val
