@@ -183,7 +183,11 @@ class TestDecoder(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(
             test_core_config.replace(
-                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB | Extension.ZICOND
+                _implied_extensions=Extension.G
+                | Extension.XINTMACHINEMODE
+                | Extension.XINTSUPERVISOR
+                | Extension.ZBB
+                | Extension.ZICOND
             )
         )
         self.decoder = InstrDecoder(self.gen_params)
