@@ -127,7 +127,7 @@ class _CoreConfigurationDataClass:
 
     instr_buffer_size: int = 4
 
-    interrupt_custom_count: int = 0
+    interrupt_custom_count: int = 16
     interrupt_custom_edge_trig_mask: int = 0
 
     user_mode: bool = True

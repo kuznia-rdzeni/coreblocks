@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.wiring import Component, flipped, connect, Out
+from amaranth.lib.wiring import Component, flipped, connect, In, Out
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
@@ -35,12 +35,14 @@ __all__ = ["Core"]
 class Core(Component):
     wb_instr: WishboneInterface
     wb_data: WishboneInterface
+    interrupts: Signal
 
     def __init__(self, *, gen_params: GenParams):
         super().__init__(
             {
                 "wb_instr": Out(WishboneSignature(gen_params.wb_params)),
                 "wb_data": Out(WishboneSignature(gen_params.wb_params)),
+                "interrupts": In(gen_params.isa.xlen),
             }
         )
 
@@ -115,6 +117,8 @@ class Core(Component):
 
         m.submodules.csr_generic = self.csr_generic
         m.submodules.interrupt_controller = self.interrupt_controller
+        m.d.comb += self.interrupt_controller.internal_report_level.eq(self.interrupts[0:16])
+        m.d.comb += self.interrupt_controller.custom_report.eq(self.interrupts[16:])
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
