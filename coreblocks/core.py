@@ -5,7 +5,7 @@ from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.priv.traps.interrupt_controller import InternalInterruptController
+from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
@@ -42,7 +42,7 @@ class Core(Component):
             {
                 "wb_instr": Out(WishboneSignature(gen_params.wb_params)),
                 "wb_data": Out(WishboneSignature(gen_params.wb_params)),
-                "interrupts": In(gen_params.isa.xlen),
+                "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
             }
         )
 
