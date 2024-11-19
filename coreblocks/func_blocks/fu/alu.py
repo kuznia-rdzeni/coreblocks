@@ -101,8 +101,8 @@ class AluFn(DecoderManager):
             ]
             * self.zbb_enable
             + [
-                (self.Fn.CZEROEQZ, OpType.CZERO, Funct3.CZEROEQZ, Funct7.CZERO),
-                (self.Fn.CZERONEZ, OpType.CZERO, Funct3.CZERONEZ, Funct7.CZERO),
+                (self.Fn.CZEROEQZ, OpType.CZERO, Funct3.CZEROEQZ),
+                (self.Fn.CZERONEZ, OpType.CZERO, Funct3.CZERONEZ),
             ]
             * self.zicond_enable
         )
@@ -219,16 +219,17 @@ class Alu(Elaboratable):
                         m.d.comb += self.out[i * 8 : (i + 1) * 8].eq(self.in1[j * 8 : (j + 1) * 8])
 
             if self.zicond_enable:
-                with OneHotCase(AluFn.Fn.CZEROEQZ):
-                    with m.If(self.in2.bool()):
-                        m.d.comb += self.out.eq(self.in1)
-                    with m.Else():
-                        m.d.comb += self.out.eq(C(0))
-                with OneHotCase(AluFn.Fn.CZERONEZ):
-                    with m.If(self.in2.bool()):
-                        m.d.comb += self.out.eq(C(0))
-                    with m.Else():
-                        m.d.comb += self.out.eq(self.in1)
+                czero_cases = [
+                    (AluFn.Fn.CZEROEQZ, lambda cond: self.in1 if cond else C(0)),
+                    (AluFn.Fn.CZERONEZ, lambda cond: C(0) if cond else self.in1),
+                ]
+                for fn, output_fn in czero_cases:
+                    with OneHotCase(fn):
+                        with m.If(self.in2.any()):
+                            m.d.comb += self.out.eq(output_fn(True))
+                        with m.Else():
+                            m.d.comb += self.out.eq(output_fn(False))
+
         return m
 
 
