@@ -32,6 +32,13 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
     ),
+    RSBlockComponent(
+        [
+            MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+            DivComponent(),
+        ],
+        rs_entries=2,
+    ),
     RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
 )
@@ -139,7 +146,9 @@ class _CoreConfigurationDataClass:
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
 
-    pma: list[PMARegion] = field(default_factory=list)
+    pma: list[PMARegion] = field(
+        default_factory=lambda: [PMARegion(0xE0000000, 0xFFFFFFFF, mmio=True)]
+    )  # defult I/O region used in LiteX coreblocks
 
 
 class CoreConfiguration(_CoreConfigurationDataClass):
