@@ -12,6 +12,7 @@ from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ROBLayouts, RFLayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
+from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
 from collections import deque
@@ -120,42 +121,46 @@ class TestRetirement(TestCaseWithSimulator):
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
-    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
+    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q))
     def retire_process(self):
-        self.submit_q.popleft()
+        @MethodMock.effect
+        def eff():
+            self.submit_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
         return self.submit_q[0]
 
-    def free_reg_process(self):
+    async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
-            reg = yield from self.retc.free_rf_adapter.call()
+            reg = await self.retc.free_rf_adapter.call(sim)
             assert reg["reg_id"] == self.rf_exp_q.popleft()
 
-    def rat_process(self):
+    async def rat_process(self, sim: TestbenchContext):
         while self.rat_map_q:
             current_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            while (yield self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+            while sim.get(self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
-                yield Tick()
+                await sim.tick()
         assert not self.submit_q
         assert not self.rf_free_q
 
-    def precommit_process(self):
+    async def precommit_process(self, sim: TestbenchContext):
         while self.precommit_q:
-            info = yield from self.retc.precommit_adapter.call_try(rob_id=self.precommit_q[0])
+            info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None
             assert info["side_fx"]
             self.precommit_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
+    @def_method_mock(lambda self: self.retc.mock_rf_free)
     def rf_free_process(self, reg_id):
-        assert reg_id == self.rf_free_q.popleft()
+        @MethodMock.effect
+        def eff():
+            assert reg_id == self.rf_free_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
@@ -174,7 +179,7 @@ class TestRetirement(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)
-    def mock_fetch_continue_process(self):
+    def mock_fetch_continue_process(self, pc):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
@@ -184,6 +189,6 @@ class TestRetirement(TestCaseWithSimulator):
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
         with self.run_simulation(self.retc) as sim:
-            sim.add_process(self.free_reg_process)
-            sim.add_process(self.rat_process)
-            sim.add_process(self.precommit_process)
+            sim.add_testbench(self.free_reg_process)
+            sim.add_testbench(self.rat_process)
+            sim.add_testbench(self.precommit_process)

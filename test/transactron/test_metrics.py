@@ -7,12 +7,11 @@ from enum import IntFlag, IntEnum, auto, Enum
 from parameterized import parameterized_class
 
 from amaranth import *
-from amaranth.sim import Settle, Tick
 
 from transactron.lib.metrics import *
 from transactron import *
-from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit
-from transactron.testing.infrastructure import Now
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, TestbenchContext
+from transactron.testing.tick_count import TicksKey
 from transactron.utils.dependencies import DependencyContext
 
 
@@ -74,72 +73,62 @@ class TestHwCounter(TestCaseWithSimulator):
         m = SimpleTestCircuit(CounterInMethodCircuit())
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
-        def test_process():
+        async def test_process(sim):
             called_cnt = 0
             for _ in range(200):
                 call_now = random.randint(0, 1) == 0
 
                 if call_now:
-                    yield from m.method.call()
-                else:
-                    yield Tick()
-
-                # Note that it takes one cycle to update the register value, so here
-                # we are comparing the "previous" values.
-                assert called_cnt == (yield m._dut.counter.count.value)
-
-                if call_now:
+                    await m.method.call(sim)
                     called_cnt += 1
+                else:
+                    await sim.tick()
+
+                assert called_cnt == sim.get(m._dut.counter.count.value)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
     def test_counter_with_condition_in_method(self):
         m = SimpleTestCircuit(CounterWithConditionInMethodCircuit())
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
-        def test_process():
+        async def test_process(sim):
             called_cnt = 0
             for _ in range(200):
                 call_now = random.randint(0, 1) == 0
                 condition = random.randint(0, 1)
 
                 if call_now:
-                    yield from m.method.call(cond=condition)
+                    await m.method.call(sim, cond=condition)
+                    called_cnt += condition
                 else:
-                    yield Tick()
+                    await sim.tick()
 
-                # Note that it takes one cycle to update the register value, so here
-                # we are comparing the "previous" values.
-                assert called_cnt == (yield m._dut.counter.count.value)
-
-                if call_now and condition == 1:
-                    called_cnt += 1
+                assert called_cnt == sim.get(m._dut.counter.count.value)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
     def test_counter_with_condition_without_method(self):
         m = CounterWithoutMethodCircuit()
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
-        def test_process():
+        async def test_process(sim):
             called_cnt = 0
             for _ in range(200):
                 condition = random.randint(0, 1)
 
-                yield m.cond.eq(condition)
-                yield Tick()
-
-                # Note that it takes one cycle to update the register value, so here
-                # we are comparing the "previous" values.
-                assert called_cnt == (yield m.counter.count.value)
+                sim.set(m.cond, condition)
+                await sim.tick()
 
                 if condition == 1:
                     called_cnt += 1
 
+                assert called_cnt == sim.get(m.counter.count.value)
+
         with self.run_simulation(m) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
 
 class OneHotEnum(IntFlag):
@@ -184,23 +173,23 @@ class TestTaggedCounter(TestCaseWithSimulator):
         for i in tag_values:
             counts[i] = 0
 
-        def test_process():
+        async def test_process(sim):
             for _ in range(200):
                 for i in tag_values:
-                    assert counts[i] == (yield m.counter.counters[i].value)
+                    assert counts[i] == sim.get(m.counter.counters[i].value)
 
                 tag = random.choice(list(tag_values))
 
-                yield m.cond.eq(1)
-                yield m.tag.eq(tag)
-                yield Tick()
-                yield m.cond.eq(0)
-                yield Tick()
+                sim.set(m.cond, 1)
+                sim.set(m.tag, tag)
+                await sim.tick()
+                sim.set(m.cond, 0)
+                await sim.tick()
 
                 counts[tag] += 1
 
         with self.run_simulation(m) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
     def test_one_hot_enum(self):
         self.do_test_enum(OneHotEnum, [e.value for e in OneHotEnum])
@@ -261,8 +250,8 @@ class TestHwHistogram(TestCaseWithSimulator):
 
         max_sample_value = 2**self.sample_width - 1
 
-        def test_process():
-            min = max_sample_value + 1
+        async def test_process(sim):
+            min = max_sample_value
             max = 0
             sum = 0
             count = 0
@@ -282,46 +271,43 @@ class TestHwHistogram(TestCaseWithSimulator):
                         if value < 2**i or i == self.bucket_count - 1:
                             buckets[i] += 1
                             break
-                    yield from m.method.call(data=value)
-                    yield Tick()
+                    await m.method.call(sim, data=value)
                 else:
-                    yield Tick()
+                    await sim.tick()
 
                 histogram = m._dut.histogram
-                # Skip the assertion if the min is still uninitialized
-                if min != max_sample_value + 1:
-                    assert min == (yield histogram.min.value)
 
-                assert max == (yield histogram.max.value)
-                assert sum == (yield histogram.sum.value)
-                assert count == (yield histogram.count.value)
+                assert min == sim.get(histogram.min.value)
+                assert max == sim.get(histogram.max.value)
+                assert sum == sim.get(histogram.sum.value)
+                assert count == sim.get(histogram.count.value)
 
                 total_count = 0
                 for i in range(self.bucket_count):
-                    bucket_value = yield histogram.buckets[i].value
+                    bucket_value = sim.get(histogram.buckets[i].value)
                     total_count += bucket_value
                     assert buckets[i] == bucket_value
 
                 # Sanity check if all buckets sum up to the total count value
-                assert total_count == (yield histogram.count.value)
+                assert total_count == sim.get(histogram.count.value)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
 
 class TestLatencyMeasurerBase(TestCaseWithSimulator):
-    def check_latencies(self, m: SimpleTestCircuit, latencies: list[int]):
-        assert min(latencies) == (yield m._dut.histogram.min.value)
-        assert max(latencies) == (yield m._dut.histogram.max.value)
-        assert sum(latencies) == (yield m._dut.histogram.sum.value)
-        assert len(latencies) == (yield m._dut.histogram.count.value)
+    def check_latencies(self, sim, m: SimpleTestCircuit, latencies: list[int]):
+        assert min(latencies) == sim.get(m._dut.histogram.min.value)
+        assert max(latencies) == sim.get(m._dut.histogram.max.value)
+        assert sum(latencies) == sim.get(m._dut.histogram.sum.value)
+        assert len(latencies) == sim.get(m._dut.histogram.count.value)
 
         for i in range(m._dut.histogram.bucket_count):
             bucket_start = 0 if i == 0 else 2 ** (i - 1)
             bucket_end = 1e10 if i == m._dut.histogram.bucket_count - 1 else 2**i
 
             count = sum(1 for x in latencies if bucket_start <= x < bucket_end)
-            assert count == (yield m._dut.histogram.buckets[i].value)
+            assert count == sim.get(m._dut.histogram.buckets[i].value)
 
 
 @parameterized_class(
@@ -351,36 +337,33 @@ class TestFIFOLatencyMeasurer(TestLatencyMeasurerBase):
 
         finish = False
 
-        def producer():
+        async def producer(sim: TestbenchContext):
             nonlocal finish
+            ticks = DependencyContext.get().get_dependency(TicksKey())
 
             for _ in range(200):
-                yield from m._start.call()
+                await m._start.call(sim)
 
-                # Make sure that the time is updated first.
-                yield Settle()
-                time = yield Now()
-                event_queue.put(time)
-                yield from self.random_wait_geom(0.8)
+                event_queue.put(sim.get(ticks))
+                await self.random_wait_geom(sim, 0.8)
 
             finish = True
 
-        def consumer():
+        async def consumer(sim: TestbenchContext):
+            ticks = DependencyContext.get().get_dependency(TicksKey())
+
             while not finish:
-                yield from m._stop.call()
+                await m._stop.call(sim)
 
-                # Make sure that the time is updated first.
-                yield Settle()
-                time = yield Now()
-                latencies.append(time - event_queue.get())
+                latencies.append(sim.get(ticks) - event_queue.get())
 
-                yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
+                await self.random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
 
-            self.check_latencies(m, latencies)
+            self.check_latencies(sim, m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(producer)
-            sim.add_process(consumer)
+            sim.add_testbench(producer)
+            sim.add_testbench(consumer)
 
 
 @parameterized_class(
@@ -412,54 +395,51 @@ class TestIndexedLatencyMeasurer(TestLatencyMeasurerBase):
 
         finish = False
 
-        def producer():
+        async def producer(sim):
             nonlocal finish
+
+            tick_count = DependencyContext.get().get_dependency(TicksKey())
 
             for _ in range(200):
                 while not free_slots:
-                    yield Tick()
-                    continue
-                yield Settle()
+                    await sim.tick()
+                await sim.delay(1e-9)
 
                 slot_id = random.choice(free_slots)
-                yield from m._start.call(slot=slot_id)
+                await m._start.call(sim, slot=slot_id)
 
-                time = yield Now()
-
-                events[slot_id] = time
+                events[slot_id] = sim.get(tick_count)
                 free_slots.remove(slot_id)
                 used_slots.append(slot_id)
 
-                yield from self.random_wait_geom(0.8)
+                await self.random_wait_geom(sim, 0.8)
 
             finish = True
 
-        def consumer():
+        async def consumer(sim):
+            tick_count = DependencyContext.get().get_dependency(TicksKey())
+
             while not finish:
                 while not used_slots:
-                    yield Tick()
-                    continue
+                    await sim.tick()
 
                 slot_id = random.choice(used_slots)
 
-                yield from m._stop.call(slot=slot_id)
+                await m._stop.call(sim, slot=slot_id)
 
-                time = yield Now()
+                await sim.delay(2e-9)
 
-                yield Settle()
-                yield Settle()
-
-                latencies.append(time - events[slot_id])
+                latencies.append(sim.get(tick_count) - events[slot_id])
                 used_slots.remove(slot_id)
                 free_slots.append(slot_id)
 
-                yield from self.random_wait_geom(1.0 / self.expected_consumer_wait)
+                await self.random_wait_geom(sim, 1.0 / self.expected_consumer_wait)
 
-            self.check_latencies(m, latencies)
+            self.check_latencies(sim, m, latencies)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(producer)
-            sim.add_process(consumer)
+            sim.add_testbench(producer)
+            sim.add_testbench(consumer)
 
 
 class MetricManagerTestCircuit(Elaboratable):
@@ -527,21 +507,20 @@ class TestMetricsManager(TestCaseWithSimulator):
 
         DependencyContext.get().add_dependency(HwMetricsEnabledKey(), True)
 
-        def test_process():
+        async def test_process(sim):
             counters = [0] * 3
             for _ in range(200):
                 rand = [random.randint(0, 1) for _ in range(3)]
 
-                yield from m.incr_counters.call(counter1=rand[0], counter2=rand[1], counter3=rand[2])
-                yield Tick()
+                await m.incr_counters.call(sim, counter1=rand[0], counter2=rand[1], counter3=rand[2])
 
                 for i in range(3):
                     if rand[i] == 1:
                         counters[i] += 1
 
-                assert counters[0] == (yield metrics_manager.get_register_value("foo.counter1", "count"))
-                assert counters[1] == (yield metrics_manager.get_register_value("bar.baz.counter2", "count"))
-                assert counters[2] == (yield metrics_manager.get_register_value("bar.baz.counter3", "count"))
+                assert counters[0] == sim.get(metrics_manager.get_register_value("foo.counter1", "count"))
+                assert counters[1] == sim.get(metrics_manager.get_register_value("bar.baz.counter2", "count"))
+                assert counters[2] == sim.get(metrics_manager.get_register_value("bar.baz.counter3", "count"))
 
         with self.run_simulation(m) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)

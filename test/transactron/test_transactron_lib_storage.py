@@ -31,28 +31,24 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
         settle_count=0,
         name="",
     ):
-        def f():
+        async def f(sim: TestbenchContext):
             while input_lst:
                 # wait till all processes will end the previous cycle
-                yield from self.multi_settle(4)
+                await sim.delay(1e-9)
                 elem = input_lst.pop()
                 if isinstance(elem, OpNOP):
-                    yield Tick()
+                    await sim.tick()
                     continue
                 if input_verification is not None and not input_verification(elem):
-                    yield Tick()
+                    await sim.tick()
                     continue
-                response = yield from method.call(**elem)
-                yield from self.multi_settle(settle_count)
+                response = await method.call(sim, **elem)
+                await sim.delay(settle_count * 1e-9)
                 if behaviour_check is not None:
-                    # Here accesses to circuit are allowed
-                    ret = behaviour_check(elem, response)
-                    if isinstance(ret, Generator):
-                        yield from ret
+                    behaviour_check(elem, response)
                 if state_change is not None:
-                    # It is standard python function by purpose to don't allow accessing circuit
                     state_change(elem, response)
-                yield Tick()
+                await sim.tick()
 
         return f
 
@@ -77,10 +73,10 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
             addr = elem["addr"]
             frozen_addr = frozenset(addr.items())
             if frozen_addr in self.memory:
-                assert response["not_found"] == 0
-                assert response["data"] == self.memory[frozen_addr]
+                assert response.not_found == 0
+                assert data_const_to_dict(response.data) == self.memory[frozen_addr]
             else:
-                assert response["not_found"] == 1
+                assert response.not_found == 1
 
         return self.generic_process(self.circ.read, in_read, behaviour_check=check, settle_count=0, name="read")
 
@@ -97,7 +93,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
             return ret
 
         def check(elem, response):
-            assert response["not_found"] == int(frozenset(elem["addr"].items()) not in self.memory)
+            assert response.not_found == int(frozenset(elem["addr"].items()) not in self.memory)
 
         def modify_state(elem, response):
             if frozenset(elem["addr"].items()) in self.memory:
@@ -129,7 +125,7 @@ class TestContentAddressableMemory(TestCaseWithSimulator):
         with self.reinitialize_fixtures():
             self.setUp()
             with self.run_simulation(self.circ, max_cycles=500) as sim:
-                sim.add_process(self.push_process(in_push))
-                sim.add_process(self.read_process(in_read))
-                sim.add_process(self.write_process(in_write))
-                sim.add_process(self.remove_process(in_remove))
+                sim.add_testbench(self.push_process(in_push))
+                sim.add_testbench(self.read_process(in_read))
+                sim.add_testbench(self.write_process(in_write))
+                sim.add_testbench(self.remove_process(in_remove))

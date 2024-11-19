@@ -1,6 +1,6 @@
 from amaranth.sim import *
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
@@ -181,64 +181,63 @@ class TestDecoder(TestCaseWithSimulator):
         self.cnt = 1
 
     def do_test(self, tests: list[InstrTest]):
-        def process():
+        async def process(sim: TestbenchContext):
             for test in tests:
-                yield self.decoder.instr.eq(test.encoding)
-                yield Settle()
+                sim.set(self.decoder.instr, test.encoding)
 
-                assert (yield self.decoder.illegal) == test.illegal
+                assert sim.get(self.decoder.illegal) == test.illegal
                 if test.illegal:
                     return
 
-                assert (yield self.decoder.opcode) == test.opcode
+                assert sim.get(self.decoder.opcode) == test.opcode
 
                 if test.funct3 is not None:
-                    assert (yield self.decoder.funct3) == test.funct3
-                assert (yield self.decoder.funct3_v) == (test.funct3 is not None)
+                    assert sim.get(self.decoder.funct3) == test.funct3
+                assert sim.get(self.decoder.funct3_v) == (test.funct3 is not None)
 
                 if test.funct7 is not None:
-                    assert (yield self.decoder.funct7) == test.funct7
-                assert (yield self.decoder.funct7_v) == (test.funct7 is not None)
+                    assert sim.get(self.decoder.funct7) == test.funct7
+                assert sim.get(self.decoder.funct7_v) == (test.funct7 is not None)
 
                 if test.funct12 is not None:
-                    assert (yield self.decoder.funct12) == test.funct12
-                assert (yield self.decoder.funct12_v) == (test.funct12 is not None)
+                    assert sim.get(self.decoder.funct12) == test.funct12
+                assert sim.get(self.decoder.funct12_v) == (test.funct12 is not None)
 
                 if test.rd is not None:
-                    assert (yield self.decoder.rd) == test.rd
-                assert (yield self.decoder.rd_v) == (test.rd is not None)
+                    assert sim.get(self.decoder.rd) == test.rd
+                assert sim.get(self.decoder.rd_v) == (test.rd is not None)
 
                 if test.rs1 is not None:
-                    assert (yield self.decoder.rs1) == test.rs1
-                assert (yield self.decoder.rs1_v) == (test.rs1 is not None)
+                    assert sim.get(self.decoder.rs1) == test.rs1
+                assert sim.get(self.decoder.rs1_v) == (test.rs1 is not None)
 
                 if test.rs2 is not None:
-                    assert (yield self.decoder.rs2) == test.rs2
-                assert (yield self.decoder.rs2_v) == (test.rs2 is not None)
+                    assert sim.get(self.decoder.rs2) == test.rs2
+                assert sim.get(self.decoder.rs2_v) == (test.rs2 is not None)
 
                 if test.imm is not None:
                     if test.csr is not None:
                         # in CSR instruction additional fields are passed in unused bits of imm field
-                        assert (yield self.decoder.imm.as_signed() & ((2**5) - 1)) == test.imm
+                        assert sim.get(self.decoder.imm.as_signed() & ((2**5) - 1)) == test.imm
                     else:
-                        assert (yield self.decoder.imm.as_signed()) == test.imm
+                        assert sim.get(self.decoder.imm.as_signed()) == test.imm
 
                 if test.succ is not None:
-                    assert (yield self.decoder.succ) == test.succ
+                    assert sim.get(self.decoder.succ) == test.succ
 
                 if test.pred is not None:
-                    assert (yield self.decoder.pred) == test.pred
+                    assert sim.get(self.decoder.pred) == test.pred
 
                 if test.fm is not None:
-                    assert (yield self.decoder.fm) == test.fm
+                    assert sim.get(self.decoder.fm) == test.fm
 
                 if test.csr is not None:
-                    assert (yield self.decoder.csr) == test.csr
+                    assert sim.get(self.decoder.csr) == test.csr
 
-                assert (yield self.decoder.optype) == test.op
+                assert sim.get(self.decoder.optype) == test.op
 
         with self.run_simulation(self.decoder) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     def test_i(self):
         self.do_test(self.DECODER_TESTS_I)
@@ -280,14 +279,13 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
         self.decoder = InstrDecoder(self.gen_params)
 
-        def process():
+        async def process(sim: TestbenchContext):
             for encoding, illegal in self.E_TEST:
-                yield self.decoder.instr.eq(encoding)
-                yield Settle()
-                assert (yield self.decoder.illegal) == illegal
+                sim.set(self.decoder.instr, encoding)
+                assert sim.get(self.decoder.illegal) == illegal
 
         with self.run_simulation(self.decoder) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class TestEncodingUniqueness(TestCase):

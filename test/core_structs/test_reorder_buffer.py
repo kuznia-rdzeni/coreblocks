@@ -1,6 +1,4 @@
-from amaranth.sim import Passive, Settle, Tick
-
-from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.params import GenParams
@@ -9,54 +7,50 @@ from coreblocks.params.configurations import test_core_config
 from queue import Queue
 from random import Random
 
+from transactron.testing.functions import data_const_to_dict
+
 
 class TestReorderBuffer(TestCaseWithSimulator):
-    def gen_input(self):
+    async def gen_input(self, sim: TestbenchContext):
         for _ in range(self.test_steps):
             while self.regs_left_queue.empty():
-                yield Tick()
+                await sim.tick()
 
-            while self.rand.random() < 0.5:
-                yield  # to slow down puts
+            await self.random_wait_geom(sim, 0.5)  # to slow down puts
             log_reg = self.rand.randint(0, self.log_regs - 1)
             phys_reg = self.regs_left_queue.get()
             regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
-            rob_id = yield from self.m.put.call(regs)
+            rob_id = (await self.m.put.call(sim, regs)).rob_id
             self.to_execute_list.append((rob_id, phys_reg))
-            self.retire_queue.put((regs, rob_id["rob_id"]))
+            self.retire_queue.put((regs, rob_id))
 
-    def do_updates(self):
-        yield Passive()
+    async def do_updates(self, sim: TestbenchContext):
         while True:
-            while self.rand.random() < 0.5:
-                yield  # to slow down execution
+            await self.random_wait_geom(sim, 0.5)  # to slow down execution
             if len(self.to_execute_list) == 0:
-                yield Tick()
+                await sim.tick()
             else:
                 idx = self.rand.randint(0, len(self.to_execute_list) - 1)
                 rob_id, executed = self.to_execute_list.pop(idx)
                 self.executed_list.append(executed)
-                yield from self.m.mark_done.call(rob_id)
+                await self.m.mark_done.call(sim, rob_id=rob_id, exception=0)
 
-    def do_retire(self):
+    async def do_retire(self, sim: TestbenchContext):
         cnt = 0
         while True:
             if self.retire_queue.empty():
-                self.m.retire.enable()
-                yield Tick()
-                is_ready = yield self.m.retire.adapter.done
-                assert is_ready == 0  # transaction should not be ready if there is nothing to retire
+                res = await self.m.retire.call_try(sim)
+                assert res is None  # transaction should not be ready if there is nothing to retire
             else:
                 regs, rob_id_exp = self.retire_queue.get()
-                results = yield from self.m.peek.call()
-                yield from self.m.retire.call()
-                phys_reg = results["rob_data"]["rp_dst"]
-                assert rob_id_exp == results["rob_id"]
+                results = await self.m.peek.call(sim)
+                await self.m.retire.call(sim)
+                phys_reg = results.rob_data.rp_dst
+                assert rob_id_exp == results.rob_id
                 assert phys_reg in self.executed_list
                 self.executed_list.remove(phys_reg)
 
-                yield Settle()
-                assert results["rob_data"] == regs
+                assert data_const_to_dict(results.rob_data) == regs
                 self.regs_left_queue.put(phys_reg)
 
                 cnt += 1
@@ -82,40 +76,38 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.log_regs = self.gen_params.isa.reg_cnt
 
         with self.run_simulation(m) as sim:
-            sim.add_process(self.gen_input)
-            sim.add_process(self.do_updates)
-            sim.add_process(self.do_retire)
+            sim.add_testbench(self.gen_input)
+            sim.add_testbench(self.do_updates, background=True)
+            sim.add_testbench(self.do_retire)
 
 
 class TestFullDoneCase(TestCaseWithSimulator):
-    def gen_input(self):
+    async def gen_input(self, sim: TestbenchContext):
         for _ in range(self.test_steps):
             log_reg = self.rand.randrange(self.log_regs)
             phys_reg = self.rand.randrange(self.phys_regs)
-            rob_id = yield from self.m.put.call(rl_dst=log_reg, rp_dst=phys_reg)
+            rob_id = (await self.m.put.call(sim, rl_dst=log_reg, rp_dst=phys_reg)).rob_id
             self.to_execute_list.append(rob_id)
 
-    def do_single_update(self):
+    async def do_single_update(self, sim: TestbenchContext):
         while len(self.to_execute_list) == 0:
-            yield Tick()
+            await sim.tick()
 
         rob_id = self.to_execute_list.pop(0)
-        yield from self.m.mark_done.call(rob_id)
+        await self.m.mark_done.call(sim, rob_id=rob_id)
 
-    def do_retire(self):
+    async def do_retire(self, sim: TestbenchContext):
         for i in range(self.test_steps - 1):
-            yield from self.do_single_update()
+            await self.do_single_update(sim)
 
-        yield from self.m.retire.call()
-        yield from self.do_single_update()
+        await self.m.retire.call(sim)
+        await self.do_single_update(sim)
 
         for i in range(self.test_steps - 1):
-            yield from self.m.retire.call()
+            await self.m.retire.call(sim)
 
-        yield from self.m.retire.enable()
-        yield Tick()
-        res = yield self.m.retire.adapter.done
-        assert res == 0  # should be disabled, since we have read all elements
+        res = await self.m.retire.call_try(sim)
+        assert res is None  # since we have read all elements
 
     def test_single(self):
         self.rand = Random(0)
@@ -130,5 +122,5 @@ class TestFullDoneCase(TestCaseWithSimulator):
         self.phys_regs = 2**self.gen_params.phys_regs_bits
 
         with self.run_simulation(m) as sim:
-            sim.add_process(self.gen_input)
-            sim.add_process(self.do_retire)
+            sim.add_testbench(self.gen_input)
+            sim.add_testbench(self.do_retire)

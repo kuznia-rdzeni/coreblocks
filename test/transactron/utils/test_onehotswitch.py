@@ -3,7 +3,7 @@ from amaranth.sim import *
 
 from transactron.utils import OneHotSwitch
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from parameterized import parameterized
 
@@ -30,33 +30,30 @@ class OneHotSwitchCircuit(Elaboratable):
         return m
 
 
-class TestAssign(TestCaseWithSimulator):
+class TestOneHotSwitch(TestCaseWithSimulator):
     @parameterized.expand([(False,), (True,)])
     def test_onehotswitch(self, test_zero):
         circuit = OneHotSwitchCircuit(4, test_zero)
 
-        def switch_test_proc():
+        async def switch_test_proc(sim: TestbenchContext):
             for i in range(len(circuit.input)):
-                yield circuit.input.eq(1 << i)
-                yield Settle()
-                assert (yield circuit.output) == i
+                sim.set(circuit.input, 1 << i)
+                assert sim.get(circuit.output) == i
 
         with self.run_simulation(circuit) as sim:
-            sim.add_process(switch_test_proc)
+            sim.add_testbench(switch_test_proc)
 
     def test_onehotswitch_zero(self):
         circuit = OneHotSwitchCircuit(4, True)
 
-        def switch_test_proc_zero():
+        async def switch_test_proc_zero(sim: TestbenchContext):
             for i in range(len(circuit.input)):
-                yield circuit.input.eq(1 << i)
-                yield Settle()
-                assert (yield circuit.output) == i
-                assert not (yield circuit.zero)
+                sim.set(circuit.input, 1 << i)
+                assert sim.get(circuit.output) == i
+                assert not sim.get(circuit.zero)
 
-            yield circuit.input.eq(0)
-            yield Settle()
-            assert (yield circuit.zero)
+            sim.set(circuit.input, 0)
+            assert sim.get(circuit.zero)
 
         with self.run_simulation(circuit) as sim:
-            sim.add_process(switch_test_proc_zero)
+            sim.add_testbench(switch_test_proc_zero)

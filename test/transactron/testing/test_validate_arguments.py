@@ -2,11 +2,12 @@ import random
 from amaranth import *
 from amaranth.sim import *
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, data_layout, TestbenchContext
 
 from transactron import *
-from transactron.testing.sugar import def_method_mock
+from transactron.testing.method_mock import def_method_mock
 from transactron.lib import *
+from transactron.testing.testbenchio import CallTrigger
 
 
 class ValidateArgumentsTestCircuit(Elaboratable):
@@ -24,25 +25,26 @@ class ValidateArgumentsTestCircuit(Elaboratable):
 
 class TestValidateArguments(TestCaseWithSimulator):
     def control_caller(self, caller: TestbenchIO, method: TestbenchIO):
-        def process():
+        async def process(sim: TestbenchContext):
+            await sim.tick()
             for _ in range(100):
                 val = random.randrange(2)
                 pre_accepted_val = self.accepted_val
-                ret = yield from caller.call_try(data=val)
-                if ret is None:
-                    assert val != pre_accepted_val or val == pre_accepted_val and (yield from method.done())
-                else:
+                caller_data, method_data = await CallTrigger(sim).call(caller, data=val).sample(method)
+                if caller_data is not None:
                     assert val == pre_accepted_val
-                    assert ret["data"] == val
+                    assert caller_data.data == val
+                else:
+                    assert val != pre_accepted_val or val == pre_accepted_val and method_data is not None
 
         return process
 
     def validate_arguments(self, data: int):
         return data == self.accepted_val
 
-    def changer(self):
+    async def changer(self, sim: TestbenchContext):
         for _ in range(50):
-            yield Tick("sync_neg")
+            await sim.tick()
         self.accepted_val = 1
 
     @def_method_mock(tb_getter=lambda self: self.m.method, validate_arguments=validate_arguments)
@@ -54,6 +56,6 @@ class TestValidateArguments(TestCaseWithSimulator):
         self.m = ValidateArgumentsTestCircuit()
         self.accepted_val = 0
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.changer)
-            sim.add_process(self.control_caller(self.m.caller1, self.m.method))
-            sim.add_process(self.control_caller(self.m.caller2, self.m.method))
+            sim.add_testbench(self.changer)
+            sim.add_testbench(self.control_caller(self.m.caller1, self.m.method))
+            sim.add_testbench(self.control_caller(self.m.caller2, self.m.method))

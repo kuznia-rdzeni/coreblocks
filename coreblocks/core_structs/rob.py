@@ -1,5 +1,4 @@
 from amaranth import *
-from amaranth.lib.data import View
 import amaranth.lib.memory as memory
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
@@ -19,7 +18,7 @@ class ReorderBuffer(Elaboratable):
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
-        self.data = memory.Memory(shape=layouts.data_layout.size, depth=2**self.params.rob_entries_bits, init=[])
+        self.data = memory.Memory(shape=layouts.data_layout, depth=2**self.params.rob_entries_bits, init=[])
         self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
@@ -54,8 +53,8 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.peek, ready=peek_possible)
         def _():
-            return {  # remove View after Amaranth upgrade
-                "rob_data": View(self.params.get(ROBLayouts).data_layout, read_port.data),
+            return {
+                "rob_data": read_port.data,
                 "rob_id": start_idx,
                 "exception": self.exception[start_idx],
             }

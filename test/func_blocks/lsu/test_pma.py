@@ -1,4 +1,4 @@
-from amaranth.sim import Settle
+import random
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker, PMARegion
 
 from transactron.lib import Adapter
@@ -7,25 +7,25 @@ from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
 from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
+from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
 
 class TestPMADirect(TestCaseWithSimulator):
-    def verify_region(self, region: PMARegion):
+    async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for i in range(region.start, region.end + 1):
-            yield self.test_module.addr.eq(i)
-            yield Settle()
-            mmio = yield self.test_module.result["mmio"]
+            sim.set(self.test_module.addr, i)
+            mmio = sim.get(self.test_module.result.mmio)
             assert mmio == region.mmio
 
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         for r in self.pma_regions:
-            yield from self.verify_region(r)
+            await self.verify_region(sim, r)
 
     def test_pma_direct(self):
         self.pma_regions = [
@@ -40,7 +40,7 @@ class TestPMADirect(TestCaseWithSimulator):
         self.test_module = PMAChecker(self.gen_params)
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)
 
 
 class PMAIndirectTestCircuit(Elaboratable):
@@ -100,29 +100,24 @@ class TestPMAIndirect(TestCaseWithSimulator):
             "pc": 0,
         }
 
-    def verify_region(self, region: PMARegion):
+    async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for addr in range(region.start, region.end + 1):
             instr = self.get_instr(addr)
-            yield from self.test_module.issue.call(instr)
+            await self.test_module.issue.call(sim, instr)
             if region.mmio is True:
                 wb = self.test_module.io_in.wb
                 for i in range(100):  # 100 cycles is more than enough
-                    wb_requested = (yield wb.stb) and (yield wb.cyc)
+                    wb_requested = sim.get(wb.stb) and sim.get(wb.cyc)
                     assert not wb_requested
 
-                yield from self.test_module.precommit.method_handle(
-                    function=lambda rob_id: {"side_fx": 1}, validate_arguments=lambda rob_id: rob_id == 1
-                )
+            await self.test_module.io_in.slave_wait(sim)
+            await self.test_module.io_in.slave_respond(sim, (addr << (addr % 4) * 8))
+            v = await self.test_module.accept.call(sim)
+            assert v.result == addr
 
-            yield from self.test_module.io_in.slave_wait()
-            yield from self.test_module.io_in.slave_respond((addr << (addr % 4) * 8))
-            yield Settle()
-            v = yield from self.test_module.accept.call()
-            assert v["result"] == addr
-
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         for region in self.pma_regions:
-            yield from self.verify_region(region)
+            await self.verify_region(sim, region)
 
     def test_pma_indirect(self):
         self.pma_regions = [
@@ -135,11 +130,21 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            assert False
+            @MethodMock.effect
+            def eff():
+                assert False
+
+        @def_method_mock(
+            lambda: self.test_module.precommit,
+            validate_arguments=lambda rob_id: rob_id == 1,
+            enable=lambda: random.random() < 0.5,
+        )
+        def precommiter(rob_id):
+            return {"side_fx": 1}
 
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
             return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)

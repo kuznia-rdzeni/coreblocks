@@ -78,21 +78,21 @@ class TestPopcount(TestCaseWithSimulator):
         self.test_number = 40
         self.m = PopcountTestCircuit(self.size)
 
-    def check(self, n):
-        yield self.m.sig_in.eq(n)
-        yield Settle()
-        out_popcount = yield self.m.sig_out
+    def check(self, sim: TestbenchContext, n):
+        sim.set(self.m.sig_in, n)
+        out_popcount = sim.get(self.m.sig_out)
         assert out_popcount == n.bit_count(), f"{n:x}"
 
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         for i in range(self.test_number):
             n = random.randrange(2**self.size)
-            yield from self.check(n)
-        yield from self.check(2**self.size - 1)
+            self.check(sim, n)
+            sim.delay(1e-6)
+        self.check(sim, 2**self.size - 1)
 
     def test_popcount(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)
 
 
 class CLZTestCircuit(Elaboratable):
@@ -124,21 +124,21 @@ class TestCountLeadingZeros(TestCaseWithSimulator):
         self.test_number = 40
         self.m = CLZTestCircuit(self.size)
 
-    def check(self, n):
-        yield self.m.sig_in.eq(n)
-        yield Settle()
-        out_clz = yield self.m.sig_out
+    def check(self, sim: TestbenchContext, n):
+        sim.set(self.m.sig_in, n)
+        out_clz = sim.get(self.m.sig_out)
         assert out_clz == (2**self.size) - n.bit_length(), f"{n:x}"
 
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         for i in range(self.test_number):
             n = random.randrange(2**self.size)
-            yield from self.check(n)
-        yield from self.check(2**self.size - 1)
+            self.check(sim, n)
+            sim.delay(1e-6)
+        self.check(sim, 2**self.size - 1)
 
     def test_count_leading_zeros(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)
 
 
 class CTZTestCircuit(Elaboratable):
@@ -170,10 +170,9 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
         self.test_number = 40
         self.m = CTZTestCircuit(self.size)
 
-    def check(self, n):
-        yield self.m.sig_in.eq(n)
-        yield Settle()
-        out_ctz = yield self.m.sig_out
+    def check(self, sim: TestbenchContext, n):
+        sim.set(self.m.sig_in, n)
+        out_ctz = sim.get(self.m.sig_out)
 
         expected = 0
         if n == 0:
@@ -185,12 +184,13 @@ class TestCountTrailingZeros(TestCaseWithSimulator):
 
         assert out_ctz == expected, f"{n:x}"
 
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         for i in range(self.test_number):
             n = random.randrange(2**self.size)
-            yield from self.check(n)
-        yield from self.check(2**self.size - 1)
+            self.check(sim, n)
+            await sim.delay(1e-6)
+        self.check(sim, 2**self.size - 1)
 
     def test_count_trailing_zeros(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)

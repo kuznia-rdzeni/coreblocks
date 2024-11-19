@@ -166,6 +166,7 @@ class MethodFilter(Elaboratable, Transformer):
         use_condition : bool
             Instead of `m.If` use simultaneus `condition` which allow to execute
             this filter if the condition is False and target is not ready.
+            When `use_condition` is true, `condition` must not be a `Method`.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -179,6 +180,8 @@ class MethodFilter(Elaboratable, Transformer):
         self.method = Method(i=target.layout_in, o=target.layout_out, single_caller=self.use_condition, src_loc=src_loc)
         self.condition = condition
         self.default = default
+
+        assert not (use_condition and isinstance(condition, Method))
 
     def elaborate(self, platform):
         m = TModule()

@@ -1,5 +1,6 @@
 from transactron.testing import *
 import random
+import pytest
 from transactron.utils.amaranth_ext import MultiPriorityEncoder, RingMultiPriorityEncoder
 
 
@@ -33,26 +34,25 @@ def get_expected_ring(input_width, output_count, input, first, last):
 )
 class TestPriorityEncoder(TestCaseWithSimulator):
     def process(self, get_expected):
-        def f():
+        async def f(sim: TestbenchContext):
             for _ in range(self.test_number):
                 input = random.randrange(2**self.input_width)
                 first = random.randrange(self.input_width)
                 last = random.randrange(self.input_width)
-                yield self.circ.input.eq(input)
+                sim.set(self.circ.input, input)
                 try:
-                    yield self.circ.first.eq(first)
-                    yield self.circ.last.eq(last)
+                    sim.set(self.circ.first, first)
+                    sim.set(self.circ.last, last)
                 except AttributeError:
                     pass
-                yield Settle()
                 expected_output = get_expected(self.input_width, self.output_count, input, first, last)
                 for ex, real, valid in zip(expected_output, self.circ.outputs, self.circ.valids):
                     if ex is None:
-                        assert (yield valid) == 0
+                        assert sim.get(valid) == 0
                     else:
-                        assert (yield valid) == 1
-                        assert (yield real) == ex
-                yield Delay(1e-7)
+                        assert sim.get(valid) == 1
+                        assert sim.get(real) == ex
+                await sim.delay(1e-7)
 
         return f
 
@@ -66,7 +66,7 @@ class TestPriorityEncoder(TestCaseWithSimulator):
         self.circ = test_class(self.input_width, self.output_count)
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_process(self.process(verif_f))
+            sim.add_testbench(self.process(verif_f))
 
     @pytest.mark.parametrize("name", ["prio_encoder", None])
     def test_static_create_simple(self, test_class, verif_f, name):
@@ -100,7 +100,7 @@ class TestPriorityEncoder(TestCaseWithSimulator):
         self.circ = DUT(self.input_width, self.output_count, name)
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_process(self.process(verif_f))
+            sim.add_testbench(self.process(verif_f))
 
     @pytest.mark.parametrize("name", ["prio_encoder", None])
     def test_static_create(self, test_class, verif_f, name):
@@ -132,4 +132,4 @@ class TestPriorityEncoder(TestCaseWithSimulator):
         self.circ = DUT(self.input_width, self.output_count, name)
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_process(self.process(verif_f))
+            sim.add_testbench(self.process(verif_f))

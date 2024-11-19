@@ -3,10 +3,12 @@ from itertools import product
 from typing import Optional
 from amaranth import *
 from amaranth.sim import *
+from transactron.testing.method_mock import MethodMock, def_method_mock
+from transactron.testing.testbenchio import TestbenchIO
 
 from transactron.utils import ModuleConnector
 
-from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
 
 from transactron import *
 from transactron.lib import Adapter, Connect, ConnectTrans
@@ -44,17 +46,17 @@ class TestSimultaneousDiamond(TestCaseWithSimulator):
     def test_diamond(self):
         circ = SimpleTestCircuit(SimultaneousDiamondTestCircuit())
 
-        def process():
+        async def process(sim: TestbenchContext):
             methods = {"l": circ.method_l, "r": circ.method_r, "u": circ.method_u, "d": circ.method_d}
             for i in range(1 << len(methods)):
                 enables: dict[str, bool] = {}
                 for k, n in enumerate(methods):
                     enables[n] = bool(i & (1 << k))
-                    yield from methods[n].set_enable(enables[n])
-                yield Tick()
+                    methods[n].set_enable(sim, enables[n])
                 dones: dict[str, bool] = {}
                 for n in methods:
-                    dones[n] = bool((yield from methods[n].done()))
+                    dones[n] = bool(methods[n].get_done(sim))
+                await sim.tick()
                 for n in methods:
                     if not enables[n]:
                         assert not dones[n]
@@ -66,7 +68,7 @@ class TestSimultaneousDiamond(TestCaseWithSimulator):
                     assert not any(dones.values())
 
         with self.run_simulation(circ) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class UnsatisfiableTriangleTestCircuit(Elaboratable):
@@ -148,17 +150,19 @@ class TestTransitivity(TestCaseWithSimulator):
         result: Optional[int]
 
         @def_method_mock(lambda: target)
-        def target_process(data):
-            nonlocal result
-            result = data
+        def target_process(data: int):
+            @MethodMock.effect
+            def eff():
+                nonlocal result
+                result = data
 
-        def process():
+        async def process(sim: TestbenchContext):
             nonlocal result
             for source, data, reqv1, reqv2 in product([circ.source1, circ.source2], [0, 1, 2, 3], [0, 1], [0, 1]):
                 result = None
-                yield req1.eq(reqv1)
-                yield req2.eq(reqv2)
-                call_result = yield from source.call_try(data=data)
+                sim.set(req1, reqv1)
+                sim.set(req2, reqv2)
+                call_result = await source.call_try(sim, data=data)
 
                 if not reqv1 and not reqv2:
                     assert call_result is None
@@ -169,4 +173,4 @@ class TestTransitivity(TestCaseWithSimulator):
                     assert result in possibles
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)

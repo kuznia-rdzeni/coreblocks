@@ -3,7 +3,6 @@ from itertools import product
 import random
 from operator import and_
 from functools import reduce
-from amaranth.sim import Settle, Tick
 from typing import Optional, TypeAlias
 from parameterized import parameterized
 from collections import deque
@@ -11,14 +10,17 @@ from collections import deque
 from amaranth import *
 from transactron import *
 from transactron.lib import *
+from transactron.testing.method_mock import MethodMock
+from transactron.testing.testbenchio import CallTrigger
 from transactron.utils._typing import ModuleLike, MethodStruct, RecordDict
 from transactron.utils import ModuleConnector
 from transactron.testing import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
-    TestbenchIO,
     data_layout,
     def_method_mock,
+    TestbenchIO,
+    TestbenchContext,
 )
 
 
@@ -45,19 +47,19 @@ class TestFifoBase(TestCaseWithSimulator):
 
         random.seed(1337)
 
-        def writer():
+        async def writer(sim: TestbenchContext):
             for i in range(2**iosize):
-                yield from m.write.call(data=i)
-                yield from self.random_wait(writer_rand)
+                await m.write.call(sim, data=i)
+                await self.random_wait(sim, writer_rand)
 
-        def reader():
+        async def reader(sim: TestbenchContext):
             for i in range(2**iosize):
-                assert (yield from m.read.call()) == {"data": i}
-                yield from self.random_wait(reader_rand)
+                assert (await m.read.call(sim)).data == i
+                await self.random_wait(sim, reader_rand)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(reader)
-            sim.add_process(writer)
+            sim.add_testbench(reader)
+            sim.add_testbench(writer)
 
 
 class TestFIFO(TestFifoBase):
@@ -86,46 +88,35 @@ class TestForwarder(TestFifoBase):
 
         m = SimpleTestCircuit(Forwarder(data_layout(iosize)))
 
-        def forward_check(x):
-            yield from m.read.call_init()
-            yield from m.write.call_init(data=x)
-            yield Settle()
-            assert (yield from m.read.call_result()) == {"data": x}
-            assert (yield from m.write.call_result()) is not None
-            yield Tick()
+        async def forward_check(sim: TestbenchContext, x: int):
+            read_res, write_res = await CallTrigger(sim).call(m.read).call(m.write, data=x)
+            assert read_res is not None and read_res.data == x
+            assert write_res is not None
 
-        def process():
+        async def process(sim: TestbenchContext):
             # test forwarding behavior
             for x in range(4):
-                yield from forward_check(x)
+                await forward_check(sim, x)
 
             # load the overflow buffer
-            yield from m.read.disable()
-            yield from m.write.call_init(data=42)
-            yield Settle()
-            assert (yield from m.write.call_result()) is not None
-            yield Tick()
+            res = await m.write.call_try(sim, data=42)
+            assert res is not None
 
             # writes are not possible now
-            yield from m.write.call_init(data=84)
-            yield Settle()
-            assert (yield from m.write.call_result()) is None
-            yield Tick()
+            res = await m.write.call_try(sim, data=42)
+            assert res is None
 
             # read from the overflow buffer, writes still blocked
-            yield from m.read.enable()
-            yield from m.write.call_init(data=111)
-            yield Settle()
-            assert (yield from m.read.call_result()) == {"data": 42}
-            assert (yield from m.write.call_result()) is None
-            yield Tick()
+            read_res, write_res = await CallTrigger(sim).call(m.read).call(m.write, data=111)
+            assert read_res is not None and read_res.data == 42
+            assert write_res is None
 
             # forwarding now works again
             for x in range(4):
-                yield from forward_check(x)
+                await forward_check(sim, x)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
 
 class TestPipe(TestFifoBase):
@@ -165,7 +156,7 @@ class TestMemoryBank(TestCaseWithSimulator):
                 transparent=transparent,
                 read_ports=read_ports,
                 write_ports=write_ports,
-            )
+            ),
         )
 
         data: list[int] = [0 for _ in range(max_addr)]
@@ -174,43 +165,39 @@ class TestMemoryBank(TestCaseWithSimulator):
         random.seed(seed)
 
         def writer(i):
-            def process():
+            async def process(sim: TestbenchContext):
                 for cycle in range(test_count):
                     d = random.randrange(2**data_width)
                     a = random.randrange(max_addr)
-                    yield from m.writes[i].call(data=d, addr=a)
-                    for _ in range(i + 2 if not transparent else i):
-                        yield Settle()
+                    await m.writes[i].call(sim, data={"data": d}, addr=a)
+                    await sim.delay(1e-9 * (i + 2 if not transparent else i))
                     data[a] = d
-                    yield from self.random_wait(writer_rand)
+                    await self.random_wait(sim, writer_rand)
 
             return process
 
         def reader_req(i):
-            def process():
+            async def process(sim: TestbenchContext):
                 for cycle in range(test_count):
                     a = random.randrange(max_addr)
-                    yield from m.read_reqs[i].call(addr=a)
-                    for _ in range(1 if not transparent else write_ports + 2):
-                        yield Settle()
+                    await m.read_reqs[i].call(sim, addr=a)
+                    await sim.delay(1e-9 * (1 if not transparent else write_ports + 2))
                     d = data[a]
                     read_req_queues[i].append(d)
-                    yield from self.random_wait(reader_req_rand)
+                    await self.random_wait(sim, reader_req_rand)
 
             return process
 
         def reader_resp(i):
-            def process():
+            async def process(sim: TestbenchContext):
                 for cycle in range(test_count):
-                    for _ in range(write_ports + 3):
-                        yield Settle()
+                    await sim.delay(1e-9 * (write_ports + 3))
                     while not read_req_queues[i]:
-                        yield from self.random_wait(reader_resp_rand or 1, min_cycle_cnt=1)
-                        for _ in range(write_ports + 3):
-                            yield Settle()
+                        await self.random_wait(sim, reader_resp_rand or 1, min_cycle_cnt=1)
+                        await sim.delay(1e-9 * (write_ports + 3))
                     d = read_req_queues[i].popleft()
-                    assert (yield from m.read_resps[i].call()) == {"data": d}
-                    yield from self.random_wait(reader_resp_rand)
+                    assert (await m.read_resps[i].call(sim)).data == d
+                    await self.random_wait(sim, reader_resp_rand)
 
             return process
 
@@ -219,10 +206,10 @@ class TestMemoryBank(TestCaseWithSimulator):
 
         with self.run_simulation(m, max_cycles=max_cycles) as sim:
             for i in range(read_ports):
-                sim.add_process(reader_req(i))
-                sim.add_process(reader_resp(i))
+                sim.add_testbench(reader_req(i))
+                sim.add_testbench(reader_resp(i))
             for i in range(write_ports):
-                sim.add_process(writer(i))
+                sim.add_testbench(writer(i))
 
 
 class TestAsyncMemoryBank(TestCaseWithSimulator):
@@ -238,7 +225,7 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
         m = SimpleTestCircuit(
             AsyncMemoryBank(
                 data_layout=[("data", data_width)], elem_count=max_addr, read_ports=read_ports, write_ports=write_ports
-            )
+            ),
         )
 
         data: list[int] = list(0 for i in range(max_addr))
@@ -246,43 +233,41 @@ class TestAsyncMemoryBank(TestCaseWithSimulator):
         random.seed(seed)
 
         def writer(i):
-            def process():
+            async def process(sim: TestbenchContext):
                 for cycle in range(test_count):
                     d = random.randrange(2**data_width)
                     a = random.randrange(max_addr)
-                    yield from m.writes[i].call(data=d, addr=a)
-                    for _ in range(i + 2):
-                        yield Settle()
+                    await m.writes[i].call(sim, data={"data": d}, addr=a)
+                    await sim.delay(1e-9 * (i + 2))
                     data[a] = d
-                    yield from self.random_wait(writer_rand, min_cycle_cnt=1)
+                    await self.random_wait(sim, writer_rand, min_cycle_cnt=1)
 
             return process
 
         def reader(i):
-            def process():
+            async def process(sim: TestbenchContext):
                 for cycle in range(test_count):
                     a = random.randrange(max_addr)
-                    d = yield from m.reads[i].call(addr=a)
-                    for _ in range(1):
-                        yield Settle()
+                    d = await m.reads[i].call(sim, addr=a)
+                    await sim.delay(1e-9)
                     expected_d = data[a]
                     assert d["data"] == expected_d
-                    yield from self.random_wait(reader_rand, min_cycle_cnt=1)
+                    await self.random_wait(sim, reader_rand, min_cycle_cnt=1)
 
             return process
 
         with self.run_simulation(m) as sim:
             for i in range(read_ports):
-                sim.add_process(reader(i))
+                sim.add_testbench(reader(i))
             for i in range(write_ports):
-                sim.add_process(writer(i))
+                sim.add_testbench(writer(i))
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
     def __init__(self, count: int, lay: MethodLayout):
         self.count = count
         self.lay = lay
-        self.inputs = []
+        self.inputs: list[TestbenchIO] = []
 
     def elaborate(self, platform):
         m = TModule()
@@ -296,8 +281,7 @@ class ManyToOneConnectTransTestCircuit(Elaboratable):
 
         # Create ManyToOneConnectTrans, which will serialize results from different inputs
         output = TestbenchIO(Adapter(i=self.lay))
-        m.submodules.output = output
-        self.output = output
+        m.submodules.output = self.output = output
         m.submodules.fu_arbitration = ManyToOneConnectTrans(get_results=get_results, put_result=output.adapter.iface)
 
         return m
@@ -341,19 +325,19 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
         results to its output FIFO. This records will be next serialized by FUArbiter.
         """
 
-        def producer():
+        async def producer(sim: TestbenchContext):
             inputs = self.inputs[i]
             for field1, field2 in inputs:
-                io: TestbenchIO = self.m.inputs[i]
-                yield from io.call_init(field1=field1, field2=field2)
-                yield from self.random_wait(self.max_wait)
+                self.m.inputs[i].call_init(sim, field1=field1, field2=field2)
+                await self.random_wait(sim, self.max_wait)
             self.producer_end[i] = True
 
         return producer
 
-    def consumer(self):
+    async def consumer(self, sim: TestbenchContext):
+        # TODO: this test doesn't test anything, needs to be fixed!
         while reduce(and_, self.producer_end, True):
-            result = yield from self.m.output.call_do()
+            result = await self.m.output.call_do(sim)
 
             assert result is not None
 
@@ -363,23 +347,16 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            yield from self.random_wait(self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
-    def test_one_out(self):
-        self.count = 1
+    @pytest.mark.parametrize("count", [1, 4])
+    def test(self, count: int):
+        self.count = count
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.consumer)
+            sim.add_testbench(self.consumer)
             for i in range(self.count):
-                sim.add_process(self.generate_producer(i))
-
-    def test_many_out(self):
-        self.count = 4
-        self.initialize()
-        with self.run_simulation(self.m) as sim:
-            sim.add_process(self.consumer)
-            for i in range(self.count):
-                sim.add_process(self.generate_producer(i))
+                sim.add_testbench(self.generate_producer(i))
 
 
 class MethodMapTestCircuit(Elaboratable):
@@ -446,11 +423,11 @@ class MethodMapTestCircuit(Elaboratable):
 class TestMethodTransformer(TestCaseWithSimulator):
     m: MethodMapTestCircuit
 
-    def source(self):
+    async def source(self, sim: TestbenchContext):
         for i in range(2**self.m.iosize):
-            v = yield from self.m.source.call(data=i)
+            v = await self.m.source.call(sim, data=i)
             i1 = (i + 1) & ((1 << self.m.iosize) - 1)
-            assert v["data"] == (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1)
+            assert v.data == (((i1 << 1) | (i1 >> (self.m.iosize - 1))) - 1) & ((1 << self.m.iosize) - 1)
 
     @def_method_mock(lambda self: self.m.target)
     def target(self, data):
@@ -459,18 +436,17 @@ class TestMethodTransformer(TestCaseWithSimulator):
     def test_method_transformer(self):
         self.m = MethodMapTestCircuit(4, False, False)
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.source)
-            sim.add_process(self.target)
+            sim.add_testbench(self.source)
 
     def test_method_transformer_dicts(self):
         self.m = MethodMapTestCircuit(4, False, True)
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.source)
+            sim.add_testbench(self.source)
 
     def test_method_transformer_with_methods(self):
         self.m = MethodMapTestCircuit(4, True, True)
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.source)
+            sim.add_testbench(self.source)
 
 
 class TestMethodFilter(TestCaseWithSimulator):
@@ -480,34 +456,31 @@ class TestMethodFilter(TestCaseWithSimulator):
         self.target = TestbenchIO(Adapter(i=self.layout, o=self.layout))
         self.cmeth = TestbenchIO(Adapter(i=self.layout, o=data_layout(1)))
 
-    def source(self):
+    async def source(self, sim: TestbenchContext):
         for i in range(2**self.iosize):
-            v = yield from self.tc.method.call(data=i)
+            v = await self.tc.method.call(sim, data=i)
             if i & 1:
-                assert v["data"] == (i + 1) & ((1 << self.iosize) - 1)
+                assert v.data == (i + 1) & ((1 << self.iosize) - 1)
             else:
-                assert v["data"] == 0
+                assert v.data == 0
 
-    @def_method_mock(lambda self: self.target, sched_prio=2)
+    @def_method_mock(lambda self: self.target)
     def target_mock(self, data):
         return {"data": data + 1}
 
-    @def_method_mock(lambda self: self.cmeth, sched_prio=1)
+    @def_method_mock(lambda self: self.cmeth)
     def cmeth_mock(self, data):
         return {"data": data % 2}
 
-    @parameterized.expand([(True,), (False,)])
-    def test_method_filter_with_methods(self, use_condition):
+    def test_method_filter_with_methods(self):
         self.initialize()
-        self.tc = SimpleTestCircuit(
-            MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface, use_condition=use_condition)
-        )
+        self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, self.cmeth.adapter.iface))
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
-            sim.add_process(self.source)
+            sim.add_testbench(self.source)
 
     @parameterized.expand([(True,), (False,)])
-    def test_method_filter(self, use_condition):
+    def test_method_filter_plain(self, use_condition):
         self.initialize()
 
         def condition(_, v):
@@ -516,7 +489,7 @@ class TestMethodFilter(TestCaseWithSimulator):
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition, use_condition=use_condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target, cmeth=self.cmeth)
         with self.run_simulation(m) as sim:
-            sim.add_process(self.source)
+            sim.add_testbench(self.source)
 
 
 class MethodProductTestCircuit(Elaboratable):
@@ -562,36 +535,36 @@ class TestMethodProduct(TestCaseWithSimulator):
 
         def target_process(k: int):
             @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
-            def process(data):
+            def mock(data):
                 return {"data": data + k}
 
-            return process
+            return mock()
 
-        def method_process():
+        async def method_process(sim: TestbenchContext):
             # if any of the target methods is not enabled, call does not succeed
             for i in range(2**targets - 1):
                 for k in range(targets):
                     method_en[k] = bool(i & (1 << k))
 
-                yield Tick()
-                assert (yield from m.method.call_try(data=0)) is None
+                await sim.tick()
+                assert (await m.method.call_try(sim, data=0)) is None
 
             # otherwise, the call succeeds
             for k in range(targets):
                 method_en[k] = True
-            yield Tick()
+            await sim.tick()
 
             data = random.randint(0, (1 << iosize) - 1)
-            val = (yield from m.method.call(data=data))["data"]
+            val = (await m.method.call(sim, data=data)).data
             if add_combiner:
                 assert val == (targets * data + (targets - 1) * targets // 2) & ((1 << iosize) - 1)
             else:
                 assert val == data
 
         with self.run_simulation(m) as sim:
-            sim.add_process(method_process)
+            sim.add_testbench(method_process)
             for k in range(targets):
-                sim.add_process(target_process(k))
+                self.add_mock(sim, target_process(k))
 
 
 class TestSerializer(TestCaseWithSimulator):
@@ -613,7 +586,7 @@ class TestSerializer(TestCaseWithSimulator):
                 port_count=self.port_count,
                 serialized_req_method=self.req_method.adapter.iface,
                 serialized_resp_method=self.resp_method.adapter.iface,
-            )
+            ),
         )
         self.m = ModuleConnector(
             test_circuit=self.test_circuit, req_method=self.req_method, resp_method=self.resp_method
@@ -628,38 +601,44 @@ class TestSerializer(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.req_method, enable=lambda self: not self.got_request)
     def serial_req_mock(self, field):
-        self.serialized_data.append(field)
-        self.got_request = True
+        @MethodMock.effect
+        def eff():
+            self.serialized_data.append(field)
+            self.got_request = True
 
     @def_method_mock(lambda self: self.resp_method, enable=lambda self: self.got_request)
     def serial_resp_mock(self):
-        self.got_request = False
-        return {"field": self.serialized_data[-1]}
+        @MethodMock.effect
+        def eff():
+            self.got_request = False
+
+        if self.serialized_data:
+            return {"field": self.serialized_data[-1]}
 
     def requestor(self, i: int):
-        def f():
+        async def f(sim: TestbenchContext):
             for _ in range(self.test_count):
                 d = random.randrange(2**self.data_width)
-                yield from self.test_circuit.serialize_in[i].call(field=d)
+                await self.test_circuit.serialize_in[i].call(sim, field=d)
                 self.port_data[i].append(d)
-                yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
+                await self.random_wait(sim, self.requestor_rand, min_cycle_cnt=1)
 
         return f
 
     def responder(self, i: int):
-        def f():
+        async def f(sim: TestbenchContext):
             for _ in range(self.test_count):
-                data_out = yield from self.test_circuit.serialize_out[i].call()
-                assert self.port_data[i].popleft() == data_out["field"]
-                yield from self.random_wait(self.requestor_rand, min_cycle_cnt=1)
+                data_out = await self.test_circuit.serialize_out[i].call(sim)
+                assert self.port_data[i].popleft() == data_out.field
+                await self.random_wait(sim, self.requestor_rand, min_cycle_cnt=1)
 
         return f
 
     def test_serial(self):
         with self.run_simulation(self.m) as sim:
             for i in range(self.port_count):
-                sim.add_process(self.requestor(i))
-                sim.add_process(self.responder(i))
+                sim.add_testbench(self.requestor(i))
+                sim.add_testbench(self.responder(i))
 
 
 class TestMethodTryProduct(TestCaseWithSimulator):
@@ -674,32 +653,32 @@ class TestMethodTryProduct(TestCaseWithSimulator):
 
         def target_process(k: int):
             @def_method_mock(lambda: m.target[k], enable=lambda: method_en[k])
-            def process(data):
+            def mock(data):
                 return {"data": data + k}
 
-            return process
+            return mock()
 
-        def method_process():
+        async def method_process(sim: TestbenchContext):
             for i in range(2**targets):
                 for k in range(targets):
                     method_en[k] = bool(i & (1 << k))
 
                 active_targets = sum(method_en)
 
-                yield Tick()
+                await sim.tick()
 
                 data = random.randint(0, (1 << iosize) - 1)
-                val = yield from m.method.call(data=data)
+                val = await m.method.call(sim, data=data)
                 if add_combiner:
                     adds = sum(k * method_en[k] for k in range(targets))
-                    assert val == {"data": (active_targets * data + adds) & ((1 << iosize) - 1)}
+                    assert val.data == (active_targets * data + adds) & ((1 << iosize) - 1)
                 else:
-                    assert val == {}
+                    assert val.shape().size == 0
 
         with self.run_simulation(m) as sim:
-            sim.add_process(method_process)
+            sim.add_testbench(method_process)
             for k in range(targets):
-                sim.add_process(target_process(k))
+                self.add_mock(sim, target_process(k))
 
 
 class MethodTryProductTestCircuit(Elaboratable):
@@ -768,7 +747,7 @@ class TestCondition(TestCaseWithSimulator):
         target = TestbenchIO(Adapter(i=[("cond", 2)]))
 
         circ = SimpleTestCircuit(
-            ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall)
+            ConditionTestCircuit(target.adapter.iface, nonblocking=nonblocking, priority=priority, catchall=catchall),
         )
         m = ModuleConnector(test_circuit=circ, target=target)
 
@@ -776,14 +755,17 @@ class TestCondition(TestCaseWithSimulator):
 
         @def_method_mock(lambda: target)
         def target_process(cond):
-            nonlocal selection
-            selection = cond
+            @MethodMock.effect
+            def eff():
+                nonlocal selection
+                selection = cond
 
-        def process():
+        async def process(sim: TestbenchContext):
             nonlocal selection
+            await sim.tick()  # TODO workaround for mocks inactive in first cycle
             for c1, c2, c3 in product([0, 1], [0, 1], [0, 1]):
                 selection = None
-                res = yield from circ.source.call_try(cond1=c1, cond2=c2, cond3=c3)
+                res = await circ.source.call_try(sim, cond1=c1, cond2=c2, cond3=c3)
 
                 if catchall or nonblocking:
                     assert res is not None
@@ -801,4 +783,4 @@ class TestCondition(TestCaseWithSimulator):
                     assert selection in [c1, 2 * c2, 3 * c3]
 
         with self.run_simulation(m) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)

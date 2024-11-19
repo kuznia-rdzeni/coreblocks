@@ -1,9 +1,12 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any
 import logging
+import itertools
 
-from amaranth.sim import Passive, Tick
+from amaranth.sim._async import ProcessContext
 from transactron.lib import logging as tlog
+from transactron.utils.dependencies import DependencyContext
+from .tick_count import TicksKey
 
 
 __all__ = ["make_logging_process", "parse_logging_level"]
@@ -31,7 +34,7 @@ def parse_logging_level(str: str) -> tlog.LogLevel:
     raise ValueError("Log level must be either {error, warn, info, debug} or a non-negative integer.")
 
 
-_sim_cycle = 0
+_sim_cycle: int = 0
 
 
 class _LogFormatter(logging.Formatter):
@@ -65,17 +68,15 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
 
     root_logger = logging.getLogger()
 
-    def handle_logs():
-        if not (yield combined_trigger):
-            return
+    def handle_logs(record_vals: Iterable[int]) -> None:
+        it = iter(record_vals)
 
         for record in records:
-            if not (yield record.trigger):
-                continue
+            trigger = next(it)
+            values = [next(it) for _ in record.fields]
 
-            values: list[int] = []
-            for field in record.fields:
-                values.append((yield field))
+            if not trigger:
+                continue
 
             formatted_msg = record.format(*values)
 
@@ -91,15 +92,18 @@ def make_logging_process(level: tlog.LogLevel, namespace_regexp: str, on_error: 
             if record.level >= logging.ERROR:
                 on_error()
 
-    def log_process():
+    async def log_process(sim: ProcessContext) -> None:
         global _sim_cycle
-        _sim_cycle = 0
+        ticks = DependencyContext.get().get_dependency(TicksKey())
 
-        yield Passive()
-        while True:
-            yield Tick("sync_neg")
-            yield from handle_logs()
-            yield Tick()
-            _sim_cycle += 1
+        async for _, _, ticks_val, combined_trigger_val, *record_vals in (
+            sim.tick("sync_neg")
+            .sample(ticks, combined_trigger)
+            .sample(*itertools.chain(*([record.trigger] + record.fields for record in records)))
+        ):
+            if not combined_trigger_val:
+                continue
+            _sim_cycle = ticks_val
+            handle_logs(record_vals)
 
     return log_process

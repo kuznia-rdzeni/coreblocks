@@ -4,24 +4,28 @@ import logging
 import os
 import random
 import functools
-import warnings
 from contextlib import contextmanager, nullcontext
-from typing import TypeVar, Generic, Type, TypeGuard, Any, Union, Callable, cast, TypeAlias, Optional
-from abc import ABC
+from collections.abc import Callable
+from typing import TypeVar, Generic, Type, TypeGuard, Any, cast, TypeAlias, Optional
 from amaranth import *
 from amaranth.sim import *
+from amaranth.sim._async import SimulatorContext
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from .testbenchio import TestbenchIO
 from .profiler import profiler_process, Profile
-from .functions import TestGen
 from .logging import make_logging_process, parse_logging_level, _LogFormatter
+from .tick_count import make_tick_count_process
 from .gtkw_extension import write_vcd_ext
+from .method_mock import MethodMock
 from transactron import Method
 from transactron.lib import AdapterTrans
 from transactron.core.keys import TransactionManagerKey
 from transactron.core import TransactionModule
 from transactron.utils import ModuleConnector, HasElaborate, auto_debug_signals, HasDebugSignals
+
+
+__all__ = ["SimpleTestCircuit", "PysimSimulator", "TestCaseWithSimulator"]
 
 
 T = TypeVar("T")
@@ -56,7 +60,10 @@ class SimpleTestCircuit(Elaboratable, Generic[_T_HasElaborate]):
     def elaborate(self, platform):
         def transform_methods_to_testbenchios(
             container: _T_nested_collection[Method],
-        ) -> tuple[_T_nested_collection["TestbenchIO"], Union[ModuleConnector, "TestbenchIO"]]:
+        ) -> tuple[
+            _T_nested_collection["TestbenchIO"],
+            "ModuleConnector | TestbenchIO",
+        ]:
             if isinstance(container, list):
                 tb_list = []
                 mc_list = []
@@ -119,43 +126,6 @@ class _TestModule(Elaboratable):
         return m
 
 
-class CoreblocksCommand(ABC):
-    pass
-
-
-class Now(CoreblocksCommand):
-    pass
-
-
-class SyncProcessWrapper:
-    def __init__(self, f):
-        self.org_process = f
-        self.current_cycle = 0
-
-    def _wrapping_function(self):
-        response = None
-        org_coroutine = self.org_process()
-        try:
-            while True:
-                # call orginal test process and catch data yielded by it in `command` variable
-                command = org_coroutine.send(response)
-                # If process wait for new cycle
-                if command is None or isinstance(command, Tick):
-                    command = command or Tick()
-                    # TODO: use of other domains can mess up the counter!
-                    if command.domain == "sync":
-                        self.current_cycle += 1
-                    # forward to amaranth
-                    yield command
-                elif isinstance(command, Now):
-                    response = self.current_cycle
-                # Pass everything else to amaranth simulator without modifications
-                else:
-                    response = yield command
-        except StopIteration:
-            pass
-
-
 class PysimSimulator(Simulator):
     def __init__(
         self,
@@ -197,10 +167,6 @@ class PysimSimulator(Simulator):
 
         self.deadline = clk_period * max_cycles
 
-    def add_process(self, f: Callable[[], TestGen]):
-        f_wrapped = SyncProcessWrapper(f)
-        super().add_process(f_wrapped._wrapping_function)
-
     def run(self) -> bool:
         with self.ctx:
             self.run_until(self.deadline)
@@ -212,34 +178,44 @@ class TestCaseWithSimulator:
     dependency_manager: DependencyManager
 
     @contextmanager
-    def configure_dependency_context(self):
+    def _configure_dependency_context(self):
         self.dependency_manager = DependencyManager()
         with DependencyContext(self.dependency_manager):
             yield Tick()
 
-    def add_class_mocks(self, sim: PysimSimulator) -> None:
+    def add_mock(self, sim: PysimSimulator, val: MethodMock):
+        sim.add_process(val.output_process)
+        if val.validate_arguments is not None:
+            sim.add_process(val.validate_arguments_process)
+        sim.add_testbench(val.effect_process, background=True)
+
+    def _add_class_mocks(self, sim: PysimSimulator) -> None:
         for key in dir(self):
             val = getattr(self, key)
             if hasattr(val, "_transactron_testing_process"):
                 sim.add_process(val)
+            elif hasattr(val, "_transactron_method_mock"):
+                self.add_mock(sim, val())
 
-    def add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+    def _add_local_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
         for key, val in frame_locals.items():
             if hasattr(val, "_transactron_testing_process"):
                 sim.add_process(val)
+            elif hasattr(val, "_transactron_method_mock"):
+                self.add_mock(sim, val())
 
-    def add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
-        self.add_class_mocks(sim)
-        self.add_local_mocks(sim, frame_locals)
+    def _add_all_mocks(self, sim: PysimSimulator, frame_locals: dict) -> None:
+        self._add_class_mocks(sim)
+        self._add_local_mocks(sim, frame_locals)
 
-    def configure_traces(self):
+    def _configure_traces(self):
         traces_file = None
         if "__TRANSACTRON_DUMP_TRACES" in os.environ:
             traces_file = self._transactron_current_output_file_name
         self._transactron_infrastructure_traces_file = traces_file
 
     @contextmanager
-    def configure_profiles(self):
+    def _configure_profiles(self):
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
 
@@ -264,7 +240,7 @@ class TestCaseWithSimulator:
             profile.encode(f"{profile_dir}/{profile_file}.json")
 
     @contextmanager
-    def configure_logging(self):
+    def _configure_logging(self):
         def on_error():
             assert False, "Simulation finished due to an error"
 
@@ -292,10 +268,11 @@ class TestCaseWithSimulator:
             self._transactron_base_output_file_name + "_" + str(self._transactron_hypothesis_iter_counter)
         )
         self._transactron_sim_processes_to_add: list[Callable[[], Optional[Callable]]] = []
-        with self.configure_dependency_context():
-            self.configure_traces()
-            with self.configure_profiles():
-                with self.configure_logging():
+        with self._configure_dependency_context():
+            self._configure_traces()
+            with self._configure_profiles():
+                with self._configure_logging():
+                    self._transactron_sim_processes_to_add.append(make_tick_count_process)
                     yield
         self._transactron_hypothesis_iter_counter += 1
 
@@ -323,7 +300,7 @@ class TestCaseWithSimulator:
             traces_file=self._transactron_infrastructure_traces_file,
             clk_period=clk_period,
         )
-        self.add_all_mocks(sim, sys._getframe(2).f_locals)
+        self._add_all_mocks(sim, sys._getframe(2).f_locals)
 
         yield sim
 
@@ -332,34 +309,25 @@ class TestCaseWithSimulator:
             if ret is not None:
                 sim.add_process(ret)
 
-        with warnings.catch_warnings():
-            # TODO: figure out testing without settles!
-            warnings.filterwarnings("ignore", r"The `Settle` command is deprecated per RFC 27\.")
-
-            res = sim.run()
+        res = sim.run()
         assert res, "Simulation time limit exceeded"
 
-    def tick(self, cycle_cnt: int = 1):
+    async def tick(self, sim: SimulatorContext, cycle_cnt: int = 1):
         """
-        Yields for the given number of cycles.
+        Waits for the given number of cycles.
         """
-
         for _ in range(cycle_cnt):
-            yield Tick()
+            await sim.tick()
 
-    def random_wait(self, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
+    async def random_wait(self, sim: SimulatorContext, max_cycle_cnt: int, *, min_cycle_cnt: int = 0):
         """
         Wait for a random amount of cycles in range [min_cycle_cnt, max_cycle_cnt]
         """
-        yield from self.tick(random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
+        await self.tick(sim, random.randrange(min_cycle_cnt, max_cycle_cnt + 1))
 
-    def random_wait_geom(self, prob: float = 0.5):
+    async def random_wait_geom(self, sim: SimulatorContext, prob: float = 0.5):
         """
         Wait till the first success, where there is `prob` probability for success in each cycle.
         """
         while random.random() > prob:
-            yield Tick()
-
-    def multi_settle(self, settle_count: int = 1):
-        for _ in range(settle_count):
-            yield Settle()
+            await sim.tick()

@@ -1,10 +1,9 @@
 import pytest
 import re
 from amaranth import *
-from amaranth.sim import Tick
 
 from transactron import *
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 from transactron.lib import logging
 
 LOGGER_NAME = "test_logger"
@@ -70,13 +69,13 @@ class TestLog(TestCaseWithSimulator):
     def test_log(self, caplog):
         m = LogTest()
 
-        def proc():
+        async def proc(sim: TestbenchContext):
             for i in range(50):
-                yield Tick()
-                yield m.input.eq(i)
+                await sim.tick()
+                sim.set(m.input, i)
 
         with self.run_simulation(m) as sim:
-            sim.add_process(proc)
+            sim.add_testbench(proc)
 
         assert re.search(
             r"WARNING  test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
@@ -93,13 +92,13 @@ class TestLog(TestCaseWithSimulator):
     def test_error_log(self, caplog):
         m = ErrorLogTest()
 
-        def proc():
-            yield Tick()
-            yield m.input.eq(1)
+        async def proc(sim: TestbenchContext):
+            await sim.tick()
+            sim.set(m.input, 1)
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
-                sim.add_process(proc)
+                sim.add_testbench(proc)
 
         assert re.search(
             r"ERROR    test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] "
@@ -110,13 +109,13 @@ class TestLog(TestCaseWithSimulator):
     def test_assertion(self, caplog):
         m = AssertionTest()
 
-        def proc():
-            yield Tick()
-            yield m.input.eq(1)
+        async def proc(sim: TestbenchContext):
+            await sim.tick()
+            sim.set(m.input, 1)
 
         with pytest.raises(AssertionError):
             with self.run_simulation(m) as sim:
-                sim.add_process(proc)
+                sim.add_testbench(proc)
 
         assert re.search(
             r"ERROR    test_logger:logging\.py:\d+ \[test/transactron/testing/test_log\.py:\d+\] Output differs",

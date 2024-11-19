@@ -2,8 +2,8 @@ from amaranth import *
 
 from transactron import Method, def_method, TModule
 
-
-from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, ModuleConnector
+from transactron.testing import TestCaseWithSimulator, data_layout, SimpleTestCircuit, TestbenchContext
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 
 class Echo(Elaboratable):
@@ -45,12 +45,11 @@ class Consumer(Elaboratable):
 
 
 class TestAdapterTrans(TestCaseWithSimulator):
-    def proc(self):
+    async def proc(self, sim: TestbenchContext):
         for _ in range(3):
-            # this would previously timeout if the output layout was empty (as is in this case)
-            yield from self.consumer.action.call(data=0)
+            await self.consumer.action.call(sim, data=0)
         for expected in [4, 1, 0]:
-            obtained = (yield from self.echo.action.call(data=expected))["data"]
+            obtained = (await self.echo.action.call(sim, data=expected)).data
             assert expected == obtained
 
     def test_single(self):
@@ -59,4 +58,4 @@ class TestAdapterTrans(TestCaseWithSimulator):
         self.m = ModuleConnector(echo=self.echo, consumer=self.consumer)
 
         with self.run_simulation(self.m, max_cycles=100) as sim:
-            sim.add_process(self.proc)
+            sim.add_testbench(self.proc)

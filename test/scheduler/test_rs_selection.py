@@ -2,7 +2,6 @@ from collections import deque
 import random
 
 from amaranth import *
-from amaranth.sim import Settle, Passive
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
@@ -11,7 +10,9 @@ from coreblocks.arch import OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
 from transactron.lib import FIFO, Adapter, AdapterTrans
-from transactron.testing import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
+from transactron.testing.functions import data_const_to_dict
+from transactron.testing.method_mock import MethodMock, def_method_mock
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
@@ -52,12 +53,12 @@ class TestRSSelect(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
         self.m = RSSelector(self.gen_params)
-        self.expected_out = deque()
-        self.instr_in = deque()
+        self.expected_out: deque[dict] = deque()
+        self.instr_in: deque[dict] = deque()
         random.seed(1789)
 
     def create_instr_input_process(self, instr_count: int, optypes: set[OpType], random_wait: int = 0):
-        def process():
+        async def process(sim: TestbenchContext):
             for i in range(instr_count):
                 rp_dst = random.randrange(self.gen_params.phys_regs_bits)
                 rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
@@ -91,41 +92,36 @@ class TestRSSelect(TestCaseWithSimulator):
                 }
 
                 self.instr_in.append(instr)
-                yield from self.m.instr_in.call(instr)
-                yield from self.random_wait(random_wait)
+                await self.m.instr_in.call(sim, instr)
+                await self.random_wait(sim, random_wait)
 
         return process
 
-    def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], random_wait: int = 0):
-        def mock():
+    def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], enable_prob: float = 1):
+        @def_method_mock(lambda: io, enable=lambda: random.random() <= enable_prob)
+        def process():
             random_entry = random.randrange(self.gen_params.max_rs_entries)
-            expected = self.instr_in.popleft()
-            assert expected["exec_fn"]["op_type"] in rs_optypes
-            expected["rs_entry_id"] = random_entry
-            expected["rs_selected"] = rs_id
-            self.expected_out.append(expected)
+
+            @MethodMock.effect
+            def eff():
+                expected = self.instr_in.popleft()
+                assert expected["exec_fn"]["op_type"] in rs_optypes
+                expected["rs_entry_id"] = random_entry
+                expected["rs_selected"] = rs_id
+                self.expected_out.append(expected)
 
             return {"rs_entry_id": random_entry}
 
-        def process():
-            yield Passive()
-            while True:
-                yield from io.enable()
-                yield from io.method_handle(mock)
-                yield from io.disable()
-                yield from self.random_wait(random_wait)
-
-        return process
+        return process()
 
     def create_output_process(self, instr_count: int, random_wait: int = 0):
-        def process():
+        async def process(sim: TestbenchContext):
             for _ in range(instr_count):
-                result = yield from self.m.instr_out.call()
+                result = await self.m.instr_out.call(sim)
                 outputs = self.expected_out.popleft()
 
-                yield from self.random_wait(random_wait)
-                yield Settle()
-                assert result == outputs
+                await self.random_wait(sim, random_wait)
+                assert data_const_to_dict(result) == outputs
 
         return process
 
@@ -135,10 +131,10 @@ class TestRSSelect(TestCaseWithSimulator):
         """
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_process(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
-            sim.add_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
-            sim.add_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
-            sim.add_process(self.create_output_process(100))
+            sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
+            sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs1(self):
         """
@@ -147,9 +143,9 @@ class TestRSSelect(TestCaseWithSimulator):
         """
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            sim.add_process(self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
-            sim.add_process(self.create_output_process(100))
+            sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
+            sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs2(self):
         """
@@ -158,9 +154,9 @@ class TestRSSelect(TestCaseWithSimulator):
         """
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_process(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            sim.add_process(self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
-            sim.add_process(self.create_output_process(100))
+            sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
+            sim.add_testbench(self.create_output_process(100))
 
     def test_delays(self):
         """
@@ -169,11 +165,11 @@ class TestRSSelect(TestCaseWithSimulator):
         """
 
         with self.run_simulation(self.m, max_cycles=5000) as sim:
-            sim.add_process(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
-            sim.add_process(
-                self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes, random_wait=12)
+            sim.add_testbench(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
+            self.add_mock(
+                sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes, enable_prob=0.1)
             )
-            sim.add_process(
-                self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes, random_wait=12)
+            self.add_mock(
+                sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes, enable_prob=0.1)
             )
-            sim.add_process(self.create_output_process(300, random_wait=12))
+            sim.add_testbench(self.create_output_process(300, random_wait=12))
