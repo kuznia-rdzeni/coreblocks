@@ -220,15 +220,15 @@ class Alu(Elaboratable):
 
             if self.zicond_enable:
                 czero_cases = [
-                    (AluFn.Fn.CZEROEQZ, lambda cond: self.in1 if cond else C(0)),
-                    (AluFn.Fn.CZERONEZ, lambda cond: C(0) if cond else self.in1),
+                    (AluFn.Fn.CZERONEZ, lambda is_zero: self.in1 if is_zero else C(0)),
+                    (AluFn.Fn.CZEROEQZ, lambda is_zero: C(0) if is_zero else self.in1),
                 ]
                 for fn, output_fn in czero_cases:
                     with OneHotCase(fn):
                         with m.If(self.in2.any()):
-                            m.d.comb += self.out.eq(output_fn(True))
-                        with m.Else():
                             m.d.comb += self.out.eq(output_fn(False))
+                        with m.Else():
+                            m.d.comb += self.out.eq(output_fn(True))
 
         return m
 
