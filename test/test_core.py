@@ -186,6 +186,25 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         ("interrupt.asm", 600, {4: 89, 8: 843}, {2: 89, 7: 843, 31: 0xDE}, 30, 50, False),
         # interrupts are only inserted on branches, we always have some forward progression. 15 for trigger variantion.
         ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15, False),
+        ("interrupt_vectored.asm", 900, {4: 89, 8: 843, 15: 322}, {2: 89, 7: 843, 14: 322, 31: 0xDE}, 30, 50, False),
+        (
+            "interrupt_vectored.asm",
+            1600,
+            {4: 24157817, 8: 199, 15: 521},
+            {2: 24157817, 7: 199, 14: 521, 31: 0xDE},
+            100,
+            200,
+            False,
+        ),
+        (
+            "interrupt_vectored.asm",
+            300,
+            {4: 21, 8: 9349, 15: 24476},
+            {2: 21, 7: 9349, 14: 24476, 31: 0xDE},
+            0,
+            15,
+            False,
+        ),
         ("wfi_int.asm", 80, {2: 10}, {2: 10, 3: 10}, 5, 15, True),
     ],
 )
