@@ -44,6 +44,14 @@ transactron.testing.logging module
    :undoc-members:
    :show-inheritance:
 
+transactron.testing.method\_mock module
+---------------------------------------
+
+.. automodule:: transactron.testing.method_mock
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 transactron.testing.profiler module
 -----------------------------------
 
@@ -52,18 +60,18 @@ transactron.testing.profiler module
    :undoc-members:
    :show-inheritance:
 
-transactron.testing.sugar module
---------------------------------
-
-.. automodule:: transactron.testing.sugar
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 transactron.testing.testbenchio module
 --------------------------------------
 
 .. automodule:: transactron.testing.testbenchio
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+transactron.testing.tick\_count module
+--------------------------------------
+
+.. automodule:: transactron.testing.tick_count
    :members:
    :undoc-members:
    :show-inheritance:
