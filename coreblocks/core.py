@@ -136,10 +136,11 @@ class Core(Component):
 
         m.submodules.exception_information_register = self.exception_information_register
 
-        fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
-        m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
+        if self.connections.dependency_provided(FetchResumeKey()):
+            fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
+            m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
-        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
+            m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier

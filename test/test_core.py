@@ -13,7 +13,7 @@ from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
-from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
+from coreblocks.params.configurations import *
 from coreblocks.peripherals.wishbone import WishboneMemorySlave
 
 import random
@@ -136,6 +136,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
     [
         ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, basic_core_config),
+        ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, tiny_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
