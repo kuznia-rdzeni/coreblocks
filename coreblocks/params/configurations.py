@@ -148,7 +148,7 @@ class _CoreConfigurationDataClass:
 
     pma: list[PMARegion] = field(
         default_factory=lambda: [PMARegion(0xE0000000, 0xFFFFFFFF, mmio=True)]
-    )  # defult I/O region used in LiteX coreblocks
+    )  # default I/O region used in LiteX coreblocks
 
 
 class CoreConfiguration(_CoreConfigurationDataClass):
