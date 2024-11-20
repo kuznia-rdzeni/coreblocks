@@ -166,6 +166,12 @@ class PrivilegeLevel(IntEnum, shape=2):
 
 
 @unique
+class TrapVectorMode(IntEnum, shape=2):
+    DIRECT = 0b00
+    VECTORED = 0b01
+
+
+@unique
 class InterruptCauseNumber(IntEnum):
     SSI = 1  # supervisor software interrupt
     MSI = 3  # machine software interrupt

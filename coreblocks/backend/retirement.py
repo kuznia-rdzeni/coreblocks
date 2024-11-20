@@ -214,12 +214,12 @@ class Retirement(Elaboratable):
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     mtvec_offset = Signal(self.gen_params.isa.xlen)
-                    mtvec = m_csr.mtvec.read(m).data
+                    mtvec = m_csr.mtvec._fu_read(m).data
                     mcause = m_csr.mcause.read(m).data
 
                     # mtvec without mode is [mxlen-1:2], mode is two last bits.
                     # When mode=1 (Vectored), interrupts set pc to base + 4 * cause_number
-                    with m.If(mcause & (mtvec << (self.gen_params.isa.xlen - 1))):
+                    with m.If(mcause[-1] & (mtvec[0:1] == 1)):
                         m.d.av_comb += mtvec_offset.eq(mcause << 2)
 
                     m.d.av_comb += handler_pc.eq((mtvec & ~(0b11)) + mtvec_offset)

@@ -116,7 +116,6 @@ fail:
     csrwi 0x7ff, 2
     j fail
 
-
 .org 0x200
     nop
     nop
@@ -133,7 +132,7 @@ fail:
     nop
     nop
     nop
-    nop
+    j fail
     j int0_handler
     j int1_handler
     li x31, 0xae  # should never happen
