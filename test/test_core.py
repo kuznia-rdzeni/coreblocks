@@ -188,9 +188,9 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         ("interrupt.asm", 80, {4: 21, 8: 9349}, {2: 21, 7: 9349, 31: 0xDE}, 0, 15, False),
         (
             "interrupt_vectored.asm",
-            300,
+            200,
             {4: 21, 8: 9349, 15: 24476},
-            {2: 21, 7: 9349, 14: 24476, 31: 0xDE},
+            {2: 21, 7: 9349, 14: 24476, 31: 0xDE, 16: 0x201, 17: 0x111},
             0,
             15,
             False,

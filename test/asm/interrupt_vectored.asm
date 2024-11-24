@@ -6,13 +6,20 @@ _start:
     # fibonacci spiced with interrupt handler (also with fibonacci)
     li x1, 0x201
     csrw mtvec, x1
-    li x27, 0     # handler count
-    li x30, 0     # interrupt count
-    li x31, 0xde  # branch guard
-    csrsi mstatus, 0x8 # machine interrupt enable
+    li x1, 0x203
+    csrw mtvec, x1
+    csrr x16, mtvec     # since mtvec is WARL, should stay 0x201
+    ecall               # synchronous exception jumps to 0x200 + 0x0
+
+interrupts:
+    li x27, 0       # handler count
+    li x30, 0       # interrupt count
+    li x31, 0xde    # branch guard
+
+    csrsi mstatus, 0x8  # machine interrupt enable
     csrr x29, mstatus
     li x1, 0x30000
-    csrw mie, x1 # enable custom interrupt 0 and 1
+    csrw mie, x1        # enable custom interrupt 0 and 1
     li x1, 0
     li x2, 1
     li x5, 4
@@ -40,19 +47,11 @@ int0_handler:
     csrr x3, mcause
     bne x2, x3, fail
 
-    # load state
-    mv x1, x5
-    mv x2, x6
-    mv x3, x7
     # fibonacci step
-    beq x3, x8, skip
-    add x3, x2, x1
-    mv x1, x2
-    mv x2, x3
-    # store state
-    mv x5, x1
-    mv x6, x2
-    mv x7, x3
+    beq x7, x8, skip
+    add x7, x6, x5
+    mv x5, x6
+    mv x6, x7
 
 skip:
     # generate new mie mask
@@ -85,7 +84,6 @@ skip:
     mv x3, x11
     mret
 
-
 int1_handler:
     # save main loop register state
     mv x9, x1
@@ -97,27 +95,25 @@ int1_handler:
     csrr x3, mcause
     bne x2, x3, fail
 
-    # load state
-    mv x1, x12
-    mv x2, x13
-    mv x3, x14
     # fibonacci step
-    beq x3, x15, skip
-    add x3, x2, x1
-    mv x1, x2
-    mv x2, x3
-    # store state
-    mv x12, x1
-    mv x13, x2
-    mv x14, x3
+    beq x14, x15, skip
+    add x14, x13, x12
+    mv x12, x13
+    mv x13, x14
     j skip
+
+ecall_handler:
+    li x17, 0x111
+    la x1, interrupts
+    csrw mepc, x1
+    mret
 
 fail:
     csrwi 0x7ff, 2
     j fail
 
 .org 0x200
-    nop
+    j ecall_handler
     nop
     nop
     nop
