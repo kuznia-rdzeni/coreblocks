@@ -32,6 +32,13 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
     ),
+    RSBlockComponent(
+        [
+            MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+            DivComponent(),
+        ],
+        rs_entries=2,
+    ),
     RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
 )
@@ -127,7 +134,7 @@ class _CoreConfigurationDataClass:
 
     instr_buffer_size: int = 4
 
-    interrupt_custom_count: int = 0
+    interrupt_custom_count: int = 16
     interrupt_custom_edge_trig_mask: int = 0
 
     user_mode: bool = True
@@ -139,7 +146,9 @@ class _CoreConfigurationDataClass:
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
 
-    pma: list[PMARegion] = field(default_factory=list)
+    pma: list[PMARegion] = field(
+        default_factory=lambda: [PMARegion(0xE0000000, 0xFFFFFFFF, mmio=True)]
+    )  # default I/O region used in LiteX coreblocks
 
 
 class CoreConfiguration(_CoreConfigurationDataClass):
@@ -155,12 +164,15 @@ basic_core_config = CoreConfiguration()
 tiny_core_config = CoreConfiguration(
     embedded=True,
     func_units_config=(
-        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
+        RSBlockComponent(
+            [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=2
+        ),
         RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     ),
     phys_regs_bits=basic_core_config.phys_regs_bits - 1,
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
-    allow_partial_extensions=True,  # No exception unit
+    icache_enable=False,
+    user_mode=False,
 )
 
 # Core configuration with all supported components

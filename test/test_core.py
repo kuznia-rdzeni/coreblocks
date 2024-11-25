@@ -1,22 +1,28 @@
+from collections.abc import Callable
+from typing import Any
 from amaranth import *
 from amaranth.lib.wiring import connect
-from amaranth.sim import Passive, Tick
+from amaranth_types import ValueLike
+from transactron.testing.tick_count import TicksKey
 
 from transactron.utils import align_to_power_of_two
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, ProcessContext, TestbenchContext
 
 from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
-from coreblocks.params.configurations import CoreConfiguration, basic_core_config, full_core_config
+from coreblocks.params.configurations import *
 from coreblocks.peripherals.wishbone import WishboneMemorySlave
+from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS
 
 import random
 import subprocess
 import tempfile
 from parameterized import parameterized_class
+
+from transactron.utils.dependencies import DependencyContext
 
 
 class CoreTestElaboratable(Elaboratable):
@@ -39,10 +45,12 @@ class CoreTestElaboratable(Elaboratable):
 
         self.core = Core(gen_params=self.gen_params)
 
-        self.interrupt_level = Signal()
-        self.interrupt_edge = Signal()
-
-        m.d.comb += self.core.interrupt_controller.custom_report.eq(Cat(self.interrupt_edge, self.interrupt_level))
+        if self.gen_params.interrupt_custom_count == 2:
+            self.interrupt_level = Signal()
+            self.interrupt_edge = Signal()
+            m.d.comb += self.core.interrupts.eq(
+                Cat(self.interrupt_edge, self.interrupt_level) << ISA_RESERVED_INTERRUPTS
+            )
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
@@ -58,11 +66,11 @@ class TestCoreBase(TestCaseWithSimulator):
     gen_params: GenParams
     m: CoreTestElaboratable
 
-    def get_phys_reg_rrat(self, reg_id):
-        return (yield self.m.core.RRAT.entries[reg_id])
+    def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
+        return sim.get(self.m.core.RRAT.entries[reg_id])
 
-    def get_arch_reg_val(self, reg_id):
-        return (yield self.m.core.RF.entries[(yield from self.get_phys_reg_rrat(reg_id))].reg_val)
+    def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
+        return sim.get(self.m.core.RF.entries[(self.get_phys_reg_rrat(sim, reg_id))].reg_val)
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
@@ -131,6 +139,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
     [
         ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, basic_core_config),
+        ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, tiny_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
         ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, full_core_config),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
@@ -147,12 +156,11 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
     expected_regvals: dict[int, int]
     configuration: CoreConfiguration
 
-    def run_and_check(self):
-        for _ in range(self.cycle_count):
-            yield Tick()
+    async def run_and_check(self, sim: TestbenchContext):
+        await self.tick(sim, self.cycle_count)
 
         for reg_id, val in self.expected_regvals.items():
-            assert (yield from self.get_arch_reg_val(reg_id)) == val
+            assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_asm_source(self):
         self.gen_params = GenParams(self.configuration)
@@ -165,7 +173,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.run_and_check)
+            sim.add_testbench(self.run_and_check)
 
 
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
@@ -216,40 +224,37 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
 
-    def clear_level_interrupt_procsess(self):
-        yield Passive()
-        while True:
-            while (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 0:
-                yield Tick()
+    async def clear_level_interrupt_process(self, sim: ProcessContext):
+        async for *_, value in sim.tick().sample(self.m.core.csr_generic.csr_coreblocks_test.value):
+            if value == 0:
+                continue
 
-            if (yield self.m.core.csr_generic.csr_coreblocks_test.value) == 2:
+            if value == 2:
                 assert False, "`fail` called"
 
-            yield self.m.core.csr_generic.csr_coreblocks_test.value.eq(0)
-            yield self.m.interrupt_level.eq(0)
-            yield Tick()
+            sim.set(self.m.core.csr_generic.csr_coreblocks_test.value, 0)
+            sim.set(self.m.interrupt_level, 0)
 
-    def run_with_interrupt_process(self):
+    async def run_with_interrupt_process(self, sim: TestbenchContext):
         main_cycles = 0
         int_count = 0
         handler_count = 0
 
         # wait for interrupt enable
-        while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
-            yield Tick()
+        await sim.tick().until(self.m.core.interrupt_controller.mstatus_mie.value)
 
-        def do_interrupt():
+        async def do_interrupt():
             count = 0
             trig = random.randint(1, 3)
-            mie = (yield self.m.core.interrupt_controller.mie.value) >> 16
+            mie = sim.get(self.m.core.interrupt_controller.mie.value) >> 16
             if mie != 0b11 or trig & 1 or self.edge_only:
-                yield self.m.interrupt_edge.eq(1)
+                sim.set(self.m.interrupt_edge, 1)
                 count += 1
-            if (mie != 0b11 or trig & 2) and (yield self.m.interrupt_level) == 0 and not self.edge_only:
-                yield self.m.interrupt_level.eq(1)
+            if (mie != 0b11 or trig & 2) and sim.get(self.m.interrupt_level) == 0 and not self.edge_only:
+                sim.set(self.m.interrupt_level, 1)
                 count += 1
-            yield Tick()
-            yield self.m.interrupt_edge.eq(0)
+            await sim.tick()
+            sim.set(self.m.interrupt_edge, 0)
             return count
 
         early_interrupt = False
@@ -258,40 +263,35 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
                 # run main code for some semi-random amount of cycles
                 c = random.randrange(self.lo, self.hi)
                 main_cycles += c
-                yield from self.tick(c)
+                await self.tick(sim, c)
                 # trigger an interrupt
-                int_count += yield from do_interrupt()
+                int_count += await do_interrupt()
 
             # wait for the interrupt to get registered
-            while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 1:
-                yield Tick()
+            await sim.tick().until(self.m.core.interrupt_controller.mstatus_mie.value != 1)
 
             # trigger interrupt during execution of ISR handler (blocked-pending) with some chance
             early_interrupt = random.random() < 0.4
             if early_interrupt:
                 # wait until interrupts are cleared, so it won't be missed
-                while (yield self.m.core.interrupt_controller.mip.value) != 0:
-                    yield Tick()
+                await sim.tick().until(self.m.core.interrupt_controller.mip.value == 0)
+                assert self.get_arch_reg_val(sim, 30) == int_count
 
-                assert (yield from self.get_arch_reg_val(30)) == int_count
-
-                int_count += yield from do_interrupt()
+                int_count += await do_interrupt()
             else:
-                while (yield self.m.core.interrupt_controller.mip.value) != 0:
-                    yield Tick()
-                assert (yield from self.get_arch_reg_val(30)) == int_count
+                await sim.tick().until(self.m.core.interrupt_controller.mip.value == 0)
+                assert self.get_arch_reg_val(sim, 30) == int_count
 
             handler_count += 1
 
             # wait until ISR returns
-            while (yield self.m.core.interrupt_controller.mstatus_mie.value) == 0:
-                yield Tick()
+            await sim.tick().until(self.m.core.interrupt_controller.mstatus_mie.value != 0)
 
-        assert (yield from self.get_arch_reg_val(30)) == int_count
-        assert (yield from self.get_arch_reg_val(27)) == handler_count
+        assert self.get_arch_reg_val(sim, 30) == int_count
+        assert self.get_arch_reg_val(sim, 27) == handler_count
 
         for reg_id, val in self.expected_regvals.items():
-            assert (yield from self.get_arch_reg_val(reg_id)) == val
+            assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
@@ -299,14 +299,14 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             bin_src["data"][self.reg_init_mem_offset // 4 + reg_id] = val
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.run_with_interrupt_process)
-            sim.add_process(self.clear_level_interrupt_procsess)
+            sim.add_testbench(self.run_with_interrupt_process)
+            sim.add_process(self.clear_level_interrupt_process)
 
 
 @parameterized_class(
     ("source_file", "cycle_count", "expected_regvals", "always_mmode"),
     [
-        ("user_mode.asm", 1000, {4: 5}, False),
+        ("user_mode.asm", 1100, {4: 5}, False),
         ("wfi_no_mie.asm", 250, {8: 8}, True),  # only using level enable
     ],
 )
@@ -323,48 +323,45 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
         random.seed(161453)
 
-    def run_with_interrupt_process(self):
-        cycles = 0
+    async def run_with_interrupt_process(self, sim: TestbenchContext):
+        ticks = DependencyContext.get().get_dependency(TicksKey())
 
         # wait for interrupt enable
-        while (yield self.m.core.interrupt_controller.mie.value) == 0 and cycles < self.cycle_count:
-            cycles += 1
-            yield Tick()
-        yield from self.random_wait(5)
+        async def wait_or_timeout(cond: ValueLike, pred: Callable[[Any], bool]):
+            async for *_, value in sim.tick().sample(cond):
+                if pred(value) or sim.get(ticks) >= self.cycle_count:
+                    break
 
-        while cycles < self.cycle_count:
-            yield self.m.interrupt_level.eq(1)
-            cycles += 1
-            yield Tick()
+        await wait_or_timeout(self.m.core.interrupt_controller.mie.value, lambda value: value != 0)
+        await self.random_wait(sim, 5)
+
+        while sim.get(ticks) < self.cycle_count:
+            sim.set(self.m.interrupt_level, 1)
 
             if self.always_mmode:  # if test happens only in m_mode, just enable fixed interrupt
+                await sim.tick()
                 continue
 
             # wait for the interrupt to get registered
-            while (
-                yield self.m.core.csr_generic.m_mode.priv_mode.value
-            ) != PrivilegeLevel.MACHINE and cycles < self.cycle_count:
-                cycles += 1
-                yield Tick()
+            await wait_or_timeout(
+                self.m.core.csr_generic.m_mode.priv_mode.value, lambda value: value == PrivilegeLevel.MACHINE
+            )
 
-            yield self.m.interrupt_level.eq(0)
-            yield Tick()
+            sim.set(self.m.interrupt_level, 0)
 
             # wait until ISR returns
-            while (
-                yield self.m.core.csr_generic.m_mode.priv_mode.value
-            ) == PrivilegeLevel.MACHINE and cycles < self.cycle_count:
-                cycles += 1
-                yield Tick()
+            await wait_or_timeout(
+                self.m.core.csr_generic.m_mode.priv_mode.value, lambda value: value != PrivilegeLevel.MACHINE
+            )
 
-            yield from self.random_wait(5)
+            await self.random_wait(sim, 5)
 
         for reg_id, val in self.expected_regvals.items():
-            assert (yield from self.get_arch_reg_val(reg_id)) == val
+            assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.run_with_interrupt_process)
+            sim.add_testbench(self.run_with_interrupt_process)

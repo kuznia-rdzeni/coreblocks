@@ -1,7 +1,7 @@
 import pytest
 from transactron.lib import AdapterTrans, FIFO
-
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, ModuleConnector
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.params import GenParams
@@ -32,10 +32,10 @@ class TestDecode(TestCaseWithSimulator):
             )
         )
 
-    def decode_test_proc(self):
+    async def decode_test_proc(self, sim: TestbenchContext):
         # testing an OP_IMM instruction (test copied from test_decoder.py)
-        yield from self.fifo_in_write.call(instr=0x02A28213)
-        decoded = yield from self.fifo_out_read.call()
+        await self.fifo_in_write.call(sim, instr=0x02A28213)
+        decoded = await self.fifo_out_read.call(sim)
 
         assert decoded["exec_fn"]["op_type"] == OpType.ARITHMETIC
         assert decoded["exec_fn"]["funct3"] == Funct3.ADD
@@ -46,8 +46,8 @@ class TestDecode(TestCaseWithSimulator):
         assert decoded["imm"] == 42
 
         # testing an OP instruction (test copied from test_decoder.py)
-        yield from self.fifo_in_write.call(instr=0x003100B3)
-        decoded = yield from self.fifo_out_read.call()
+        await self.fifo_in_write.call(sim, instr=0x003100B3)
+        decoded = await self.fifo_out_read.call(sim)
 
         assert decoded["exec_fn"]["op_type"] == OpType.ARITHMETIC
         assert decoded["exec_fn"]["funct3"] == Funct3.ADD
@@ -57,8 +57,8 @@ class TestDecode(TestCaseWithSimulator):
         assert decoded["regs_l"]["rl_s2"] == 3
 
         # testing an illegal
-        yield from self.fifo_in_write.call(instr=0x0)
-        decoded = yield from self.fifo_out_read.call()
+        await self.fifo_in_write.call(sim, instr=0x0)
+        decoded = await self.fifo_out_read.call(sim)
 
         assert decoded["exec_fn"]["op_type"] == OpType.EXCEPTION
         assert decoded["exec_fn"]["funct3"] == Funct3._EILLEGALINSTR
@@ -67,8 +67,8 @@ class TestDecode(TestCaseWithSimulator):
         assert decoded["regs_l"]["rl_s1"] == 0
         assert decoded["regs_l"]["rl_s2"] == 0
 
-        yield from self.fifo_in_write.call(instr=0x0, access_fault=1)
-        decoded = yield from self.fifo_out_read.call()
+        await self.fifo_in_write.call(sim, instr=0x0, access_fault=1)
+        decoded = await self.fifo_out_read.call(sim)
 
         assert decoded["exec_fn"]["op_type"] == OpType.EXCEPTION
         assert decoded["exec_fn"]["funct3"] == Funct3._EINSTRACCESSFAULT
@@ -79,4 +79,4 @@ class TestDecode(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.decode_test_proc)
+            sim.add_testbench(self.decode_test_proc)

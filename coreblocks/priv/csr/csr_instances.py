@@ -82,6 +82,10 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mtval = CSRRegister(CSRAddress.MTVAL, gen_params)
 
+        self.misa = CSRRegister(
+            CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
+        )
+
         self.priv_mode = CSRRegister(
             None,
             gen_params,
@@ -92,8 +96,9 @@ class MachineModeCSRRegisters(Elaboratable):
             self.priv_mode_public = AliasedCSR(CSRAddress.COREBLOCKS_TEST_PRIV_MODE, gen_params)
             self.priv_mode_public.add_field(0, self.priv_mode)
 
-        self.mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
-        self.mtvec_fields_implementation(gen_params, self.mtvec)
+        self._mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
+        self._mtvec_fields_implementation(gen_params, self.mtvec)
+
 
     def elaborate(self, platform):
         m = Module()
@@ -104,7 +109,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
         return m
 
-    def mtvec_fields_implementation(self, gen_params: GenParams, mtvec: AliasedCSR):
+    def _mtvec_fields_implementation(self, gen_params: GenParams, mtvec: AliasedCSR):
         def filter_legal_mode(m: TModule, v: Value):
             legal = Signal(1)
             m.d.av_comb += legal.eq((v == TrapVectorMode.DIRECT) | (v == TrapVectorMode.VECTORED))
@@ -117,7 +122,7 @@ class MachineModeCSRRegisters(Elaboratable):
         )
         mtvec.add_field(0, self.mtvec_mode)
 
-    def mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
+    def _mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
         def filter_legal_priv_mode(m: TModule, v: Value):
             legal = Signal(1)
             with m.Switch(v):
@@ -190,6 +195,35 @@ class MachineModeCSRRegisters(Elaboratable):
             1,
             Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
         )
+
+    def _misa_value(self, gen_params):
+        misa_value = 0
+
+        misa_extension_bits = {
+            0: Extension.A,
+            1: Extension.B,
+            2: Extension.C,
+            3: Extension.D,
+            4: Extension.E,
+            5: Extension.F,
+            8: Extension.I,
+            12: Extension.M,
+            16: Extension.Q,
+            21: Extension.V,
+        }
+
+        for bit, extension in misa_extension_bits.items():
+            if extension in gen_params.isa.extensions:
+                misa_value |= 1 << bit
+
+        if gen_params.user_mode:
+            misa_value |= 1 << 20
+        # 7 - Hypervisor, 18 - Supervisor, 23 - Custom Extensions
+
+        xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
+        misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
+
+        return misa_value
 
 
 class GenericCSRRegisters(Elaboratable):

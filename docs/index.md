@@ -8,7 +8,6 @@ maxdepth: 3
 home.md
 assumptions.md
 development-environment.md
-transactions.md
 scheduler/overview.md
 shared-structs/implementation/rs-impl.md
 shared-structs/rs.md

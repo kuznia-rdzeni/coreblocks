@@ -1,11 +1,11 @@
 from amaranth import *
-from amaranth.lib.wiring import Component, flipped, connect, Out
+from amaranth.lib.wiring import Component, flipped, connect, In, Out
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
-from coreblocks.priv.traps.interrupt_controller import InternalInterruptController
+from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
 from transactron.core import Transaction, TModule
 from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
@@ -35,12 +35,14 @@ __all__ = ["Core"]
 class Core(Component):
     wb_instr: WishboneInterface
     wb_data: WishboneInterface
+    interrupts: Signal
 
     def __init__(self, *, gen_params: GenParams):
         super().__init__(
             {
                 "wb_instr": Out(WishboneSignature(gen_params.wb_params)),
                 "wb_data": Out(WishboneSignature(gen_params.wb_params)),
+                "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
             }
         )
 
@@ -96,8 +98,8 @@ class Core(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        connect(m, flipped(self.wb_instr), self.wb_master_instr.wb_master)
-        connect(m, flipped(self.wb_data), self.wb_master_data.wb_master)
+        connect(m.top_module, flipped(self.wb_instr), self.wb_master_instr.wb_master)
+        connect(m.top_module, flipped(self.wb_data), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data
@@ -115,6 +117,8 @@ class Core(Component):
 
         m.submodules.csr_generic = self.csr_generic
         m.submodules.interrupt_controller = self.interrupt_controller
+        m.d.comb += self.interrupt_controller.internal_report_level.eq(self.interrupts[0:16])
+        m.d.comb += self.interrupt_controller.custom_report.eq(self.interrupts[16:])
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
@@ -136,10 +140,12 @@ class Core(Component):
 
         m.submodules.exception_information_register = self.exception_information_register
 
-        fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
-        m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
+        fetch_resume = self.connections.get_optional_dependency(FetchResumeKey())
+        if fetch_resume is not None:
+            fetch_resume_fb, fetch_resume_unifiers = fetch_resume
+            m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
-        m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
+            m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
