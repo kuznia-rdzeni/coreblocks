@@ -10,6 +10,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.arch.isa_consts import TrapVectorMode
 
 
 class Retirement(Elaboratable):
@@ -214,15 +215,16 @@ class Retirement(Elaboratable):
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     mtvec_offset = Signal(self.gen_params.isa.xlen)
-                    mtvec = m_csr.mtvec._fu_read(m).data
+                    mtvec_base = m_csr.mtvec_base.read(m).data
+                    mtvec_mode = m_csr.mtvec_mode.read(m).data
                     mcause = m_csr.mcause.read(m).data
 
-                    # mtvec without mode is [mxlen-1:2], mode is two last bits.
-                    # When mode=1 (Vectored), interrupts set pc to base + 4 * cause_number
-                    with m.If(mcause[-1] & (mtvec[0:1] == 1)):
+                    # When mode is Vectored, interrupts set pc to base + 4 * cause_number
+                    with m.If(mcause[-1] & (mtvec_mode == TrapVectorMode.VECTORED)):
                         m.d.av_comb += mtvec_offset.eq(mcause << 2)
 
-                    m.d.av_comb += handler_pc.eq((mtvec & ~(0b11)) + mtvec_offset)
+                    # (mtvec_base stores base[MXLEN-1:2])
+                    m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
 
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
