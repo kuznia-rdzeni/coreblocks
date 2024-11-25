@@ -2,22 +2,22 @@ import re
 import os
 import logging
 
-from amaranth.sim import Passive, Settle, Tick
 from amaranth.utils import exact_log2
 from amaranth import *
 
 from transactron.core.keys import TransactionManagerKey
+from transactron.profiler import Profile
+from transactron.testing.tick_count import make_tick_count_process
 
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
 from transactron.testing import (
     PysimSimulator,
-    TestGen,
     profiler_process,
-    Profile,
     make_logging_process,
     parse_logging_level,
+    TestbenchContext,
 )
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
@@ -43,22 +43,20 @@ class PySimulation(SimulationBackend):
     def _wishbone_slave(
         self, mem_model: CoreMemoryModel, wb_ctrl: WishboneInterfaceWrapper, is_instr_bus: bool, delay: int = 0
     ):
-        def f():
-            yield Passive()
-
+        async def f(sim: TestbenchContext):
             while True:
-                yield from wb_ctrl.slave_wait()
+                await wb_ctrl.slave_wait(sim)
 
                 word_width_bytes = self.gp.isa.xlen // 8
 
                 # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-                addr = (yield wb_ctrl.wb.adr) << exact_log2(word_width_bytes)
-                sel = yield wb_ctrl.wb.sel
-                dat_w = yield wb_ctrl.wb.dat_w
+                addr = sim.get(wb_ctrl.wb.adr) << exact_log2(word_width_bytes)
+                sel = sim.get(wb_ctrl.wb.sel)
+                dat_w = sim.get(wb_ctrl.wb.dat_w)
 
                 resp_data = 0
 
-                if (yield wb_ctrl.wb.we):
+                if sim.get(wb_ctrl.wb.we):
                     resp = mem_model.write(
                         WriteRequest(addr=addr, data=dat_w, byte_count=word_width_bytes, byte_sel=sel)
                     )
@@ -83,21 +81,19 @@ class PySimulation(SimulationBackend):
                         rty = 1
 
                 for _ in range(delay):
-                    yield Tick()
+                    await sim.tick()
 
-                yield from wb_ctrl.slave_respond(resp_data, ack=ack, err=err, rty=rty)
-
-                yield Settle()
+                await wb_ctrl.slave_respond(sim, resp_data, ack=ack, err=err, rty=rty)
 
         return f
 
-    def _waiter(self, on_finish: Callable[[], TestGen[None]]):
-        def f():
+    def _waiter(self, on_finish: Callable[[TestbenchContext], None]):
+        async def f(sim: TestbenchContext):
             while self.running:
                 self.cycle_cnt += 1
-                yield Tick()
+                await sim.tick()
 
-            yield from on_finish()
+            on_finish(sim)
 
         return f
 
@@ -141,13 +137,14 @@ class PySimulation(SimulationBackend):
             self.cycle_cnt = 0
 
             sim = PysimSimulator(core, max_cycles=timeout_cycles, traces_file=self.traces_file)
-            sim.add_process(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True))
-            sim.add_process(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False))
+            sim.add_testbench(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True), background=True)
+            sim.add_testbench(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False), background=True)
 
             def on_error():
                 raise RuntimeError("Simulation finished due to an error")
 
             sim.add_process(make_logging_process(self.log_level, self.log_filter, on_error))
+            sim.add_process(make_tick_count_process())
 
             # This enables logging in benchmarks. TODO: after unifying regression testing, remove.
             logging.basicConfig()
@@ -161,17 +158,17 @@ class PySimulation(SimulationBackend):
 
             metric_values: dict[str, dict[str, int]] = {}
 
-            def on_sim_finish():
+            def on_sim_finish(sim: TestbenchContext):
                 # Collect metric values before we finish the simulation
                 for metric_name, metric in self.metrics_manager.get_metrics().items():
                     metric = self.metrics_manager.get_metrics()[metric_name]
                     metric_values[metric_name] = {}
                     for reg_name in metric.regs:
-                        metric_values[metric_name][reg_name] = yield self.metrics_manager.get_register_value(
-                            metric_name, reg_name
+                        metric_values[metric_name][reg_name] = sim.get(
+                            self.metrics_manager.get_register_value(metric_name, reg_name)
                         )
 
-            sim.add_process(self._waiter(on_finish=on_sim_finish))
+            sim.add_testbench(self._waiter(on_finish=on_sim_finish))
             success = sim.run()
 
             self.pretty_dump_metrics(metric_values)

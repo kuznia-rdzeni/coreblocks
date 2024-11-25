@@ -45,7 +45,7 @@ class TestFPUError(TestCaseWithSimulator):
     def test_special_cases(self, params: FPUParams, help_values: HelpValues):
         fpue = TestFPUError.FPUErrorModule(params)
 
-        def other_cases_test():
+        async def other_cases_test(sim: TestbenchContext):
             test_cases = [
                 # No errors
                 {
@@ -188,17 +188,17 @@ class TestFPUError(TestCaseWithSimulator):
             ]
             for i in range(len(test_cases)):
 
-                resp = yield from fpue.error_checking_request_adapter.call(test_cases[i])
-                assert resp["sign"] == expected_results[i]["sign"]
-                assert resp["exp"] == expected_results[i]["exp"]
-                assert resp["sig"] == expected_results[i]["sig"]
-                assert resp["errors"] == expected_results[i]["errors"]
+                resp = await fpue.error_checking_request_adapter.call(sim, test_cases[i])
+                assert resp.sign == expected_results[i]["sign"]
+                assert resp.exp == expected_results[i]["exp"]
+                assert resp.sig == expected_results[i]["sig"]
+                assert resp.errors == expected_results[i]["errors"]
 
-        def test_process():
-            yield from other_cases_test()
+        async def test_process(sim: TestbenchContext):
+            await other_cases_test(sim)
 
         with self.run_simulation(fpue) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)
 
     @parameterized.expand(
         [
@@ -261,7 +261,7 @@ class TestFPUError(TestCaseWithSimulator):
     ):
         fpue = TestFPUError.FPUErrorModule(params)
 
-        def one_rounding_mode_test():
+        async def one_rounding_mode_test(sim: TestbenchContext):
             test_cases = [
                 # overflow detection
                 {
@@ -292,14 +292,14 @@ class TestFPUError(TestCaseWithSimulator):
             ]
 
             for i in range(len(test_cases)):
-                resp = yield from fpue.error_checking_request_adapter.call(test_cases[i])
+                resp = await fpue.error_checking_request_adapter.call(sim, test_cases[i])
                 assert resp["sign"] == expected_results[i]["sign"]
                 assert resp["exp"] == expected_results[i]["exp"]
                 assert resp["sig"] == expected_results[i]["sig"]
                 assert resp["errors"] == expected_results[i]["errors"]
 
-        def test_process():
-            yield from one_rounding_mode_test()
+        async def test_process(sim: TestbenchContext):
+            await one_rounding_mode_test(sim)
 
         with self.run_simulation(fpue) as sim:
-            sim.add_process(test_process)
+            sim.add_testbench(test_process)

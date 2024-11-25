@@ -98,8 +98,8 @@ class Core(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        connect(m, flipped(self.wb_instr), self.wb_master_instr.wb_master)
-        connect(m, flipped(self.wb_data), self.wb_master_data.wb_master)
+        connect(m.top_module, flipped(self.wb_instr), self.wb_master_instr.wb_master)
+        connect(m.top_module, flipped(self.wb_data), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data
@@ -140,8 +140,9 @@ class Core(Component):
 
         m.submodules.exception_information_register = self.exception_information_register
 
-        if self.connections.dependency_provided(FetchResumeKey()):
-            fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
+        fetch_resume = self.connections.get_optional_dependency(FetchResumeKey())
+        if fetch_resume is not None:
+            fetch_resume_fb, fetch_resume_unifiers = fetch_resume
             m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
             m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)

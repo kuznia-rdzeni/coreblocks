@@ -403,8 +403,9 @@ class FetchUnit(Elaboratable):
             expect_unstall_unsafe = Signal()
             prev_stalled_unsafe = Signal()
             dependencies = DependencyContext.get()
-            if dependencies.dependency_provided(FetchResumeKey()):
-                unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
+            fetch_resume = dependencies.get_optional_dependency(FetchResumeKey())
+            if fetch_resume is not None:
+                unifier_ready = fetch_resume[0].ready
             else:
                 unifier_ready = C(0)
 

@@ -1,7 +1,6 @@
 from typing import Optional, cast
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth.sim import Settle, Tick
 
 from collections import deque
 from enum import Enum
@@ -16,7 +15,8 @@ from transactron import *
 from transactron.lib import Adapter
 from coreblocks.scheduler.wakeup_select import *
 
-from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestbenchIO
+from transactron.testing import RecordIntDict, TestCaseWithSimulator, TestbenchIO, TestbenchContext
+from transactron.testing.functions import data_const_to_dict
 
 
 class WakeupTestCircuit(Elaboratable):
@@ -76,46 +76,38 @@ class TestWakeupSelect(TestCaseWithSimulator):
                     empty_idx -= 1
         return 0
 
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         inserted_count = 0
         issued_count = 0
         rs: list[Optional[RecordIntDict]] = [None for _ in range(self.m.gen_params.max_rs_entries)]
 
-        yield from self.m.take_row_mock.enable()
-        yield from self.m.issue_mock.enable()
-        yield Settle()
+        self.m.take_row_mock.enable(sim)
+        self.m.issue_mock.enable(sim)
         for _ in range(self.cycles):
             inserted_count += self.maybe_insert(rs)
-            ready = Cat(entry is not None for entry in rs)
+            ready = Const.cast(Cat(entry is not None for entry in rs))
 
-            yield from self.m.ready_mock.call_init(ready_list=ready)
-            if any(entry is not None for entry in rs):
-                yield from self.m.ready_mock.enable()
-            else:
-                yield from self.m.ready_mock.disable()
+            self.m.ready_mock.call_init(sim, ready_list=ready)
+            self.m.ready_mock.set_enable(sim, any(entry is not None for entry in rs))
 
-            yield Settle()
-
-            take_position = yield from self.m.take_row_mock.call_result()
+            take_position = self.m.take_row_mock.get_call_result(sim)
             if take_position is not None:
                 take_position = cast(int, take_position["rs_entry_id"])
                 entry = rs[take_position]
                 assert entry is not None
 
                 self.taken.append(entry)
-                yield from self.m.take_row_mock.call_init(entry)
+                self.m.take_row_mock.call_init(sim, entry)
                 rs[take_position] = None
 
-                yield Settle()
-
-                issued = yield from self.m.issue_mock.call_result()
+                issued = self.m.issue_mock.get_call_result(sim)
                 if issued is not None:
-                    assert issued == self.taken.popleft()
+                    assert data_const_to_dict(issued) == self.taken.popleft()
                     issued_count += 1
-            yield Tick()
+            await sim.tick()
         assert inserted_count != 0
         assert inserted_count == issued_count
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)

@@ -2,15 +2,14 @@ import random
 from collections import deque
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle, Tick
-
-from transactron.testing import TestCaseWithSimulator, get_outputs, SimpleTestCircuit
+from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.func_blocks.fu.common.rs import RS, RSBase
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import OpType
+from transactron.testing.functions import data_const_to_dict
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:
@@ -35,7 +34,7 @@ def create_data_list(gen_params: GenParams, count: int):
             "exec_fn": {
                 "op_type": 1,
                 "funct3": 2,
-                "funct7": 3,
+                "funct7": 4,
             },
             "s1_val": k,
             "s2_val": k,
@@ -75,35 +74,35 @@ class TestRS(TestCaseWithSimulator):
         self.finished = False
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.select_process)
-            sim.add_process(self.insert_process)
-            sim.add_process(self.update_process)
-            sim.add_process(self.take_process)
+            sim.add_testbench(self.select_process)
+            sim.add_testbench(self.insert_process)
+            sim.add_testbench(self.update_process)
+            sim.add_testbench(self.take_process)
 
-    def select_process(self):
+    async def select_process(self, sim: TestbenchContext):
         for k in range(len(self.data_list)):
-            rs_entry_id = (yield from self.m.select.call())["rs_entry_id"]
+            rs_entry_id = (await self.m.select.call(sim)).rs_entry_id
             self.select_queue.appendleft(rs_entry_id)
             self.rs_entries[rs_entry_id] = k
 
-    def insert_process(self):
+    async def insert_process(self, sim: TestbenchContext):
         for data in self.data_list:
-            yield Settle()  # so that select_process can insert into the queue
+            await sim.delay(1e-9)  # so that select_process can insert into the queue
             while not self.select_queue:
-                yield Tick()
-                yield Settle()
+                await sim.tick()
+                await sim.delay(1e-9)
             rs_entry_id = self.select_queue.pop()
-            yield from self.m.insert.call({"rs_entry_id": rs_entry_id, "rs_data": data})
+            await self.m.insert.call(sim, rs_entry_id=rs_entry_id, rs_data=data)
             if data["rp_s1"]:
                 self.regs_to_update.add(data["rp_s1"])
             if data["rp_s2"]:
                 self.regs_to_update.add(data["rp_s2"])
 
-    def update_process(self):
+    async def update_process(self, sim: TestbenchContext):
         while not self.finished:
-            yield Settle()  # so that insert_process can insert into the set
+            await sim.delay(1e-9)  # so that insert_process can insert into the set
             if not self.regs_to_update:
-                yield Tick()
+                await sim.tick()
                 continue
             reg_id = random.choice(list(self.regs_to_update))
             self.regs_to_update.discard(reg_id)
@@ -115,29 +114,26 @@ class TestRS(TestCaseWithSimulator):
                 if self.data_list[k]["rp_s2"] == reg_id:
                     self.data_list[k]["rp_s2"] = 0
                     self.data_list[k]["s2_val"] = reg_val
-            yield from self.m.update.call(reg_id=reg_id, reg_val=reg_val)
+            await self.m.update.call(sim, reg_id=reg_id, reg_val=reg_val)
 
-    def take_process(self):
+    async def take_process(self, sim: TestbenchContext):
         taken: set[int] = set()
-        yield from self.m.get_ready_list[0].call_init()
-        yield Settle()
+        self.m.get_ready_list[0].call_init(sim)
         for k in range(len(self.data_list)):
-            yield Settle()
-            while not (yield from self.m.get_ready_list[0].done()):
-                yield Tick()
-            ready_list = (yield from self.m.get_ready_list[0].call_result())["ready_list"]
+            while not self.m.get_ready_list[0].get_done(sim):
+                await sim.tick()
+            ready_list = (self.m.get_ready_list[0].get_call_result(sim)).ready_list
             possible_ids = [i for i in range(2**self.rs_entries_bits) if ready_list & (1 << i)]
-            if not possible_ids:
-                yield Tick()
-                continue
+            while not possible_ids:
+                await sim.tick()
             rs_entry_id = random.choice(possible_ids)
             k = self.rs_entries[rs_entry_id]
             taken.add(k)
             test_data = dict(self.data_list[k])
             del test_data["rp_s1"]
             del test_data["rp_s2"]
-            data = yield from self.m.take.call(rs_entry_id=rs_entry_id)
-            assert data == test_data
+            data = await self.m.take.call(sim, rs_entry_id=rs_entry_id)
+            assert data_const_to_dict(data) == test_data
         assert taken == set(range(len(self.data_list)))
         self.finished = True
 
@@ -158,7 +154,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     "exec_fn": {
                         "op_type": 1,
                         "funct3": 2,
-                        "funct7": 3,
+                        "funct7": 4,
                     },
                     "s1_val": id,
                     "s2_val": id,
@@ -171,20 +167,18 @@ class TestRSMethodInsert(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.simulation_process)
+            sim.add_testbench(self.simulation_process)
 
-    def simulation_process(self):
+    async def simulation_process(self, sim: TestbenchContext):
         # After each insert, entry should be marked as full
         for index, record in enumerate(self.insert_list):
-            assert (yield self.m._dut.data[index].rec_full) == 0
-            yield from self.m.insert.call(record)
-            yield Settle()
-            assert (yield self.m._dut.data[index].rec_full) == 1
-        yield Settle()
+            assert sim.get(self.m._dut.data[index].rec_full) == 0
+            await self.m.insert.call(sim, record)
+            assert sim.get(self.m._dut.data[index].rec_full) == 1
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m._dut.data):
-            assert expected == (yield from get_outputs(record))
+            assert expected == data_const_to_dict(sim.get(record))
 
 
 class TestRSMethodSelect(TestCaseWithSimulator):
@@ -203,7 +197,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     "exec_fn": {
                         "op_type": 1,
                         "funct3": 2,
-                        "funct7": 3,
+                        "funct7": 4,
                     },
                     "s1_val": id,
                     "s2_val": id,
@@ -216,38 +210,33 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.simulation_process)
+            sim.add_testbench(self.simulation_process)
 
-    def simulation_process(self):
+    async def simulation_process(self, sim: TestbenchContext):
         # In the beginning the select method should be ready and id should be selectable
         for index, record in enumerate(self.insert_list):
-            assert (yield self.m._dut.select.ready) == 1
-            assert (yield from self.m.select.call())["rs_entry_id"] == index
-            yield Settle()
-            assert (yield self.m._dut.data[index].rec_reserved) == 1
-            yield from self.m.insert.call(record)
-        yield Settle()
+            assert sim.get(self.m._dut.select.ready) == 1
+            assert (await self.m.select.call(sim)).rs_entry_id == index
+            assert sim.get(self.m._dut.data[index].rec_reserved) == 1
+            await self.m.insert.call(sim, record)
 
         # Check if RS state is as expected
         for expected, record in zip(self.check_list, self.m._dut.data):
-            assert (yield record.rec_full) == expected["rec_full"]
-            assert (yield record.rec_reserved) == expected["rec_reserved"]
+            assert sim.get(record.rec_full) == expected["rec_full"]
+            assert sim.get(record.rec_reserved) == expected["rec_reserved"]
 
         # Reserve the last entry, then select ready should be false
-        assert (yield self.m._dut.select.ready) == 1
-        assert (yield from self.m.select.call())["rs_entry_id"] == 3
-        yield Settle()
-        assert (yield self.m._dut.select.ready) == 0
+        assert sim.get(self.m._dut.select.ready) == 1
+        assert (await self.m.select.call(sim)).rs_entry_id == 3
+        assert sim.get(self.m._dut.select.ready) == 0
 
         # After take, select ready should be true, with 0 index returned
-        yield from self.m.take.call(rs_entry_id=0)
-        yield Settle()
-        assert (yield self.m._dut.select.ready) == 1
-        assert (yield from self.m.select.call())["rs_entry_id"] == 0
+        await self.m.take.call(sim, rs_entry_id=0)
+        assert sim.get(self.m._dut.select.ready) == 1
+        assert (await self.m.select.call(sim)).rs_entry_id == 0
 
         # After reservation, select is false again
-        yield Settle()
-        assert (yield self.m._dut.select.ready) == 0
+        assert sim.get(self.m._dut.select.ready) == 0
 
 
 class TestRSMethodUpdate(TestCaseWithSimulator):
@@ -266,7 +255,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     "exec_fn": {
                         "op_type": 1,
                         "funct3": 2,
-                        "funct7": 3,
+                        "funct7": 4,
                     },
                     "s1_val": id,
                     "s2_val": id,
@@ -279,34 +268,31 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.simulation_process)
+            sim.add_testbench(self.simulation_process)
 
-    def simulation_process(self):
+    async def simulation_process(self, sim: TestbenchContext):
         # Insert all reacords
         for record in self.insert_list:
-            yield from self.m.insert.call(record)
-        yield Settle()
+            await self.m.insert.call(sim, record)
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m._dut.data):
-            assert expected == (yield from get_outputs(record))
+            assert expected == data_const_to_dict(sim.get(record))
 
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
-        assert (yield self.m._dut.data_ready[1]) == 0
-        yield from self.m.update.call(reg_id=2, reg_val=value_sp1)
-        yield Settle()
-        assert (yield self.m._dut.data[1].rs_data.rp_s1) == 0
-        assert (yield self.m._dut.data[1].rs_data.s1_val) == value_sp1
-        assert (yield self.m._dut.data_ready[1]) == 0
+        assert sim.get(self.m._dut.data_ready[1]) == 0
+        await self.m.update.call(sim, reg_id=2, reg_val=value_sp1)
+        assert sim.get(self.m._dut.data[1].rs_data.rp_s1) == 0
+        assert sim.get(self.m._dut.data[1].rs_data.s1_val) == value_sp1
+        assert sim.get(self.m._dut.data_ready[1]) == 0
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
-        yield from self.m.update.call(reg_id=3, reg_val=value_sp2)
-        yield Settle()
-        assert (yield self.m._dut.data[1].rs_data.rp_s2) == 0
-        assert (yield self.m._dut.data[1].rs_data.s2_val) == value_sp2
-        assert (yield self.m._dut.data_ready[1]) == 1
+        await self.m.update.call(sim, reg_id=3, reg_val=value_sp2)
+        assert sim.get(self.m._dut.data[1].rs_data.rp_s2) == 0
+        assert sim.get(self.m._dut.data[1].rs_data.s2_val) == value_sp2
+        assert sim.get(self.m._dut.data_ready[1]) == 1
 
         # Insert new instruction to entries 0 and 1, check if update of multiple registers works
         reg_id = 4
@@ -319,7 +305,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             "exec_fn": {
                 "op_type": 1,
                 "funct3": 2,
-                "funct7": 3,
+                "funct7": 4,
             },
             "s1_val": 0,
             "s2_val": 0,
@@ -327,18 +313,16 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         }
 
         for index in range(2):
-            yield from self.m.insert.call(rs_entry_id=index, rs_data=data)
-            yield Settle()
-            assert (yield self.m._dut.data_ready[index]) == 0
+            await self.m.insert.call(sim, rs_entry_id=index, rs_data=data)
+            assert sim.get(self.m._dut.data_ready[index]) == 0
 
-        yield from self.m.update.call(reg_id=reg_id, reg_val=value_spx)
-        yield Settle()
+        await self.m.update.call(sim, reg_id=reg_id, reg_val=value_spx)
         for index in range(2):
-            assert (yield self.m._dut.data[index].rs_data.rp_s1) == 0
-            assert (yield self.m._dut.data[index].rs_data.rp_s2) == 0
-            assert (yield self.m._dut.data[index].rs_data.s1_val) == value_spx
-            assert (yield self.m._dut.data[index].rs_data.s2_val) == value_spx
-            assert (yield self.m._dut.data_ready[index]) == 1
+            assert sim.get(self.m._dut.data[index].rs_data.rp_s1) == 0
+            assert sim.get(self.m._dut.data[index].rs_data.rp_s2) == 0
+            assert sim.get(self.m._dut.data[index].rs_data.s1_val) == value_spx
+            assert sim.get(self.m._dut.data[index].rs_data.s2_val) == value_spx
+            assert sim.get(self.m._dut.data_ready[index]) == 1
 
 
 class TestRSMethodTake(TestCaseWithSimulator):
@@ -357,7 +341,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     "exec_fn": {
                         "op_type": 1,
                         "funct3": 2,
-                        "funct7": 3,
+                        "funct7": 4,
                     },
                     "s1_val": id,
                     "s2_val": id,
@@ -370,37 +354,33 @@ class TestRSMethodTake(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.simulation_process)
+            sim.add_testbench(self.simulation_process)
 
-    def simulation_process(self):
+    async def simulation_process(self, sim: TestbenchContext):
         # After each insert, entry should be marked as full
         for record in self.insert_list:
-            yield from self.m.insert.call(record)
-        yield Settle()
+            await self.m.insert.call(sim, record)
 
         # Check data integrity
         for expected, record in zip(self.check_list, self.m._dut.data):
-            assert expected == (yield from get_outputs(record))
+            assert expected == data_const_to_dict(sim.get(record))
 
         # Take first instruction
-        assert (yield self.m._dut.get_ready_list[0].ready) == 1
-        data = yield from self.m.take.call(rs_entry_id=0)
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=0))
         for key in data:
             assert data[key] == self.check_list[0]["rs_data"][key]
-        yield Settle()
-        assert (yield self.m._dut.get_ready_list[0].ready) == 0
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 0
 
         # Update second instuction and take it
         reg_id = 2
         value_spx = 1
-        yield from self.m.update.call(reg_id=reg_id, reg_val=value_spx)
-        yield Settle()
-        assert (yield self.m._dut.get_ready_list[0].ready) == 1
-        data = yield from self.m.take.call(rs_entry_id=1)
+        await self.m.update.call(sim, reg_id=reg_id, reg_val=value_spx)
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=1))
         for key in data:
             assert data[key] == self.check_list[1]["rs_data"][key]
-        yield Settle()
-        assert (yield self.m._dut.get_ready_list[0].ready) == 0
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 0
 
         # Insert two new ready instructions and take them
         reg_id = 0
@@ -413,7 +393,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
             "exec_fn": {
                 "op_type": 1,
                 "funct3": 2,
-                "funct7": 3,
+                "funct7": 4,
             },
             "s1_val": 0,
             "s2_val": 0,
@@ -422,22 +402,19 @@ class TestRSMethodTake(TestCaseWithSimulator):
         }
 
         for index in range(2):
-            yield from self.m.insert.call(rs_entry_id=index, rs_data=entry_data)
-            yield Settle()
-            assert (yield self.m._dut.get_ready_list[0].ready) == 1
-            assert (yield self.m._dut.data_ready[index]) == 1
+            await self.m.insert.call(sim, rs_entry_id=index, rs_data=entry_data)
+            assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
+            assert sim.get(self.m._dut.data_ready[index]) == 1
 
-        data = yield from self.m.take.call(rs_entry_id=0)
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=0))
         for key in data:
             assert data[key] == entry_data[key]
-        yield Settle()
-        assert (yield self.m._dut.get_ready_list[0].ready) == 1
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 1
 
-        data = yield from self.m.take.call(rs_entry_id=1)
+        data = data_const_to_dict(await self.m.take.call(sim, rs_entry_id=1))
         for key in data:
             assert data[key] == entry_data[key]
-        yield Settle()
-        assert (yield self.m._dut.get_ready_list[0].ready) == 0
+        assert sim.get(self.m._dut.get_ready_list[0].ready) == 0
 
 
 class TestRSMethodGetReadyList(TestCaseWithSimulator):
@@ -456,7 +433,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     "exec_fn": {
                         "op_type": 1,
                         "funct3": 2,
-                        "funct7": 3,
+                        "funct7": 4,
                     },
                     "s1_val": id,
                     "s2_val": id,
@@ -469,28 +446,25 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.simulation_process)
+            sim.add_testbench(self.simulation_process)
 
-    def simulation_process(self):
+    async def simulation_process(self, sim: TestbenchContext):
         # After each insert, entry should be marked as full
         for record in self.insert_list:
-            yield from self.m.insert.call(record)
-        yield Settle()
+            await self.m.insert.call(sim, record)
 
         # Check ready vector integrity
-        ready_list = (yield from self.m.get_ready_list[0].call())["ready_list"]
+        ready_list = (await self.m.get_ready_list[0].call(sim)).ready_list
         assert ready_list == 0b0011
 
         # Take first record and check ready vector integrity
-        yield from self.m.take.call(rs_entry_id=0)
-        yield Settle()
-        ready_list = (yield from self.m.get_ready_list[0].call())["ready_list"]
+        await self.m.take.call(sim, rs_entry_id=0)
+        ready_list = (await self.m.get_ready_list[0].call(sim)).ready_list
         assert ready_list == 0b0010
 
         # Take second record and check ready vector integrity
-        yield from self.m.take.call(rs_entry_id=1)
-        yield Settle()
-        option_ready_list = yield from self.m.get_ready_list[0].call_try()
+        await self.m.take.call(sim, rs_entry_id=1)
+        option_ready_list = await self.m.get_ready_list[0].call_try(sim)
         assert option_ready_list is None
 
 
@@ -500,7 +474,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
         self.rs_entries = self.gen_params.max_rs_entries
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
         self.m = SimpleTestCircuit(
-            RS(self.gen_params, 2**self.rs_entries_bits, 0, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]])
+            RS(self.gen_params, 2**self.rs_entries_bits, 0, [[OpType(1), OpType(2)], [OpType(3), OpType(4)]]),
         )
         self.insert_list = [
             {
@@ -513,7 +487,7 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
                     "exec_fn": {
                         "op_type": OpType(id + 1),
                         "funct3": 2,
-                        "funct7": 3,
+                        "funct7": 4,
                     },
                     "s1_val": id,
                     "s2_val": id,
@@ -525,29 +499,27 @@ class TestRSMethodTwoGetReadyLists(TestCaseWithSimulator):
         self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
 
         with self.run_simulation(self.m) as sim:
-            sim.add_process(self.simulation_process)
+            sim.add_testbench(self.simulation_process)
 
-    def simulation_process(self):
+    async def simulation_process(self, sim: TestbenchContext):
         # After each insert, entry should be marked as full
         for record in self.insert_list:
-            yield from self.m.insert.call(record)
-        yield Settle()
+            await self.m.insert.call(sim, record)
 
         masks = [0b0011, 0b1100]
 
         for i in range(self.m._dut.rs_entries + 1):
             # Check ready vectors' integrity
             for j in range(2):
-                ready_list = yield from self.m.get_ready_list[j].call_try()
+                ready_list = await self.m.get_ready_list[j].call_try(sim)
                 if masks[j]:
-                    assert ready_list == {"ready_list": masks[j]}
+                    assert ready_list.ready_list == masks[j]
                 else:
                     assert ready_list is None
 
             # Take a record
             if i == self.m._dut.rs_entries:
                 break
-            yield from self.m.take.call(rs_entry_id=i)
-            yield Settle()
+            await self.m.take.call(sim, rs_entry_id=i)
 
             masks = [mask & ~(1 << i) for mask in masks]

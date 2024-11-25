@@ -9,7 +9,7 @@ Coreblocks is an experimental, modular out-of-order [RISC-V](https://riscv.org/s
  * Simplicity. Coreblocks is an academic project, accessible to students.
    It should be suitable for teaching essentials of out-of-order architectures.
  * Modularity. We want to be able to easily experiment with the core by adding, replacing and modifying modules without changing the source too much.
-   For this goal, we designed a [transaction system](https://kuznia-rdzeni.github.io/coreblocks/Transactions.html) inspired by [Bluespec](http://wiki.bluespec.com/).
+   For this goal, we designed a transaction system called [Transactron](https://github.com/kuznia-rdzeni/transactron), which is inspired by [Bluespec](http://wiki.bluespec.com/).
  * Fine-grained testing. Outside of the integration tests for the full core, modules are tested individually.
    This is to support an agile style of development.
 
@@ -24,9 +24,6 @@ In the future, we would like to achieve the following goals:
 The core currently supports the full RV32I instruction set and several extensions, including M (multiplication and division) and C (compressed instructions).
 Exceptions and some of machine-mode CSRs are supported, the support for interrupts is currently rudimentary and incompatible with the RISC-V spec.
 Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex) (currently using a [patched version](https://github.com/kuznia-rdzeni/litex/tree/coreblocks)).
-
-The transaction system we use as the foundation for the core is well-tested and usable.
-We plan to make it available as a separate Python package.
 
 ## Documentation
 
