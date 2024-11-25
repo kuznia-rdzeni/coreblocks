@@ -13,13 +13,13 @@ from transactron.testing.functions import data_const_to_dict
 
 
 def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dict]:
-    check_list = [{"rs_data": None, "rec_reserved": 0, "rec_full": 0} for _ in range(2**rs_entries_bits)]
+    check_list = [{"rs_data": None, "flags": {"rec_reserved": 0, "rec_full": 0}} for _ in range(2**rs_entries_bits)]
 
     for params in insert_list:
         entry_id = params["rs_entry_id"]
         check_list[entry_id]["rs_data"] = params["rs_data"]
-        check_list[entry_id]["rec_full"] = 1
-        check_list[entry_id]["rec_reserved"] = 1
+        check_list[entry_id]["flags"]["rec_full"] = 1
+        check_list[entry_id]["flags"]["rec_reserved"] = 1
 
     return check_list
 
@@ -172,13 +172,14 @@ class TestRSMethodInsert(TestCaseWithSimulator):
     async def simulation_process(self, sim: TestbenchContext):
         # After each insert, entry should be marked as full
         for index, record in enumerate(self.insert_list):
-            assert sim.get(self.m._dut.data[index].rec_full) == 0
+            assert sim.get(self.m._dut.flags[index].rec_full) == 0
             await self.m.insert.call(sim, record)
-            assert sim.get(self.m._dut.data[index].rec_full) == 1
+            assert sim.get(self.m._dut.flags[index].rec_full) == 1
 
         # Check data integrity
-        for expected, record in zip(self.check_list, self.m._dut.data):
-            assert expected == data_const_to_dict(sim.get(record))
+        for expected, data, flags in zip(self.check_list, self.m._dut.data, self.m._dut.flags):
+            assert expected["rs_data"] == data_const_to_dict(sim.get(data))
+            assert expected["flags"] == data_const_to_dict(sim.get(flags))
 
 
 class TestRSMethodSelect(TestCaseWithSimulator):
@@ -217,13 +218,13 @@ class TestRSMethodSelect(TestCaseWithSimulator):
         for index, record in enumerate(self.insert_list):
             assert sim.get(self.m._dut.select.ready) == 1
             assert (await self.m.select.call(sim)).rs_entry_id == index
-            assert sim.get(self.m._dut.data[index].rec_reserved) == 1
+            assert sim.get(self.m._dut.flags[index].rec_reserved) == 1
             await self.m.insert.call(sim, record)
 
         # Check if RS state is as expected
-        for expected, record in zip(self.check_list, self.m._dut.data):
-            assert sim.get(record.rec_full) == expected["rec_full"]
-            assert sim.get(record.rec_reserved) == expected["rec_reserved"]
+        for expected, record in zip(self.check_list, self.m._dut.flags):
+            assert sim.get(record.rec_full) == expected["flags"]["rec_full"]
+            assert sim.get(record.rec_reserved) == expected["flags"]["rec_reserved"]
 
         # Reserve the last entry, then select ready should be false
         assert sim.get(self.m._dut.select.ready) == 1
@@ -276,22 +277,23 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             await self.m.insert.call(sim, record)
 
         # Check data integrity
-        for expected, record in zip(self.check_list, self.m._dut.data):
-            assert expected == data_const_to_dict(sim.get(record))
+        for expected, data, flags in zip(self.check_list, self.m._dut.data, self.m._dut.flags):
+            assert expected["rs_data"] == data_const_to_dict(sim.get(data))
+            assert expected["flags"] == data_const_to_dict(sim.get(flags))
 
         # Update second entry first SP, instruction should be not ready
         value_sp1 = 1010
         assert sim.get(self.m._dut.data_ready[1]) == 0
         await self.m.update.call(sim, reg_id=2, reg_val=value_sp1)
-        assert sim.get(self.m._dut.data[1].rs_data.rp_s1) == 0
-        assert sim.get(self.m._dut.data[1].rs_data.s1_val) == value_sp1
+        assert sim.get(self.m._dut.data[1].rp_s1) == 0
+        assert sim.get(self.m._dut.data[1].s1_val) == value_sp1
         assert sim.get(self.m._dut.data_ready[1]) == 0
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
         await self.m.update.call(sim, reg_id=3, reg_val=value_sp2)
-        assert sim.get(self.m._dut.data[1].rs_data.rp_s2) == 0
-        assert sim.get(self.m._dut.data[1].rs_data.s2_val) == value_sp2
+        assert sim.get(self.m._dut.data[1].rp_s2) == 0
+        assert sim.get(self.m._dut.data[1].s2_val) == value_sp2
         assert sim.get(self.m._dut.data_ready[1]) == 1
 
         # Insert new instruction to entries 0 and 1, check if update of multiple registers works
@@ -318,10 +320,10 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         await self.m.update.call(sim, reg_id=reg_id, reg_val=value_spx)
         for index in range(2):
-            assert sim.get(self.m._dut.data[index].rs_data.rp_s1) == 0
-            assert sim.get(self.m._dut.data[index].rs_data.rp_s2) == 0
-            assert sim.get(self.m._dut.data[index].rs_data.s1_val) == value_spx
-            assert sim.get(self.m._dut.data[index].rs_data.s2_val) == value_spx
+            assert sim.get(self.m._dut.data[index].rp_s1) == 0
+            assert sim.get(self.m._dut.data[index].rp_s2) == 0
+            assert sim.get(self.m._dut.data[index].s1_val) == value_spx
+            assert sim.get(self.m._dut.data[index].s2_val) == value_spx
             assert sim.get(self.m._dut.data_ready[index]) == 1
 
 
@@ -362,8 +364,9 @@ class TestRSMethodTake(TestCaseWithSimulator):
             await self.m.insert.call(sim, record)
 
         # Check data integrity
-        for expected, record in zip(self.check_list, self.m._dut.data):
-            assert expected == data_const_to_dict(sim.get(record))
+        for expected, data, flags in zip(self.check_list, self.m._dut.data, self.m._dut.flags):
+            assert expected["rs_data"] == data_const_to_dict(sim.get(data))
+            assert expected["flags"] == data_const_to_dict(sim.get(flags))
 
         # Take first instruction
         assert sim.get(self.m._dut.get_ready_list[0].ready) == 1

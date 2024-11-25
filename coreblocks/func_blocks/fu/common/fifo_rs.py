@@ -12,9 +12,9 @@ class FifoRS(RSBase):
         front = Signal(self.rs_entries_bits)
         back = Signal(self.rs_entries_bits)
 
-        select_possible = ~self.data[back].rec_reserved
+        select_possible = ~self.flags[back].rec_reserved
 
-        take_possible = self.data_ready.bit_select(front, 1) & self.data[front].rec_full
+        take_possible = self.data_ready.bit_select(front, 1) & self.flags[front].rec_full
         take_vector = take_possible << front
 
         self._elaborate(m, back, select_possible, take_vector)
