@@ -99,7 +99,6 @@ class MachineModeCSRRegisters(Elaboratable):
         self._mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
-
     def elaborate(self, platform):
         m = Module()
 
