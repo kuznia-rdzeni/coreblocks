@@ -96,8 +96,8 @@ class Core(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        connect(m, flipped(self.wb_instr), self.wb_master_instr.wb_master)
-        connect(m, flipped(self.wb_data), self.wb_master_data.wb_master)
+        connect(m.top_module, flipped(self.wb_instr), self.wb_master_instr.wb_master)
+        connect(m.top_module, flipped(self.wb_data), self.wb_master_data.wb_master)
 
         m.submodules.wb_master_instr = self.wb_master_instr
         m.submodules.wb_master_data = self.wb_master_data

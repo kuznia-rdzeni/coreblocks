@@ -96,7 +96,6 @@ class TestFPURounding(TestCaseWithSimulator):
         fpurt = TestFPURounding.FPURoundingModule(params)
 
         async def one_rounding_mode_test(sim: TestbenchContext):
-            rm_int = rm.value  # TODO: workaround for Amaranth bug
             test_cases = [
                 # carry after increment
                 {
@@ -105,7 +104,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 1,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 # no overflow 00
                 {
@@ -114,7 +113,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 0,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 {
                     "sign": 1,
@@ -122,7 +121,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 0,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 # no overflow 10
                 {
@@ -131,7 +130,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 {
                     "sign": 1,
@@ -139,7 +138,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 # no overflow 01
                 {
@@ -148,7 +147,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 1,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 {
                     "sign": 1,
@@ -156,7 +155,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 0,
                     "sticky_bit": 1,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 # no overflow 11
                 {
@@ -165,7 +164,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 1,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 {
                     "sign": 1,
@@ -173,7 +172,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 1,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 # Round to nearest tie to even
                 {
@@ -182,7 +181,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
                 {
                     "sign": 0,
@@ -190,7 +189,7 @@ class TestFPURounding(TestCaseWithSimulator):
                     "exp": help_values.not_max_norm_exp,
                     "round_bit": 1,
                     "sticky_bit": 0,
-                    "rounding_mode": rm_int,
+                    "rounding_mode": rm,
                 },
             ]
             expected_results = [
