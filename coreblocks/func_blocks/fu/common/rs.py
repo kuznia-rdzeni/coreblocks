@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
+from amaranth.lib.data import View
 from transactron import Method, Transaction, def_method, TModule
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
@@ -33,6 +34,8 @@ class RSBase(Elaboratable):
         self.flags_layout = make_layout(
             ("rec_full", 1),
             ("rec_reserved", 1),
+            ("rp_s1", gen_params.phys_regs_bits),
+            ("rp_s2", gen_params.phys_regs_bits)
         )
 
         self.insert = Method(i=self.layouts.rs.insert_in)
@@ -43,6 +46,7 @@ class RSBase(Elaboratable):
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
+        # TODO: remove rp_s1 and rp_s2 from the data layout
         self.data = Array(Signal(self.layouts.rs.data_layout) for _ in range(self.rs_entries))
         self.flags = Array(Signal(self.flags_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
@@ -67,9 +71,9 @@ class RSBase(Elaboratable):
     def _elaborate(self, m: TModule, selected_id: Value, select_possible: Value, take_vector: Value):
         m.submodules += [self.perf_rs_wait_time, self.perf_num_full]
 
-        for i, record in enumerate(self.data):
+        for i, flags in enumerate(self.flags):
             m.d.comb += self.data_ready[i].eq(
-                ~record.rp_s1.bool() & ~record.rp_s2.bool() & self.flags[i].rec_full
+                ~flags.rp_s1.bool() & ~flags.rp_s2.bool() & flags.rec_full
             )
 
         ready_lists: list[Value] = []
@@ -83,23 +87,25 @@ class RSBase(Elaboratable):
             return {"rs_entry_id": selected_id}
 
         @def_method(m, self.insert)
-        def _(rs_entry_id: Value, rs_data: Value) -> None:
-            m.d.sync += self.data[rs_entry_id].eq(rs_data)
+        def _(rs_entry_id: Value, rs_data: View) -> None:
+            m.d.sync += assign(self.data[rs_entry_id], rs_data, fields=AssignType.LHS)
             m.d.sync += self.flags[rs_entry_id].rec_full.eq(1)
             m.d.sync += self.flags[rs_entry_id].rec_reserved.eq(1)
+            m.d.sync += self.flags[rs_entry_id].rp_s1.eq(rs_data.rp_s1)
+            m.d.sync += self.flags[rs_entry_id].rp_s2.eq(rs_data.rp_s2)
             self.perf_rs_wait_time.start(m, slot=rs_entry_id)
 
         @def_method(m, self.update)
         def _(reg_id: Value, reg_val: Value) -> None:
-            for i, record in enumerate(self.data):
-                with m.If(self.flags[i].rec_full):
-                    with m.If(record.rp_s1 == reg_id):
-                        m.d.sync += record.rp_s1.eq(0)
-                        m.d.sync += record.s1_val.eq(reg_val)
+            for data, flags in zip(self.data, self.flags):
+                with m.If(flags.rec_full):
+                    with m.If(flags.rp_s1 == reg_id):
+                        m.d.sync += flags.rp_s1.eq(0)
+                        m.d.sync += data.s1_val.eq(reg_val)
 
-                    with m.If(record.rp_s2 == reg_id):
-                        m.d.sync += record.rp_s2.eq(0)
-                        m.d.sync += record.s2_val.eq(reg_val)
+                    with m.If(flags.rp_s2 == reg_id):
+                        m.d.sync += flags.rp_s2.eq(0)
+                        m.d.sync += data.s2_val.eq(reg_val)
 
         @def_method(m, self.take)
         def _(rs_entry_id: Value) -> RecordDict:
@@ -107,7 +113,7 @@ class RSBase(Elaboratable):
             m.d.sync += self.flags[rs_entry_id].rec_full.eq(0)
             self.perf_rs_wait_time.stop(m, slot=rs_entry_id)
             out = Signal(self.layouts.take_out)
-            m.d.av_comb += assign(out, self.data[rs_entry_id], fields=AssignType.COMMON)
+            m.d.av_comb += assign(out, self.data[rs_entry_id], fields=AssignType.LHS)
             return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):

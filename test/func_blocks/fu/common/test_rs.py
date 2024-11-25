@@ -20,6 +20,8 @@ def create_check_list(rs_entries_bits: int, insert_list: list[dict]) -> list[dic
         check_list[entry_id]["rs_data"] = params["rs_data"]
         check_list[entry_id]["flags"]["rec_full"] = 1
         check_list[entry_id]["flags"]["rec_reserved"] = 1
+        check_list[entry_id]["flags"]["rp_s1"] = params["rs_data"]["rp_s1"]
+        check_list[entry_id]["flags"]["rp_s2"] = params["rs_data"]["rp_s2"]
 
     return check_list
 
@@ -285,14 +287,14 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
         value_sp1 = 1010
         assert sim.get(self.m._dut.data_ready[1]) == 0
         await self.m.update.call(sim, reg_id=2, reg_val=value_sp1)
-        assert sim.get(self.m._dut.data[1].rp_s1) == 0
+        assert sim.get(self.m._dut.flags[1].rp_s1) == 0
         assert sim.get(self.m._dut.data[1].s1_val) == value_sp1
         assert sim.get(self.m._dut.data_ready[1]) == 0
 
         # Update second entry second SP, instruction should be ready
         value_sp2 = 2020
         await self.m.update.call(sim, reg_id=3, reg_val=value_sp2)
-        assert sim.get(self.m._dut.data[1].rp_s2) == 0
+        assert sim.get(self.m._dut.flags[1].rp_s2) == 0
         assert sim.get(self.m._dut.data[1].s2_val) == value_sp2
         assert sim.get(self.m._dut.data_ready[1]) == 1
 
@@ -320,8 +322,8 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
 
         await self.m.update.call(sim, reg_id=reg_id, reg_val=value_spx)
         for index in range(2):
-            assert sim.get(self.m._dut.data[index].rp_s1) == 0
-            assert sim.get(self.m._dut.data[index].rp_s2) == 0
+            assert sim.get(self.m._dut.flags[index].rp_s1) == 0
+            assert sim.get(self.m._dut.flags[index].rp_s2) == 0
             assert sim.get(self.m._dut.data[index].s1_val) == value_spx
             assert sim.get(self.m._dut.data[index].s2_val) == value_spx
             assert sim.get(self.m._dut.data_ready[index]) == 1
