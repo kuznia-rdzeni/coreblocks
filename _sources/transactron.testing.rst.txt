@@ -12,14 +12,6 @@ transactron.testing.functions module
    :undoc-members:
    :show-inheritance:
 
-transactron.testing.gtkw\_extension module
-------------------------------------------
-
-.. automodule:: transactron.testing.gtkw_extension
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 transactron.testing.infrastructure module
 -----------------------------------------
 

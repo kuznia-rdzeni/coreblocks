@@ -95,14 +95,6 @@
 <dd></dd></dl>
 
 </div>
-<div class="section" id="module-transactron.testing.gtkw_extension">
-<span id="transactron-testing-gtkw-extension-module"></span><h2>transactron.testing.gtkw_extension module<a class="headerlink" href="#module-transactron.testing.gtkw_extension" title="Permalink to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="transactron.testing.gtkw_extension.write_vcd_ext">
-<span class="sig-prename descclassname"><span class="pre">transactron.testing.gtkw_extension.</span></span><span class="sig-name descname"><span class="pre">write_vcd_ext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vcd_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gtkw_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#transactron.testing.gtkw_extension.write_vcd_ext" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</div>
 <div class="section" id="module-transactron.testing.infrastructure">
 <span id="transactron-testing-infrastructure-module"></span><h2>transactron.testing.infrastructure module<a class="headerlink" href="#module-transactron.testing.infrastructure" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -117,10 +109,13 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="transactron.testing.infrastructure.PysimSimulator.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#transactron.testing.infrastructure.PysimSimulator.run" title="Permalink to this definition"></a></dt>
-<dd><p>Run the simulation while any processes are active.</p>
-<p>Processes added with <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_process()</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sync_process()</span></code> are initially active,
-and may change their status using the <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">Passive()</span></code> and <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">Active()</span></code> commands.
-Processes compiled from HDL and added with <code class="xref py py-meth docutils literal notranslate"><span class="pre">add_clock()</span></code> are always passive.</p>
+<dd><p>Run the simulation indefinitely.</p>
+<p>This method advances the simulation while any critical testbenches or processes continue
+executing. It is equivalent to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">advance</span><span class="p">():</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </dd></dl>
@@ -536,7 +531,7 @@ methods were not enabled. In case we only want to focus on the cycles when one o
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 09:31 2024-11-19.
+      <span class="lastupdated">Last updated on 14:02 2024-11-25.
       </span></p>
   </div>
 
