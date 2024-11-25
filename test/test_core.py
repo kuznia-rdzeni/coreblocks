@@ -15,6 +15,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.instr import *
 from coreblocks.params.configurations import *
 from coreblocks.peripherals.wishbone import WishboneMemorySlave
+from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS
 
 import random
 import subprocess
@@ -44,10 +45,12 @@ class CoreTestElaboratable(Elaboratable):
 
         self.core = Core(gen_params=self.gen_params)
 
-        self.interrupt_level = Signal()
-        self.interrupt_edge = Signal()
-
-        m.d.comb += self.core.interrupt_controller.custom_report.eq(Cat(self.interrupt_edge, self.interrupt_level))
+        if self.gen_params.interrupt_custom_count == 2:
+            self.interrupt_level = Signal()
+            self.interrupt_edge = Signal()
+            m.d.comb += self.core.interrupts.eq(
+                Cat(self.interrupt_edge, self.interrupt_level) << ISA_RESERVED_INTERRUPTS
+            )
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
