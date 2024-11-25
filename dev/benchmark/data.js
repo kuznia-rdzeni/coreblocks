@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732546942125,
+  "lastUpdate": 1732548524087,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14487,6 +14487,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2abd9e91c3afdfd379ff32149a4619a7c31bda9f"
         },
         "date": 1732546927137,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5e0e7d6e638bf4287ec57af796acf0775cd59475",
+          "message": "LiteX support changes (#756)",
+          "timestamp": "2024-11-25T16:13:36+01:00",
+          "tree_id": "801664c2e182de0347630df9565836aba939073b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5e0e7d6e638bf4287ec57af796acf0775cd59475"
+        },
+        "date": 1732548520481,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
