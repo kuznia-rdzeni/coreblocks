@@ -136,8 +136,9 @@ class Core(Component):
 
         m.submodules.exception_information_register = self.exception_information_register
 
-        if self.connections.dependency_provided(FetchResumeKey()):
-            fetch_resume_fb, fetch_resume_unifiers = self.connections.get_dependency(FetchResumeKey())
+        fetch_resume = self.connections.get_optional_dependency(FetchResumeKey())
+        if fetch_resume is not None:
+            fetch_resume_fb, fetch_resume_unifiers = fetch_resume
             m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
 
             m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)

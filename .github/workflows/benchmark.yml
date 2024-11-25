@@ -36,9 +36,6 @@ jobs:
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
 
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -114,9 +111,6 @@ jobs:
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
 
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -164,9 +158,6 @@ jobs:
         run: |
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
