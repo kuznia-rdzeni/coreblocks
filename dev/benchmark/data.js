@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732653359165,
+  "lastUpdate": 1732653362111,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -32660,6 +32660,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1490,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1452,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4263,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jamajpro@gmail.com",
+            "name": "Hazard (Cyprian Skrzypczak)",
+            "username": "Hazardu"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "061d287227d5b50c768a551884c48287d4b11b36",
+          "message": "Implement zicond (#747)",
+          "timestamp": "2024-11-26T21:22:52+01:00",
+          "tree_id": "bc10770c53405a873f55cda45155a0c14bb5a9e2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/061d287227d5b50c768a551884c48287d4b11b36"
+        },
+        "date": 1732653361636,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.08,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 13669,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1458,
             "unit": "LUT"
           },
           {
