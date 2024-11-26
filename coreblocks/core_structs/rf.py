@@ -5,7 +5,6 @@ from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.utils.amaranth_ext.functions import popcount
-from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RegisterFile"]
 
@@ -14,7 +13,6 @@ class RegisterFile(Elaboratable):
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(RFLayouts)
-        self.internal_layout = make_layout(("reg_val", gen_params.isa.xlen), ("valid", 1))
         self.read_layout = layouts.rf_read_out
         self.entries = memory.Memory(shape=gen_params.isa.xlen, depth=2**gen_params.phys_regs_bits, init=[])
         self.valids = Array(Signal(init=k == 0) for k in range(2**gen_params.phys_regs_bits))
