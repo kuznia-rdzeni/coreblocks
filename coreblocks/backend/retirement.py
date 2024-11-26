@@ -114,7 +114,6 @@ class Retirement(Elaboratable):
 
         continue_pc_override = Signal()
         continue_pc = Signal(self.gen_params.isa.xlen)
-        core_flushing = Signal()
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -197,8 +196,6 @@ class Retirement(Elaboratable):
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
 
-                m.d.comb += core_flushing.eq(1)
-
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
                     # Resume core operation
@@ -219,7 +216,8 @@ class Retirement(Elaboratable):
                     m.next = "NORMAL"
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+        core_flushing = fsm.ongoing("TRAP_FLUSH")
+        m.d.comb += side_fx.eq(~core_flushing)
 
         @def_method(m, self.core_state)
         def _():
