@@ -4,7 +4,7 @@ from typing import Optional
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
-from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
@@ -75,9 +75,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
-        # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
-        # set `MODE` as fixed to 0 - Direct mode "All exceptions set pc to BASE"
-        self.mtvec = CSRRegister(CSRAddress.MTVEC, gen_params, ro_bits=0b11)
+        self.mtvec = AliasedCSR(CSRAddress.MTVEC, gen_params)
 
         mepc_ro_bits = 0b1 if Extension.C in gen_params.isa.extensions else 0b11  # pc alignment (SPEC)
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
@@ -99,6 +97,7 @@ class MachineModeCSRRegisters(Elaboratable):
             self.priv_mode_public.add_field(0, self.priv_mode)
 
         self._mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
+        self._mtvec_fields_implementation(gen_params, self.mtvec)
 
     def elaborate(self, platform):
         m = Module()
@@ -108,6 +107,19 @@ class MachineModeCSRRegisters(Elaboratable):
                 m.submodules[name] = value
 
         return m
+
+    def _mtvec_fields_implementation(self, gen_params: GenParams, mtvec: AliasedCSR):
+        def filter_legal_mode(m: TModule, v: Value):
+            legal = Signal(1)
+            m.d.av_comb += legal.eq((v == TrapVectorMode.DIRECT) | (v == TrapVectorMode.VECTORED))
+            return (legal, v)
+
+        self.mtvec_base = CSRRegister(None, gen_params, width=gen_params.isa.xlen - 2)
+        mtvec.add_field(TrapVectorMode.as_shape().width, self.mtvec_base)
+        self.mtvec_mode = CSRRegister(
+            None, gen_params, width=TrapVectorMode.as_shape().width, fu_write_filtermap=filter_legal_mode
+        )
+        mtvec.add_field(0, self.mtvec_mode)
 
     def _mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
         def filter_legal_priv_mode(m: TModule, v: Value):
