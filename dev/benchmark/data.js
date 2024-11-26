@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732651600659,
+  "lastUpdate": 1732653359165,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14679,6 +14679,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/240734d0ca5a8c42feaf8ad5c70887f53008bb65"
         },
         "date": 1732651592630,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jamajpro@gmail.com",
+            "name": "Hazard (Cyprian Skrzypczak)",
+            "username": "Hazardu"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "061d287227d5b50c768a551884c48287d4b11b36",
+          "message": "Implement zicond (#747)",
+          "timestamp": "2024-11-26T21:22:52+01:00",
+          "tree_id": "bc10770c53405a873f55cda45155a0c14bb5a9e2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/061d287227d5b50c768a551884c48287d4b11b36"
+        },
+        "date": 1732653355015,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
