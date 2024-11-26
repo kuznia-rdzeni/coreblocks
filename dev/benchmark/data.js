@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732629962532,
+  "lastUpdate": 1732629964941,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -32444,6 +32444,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 6277,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "154345790+kalinf@users.noreply.github.com",
+            "name": "Kalina Filus",
+            "username": "kalinf"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "40c82ee2853b6207c47c467968a57192bb705989",
+          "message": "mtvec vectored mode (#755)",
+          "timestamp": "2024-11-26T14:50:56+01:00",
+          "tree_id": "be5c489b5bf1dbd43ac567e366f77bc14b643ab4",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/40c82ee2853b6207c47c467968a57192bb705989"
+        },
+        "date": 1732629964164,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 52.88,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16522,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1490,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1196,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6279,
             "unit": "LUT"
           }
         ]
