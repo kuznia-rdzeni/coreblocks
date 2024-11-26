@@ -21,9 +21,10 @@ __all__ = ["AluFuncUnit", "ALUComponent"]
 
 
 class AluFn(DecoderManager):
-    def __init__(self, zba_enable=False, zbb_enable=False) -> None:
+    def __init__(self, zba_enable=False, zbb_enable=False, zicond_enable=False) -> None:
         self.zba_enable = zba_enable
         self.zbb_enable = zbb_enable
+        self.zicond_enable = zicond_enable
 
     class Fn(IntFlag):
         ADD = auto()  # Addition
@@ -60,6 +61,10 @@ class AluFn(DecoderManager):
         ORCB = auto()  # Bitwise or combine
         REV8 = auto()  # Reverse byte ordering
 
+        # ZICOND extension
+        CZEROEQZ = auto()  # Move zero if condition if equal to zero
+        CZERONEZ = auto()  # Move zero if condition is nonzero
+
     def get_instructions(self) -> Sequence[tuple]:
         return (
             [
@@ -95,6 +100,11 @@ class AluFn(DecoderManager):
                 (self.Fn.CPOP, OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP),
             ]
             * self.zbb_enable
+            + [
+                (self.Fn.CZEROEQZ, OpType.CZERO, Funct3.CZEROEQZ),
+                (self.Fn.CZERONEZ, OpType.CZERO, Funct3.CZERONEZ),
+            ]
+            * self.zicond_enable
         )
 
 
@@ -114,6 +124,7 @@ class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
         self.zba_enable = alu_fn.zba_enable
         self.zbb_enable = alu_fn.zbb_enable
+        self.zicond_enable = alu_fn.zicond_enable
         self.gen_params = gen_params
 
         self.fn = alu_fn.get_function()
@@ -206,6 +217,19 @@ class Alu(Elaboratable):
                     for i in range(en):
                         j = en - i - 1
                         m.d.comb += self.out[i * 8 : (i + 1) * 8].eq(self.in1[j * 8 : (j + 1) * 8])
+
+            if self.zicond_enable:
+                czero_cases = [
+                    (AluFn.Fn.CZERONEZ, lambda is_zero: self.in1 if is_zero else 0),
+                    (AluFn.Fn.CZEROEQZ, lambda is_zero: 0 if is_zero else self.in1),
+                ]
+                for fn, output_fn in czero_cases:
+                    with OneHotCase(fn):
+                        with m.If(self.in2.any()):
+                            m.d.comb += self.out.eq(output_fn(False))
+                        with m.Else():
+                            m.d.comb += self.out.eq(output_fn(True))
+
         return m
 
 
@@ -254,10 +278,11 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
 
 class ALUComponent(FunctionalComponentParams):
-    def __init__(self, zba_enable=False, zbb_enable=False):
+    def __init__(self, zba_enable=False, zbb_enable=False, zicond_enable=False):
         self.zba_enable = zba_enable
         self.zbb_enable = zbb_enable
-        self.alu_fn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable)
+        self.zicond_enable = zicond_enable
+        self.alu_fn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable, zicond_enable=zicond_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return AluFuncUnit(gen_params, self.alu_fn)

@@ -204,4 +204,8 @@ instructions_by_optype = {
             Opcode.SYSTEM, Funct3.PRIV, Funct7.SFENCEVMA, rd_zero=True, instr_type_override=InstrType.R
         ),  # sfence.vma
     ],
+    OpType.CZERO: [
+        Encoding(Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO),
+        Encoding(Opcode.OP, Funct3.CZERONEZ, Funct7.CZERO),
+    ],
 }

@@ -7,7 +7,7 @@ from transactron.utils import signed_to_int
 
 
 class TestAluUnit(FunctionalUnitTestCase[AluFn.Fn]):
-    func_unit = ALUComponent(zba_enable=True, zbb_enable=True)
+    func_unit = ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True)
     zero_imm = False
 
     ops = {
@@ -36,6 +36,8 @@ class TestAluUnit(FunctionalUnitTestCase[AluFn.Fn]):
         AluFn.Fn.CLZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_3, Funct3.CLZ),
         AluFn.Fn.CTZ: ExecFn(OpType.UNARY_BIT_MANIPULATION_4, Funct3.CTZ),
         AluFn.Fn.CPOP: ExecFn(OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP),
+        AluFn.Fn.CZERONEZ: ExecFn(OpType.CZERO, Funct3.CZERONEZ, Funct7.CZERO),
+        AluFn.Fn.CZEROEQZ: ExecFn(OpType.CZERO, Funct3.CZEROEQZ, Funct7.CZERO),
     }
 
     @staticmethod
@@ -118,6 +120,16 @@ class TestAluUnit(FunctionalUnitTestCase[AluFn.Fn]):
                     while (i1 & 1) == 0:
                         res += 1
                         i1 >>= 1
+            case AluFn.Fn.CZEROEQZ:
+                if i2 == 0:
+                    res = 0
+                else:
+                    res = i1
+            case AluFn.Fn.CZERONEZ:
+                if i2 == 0:
+                    res = i1
+                else:
+                    res = 0
 
         return {"result": res & mask}
 

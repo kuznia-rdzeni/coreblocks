@@ -50,6 +50,7 @@ class OpType(IntEnum):
     CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
+    CZERO = auto()
     #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
     EXCEPTION = auto()
 
@@ -153,6 +154,9 @@ optypes_by_extensions = {
     Extension.XINTSUPERVISOR: [
         OpType.SRET,
         OpType.SFENCEVMA,
+    ],
+    Extension.ZICOND: [
+        OpType.CZERO,
     ],
 }
 

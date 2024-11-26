@@ -180,7 +180,7 @@ full_core_config = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True),
+                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
                 ZbcComponent(),
                 ZbsComponent(),
