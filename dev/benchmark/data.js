@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732548540421,
+  "lastUpdate": 1732629962532,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14551,6 +14551,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5e0e7d6e638bf4287ec57af796acf0775cd59475"
         },
         "date": 1732548520481,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "154345790+kalinf@users.noreply.github.com",
+            "name": "Kalina Filus",
+            "username": "kalinf"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "40c82ee2853b6207c47c467968a57192bb705989",
+          "message": "mtvec vectored mode (#755)",
+          "timestamp": "2024-11-26T14:50:56+01:00",
+          "tree_id": "be5c489b5bf1dbd43ac567e366f77bc14b643ab4",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/40c82ee2853b6207c47c467968a57192bb705989"
+        },
+        "date": 1732629957769,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
