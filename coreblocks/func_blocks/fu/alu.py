@@ -62,8 +62,8 @@ class AluFn(DecoderManager):
         REV8 = auto()  # Reverse byte ordering
 
         # ZICOND extension
-        CZEROEQZ = auto()  # Branchless conditional integer
-        CZERONEZ = auto()  # Branchless conditional integer
+        CZEROEQZ = auto()  # Move zero if condition if equal to zero
+        CZERONEZ = auto()  # Move zero if condition is nonzero
 
     def get_instructions(self) -> Sequence[tuple]:
         return (
@@ -220,8 +220,8 @@ class Alu(Elaboratable):
 
             if self.zicond_enable:
                 czero_cases = [
-                    (AluFn.Fn.CZERONEZ, lambda is_zero: self.in1 if is_zero else C(0)),
-                    (AluFn.Fn.CZEROEQZ, lambda is_zero: C(0) if is_zero else self.in1),
+                    (AluFn.Fn.CZERONEZ, lambda is_zero: self.in1 if is_zero else 0),
+                    (AluFn.Fn.CZEROEQZ, lambda is_zero: 0 if is_zero else self.in1),
                 ]
                 for fn, output_fn in czero_cases:
                     with OneHotCase(fn):
