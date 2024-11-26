@@ -4,7 +4,7 @@ from typing import Optional
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
-from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
@@ -75,14 +75,16 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
-        # SPEC: The mtvec register must always be implemented, but can contain a read-only value.
-        # set `MODE` as fixed to 0 - Direct mode "All exceptions set pc to BASE"
-        self.mtvec = CSRRegister(CSRAddress.MTVEC, gen_params, ro_bits=0b11)
+        self.mtvec = AliasedCSR(CSRAddress.MTVEC, gen_params)
 
         mepc_ro_bits = 0b1 if Extension.C in gen_params.isa.extensions else 0b11  # pc alignment (SPEC)
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
 
         self.mtval = CSRRegister(CSRAddress.MTVAL, gen_params)
+
+        self.misa = CSRRegister(
+            CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
+        )
 
         self.priv_mode = CSRRegister(
             None,
@@ -94,7 +96,8 @@ class MachineModeCSRRegisters(Elaboratable):
             self.priv_mode_public = AliasedCSR(CSRAddress.COREBLOCKS_TEST_PRIV_MODE, gen_params)
             self.priv_mode_public.add_field(0, self.priv_mode)
 
-        self.mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
+        self._mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
+        self._mtvec_fields_implementation(gen_params, self.mtvec)
 
     def elaborate(self, platform):
         m = Module()
@@ -105,7 +108,20 @@ class MachineModeCSRRegisters(Elaboratable):
 
         return m
 
-    def mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
+    def _mtvec_fields_implementation(self, gen_params: GenParams, mtvec: AliasedCSR):
+        def filter_legal_mode(m: TModule, v: Value):
+            legal = Signal(1)
+            m.d.av_comb += legal.eq((v == TrapVectorMode.DIRECT) | (v == TrapVectorMode.VECTORED))
+            return (legal, v)
+
+        self.mtvec_base = CSRRegister(None, gen_params, width=gen_params.isa.xlen - 2)
+        mtvec.add_field(TrapVectorMode.as_shape().width, self.mtvec_base)
+        self.mtvec_mode = CSRRegister(
+            None, gen_params, width=TrapVectorMode.as_shape().width, fu_write_filtermap=filter_legal_mode
+        )
+        mtvec.add_field(0, self.mtvec_mode)
+
+    def _mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
         def filter_legal_priv_mode(m: TModule, v: Value):
             legal = Signal(1)
             with m.Switch(v):
@@ -178,6 +194,35 @@ class MachineModeCSRRegisters(Elaboratable):
             1,
             Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
         )
+
+    def _misa_value(self, gen_params):
+        misa_value = 0
+
+        misa_extension_bits = {
+            0: Extension.A,
+            1: Extension.B,
+            2: Extension.C,
+            3: Extension.D,
+            4: Extension.E,
+            5: Extension.F,
+            8: Extension.I,
+            12: Extension.M,
+            16: Extension.Q,
+            21: Extension.V,
+        }
+
+        for bit, extension in misa_extension_bits.items():
+            if extension in gen_params.isa.extensions:
+                misa_value |= 1 << bit
+
+        if gen_params.user_mode:
+            misa_value |= 1 << 20
+        # 7 - Hypervisor, 18 - Supervisor, 23 - Custom Extensions
+
+        xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
+        misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
+
+        return misa_value
 
 
 class GenericCSRRegisters(Elaboratable):

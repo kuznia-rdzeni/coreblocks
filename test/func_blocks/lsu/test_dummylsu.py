@@ -1,19 +1,18 @@
 import random
 from collections import deque
 
-from amaranth.sim import Settle, Passive, Tick
-
 from transactron.lib import Adapter
+from transactron.testing.method_mock import MethodMock
 from transactron.utils import int_to_signed, signed_to_int
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock
+from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from test.peripherals.test_wishbone import WishboneInterfaceWrapper
 
@@ -84,10 +83,19 @@ class DummyLSUTestCircuit(Elaboratable):
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
+        layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(o=self.gen.get(RetirementLayouts).precommit, nonexclusive=True)
+            Adapter(
+                i=layouts.precommit_in,
+                o=layouts.precommit_out,
+                nonexclusive=True,
+                combiner=lambda m, args, runs: args[0],
+            ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -190,11 +198,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         self.generate_instr(2**7, 2**7)
         self.max_wait = 10
 
-    def wishbone_slave(self):
-        yield Passive()
-
-        while True:
-            yield from self.test_module.io_in.slave_wait()
+    async def wishbone_slave(self, sim: TestbenchContext):
+        while self.mem_data_queue:
             generated_data = self.mem_data_queue.pop()
 
             if generated_data["misaligned"]:
@@ -202,8 +207,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
             mask = generated_data["mask"]
             sign = generated_data["sign"]
-            yield from self.test_module.io_in.slave_verify(generated_data["addr"], 0, 0, mask)
-            yield from self.random_wait(self.max_wait)
+            await self.test_module.io_in.slave_wait_and_verify(sim, generated_data["addr"], 0, 0, mask)
+            await self.random_wait(sim, self.max_wait)
 
             resp_data = int((generated_data["rnd_bytes"][:4]).hex(), 16)
             data_shift = (mask & -mask).bit_length() - 1
@@ -216,21 +221,20 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 data = int_to_signed(signed_to_int(data, size), 32)
             if not generated_data["err"]:
                 self.returned_data.appendleft(data)
-            yield from self.test_module.io_in.slave_respond(resp_data, err=generated_data["err"])
-            yield Settle()
+            await self.test_module.io_in.slave_respond(sim, resp_data, err=generated_data["err"])
 
-    def inserter(self):
+    async def inserter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
             while req["rob_id"] not in self.free_rob_id:
-                yield Tick()
+                await sim.tick()
             self.free_rob_id.remove(req["rob_id"])
-            yield from self.test_module.issue.call(req)
-            yield from self.random_wait(self.max_wait)
+            await self.test_module.issue.call(sim, req)
+            await self.random_wait(sim, self.max_wait)
 
-    def consumer(self):
+    async def consumer(self, sim: TestbenchContext):
         for i in range(self.tests_number):
-            v = yield from self.test_module.accept.call()
+            v = await self.test_module.accept.call(sim)
             rob_id = v["rob_id"]
             assert rob_id not in self.free_rob_id
             self.free_rob_id.add(rob_id)
@@ -241,17 +245,27 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                 assert v["result"] == self.returned_data.pop()
             assert v["exception"] == exc["err"]
 
-            yield from self.random_wait(self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            assert arg == self.exception_queue.pop()
+            @MethodMock.effect
+            def eff():
+                assert arg == self.exception_queue.pop()
+
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
+
+        @def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_process(self.wishbone_slave)
-            sim.add_process(self.inserter)
-            sim.add_process(self.consumer)
+            sim.add_testbench(self.wishbone_slave, background=True)
+            sim.add_testbench(self.inserter)
+            sim.add_testbench(self.consumer)
 
 
 class TestDummyLSULoadsCycles(TestCaseWithSimulator):
@@ -284,29 +298,33 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
-    def one_instr_test(self):
+    async def one_instr_test(self, sim: TestbenchContext):
         instr, wish_data = self.generate_instr(2**7, 2**7)
 
-        yield from self.test_module.issue.call(instr)
-        yield from self.test_module.io_in.slave_wait()
+        await self.test_module.issue.call(sim, instr)
 
         mask = wish_data["mask"]
-        yield from self.test_module.io_in.slave_verify(wish_data["addr"], 0, 0, mask)
+        await self.test_module.io_in.slave_wait_and_verify(sim, wish_data["addr"], 0, 0, mask)
         data = wish_data["rnd_bytes"][:4]
         data = int(data.hex(), 16)
-        yield from self.test_module.io_in.slave_respond(data)
-        yield Settle()
+        await self.test_module.io_in.slave_respond(sim, data)
 
-        v = yield from self.test_module.accept.call()
+        v = await self.test_module.accept.call(sim)
         assert v["result"] == data
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            assert False
+            @MethodMock.effect
+            def eff():
+                assert False
+
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_process(self.one_instr_test)
+            sim.add_testbench(self.one_instr_test)
 
 
 class TestDummyLSUStores(TestCaseWithSimulator):
@@ -360,9 +378,8 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.generate_instr(2**7, 2**7)
         self.max_wait = 8
 
-    def wishbone_slave(self):
+    async def wishbone_slave(self, sim: TestbenchContext):
         for i in range(self.tests_number):
-            yield from self.test_module.io_in.slave_wait()
             generated_data = self.mem_data_queue.pop()
 
             mask = generated_data["mask"]
@@ -374,71 +391,69 @@ class TestDummyLSUStores(TestCaseWithSimulator):
                 data = (int(generated_data["data"][-2:].hex(), 16) & 0xFFFF) << h_dict[mask]
             else:
                 data = int(generated_data["data"][-4:].hex(), 16)
-            yield from self.test_module.io_in.slave_verify(generated_data["addr"], data, 1, mask)
-            yield from self.random_wait(self.max_wait)
+            await self.test_module.io_in.slave_wait_and_verify(sim, generated_data["addr"], data, 1, mask)
+            await self.random_wait(sim, self.max_wait)
 
-            yield from self.test_module.io_in.slave_respond(0)
-            yield Settle()
+            await self.test_module.io_in.slave_respond(sim, 0)
 
-    def inserter(self):
+    async def inserter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
             req = self.instr_queue.pop()
             self.get_result_data.appendleft(req["rob_id"])
-            yield from self.test_module.issue.call(req)
+            await self.test_module.issue.call(sim, req)
             self.precommit_data.appendleft(req["rob_id"])
-            yield from self.random_wait(self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
-    def get_resulter(self):
+    async def get_resulter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
-            v = yield from self.test_module.accept.call()
+            v = await self.test_module.accept.call(sim)
             rob_id = self.get_result_data.pop()
             assert v["rob_id"] == rob_id
             assert v["rp_dst"] == 0
-            yield from self.random_wait(self.max_wait)
+            await self.random_wait(sim, self.max_wait)
             self.precommit_data.pop()  # retire
 
-    def precommiter(self):
-        yield Passive()
-        while True:
-            while len(self.precommit_data) == 0:
-                yield Tick()
-            rob_id = self.precommit_data[-1]  # precommit is called continously until instruction is retired
-            yield from self.test_module.precommit.call(rob_id=rob_id, side_fx=1)
+    def precommit_validate(self, rob_id):
+        return len(self.precommit_data) > 0 and rob_id == self.precommit_data[-1]
+
+    @def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
+    def precommiter(self, rob_id):
+        return {"side_fx": 1}
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            assert False
+            @MethodMock.effect
+            def eff():
+                assert False
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_process(self.wishbone_slave)
-            sim.add_process(self.inserter)
-            sim.add_process(self.get_resulter)
-            sim.add_process(self.precommiter)
+            sim.add_testbench(self.wishbone_slave)
+            sim.add_testbench(self.inserter)
+            sim.add_testbench(self.get_resulter)
 
 
 class TestDummyLSUFence(TestCaseWithSimulator):
     def get_instr(self, exec_fn):
         return {"rp_dst": 1, "rob_id": 1, "exec_fn": exec_fn, "s1_val": 4, "s2_val": 1, "imm": 8, "pc": 0}
 
-    def push_one_instr(self, instr):
-        yield from self.test_module.issue.call(instr)
+    async def push_one_instr(self, sim: TestbenchContext, instr):
+        await self.test_module.issue.call(sim, instr)
 
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
-            yield from self.test_module.io_in.slave_wait()
-            yield from self.test_module.io_in.slave_respond(1)
-            yield Settle()
-        v = yield from self.test_module.accept.call()
+            await self.test_module.io_in.slave_wait(sim)
+            await self.test_module.io_in.slave_respond(sim, 1)
+        v = await self.test_module.accept.call(sim)
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
-            assert v["result"] == 1
+            assert v.result == 1
 
-    def process(self):
+    async def process(self, sim: TestbenchContext):
         # just tests if FENCE doens't hang up the LSU
         load_fn = {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0}
         fence_fn = {"op_type": OpType.FENCE, "funct3": 0, "funct7": 0}
-        yield from self.push_one_instr(self.get_instr(load_fn))
-        yield from self.push_one_instr(self.get_instr(fence_fn))
-        yield from self.push_one_instr(self.get_instr(load_fn))
+        await self.push_one_instr(sim, self.get_instr(load_fn))
+        await self.push_one_instr(sim, self.get_instr(fence_fn))
+        await self.push_one_instr(sim, self.get_instr(load_fn))
 
     def test_fence(self):
         self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
@@ -446,7 +461,13 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
-            assert False
+            @MethodMock.effect
+            def eff():
+                assert False
+
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
 
         with self.run_simulation(self.test_module) as sim:
-            sim.add_process(self.process)
+            sim.add_testbench(self.process)

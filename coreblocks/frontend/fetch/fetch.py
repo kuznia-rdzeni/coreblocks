@@ -1,6 +1,5 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from amaranth.lib.coding import PriorityEncoder
 from coreblocks.interface.keys import FetchResumeKey
 from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
 from transactron.lib.metrics import *
@@ -8,6 +7,7 @@ from transactron.lib.simultaneous import condition
 from transactron.utils import MethodLayout, popcount, assign
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
@@ -402,7 +402,13 @@ class FetchUnit(Elaboratable):
         if self.gen_params.extra_verification:
             expect_unstall_unsafe = Signal()
             prev_stalled_unsafe = Signal()
-            unifier_ready = DependencyContext.get().get_dependency(FetchResumeKey())[0].ready
+            dependencies = DependencyContext.get()
+            fetch_resume = dependencies.get_optional_dependency(FetchResumeKey())
+            if fetch_resume is not None:
+                unifier_ready = fetch_resume[0].ready
+            else:
+                unifier_ready = C(0)
+
             m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
             with m.FSM("running"):
                 with m.State("running"):

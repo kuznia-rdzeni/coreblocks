@@ -10,6 +10,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.arch.isa_consts import TrapVectorMode
 
 
 class Retirement(Elaboratable):
@@ -55,11 +56,16 @@ class Retirement(Elaboratable):
             max_latency=2 * 2**gen_params.rob_entries_bits,
         )
 
+        layouts = self.gen_params.get(RetirementLayouts)
         self.dependency_manager = DependencyContext.get()
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        self.precommit = Method(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+        # The argument is only used in argument validation, it is not needed in the method body.
+        # A dummy combiner is provided.
+        self.precommit = Method(
+            i=layouts.precommit_in, o=layouts.precommit_out, nonexclusive=True, combiner=lambda m, args, runs: 0
+        )
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
@@ -208,8 +214,17 @@ class Retirement(Elaboratable):
                     self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
-                    # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m).data & ~(0b11))
+                    mtvec_offset = Signal(self.gen_params.isa.xlen)
+                    mtvec_base = m_csr.mtvec_base.read(m).data
+                    mtvec_mode = m_csr.mtvec_mode.read(m).data
+                    mcause = m_csr.mcause.read(m).data
+
+                    # When mode is Vectored, interrupts set pc to base + 4 * cause_number
+                    with m.If(mcause[-1] & (mtvec_mode == TrapVectorMode.VECTORED)):
+                        m.d.av_comb += mtvec_offset.eq(mcause << 2)
+
+                    # (mtvec_base stores base[MXLEN-1:2])
+                    m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
 
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
@@ -228,9 +243,11 @@ class Retirement(Elaboratable):
         def _():
             return {"flushing": core_flushing}
 
-        @def_method(m, self.precommit)
-        def _():
-            rob_entry = self.rob_peek(m)
-            return {"rob_id": rob_entry.rob_id, "side_fx": side_fx}
+        rob_id_val = Signal(self.gen_params.rob_entries_bits)
+
+        @def_method(m, self.precommit, validate_arguments=lambda rob_id: rob_id == rob_id_val)
+        def _(rob_id):
+            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
+            return {"side_fx": side_fx}
 
         return m
