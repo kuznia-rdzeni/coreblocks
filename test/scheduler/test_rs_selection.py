@@ -4,7 +4,7 @@ import random
 from amaranth import *
 
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
+from coreblocks.interface.layouts import RFLayouts, RSLayouts, SchedulerLayouts
 from coreblocks.arch import Funct3, Funct7
 from coreblocks.arch import OpType
 from coreblocks.params.configurations import test_core_config
@@ -26,6 +26,7 @@ class RSSelector(Elaboratable):
         m = Module()
 
         rs_layouts = self.gen_params.get(RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits)
+        rf_layouts = self.gen_params.get(RFLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         # data structures
@@ -37,6 +38,8 @@ class RSSelector(Elaboratable):
         m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans(out_fifo.read))
         m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
         m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
+        m.submodules.rf_read_req1 = self.rf_read_req1 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
+        m.submodules.rf_read_req2 = self.rf_read_req2 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
 
         # rs selector
         m.submodules.selector = self.selector = RSSelection(
@@ -44,6 +47,8 @@ class RSSelector(Elaboratable):
             get_instr=instr_fifo.read,
             rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
             push_instr=out_fifo.write,
+            rf_read_req1=self.rf_read_req1.adapter.iface,
+            rf_read_req2=self.rf_read_req2.adapter.iface,
         )
 
         return m
@@ -113,6 +118,14 @@ class TestRSSelect(TestCaseWithSimulator):
             return {"rs_entry_id": random_entry}
 
         return process()
+
+    @def_method_mock(lambda self: self.m.rf_read_req1)
+    def rf_read_req1_mock(self, reg_id):
+        pass
+
+    @def_method_mock(lambda self: self.m.rf_read_req2)
+    def rf_read_req2_mock(self, reg_id):
+        pass
 
     def create_output_process(self, instr_count: int, random_wait: int = 0):
         async def process(sim: TestbenchContext):

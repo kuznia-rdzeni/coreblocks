@@ -3,12 +3,11 @@ from typing import Any
 from amaranth import *
 from amaranth.lib.wiring import connect
 from amaranth_types import ValueLike
-from transactron.lib import AdapterTrans
 from transactron.testing.tick_count import TicksKey
 
 from transactron.utils import align_to_power_of_two
 
-from transactron.testing import TestCaseWithSimulator, ProcessContext, TestbenchContext, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, ProcessContext, TestbenchContext
 
 from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.core import Core
@@ -56,7 +55,6 @@ class CoreTestElaboratable(Elaboratable):
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.core
-        m.submodules.rf_read = self.rf_read = TestbenchIO(AdapterTrans(self.core.RF.read1))
 
         connect(m, self.core.wb_instr, self.wb_mem_slave.bus)
         connect(m, self.core.wb_data, self.wb_mem_slave_data.bus)
@@ -71,8 +69,9 @@ class TestCoreBase(TestCaseWithSimulator):
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
         return sim.get(self.m.core.RRAT.entries[reg_id])
 
-    async def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
-        return (await self.m.rf_read.call(sim, reg_id=self.get_phys_reg_rrat(sim, reg_id))).reg_val
+    def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
+        # TODO: better stubs for memory, remove ignore
+        return sim.get(self.m.core.RF.entries.mem.data[(self.get_phys_reg_rrat(sim, reg_id))])  # type: ignore
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
@@ -162,7 +161,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         await self.tick(sim, self.cycle_count)
 
         for reg_id, val in self.expected_regvals.items():
-            assert (await self.get_arch_reg_val(sim, reg_id)) == val
+            assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_asm_source(self):
         self.gen_params = GenParams(self.configuration)
@@ -277,23 +276,23 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             if early_interrupt:
                 # wait until interrupts are cleared, so it won't be missed
                 await sim.tick().until(self.m.core.interrupt_controller.mip.value == 0)
-                assert (await self.get_arch_reg_val(sim, 30)) == int_count
+                assert self.get_arch_reg_val(sim, 30) == int_count
 
                 int_count += await do_interrupt()
             else:
                 await sim.tick().until(self.m.core.interrupt_controller.mip.value == 0)
-                assert (await self.get_arch_reg_val(sim, 30)) == int_count
+                assert self.get_arch_reg_val(sim, 30) == int_count
 
             handler_count += 1
 
             # wait until ISR returns
             await sim.tick().until(self.m.core.interrupt_controller.mstatus_mie.value != 0)
 
-        assert (await self.get_arch_reg_val(sim, 30)) == int_count
-        assert (await self.get_arch_reg_val(sim, 27)) == handler_count
+        assert self.get_arch_reg_val(sim, 30) == int_count
+        assert self.get_arch_reg_val(sim, 27) == handler_count
 
         for reg_id, val in self.expected_regvals.items():
-            assert (await self.get_arch_reg_val(sim, reg_id)) == val
+            assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)
@@ -359,7 +358,7 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
             await self.random_wait(sim, 5)
 
         for reg_id, val in self.expected_regvals.items():
-            assert (await self.get_arch_reg_val(sim, reg_id)) == val
+            assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_interrupted_prog(self):
         bin_src = self.prepare_source(self.source_file)

@@ -3,7 +3,7 @@ from transactron import Method, Transaction, def_method, TModule
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
-from transactron.lib.storage import AsyncMemoryBank
+from transactron.lib.storage import MemoryBank
 from transactron.utils.amaranth_ext.functions import popcount
 
 __all__ = ["RegisterFile"]
@@ -14,13 +14,18 @@ class RegisterFile(Elaboratable):
         self.gen_params = gen_params
         layouts = gen_params.get(RFLayouts)
         self.read_layout = layouts.rf_read_out
-        self.entries = AsyncMemoryBank(
-            data_layout=[("data", gen_params.isa.xlen)], elem_count=2**gen_params.phys_regs_bits, read_ports=2
+        self.entries = MemoryBank(
+            data_layout=[("data", gen_params.isa.xlen)],
+            elem_count=2**gen_params.phys_regs_bits,
+            read_ports=2,
+            transparent=True,
         )
         self.valids = Array(Signal(init=k == 0) for k in range(2**gen_params.phys_regs_bits))
 
-        self.read1 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
-        self.read2 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
+        self.read_req1 = Method(i=layouts.rf_read_in)
+        self.read_req2 = Method(i=layouts.rf_read_in)
+        self.read_resp1 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
+        self.read_resp2 = Method(i=layouts.rf_read_in, o=layouts.rf_read_out)
         self.write = Method(i=layouts.rf_write)
         self.free = Method(i=layouts.rf_free)
 
@@ -45,21 +50,29 @@ class RegisterFile(Elaboratable):
         being_written = Signal(self.gen_params.phys_regs_bits)
         written_value = Signal(self.gen_params.isa.xlen)
 
-        @def_method(m, self.read1)
+        @def_method(m, self.read_req1)
+        def _(reg_id: Value):
+            self.entries.read_req[0](m, addr=reg_id)
+
+        @def_method(m, self.read_req2)
+        def _(reg_id: Value):
+            self.entries.read_req[1](m, addr=reg_id)
+
+        @def_method(m, self.read_resp1)
         def _(reg_id: Value):
             forward = Signal()
             m.d.av_comb += forward.eq((being_written == reg_id) & (reg_id != 0))
             return {
-                "reg_val": Mux(forward, written_value, self.entries.read[0](m, addr=reg_id).data),
+                "reg_val": Mux(forward, written_value, self.entries.read_resp[0](m).data),
                 "valid": Mux(forward, 1, self.valids[reg_id]),
             }
 
-        @def_method(m, self.read2)
+        @def_method(m, self.read_resp2)
         def _(reg_id: Value):
             forward = Signal()
             m.d.av_comb += forward.eq((being_written == reg_id) & (reg_id != 0))
             return {
-                "reg_val": Mux(forward, written_value, self.entries.read[1](m, addr=reg_id).data),
+                "reg_val": Mux(forward, written_value, self.entries.read_resp[1](m).data),
                 "valid": Mux(forward, 1, self.valids[reg_id]),
             }
 

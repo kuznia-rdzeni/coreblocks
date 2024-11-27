@@ -132,8 +132,10 @@ class Core(Component):
             get_free_reg=free_rf_fifo.read,
             rat_rename=frat.rename,
             rob_put=rob.put,
-            rf_read1=rf.read1,
-            rf_read2=rf.read2,
+            rf_read_req1=rf.read_req1,
+            rf_read_req2=rf.read_req2,
+            rf_read_resp1=rf.read_resp1,
+            rf_read_resp2=rf.read_resp2,
             reservation_stations=self.func_blocks_unifier.rs_blocks,
             gen_params=self.gen_params,
         )
