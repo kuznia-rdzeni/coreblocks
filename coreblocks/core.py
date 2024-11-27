@@ -60,7 +60,7 @@ class Core(Component):
 
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
-        self.rf_allocator = PriorityEncoderAllocator(2**self.gen_params.phys_regs_bits, init=-2)
+        self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
