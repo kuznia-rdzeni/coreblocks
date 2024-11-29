@@ -99,8 +99,10 @@ class SchedulerTestCircuit(Elaboratable):
             get_free_reg=free_rf_fifo.read,
             rat_rename=rat.rename,
             rob_put=self.rob.put,
-            rf_read1=self.rf.read1,
-            rf_read2=self.rf.read2,
+            rf_read_req1=self.rf.read_req1,
+            rf_read_req2=self.rf.read_req2,
+            rf_read_resp1=self.rf.read_resp1,
+            rf_read_resp2=self.rf.read_resp2,
             reservation_stations=rs_blocks,
             gen_params=self.gen_params,
         )
