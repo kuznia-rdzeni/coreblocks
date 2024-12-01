@@ -15,7 +15,8 @@ class FarPathMethodLayout:
     def __init__(self, *, fpu_params: FPUParams):
 
         self.far_path_in_layout = [
-            ("r_sign", 1)("sig_a", fpu_params.sig_width),
+            ("r_sign", 1),
+            ("sig_a", fpu_params.sig_width),
             ("sig_b", fpu_params.sig_width),
             ("exp", fpu_params.exp_width),
             ("sub_op", 1),
@@ -95,11 +96,11 @@ class FarPathModule(Elaboratable):
         OLS = Signal()
         NXS = Signal()
 
-        NXS_list = [None for _ in range(RoundingModes)]
-        ORS_list = [None for _ in range(RoundingModes)]
-        OLS_list = [None for _ in range(RoundingModes)]
+        NXS_list = [Signal() for _ in range(RoundingModes)]
+        ORS_list = [Signal() for _ in range(RoundingModes)]
+        OLS_list = [Signal() for _ in range(RoundingModes)]
 
-        Shift_in_bit = [None for _ in range(RoundingModes)]
+        Shift_in_bit = [Signal() for _ in range(RoundingModes)]
 
         g = Signal()
 
@@ -115,7 +116,6 @@ class FarPathModule(Elaboratable):
             round_bit,
             sticky_bit,
         ):
-            # TODO double check for round_up and round_down
             m.d.av_comb += input_sig_add_0_a.eq(sig_a)
             m.d.av_comb += input_sig_add_0_b.eq(sig_b)
             m.d.av_comb += xor_sig.eq(sig_a ^ sig_b)
@@ -141,17 +141,17 @@ class FarPathModule(Elaboratable):
             m.d.av_comb += output_sig_add_1.eq(input_sig_add_1_a + input_sig_add_1_b + 1)
             m.d.av_comb += output_sig_add_1[-1].eq(output_sig_add_1[-1] | carry_add1)
 
-            m.d.av_comb += NRS.eq((~sig_op) & (~output_sig_add_0[-1]))
-            m.d.av_comb += ORS.eq((~sig_op) & (output_sig_add_0[-1]))
+            m.d.av_comb += NRS.eq((~sub_op) & (~output_sig_add_0[-1]))
+            m.d.av_comb += ORS.eq((~sub_op) & (output_sig_add_0[-1]))
             m.d.av_comb += NLS.eq(
-                sig_op
+                sub_op
                 & (
                     ((~rgs_any) & output_sig_add_1_check[-2])
                     | (rgs_any & output_sig_add_0[-2])
                 )
             )
             m.d.av_comb += OLS.eq(
-                sig_op
+                sub_op
                 & (
                     ((~rgs_any) & (~output_sig_add_1_check[-2]))
                     | (rgs_any & (~output_sig_add_0[-2]))
@@ -204,7 +204,7 @@ class FarPathModule(Elaboratable):
                 ((~r_sign) & (~guard_bit)) | (r_sign & (~rgs_any))
             )
             m.d.av_comb += OLS_list[RoundingModes.ROUND_DOWN].eq(
-                (r_sign & (~guard_bit)) | (~(r_sign) & (~rgs_any))
+                (r_sign & (~guard_bit)) | ((~r_sign) & (~rgs_any))
             )
             m.d.av_comb += OLS_list[RoundingModes.ROUND_ZERO].eq(sub_op & (~rgs_any))
             m.d.av_comb += OLS_list[RoundingModes.ROUND_NEAREST_EVEN].eq(
@@ -292,8 +292,8 @@ class FarPathModule(Elaboratable):
                 m.d.av_comb += output_sig.eq(output_sig >> 1)
                 m.d.av_comb += output_exp.eq(output_exp + 1)
 
-            with m.If(sub_op & (~output_sig[-2])):
-                m.d.av_comb += output_sig.eq(output_sig << 1)
+            with m.If(sub_op & (~output_sig[-2]) & out_exp > 0):
+                m.d.av_comb += output_sig.eq((output_sig << 1) | Shift_in_bit[rounding_mode])
                 m.d.av_comb += output_exp.eq(output_exp - 1)
 
             return {
