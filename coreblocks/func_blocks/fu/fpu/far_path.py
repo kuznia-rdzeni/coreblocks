@@ -27,7 +27,7 @@ class FarPathMethodLayout:
         ]
         self.far_path_out_layout = [
             ("out_exp", fpu_params.exp_width),
-            ("out_sig", fpu_params.sig_width + 1),
+            ("out_sig", fpu_params.sig_width),
             ("output_round", 1),
             ("output_sticky", 1),
         ]
@@ -70,6 +70,8 @@ class FarPathModule(Elaboratable):
         output_sig_add_1_check = Signal(self.params.sig_width + 1)
         output_sig = Signal(self.params.sig_width + 1)
         output_exp = Signal(self.params.exp_width + 1)
+        output_final_exp = Signal(self.params.exp_width)
+        output_final_sig = Signal(self.params.sig_width)
 
         output_round_bit = Signal()
         output_sticky_bit = Signal()
@@ -77,7 +79,7 @@ class FarPathModule(Elaboratable):
         final_round_bit = Signal()
         final_sticky_bit = Signal()
 
-        round_up_inc_1  = Signal()
+        round_up_inc_1 = Signal()
         round_down_inc_1 = Signal()
         round_to_inf_special_case = Signal()
         xor_sig = Signal(self.params.sig_width)
@@ -87,20 +89,39 @@ class FarPathModule(Elaboratable):
         rgs_all = Signal()
 
         # No right shift
-        NRS = Signal()
+        nrs = Signal()
         # One right shift
-        ORS = Signal()
+        ors = Signal()
         # No left shift
-        NLS = Signal()
+        nls = Signal()
         # One left shift
-        OLS = Signal()
-        NXS = Signal()
+        ols = Signal()
+        nxs = Signal()
 
-        NXS_list = [Signal() for _ in range(RoundingModes)]
-        ORS_list = [Signal() for _ in range(RoundingModes)]
-        OLS_list = [Signal() for _ in range(RoundingModes)]
+        nxs_rtne = Signal()
+        nxs_rtna = Signal()
+        nxs_zero = Signal()
+        nxs_up = Signal()
+        nxs_down = Signal()
 
-        Shift_in_bit = [Signal() for _ in range(RoundingModes)]
+        ors_rtne = Signal()
+        ors_rtna = Signal()
+        ors_zero = Signal()
+        ors_up = Signal()
+        ors_down = Signal()
+
+        ols_rtne = Signal()
+        ols_rtna = Signal()
+        ols_zero = Signal()
+        ols_up = Signal()
+        ols_down = Signal()
+
+        shift_in_bit_rtne = Signal()
+        shift_in_bit_rtna = Signal()
+        shift_in_bit_zero = Signal()
+        shift_in_bit_up = Signal()
+        shift_in_bit_down = Signal()
+        shift_in_bit = Signal()
 
         g = Signal()
 
@@ -124,12 +145,11 @@ class FarPathModule(Elaboratable):
             m.d.av_comb += rgs_any.eq(guard_bit | round_bit | sticky_bit)
             m.d.av_comb += rgs_all.eq(guard_bit & round_bit & sticky_bit)
             m.d.av_comb += output_sig_add_1_check.eq(sig_a + sig_b + 1)
-            m.d.av_comb += round_to_inf_special_case.eq((~sub_op) &
-                ((rounding_mode == RoundingModes.ROUND_DOWN)
-                | (rounding_mode == RoundingModes.ROUND_UP)))
+            m.d.av_comb += round_to_inf_special_case.eq(
+                (~sub_op) & ((rounding_mode == RoundingModes.ROUND_DOWN) | (rounding_mode == RoundingModes.ROUND_UP))
+            )
 
-            with m.If( round_to_inf_special_case
-            ):
+            with m.If(round_to_inf_special_case):
                 m.d.av_comb += input_sig_add_1_a.eq((carry_sig << 1) | (~xor_sig[0]))
                 m.d.av_comb += input_sig_add_1_b.eq(xor_sig)
             with m.Else():
@@ -138,136 +158,109 @@ class FarPathModule(Elaboratable):
                 m.d.av_comb += carry_add1.eq(0)
 
             m.d.av_comb += output_sig_add_0.eq(input_sig_add_0_a + input_sig_add_0_b)
-            m.d.av_comb += output_sig_add_1.eq(input_sig_add_1_a + input_sig_add_1_b + 1)
-            m.d.av_comb += output_sig_add_1[-1].eq(output_sig_add_1[-1] | carry_add1)
+            m.d.av_comb += output_sig_add_1.eq(
+                (input_sig_add_1_a + input_sig_add_1_b + 1) | (carry_add1 << (self.params.sig_width - 1))
+            )
 
-            m.d.av_comb += NRS.eq((~sub_op) & (~output_sig_add_0[-1]))
-            m.d.av_comb += ORS.eq((~sub_op) & (output_sig_add_0[-1]))
-            m.d.av_comb += NLS.eq(
-                sub_op
-                & (
-                    ((~rgs_any) & output_sig_add_1_check[-2])
-                    | (rgs_any & output_sig_add_0[-2])
-                )
+            m.d.av_comb += nrs.eq((~sub_op) & (~output_sig_add_0[-1]))
+            m.d.av_comb += ors.eq((~sub_op) & (output_sig_add_0[-1]))
+            m.d.av_comb += nls.eq(
+                sub_op & (((~rgs_any) & output_sig_add_1_check[-2]) | (rgs_any & output_sig_add_0[-2]))
             )
-            m.d.av_comb += OLS.eq(
-                sub_op
-                & (
-                    ((~rgs_any) & (~output_sig_add_1_check[-2]))
-                    | (rgs_any & (~output_sig_add_0[-2]))
-                )
+            m.d.av_comb += ols.eq(
+                sub_op & (((~rgs_any) & (~output_sig_add_1_check[-2])) | (rgs_any & (~output_sig_add_0[-2])))
             )
-            m.d.av_comb += NXS.eq(NLS | NRS)
+            m.d.av_comb += nxs.eq(nls | nrs)
 
             subtraction = sub_op & ((~r_sign) | (~rgs_any))
-            addition = (~sub_op) & ((sig_a[0] ^ sig_b[0]) & ((~r_sig) & (rgs_any)))
-            m.d.av_comb += NXS_list[RoundingModes.ROUND_UP].eq(subtraction | addition)
+            addition = (~sub_op) & ((sig_a[0] ^ sig_b[0]) & ((~r_sign) & (rgs_any)))
+            m.d.av_comb += nxs_up.eq(subtraction | addition)
 
             subtraction = sub_op & (r_sign | (~rgs_any))
-            addition = (~sub_op) & ((sig_a[0] ^ sig_b[0]) & (r_sig & (rgs_any)))
-            m.d.av_comb += NXS_list[RoundingModes.ROUND_DOWN].eq(subtraction | addition)
+            addition = (~sub_op) & ((sig_a[0] ^ sig_b[0]) & (r_sign & (rgs_any)))
+            m.d.av_comb += nxs_down.eq(subtraction | addition)
 
-            m.d.av_comb += NXS_list[RoundingModes.ROUND_ZERO].eq(sub_op & (~rgs_any))
+            m.d.av_comb += nxs_zero.eq(sub_op & (~rgs_any))
 
-            subtraction = sub_op & (
-                (~guard_bit)
-                | (guard_bit & (~round_bit) & (~sticky_bit) & (sig_a[0] ^ sig_b[0]))
-            )
-            addition = (
-                (~sub_op) & guard_bit & (round_bit | sticky_bit | (sig_a[0] ^ sig_b[0]))
-            )
-            m.d.av_comb += NXS_list[RoundingModes.ROUND_NEAREST_EVEN].eq(
-                subtraction | addition
-            )
+            subtraction = sub_op & ((~guard_bit) | (guard_bit & (~round_bit) & (~sticky_bit) & (sig_a[0] ^ sig_b[0])))
+            addition = (~sub_op) & guard_bit & (round_bit | sticky_bit | (sig_a[0] ^ sig_b[0]))
+            m.d.av_comb += nxs_rtne.eq(subtraction | addition)
 
-            subtraction = sub_op & ((~guard_bit) ^ ((~round_bit) & (~sticky_bit)))
+            subtraction = sub_op & (((~guard_bit) ^ ((~round_bit) & (~sticky_bit))) | (~rgs_any))
             addition = (~sub_op) & guard_bit
-            m.d.av_comb += NXS_list[RoundingModes.ROUND_NEAREST_AWAY].eq(
-                subtraction | addition
-            )
+            m.d.av_comb += nxs_rtna.eq(subtraction | addition)
 
-            m.d.av_comb += ORS_list[RoundingModes.ROUND_UP].eq(
-                (~r_sign) & ((sig_a[0] ^ sig_b[0]) | rgs_any)
-            )
-            m.d.av_comb += ORS_list[RoundingModes.ROUND_DOWN].eq(
-                r_sign & ((sig_a[0] ^ sig_b[0]) | rgs_any)
-            )
-            m.d.av_comb += ORS_list[RoundingModes.ROUND_ZERO].eq(sub_op & (~rgs_any))
-            m.d.av_comb += ORS_list[RoundingModes.ROUND_NEAREST_EVEN].eq(
-                (sig_a[0] ^ sig_b[0]) & (rgs_any | (sig_a[1] ^ sig_b[1]))
-            )
-            m.d.av_comb += ORS_list[RoundingModes.ROUND_NEAREST_AWAY].eq(
-                sig_a[0] ^ sig_b[0]
-            )
+            m.d.av_comb += ors_up.eq((~r_sign) & ((sig_a[0] ^ sig_b[0]) | rgs_any))
+            m.d.av_comb += ors_down.eq(r_sign & ((sig_a[0] ^ sig_b[0]) | rgs_any))
+            m.d.av_comb += ors_zero.eq(sub_op & (~rgs_any))
+            m.d.av_comb += ors_rtne.eq((sig_a[0] ^ sig_b[0]) & (rgs_any | (sig_a[1] ^ sig_b[1])))
+            m.d.av_comb += ors_rtna.eq(sig_a[0] ^ sig_b[0])
 
-            m.d.av_comb += OLS_list[RoundingModes.ROUND_UP].eq(
-                ((~r_sign) & (~guard_bit)) | (r_sign & (~rgs_any))
-            )
-            m.d.av_comb += OLS_list[RoundingModes.ROUND_DOWN].eq(
-                (r_sign & (~guard_bit)) | ((~r_sign) & (~rgs_any))
-            )
-            m.d.av_comb += OLS_list[RoundingModes.ROUND_ZERO].eq(sub_op & (~rgs_any))
-            m.d.av_comb += OLS_list[RoundingModes.ROUND_NEAREST_EVEN].eq(
-                (~guard_bit) & ((~round_bit) | (~sticky_bit))
-            )
-            m.d.av_comb += OLS_list[RoundingModes.ROUND_NEAREST_AWAY].eq(
-                (~guard_bit) & ((~round_bit) | (~sticky_bit))
-            )
-
-            m.d.av_comb += Shift_in_bit[RoundingModes.ROUND_UP].eq(
+            m.d.av_comb += ols_up.eq(((~r_sign) & (~guard_bit)) | (r_sign & (~rgs_any)))
+            m.d.av_comb += ols_down.eq((r_sign & (~guard_bit)) | ((~r_sign) & (~rgs_any)))
+            m.d.av_comb += ols_zero.eq(sub_op & (~rgs_any))
+            m.d.av_comb += ols_rtne.eq((~guard_bit) & ((~round_bit) | (~sticky_bit)))
+            m.d.av_comb += ols_rtna.eq((~guard_bit) & ((~round_bit) | (~sticky_bit)))
+            m.d.av_comb += shift_in_bit_up.eq(
                 ((~r_sign) & guard_bit)
-                | (
-                    r_sign
-                    & (
-                        (guard_bit & (~round_bit) & (~sticky_bit))
-                        | ((~guard_bit) & (round_bit | sticky_bit))
-                    )
-                )
+                | (r_sign & ((guard_bit & (~round_bit) & (~sticky_bit)) | ((~guard_bit) & (round_bit | sticky_bit))))
             )
-            m.d.av_comb += Shift_in_bit[RoundingModes.ROUND_DOWN].eq(
+            m.d.av_comb += shift_in_bit_down.eq(
                 (r_sign & guard_bit)
-                | (
-                    (~r_sign)
-                    & (
-                        (guard_bit & (~round_bit) & (~sticky_bit))
-                        | ((~guard_bit) & (round_bit | sticky_bit))
-                    )
-                )
+                | ((~r_sign) & ((guard_bit & (~round_bit) & (~sticky_bit)) | ((~guard_bit) & (round_bit | sticky_bit))))
             )
-            m.d.av_comb += Shift_in_bit[RoundingModes.ROUND_ZERO].eq(
-                ((~guard_bit) & (round_bit | sticky_bit))
-                | (guard_bit & (~round_bit) & (~sticky_bit))
+            m.d.av_comb += shift_in_bit_zero.eq(
+                ((~guard_bit) & (round_bit | sticky_bit)) | (guard_bit & (~round_bit) & (~sticky_bit))
             )
-            m.d.av_comb += Shift_in_bit[RoundingModes.ROUND_NEAREST_EVEN].eq(
-                ((~guard_bit) & round_bit & sticky_bit) | (guard_bit & (~round_bit))
-            )
-            m.d.av_comb += Shift_in_bit[RoundingModes.ROUND_NEAREST_AWAY].eq(
-                ((~guard_bit) & round_bit & sticky_bit)
-                | (guard_bit & (~(round_bit & sticky_bit)))
+            m.d.av_comb += shift_in_bit_rtne.eq(((~guard_bit) & round_bit & sticky_bit) | (guard_bit & (~round_bit)))
+            m.d.av_comb += shift_in_bit_rtna.eq(
+                ((~guard_bit) & round_bit & sticky_bit) | (guard_bit & (~(round_bit & sticky_bit)))
             )
 
-            m.d.av_comb += g.eq(
-                (ORS & ORS_list[rounding_mode])
-                | (NXS & NXS_list)
-                | (OLS & OLS_list[rounding_mode])
-            )
+            with m.Switch(rounding_mode):
+                with m.Case(RoundingModes.ROUND_UP):
+                    m.d.av_comb += g.eq((ors & ors_up) | (nxs & nxs_up) | (ols & ols_up))
+                    m.d.av_comb += shift_in_bit.eq(shift_in_bit_up)
+                with m.Case(RoundingModes.ROUND_DOWN):
+                    m.d.av_comb += g.eq((ors & ors_down) | (nxs & nxs_down) | (ols & ols_down))
+                    m.d.av_comb += shift_in_bit.eq(shift_in_bit_down)
+                with m.Case(RoundingModes.ROUND_ZERO):
+                    m.d.av_comb += g.eq((ors & ors_zero) | (nxs & nxs_zero) | (ols & ols_zero))
+                    m.d.av_comb += shift_in_bit.eq(shift_in_bit_zero)
 
-            m.d.av_comb += round_up_inc_1.eq(rounding_mode.ROUND_UP & NRS & (~g) & (~(sig_a[0] ^ sig_b[0])) & ((~r_sig) & (rgs_any)))
-            m.d.av_comb += round_down_inc_1.eq(rounding_mode.ROUND_DOWN & NRS & (~g) & (~(sig_a[0] ^ sig_b[0])) & (r_sig & (rgs_any)))
-            
+                with m.Case(RoundingModes.ROUND_NEAREST_EVEN):
+                    m.d.av_comb += g.eq((ors & ors_rtne) | (nxs & nxs_rtne) | (ols & ols_rtne))
+                    m.d.av_comb += shift_in_bit.eq(shift_in_bit_rtne)
+
+                with m.Case(RoundingModes.ROUND_NEAREST_AWAY):
+                    m.d.av_comb += g.eq((ors & ors_rtna) | (nxs & nxs_rtna) | (ols & ols_rtna))
+                    m.d.av_comb += shift_in_bit.eq(shift_in_bit_rtna)
+
+            m.d.av_comb += round_up_inc_1.eq(
+                (rounding_mode == RoundingModes.ROUND_UP)
+                & nrs
+                & (~g)
+                & (~(sig_a[0] ^ sig_b[0]))
+                & ((~r_sign) & (rgs_any))
+            )
+            m.d.av_comb += round_down_inc_1.eq(
+                (rounding_mode == RoundingModes.ROUND_DOWN)
+                & nrs
+                & (~g)
+                & (~(sig_a[0] ^ sig_b[0]))
+                & (r_sign & (rgs_any))
+            )
             with m.If(g):
                 m.d.av_comb += output_sig.eq(output_sig_add_1)
             with m.Else():
-                m.d.av_comb += output_sig.eq(output_sig_add_0)
+                with m.If(round_down_inc_1 | round_up_inc_1):
+                    m.d.av_comb += output_sig.eq(output_sig_add_0 | 1)
+                with m.Else():
+                    m.d.av_comb += output_sig.eq(output_sig_add_0)
             m.d.av_comb += output_exp.eq(exp)
 
-            with m.If(round_down_inc_1 | round_down_inc_1):
-                m.d.av_comb += output_sig.eq(output_sig | 1)
-
             with m.If(sub_op):
-                m.d.av_comb += final_guard_bit.eq(
-                    (~guard_bit) ^ ((~round_bit) & (~sticky_bit))
-                )
+                m.d.av_comb += final_guard_bit.eq((~guard_bit) ^ ((~round_bit) & (~sticky_bit)))
                 m.d.av_comb += final_round_bit.eq((~round_bit) ^ (~sticky_bit))
                 m.d.av_comb += final_sticky_bit.eq(sticky_bit)
 
@@ -276,29 +269,39 @@ class FarPathModule(Elaboratable):
                 m.d.av_comb += final_round_bit.eq(round_bit)
                 m.d.av_comb += final_sticky_bit.eq(sticky_bit)
 
-            with m.If(ORS):
-                m.d.av_comb += output_sticky_bit.eq(
-                    final_guard_bit | final_round_bit | final_sticky_bit
-                )
+            with m.If(ors):
+                m.d.av_comb += output_sticky_bit.eq(final_guard_bit | final_round_bit | final_sticky_bit)
                 m.d.av_comb += output_round_bit.eq(sig_a[0] ^ sig_b[0])
-            with m.Elif(OLS):
+            with m.Elif(ols):
                 m.d.av_comb += output_sticky_bit.eq(final_sticky_bit)
                 m.d.av_comb += output_round_bit.eq(final_round_bit)
             with m.Else():
                 m.d.av_comb += output_sticky_bit.eq(final_round_bit | final_sticky_bit)
                 m.d.av_comb += output_round_bit.eq(final_guard_bit)
 
-            with m.If((~sub_op) & output_sig[-1]):
-                m.d.av_comb += output_sig.eq(output_sig >> 1)
-                m.d.av_comb += output_exp.eq(output_exp + 1)
+            with m.If((~sub_op) & (output_sig[-1])):
+                m.d.av_comb += output_final_sig.eq(output_sig >> 1)
+                m.d.av_comb += output_final_exp.eq(output_exp + 1)
 
-            with m.If(sub_op & (~output_sig[-2]) & out_exp > 0):
-                m.d.av_comb += output_sig.eq((output_sig << 1) | Shift_in_bit[rounding_mode])
-                m.d.av_comb += output_exp.eq(output_exp - 1)
+            with m.Elif((sub_op & (~output_sig[-2])) & (output_exp > 0)):
+                with m.If(output_exp == 1):
+                    m.d.av_comb += output_final_sig.eq(output_sig)
+                with m.Else():
+                    m.d.av_comb += output_final_sig.eq((output_sig << 1) | shift_in_bit)
+                m.d.av_comb += output_final_exp.eq(output_exp - 1)
+
+            with m.Else():
+                m.d.av_comb += output_final_sig.eq(output_sig)
+                with m.If((output_exp == 0) & ((output_sig[-2]))):
+                    m.d.av_comb += output_final_exp.eq(1)
+                with m.Else():
+                    m.d.av_comb += output_final_exp.eq(output_exp)
 
             return {
-                "out_exp": output_exp,
-                "out_sig": output_sig,
-                "output_round_bit": output_round_bit,
-                "output_sticky_bit": output_sticky_bit,
+                "out_exp": output_final_exp,
+                "out_sig": output_final_sig,
+                "output_round": output_round_bit,
+                "output_sticky": output_sticky_bit,
             }
+
+        return m
