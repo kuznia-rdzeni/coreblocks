@@ -1,25 +1,25 @@
-FROM ubuntu:23.04
+FROM ubuntu:24.04
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
-    autoconf automake autotools-dev curl python3.11 python3.11-venv python3-pip bc lsb-release \
+    autoconf automake autotools-dev curl python3 python3-venv python3-pip bc lsb-release \
     libmpc-dev libmpfr-dev libgmp-dev gawk build-essential \
     bison flex texinfo gperf libtool patchutils zlib1g-dev device-tree-compiler \
     libexpat-dev ninja-build git ca-certificates python-is-python3 \ 
     libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
     rm -rf /var/lib/apt/lists/*
 
-RUN git clone --shallow-since=2023.05.01 https://github.com/riscv/riscv-gnu-toolchain && \
+RUN git clone --shallow-since=2024.11.20 https://github.com/riscv-collab/riscv-gnu-toolchain && \
     cd riscv-gnu-toolchain && \
-    git checkout 2023.12.10 && \
-    ./configure --with-multilib-generator="rv32i-ilp32--a*zifence*zicsr;rv32im-ilp32--a*zifence*zicsr;rv32ic-ilp32--a*zifence*zicsr;rv32imc-ilp32--a*zifence*zicsr;rv32imfc-ilp32f--a*zifence;rv32imc_zba_zbb_zbc_zbs-ilp32--a*zifence*zicsr" && \
+    git checkout 2024.11.22 && \
+    ./configure --with-multilib-generator="rv32i-ilp32--a*zifence*zicsr;rv32im-ilp32--a*zifence*zicsr;rv32ic-ilp32--a*zifence*zicsr;rv32imc-ilp32--a*zifence*zicsr;rv32imfc-ilp32f--a*zifence;rv32imc_zba_zbb_zbc_zbs_zicond-ilp32--a*zifence*zicsr" && \
     make -j$(nproc) && \
     cd / && rm -rf riscv-gnu-toolchain
 
-RUN git clone --shallow-since=2023.10.01 https://github.com/riscv-software-src/riscv-isa-sim.git spike && \
+RUN git clone --shallow-since=2024.10.01 https://github.com/riscv-software-src/riscv-isa-sim.git spike && \
     cd spike && \
-    git checkout eeef09ebb894c3bb7e42b7b47aae98792b8eef79 && \
+    git checkout 7812eabb441eaf2067d07636a382eca622e48814 && \
     mkdir build/ install/  && \
     cd build/ && \
     ../configure --prefix=/spike/install/ && \
