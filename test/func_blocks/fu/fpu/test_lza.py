@@ -93,7 +93,7 @@ class TestLZA(TestCaseWithSimulator):
                 {"shift_amount": 7, "is_zero": 0},
                 {"shift_amount": 7, "is_zero": 0},
             ]
-            for i in range(len(test_cases) // 2):
+            for i in range(len(test_cases)):
 
                 resp = await lza.predict_request_adapter.call(sim, test_cases[i])
                 assert resp["shift_amount"] == expected_results[2 * i]["shift_amount"]
