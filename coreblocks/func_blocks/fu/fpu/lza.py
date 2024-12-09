@@ -1,16 +1,8 @@
 from amaranth import *
+from amaranth.utils import ceil_log2
 from transactron import TModule, Method, def_method
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
-from math import log2
 from transactron.utils.amaranth_ext import count_leading_zeros
-
-
-def nearestpow2(n):
-    a = int(log2(n))
-    if 2**a == n:
-        return n
-    else:
-        return 2 ** (a + 1)
 
 
 class LZAMethodLayout:
@@ -84,7 +76,7 @@ class LZAModule(Elaboratable):
 
         @def_method(m, self.predict_request)
         def _(sig_a, sig_b, carry):
-            f_size = nearestpow2(self.lza_params.sig_width)
+            f_size = 2 ** ceil_log2(self.lza_params.sig_width)
             filler_size = f_size - self.lza_params.sig_width
             lower_ones = Const((2**filler_size) - 1, f_size)
 

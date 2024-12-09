@@ -30,24 +30,8 @@ class TestLZA(TestCaseWithSimulator):
             m.submodules.predict = self.predict_request_adapter = TestbenchIO(AdapterTrans(lza.predict_request))
             return m
 
-    class HelpValues:
-        def __init__(self, params: FPUParams):
-            self.test_val_sig_a_1 = 16368512
-            self.test_val_sig_b_1 = 409600
-            self.test_val_sig_a_2 = 0
-            self.test_val_sig_b_2 = (2**24) - 1
-            self.test_val_sig_a_3 = (2**24) // 2
-            self.test_val_sig_b_3 = (2**24) // 2
-            self.test_val_sig_a_4 = 12582912
-            self.test_val_sig_b_4 = 12550144
-            self.test_val_sig_a_5 = 16744448
-            self.test_val_sig_b_5 = 12615680
-            self.test_val_sig_a_6 = 8421376
-            self.test_val_sig_b_6 = 8421376
-
     def test_manual(self):
         params = FPUParams(sig_width=24, exp_width=8)
-        help_values = TestLZA.HelpValues(params)
         lza = TestLZA.LZAModuleTest(params)
 
         async def random_test(sim: TestbenchContext, seed: int, iters: int):
@@ -65,64 +49,34 @@ class TestLZA(TestCaseWithSimulator):
         async def lza_test(sim: TestbenchContext):
             test_cases = [
                 {
-                    "sig_a": help_values.test_val_sig_a_1,
-                    "sig_b": help_values.test_val_sig_b_1,
+                    "sig_a": 16368512,
+                    "sig_b": 409600,
                     "carry": 0,
                 },
                 {
-                    "sig_a": help_values.test_val_sig_a_1,
-                    "sig_b": help_values.test_val_sig_b_1,
-                    "carry": 1,
-                },
-                {
-                    "sig_a": help_values.test_val_sig_a_2,
-                    "sig_b": help_values.test_val_sig_b_2,
+                    "sig_a": 0,
+                    "sig_b": (2**24) - 1,
                     "carry": 0,
                 },
                 {
-                    "sig_a": help_values.test_val_sig_a_2,
-                    "sig_b": help_values.test_val_sig_b_2,
-                    "carry": 1,
-                },
-                {
-                    "sig_a": help_values.test_val_sig_a_3,
-                    "sig_b": help_values.test_val_sig_b_3,
+                    "sig_a": (2**24) // 2,
+                    "sig_b": (2**24) // 2,
                     "carry": 0,
                 },
                 {
-                    "sig_a": help_values.test_val_sig_a_3,
-                    "sig_b": help_values.test_val_sig_b_3,
-                    "carry": 1,
-                },
-                {
-                    "sig_a": help_values.test_val_sig_a_4,
-                    "sig_b": help_values.test_val_sig_b_4,
+                    "sig_a": 12582912,
+                    "sig_b": 12550144,
                     "carry": 0,
                 },
                 {
-                    "sig_a": help_values.test_val_sig_a_4,
-                    "sig_b": help_values.test_val_sig_b_4,
-                    "carry": 1,
-                },
-                {
-                    "sig_a": help_values.test_val_sig_a_5,
-                    "sig_b": help_values.test_val_sig_b_5,
-                    "carry": 1,
-                },
-                {
-                    "sig_a": help_values.test_val_sig_a_5,
-                    "sig_b": help_values.test_val_sig_b_5,
-                    "carry": 1,
-                },
-                {
-                    "sig_a": help_values.test_val_sig_a_6,
-                    "sig_b": help_values.test_val_sig_b_6,
+                    "sig_a": 16744448,
+                    "sig_b": 12615680,
                     "carry": 0,
                 },
                 {
-                    "sig_a": help_values.test_val_sig_a_6,
-                    "sig_b": help_values.test_val_sig_b_6,
-                    "carry": 1,
+                    "sig_a": 8421376,
+                    "sig_b": 8421376,
+                    "carry": 0,
                 },
             ]
             expected_results = [
@@ -139,10 +93,16 @@ class TestLZA(TestCaseWithSimulator):
                 {"shift_amount": 7, "is_zero": 0},
                 {"shift_amount": 7, "is_zero": 0},
             ]
-            for i in range(len(test_cases)):
+            for i in range(len(test_cases) // 2):
+
                 resp = await lza.predict_request_adapter.call(sim, test_cases[i])
-                assert resp["shift_amount"] == expected_results[i]["shift_amount"]
-                assert resp["is_zero"] == expected_results[i]["is_zero"]
+                assert resp["shift_amount"] == expected_results[2 * i]["shift_amount"]
+                assert resp["is_zero"] == expected_results[2 * i]["is_zero"]
+
+                test_cases[i]["carry"] = 1
+                resp = await lza.predict_request_adapter.call(sim, test_cases[i])
+                assert resp["shift_amount"] == expected_results[2 * i + 1]["shift_amount"]
+                assert resp["is_zero"] == expected_results[2 * i + 1]["is_zero"]
 
         async def test_process(sim: TestbenchContext):
             await lza_test(sim)
