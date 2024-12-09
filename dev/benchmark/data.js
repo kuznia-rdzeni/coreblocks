@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1733782717708,
+  "lastUpdate": 1733782719056,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -32768,6 +32768,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 13669,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1458,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1452,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4263,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "hazard.cspl@gmail.com",
+            "name": "Hazard (Cyprian Skrzypczak)",
+            "username": "Hazardu"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3ffc3b52e1749429f47e9fd51c292f174b12fae1",
+          "message": "Updated Transactron commit to 6520af4774f198c998a28ec0eb9ad198e04b4508 and fixed includes (#773)",
+          "timestamp": "2024-12-09T23:05:27+01:00",
+          "tree_id": "2365f1fa62266114770dfca913273cdbe9f3bd96",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3ffc3b52e1749429f47e9fd51c292f174b12fae1"
+        },
+        "date": 1733782718612,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.89,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 17728,
             "unit": "LUT4"
           },
           {
