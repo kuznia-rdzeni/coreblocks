@@ -13,6 +13,8 @@ from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
+from transactron.utils import MethodStruct
+
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
