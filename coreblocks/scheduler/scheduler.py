@@ -187,6 +187,8 @@ class RSSelection(Elaboratable):
         get_instr: Method,
         push_instr: Method,
         rs_select: Sequence[tuple[Method, set[OpType]]],
+        rf_read_req1: Method,
+        rf_read_req2: Method,
         gen_params: GenParams
     ):
         """
@@ -202,6 +204,12 @@ class RSSelection(Elaboratable):
 
             - A method used for allocating an entry in the RS. Uses `RSLayouts.select_out`.
             - A set of `OpType`\\s that can be handled by this RS.
+        rf_read_req1: Method
+            Method used for requesting value of first source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out`.
+        rf_read_req2: Method
+            Method used for requesting value of second source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out`.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -214,6 +222,8 @@ class RSSelection(Elaboratable):
         self.get_instr = get_instr
         self.rs_select = rs_select
         self.push_instr = push_instr
+        self.rf_read_req1 = rf_read_req1
+        self.rf_read_req2 = rf_read_req2
 
     def decode_optype_set(self, optypes: set[OpType]) -> int:
         res = 0x0
@@ -242,6 +252,9 @@ class RSSelection(Elaboratable):
 
                 self.push_instr(m, data_out)
 
+                self.rf_read_req1(m, instr.regs_p.rp_s1)
+                self.rf_read_req2(m, instr.regs_p.rp_s2)
+
         return m
 
 
@@ -258,8 +271,8 @@ class RSInsertion(Elaboratable):
         *,
         get_instr: Method,
         rs_insert: Sequence[Method],
-        rf_read1: Method,
-        rf_read2: Method,
+        rf_read_resp1: Method,
+        rf_read_resp2: Method,
         gen_params: GenParams
     ):
         """
@@ -270,10 +283,10 @@ class RSInsertion(Elaboratable):
         rs_insert: Sequence[Method]
             Sequence of methods used for pushing an instruction into the RS. Ordering of this list
             determines the ID of a specific RS. They use `RSLayouts.insert_in`
-        rf_read1: Method
+        rf_read_resp1: Method
             Method used for getting value of first source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        rf_read2: Method
+        rf_read_resp2: Method
             Method used for getting value of second source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         gen_params: GenParams
@@ -283,8 +296,8 @@ class RSInsertion(Elaboratable):
 
         self.get_instr = get_instr
         self.rs_insert = rs_insert
-        self.rf_read1 = rf_read1
-        self.rf_read2 = rf_read2
+        self.rf_read_resp1 = rf_read_resp1
+        self.rf_read_resp2 = rf_read_resp2
 
     def elaborate(self, platform):
         m = TModule()
@@ -293,8 +306,8 @@ class RSInsertion(Elaboratable):
         # therefore we can use single transaction here.
         with Transaction().body(m):
             instr = self.get_instr(m)
-            source1 = self.rf_read1(m, reg_id=instr.regs_p.rp_s1)
-            source2 = self.rf_read2(m, reg_id=instr.regs_p.rp_s2)
+            source1 = self.rf_read_resp1(m, reg_id=instr.regs_p.rp_s1)
+            source2 = self.rf_read_resp2(m, reg_id=instr.regs_p.rp_s2)
 
             # when core is flushed, rp_dst are discarded.
             # source operands may never become ready, skip waiting for them in any in RSes/FBs.
@@ -357,8 +370,10 @@ class Scheduler(Elaboratable):
         get_free_reg: Method,
         rat_rename: Method,
         rob_put: Method,
-        rf_read1: Method,
-        rf_read2: Method,
+        rf_read_req1: Method,
+        rf_read_req2: Method,
+        rf_read_resp1: Method,
+        rf_read_resp2: Method,
         reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]],
         gen_params: GenParams
     ):
@@ -375,10 +390,16 @@ class Scheduler(Elaboratable):
             and `RATLayouts.rat_rename_out`.
         rob_put: Method
             Method used for getting a free entry in ROB. Uses `ROBLayouts.data_layout`.
-        rf_read1: Method
+        rf_read_req1: Method
+            Method used for requesting value of first source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out`.
+        rf_read_req2: Method
+            Method used for requesting value of second source register and information if it is valid.
+            Uses `RFLayouts.rf_read_out`.
+        rf_read_resp1: Method
             Method used for getting value of first source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        rf_read2: Method
+        rf_read_resp2: Method
             Method used for getting value of second source register and information if it is valid.
             Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         reservation_stations: Sequence[FuncBlock]
@@ -392,8 +413,10 @@ class Scheduler(Elaboratable):
         self.get_free_reg = get_free_reg
         self.rat_rename = rat_rename
         self.rob_put = rob_put
-        self.rf_read1 = rf_read1
-        self.rf_read2 = rf_read2
+        self.rf_read_req1 = rf_read_req1
+        self.rf_read_req2 = rf_read_req2
+        self.rf_read_resp1 = rf_read_resp1
+        self.rf_read_resp2 = rf_read_resp2
         self.rs = reservation_stations
 
     def elaborate(self, platform):
@@ -429,13 +452,15 @@ class Scheduler(Elaboratable):
             get_instr=reg_alloc_out_buf.read,
             rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
             push_instr=rs_select_out_buf.write,
+            rf_read_req1=self.rf_read_req1,
+            rf_read_req2=self.rf_read_req2,
         )
 
         m.submodules.rs_insertion = RSInsertion(
             get_instr=rs_select_out_buf.read,
             rs_insert=[rs.insert for rs, _ in self.rs],
-            rf_read1=self.rf_read1,
-            rf_read2=self.rf_read2,
+            rf_read_resp1=self.rf_read_resp1,
+            rf_read_resp2=self.rf_read_resp2,
             gen_params=self.gen_params,
         )
 
