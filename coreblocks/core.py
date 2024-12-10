@@ -11,6 +11,7 @@ from transactron.core import TModule
 from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
+    AnnounceKey,
     FetchResumeKey,
     CSRInstancesKey,
     CommonBusDataKey,
@@ -69,6 +70,7 @@ class Core(Component):
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+        self.connections.add_dependency(AnnounceKey(), self.RF.write)
 
         self.exception_information_register = ExceptionInformationRegister(
             self.gen_params,
@@ -80,6 +82,7 @@ class Core(Component):
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
         )
+        self.connections.add_dependency(AnnounceKey(), self.func_blocks_unifier.update)
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)
@@ -120,13 +123,14 @@ class Core(Component):
 
         func_get_result, func_unifier = self.connections.get_dependency(FuncUnitResultKey())
         m.submodules.func_unifiers = ModuleConnector(**func_unifier)
+        announce, announce_unifier = self.connections.get_dependency(AnnounceKey())
+        m.submodules.announce_unifiers = ModuleConnector(**announce_unifier)
 
         self.announcement = ResultAnnouncement(
             gen_params=self.gen_params,
             get_result=func_get_result,
             rob_mark_done=self.ROB.mark_done,
-            rs_update=self.func_blocks_unifier.update,
-            rf_write=self.RF.write,
+            announce=announce
         )
 
         m.submodules.scheduler = Scheduler(
