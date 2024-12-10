@@ -1,12 +1,13 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, In, Out
+from transactron.lib.allocators import PriorityEncoderAllocator
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
-from transactron.core import Transaction, TModule
+from transactron.core import TModule
 from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
@@ -26,7 +27,6 @@ from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface, WishboneSignature
-from transactron.lib import BasicFifo
 from transactron.lib.metrics import HwMetricsEnabledKey
 
 __all__ = ["Core"]
@@ -60,9 +60,7 @@ class Core(Component):
 
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
-        self.free_rf_fifo = BasicFifo(
-            self.gen_params.get(SchedulerLayouts).free_rf_layout, 2**self.gen_params.phys_regs_bits
-        )
+        self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
 
         self.FRAT = FRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -109,7 +107,7 @@ class Core(Component):
 
         m.submodules.frontend = self.frontend
 
-        m.submodules.free_rf_fifo = free_rf_fifo = self.free_rf_fifo
+        m.submodules.rf_allocator = rf_allocator = self.rf_allocator
         m.submodules.FRAT = frat = self.FRAT
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
@@ -129,7 +127,7 @@ class Core(Component):
 
         m.submodules.scheduler = Scheduler(
             get_instr=get_instr.method,
-            get_free_reg=free_rf_fifo.read,
+            get_free_reg=rf_allocator.alloc[0],
             rat_rename=frat.rename,
             rob_put=rob.put,
             rf_read_req1=rf.read_req1,
@@ -157,7 +155,7 @@ class Core(Component):
             rob_retire=rob.retire,
             r_rat_commit=rrat.commit,
             r_rat_peek=rrat.peek,
-            free_rf_put=free_rf_fifo.write,
+            free_rf_put=rf_allocator.free[0],
             rf_free=rf.free,
             exception_cause_get=self.exception_information_register.get,
             exception_cause_clear=self.exception_information_register.clear,
@@ -167,11 +165,5 @@ class Core(Component):
             trap_entry=self.interrupt_controller.entry,
             async_interrupt_cause=self.interrupt_controller.interrupt_cause,
         )
-
-        # push all registers to FreeRF at reset. r0 should be skipped, stop when counter overflows to 0
-        free_rf_reg = Signal(self.gen_params.phys_regs_bits, init=1)
-        with Transaction(name="InitFreeRFFifo").body(m, request=(free_rf_reg.bool())):
-            free_rf_fifo.write(m, free_rf_reg)
-            m.d.sync += free_rf_reg.eq(free_rf_reg + 1)
 
         return m

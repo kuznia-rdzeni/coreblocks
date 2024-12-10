@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from amaranth.utils import exact_log2
+from amaranth.utils import ceil_log2, exact_log2
 
 from coreblocks.arch.isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
@@ -59,11 +59,14 @@ class GenParams(DependentCache):
         for block in self.func_units_config:
             self.max_rs_entries = max(self.max_rs_entries, block.get_rs_entry_count())
 
-        self.rs_number_bits = (len(self.func_units_config) - 1).bit_length()
+        self.rs_number_bits = ceil_log2(len(self.func_units_config))
+
+        self.phys_regs = 2**cfg.phys_regs_bits
+        self.rob_entries = 2**cfg.rob_entries_bits
 
         self.phys_regs_bits = cfg.phys_regs_bits
         self.rob_entries_bits = cfg.rob_entries_bits
-        self.max_rs_entries_bits = (self.max_rs_entries - 1).bit_length()
+        self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
 
         self.min_instr_width_bytes = 2 if cfg.compressed else 4
