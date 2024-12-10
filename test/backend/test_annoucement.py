@@ -49,10 +49,8 @@ class BackendTestCircuit(Elaboratable):
         )
 
         # Create stubs for interfaces used by result announcement
-        self.rs_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rs_write, o=self.lay_rs_write))
-        m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
-        self.rf_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rf_write, o=self.lay_rf_write))
-        m.submodules.rf_announce_val_tbio = self.rf_announce_val_tbio
+        self.announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rs_write, o=self.lay_rs_write))
+        m.submodules.announce_val_tbio = self.announce_val_tbio
         self.rob_mark_done_tbio = TestbenchIO(Adapter(i=self.lay_rob_mark_done, o=self.lay_rob_mark_done))
         m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
 
@@ -61,8 +59,7 @@ class BackendTestCircuit(Elaboratable):
             gen_params=self.gen_params,
             get_result=serialized_results_fifo.read,
             rob_mark_done=self.rob_mark_done_tbio.adapter.iface,
-            rs_update=self.rs_announce_val_tbio.adapter.iface,
-            rf_write=self.rf_announce_val_tbio.adapter.iface,
+            announce=self.announce_val_tbio.adapter.iface,
         )
 
         return m
@@ -116,30 +113,24 @@ class TestBackend(TestCaseWithSimulator):
 
     async def consumer(self, sim: TestbenchContext):
         # TODO: this test doesn't do anything, fix it!
-        self.m.rs_announce_val_tbio.enable(sim)
         self.m.rob_mark_done_tbio.enable(sim)
         while reduce(and_, self.producer_end, True):
-            # All 3 methods (in RF, RS and ROB) need to be enabled for the result
+            # All 2 methods (RF/RS announcement and ROB) need to be enabled for the result
             # announcement transaction to take place. We want to have at least one
             # method disabled most of the time, so that the transaction is performed
             # only when we enable it inside the loop. Otherwise the transaction could
             # get executed at any time, particularly when we wouldn't be monitoring it
-            self.m.rf_announce_val_tbio.enable(sim)
+            self.m.announce_val_tbio.enable(sim)
 
-            rf_result = self.m.rf_announce_val_tbio.get_outputs(sim)
-            rs_result = self.m.rs_announce_val_tbio.get_outputs(sim)
+            ann_result = self.m.announce_val_tbio.get_outputs(sim)
             rob_result = self.m.rob_mark_done_tbio.get_outputs(sim)
 
-            self.m.rf_announce_val_tbio.disable(sim)
+            self.m.announce_val_tbio.disable(sim)
 
-            assert rf_result is not None
-            assert rs_result is not None
+            assert ann_result is not None
             assert rob_result is not None
 
-            assert rf_result["reg_val"] == rs_result["value"]
-            assert rf_result["reg_id"] == rs_result["reg_id"]
-
-            t = (rob_result["rob_id"], rf_result["reg_val"], rf_result["reg_id"])
+            t = (rob_result["rob_id"], ann_result["reg_val"], ann_result["reg_id"])
             assert t in self.expected_output
             if self.expected_output[t] == 1:
                 del self.expected_output[t]
