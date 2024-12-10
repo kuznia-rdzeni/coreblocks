@@ -71,7 +71,7 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
         # TODO: better stubs for memory, remove ignore
-        return sim.get(self.m.core.RF.entries.data[(self.get_phys_reg_rrat(sim, reg_id))])  # type: ignore
+        return sim.get(self.m.core.RF.entries.mem.data[(self.get_phys_reg_rrat(sim, reg_id))])  # type: ignore
 
 
 class TestCoreAsmSourceBase(TestCoreBase):
