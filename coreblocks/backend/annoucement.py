@@ -19,9 +19,7 @@ class ResultAnnouncement(Elaboratable):
     `ManyToOneConnectTrans` to a FIFO.
     """
 
-    def __init__(
-        self, *, gen_params: GenParams, get_result: Method, rob_mark_done: Method, announce: Method
-    ):
+    def __init__(self, *, gen_params: GenParams, get_result: Method, rob_mark_done: Method, announce: Method):
         """
         Parameters
         ----------

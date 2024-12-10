@@ -4,7 +4,6 @@ from amaranth import *
 
 from coreblocks.params import GenParams, BlockComponentParams
 from transactron import TModule
-from transactron.lib import MethodProduct
 
 __all__ = ["FuncBlocksUnifier"]
 

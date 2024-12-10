@@ -126,10 +126,7 @@ class Core(Component):
         m.submodules.announce_unifiers = ModuleConnector(**announce_unifier)
 
         self.announcement = ResultAnnouncement(
-            gen_params=self.gen_params,
-            get_result=func_get_result,
-            rob_mark_done=self.ROB.mark_done,
-            announce=announce
+            gen_params=self.gen_params, get_result=func_get_result, rob_mark_done=self.ROB.mark_done, announce=announce
         )
 
         m.submodules.scheduler = Scheduler(

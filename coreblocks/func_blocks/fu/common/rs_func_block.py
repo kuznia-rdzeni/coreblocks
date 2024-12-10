@@ -8,7 +8,6 @@ from .rs import RS, RSBase
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from transactron import Method, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
-from transactron.lib import Collector
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
 from coreblocks.interface.keys import AnnounceKey, FuncUnitResultKey
