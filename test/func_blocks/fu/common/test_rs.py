@@ -488,7 +488,7 @@ class TestRSMethodTakeFlushing(TestCaseWithSimulator):
             }
             for id in range(2)
         ]
-        self.check_list = create_check_list(self.rs_entries_bits, self.insert_list)
+        self.check_list = create_check_list(1, self.insert_list)
 
         @def_method_mock(lambda: self.m.core_state)
         def core_state_mock():

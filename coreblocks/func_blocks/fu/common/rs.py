@@ -74,7 +74,7 @@ class RSBase(Elaboratable):
             core_state = self.dependency_manager.get_dependency(CoreStateKey())
             state = core_state(m)
             for i, record in enumerate(self.data):
-                m.d.comb += self.data_ready[i].eq(
+                m.d.av_comb += self.data_ready[i].eq(
                     (~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool())
                     | state.flushing
                 )
