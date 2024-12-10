@@ -17,6 +17,7 @@ from coreblocks.interface.keys import (
     CSRListKey,
     FetchResumeKey,
     CSRInstancesKey,
+    FuncUnitResultKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
@@ -268,6 +269,7 @@ class CSRBlockComponent(BlockComponentParams):
         connections = DependencyContext.get()
         unit = CSRUnit(gen_params)
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
+        connections.add_dependency(FuncUnitResultKey(), unit.get_result)
         return unit
 
     def get_optypes(self) -> set[OpType]:

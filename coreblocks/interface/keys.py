@@ -53,6 +53,11 @@ class FetchResumeKey(UnifierKey, unifier=Collector):
 
 
 @dataclass(frozen=True)
+class FuncUnitResultKey(UnifierKey, unifier=Collector):
+    pass
+
+
+@dataclass(frozen=True)
 class ExceptionReportKey(SimpleKey[Method]):
     pass
 

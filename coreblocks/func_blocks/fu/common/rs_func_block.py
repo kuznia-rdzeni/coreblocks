@@ -1,6 +1,8 @@
 from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
+
+from transactron.utils import DependencyContext
 from coreblocks.params import *
 from .rs import RS, RSBase
 from coreblocks.scheduler.wakeup_select import WakeupSelect
@@ -9,6 +11,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import Collector
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
+from coreblocks.interface.keys import FuncUnitResultKey
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -87,12 +90,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
-        m.submodules.collector = collector = Collector([func_unit.accept for func_unit, _ in self.func_units])
-
         self.insert.proxy(m, self.rs.insert)
         self.select.proxy(m, self.rs.select)
         self.update.proxy(m, self.rs.update)
-        self.get_result.proxy(m, collector.method)
 
         return m
 
@@ -106,6 +106,9 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
+        dependencies = DependencyContext.get()
+        for unit, _ in modules:
+            dependencies.add_dependency(FuncUnitResultKey(), unit.accept)
         rs_unit = RSFuncBlock(
             gen_params=gen_params,
             func_units=modules,

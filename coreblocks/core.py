@@ -14,6 +14,7 @@ from coreblocks.interface.keys import (
     FetchResumeKey,
     CSRInstancesKey,
     CommonBusDataKey,
+    FuncUnitResultKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.core_structs.rat import FRAT, RRAT
@@ -80,14 +81,6 @@ class Core(Component):
             blocks=gen_params.func_units_config,
         )
 
-        self.announcement = ResultAnnouncement(
-            gen_params=self.gen_params,
-            get_result=self.func_blocks_unifier.get_result,
-            rob_mark_done=self.ROB.mark_done,
-            rs_update=self.func_blocks_unifier.update,
-            rf_write=self.RF.write,
-        )
-
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)
 
@@ -123,6 +116,17 @@ class Core(Component):
         drop_second_ret_value = (self.gen_params.get(DecodeLayouts).decoded_instr, lambda _, rets: rets[0])
         m.submodules.get_instr = get_instr = MethodProduct(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
+        )
+
+        func_get_result, func_unifier = self.connections.get_dependency(FuncUnitResultKey())
+        m.submodules.func_unifiers = ModuleConnector(**func_unifier)
+
+        self.announcement = ResultAnnouncement(
+            gen_params=self.gen_params,
+            get_result=func_get_result,
+            rob_mark_done=self.ROB.mark_done,
+            rs_update=self.func_blocks_unifier.update,
+            rf_write=self.RF.write,
         )
 
         m.submodules.scheduler = Scheduler(
