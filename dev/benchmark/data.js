@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1733828685946,
+  "lastUpdate": 1733828687290,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -33009,6 +33009,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 4365,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bbebde236f33bb481075e2b90fe5edd850fd3bca",
+          "message": "Use bit vector allocator for free registers (#766)",
+          "timestamp": "2024-12-10T11:51:21+01:00",
+          "tree_id": "6e56dd6546a6f3754f97dc1b4cc5c1b0831195f1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bbebde236f33bb481075e2b90fe5edd850fd3bca"
+        },
+        "date": 1733828686830,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.6,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 14243,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1456,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1164,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4398,
             "unit": "LUT"
           }
         ]
