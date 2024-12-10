@@ -14,6 +14,7 @@ from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
+    AnnounceKey,
     CSRListKey,
     FetchResumeKey,
     CSRInstancesKey,
@@ -270,6 +271,7 @@ class CSRBlockComponent(BlockComponentParams):
         unit = CSRUnit(gen_params)
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
         connections.add_dependency(FuncUnitResultKey(), unit.get_result)
+        connections.add_dependency(AnnounceKey(), unit.update)
         return unit
 
     def get_optypes(self) -> set[OpType]:

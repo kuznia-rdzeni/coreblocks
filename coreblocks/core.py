@@ -82,7 +82,6 @@ class Core(Component):
             gen_params=gen_params,
             blocks=gen_params.func_units_config,
         )
-        self.connections.add_dependency(AnnounceKey(), self.func_blocks_unifier.update)
 
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)

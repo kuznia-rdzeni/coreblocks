@@ -11,7 +11,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import Collector
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
-from coreblocks.interface.keys import FuncUnitResultKey
+from coreblocks.interface.keys import AnnounceKey, FuncUnitResultKey
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -106,9 +106,6 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_module(self, gen_params: GenParams) -> FuncBlock:
         modules = list((u.get_module(gen_params), u.get_optypes()) for u in self.func_units)
-        dependencies = DependencyContext.get()
-        for unit, _ in modules:
-            dependencies.add_dependency(FuncUnitResultKey(), unit.accept)
         rs_unit = RSFuncBlock(
             gen_params=gen_params,
             func_units=modules,
@@ -116,6 +113,10 @@ class RSBlockComponent(BlockComponentParams):
             rs_number=self.rs_number,
             rs_type=self.rs_type,
         )
+        dependencies = DependencyContext.get()
+        dependencies.add_dependency(AnnounceKey(), rs_unit.update)
+        for unit, _ in modules:
+            dependencies.add_dependency(FuncUnitResultKey(), unit.accept)
         return rs_unit
 
     def get_optypes(self) -> set[OpType]:
