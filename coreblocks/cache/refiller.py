@@ -3,8 +3,8 @@ from coreblocks.cache.icache import CacheRefillerInterface
 from coreblocks.params import ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from transactron.core import Transaction
-from transactron.lib import Forwarder, Method, TModule, def_method
+from transactron.core import Transaction, Method, TModule, def_method
+from transactron.lib import Forwarder
 
 from amaranth.utils import exact_log2
 
