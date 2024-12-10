@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1733825335498,
+  "lastUpdate": 1733828685946,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -14871,6 +14871,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/32702be4127deef58ba71381a25610d53f2e562b"
         },
         "date": 1733825326712,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4168072362013762,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5126114415514502,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3373813468043159,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6547182775996335,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3605570079176623,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2903413743150469,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32594552472771426,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4314500724103311,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bbebde236f33bb481075e2b90fe5edd850fd3bca",
+          "message": "Use bit vector allocator for free registers (#766)",
+          "timestamp": "2024-12-10T11:51:21+01:00",
+          "tree_id": "6e56dd6546a6f3754f97dc1b4cc5c1b0831195f1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bbebde236f33bb481075e2b90fe5edd850fd3bca"
+        },
+        "date": 1733828681690,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
