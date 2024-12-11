@@ -80,7 +80,7 @@ jobs:
           (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
         )
       )
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
     steps:
       - name: Checkout
         uses: actions/checkout@v4
