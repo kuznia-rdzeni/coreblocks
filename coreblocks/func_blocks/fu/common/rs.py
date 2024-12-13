@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
 from transactron import Method, Transaction, def_method, TModule
+from transactron.lib import logging
 from transactron.lib.allocators import PreservedOrderAllocator
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
@@ -33,6 +34,7 @@ class RSBase(Elaboratable):
         self.internal_layout = make_layout(
             ("rs_data", self.layouts.rs.data_layout),
             ("rec_full", 1),
+            ("rec_reserved", 1),
         )
 
         self.insert = Method(i=self.layouts.rs.insert_in)
@@ -58,6 +60,7 @@ class RSBase(Elaboratable):
             bucket_count=self.rs_entries_bits + 1,
             sample_width=self.rs_entries_bits + 1,
         )
+        self.log = logging.HardwareLogger(f"backend.rs.{rs_number}")
 
     @abstractmethod
     def elaborate(self, platform) -> TModule:
@@ -81,6 +84,7 @@ class RSBase(Elaboratable):
         @def_method(m, self.select)
         def _() -> RecordDict:
             selected_id = alloc(m).ident
+            self.log.debug(m, True, "selected entry {}", selected_id)
             return {"rs_entry_id": selected_id}
 
         @def_method(m, self.update)
@@ -99,6 +103,7 @@ class RSBase(Elaboratable):
             m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
             m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
             self.perf_rs_wait_time.start(m, slot=rs_entry_id)
+            self.log.debug(m, True, "inserted entry {}", rs_entry_id)
 
         with Transaction().body(m):
             o = order(m)  # always ready!
@@ -113,6 +118,7 @@ class RSBase(Elaboratable):
             self.perf_rs_wait_time.stop(m, slot=actual_rs_entry_id)
             out = Signal(self.layouts.take_out)
             m.d.av_comb += assign(out, record.rs_data, fields=AssignType.COMMON)
+            self.log.debug(m, True, "taken entry {} at idx {}", actual_rs_entry_id, rs_entry_id)
             return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
