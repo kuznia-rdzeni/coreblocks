@@ -28,9 +28,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         RS select method.
     update: Method
         RS update method.
-    get_result: Method
-        Method used for getting single result out of one of the FUs. It uses
-        layout described by `FuncUnitLayouts`.
     """
 
     def __init__(
@@ -67,7 +64,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.insert = Method(i=self.rs_layouts.rs.insert_in)
         self.select = Method(o=self.rs_layouts.rs.select_out)
         self.update = Method(i=self.rs_layouts.rs.update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform):
         m = TModule()
