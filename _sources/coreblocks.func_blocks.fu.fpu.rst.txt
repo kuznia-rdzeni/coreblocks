@@ -28,6 +28,14 @@ coreblocks.func\_blocks.fu.fpu.fpu\_rounding\_module module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.fpu.lza module
+-----------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.lza
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

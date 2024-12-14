@@ -285,6 +285,75 @@ Returns rounded number and errors as ‘rounding_out_layout’</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.lza">
+<span id="coreblocks-func-blocks-fu-fpu-lza-module"></span><h2>coreblocks.func_blocks.fu.fpu.lza module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.lza" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.lza.LZAMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.lza.</span></span><span class="sig-name descname"><span class="pre">LZAMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.lza.LZAMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>LZA module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.lza.LZAMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.lza.LZAMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>sig_a - significand of a
+sig_b - significand of b
+carry - indicates if we want to predict result of a+b or a+b+1
+shift_amount - position to shift needed to normalize number
+is_zero - indicates if result is zero</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.lza.LZAModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.lza.</span></span><span class="sig-name descname"><span class="pre">LZAModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.lza.LZAModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>LZA module
+Based on: <a class="reference external" href="https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf">https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf</a>
+After performing subtracion, we may have to normalize floating point numbers and
+For that, we have to know the number of leading zeros.
+The most basic approach includes using LZC (leading zero counter) after subtracion,
+a more advanced approach includes using LZA (Leading Zero Anticipator) to predict the number of
+leading zeroes. It is worth noting that this LZA module works under assumptions that
+significands are in two’s complement and that before complementation sig_a was greater
+or equal to sig_b. Another thing worth noting is that LZA works with error = 1.
+That means that if ‘n’ is the result of the LZA module, in reality, to normalize
+number we may have to shift left by ‘n’ or ‘n+1’. There are few techniques of
+dealing with that error like specially designed shifters or predicting the error
+but the most basic approach is to just use multiplexer after shifter to perform
+one more shift left if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU rounding module parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>predict_request: Method</strong></dt><dd><p>Transactional method for initiating leading zeros prediction.
+Takes ‘predict_in_layout’ as argument
+Returns shift amount as ‘predict_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.lza.LZAModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.lza.LZAModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu" title="Permalink to this heading"></a></h2>
 </div>
@@ -302,7 +371,7 @@ Returns rounded number and errors as ‘rounding_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2024.
-      <span class="lastupdated">Last updated on 22:30 2024-12-10.
+      <span class="lastupdated">Last updated on 10:39 2024-12-14.
       </span></p>
   </div>
 
