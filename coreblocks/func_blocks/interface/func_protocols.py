@@ -15,4 +15,3 @@ class FuncBlock(HasElaborate, Protocol):
     insert: Method
     select: Method
     update: Method
-    get_result: Method

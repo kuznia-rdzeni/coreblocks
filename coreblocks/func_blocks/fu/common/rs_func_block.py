@@ -1,14 +1,16 @@
 from collections.abc import Collection, Iterable
 from amaranth import *
 from dataclasses import dataclass
+
+from transactron.utils import DependencyContext
 from coreblocks.params import *
 from .rs import RS, RSBase
 from coreblocks.scheduler.wakeup_select import WakeupSelect
 from transactron import Method, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
-from transactron.lib import Collector
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
+from coreblocks.interface.keys import AnnounceKey, FuncUnitResultKey
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -26,9 +28,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         RS select method.
     update: Method
         RS update method.
-    get_result: Method
-        Method used for getting single result out of one of the FUs. It uses
-        layout described by `FuncUnitLayouts`.
     """
 
     def __init__(
@@ -65,7 +64,6 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.insert = Method(i=self.rs_layouts.rs.insert_in)
         self.select = Method(o=self.rs_layouts.rs.select_out)
         self.update = Method(i=self.rs_layouts.rs.update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
 
     def elaborate(self, platform):
         m = TModule()
@@ -87,12 +85,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
-        m.submodules.collector = collector = Collector([func_unit.accept for func_unit, _ in self.func_units])
-
         self.insert.proxy(m, self.rs.insert)
         self.select.proxy(m, self.rs.select)
         self.update.proxy(m, self.rs.update)
-        self.get_result.proxy(m, collector.method)
 
         return m
 
@@ -113,6 +108,10 @@ class RSBlockComponent(BlockComponentParams):
             rs_number=self.rs_number,
             rs_type=self.rs_type,
         )
+        dependencies = DependencyContext.get()
+        dependencies.add_dependency(AnnounceKey(), rs_unit.update)
+        for unit, _ in modules:
+            dependencies.add_dependency(FuncUnitResultKey(), unit.accept)
         return rs_unit
 
     def get_optypes(self) -> set[OpType]:

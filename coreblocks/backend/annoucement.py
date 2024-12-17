@@ -19,9 +19,7 @@ class ResultAnnouncement(Elaboratable):
     `ManyToOneConnectTrans` to a FIFO.
     """
 
-    def __init__(
-        self, *, gen_params: GenParams, get_result: Method, rob_mark_done: Method, rs_update: Method, rf_write: Method
-    ):
+    def __init__(self, *, gen_params: GenParams, get_result: Method, rob_mark_done: Method, announce: Method):
         """
         Parameters
         ----------
@@ -33,18 +31,14 @@ class ResultAnnouncement(Elaboratable):
             which should be announced in core. This method assumes that results
             from different FUs are already serialized.
         rob_mark_done : Method
-            Method which is invoked to mark that instruction ended without exception.
-        rs_update : Method
-            Method which is invoked to pass value which is an output of finished instruction
-            to RS, so that RS can save it if there are instructions which wait for it.
-        rf_write : Method
-            Method which is invoked to save value which is an output of finished instruction to RF.
+            Method which is invoked to mark that instruction finished execution.
+        announce : Method
+            Method which is invoked to announce the computed register value to RF and RS.
         """
 
         self.m_get_result = get_result
         self.m_rob_mark_done = rob_mark_done
-        self.m_rs_update = rs_update
-        self.m_rf_write_val = rf_write
+        self.m_announce = announce
 
     def debug_signals(self):
         return [self.m_get_result.debug_signals()]
@@ -56,8 +50,7 @@ class ResultAnnouncement(Elaboratable):
             result = self.m_get_result(m)
             self.m_rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
 
-            self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
             with m.If(result.rp_dst != 0):
-                self.m_rs_update(m, reg_id=result.rp_dst, reg_val=result.result)
+                self.m_announce(m, reg_id=result.rp_dst, reg_val=result.result)
 
         return m
