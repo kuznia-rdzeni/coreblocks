@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1734173467264,
+  "lastUpdate": 1734468808685,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15063,6 +15063,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/08e43d9207277f8c4d62b42e48d60b9f033bf153"
         },
         "date": 1734173460146,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.41669606786750707,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5253515724878548,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37011882172540067,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6311502731844466,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35923880597014923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2912586817640416,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3275963544917869,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43960746096140335,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b4a84bd2bb3fc31ac919100f2f4e6860528e43e9",
+          "message": "Dewishbonized tests (#770)",
+          "timestamp": "2024-12-17T21:40:10+01:00",
+          "tree_id": "106daeebb160b0a5b5b9d9bfcef46e60e1c5a7d2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b4a84bd2bb3fc31ac919100f2f4e6860528e43e9"
+        },
+        "date": 1734468803328,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
