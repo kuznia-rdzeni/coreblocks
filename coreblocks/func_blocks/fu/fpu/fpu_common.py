@@ -1,4 +1,20 @@
-from amaranth.lib import enum
+from amaranth.lib import enum, data
+
+
+def create_data_layout(sig_width: int, exp_width: int):
+    return data.StructLayout(
+        {
+            "sign": 1,
+            "sig": sig_width,
+            "exp": exp_width,
+            "is_inf": 1,
+            "is_nan": 1,
+            "is_zero": 1,
+        }
+    )
+
+
+float_number_layout = create_data_layout(24, 8)
 
 
 class RoundingModes(enum.Enum):
