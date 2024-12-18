@@ -41,28 +41,30 @@ class RetirementTestCircuit(Elaboratable):
         )
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
-            Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
+            Adapter.create(o=rob_layouts.peek_layout, nonexclusive=True)
         )
 
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter())
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter.create())
 
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(i=rf_layouts.rf_free))
 
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
-            Adapter(o=exception_layouts.get, nonexclusive=True)
+            Adapter.create(o=exception_layouts.get, nonexclusive=True)
         )
-        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
+        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter.create())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
-        m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
-            Adapter(o=core_instr_counter_layouts.decrement)
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
+            Adapter.create(i=fetch_layouts.resume)
         )
-        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
+        m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
+            Adapter.create(o=core_instr_counter_layouts.decrement)
+        )
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter.create())
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
-            Adapter(o=interrupt_controller_layouts.interrupt_cause)
+            Adapter.create(o=interrupt_controller_layouts.interrupt_cause)
         )
 
         m.submodules.retirement = self.retirement = Retirement(

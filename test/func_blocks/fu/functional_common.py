@@ -106,7 +106,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config)
 
-        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.report_mock = TestbenchIO(Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report))
         self.csrs = GenericCSRRegisters(self.gen_params)
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)

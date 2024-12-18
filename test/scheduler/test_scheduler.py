@@ -66,8 +66,8 @@ class SchedulerTestCircuit(Elaboratable):
 
         # mocked RS
         for i, rs in enumerate(self.rs):
-            alloc_adapter = Adapter(o=rs_layouts.rs.select_out)
-            insert_adapter = Adapter(i=rs_layouts.rs.insert_in)
+            alloc_adapter = Adapter.create(o=rs_layouts.rs.select_out)
+            insert_adapter = Adapter.create(i=rs_layouts.rs.insert_in)
 
             select_test = TestbenchIO(alloc_adapter)
             insert_test = TestbenchIO(insert_adapter)
@@ -89,7 +89,7 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
         m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
         m.submodules.core_state = self.core_state = TestbenchIO(
-            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
+            Adapter.create(o=self.gen_params.get(RetirementLayouts).core_state)
         )
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 

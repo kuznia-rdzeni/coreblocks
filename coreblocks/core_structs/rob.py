@@ -14,12 +14,12 @@ class ReorderBuffer(Elaboratable):
         layouts = gen_params.get(ROBLayouts)
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
         self.mark_done = Method(i=layouts.mark_done_layout)
-        self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
+        self.peek = Method(o=layouts.peek_layout)
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.data = memory.Memory(shape=layouts.data_layout, depth=2**self.params.rob_entries_bits, init=[])
-        self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
+        self.get_indices = Method(o=layouts.get_indices)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
             "backend.rob.wait_time",
@@ -51,7 +51,7 @@ class ReorderBuffer(Elaboratable):
 
         m.d.comb += read_port.addr.eq(start_idx)
 
-        @def_method(m, self.peek, ready=peek_possible)
+        @def_method(m, self.peek, ready=peek_possible, nonexclusive=True)
         def _():
             return {
                 "rob_data": read_port.data,
@@ -83,7 +83,7 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += self.done[rob_id].eq(1)
             m.d.sync += self.exception[rob_id].eq(exception)
 
-        @def_method(m, self.get_indices)
+        @def_method(m, self.get_indices, nonexclusive=True)
         def _():
             return {"start": start_idx, "end": end_idx}
 

@@ -42,7 +42,7 @@ class RSBase(Elaboratable):
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
 
         self.ready_for = [list(op_list) for op_list in ready_for]
-        self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
+        self.get_ready_list = [Method(o=self.layouts.get_ready_list_out) for _ in self.ready_for]
 
         self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
@@ -113,7 +113,7 @@ class RSBase(Elaboratable):
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
-            @def_method(m, get_ready_list, ready=ready_list.any())
+            @def_method(m, get_ready_list, ready=ready_list.any(), nonexclusive=True)
             def _() -> RecordDict:
                 return {"ready_list": ready_list}
 
