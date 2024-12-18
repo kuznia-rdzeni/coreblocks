@@ -2,4 +2,4 @@ amaranth==0.5.3
 amaranth-stubs @ git+https://github.com/kuznia-rdzeni/amaranth-stubs.git@edb302b001433edf4c8568190adc9bd0c0039f45
 amaranth-yosys==0.40.0.0.post100
 dataclasses-json==0.6.3
-transactron @ git+https://github.com/kuznia-rdzeni/transactron.git@ee23cdfe3ecf20ee5517da4646d7a599c19938d3  # TODO: merge and change to master
+transactron @ git+https://github.com/kuznia-rdzeni/transactron.git@ab00afa74aa2a787018036967405d3bf2ff29dbf  # TODO: merge and change to master
