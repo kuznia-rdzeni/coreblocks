@@ -44,7 +44,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.dependency_manager = DependencyContext.get()
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
 
-        self.issue = Method(i=self.fu_layouts.issue, single_caller=True)
+        self.issue = Method(i=self.fu_layouts.issue)
         self.accept = Method(o=self.fu_layouts.accept)
 
         self.bus = bus
@@ -73,7 +73,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue, single_caller=True)
         def _(arg):
             self.log.debug(
                 m, 1, "issue rob_id={} funct3={} op_type={}", arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type
