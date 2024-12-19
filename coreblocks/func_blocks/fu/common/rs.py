@@ -122,10 +122,10 @@ class RSBase(Elaboratable):
             return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
+            reordered_list = Cat(ready_list.bit_select(o.order[i], 1) for i in range(self.rs_entries))
 
-            @def_method(m, get_ready_list, ready=ready_list.any())
+            @def_method(m, get_ready_list, ready=reordered_list.any())
             def _() -> RecordDict:
-                reordered_list = Cat(ready_list.bit_select(o.order[i], 1) for i in range(self.rs_entries))
                 return {"ready_list": reordered_list}
 
         if self.perf_num_full.metrics_enabled():
