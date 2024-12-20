@@ -71,15 +71,13 @@ class RSBase(Elaboratable):
 
         for i, record in enumerate(self.data):
             m.d.comb += self.data_ready[i].eq(
-                ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
+                ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full
             )
-
-        take_vector = Cat(self.data_ready[i] & record.rec_full for i, record in enumerate(self.data))
 
         ready_lists: list[Value] = []
         for op_list in self.ready_for:
             op_vector = Cat(Cat(record.rs_data.exec_fn.op_type == op for op in op_list).any() for record in self.data)
-            ready_lists.append(take_vector & op_vector)
+            ready_lists.append(self.data_ready & op_vector)
 
         @def_method(m, self.select)
         def _() -> RecordDict:
