@@ -10,7 +10,7 @@ from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
-from transactron.utils import RecordDict
+from transactron.utils import RecordDict, ValueLike
 from transactron.utils import assign
 from transactron.utils.assign import AssignType
 from transactron.utils.amaranth_ext.functions import popcount
@@ -66,7 +66,7 @@ class RSBase(Elaboratable):
     def elaborate(self, platform) -> TModule:
         raise NotImplementedError
 
-    def _elaborate(self, m: TModule, alloc: Method, free_idx: Method, order: Method):
+    def _elaborate(self, m: TModule, takeable_mask: ValueLike, alloc: Method, free_idx: Method, order: Method):
         m.submodules += [self.perf_rs_wait_time, self.perf_num_full]
 
         for i, record in enumerate(self.data):
@@ -122,7 +122,7 @@ class RSBase(Elaboratable):
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
             reordered_list = Cat(ready_list.bit_select(o.order[i], 1) for i in range(self.rs_entries))
 
-            @def_method(m, get_ready_list, ready=reordered_list.any())
+            @def_method(m, get_ready_list, ready=(ready_list & takeable_mask).any())
             def _() -> RecordDict:
                 return {"ready_list": reordered_list}
 
@@ -139,6 +139,6 @@ class RS(RSBase):
 
         m.submodules.allocator = allocator = PreservedOrderAllocator(self.rs_entries)
 
-        self._elaborate(m, allocator.alloc, allocator.free_idx, allocator.order)
+        self._elaborate(m, -1, allocator.alloc, allocator.free_idx, allocator.order)
 
         return m

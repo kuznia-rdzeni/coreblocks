@@ -18,6 +18,9 @@ class FifoRS(RSBase):
         front = Signal(range(self.rs_entries))
         back = Signal(range(self.rs_entries))
         reserved = Signal(self.rs_entries)
+        takeable_mask = Signal(self.rs_entries)
+
+        m.d.comb += takeable_mask.eq(1 << front)
 
         @def_method(m, order)
         def _():
@@ -34,6 +37,6 @@ class FifoRS(RSBase):
             m.d.sync += reserved.bit_select(front, 1).eq(0)
             m.d.sync += front.eq(mod_incr(front, self.rs_entries))
 
-        self._elaborate(m, alloc, free_idx, order)
+        self._elaborate(m, takeable_mask, alloc, free_idx, order)
 
         return m
