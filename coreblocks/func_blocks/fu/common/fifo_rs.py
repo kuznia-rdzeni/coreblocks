@@ -11,12 +11,12 @@ class FifoRS(RSBase):
     def elaborate(self, platform):
         m = TModule()
 
-        alloc = Method(o=[("ident", self.rs_entries_bits)])
-        free_idx = Method(i=[("idx", self.rs_entries_bits)])
-        order = Method(o=[("order", ArrayLayout(self.rs_entries_bits, self.rs_entries))], nonexclusive=True)
+        alloc = Method(o=[("ident", range(self.rs_entries))])
+        free_idx = Method(i=[("idx", range(self.rs_entries))])
+        order = Method(o=[("order", ArrayLayout(range(self.rs_entries), self.rs_entries))], nonexclusive=True)
 
-        front = Signal(self.rs_entries_bits)
-        back = Signal(self.rs_entries_bits)
+        front = Signal(range(self.rs_entries))
+        back = Signal(range(self.rs_entries))
         reserved = Signal(self.rs_entries)
 
         @def_method(m, order)

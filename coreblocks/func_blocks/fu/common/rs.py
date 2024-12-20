@@ -2,6 +2,7 @@ from abc import abstractmethod
 from collections.abc import Iterable
 from typing import Optional
 from amaranth import *
+from amaranth.utils import ceil_log2
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib import logging
 from transactron.lib.allocators import PreservedOrderAllocator
@@ -29,8 +30,7 @@ class RSBase(Elaboratable):
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.rs_entries = rs_entries
-        self.rs_entries_bits = (rs_entries - 1).bit_length()
-        self.layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
+        self.layouts = gen_params.get(RSLayouts, rs_entries=self.rs_entries)
         self.internal_layout = make_layout(
             ("rs_data", self.layouts.rs.data_layout),
             ("rec_full", 1),
@@ -51,14 +51,14 @@ class RSBase(Elaboratable):
         self.perf_rs_wait_time = TaggedLatencyMeasurer(
             f"fu.block_{rs_number}.rs.valid_time",
             description=f"Distribution of time instructions wait in RS {rs_number}",
-            slots_number=2**self.rs_entries_bits,
+            slots_number=self.rs_entries,
             max_latency=1000,
         )
         self.perf_num_full = HwExpHistogram(
             f"fu.block_{rs_number}.rs.num_full",
             description=f"Number of full entries in RS {rs_number}",
-            bucket_count=self.rs_entries_bits + 1,
-            sample_width=self.rs_entries_bits + 1,
+            bucket_count=ceil_log2(self.rs_entries + 1),
+            sample_width=ceil_log2(self.rs_entries + 1),
         )
         self.log = logging.HardwareLogger(f"backend.rs.{rs_number}")
 
@@ -127,7 +127,7 @@ class RSBase(Elaboratable):
                 return {"ready_list": reordered_list}
 
         if self.perf_num_full.metrics_enabled():
-            num_full = Signal(self.rs_entries_bits + 1)
+            num_full = Signal(range(self.rs_entries + 1))
             m.d.comb += num_full.eq(popcount(Cat(self.data[entry_id].rec_full for entry_id in range(self.rs_entries))))
             with Transaction(name="perf").body(m):
                 self.perf_num_full.add(m, num_full)
