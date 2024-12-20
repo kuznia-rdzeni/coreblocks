@@ -33,7 +33,7 @@ class SchedulerTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        rs_layouts = self.gen_params.get(RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits)
+        rs_layouts = self.gen_params.get(RSLayouts, rs_entries=self.gen_params.max_rs_entries)
         decode_layouts = self.gen_params.get(DecodeLayouts)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
