@@ -109,8 +109,8 @@ class CSRRegister(Elaboratable):
 
         csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
 
-        self.read = Method(o=csr_layouts.read, nonexclusive=True)
-        self.read_comb = Method(o=csr_layouts.read, nonexclusive=True)
+        self.read = Method(o=csr_layouts.read)
+        self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
 
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
@@ -162,7 +162,7 @@ class CSRRegister(Elaboratable):
             m.d.comb += fu_write_internal.active.eq(1)
             m.d.sync += self.side_effects.write.eq(1)
 
-        @def_method(m, self.read)
+        @def_method(m, self.read, nonexclusive=True)
         def _():
             return {"data": self.value, "read": self.side_effects.read, "written": self.side_effects.write}
 
@@ -171,7 +171,7 @@ class CSRRegister(Elaboratable):
             m.d.sync += self.side_effects.read.eq(1)
             return self.value
 
-        @def_method(m, self.read_comb)
+        @def_method(m, self.read_comb, nonexclusive=True)
         def _():
             return {
                 "data": Mux(self._internal_fu_write.run, fu_write_internal.data, self.value),

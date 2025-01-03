@@ -33,8 +33,8 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
 
         self.cycles = 256
 
-        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
-        self.fetch_stall_mock = TestbenchIO(Adapter())
+        self.rob_idx_mock = TestbenchIO(Adapter.create(o=self.gen_params.get(ROBLayouts).get_indices))
+        self.fetch_stall_mock = TestbenchIO(Adapter.create())
         self.dut = SimpleTestCircuit(
             ExceptionInformationRegister(
                 self.gen_params, self.rob_idx_mock.adapter.iface, self.fetch_stall_mock.adapter.iface

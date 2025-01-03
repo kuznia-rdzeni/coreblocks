@@ -58,14 +58,10 @@ class Retirement(Elaboratable):
 
         layouts = self.gen_params.get(RetirementLayouts)
         self.dependency_manager = DependencyContext.get()
-        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        # The argument is only used in argument validation, it is not needed in the method body.
-        # A dummy combiner is provided.
-        self.precommit = Method(
-            i=layouts.precommit_in, o=layouts.precommit_out, nonexclusive=True, combiner=lambda m, args, runs: 0
-        )
+        self.precommit = Method(i=layouts.precommit_in, o=layouts.precommit_out)
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
@@ -239,13 +235,21 @@ class Retirement(Elaboratable):
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
 
-        @def_method(m, self.core_state)
+        @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
 
         rob_id_val = Signal(self.gen_params.rob_entries_bits)
 
-        @def_method(m, self.precommit, validate_arguments=lambda rob_id: rob_id == rob_id_val)
+        # The argument is only used in argument validation, it is not needed in the method body.
+        # A dummy combiner is provided.
+        @def_method(
+            m,
+            self.precommit,
+            validate_arguments=lambda rob_id: rob_id == rob_id_val,
+            nonexclusive=True,
+            combiner=lambda m, args, runs: 0,
+        )
         def _(rob_id):
             m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
             return {"side_fx": side_fx}

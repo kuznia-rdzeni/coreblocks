@@ -34,8 +34,8 @@ class MockedICache(Elaboratable, CacheInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.issue_req_io = TestbenchIO(Adapter(i=layouts.issue_req))
-        self.accept_res_io = TestbenchIO(Adapter(o=layouts.accept_res))
+        self.issue_req_io = TestbenchIO(Adapter.create(i=layouts.issue_req))
+        self.accept_res_io = TestbenchIO(Adapter.create(o=layouts.accept_res))
 
         self.issue_req = self.issue_req_io.adapter.iface
         self.accept_res = self.accept_res_io.adapter.iface
@@ -78,7 +78,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
         self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
-        self.fetch_resume_mock = TestbenchIO(Adapter())
+        self.fetch_resume_mock = TestbenchIO(Adapter.create())
         DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume_mock.adapter.iface)
 
         self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))

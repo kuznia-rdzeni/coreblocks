@@ -255,8 +255,8 @@ class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
-        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
+        self.start_refill_mock = TestbenchIO(Adapter.create(i=layouts.start_refill))
+        self.accept_refill_mock = TestbenchIO(Adapter.create(o=layouts.accept_refill))
 
         self.start_refill = self.start_refill_mock.adapter.iface
         self.accept_refill = self.accept_refill_mock.adapter.iface
