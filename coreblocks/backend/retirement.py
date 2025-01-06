@@ -31,6 +31,8 @@ class Retirement(Elaboratable):
         instr_decrement: Method,
         trap_entry: Method,
         async_interrupt_cause: Method,
+        checkpoint_tag_free: Method,
+        checkpoint_get_active_tags: Method,
     ):
         self.gen_params = gen_params
         self.rob_peek = rob_peek
@@ -46,6 +48,8 @@ class Retirement(Elaboratable):
         self.instr_decrement = instr_decrement
         self.trap_entry = trap_entry
         self.async_interrupt_cause = async_interrupt_cause
+        self.checkpoint_tag_free = checkpoint_tag_free
+        self.checkpoint_get_active_tags = checkpoint_get_active_tags
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
@@ -119,6 +123,9 @@ class Retirement(Elaboratable):
                 with Transaction().body(m, request=retire_valid) as retire_transaction:
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
+
+                    with m.If(rob_entry.tag_increment):
+                        self.checkpoint_tag_free()
 
                     core_empty = self.instr_decrement(m)
 
@@ -194,6 +201,9 @@ class Retirement(Elaboratable):
                     # Flush entire core
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
+
+                    with m.If(rob_entry.tag_increment):
+                        self.checkpoint_tag_free()
 
                     core_empty = self.instr_decrement(m)
 

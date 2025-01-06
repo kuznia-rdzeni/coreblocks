@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
 from transactron import Method
-from transactron.lib import Collector
+from transactron.lib import Collector, MethodProduct
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
@@ -91,4 +91,9 @@ class CSRListKey(ListKey["CSRRegister"]):
 
 @dataclass(frozen=True)
 class FlushICacheKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class RollbackKey(UnifierKey, unifier=MethodProduct):
     pass
