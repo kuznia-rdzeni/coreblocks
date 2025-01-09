@@ -5,8 +5,10 @@
 Coreblocks::Coreblocks()
     : top()
 {
+    static uint8_t halted = 0;
+
     clockAndReset.clk_i = &top.clk;
-    clockAndReset.rst_ni = &top.rst;
+    clockAndReset.rst_i = &top.rst;
     //clockAndReset.test_en_i = &top.test_en_i;
     //clockAndReset.scan_rst_ni = &top.scan_rst_ni;
     //clockAndReset.ram_cfg_i = &top.ram_cfg_i;
@@ -17,7 +19,7 @@ Coreblocks::Coreblocks()
     //configuration.init();
 
     //specialControlSignals.fetch_enable_i = &top.fetch_enable_i;
-    //specialControlSignals.core_sleep_o = &top.core_sleep_o;
+    specialControlSignals.core_sleep_o = &halted;
     //specialControlSignals.alert_minor_o = &top.alert_minor_o;
     //specialControlSignals.init();
 
@@ -34,46 +36,47 @@ Coreblocks::Coreblocks()
 
 void Coreblocks::reset()
 {
-    *clockAndReset.rst_ni = high;
+    *clockAndReset.rst_i = low;
     evaluateModel();
-    *clockAndReset.rst_ni = low;
+    *clockAndReset.rst_i = high;
     evaluateModel();
-    *clockAndReset.rst_ni = high;
+    *clockAndReset.rst_i = low;
     evaluateModel();
 }
 
 void Coreblocks::setInstructionFetchBus(CoreblocksBusInterface::Wishbone &wishbone)
 {
-    wishbone.wb_stall = &top.wb_instr___05Fstall;
-    wishbone.wb_ack = &top.wb_instr___05Fack;
-    wishbone.wb_rd_dat = &top.wb_instr___05Fdat_r;
-    wishbone.wb_stb = &top.wb_instr___05Fstb;
     wishbone.wb_addr = &top.wb_instr___05Fadr;
+    wishbone.wb_rd_dat = &top.wb_instr___05Fdat_r;
     wishbone.wb_wr_dat = &top.wb_instr___05Fdat_w;
     wishbone.wb_we = &top.wb_instr___05Fwe;
-    wishbone.wb_cyc = &top.wb_instr___05Fcyc;
     wishbone.wb_sel = &top.wb_instr___05Fsel;
+    wishbone.wb_stb = &top.wb_instr___05Fstb;
+    wishbone.wb_ack = &top.wb_instr___05Fack;
+    wishbone.wb_cyc = &top.wb_instr___05Fcyc;
+    wishbone.wb_stall = &top.wb_instr___05Fstall;
     wishbone.wb_rst = &top.wb_instr___05Frst;
     wishbone.wb_clk = clockAndReset.clk_i;
 }
 
 void Coreblocks::setLoadStoreBus(CoreblocksBusInterface::Wishbone &wishbone)
 {
-    wishbone.wb_stall = &top.wb_data___05Fstall;
-    wishbone.wb_ack = &top.wb_data___05Fack;
-    wishbone.wb_rd_dat = &top.wb_data___05Fdat_r;
-    wishbone.wb_stb = &top.wb_data___05Fstb;
     wishbone.wb_addr = &top.wb_data___05Fadr;
+    wishbone.wb_rd_dat = &top.wb_data___05Fdat_r;
     wishbone.wb_wr_dat = &top.wb_data___05Fdat_w;
     wishbone.wb_we = &top.wb_data___05Fwe;
-    wishbone.wb_cyc = &top.wb_data___05Fcyc;
     wishbone.wb_sel = &top.wb_data___05Fsel;
+    wishbone.wb_stb = &top.wb_data___05Fstb;
+    wishbone.wb_ack = &top.wb_data___05Fack;
+    wishbone.wb_cyc = &top.wb_data___05Fcyc;
+    wishbone.wb_stall = &top.wb_data___05Fstall;
     wishbone.wb_rst = &top.wb_data___05Frst;
     wishbone.wb_clk = clockAndReset.clk_i;
 }
 
 void Coreblocks::evaluateModel()
 {
+    // std::cerr << *this << "addr: " << top.wb_instr___05Fadr << "\ninterrupts: " << top.interrupts << '\n';
     top.eval();
 }
 
@@ -213,17 +216,21 @@ DebuggableCPU::DebugProgram Coreblocks::getSingleStepModeProgram()
 std::ostream &operator<<(std::ostream &stream, const ClockAndReset &clockAndReset)
 {
     printPointerValueToStream(clockAndReset, clk_i);
-    printPointerValueToStream(clockAndReset, rst_ni);
+    printPointerValueToStream(clockAndReset, rst_i);
+    /*
     printPointerValueToStream(clockAndReset, test_en_i);
     printPointerValueToStream(clockAndReset, scan_rst_ni);
     printPointerValueToStream(clockAndReset, ram_cfg_i);
+    */
     return stream;
 }
 
 std::ostream &operator<<(std::ostream &stream, const Configuration &configuration)
 {
+    /*
     printPointerValueToStream(configuration, hart_id_i);
     printPointerValueToStream(configuration, boot_addr_i);
+    */
     return stream;
 }
 
@@ -256,27 +263,32 @@ std::ostream &operator<<(std::ostream &stream, const LoadStore &loadStore)
 
 std::ostream &operator<<(std::ostream &stream, const SpecialControlSignals &specialControlSignals)
 {
+    /*
     printPointerValueToStream(specialControlSignals, fetch_enable_i);
     printPointerValueToStream(specialControlSignals, alert_minor_o);
     printPointerValueToStream(specialControlSignals, alert_major_o);
+    */
     printPointerValueToStream(specialControlSignals, core_sleep_o);
     return stream;
 }
 
 std::ostream &operator<<(std::ostream &stream, const Interrupts &interrupts)
 {
-
+    /*
     printPointerValueToStream(interrupts, irq_nm_i);
     printPointerValueToStream(interrupts, irq_fast_i);
     printPointerValueToStream(interrupts, irq_external_i);
     printPointerValueToStream(interrupts, irq_timer_i);
     printPointerValueToStream(interrupts, irq_software_i);
+    */
     return stream;
 }
 
 std::ostream &operator<<(std::ostream &stream, const Debug &debug)
 {
+    /*
     printPointerValueToStream(debug, debug_req_i);
+    */
     return stream;
 }
 

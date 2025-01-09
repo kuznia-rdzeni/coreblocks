@@ -10,7 +10,7 @@ mach create $name
 machine LoadPlatformDescription @platforms/cpus/verilated/verilated_ibex.repl
 
 $bios?=@https://dl.antmicro.com/projects/renode/litex_ibex--bios.bin-s_20712-80d064cf8ab28801b78c0e5a63cac4830016f6c8
-$cpuLinux?=@obj_dir/libVdyncore.so
+$cpuLinux?=@obj_dir/libVcoreblocks.so
 
 showAnalyzer sysbus.uart
 
@@ -19,8 +19,9 @@ cpu SimulationFilePathLinux $cpuLinux
 macro reset
 """
     sysbus LoadBinary $bios 0x0
-    sysbus.cpu PC 0x0
+    #sysbus.cpu PC 0x0
 """
 
 runMacro $reset
+logLevel -1
 

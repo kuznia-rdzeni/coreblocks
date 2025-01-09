@@ -20,7 +20,7 @@ struct CoreblocksBusInterface
 struct ClockAndReset
 {
     uint8_t *clk_i;
-    uint8_t *rst_ni;
+    uint8_t *rst_i;
     uint8_t *test_en_i;
     uint8_t *scan_rst_ni;
     uint16_t *ram_cfg_i; // 10 bit
@@ -28,7 +28,7 @@ struct ClockAndReset
     void init()
     {
         *clk_i = low;
-        *rst_ni = high;
+        *rst_i = low;
         //*test_en_i = low;
         //*scan_rst_ni = high;
         //*ram_cfg_i = low;
