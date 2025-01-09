@@ -1,0 +1,26 @@
+#!/usr/bin/env renode
+
+:name: Verilated Coreblocks
+:description: This script runs Ibex BIOS on the verilated Coreblocks CPU.
+
+$name?="Verilated Coreblocks"
+
+using sysbus
+mach create $name
+machine LoadPlatformDescription @platforms/cpus/verilated/verilated_ibex.repl
+
+$bios?=@https://dl.antmicro.com/projects/renode/litex_ibex--bios.bin-s_20712-80d064cf8ab28801b78c0e5a63cac4830016f6c8
+$cpuLinux?=@obj_dir/libVdyncore.so
+
+showAnalyzer sysbus.uart
+
+cpu SimulationFilePathLinux $cpuLinux
+
+macro reset
+"""
+    sysbus LoadBinary $bios 0x0
+    sysbus.cpu PC 0x0
+"""
+
+runMacro $reset
+
