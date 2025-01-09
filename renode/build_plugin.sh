@@ -1,5 +1,5 @@
 #!/bin/sh
-# Usage: renode/build_plugin.sh core.v
+# Usage: renode/build_plugin.sh [--trace] core.v
 
 set -e
 

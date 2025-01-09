@@ -109,6 +109,7 @@ private:
     uint32_t end(bool jumpToBegin, int offsetToBegin) { return jumpToBegin ? jal(0, (-offsetToBegin + 1) * 4) : dret; }
 
     Vcore top;
+    VerilatedVcdC* trace;
 
     ClockAndReset clockAndReset;
     Configuration configuration;

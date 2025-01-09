@@ -1,9 +1,11 @@
 #include "sim_coreblocks.h"
 #include "src/renode_bus.h"
 #include "src/buses/wishbone-initiator.h"
+#include "verilated_vcd_c.h"
 
 Coreblocks::Coreblocks()
     : top()
+    , trace(new VerilatedVcdC)
 {
     static uint8_t halted = 0;
 
@@ -31,6 +33,10 @@ Coreblocks::Coreblocks()
 
     //debug.debug_req_i = &top.debug_req_i;
 
+    Verilated::traceEverOn(true);
+    top.trace(trace, 99);  // Trace 99 levels of hierarchy (or see below)
+    // tfp->dumpvars(1, "t");  // trace 1 level under "t"
+    trace->open("/tmp/simx.vcd");  // beware: Renode manipulates CWD
     reset();
 }
 
@@ -76,8 +82,11 @@ void Coreblocks::setLoadStoreBus(CoreblocksBusInterface::Wishbone &wishbone)
 
 void Coreblocks::evaluateModel()
 {
+    static int i = 0;
     // std::cerr << *this << "addr: " << top.wb_instr___05Fadr << "\ninterrupts: " << top.interrupts << '\n';
+    trace->dump(i++);
     top.eval();
+    trace->dump(i++);
 }
 
 void Coreblocks::onGPIO(int number, bool value)
