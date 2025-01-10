@@ -5,7 +5,6 @@
 
 Coreblocks::Coreblocks()
     : top()
-    , trace(new VerilatedVcdC)
 {
     static uint8_t halted = 0;
 
@@ -33,10 +32,13 @@ Coreblocks::Coreblocks()
 
     //debug.debug_req_i = &top.debug_req_i;
 
+#if VM_TRACE
     Verilated::traceEverOn(true);
+    trace = new VerilatedVcdC;
     top.trace(trace, 99);  // Trace 99 levels of hierarchy (or see below)
     // tfp->dumpvars(1, "t");  // trace 1 level under "t"
     trace->open("/tmp/simx.vcd");  // beware: Renode manipulates CWD
+#endif
     reset();
 }
 
@@ -84,9 +86,13 @@ void Coreblocks::evaluateModel()
 {
     static int i = 0;
     // std::cerr << *this << "addr: " << top.wb_instr___05Fadr << "\ninterrupts: " << top.interrupts << '\n';
+#if VM_TRACE
     trace->dump(i++);
+#endif
     top.eval();
+#if VM_TRACE
     trace->dump(i++);
+#endif
 }
 
 void Coreblocks::onGPIO(int number, bool value)

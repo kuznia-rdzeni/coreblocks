@@ -23,5 +23,4 @@ macro reset
 """
 
 runMacro $reset
-logLevel -1
 
