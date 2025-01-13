@@ -180,6 +180,10 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x0E005033, Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
     ]
 
+    DECODER_TESTS_A = [
+        InstrTest(0x0821A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP)
+    ]
+
     def setup_method(self):
         self.gen_params = GenParams(
             test_core_config.replace(
@@ -278,6 +282,9 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_zicond(self):
         self.do_test(self.DECODER_TESTS_ZICOND)
+
+    def test_a(self):
+        self.do_test(self.DECODER_TESTS_A)
 
 
 class TestDecoderEExtLegal(TestCaseWithSimulator):
