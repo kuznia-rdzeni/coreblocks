@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from transactron.core import TModule, Method, Transaction, def_method
 from transactron.lib.connectors import Forwarder
-from transactron.lib.simultaneous import condition
 from transactron.utils import assign, layout_subset, AssignType
 
 from coreblocks.arch import Funct3, Funct7, OpType
@@ -97,33 +96,30 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
         with Transaction().body(m):
             res = self.lsu.accept(m)
 
-            with condition(m) as cond:
-                # Non-atomic results
-                with cond(~atomic_in_progress | (res.rob_id != atomic_op.rob_id)):
-                    accept_forwarder.write(m, res)
+            # 1st atomic result
+            with m.If((res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & ~res.exception):
+                # NOTE: This branch could be optimised by replacing Ifs with condition to be independent of
+                # accept.ready, but it causes combinational loop because of `rob_id` data dependency.
+                m.d.sync += load_val.eq(res.result)
+                m.d.sync += atomic_second_reqest.eq(1)
+            with m.If((res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & res.exception):
+                accept_forwarder.write(m, res)
+                m.d.sync += atomic_in_progress.eq(0)
 
-                # 1st atomic result
-                with cond(
-                    (res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & res.exception
-                ):
-                    accept_forwarder.write(m, res)
-                    m.d.sync += atomic_in_progress.eq(0)
-                with cond(
-                    (res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & ~res.exception
-                ):
-                    m.d.sync += load_val.eq(res.result)
-                    m.d.sync += atomic_second_reqest.eq(1)
+            # 2nd atomic result
+            with m.Elif(atomic_in_progress & atomic_fin):
+                atomic_res = Signal(self.fu_layouts.accept)
+                m.d.av_comb += assign(atomic_res, res)
+                m.d.av_comb += atomic_res.result.eq(Mux(res.exception, 0, load_val))
+                accept_forwarder.write(m, atomic_res)
 
-                # 2nd atomic result
-                with cond(atomic_in_progress & atomic_fin):
-                    atomic_res = Signal(self.fu_layouts.accept)
-                    m.d.av_comb += assign(atomic_res, res)
-                    m.d.av_comb += atomic_res.result.eq(Mux(res.exception, 0, load_val))
-                    accept_forwarder.write(m, atomic_res)
+                m.d.sync += atomic_in_progress.eq(0)
+                m.d.sync += atomic_second_reqest.eq(0)
+                m.d.sync += atomic_fin.eq(0)
 
-                    m.d.sync += atomic_in_progress.eq(0)
-                    m.d.sync += atomic_second_reqest.eq(0)
-                    m.d.sync += atomic_fin.eq(0)
+            # Non-atomic results
+            with m.Else():
+                accept_forwarder.write(m, res)
 
         with Transaction().body(m, request=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
             atomic_store_op = Signal(self.fu_layouts.issue)
