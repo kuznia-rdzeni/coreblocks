@@ -18,8 +18,8 @@ class FuncUnitMock(FuncUnit, Elaboratable):
     def __init__(self, gen_params):
         layouts = gen_params.get(FuncUnitLayouts)
 
-        self.issue_tb = TestbenchIO(Adapter.create(i=layouts.issue))
-        self.accept_tb = TestbenchIO(Adapter.create(o=layouts.accept))
+        self.issue_tb = TestbenchIO(Adapter(i=layouts.issue))
+        self.accept_tb = TestbenchIO(Adapter(o=layouts.accept))
 
         self.issue = self.issue_tb.adapter.iface
         self.accept = self.accept_tb.adapter.iface
