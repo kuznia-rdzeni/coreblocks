@@ -102,7 +102,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 # accept.ready, but it causes combinational loop because of `rob_id` data dependency.
                 m.d.sync += load_val.eq(res.result)
                 m.d.sync += atomic_second_reqest.eq(1)
-            with m.If((res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & res.exception):
+            with m.Elif((res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & res.exception):
                 accept_forwarder.write(m, res)
                 m.d.sync += atomic_in_progress.eq(0)
 
