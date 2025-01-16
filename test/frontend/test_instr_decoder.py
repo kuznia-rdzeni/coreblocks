@@ -181,7 +181,10 @@ class TestDecoder(TestCaseWithSimulator):
     ]
 
     DECODER_TESTS_A = [
-        InstrTest(0x0821A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP)
+        InstrTest(0x0821A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP),
+        InstrTest(
+            0x0C21A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP | 0x2, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP
+        ),
     ]
 
     def setup_method(self):
