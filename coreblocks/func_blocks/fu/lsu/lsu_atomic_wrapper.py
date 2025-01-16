@@ -14,6 +14,20 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 
 
 class LSUAtomicWrapper(FuncUnit, Elaboratable):
+    """
+    Wrapper for LSU that adds support for atomic operations.
+
+    It provides simplified implementation of atomic operations under assumptions that:
+        * LSU doesn't reorder memory accesses, like in `LSUDummy`
+        * There is only one hart
+
+    AMO operations issue two independent accesses (unless there is an exception) to LSU and execute operations
+    in the internal ALU.
+    SC are only matched to LR, reservation set size is infinite.
+
+    Behaviour of atomic insturctions on Memory Mapped I/O space is currently undefined.
+    """
+
     def __init__(self, gen_params: GenParams, lsu: FuncUnit):
         self.gen_params = gen_params
         self.lsu = lsu
