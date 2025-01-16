@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1735930575849,
+  "lastUpdate": 1737026755978,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15191,6 +15191,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a2d56a57831323b2ae0ef5c8aa93a915669f1cef"
         },
         "date": 1735930566690,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.41669606786750707,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5253515724878548,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37011882172540067,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6311502731844466,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35923880597014923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2912586817640416,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3275963544917869,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43960746096140335,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7085ce9b42dbcc7fff8cda4b49b737c30150f1ac",
+          "message": "Older Ubuntu in benchmark (#780)",
+          "timestamp": "2025-01-16T12:12:39+01:00",
+          "tree_id": "382cd2cf9693d7fdb33c2fdd63d873754e10a018",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7085ce9b42dbcc7fff8cda4b49b737c30150f1ac"
+        },
+        "date": 1737026751299,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
