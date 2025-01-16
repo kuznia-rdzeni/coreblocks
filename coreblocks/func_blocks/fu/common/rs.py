@@ -123,7 +123,6 @@ class RSBase(Elaboratable):
             reordered_list = Cat(ready_list.bit_select(o.order[i], 1) for i in range(self.rs_entries))
 
             @def_method(m, get_ready_list, ready=(ready_list & takeable_mask).any(), nonexclusive=True)
-
             def _() -> RecordDict:
                 return {"ready_list": reordered_list}
 

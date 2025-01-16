@@ -13,7 +13,7 @@ class FifoRS(RSBase):
 
         alloc = Method(o=[("ident", range(self.rs_entries))])
         free_idx = Method(i=[("idx", range(self.rs_entries))])
-        order = Method(o=[("order", ArrayLayout(range(self.rs_entries), self.rs_entries))], nonexclusive=True)
+        order = Method(o=[("order", ArrayLayout(range(self.rs_entries), self.rs_entries))])
 
         front = Signal(range(self.rs_entries))
         back = Signal(range(self.rs_entries))
@@ -22,7 +22,7 @@ class FifoRS(RSBase):
 
         m.d.comb += takeable_mask.eq(1 << front)
 
-        @def_method(m, order)
+        @def_method(m, order, nonexclusive=True)
         def _():
             return {"order": [front for _ in range(self.rs_entries)]}
 
