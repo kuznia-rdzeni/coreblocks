@@ -104,12 +104,12 @@ class RSBase(Elaboratable):
             self.log.debug(m, True, "inserted entry {}", rs_entry_id)
 
         with Transaction().body(m):
-            o = order(m)  # always ready!
+            self.order = order(m).order  # always ready!
 
         @def_method(m, self.take)
         def _(rs_entry_id: Value) -> RecordDict:
             actual_rs_entry_id = Signal.like(rs_entry_id)
-            m.d.av_comb += actual_rs_entry_id.eq(o.order[rs_entry_id])
+            m.d.av_comb += actual_rs_entry_id.eq(self.order[rs_entry_id])
             record = self.data[actual_rs_entry_id]
             free_idx(m, idx=rs_entry_id)
             m.d.sync += record.rec_full.eq(0)
@@ -120,7 +120,7 @@ class RSBase(Elaboratable):
             return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
-            reordered_list = Cat(ready_list.bit_select(o.order[i], 1) for i in range(self.rs_entries))
+            reordered_list = Cat(ready_list.bit_select(self.order[i], 1) for i in range(self.rs_entries))
 
             @def_method(m, get_ready_list, ready=(ready_list & takeable_mask).any(), nonexclusive=True)
             def _() -> RecordDict:
