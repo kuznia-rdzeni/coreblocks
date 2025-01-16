@@ -9,8 +9,6 @@ from transactron.lib import AdapterTrans, Adapter
 from coreblocks.cache.icache import ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ICacheLayouts
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneParameters
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.params.configurations import test_core_config
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
@@ -18,7 +16,7 @@ from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_m
 from transactron.testing.functions import MethodData
 from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
-from ..peripherals.test_wishbone import WishboneInterfaceWrapper
+from ..peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
 class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
@@ -29,12 +27,11 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_params = WishboneParameters(
+        bus_mock_params = BusMockParameters(
             data_width=self.gen_params.isa.xlen,
             addr_width=self.gen_params.isa.xlen,
         )
-        self.wb_master = WishboneMaster(wb_params)
-        self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
+        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
 
         self.refiller = SimpleCommonBusCacheRefiller(
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
@@ -43,13 +40,10 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
         self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
         self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
 
-        m.submodules.wb_master = self.wb_master
         m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.refiller = self.refiller
         m.submodules.start_refill = self.start_refill
         m.submodules.accept_refill = self.accept_refill
-
-        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -100,12 +94,12 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
                 self.bad_addresses.add(bad_addr)
                 self.bad_fetch_blocks.add(bad_addr & ~(self.cp.fetch_block_bytes - 1))
 
-    async def wishbone_slave(self, sim: TestbenchContext):
+    async def bus_mock(self, sim: TestbenchContext):
         while True:
-            adr, *_ = await self.test_module.wb_ctrl.slave_wait(sim)
+            req = await self.test_module.bus_master_adapter.request_read_mock.call(sim)
 
-            # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = adr << exact_log2(self.cp.word_width_bytes)
+            # Bus model is addressing words, so we need to shift it a bit to get the real address.
+            addr = req.addr << exact_log2(self.cp.word_width_bytes)
 
             await self.random_wait_geom(sim, 0.5)
 
@@ -114,7 +108,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             data = random.randrange(2**self.gen_params.isa.xlen)
             self.mem[addr] = data
 
-            await self.test_module.wb_ctrl.slave_respond(sim, data, err=err)
+            await self.test_module.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
 
     async def refiller_process(self, sim: TestbenchContext):
         while self.requests:
@@ -145,7 +139,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.test_module) as sim:
-            sim.add_testbench(self.wishbone_slave, background=True)
+            sim.add_testbench(self.bus_mock, background=True)
             sim.add_testbench(self.refiller_process)
 
 
@@ -157,20 +151,17 @@ class ICacheBypassTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_params = WishboneParameters(
+        bus_mock_params = BusMockParameters(
             data_width=self.gen_params.isa.xlen,
             addr_width=self.gen_params.isa.xlen,
         )
 
-        m.submodules.wb_master = self.wb_master = WishboneMaster(wb_params)
-        m.submodules.bus_master_adapter = self.bus_master_adapter = WishboneMasterAdapter(self.wb_master)
+        m.submodules.bus_master_adapter = self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
         m.submodules.bypass = self.bypass = ICacheBypass(
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
         )
         m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
         m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
-
-        self.wb_ctrl = WishboneInterfaceWrapper(self.wb_master.wb_master)
 
         return m
 
@@ -216,12 +207,12 @@ class TestICacheBypass(TestCaseWithSimulator):
             self.mem[addr] = random.randrange(2**self.gen_params.isa.ilen)
         return self.mem[addr]
 
-    async def wishbone_slave(self, sim: TestbenchContext):
+    async def bus_mock(self, sim: TestbenchContext):
         while True:
-            adr, *_ = await self.m.wb_ctrl.slave_wait(sim)
+            req = await self.m.bus_master_adapter.request_read_mock.call(sim)
 
-            # Wishbone is addressing words, so we need to shift it a bit to get the real address.
-            addr = adr << exact_log2(self.cp.word_width_bytes)
+            # Bus model is addressing words, so we need to shift it a bit to get the real address.
+            addr = req.addr << exact_log2(self.cp.word_width_bytes)
 
             await self.random_wait_geom(sim, 0.5)
 
@@ -231,7 +222,7 @@ class TestICacheBypass(TestCaseWithSimulator):
             if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
-            await self.m.wb_ctrl.slave_respond(sim, data, err=err)
+            await self.m.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
 
     async def user_process(self, sim: TestbenchContext):
         while self.requests:
@@ -256,7 +247,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_testbench(self.wishbone_slave, background=True)
+            sim.add_testbench(self.bus_mock, background=True)
             sim.add_testbench(self.user_process)
 
 
@@ -264,8 +255,8 @@ class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
-        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
+        self.start_refill_mock = TestbenchIO(Adapter.create(i=layouts.start_refill))
+        self.accept_refill_mock = TestbenchIO(Adapter.create(o=layouts.accept_refill))
 
         self.start_refill = self.start_refill_mock.adapter.iface
         self.accept_refill = self.accept_refill_mock.adapter.iface

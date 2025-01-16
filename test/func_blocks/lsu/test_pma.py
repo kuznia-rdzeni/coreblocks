@@ -1,7 +1,7 @@
-import random
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker, PMARegion
 
-from transactron.lib import Adapter
+from amaranth import *
+from transactron.lib import Adapter, AdapterTrans
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
@@ -10,10 +10,8 @@ from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, Instruct
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
-from coreblocks.peripherals.wishbone import *
-from transactron.testing import TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from test.peripherals.test_wishbone import WishboneInterfaceWrapper
+from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
+from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
 class TestPMADirect(TestCaseWithSimulator):
@@ -50,23 +48,19 @@ class PMAIndirectTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        wb_params = WishboneParameters(
-            data_width=self.gen.isa.ilen,
-            addr_width=32,
-        )
+        bus_mock_params = BusMockParameters(data_width=self.gen.isa.ilen, addr_width=32)
 
-        self.bus = WishboneMaster(wb_params)
-        self.bus_master_adapter = WishboneMasterAdapter(self.bus)
+        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
+            Adapter.create(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(
+            Adapter.create(
                 i=layouts.precommit_in,
                 o=layouts.precommit_out,
                 nonexclusive=True,
@@ -75,15 +69,13 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
-        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter.create(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
         m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
-        self.io_in = WishboneInterfaceWrapper(self.bus.wb_master)
-        m.submodules.bus = self.bus
         m.submodules.bus_master_adapter = self.bus_master_adapter
         return m
 
@@ -102,17 +94,21 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
     async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for addr in range(region.start, region.end + 1):
+            self.precommit_enabled = False
             instr = self.get_instr(addr)
             await self.test_module.issue.call(sim, instr)
             if region.mmio is True:
-                wb = self.test_module.io_in.wb
-                for i in range(100):  # 100 cycles is more than enough
-                    wb_requested = sim.get(wb.stb) and sim.get(wb.cyc)
-                    assert not wb_requested
-
-            await self.test_module.io_in.slave_wait(sim)
-            await self.test_module.io_in.slave_respond(sim, (addr << (addr % 4) * 8))
-            v = await self.test_module.accept.call(sim)
+                for i in range(10):  # 10 cycles is more than enough
+                    ret = await self.test_module.bus_master_adapter.request_read_mock.call_try(sim)
+                    assert ret is None
+            self.precommit_enabled = True
+            await self.test_module.bus_master_adapter.request_read_mock.call(sim)
+            _, v = (
+                await CallTrigger(sim)
+                .call(self.test_module.bus_master_adapter.get_read_response_mock, data=addr << (addr % 4) * 8, err=0)
+                .call(self.test_module.accept)
+                .until_done()
+            )
             assert v.result == addr
 
     async def process(self, sim: TestbenchContext):
@@ -127,6 +123,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
         ]
         self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
         self.test_module = PMAIndirectTestCircuit(self.gen_params)
+        self.precommit_enabled = False
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
@@ -137,7 +134,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
         @def_method_mock(
             lambda: self.test_module.precommit,
             validate_arguments=lambda rob_id: rob_id == 1,
-            enable=lambda: random.random() < 0.5,
+            enable=lambda: self.precommit_enabled,
         )
         def precommiter(rob_id):
             return {"side_fx": 1}

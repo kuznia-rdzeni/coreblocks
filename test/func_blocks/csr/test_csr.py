@@ -33,7 +33,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m = Module()
 
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter(
+            Adapter.create(
                 i=self.gen_params.get(RetirementLayouts).precommit_in,
                 o=self.gen_params.get(RetirementLayouts).precommit_out,
                 nonexclusive=True,
@@ -49,7 +49,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+            Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
         m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
