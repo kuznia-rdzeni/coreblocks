@@ -41,8 +41,15 @@ class FunctionalComponentParams(ABC):
     _: KW_ONLY
     decoder_manager: "DecoderManager" = field(init=False)
 
+    def __post_init__(self):
+        if not hasattr(self, "decoder_manager"):
+            object.__setattr__(self, "decoder_manager", self.get_decoder_manager())
+
     @abstractmethod
     def get_module(self, gen_params: "GenParams") -> FuncUnit:
+        raise NotImplementedError()
+
+    def get_decoder_manager(self) -> "DecoderManager":
         raise NotImplementedError()
 
     def get_optypes(self) -> set["OpType"]:

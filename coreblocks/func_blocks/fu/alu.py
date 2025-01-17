@@ -1,4 +1,4 @@
-from dataclasses import dataclass, KW_ONLY
+from dataclasses import dataclass, KW_ONLY, field
 from typing import Sequence
 from amaranth import *
 
@@ -284,7 +284,10 @@ class ALUComponent(FunctionalComponentParams):
     zba_enable: bool = False
     zbb_enable: bool = False
     zicond_enable: bool = False
-    decoder_manager: AluFn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable, zicond_enable=zicond_enable)
+    decoder_manager: AluFn = field(init=False)
+
+    def get_decoder_manager(self):
+        return AluFn(zba_enable=self.zba_enable, zbb_enable=self.zbb_enable, zicond_enable=self.zicond_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return AluFuncUnit(gen_params, self.decoder_manager)
