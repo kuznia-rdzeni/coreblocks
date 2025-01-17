@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, KW_ONLY
 from enum import IntFlag, auto, unique
 from typing import Sequence
 
@@ -242,11 +242,9 @@ class ZbcUnit(Elaboratable):
 
 @dataclass(frozen=True)
 class ZbcComponent(FunctionalComponentParams):
+    _: KW_ONLY
     recursion_depth: int = 3
-    zbc_fn = ZbcFn()
+    decoder_manager: ZbcFn = ZbcFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbcUnit(gen_params, self.recursion_depth, self.zbc_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.zbc_fn.get_op_types()
+        return ZbcUnit(gen_params, self.recursion_depth, self.decoder_manager)

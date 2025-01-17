@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from amaranth import *
 
 from enum import IntFlag, auto, unique
@@ -46,9 +47,9 @@ class PrivilegedFn(DecoderManager):
 
 
 class PrivilegedFuncUnit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
         self.gen_params = gen_params
-        self.priv_fn = PrivilegedFn()
+        self.priv_fn = priv_fn
 
         self.layouts = layouts = gen_params.get(FuncUnitLayouts)
         self.dm = DependencyContext.get()
@@ -190,12 +191,12 @@ class PrivilegedFuncUnit(Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class PrivilegedUnitComponent(FunctionalComponentParams):
+    decoder_manager: PrivilegedFn = PrivilegedFn()
+
     def get_module(self, gp: GenParams) -> FuncUnit:
-        unit = PrivilegedFuncUnit(gp)
+        unit = PrivilegedFuncUnit(gp, self.decoder_manager)
         connections = DependencyContext.get()
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
         return unit
-
-    def get_optypes(self) -> set[OpType]:
-        return PrivilegedFn().get_op_types()

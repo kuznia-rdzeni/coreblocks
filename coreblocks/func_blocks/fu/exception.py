@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Sequence
 from amaranth import *
 from coreblocks.arch.isa_consts import PrivilegeLevel
@@ -108,13 +109,9 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class ExceptionUnitComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.unit_fn = ExceptionUnitFn()
+    decoder_manager: ExceptionUnitFn = ExceptionUnitFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = ExceptionFuncUnit(gen_params, self.unit_fn)
-        return unit
-
-    def get_optypes(self) -> set[OpType]:
-        return self.unit_fn.get_op_types()
+        return ExceptionFuncUnit(gen_params, self.decoder_manager)
