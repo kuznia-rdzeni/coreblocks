@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737026758782,
+  "lastUpdate": 1737321181330,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15285,6 +15285,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.2912586817640416,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3275963544917869,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43960746096140335,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c53cbe345cd29c856c1561e09bc26f750973eb25",
+          "message": "Implement Zaamo - atomic memory operations extension (#779)",
+          "timestamp": "2025-01-19T21:59:22+01:00",
+          "tree_id": "426747d062ae553c3c8acd71985026876ec5a4fc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c53cbe345cd29c856c1561e09bc26f750973eb25"
+        },
+        "date": 1737321177116,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.41669606786750707,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5253515724878548,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37076783873071983,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6311502731844466,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35923880597014923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2912616853752984,
             "unit": "Instructions Per Cycle"
           },
           {
