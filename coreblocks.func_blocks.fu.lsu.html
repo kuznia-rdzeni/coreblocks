@@ -136,6 +136,58 @@ address is in correct range. Addresses have to be aligned.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper">
+<span id="coreblocks-func-blocks-fu-lsu-lsu-atomic-wrapper-module"></span><h2>coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.</span></span><span class="sig-name descname"><span class="pre">LSUAtomicWrapper</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncUnit" title="coreblocks.func_blocks.interface.func_protocols.FuncUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">FuncUnit</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Wrapper for LSU that adds support for atomic operations.</p>
+<dl class="simple">
+<dt>It provides simplified implementation of atomic operations under assumptions that:</dt><dd><ul class="simple">
+<li><p>LSU doesn’t reorder memory accesses, like in <cite>LSUDummy</cite></p></li>
+<li><p>There is only one hart</p></li>
+</ul>
+</dd>
+</dl>
+<p>AMO operations issue two independent accesses (unless there is an exception) to LSU and execute operations
+in the internal ALU.
+SC are only matched to LR, reservation set size is infinite.</p>
+<p>Behaviour of atomic insturctions on Memory Mapped I/O space is currently undefined.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">lsu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncUnit" title="coreblocks.func_blocks.interface.func_protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapper.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.</span></span><span class="sig-name descname"><span class="pre">LSUAtomicWrapperComponent</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams" title="coreblocks.params.fu_params.FunctionalComponentParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionalComponentParams</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lsu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.lsu.dummyLsu.LSUComponent" title="coreblocks.func_blocks.fu.lsu.dummyLsu.LSUComponent"><span class="pre">LSUComponent</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.get_module">
+<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncUnit" title="coreblocks.func_blocks.interface.func_protocols.FuncUnit"><span class="pre">FuncUnit</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.get_module" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.get_optypes">
+<span class="sig-name descname"><span class="pre">get_optypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.13)"><span class="pre">set</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.OpType" title="coreblocks.arch.optypes.OpType"><span class="pre">coreblocks.arch.optypes.OpType</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.get_optypes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.lsu">
+<span class="sig-name descname"><span class="pre">lsu</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#coreblocks.func_blocks.fu.lsu.dummyLsu.LSUComponent" title="coreblocks.func_blocks.fu.lsu.dummyLsu.LSUComponent"><span class="pre">LSUComponent</span></a></em><a class="headerlink" href="#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.lsu" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.lsu.lsu_requester">
 <span id="coreblocks-func-blocks-fu-lsu-lsu-requester-module"></span><h2>coreblocks.func_blocks.fu.lsu.lsu_requester module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.lsu.lsu_requester" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -289,7 +341,7 @@ includes both start and end address.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 11:13 2025-01-16.
+      <span class="lastupdated">Last updated on 21:00 2025-01-19.
       </span></p>
   </div>
 

@@ -12,6 +12,14 @@ coreblocks.func\_blocks.fu.lsu.dummyLsu module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.lsu.lsu\_atomic\_wrapper module
+----------------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.lsu.lsu\_requester module
 ----------------------------------------------------
 
