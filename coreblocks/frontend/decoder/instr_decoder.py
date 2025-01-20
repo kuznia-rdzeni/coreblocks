@@ -225,10 +225,13 @@ class InstrDecoder(Elaboratable):
         m.d.comb += self.optype.eq(OpType.UNKNOWN)
 
         for enc in supported_encodings:
+            funct7 = self.funct7 & ~(
+                0b11 if enc.opcode == Opcode.AMO else 0
+            )  # HACK: AMO stores aq/rl fields in LSB of Funct7, match Funct5 as Funct7
             with m.If(
                 (opcode == enc.opcode if enc.opcode is not None else 1)
                 & (self.funct3 == enc.funct3 if enc.funct3 is not None else 1)
-                & (self.funct7 == enc.funct7 if enc.funct7 is not None else 1)
+                & (funct7 == enc.funct7 if enc.funct7 is not None else 1)
                 & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
                 & (self.rd == 0 if enc.rd_zero else 1)
                 & (self.rs1 == 0 if enc.rs1_zero else 1)

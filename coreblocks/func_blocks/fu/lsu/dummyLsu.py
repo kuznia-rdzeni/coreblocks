@@ -73,7 +73,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
 
-        @def_method(m, self.issue, single_caller=True)
+        @def_method(m, self.issue)
         def _(arg):
             self.log.debug(
                 m, 1, "issue rob_id={} funct3={} op_type={}", arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type
