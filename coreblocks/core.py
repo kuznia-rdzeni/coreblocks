@@ -80,14 +80,6 @@ class Core(Component):
             blocks=gen_params.func_units_config,
         )
 
-        self.announcement = ResultAnnouncement(
-            gen_params=self.gen_params,
-            get_result=self.func_blocks_unifier.get_result,
-            rob_mark_done=self.ROB.mark_done,
-            rs_update=self.func_blocks_unifier.update,
-            rf_write=self.RF.write,
-        )
-
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)
 
@@ -147,8 +139,14 @@ class Core(Component):
 
             m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
-        m.submodules.announcement = self.announcement
+        m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
+        announcement.m_get_result.proxy(m, self.func_blocks_unifier.get_result)
+        announcement.m_rob_mark_done.proxy(m, self.ROB.mark_done)
+        announcement.m_rs_update.proxy(m, self.func_blocks_unifier.update)
+        announcement.m_rf_write_val.proxy(m, self.RF.write)
+
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
+
         m.submodules.retirement = retirement = Retirement(self.gen_params)
         retirement.rob_peek.proxy(m, rob.peek)
         retirement.rob_retire.proxy(m, rob.retire)
