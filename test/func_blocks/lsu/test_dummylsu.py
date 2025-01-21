@@ -95,7 +95,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.accept_mock = self.accept = TestbenchIO(Adapter(func_unit.push_result))
         m.submodules.bus_master_adapter = self.bus_master_adapter
         return m
 
