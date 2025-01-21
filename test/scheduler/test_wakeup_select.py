@@ -27,15 +27,12 @@ class WakeupTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        ready_mock = Adapter.create(o=self.layouts.get_ready_list_out)
-        take_row_mock = Adapter.create(i=self.layouts.take_in, o=self.layouts.take_out)
-        issue_mock = Adapter.create(i=self.layouts.take_out)
-        m.submodules.ready_mock = self.ready_mock = TestbenchIO(ready_mock)
-        m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(take_row_mock)
-        m.submodules.issue_mock = self.issue_mock = TestbenchIO(issue_mock)
-        m.submodules.wakeup_select = WakeupSelect(
-            gen_params=self.gen_params, get_ready=ready_mock.iface, take_row=take_row_mock.iface, issue=issue_mock.iface
+        m.submodules.wakeup_select = wakeup_select = WakeupSelect(
+            gen_params=self.gen_params, rs_entries_bits=self.gen_params.max_rs_entries_bits
         )
+        m.submodules.ready_mock = self.ready_mock = TestbenchIO(Adapter(wakeup_select.get_ready))
+        m.submodules.take_row_mock = self.take_row_mock = TestbenchIO(Adapter(wakeup_select.take_row))
+        m.submodules.issue_mock = self.issue_mock = TestbenchIO(Adapter(wakeup_select.issue))
 
         return m
 

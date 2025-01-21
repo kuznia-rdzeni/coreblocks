@@ -80,10 +80,11 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         for n, (func_unit, _) in enumerate(self.func_units):
             wakeup_select = WakeupSelect(
                 gen_params=self.gen_params,
-                get_ready=self.rs.get_ready_list[n],
-                take_row=self.rs.take,
-                issue=func_unit.issue,
+                rs_entries_bits=self.rs_entries_bits,
             )
+            wakeup_select.get_ready.proxy(m, self.rs.get_ready_list[n])
+            wakeup_select.take_row.proxy(m, self.rs.take)
+            wakeup_select.issue.proxy(m, func_unit.issue)
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
 
