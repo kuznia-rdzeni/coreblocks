@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737455177662,
+  "lastUpdate": 1737455178960,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -44763,6 +44763,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 23066,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1914,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1216,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 7197,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8648c297b90a433cf4b4ad895cff6d1c2709a54a",
+          "message": "pytest: avoid external dependencies when recursing for test discovery (#787)",
+          "timestamp": "2025-01-21T11:12:20+01:00",
+          "tree_id": "97d7d8938bd1e6adbb19390a616261679dac5ed6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8648c297b90a433cf4b4ad895cff6d1c2709a54a"
+        },
+        "date": 1737455178585,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.84,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 22468,
             "unit": "LUT4"
           },
           {
