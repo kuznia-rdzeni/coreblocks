@@ -17,7 +17,7 @@ from transactron.lib import BasicFifo
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
-class JumpBranchWrapper(Elaboratable):
+class JumpBranchWrapper(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, auipc_test: bool):
         self.gp = gen_params
         self.auipc_test = auipc_test

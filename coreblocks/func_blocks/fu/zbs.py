@@ -7,7 +7,6 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import Method, TModule, def_method
-from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
@@ -92,8 +91,8 @@ class ZbsUnit(FuncUnit, Elaboratable):
     ----------
     issue: Method(i=FuncUnitLayouts.issue)
         Method used for requesting computation.
-    accept: Method(i=FuncUnitLayouts.accept)
-        Method used for getting result of requested computation.
+    push_result: Method(i=FuncUnitLayouts.push_result)
+        Method called for pushing result of requested computation.
     """
 
     def __init__(self, gen_params: GenParams, zbs_fn=ZbsFunction()):
@@ -101,7 +100,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
 
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.zbs_fn = zbs_fn
 
@@ -109,12 +108,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
-        m.submodules.result_fifo = result_fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
-
-        @def_method(m, self.accept)
-        def _(arg):
-            return result_fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -124,7 +118,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
             m.d.av_comb += zbs.in1.eq(arg.s1_val)
             m.d.av_comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            result_fifo.write(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst, exception=0)
+            self.push_result(m, rob_id=arg.rob_id, result=zbs.result, rp_dst=arg.rp_dst, exception=0)
 
         return m
 

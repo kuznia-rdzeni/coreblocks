@@ -28,7 +28,7 @@ from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
-from transactron.lib import AdapterTrans
+from transactron.lib import Adapter, AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface, WishboneSignature
 from constants.ecp5_platforms import (
     ResourceBuilder,
@@ -111,7 +111,7 @@ def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
         issue_adapter = AdapterTrans(fu.issue)
-        accept_adapter = AdapterTrans(fu.accept)
+        accept_adapter = Adapter(fu.push_result)
 
         issue_connector, issue_resources = InterfaceConnector.with_resources(issue_adapter, "adapter", 0)
         accept_connector, accept_resources = InterfaceConnector.with_resources(accept_adapter, "adapter", 1)
