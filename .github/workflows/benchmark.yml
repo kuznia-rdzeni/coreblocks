@@ -25,7 +25,7 @@ jobs:
           (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
         )
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 40
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
     steps:
@@ -98,7 +98,7 @@ jobs:
 
   run-perf-benchmarks:
     name: Run performance benchmarks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 30
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: build-perf-benchmarks
