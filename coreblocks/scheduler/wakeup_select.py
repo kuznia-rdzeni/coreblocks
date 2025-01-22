@@ -27,6 +27,10 @@ class WakeupSelect(Elaboratable):
         Method which is invoked to a push row down the pipeline. It uses `FuncUnitLayouts.issue`.
     """
 
+    get_ready: Required[Method]
+    take_row: Required[Method]
+    issue: Required[Method]
+
     def __init__(self, *, gen_params: GenParams, rs_entries_bits: int):
         """
         Parameters
