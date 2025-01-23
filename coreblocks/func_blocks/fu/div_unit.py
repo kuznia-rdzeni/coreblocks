@@ -134,7 +134,7 @@ class DivUnit(FuncUnit, Elaboratable):
 @dataclass(frozen=True)
 class DivComponent(FunctionalComponentParams):
     _: KW_ONLY
-    result_fifo: bool = True
+    result_fifo: bool = False  # last step is registered
     ipc: int = 3  # iterations per cycle
     decoder_manager: DivFn = DivFn()
 

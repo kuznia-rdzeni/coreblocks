@@ -208,7 +208,7 @@ class MulUnit(FuncUnit, Elaboratable):
 class MulComponent(FunctionalComponentParams):
     mul_unit_type: MulType
     _: KW_ONLY
-    result_fifo: bool = True
+    result_fifo: bool = False  # last step is registered
     dsp_width: int = 32
     decoder_manager: MulFn = MulFn()
 
