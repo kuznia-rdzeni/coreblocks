@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, KW_ONLY
 from enum import IntFlag, auto
 from typing import Sequence
 from amaranth import *
@@ -125,7 +125,9 @@ class ZbsUnit(FuncUnit, Elaboratable):
 
 @dataclass(frozen=True)
 class ZbsComponent(FunctionalComponentParams):
+    _: KW_ONLY
     decoder_manager: ZbsFunction = ZbsFunction()
+    result_fifo: bool = True
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return ZbsUnit(gen_params, self.decoder_manager)

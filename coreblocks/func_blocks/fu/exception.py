@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, KW_ONLY
 from typing import Sequence
 from amaranth import *
 from coreblocks.arch.isa_consts import PrivilegeLevel
@@ -105,6 +105,8 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
 
 @dataclass(frozen=True)
 class ExceptionUnitComponent(FunctionalComponentParams):
+    _: KW_ONLY
+    result_fifo: bool = True
     decoder_manager: ExceptionUnitFn = ExceptionUnitFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:

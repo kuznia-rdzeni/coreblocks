@@ -107,6 +107,7 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
 @dataclass(frozen=True)
 class ShiftUnitComponent(FunctionalComponentParams):
     _: KW_ONLY
+    result_fifo: bool = True
     zbb_enable: bool = False
     decoder_manager: ShiftUnitFn = field(init=False)
 
