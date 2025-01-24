@@ -159,5 +159,8 @@ class LSUAtomicWrapperComponent(FunctionalComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return LSUAtomicWrapper(gen_params, self.lsu.get_module(gen_params))
 
+    def get_decoder_manager(self):
+        pass  # LSU component currently doesn't have a decoder manager
+
     def get_optypes(self) -> set[OpType]:
         return {OpType.ATOMIC_MEMORY_OP} | self.lsu.get_optypes()

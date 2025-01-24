@@ -133,14 +133,14 @@ def unit_fu(unit_params: FunctionalComponentParams):
 
 core_units = {
     "core": unit_core,
-    "alu_basic": unit_fu(ALUComponent(False, False)),
-    "alu_full": unit_fu(ALUComponent(True, True)),
+    "alu_basic": unit_fu(ALUComponent(zba_enable=False, zbb_enable=False, zicond_enable=False)),
+    "alu_full": unit_fu(ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True)),
     "mul_shift": unit_fu(MulComponent(MulType.SHIFT_MUL)),
     "mul_sequence": unit_fu(MulComponent(MulType.SEQUENCE_MUL)),
     "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
     "div": unit_fu(DivComponent()),
-    "shift_basic": unit_fu(ShiftUnitComponent(False)),
-    "shift_full": unit_fu(ShiftUnitComponent(True)),
+    "shift_basic": unit_fu(ShiftUnitComponent(zbb_enable=False)),
+    "shift_full": unit_fu(ShiftUnitComponent(zbb_enable=True)),
     "zbs": unit_fu(ZbsComponent()),
     "zbc": unit_fu(ZbcComponent()),
 }

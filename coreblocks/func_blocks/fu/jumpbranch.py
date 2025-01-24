@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from amaranth import *
 
 from enum import IntFlag, auto
@@ -288,13 +289,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class JumpComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.jb_fn = JumpBranchFn()
+    decoder_manager: JumpBranchFn = JumpBranchFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
-        return unit
-
-    def get_optypes(self) -> set[OpType]:
-        return self.jb_fn.get_op_types()
+        return JumpBranchFuncUnit(gen_params, self.decoder_manager)

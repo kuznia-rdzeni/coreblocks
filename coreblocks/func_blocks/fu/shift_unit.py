@@ -1,3 +1,4 @@
+from dataclasses import dataclass, KW_ONLY, field
 from typing import Sequence
 from amaranth import *
 
@@ -109,12 +110,14 @@ class ShiftFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class ShiftUnitComponent(FunctionalComponentParams):
-    def __init__(self, zbb_enable=False):
-        self.shift_unit_fn = ShiftUnitFn(zbb_enable=zbb_enable)
+    _: KW_ONLY
+    zbb_enable: bool = False
+    decoder_manager: ShiftUnitFn = field(init=False)
+
+    def get_decoder_manager(self):
+        return ShiftUnitFn(zbb_enable=self.zbb_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ShiftFuncUnit(gen_params, self.shift_unit_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.shift_unit_fn.get_op_types()
+        return ShiftFuncUnit(gen_params, self.decoder_manager)
