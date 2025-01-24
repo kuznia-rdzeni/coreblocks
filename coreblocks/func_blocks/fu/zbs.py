@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import IntFlag, auto
 from typing import Sequence
 from amaranth import *
@@ -128,12 +129,9 @@ class ZbsUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class ZbsComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.zbs_fn = ZbsFunction()
+    decoder_manager: ZbsFunction = ZbsFunction()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbsUnit(gen_params, self.zbs_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.zbs_fn.get_op_types()
+        return ZbsUnit(gen_params, self.decoder_manager)

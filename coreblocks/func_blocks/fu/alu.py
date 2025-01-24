@@ -1,3 +1,4 @@
+from dataclasses import dataclass, KW_ONLY, field
 from typing import Sequence
 from amaranth import *
 
@@ -277,15 +278,16 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class ALUComponent(FunctionalComponentParams):
-    def __init__(self, zba_enable=False, zbb_enable=False, zicond_enable=False):
-        self.zba_enable = zba_enable
-        self.zbb_enable = zbb_enable
-        self.zicond_enable = zicond_enable
-        self.alu_fn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable, zicond_enable=zicond_enable)
+    _: KW_ONLY
+    zba_enable: bool = False
+    zbb_enable: bool = False
+    zicond_enable: bool = False
+    decoder_manager: AluFn = field(init=False)
+
+    def get_decoder_manager(self):
+        return AluFn(zba_enable=self.zba_enable, zbb_enable=self.zbb_enable, zicond_enable=self.zicond_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return AluFuncUnit(gen_params, self.alu_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.alu_fn.get_op_types()
+        return AluFuncUnit(gen_params, self.decoder_manager)
