@@ -2,7 +2,6 @@ from amaranth import *
 from coreblocks.interface.layouts import RetirementLayouts
 
 from transactron.core import Method, Transaction, TModule, def_method
-from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
 
@@ -112,7 +111,6 @@ class Retirement(Elaboratable):
 
         continue_pc_override = Signal()
         continue_pc = Signal(self.gen_params.isa.xlen)
-        core_flushing = Signal()
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -177,15 +175,8 @@ class Retirement(Elaboratable):
                         # Normally retire all non-trap instructions
                         m.d.av_comb += commit.eq(1)
 
-                    # Condition is used to avoid FRAT locking during normal operation
-                    with condition(m) as cond:
-                        with cond(commit):
-                            retire_instr(rob_entry)
-                        with cond():
-                            # Not using default condition, because we want to block if branch is not ready
-                            flush_instr(rob_entry)
-
-                            m.d.comb += core_flushing.eq(1)
+                    with m.If(commit):
+                        retire_instr(rob_entry)
 
                     validate_transaction.schedule_before(retire_transaction)
 
@@ -201,8 +192,6 @@ class Retirement(Elaboratable):
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
-
-                m.d.comb += core_flushing.eq(1)
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
@@ -233,7 +222,8 @@ class Retirement(Elaboratable):
                     m.next = "NORMAL"
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+        core_flushing = fsm.ongoing("TRAP_FLUSH")
+        m.d.comb += side_fx.eq(~core_flushing)
 
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
