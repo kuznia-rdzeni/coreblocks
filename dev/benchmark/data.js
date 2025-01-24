@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737552775930,
+  "lastUpdate": 1737711515488,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15447,6 +15447,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/320219c1c7d0e45e66af4265dea1891e16be218f"
         },
         "date": 1737552765743,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.41669606786750707,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5253515724878548,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37076783873071983,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6311502731844466,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35923880597014923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2912616853752984,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3275963544917869,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43960746096140335,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "64d7cf9ebf3f5d83894b6832fc418a7b9b293e96",
+          "message": "Make FU params more consistent (#784)",
+          "timestamp": "2025-01-24T10:25:06+01:00",
+          "tree_id": "79c88ed5e6c01ecd7f68a00113d69d34705c0180",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/64d7cf9ebf3f5d83894b6832fc418a7b9b293e96"
+        },
+        "date": 1737711510766,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
