@@ -22,7 +22,7 @@ class BackendTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        self.lay_result = self.gen_params.get(FuncUnitLayouts).accept
+        self.lay_result = self.gen_params.get(FuncUnitLayouts).push_result
 
         # Initialize for each FU an FIFO which will be a stub for that FU
         fu_fifos = []

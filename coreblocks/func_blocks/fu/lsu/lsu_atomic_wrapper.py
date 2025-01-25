@@ -3,7 +3,6 @@ from amaranth import *
 from dataclasses import dataclass
 
 from transactron.core import TModule, Method, Transaction, def_method
-from transactron.lib.connectors import Forwarder
 from transactron.utils import assign, layout_subset, AssignType
 
 from coreblocks.arch import Funct3, Funct7, OpType
@@ -34,7 +33,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
         self.fu_layouts = fu_layouts = gen_params.get(FuncUnitLayouts)
         self.issue = Method(i=fu_layouts.issue)
-        self.accept = Method(o=fu_layouts.accept)
+        self.push_result = Method(i=fu_layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()
@@ -80,8 +79,6 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
         load_val = Signal(self.gen_params.isa.xlen)
 
-        accept_forwarder = Forwarder(self.fu_layouts.accept)
-
         @def_method(m, self.issue, ready=~atomic_in_progress)
         def _(arg):
             is_atomic = arg.exec_fn.op_type == OpType.ATOMIC_MEMORY_OP
@@ -100,32 +97,29 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 m.d.sync += atomic_in_progress.eq(1)
                 m.d.sync += assign(atomic_op, arg, fields=AssignType.LHS)
 
-        @def_method(m, self.accept)
-        def _():
-            return accept_forwarder.read(m)
-
         atomic_second_reqest = Signal()
         atomic_fin = Signal()
 
-        with Transaction().body(m):
-            res = self.lsu.accept(m)
+        push_result = Method(i=self.fu_layouts.push_result)
 
+        @def_method(m, push_result)
+        def _(arg):
             # 1st atomic result
-            with m.If((res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & ~res.exception):
+            with m.If((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & ~arg.exception):
                 # NOTE: This branch could be optimised by replacing Ifs with condition to be independent of
-                # accept.ready, but it causes combinational loop because of `rob_id` data dependency.
-                m.d.sync += load_val.eq(res.result)
+                # push_result.ready, but it causes combinational loop because of `rob_id` data dependency.
+                m.d.sync += load_val.eq(arg.result)
                 m.d.sync += atomic_second_reqest.eq(1)
-            with m.Elif((res.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & res.exception):
-                accept_forwarder.write(m, res)
+            with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & arg.exception):
+                self.push_result(m, arg)
                 m.d.sync += atomic_in_progress.eq(0)
 
             # 2nd atomic result
             with m.Elif(atomic_in_progress & atomic_fin):
-                atomic_res = Signal(self.fu_layouts.accept)
-                m.d.av_comb += assign(atomic_res, res)
-                m.d.av_comb += atomic_res.result.eq(Mux(res.exception, 0, load_val))
-                accept_forwarder.write(m, atomic_res)
+                atomic_res = Signal(self.fu_layouts.push_result)
+                m.d.av_comb += assign(atomic_res, arg)
+                m.d.av_comb += atomic_res.result.eq(Mux(arg.exception, 0, load_val))
+                self.push_result(m, atomic_res)
 
                 m.d.sync += atomic_in_progress.eq(0)
                 m.d.sync += atomic_second_reqest.eq(0)
@@ -133,7 +127,9 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
             # Non-atomic results
             with m.Else():
-                accept_forwarder.write(m, res)
+                self.push_result(m, arg)
+
+        self.lsu.push_result.proxy(m, push_result)
 
         with Transaction().body(m, request=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
             atomic_store_op = Signal(self.fu_layouts.issue)
@@ -146,7 +142,6 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
             m.d.sync += atomic_fin.eq(1)
 
-        m.submodules.accept_forwarder = accept_forwarder
         m.submodules.lsu = self.lsu
 
         return m
@@ -158,6 +153,9 @@ class LSUAtomicWrapperComponent(FunctionalComponentParams):
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
         return LSUAtomicWrapper(gen_params, self.lsu.get_module(gen_params))
+
+    def get_decoder_manager(self):
+        pass  # LSU component currently doesn't have a decoder manager
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.ATOMIC_MEMORY_OP} | self.lsu.get_optypes()
