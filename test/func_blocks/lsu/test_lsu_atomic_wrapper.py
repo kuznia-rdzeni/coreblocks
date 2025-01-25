@@ -1,8 +1,8 @@
 from collections import deque
 import random
 from amaranth import *
-from transactron import TModule
-from transactron.lib import Adapter
+from transactron import Method, TModule
+from transactron.lib import Adapter, AdapterTrans
 from transactron.testing import MethodMock, SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
 
 from coreblocks.arch.isa_consts import Funct3, Funct7
@@ -15,20 +15,20 @@ from coreblocks.params.genparams import GenParams
 
 
 class FuncUnitMock(FuncUnit, Elaboratable):
-    def __init__(self, gen_params):
+    def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(FuncUnitLayouts)
 
-        self.issue_tb = TestbenchIO(Adapter.create(i=layouts.issue))
-        self.accept_tb = TestbenchIO(Adapter.create(o=layouts.accept))
+        self.issue = Method(i=layouts.issue)
+        self.push_result = Method(i=layouts.push_result)
 
-        self.issue = self.issue_tb.adapter.iface
-        self.accept = self.accept_tb.adapter.iface
+        self.issue_tb = TestbenchIO(Adapter(self.issue))
+        self.push_result_tb = TestbenchIO(AdapterTrans(self.push_result))
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.issue_tb = self.issue_tb
-        m.submodules.accept_tb = self.accept_tb
+        m.submodules.push_result_tb = self.push_result_tb
 
         return m
 
@@ -74,7 +74,7 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
             )
 
     @def_method_mock(
-        lambda self: self.lsu.accept_tb, enable=lambda self: random.random() < 0.9 and len(self.lsu_res_q) > 0
+        lambda self: self.lsu.push_result_tb, enable=lambda self: random.random() < 0.9 and len(self.lsu_res_q) > 0
     )
     def lsu_accept_mock(self, arg):
         res = self.lsu_res_q[0]
@@ -185,7 +185,7 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
 
     async def accept_process(self, sim):
         for _ in range(self.inst_cnt):
-            res = await self.dut.accept.call(sim)
+            res = await self.dut.push_result.call(sim)
             assert res["exception"] == self.result_q[0]["exception"]
             assert res["result"] == self.result_q[0]["result"]
             assert res["rp_dst"] == self.result_q[0]["rp_dst"]
