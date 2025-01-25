@@ -95,7 +95,7 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter(func_unit.push_result))
         m.submodules.bus_master_adapter = self.bus_master_adapter
         return m
 
@@ -231,7 +231,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
     async def consumer(self, sim: TestbenchContext):
         for i in range(self.tests_number):
-            v = await self.test_module.accept.call(sim)
+            v = await self.test_module.push_result.call(sim)
             rob_id = v["rob_id"]
             assert rob_id not in self.free_rob_id
             self.free_rob_id.add(rob_id)
@@ -309,7 +309,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         r, v = (
             await CallTrigger(sim)
             .call(self.test_module.bus_master_adapter.get_read_response_mock, data=data, err=0)
-            .call(self.test_module.accept)
+            .call(self.test_module.push_result)
         )
         assert r is not None and v is not None
         assert v["result"] == data
@@ -411,7 +411,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
     async def get_resulter(self, sim: TestbenchContext):
         for i in range(self.tests_number):
-            v = await self.test_module.accept.call(sim)
+            v = await self.test_module.push_result.call(sim)
             rob_id = self.get_result_data.pop()
             assert v["rob_id"] == rob_id
             assert v["rp_dst"] == 0
@@ -445,7 +445,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
     async def push_one_instr(self, sim: TestbenchContext, instr):
         await self.test_module.issue.call(sim, instr)
 
-        v = await self.test_module.accept.call(sim)
+        v = await self.test_module.push_result.call(sim)
         if instr["exec_fn"]["op_type"] == OpType.LOAD:
             assert v.result == 1
 

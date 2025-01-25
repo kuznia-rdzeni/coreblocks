@@ -1,5 +1,5 @@
 from typing import Protocol
-from transactron import Method
+from transactron import Method, Provided, Required
 from transactron.utils._typing import HasElaborate
 
 
@@ -7,8 +7,8 @@ __all__ = ["FuncUnit", "FuncBlock"]
 
 
 class FuncUnit(HasElaborate, Protocol):
-    issue: Method
-    accept: Method
+    issue: Provided[Method]
+    push_result: Required[Method]
 
 
 class FuncBlock(HasElaborate, Protocol):

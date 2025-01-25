@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, KW_ONLY
 from enum import IntFlag, auto, unique
 from typing import Sequence
 
@@ -8,7 +8,7 @@ from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
 from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron import Method, def_method, TModule
+from transactron import Method, Transaction, def_method, TModule
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -149,7 +149,7 @@ class ClMultiplier(Elaboratable):
         return m
 
 
-class ZbcUnit(Elaboratable):
+class ZbcUnit(FuncUnit, Elaboratable):
     """
     Module responsible for executing Zbc instructions (carry-less multiplication)
 
@@ -157,8 +157,8 @@ class ZbcUnit(Elaboratable):
     ----------
     issue: Method(i=FuncUnitLayouts.issue)
         Method used for requesting computation.
-    accept: Method(i=FuncUnitLayouts.accept)
-        Method used for getting result of requested computation.
+    push_result: Method(i=FuncUnitLayouts.push_result)
+        Method called for pushing result of requested computation.
     """
 
     def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
@@ -168,7 +168,7 @@ class ZbcUnit(Elaboratable):
         self.recursion_depth = recursion_depth
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()
@@ -187,8 +187,7 @@ class ZbcUnit(Elaboratable):
 
         m.d.comb += clmul.reset.eq(0)
 
-        @def_method(m, self.accept, ready=~clmul.busy)
-        def _():
+        with Transaction().body(m, request=~clmul.busy):
             xlen = self.gen_params.isa.xlen
 
             output = clmul.result
@@ -197,7 +196,7 @@ class ZbcUnit(Elaboratable):
             result = Mux(params.high_res, output[xlen:], output[:xlen])
             reversed_result = Mux(params.rev_res, result[::-1], result)
 
-            return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result, "exception": 0}
+            self.push_result(m, rob_id=params.rob_id, rp_dst=params.rp_dst, result=reversed_result, exception=0)
 
         @def_method(m, self.issue)
         def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):
@@ -242,11 +241,9 @@ class ZbcUnit(Elaboratable):
 
 @dataclass(frozen=True)
 class ZbcComponent(FunctionalComponentParams):
+    _: KW_ONLY
     recursion_depth: int = 3
-    zbc_fn = ZbcFn()
+    decoder_manager: ZbcFn = ZbcFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return ZbcUnit(gen_params, self.recursion_depth, self.zbc_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.zbc_fn.get_op_types()
+        return ZbcUnit(gen_params, self.recursion_depth, self.decoder_manager)
