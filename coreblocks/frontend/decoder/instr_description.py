@@ -219,4 +219,8 @@ instructions_by_optype = {
         Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMAX),
         Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMIN),
     ],
+    OpType.ATOMIC_LR_SC: [
+        Encoding(Opcode.AMO, Funct3.W, Funct7.LR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.SC),
+    ],
 }

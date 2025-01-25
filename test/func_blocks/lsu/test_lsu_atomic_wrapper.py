@@ -1,6 +1,7 @@
 from collections import deque
 import random
 from amaranth import *
+from amaranth.utils import ceil_log2
 from transactron import TModule
 from transactron.lib import Adapter
 from transactron.testing import MethodMock, SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
@@ -36,17 +37,17 @@ class FuncUnitMock(FuncUnit, Elaboratable):
 class TestLSUAtomicWrapper(TestCaseWithSimulator):
     def setup_method(self):
         random.seed(1258)
-        self.gen_params = GenParams(test_core_config)
+        self.inst_cnt = 255
+        self.gen_params = GenParams(test_core_config.replace(rob_entries_bits=ceil_log2(self.inst_cnt)))
         self.lsu = FuncUnitMock(self.gen_params)
         self.dut = SimpleTestCircuit(LSUAtomicWrapper(self.gen_params, self.lsu))
 
         self.mem_cell = 0
         self.instr_q = deque()
-        self.result_q = deque()
+        self.results = {}
         self.lsu_res_q = deque()
         self.lsu_except_q = deque()
 
-        self.inst_cnt = 200
         self.generate_instrs(self.inst_cnt)
 
     @def_method_mock(lambda self: self.lsu.issue_tb, enable=lambda _: random.random() < 0.9)
@@ -87,8 +88,9 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
 
     def generate_instrs(self, cnt):
         generation_mem_cell = 0
+        generation_reservation_valid = 0
         for i in range(cnt):
-            optype = random.choice([OpType.LOAD, OpType.STORE, OpType.ATOMIC_MEMORY_OP])
+            optype = random.choice([OpType.LOAD, OpType.STORE, OpType.ATOMIC_MEMORY_OP, OpType.ATOMIC_LR_SC])
             funct7 = 0
 
             imm = random.randint(0, 1)
@@ -155,6 +157,28 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
 
                 if not exception_on_load:
                     self.lsu_except_q.append({"addr": s1_val, "exception": exception})
+            elif optype == OpType.ATOMIC_LR_SC:
+                is_load = random.random() < 0.5
+                exception = random.random() < 0.3
+                sc_fail = False
+                if is_load:
+                    funct7 = Funct7.LR
+                    generation_reservation_valid = not exception
+                    result = generation_mem_cell if not exception else 0
+                else:
+                    funct7 = Funct7.SC
+                    if generation_reservation_valid:
+                        if not exception:
+                            generation_mem_cell = s2_val
+                    else:
+                        sc_fail = True
+                        exception = 0
+
+                    result = 0 if generation_reservation_valid or exception else 1
+                    generation_reservation_valid = 0
+
+                if not sc_fail:
+                    self.lsu_except_q.append({"addr": s1_val, "exception": exception})
 
             elif optype == OpType.LOAD:
                 result = generation_mem_cell
@@ -165,9 +189,10 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
                 self.lsu_except_q.append({"addr": s1_val + imm, "exception": 0})
 
             exec_fn = {"op_type": optype, "funct3": Funct3.W, "funct7": funct7}
+            rob_id = i
             instr = {
                 "rp_dst": rp_dst,
-                "rob_id": i,
+                "rob_id": rob_id,
                 "exec_fn": exec_fn,
                 "s1_val": s1_val,
                 "s2_val": s2_val,
@@ -175,7 +200,7 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
                 "pc": 0,
             }
             self.instr_q.append(instr)
-            self.result_q.append({"rob_id": 0, "rp_dst": rp_dst, "result": result, "exception": exception})
+            self.results[rob_id] = {"rob_id": rob_id, "rp_dst": rp_dst, "result": result, "exception": exception}
 
     async def issue_process(self, sim):
         while self.instr_q:
@@ -186,13 +211,13 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
     async def accept_process(self, sim):
         for _ in range(self.inst_cnt):
             res = await self.dut.accept.call(sim)
-            assert res["exception"] == self.result_q[0]["exception"]
-            assert res["result"] == self.result_q[0]["result"]
-            assert res["rp_dst"] == self.result_q[0]["rp_dst"]
-            self.result_q.popleft()
+            expected = self.results[res["rob_id"]]
+            assert res["rp_dst"] == expected["rp_dst"]
+            assert res["exception"] == expected["exception"]
+            assert res["result"] == expected["result"]
             await self.random_wait_geom(sim, 0.9)
 
     def test_randomized(self):
-        with self.run_simulation(self.dut, max_cycles=600) as sim:
+        with self.run_simulation(self.dut, max_cycles=700) as sim:
             sim.add_testbench(self.issue_process)
             sim.add_testbench(self.accept_process)
