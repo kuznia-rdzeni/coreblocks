@@ -43,7 +43,7 @@ class ResultAnnouncement(Elaboratable):
             fetch unit.
         """
 
-        self.m_get_result = Method(o=gen_params.get(FuncUnitLayouts).accept)
+        self.m_get_result = Method(o=gen_params.get(FuncUnitLayouts).push_result)
         self.m_rob_mark_done = Method(i=gen_params.get(ROBLayouts).mark_done_layout)
         self.m_rs_update = Method(
             i=gen_params.get(RSLayouts, rs_entries_bits=gen_params.max_rs_entries_bits).rs.update_in
