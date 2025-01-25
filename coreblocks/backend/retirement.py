@@ -125,7 +125,7 @@ class Retirement(Elaboratable):
                     self.rob_retire(m)
 
                     with m.If(rob_entry.tag_increment):
-                        self.checkpoint_tag_free()
+                        self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
 
@@ -203,7 +203,7 @@ class Retirement(Elaboratable):
                     self.rob_retire(m)
 
                     with m.If(rob_entry.tag_increment):
-                        self.checkpoint_tag_free()
+                        self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
 

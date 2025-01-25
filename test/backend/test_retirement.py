@@ -3,6 +3,7 @@ from coreblocks.interface.layouts import (
     ExceptionRegisterLayouts,
     FetchLayouts,
     InternalInterruptControllerLayouts,
+    RATLayouts,
 )
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
@@ -67,6 +68,11 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(o=interrupt_controller_layouts.interrupt_cause)
         )
 
+        m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(Adapter.create())
+        m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
+            Adapter.create(o=self.gen_params.get(RATLayouts).get_active_tags_out)
+        )
+
         m.submodules.retirement = self.retirement = Retirement(
             self.gen_params,
             rob_retire=self.mock_rob_retire.adapter.iface,
@@ -82,6 +88,8 @@ class RetirementTestCircuit(Elaboratable):
             instr_decrement=self.mock_instr_decrement.adapter.iface,
             trap_entry=self.mock_trap_entry.adapter.iface,
             async_interrupt_cause=self.mock_async_interrupt_cause.adapter.iface,
+            checkpoint_tag_free=self.mock_checkpoint_tag_free.adapter.iface,
+            checkpoint_get_active_tags=self.mock_checkpoint_get_active_tags.adapter.iface,
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
@@ -187,6 +195,10 @@ class TestRetirement(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
+
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
+    def mock_checkpoint_get_active_tags(self):
+        return {"active_tags": -1}
 
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)

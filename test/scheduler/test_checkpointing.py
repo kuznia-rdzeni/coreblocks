@@ -1,5 +1,3 @@
-from amaranth import *
-
 from enum import Enum
 import random
 
@@ -12,6 +10,7 @@ from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.params.configurations import test_core_config
 from transactron.testing import CallTrigger, TestCaseWithSimulator, def_method_mock
+from test.scheduler.test_scheduler import SchedulerTestCircuit
 
 
 # TODO: make tests with small/large delays & counts

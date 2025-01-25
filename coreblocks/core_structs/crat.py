@@ -6,7 +6,7 @@ from transactron.lib import logging
 from transactron.lib.connectors import Pipe
 from transactron.lib.simultaneous import condition
 from transactron.lib.storage import MemoryBank
-from transactron.utils import DependencyContext, make_layout
+from transactron.utils import DependencyContext, cyclic_mask, make_layout
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
@@ -30,12 +30,12 @@ class CheckpointRAT(Elaboratable):
         self.checkpoints_tail = Signal.like(self.checkpoints_head)
 
         self.tag_map = MemoryBank(
-            shape=make_layout(("checkpoint", range(gen_params.checkpoint_count))), elem_count=2**gen_params.tag_bits
+            shape=make_layout(("checkpoint", range(gen_params.checkpoint_count))), depth=2**gen_params.tag_bits
         )
 
         frat_layout = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
         self.frat = Signal(frat_layout)
-        self.storage = MemoryBank(shape=make_layout(("rat", frat_layout)), elem_count=gen_params.checkpoint_count)
+        self.storage = MemoryBank(shape=make_layout(("rat", frat_layout)), depth=gen_params.checkpoint_count)
 
         layouts = gen_params.get(RATLayouts)
 
@@ -46,7 +46,7 @@ class CheckpointRAT(Elaboratable):
         DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
 
         self.free_tag = Method()
-        self.get_active_tags = Method(o=layouts.get_active_tags_out, nonexclusive=True)
+        self.get_active_tags = Method(o=layouts.get_active_tags_out)
 
     def elaborate(self, platform):
         m = TModule()
@@ -60,24 +60,6 @@ class CheckpointRAT(Elaboratable):
         rollback_target_tag = Signal(self.gen_params.tag_bits)
 
         flushing_scheduler = Signal()
-
-        # TODO: move to transactron
-        def gen_cyclic_mask(bits: int, start: Value, end: Value):
-            start = start.as_unsigned()
-            end = end.as_unsigned()
-            mask = Signal(bits)
-            with m.If(start <= end):
-                sub_mask = Signal(bits + 1)  # +1 needed?
-                length = (end - start + 1).as_unsigned()
-                m.d.av_comb += sub_mask.eq((1 << length) - 1)
-                m.d.av_comb += mask.eq(sub_mask << start)
-            with m.Else():
-                left = Signal(bits + 1)
-                right = Signal(bits + 1)
-                m.d.av_comb += left.eq((1 << (end + 1)) - 1)
-                m.d.av_comb += right.eq((1 << ((bits - start).as_unsigned())) - 1)
-                m.d.av_comb += mask.eq(left | (right << start))
-            return mask
 
         active_tags_set_mask = Signal.like(active_tags, init=0)
         allocate_tag = Method(i=[("active", 1)], o=[("tag", self.gen_params.tag_bits)])
@@ -234,7 +216,7 @@ class CheckpointRAT(Elaboratable):
 
             # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
             with m.If((tag + 1 != self.tags_tail - 1) & (tag + 1 != self.tags_tail)):
-                invalidate_mask = gen_cyclic_mask(2**self.gen_params.tag_bits, tag + 1, self.tags_tail - 1)
+                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag + 1, self.tags_tail - 1)
                 m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
             log.debug(
                 m, True, "rollback to {:x}. invalidate tags from 0x{:x} to 0x{:x}", tag, tag + 1, self.tags_tail - 1
@@ -302,7 +284,7 @@ class CheckpointRAT(Elaboratable):
         # Misc
         # -----
 
-        @def_method(m, self.get_active_tags)
+        @def_method(m, self.get_active_tags, nonexclusive=True)
         def _():
             return {"active_tags": active_tags}
 

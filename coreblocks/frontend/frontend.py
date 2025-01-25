@@ -1,16 +1,18 @@
 from amaranth import *
 
 from transactron.core import *
-from transactron.lib import BasicFifo, Pipe
+from transactron.lib import BasicFifo, Connect, Pipe
+from transactron.utils import assign
 from transactron.utils.dependencies import DependencyContext
 
+from coreblocks.arch.optypes import OpType
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey, PredictedJumpTargetKey
+from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey, PredictedJumpTargetKey, RollbackKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
@@ -28,7 +30,7 @@ class RollbackTagger(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        rollback_tag = Signal(gen_params.tag_bits)
+        rollback_tag = Signal(self.gen_params.tag_bits)
         rollback_tag_v = Signal()
 
         with Transaction().body(m):
@@ -37,7 +39,7 @@ class RollbackTagger(Elaboratable):
             is_branch = instr.exec_fn.op_type == OpType.BRANCH
             # no need to make checkpoint at JALR, we currently stall the fetch on it
 
-            out = Signal(self.push_instr.input_layout)
+            out = Signal(self.gen_params.get(SchedulerLayouts).scheduler_in)
             m.d.av_comb += assign(out, instr)
             m.d.av_comb += out.rollback_tag.eq(rollback_tag)
             m.d.av_comb += out.rollback_tag_v.eq(rollback_tag_v)
@@ -96,7 +98,7 @@ class CoreFrontend(Elaboratable):
         self.target_pred_resp = Method(o=jb_layouts.predicted_jump_target_resp)
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
 
-        self.consume_instr = self.decode_pipe.read
+        self.consume_instr = self.output_pipe.read
         self.resume_from_exception = self.fetch.resume_from_exception
         self.resume_from_unsafe = self.fetch.resume_from_unsafe
         self.stall = Method()
@@ -138,16 +140,11 @@ class CoreFrontend(Elaboratable):
 
         def flush_frontend():
             self.instr_buffer.clear(m)
-            self.decode_pipe.clean(m)
+            self.output_pipe.clean(m)
 
         @def_method(m, self.stall)
         def _():
             flush_frontend()
             self.fetch.stall_exception(m)
-
-        @def_method(m, self.rollback_handler)
-        def _(pc: Value, tag: Value):
-            flush_frontend()
-            # self.fetch.external_redirect(pc=pc)
 
         return m
