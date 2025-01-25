@@ -382,8 +382,6 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.A7">A7 (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncUnit.accept">accept (coreblocks.func_blocks.interface.func_protocols.FuncUnit attribute)</a>
-</li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface.accept_refill">accept_refill (coreblocks.cache.iface.CacheRefillerInterface attribute)</a>
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.accept_res">accept_res (coreblocks.cache.iface.CacheInterface attribute)</a>
@@ -412,10 +410,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.AMO">AMO (coreblocks.arch.isa_consts.Opcode attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOADD">AMOADD (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOAND">AMOAND (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOMAX">AMOMAX (coreblocks.arch.isa_consts.Funct7 attribute)</a>
@@ -1493,7 +1491,7 @@
       <ul>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulFn.get_instructions">(coreblocks.func_blocks.fu.mul_unit.MulFn method)</a>
 </li>
-        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.priv.PrivilegedFn.get_instructions">(coreblocks.func_blocks.fu.priv.PrivilegedFn class method)</a>
+        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.priv.PrivilegedFn.get_instructions">(coreblocks.func_blocks.fu.priv.PrivilegedFn method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbc.ZbcFn.get_instructions">(coreblocks.func_blocks.fu.zbc.ZbcFn class method)</a>
 </li>
@@ -2673,10 +2671,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR45">PMPADDR45 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR46">PMPADDR46 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR47">PMPADDR47 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR48">PMPADDR48 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2775,6 +2773,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel">PrivilegeLevel (class in coreblocks.arch.isa_consts)</a>
 </li>
+      <li><a href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncUnit.push_result">push_result (coreblocks.func_blocks.interface.func_protocols.FuncUnit attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -2847,12 +2847,28 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.RESERVED">RESERVED (coreblocks.arch.isa_consts.Opcode attribute)</a>
 </li>
+      <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.alu.ALUComponent.result_fifo">result_fifo (coreblocks.func_blocks.fu.alu.ALUComponent attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.DivComponent.result_fifo">(coreblocks.func_blocks.fu.div_unit.DivComponent attribute)</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.exception.ExceptionUnitComponent.result_fifo">(coreblocks.func_blocks.fu.exception.ExceptionUnitComponent attribute)</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulComponent.result_fifo">(coreblocks.func_blocks.fu.mul_unit.MulComponent attribute)</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.shift_unit.ShiftUnitComponent.result_fifo">(coreblocks.func_blocks.fu.shift_unit.ShiftUnitComponent attribute)</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbs.ZbsComponent.result_fifo">(coreblocks.func_blocks.fu.zbs.ZbsComponent attribute)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.fu_params.FunctionalComponentParams.result_fifo">(coreblocks.params.fu_params.FunctionalComponentParams attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">result_handler() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
 </li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.annoucement.ResultAnnouncement">ResultAnnouncement (class in coreblocks.backend.annoucement)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.RET">RET (coreblocks.arch.optypes.CfiType attribute)</a>
 </li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.retirement.Retirement">Retirement (class in coreblocks.backend.retirement)</a>
@@ -3514,7 +3530,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 10:22 2025-01-24.
+      <span class="lastupdated">Last updated on 19:22 2025-01-25.
       </span></p>
   </div>
 
