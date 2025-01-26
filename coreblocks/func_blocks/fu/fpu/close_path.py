@@ -28,7 +28,6 @@ class ClosePathMethodLayout:
             ("sig_a", fpu_params.sig_width),
             ("sig_b", fpu_params.sig_width),
             ("exp", fpu_params.exp_width),
-            ("exp_equal", 1),
             ("rounding_mode", RoundingModes),
             ("guard_bit", 1),
         ]
@@ -76,11 +75,11 @@ class ClosePathModule(Elaboratable):
 
         result_add_zero = Signal(self.params.sig_width)
         result_add_one = Signal(self.params.sig_width)
-        lza_shifts_zero = Signal(range(self.params.sig_width))
-        lza_shifts_one = Signal(range(self.params.sig_width))
         final_result = Signal(self.params.sig_width)
         correct_shift = Signal(range(self.params.sig_width))
         shift_correction = Signal(1)
+        shift_amount_lza_zero = Signal(range(self.params.sig_width))
+        shift_amount_lza_one = Signal(range(self.params.sig_width))
         shift_amount = Signal(range(self.params.sig_width))
         bit_shift_amount = Signal(range(self.params.sig_width))
         check_shift_amount = Signal(range(self.params.sig_width))
@@ -97,6 +96,8 @@ class ClosePathModule(Elaboratable):
         down_l = Signal(1)
         shift_in_bit = Signal(1)
         l_flag = Signal(1)
+        lza_is_zero_zero = Signal(1)
+        lza_is_zero_one = Signal(1)
         is_zero = Signal(1)
 
         m.submodules.zero_lza = zero_lza = LZAModule(fpu_params=self.params)
@@ -108,7 +109,6 @@ class ClosePathModule(Elaboratable):
             sig_a,
             sig_b,
             exp,
-            exp_equal,
             rounding_mode,
             guard_bit,
         ):
@@ -118,19 +118,17 @@ class ClosePathModule(Elaboratable):
 
             with Transaction().body(m):
                 resp = zero_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=0)
-                m.d.av_comb += lza_shifts_zero.eq(resp["shift_amount"])
+                m.d.av_comb += shift_amount_lza_zero.eq(resp["shift_amount"])
+                m.d.av_comb += lza_is_zero_zero.eq(resp["is_zero"])
 
             with Transaction().body(m):
                 resp = one_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=1)
-                m.d.av_comb += lza_shifts_one.eq(resp["shift_amount"])
+                m.d.av_comb += shift_amount_lza_one.eq(resp["shift_amount"])
+                m.d.av_comb += lza_is_zero_one.eq(resp["is_zero"])
 
-            rtne_case_one = (result_add_zero[-1] & guard_bit & result_add_zero[0]) | ~(guard_bit)
-            rtne_case_two = exp_equal
-            m.d.av_comb += rtne_l.eq(rtne_case_one | rtne_case_two)
+            m.d.av_comb += rtne_l.eq((result_add_zero[-1] & guard_bit & result_add_zero[0]) | ~(guard_bit))
 
-            rtna_case_one = (result_add_zero[-1] & guard_bit) | ~(guard_bit)
-            rtna_case_two = exp_equal
-            m.d.av_comb += rtna_l.eq(rtna_case_one | rtna_case_two)
+            m.d.av_comb += rtna_l.eq((result_add_zero[-1] & guard_bit) | ~(guard_bit))
 
             m.d.av_comb += up_l.eq((~(r_sign) & result_add_zero[-1] & guard_bit) | ~(guard_bit))
 
@@ -152,12 +150,14 @@ class ClosePathModule(Elaboratable):
 
             with m.If(l_flag):
                 m.d.av_comb += final_result.eq(result_add_one)
-                m.d.av_comb += correct_shift.eq(lza_shifts_one)
+                m.d.av_comb += correct_shift.eq(shift_amount_lza_one)
+                m.d.av_comb += is_zero.eq(lza_is_zero_one)
             with m.Else():
                 m.d.av_comb += final_result.eq(result_add_zero)
-                m.d.av_comb += correct_shift.eq(lza_shifts_zero)
+                m.d.av_comb += correct_shift.eq(shift_amount_lza_zero)
+                m.d.av_comb += is_zero.eq(lza_is_zero_zero)
 
-            with m.If((final_result == 0) & (guard_bit == 0)):
+            with m.If(is_zero):
                 m.d.av_comb += final_sig.eq(final_result)
                 m.d.av_comb += final_exp.eq(0)
                 m.d.av_comb += final_round.eq(guard_bit)
@@ -209,9 +209,6 @@ class ClosePathModule(Elaboratable):
                         m.d.av_comb += final_sig.eq((shifted_sig << 1) | (shift_in_bit << (correct_shift)))
                         m.d.av_comb += final_exp.eq(shifted_exp - 1)
 
-            sig_zero = final_sig == 0
-            exp_zero = final_exp == 0
-            m.d.av_comb += is_zero.eq(sig_zero & exp_zero)
             return {"out_exp": final_exp, "out_sig": final_sig, "output_round": final_round, "zero": is_zero}
 
         return m
