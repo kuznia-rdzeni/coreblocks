@@ -14,6 +14,14 @@ class ClosePathMethodLayout:
     """
 
     def __init__(self, *, fpu_params: FPUParams):
+        """
+        r_sign - sign of the result
+        sig_a - two's complement form of first significand
+        sig_2 - two's complement form of second significand
+        exp - exponent of result before shifts
+        rounding_mode - rounding mode
+        guard_bit - guard_bit (pth bit of second significand where p is precision)
+        """
 
         self.close_path_in_layout = [
             ("r_sign", 1),
@@ -44,6 +52,12 @@ class ClosePathModule(Elaboratable):
     ----------
     close_path_request: Method
         Transactional method for initiating close path computation.
+        Based on http://i.stanford.edu/pub/cstr/reports/csl/tr/90/442/CSL-TR-90-442.pdf.
+        This module computes results for effectiv subtraction,
+        whenever difference of exponents is lesser than 2.
+        Beside computing the result this implementation also perform rounding at the same time
+        as subtraction by using two adders (one computing a+b and the other one computing a+b+1).
+        The correct output is chosen based on flags that are different for each rounding mode.
         Takes 'close_path_in_layout' as argument.
         Returns result as 'close_path_out_layout'.
     """
@@ -198,15 +212,6 @@ class ClosePathModule(Elaboratable):
             sig_zero = final_sig == 0
             exp_zero = final_exp == 0
             m.d.av_comb += is_zero.eq(sig_zero & exp_zero)
-            # m.d.comb += Print("sig_a: ", sig_a, " sig_b: ", sig_b)
-            # m.d.comb += Print("result_zero: ",result_add_zero)
-            # m.d.comb += Print("result_one: ",result_add_one)
-            # m.d.comb += Print("final_result: ",final_result)
-            # m.d.comb += Print("shift_amount: ", correct_shift)
-            # m.d.comb += Print("shifted_result: ",shifted_sig)
-            # m.d.comb += Print("shift_correction: ",shift_correction)
-            # m.d.comb += Print("check:", (shifted_sig | (guard_bit << check_shift_amount)))
-            # m.d.comb += Print("l value: ", l_flag)
             return {"out_exp": final_exp, "out_sig": final_sig, "output_round": final_round, "zero": is_zero}
 
         return m
