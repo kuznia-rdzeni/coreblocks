@@ -13,7 +13,18 @@ class FarPathMethodLayout:
     """
 
     def __init__(self, *, fpu_params: FPUParams):
-
+        """
+        r_sign - result sign
+        sig_a - significand of first operand (for effective subtraction in two's complement form)
+        sig_b - significand of second operand (for effective subtraction in two's complement form)
+        exp - exponent of result before shift
+        sub_op - effective operation. 1 for subtraction 0 for addition
+        rounding_mode - rounding mode
+        guard_bit - guard bit (pth bit of second significand where p is precision)
+        round_bit - round bit ((p+1)th bit of second significand where p is precision)
+        sticky_bit - sticky_bit
+        (OR of all bits with index >=p of second significand where p is precision)
+        """
         self.far_path_in_layout = [
             ("r_sign", 1),
             ("sig_a", fpu_params.sig_width),
@@ -35,6 +46,15 @@ class FarPathMethodLayout:
 
 class FarPathModule(Elaboratable):
     """Far Path module
+    Based on: https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf.
+    This module implement far path of adder/subtractor.
+    It performs subtraction for operands whose exponent differs by more than 1 and addition
+    for all combination of operand. Besides addition it also perform rounding at the same time
+    as addition using two adder (one producing a+b and second one producing a+b+1). The correct
+    output is chosen by flags that differ for each rounding module. To deal with certain
+    complication that may arise during addition in certaing roudning modes the input of second
+    may be either input operand or (a & b)<<1 and (a^b). This allows second adder to compute
+    a+b+2 in special cases that are better explained in paper linked above.
 
     Parameters
     ----------
@@ -67,7 +87,6 @@ class FarPathModule(Elaboratable):
         input_sig_add_1_b = Signal(self.params.sig_width)
         output_sig_add_0 = Signal(self.params.sig_width + 1)
         output_sig_add_1 = Signal(self.params.sig_width + 1)
-        output_sig_add_1_check = Signal(self.params.sig_width + 1)
         output_sig = Signal(self.params.sig_width + 1)
         output_exp = Signal(self.params.exp_width + 1)
         output_final_exp = Signal(self.params.exp_width)
@@ -144,7 +163,6 @@ class FarPathModule(Elaboratable):
             m.d.av_comb += carry_add1.eq(carry_sig[-1])
             m.d.av_comb += rgs_any.eq(guard_bit | round_bit | sticky_bit)
             m.d.av_comb += rgs_all.eq(guard_bit & round_bit & sticky_bit)
-            m.d.av_comb += output_sig_add_1_check.eq(sig_a + sig_b + 1)
             m.d.av_comb += round_to_inf_special_case.eq(
                 (~sub_op) & ((rounding_mode == RoundingModes.ROUND_DOWN) | (rounding_mode == RoundingModes.ROUND_UP))
             )
@@ -164,11 +182,9 @@ class FarPathModule(Elaboratable):
 
             m.d.av_comb += nrs.eq((~sub_op) & (~output_sig_add_0[-1]))
             m.d.av_comb += ors.eq((~sub_op) & (output_sig_add_0[-1]))
-            m.d.av_comb += nls.eq(
-                sub_op & (((~rgs_any) & output_sig_add_1_check[-2]) | (rgs_any & output_sig_add_0[-2]))
-            )
+            m.d.av_comb += nls.eq(sub_op & (((~rgs_any) & output_sig_add_1[-2]) | (rgs_any & output_sig_add_0[-2])))
             m.d.av_comb += ols.eq(
-                sub_op & (((~rgs_any) & (~output_sig_add_1_check[-2])) | (rgs_any & (~output_sig_add_0[-2])))
+                sub_op & (((~rgs_any) & (~output_sig_add_1[-2])) | (rgs_any & (~output_sig_add_0[-2])))
             )
             m.d.av_comb += nxs.eq(nls | nrs)
 
