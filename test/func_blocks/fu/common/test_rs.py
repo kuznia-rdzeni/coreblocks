@@ -65,7 +65,7 @@ class TestRS(TestCaseWithSimulator):
         self.optype_groups = list(zip(*(iter(optypes),) * optypes_per_list))
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(rs_type(self.gen_params, 2**self.rs_entries_bits, 0, self.optype_groups))
+        self.m = SimpleTestCircuit(rs_type(self.gen_params, 2**self.rs_entries_bits, 0, 1, self.optype_groups))
         self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits, num_optypes)
         self.select_queue: deque[int] = deque()
         self.regs_to_update: set[int] = set()
@@ -116,7 +116,7 @@ class TestRS(TestCaseWithSimulator):
                 if self.data_list[k]["rp_s2"] == reg_id:
                     self.data_list[k]["rp_s2"] = 0
                     self.data_list[k]["s2_val"] = reg_val
-            await self.m.update.call(sim, reg_id=reg_id, reg_val=reg_val)
+            await self.m.update[0].call(sim, reg_id=reg_id, reg_val=reg_val)
 
     async def take_process(self, sim: TestbenchContext):
         taken: set[int] = set()
