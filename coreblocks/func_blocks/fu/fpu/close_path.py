@@ -41,6 +41,12 @@ class ClosePathMethodLayout:
 
 class ClosePathModule(Elaboratable):
     """Close path module
+    Based on http://i.stanford.edu/pub/cstr/reports/csl/tr/90/442/CSL-TR-90-442.pdf.
+    This module computes results for effectiv subtraction,
+    whenever difference of exponents is lesser than 2.
+    Beside computing the result this implementation also perform rounding at the same time
+    as subtraction by using two adders (one computing a+b and the other one computing a+b+1).
+    The correct output is chosen based on flags that are different for each rounding mode.
 
     Parameters
     ----------
@@ -51,12 +57,6 @@ class ClosePathModule(Elaboratable):
     ----------
     close_path_request: Method
         Transactional method for initiating close path computation.
-        Based on http://i.stanford.edu/pub/cstr/reports/csl/tr/90/442/CSL-TR-90-442.pdf.
-        This module computes results for effectiv subtraction,
-        whenever difference of exponents is lesser than 2.
-        Beside computing the result this implementation also perform rounding at the same time
-        as subtraction by using two adders (one computing a+b and the other one computing a+b+1).
-        The correct output is chosen based on flags that are different for each rounding mode.
         Takes 'close_path_in_layout' as argument.
         Returns result as 'close_path_out_layout'.
     """
