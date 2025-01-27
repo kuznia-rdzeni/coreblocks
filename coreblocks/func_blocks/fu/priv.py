@@ -41,12 +41,11 @@ class PrivilegedFn(DecoderManager):
         FENCEI = auto()
         WFI = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
-        return [(cls.Fn.MRET, OpType.MRET), (cls.Fn.FENCEI, OpType.FENCEI), (cls.Fn.WFI, OpType.WFI)]
+    def get_instructions(self) -> Sequence[tuple]:
+        return [(self.Fn.MRET, OpType.MRET), (self.Fn.FENCEI, OpType.FENCEI), (self.Fn.WFI, OpType.WFI)]
 
 
-class PrivilegedFuncUnit(Elaboratable):
+class PrivilegedFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
         self.gen_params = gen_params
         self.priv_fn = priv_fn
@@ -55,7 +54,7 @@ class PrivilegedFuncUnit(Elaboratable):
         self.dm = DependencyContext.get()
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.fetch_resume_fifo = BasicFifo(self.gen_params.get(FetchLayouts).resume, 2)
 
@@ -128,8 +127,7 @@ class PrivilegedFuncUnit(Elaboratable):
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
-        @def_method(m, self.accept, ready=instr_valid & finished)
-        def _():
+        with Transaction().body(m, request=instr_valid & finished):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
@@ -181,12 +179,13 @@ class PrivilegedFuncUnit(Elaboratable):
                 # Unstall the fetch
                 self.fetch_resume_fifo.write(m, pc=ret_pc)
 
-            return {
-                "rob_id": instr_rob,
-                "exception": exception,
-                "rp_dst": 0,
-                "result": 0,
-            }
+            self.push_result(
+                m,
+                rob_id=instr_rob,
+                exception=exception,
+                rp_dst=0,
+                result=0,
+            )
 
         return m
 
