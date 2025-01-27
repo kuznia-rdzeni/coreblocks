@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737833768087,
+  "lastUpdate": 1737990915547,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15639,6 +15639,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e200b5b486eb0478dc5505627c3e57aaec97603a"
         },
         "date": 1737833760649,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4167172604951732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5323272232657555,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.372720734441765,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6317178955308316,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35912088567932915,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29081033772652387,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3277132509054577,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4430657901349061,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bc580221bf16cbf9bc6f20583b7a5e53e2d2653b",
+          "message": "lza and test_lza refactor (#795)",
+          "timestamp": "2025-01-27T16:00:20+01:00",
+          "tree_id": "a7a001cb9b2e5b7893dd63261f22fe150eac606e",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bc580221bf16cbf9bc6f20583b7a5e53e2d2653b"
+        },
+        "date": 1737990910828,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
