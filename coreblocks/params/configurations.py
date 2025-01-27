@@ -22,6 +22,7 @@ from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
+from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 
@@ -197,7 +198,7 @@ full_core_config = CoreConfiguration(
             ],
             rs_entries=2,
         ),
-        RSBlockComponent([LSUComponent()], rs_entries=4, rs_type=FifoRS),
+        RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
     ),
     compressed=True,

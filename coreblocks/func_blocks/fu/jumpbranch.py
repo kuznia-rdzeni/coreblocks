@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from amaranth import *
 
 from enum import IntFlag, auto
@@ -133,7 +134,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
 
@@ -180,8 +181,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
-        @def_method(m, self.accept)
-        def _():
+        with Transaction().body(m):
             instr = instr_fifo.read(m)
             target_prediction = jump_target_resp(m)
 
@@ -249,12 +249,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     misprediction,
                 )
 
-            return {
-                "rob_id": instr.rob_id,
-                "result": instr.reg_res,
-                "rp_dst": instr.rp_dst,
-                "exception": exception,
-            }
+            self.push_result(
+                m,
+                rob_id=instr.rob_id,
+                result=instr.reg_res,
+                rp_dst=instr.rp_dst,
+                exception=exception,
+            )
 
         @def_method(m, self.issue)
         def _(arg):
@@ -288,13 +289,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class JumpComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.jb_fn = JumpBranchFn()
+    decoder_manager: JumpBranchFn = JumpBranchFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
-        return unit
-
-    def get_optypes(self) -> set[OpType]:
-        return self.jb_fn.get_op_types()
+        return JumpBranchFuncUnit(gen_params, self.decoder_manager)
