@@ -168,7 +168,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     async def consumer(self, sim: TestbenchContext):
         while self.responses:
             expected = self.responses.pop()
-            result = await self.m.accept.call(sim)
+            result = await self.m.push_result.call(sim)
             assert expected == data_const_to_dict(result)
             await self.random_wait(sim, self.max_wait)
 

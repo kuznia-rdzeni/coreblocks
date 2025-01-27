@@ -1,12 +1,12 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from coreblocks.interface.keys import FetchResumeKey
-from transactron.lib import BasicFifo, Semaphore, ConnectTrans, logging, Pipe
+from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import MethodLayout, popcount, assign
+from transactron.utils import popcount, assign, StableSelectingNetwork
 from transactron.utils.dependencies import DependencyContext
-from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
@@ -75,10 +75,15 @@ class FetchUnit(Elaboratable):
         fields = self.gen_params.get(CommonLayoutFields)
         params = self.gen_params.get(FrontendParams)
 
-        # Serializer is just a temporary workaround until we have a proper multiport FIFO
-        # to which we can push bundles of instructions.
-        m.submodules.serializer = serializer = Serializer(fetch_width, self.layouts.raw_instr)
-        m.submodules.serializer_connector = ConnectTrans(serializer.read, self.cont)
+        # Serializer creates a continuous instruction stream from fetch
+        # blocks, which can have holes in them.
+        m.submodules.aligner = aligner = StableSelectingNetwork(fetch_width, self.layouts.raw_instr)
+        m.submodules.serializer = serializer = WideFifo(
+            self.layouts.raw_instr, depth=2, read_width=1, write_width=fetch_width
+        )
+
+        with Transaction(name="cont").body(m):
+            self.cont(m, serializer.read(m, count=1).data[0])
 
         m.submodules.cache_requests = cache_requests = BasicFifo(layout=[("addr", self.gen_params.isa.xlen)], depth=2)
 
@@ -318,7 +323,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += fetch_mask.eq(instr_valid & valid_instr_prefix)
 
             # Aggregate all signals that will be sent out of the fetch unit.
-            raw_instrs = [Signal(self.layouts.raw_instr) for _ in range(fetch_width)]
+            raw_instrs = Signal(ArrayLayout(self.layouts.raw_instr, fetch_width))
             for i in range(fetch_width):
                 m.d.av_comb += [
                     raw_instrs[i].instr.eq(instrs[i]),
@@ -359,7 +364,8 @@ class FetchUnit(Elaboratable):
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
                     # Make sure this is called only once to avoid a huge mux on arguments
-                    serializer.write(m, valid_mask=fetch_mask, slots=raw_instrs)
+                    m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
+                    serializer.write(m, data=aligner.outputs, count=aligner.output_cnt)
                 with branch():
                     m.d.sync += flushing_counter.eq(flushing_counter - 1)
 
@@ -394,7 +400,7 @@ class FetchUnit(Elaboratable):
         @def_method(m, self.stall_exception)
         def _():
             log.info(m, True, "Stalling the fetch unit because of an exception")
-            serializer.clean(m)
+            serializer.clear(m)
             m.d.sync += stalled_exception.eq(1)
             flush()
 
@@ -446,65 +452,6 @@ class FetchUnit(Elaboratable):
                         m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
                         with m.If(~self.stall_exception.run):
                             m.next = "running"
-
-        return m
-
-
-class Serializer(Elaboratable):
-    """Many-to-one serializer
-
-    Serializes many elements one-by-one in order and dispatches it to the consumer.
-    The module accepts a new batch of elements only if the previous batch was fully
-    consumed.
-
-    It is a temporary workaround for a fetch buffer until the rest of the core becomes
-    superscalar.
-    """
-
-    def __init__(self, width: int, elem_layout: MethodLayout) -> None:
-        self.width = width
-        self.elem_layout = elem_layout
-
-        self.write = Method(
-            i=[("valid_mask", self.width), ("slots", ArrayLayout(from_method_layout(self.elem_layout), self.width))]
-        )
-        self.read = Method(o=elem_layout)
-        self.clean = Method()
-
-        self.clean.add_conflict(self.write, Priority.LEFT)
-        self.clean.add_conflict(self.read, Priority.LEFT)
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.prio_encoder = prio_encoder = PriorityEncoder(self.width)
-
-        buffer = Array(Signal(from_method_layout(self.elem_layout)) for _ in range(self.width))
-        valids = Signal(self.width)
-
-        m.d.comb += prio_encoder.i.eq(valids)
-
-        count = Signal(range(self.width + 1))
-        m.d.comb += count.eq(popcount(valids))
-
-        # To make sure, read can be called at the same time as write.
-        self.read.schedule_before(self.write)
-
-        @def_method(m, self.read, ready=~prio_encoder.n)
-        def _():
-            m.d.sync += valids.eq(valids & ~(1 << prio_encoder.o))
-            return buffer[prio_encoder.o]
-
-        @def_method(m, self.write, ready=prio_encoder.n | ((count == 1) & self.read.run))
-        def _(valid_mask, slots):
-            m.d.sync += valids.eq(valid_mask)
-
-            for i in range(self.width):
-                m.d.sync += buffer[i].eq(slots[i])
-
-        @def_method(m, self.clean)
-        def _():
-            m.d.sync += valids.eq(0)
 
         return m
 

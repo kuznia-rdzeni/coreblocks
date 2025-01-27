@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass, field
 from collections.abc import Collection, Iterable
 
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
+    from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 
 __all__ = [
@@ -35,14 +36,25 @@ class BlockComponentParams(ABC):
         raise NotImplementedError()
 
 
+@dataclass(frozen=True)
 class FunctionalComponentParams(ABC):
+    _: KW_ONLY
+    result_fifo: bool = False
+    decoder_manager: "DecoderManager" = field(init=False)
+
+    def __post_init__(self):
+        if not hasattr(self, "decoder_manager"):
+            object.__setattr__(self, "decoder_manager", self.get_decoder_manager())
+
     @abstractmethod
     def get_module(self, gen_params: "GenParams") -> FuncUnit:
         raise NotImplementedError()
 
-    @abstractmethod
-    def get_optypes(self) -> set["OpType"]:
+    def get_decoder_manager(self) -> "DecoderManager":
         raise NotImplementedError()
+
+    def get_optypes(self) -> set["OpType"]:
+        return self.decoder_manager.get_op_types()
 
 
 def optypes_supported(components: Iterable[BlockComponentParams | FunctionalComponentParams]) -> set["OpType"]:

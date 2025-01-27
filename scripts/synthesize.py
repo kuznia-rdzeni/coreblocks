@@ -28,7 +28,7 @@ from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactionModule
-from transactron.lib import AdapterTrans
+from transactron.lib import Adapter, AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface, WishboneSignature
 from constants.ecp5_platforms import (
     ResourceBuilder,
@@ -111,19 +111,19 @@ def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
         issue_adapter = AdapterTrans(fu.issue)
-        accept_adapter = AdapterTrans(fu.accept)
+        push_result_adapter = Adapter(fu.push_result)
 
         issue_connector, issue_resources = InterfaceConnector.with_resources(issue_adapter, "adapter", 0)
-        accept_connector, accept_resources = InterfaceConnector.with_resources(accept_adapter, "adapter", 1)
+        push_connector, push_resources = InterfaceConnector.with_resources(push_result_adapter, "adapter", 1)
 
-        resources = append_resources(issue_resources, accept_resources)
+        resources = append_resources(issue_resources, push_resources)
 
         module = ModuleConnector(
             fu=fu,
             issue_connector=issue_connector,
-            accept_connector=accept_connector,
+            accept_connector=push_connector,
             issue_adapter=issue_adapter,
-            accept_adapter=accept_adapter,
+            accept_adapter=push_result_adapter,
         )
 
         return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
@@ -133,14 +133,14 @@ def unit_fu(unit_params: FunctionalComponentParams):
 
 core_units = {
     "core": unit_core,
-    "alu_basic": unit_fu(ALUComponent(False, False)),
-    "alu_full": unit_fu(ALUComponent(True, True)),
+    "alu_basic": unit_fu(ALUComponent(zba_enable=False, zbb_enable=False, zicond_enable=False)),
+    "alu_full": unit_fu(ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True)),
     "mul_shift": unit_fu(MulComponent(MulType.SHIFT_MUL)),
     "mul_sequence": unit_fu(MulComponent(MulType.SEQUENCE_MUL)),
     "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
     "div": unit_fu(DivComponent()),
-    "shift_basic": unit_fu(ShiftUnitComponent(False)),
-    "shift_full": unit_fu(ShiftUnitComponent(True)),
+    "shift_basic": unit_fu(ShiftUnitComponent(zbb_enable=False)),
+    "shift_full": unit_fu(ShiftUnitComponent(zbb_enable=True)),
     "zbs": unit_fu(ZbsComponent()),
     "zbc": unit_fu(ZbcComponent()),
 }
