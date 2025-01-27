@@ -74,7 +74,6 @@ class StallController(Elaboratable):
         def _(pc):
             log.assertion(m, stalled_unsafe)
             m.d.sync += stalled_unsafe.eq(0)
-            log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
 
             """
             with condition(m, nonblocking=True) as branch:

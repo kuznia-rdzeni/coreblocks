@@ -377,7 +377,6 @@ class FetchUnit(Elaboratable):
 
         @def_method(m, self.redirect)
         def _(pc):
-            log.warning(m, True, "redirected to 0x{:x}", pc)
             m.d.sync += current_pc.eq(pc)
 
         return m
