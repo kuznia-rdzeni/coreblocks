@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1737990918097,
+  "lastUpdate": 1738058451777,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15703,6 +15703,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bc580221bf16cbf9bc6f20583b7a5e53e2d2653b"
         },
         "date": 1737990910828,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4167172604951732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5323272232657555,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.372720734441765,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6317178955308316,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35912088567932915,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29081033772652387,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3277132509054577,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4430657901349061,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "32029ab63eca93190df11b917d4569d249621553",
+          "message": "Add --reset-pc option to scripts/gen_verilog (#797)",
+          "timestamp": "2025-01-28T10:46:23+01:00",
+          "tree_id": "2cab38ec916fa2095768be6acffc9f1a57f9c79c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/32029ab63eca93190df11b917d4569d249621553"
+        },
+        "date": 1738058446344,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
