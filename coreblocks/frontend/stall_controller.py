@@ -20,7 +20,26 @@ log = logging.HardwareLogger("frontend.stall_ctrl")
 
 
 class StallController(Elaboratable):
-    """Frontend of the core."""
+    """
+    The stall controller is responsible for managing all stall/unstall signals
+    that may be triggered in the core and based on them deciding if and where
+    the frontend should be resumed.
+
+
+    Attributes
+    ----------
+    stall_unsafe : Method
+        Signals that the frontend should be stalled because an unsafe (i.e. causing
+        difficult to handle side effects) was just fetched.
+    stall_exception : Method
+        Signals that the frontend should be stalled because of an exception.
+    stall_guard : Method
+        A non-exclusive method whose readiness denotes if the frontend is currently stalled.
+    resume_from_exception: Method
+        Signals that the backend handled the exception and the frontend can be resumed.
+    redirect_frontend : Method (bodyless)
+        A method that will be called when the frontend needs to be redirected.
+    """
 
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
@@ -30,31 +49,15 @@ class StallController(Elaboratable):
         self.stall_unsafe = Method()
         self.stall_exception = Method()
         self.stall_guard = Method()
-
-        self.redirect_frontend = Method(i=layouts.redirect)
-
         self.resume_from_exception = Method(i=layouts.resume)
         self._resume_from_unsafe = Method(i=layouts.resume)
 
-        DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
+        self.redirect_frontend = Method(i=layouts.redirect)
 
-        self.perf_exception_stall_duration = FIFOLatencyMeasurer(
-            "frontend.ftq.exception_stall_duration",
-            description="Duration of stalls caused by exceptions",
-            slots_number=1,
-            max_latency=4095,
-        )
-        self.perf_unsafe_stall_duration = FIFOLatencyMeasurer(
-            "frontend.ftq.unsafe_stall_duration",
-            description="Duration of stalls caused by unsafe instructions",
-            slots_number=1,
-            max_latency=4095,
-        )
+        DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
 
     def elaborate(self, platform):
         m = TModule()
-
-        m.submodules += [self.perf_exception_stall_duration, self.perf_unsafe_stall_duration]
 
         stalled_unsafe = Signal()
         stalled_exception = Signal()
@@ -64,7 +67,7 @@ class StallController(Elaboratable):
             pass
 
         def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
-            # Make sure that there is at most one caller
+            # Make sure that there is at most one caller - there can be only one unsafe instruction
             log.assertion(m, popcount(runs) <= 1)
             pcs = [Mux(runs[i], v.pc, 0) for i, v in enumerate(args)]
 
@@ -74,15 +77,6 @@ class StallController(Elaboratable):
         def _(pc):
             log.assertion(m, stalled_unsafe)
             m.d.sync += stalled_unsafe.eq(0)
-
-            """
-            with condition(m, nonblocking=True) as branch:
-                with branch(stalled_unsafe):
-                    self.perf_unsafe_stall_duration.stop(m)
-            with condition(m, nonblocking=True) as branch:
-                with branch(from_exception):
-                    self.perf_exception_stall_duration.stop(m)
-            """
 
             with condition(m, nonblocking=True) as branch:
                 with branch(~stalled_exception):
@@ -99,13 +93,8 @@ class StallController(Elaboratable):
 
         @def_method(m, self.stall_unsafe)
         def _():
-            log.assertion(
-                m,
-                ~stalled_exception,
-                "Trying to stall because of an unsafe instruction while being stalled because of an exception",
-            )
+            log.assertion(m, ~stalled_unsafe, "Can't be stalled twice because of an unsafe instruction")
             log.info(m, True, "Stalling the frontend because of an unsafe instruction")
-            # self.perf_unsafe_stall_duration.start(m)
             m.d.sync += stalled_unsafe.eq(1)
 
         # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
@@ -113,9 +102,6 @@ class StallController(Elaboratable):
         @def_method(m, self.stall_exception)
         def _():
             log.info(m, ~stalled_exception, "Stalling the frontend because of an exception")
-            # with condition(m, nonblocking=True) as branch:
-            #    with branch(~stalled_exception):
-            #        self.perf_exception_stall_duration.start(m)
             m.d.sync += stalled_exception.eq(1)
 
         return m

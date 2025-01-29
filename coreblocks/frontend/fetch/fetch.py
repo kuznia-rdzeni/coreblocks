@@ -30,6 +30,13 @@ class FetchUnit(Elaboratable):
 
     The unit also deals with expanding compressed instructions and managing instructions that aren't aligned to
     4-byte boundaries.
+
+    Attributes
+    ----------
+    redirect : Method
+        Redirects the fetch unit to the specified PC
+    flush : Method
+        Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled.
     """
 
     def __init__(
@@ -46,6 +53,10 @@ class FetchUnit(Elaboratable):
         cont : Method
             Method which should be invoked to send fetched instruction to the next step.
             It has layout as described by `FetchLayout`.
+        stall_lock : Method
+            Method whose readiness determines if the fetch unit is stalled
+        stall_unsafe : Method
+            Method that is called when an unsafe instruction is fetched
         """
         self.gen_params = gen_params
         self.icache = icache
