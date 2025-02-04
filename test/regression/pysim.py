@@ -169,7 +169,8 @@ class PySimulation(SimulationBackend):
                         )
 
             sim.add_testbench(self._waiter(on_finish=on_sim_finish))
-            success = sim.run()
+            sim.run()
+            success = True  # timeout throws an exception in sim
 
             self.pretty_dump_metrics(metric_values)
 

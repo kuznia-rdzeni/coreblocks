@@ -59,6 +59,8 @@ class Extension(enum.IntFlag):
     ZIHPM = auto()
     #: Integer conditional operations
     ZICOND = auto()
+    #: Atomic memory operations
+    ZAAMO = auto()
     #: Misaligned atomic operations
     ZAM = auto()
     #: Half precision floating-point operations (16-bit)
@@ -107,6 +109,7 @@ _extension_requirements = {
 extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
+    Extension.A: Extension.ZAAMO,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
 }
 

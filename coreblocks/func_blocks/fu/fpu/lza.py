@@ -1,5 +1,4 @@
 from amaranth import *
-from amaranth.utils import ceil_log2
 from transactron import TModule, Method, def_method
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
 from transactron.utils.amaranth_ext import count_leading_zeros
@@ -76,14 +75,11 @@ class LZAModule(Elaboratable):
 
         @def_method(m, self.predict_request)
         def _(sig_a, sig_b, carry):
-            f_size = 2 ** ceil_log2(self.lza_params.sig_width)
-            filler_size = f_size - self.lza_params.sig_width
-            lower_ones = Const((2**filler_size) - 1, f_size)
 
             t = Signal(self.lza_params.sig_width + 1)
             g = Signal(self.lza_params.sig_width + 1)
             z = Signal(self.lza_params.sig_width + 1)
-            f = Signal(f_size)
+            f = Signal(self.lza_params.sig_width)
             shift_amount = Signal(range(self.lza_params.sig_width))
             is_zero = Signal(1)
 
@@ -95,10 +91,8 @@ class LZAModule(Elaboratable):
                 m.d.av_comb += z[0].eq(1)
 
             for i in reversed(range(1, self.lza_params.sig_width + 1)):
-                m.d.av_comb += f[i + filler_size - 1].eq((t[i] ^ z[i - 1]))
+                m.d.av_comb += f[i - 1].eq((t[i] ^ z[i - 1]))
 
-            m.d.av_comb += shift_amount.eq(0)
-            m.d.av_comp += f.eq(f | lower_ones)
             m.d.av_comb += shift_amount.eq(count_leading_zeros(f))
 
             m.d.av_comb += is_zero.eq((carry & t[1 : self.lza_params.sig_width].all()))

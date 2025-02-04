@@ -15,8 +15,8 @@ class RegisterFile(Elaboratable):
         layouts = gen_params.get(RFLayouts)
         self.read_layout = layouts.rf_read_out
         self.entries = MemoryBank(
-            data_layout=[("data", gen_params.isa.xlen)],
-            elem_count=2**gen_params.phys_regs_bits,
+            shape=gen_params.isa.xlen,
+            depth=2**gen_params.phys_regs_bits,
             read_ports=2,
             transparent=True,
         )
@@ -82,7 +82,7 @@ class RegisterFile(Elaboratable):
             m.d.comb += being_written.eq(reg_id)
             m.d.av_comb += written_value.eq(reg_val)
             with m.If(~(zero_reg)):
-                self.entries.write(m, addr=reg_id, data={"data": reg_val})
+                self.entries.write(m, addr=reg_id, data=reg_val)
                 m.d.sync += self.valids[reg_id].eq(1)
                 self.perf_rf_valid_time.start(m, slot=reg_id)
 

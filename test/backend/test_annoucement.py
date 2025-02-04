@@ -21,7 +21,7 @@ class BackendTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        self.lay_result = self.gen_params.get(FuncUnitLayouts).accept
+        self.lay_result = self.gen_params.get(FuncUnitLayouts).push_result
         self.lay_rob_mark_done = self.gen_params.get(ROBLayouts).mark_done_layout
         self.lay_rs_write = self.gen_params.get(
             RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits

@@ -208,4 +208,15 @@ instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO),
         Encoding(Opcode.OP, Funct3.CZERONEZ, Funct7.CZERO),
     ],
+    OpType.ATOMIC_MEMORY_OP: [
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOSWAP),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOADD),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOAND),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOOR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOXOR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMAXU),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMINU),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMAX),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMIN),
+    ],
 }

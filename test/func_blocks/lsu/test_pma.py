@@ -75,7 +75,7 @@ class PMAIndirectTestCircuit(Elaboratable):
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
         m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.accept_mock = self.accept = TestbenchIO(AdapterTrans(func_unit.accept))
+        m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter(func_unit.push_result))
         m.submodules.bus_master_adapter = self.bus_master_adapter
         return m
 
@@ -106,7 +106,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
             _, v = (
                 await CallTrigger(sim)
                 .call(self.test_module.bus_master_adapter.get_read_response_mock, data=addr << (addr % 4) * 8, err=0)
-                .call(self.test_module.accept)
+                .call(self.test_module.push_result)
                 .until_done()
             )
             assert v.result == addr
