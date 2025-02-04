@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1738058457683,
+  "lastUpdate": 1738691059749,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15767,6 +15767,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/32029ab63eca93190df11b917d4569d249621553"
         },
         "date": 1738058446344,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4167172604951732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5323272232657555,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.372720734441765,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6317178955308316,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35912088567932915,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29081033772652387,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3277132509054577,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4430657901349061,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "70d2274a0c8bda6789ae73deae25031d7807b997",
+          "message": "Update nextpnr (#799)",
+          "timestamp": "2025-02-04T18:29:53+01:00",
+          "tree_id": "b8298247a7687995a7ded45425dfc5dace28ae8d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/70d2274a0c8bda6789ae73deae25031d7807b997"
+        },
+        "date": 1738691054798,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
