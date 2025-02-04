@@ -56,9 +56,8 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.rs_entries = rs_entries
         self.rs_type = rs_type
-        self.rs_entries_bits = (rs_entries - 1).bit_length()
         self.rs_number = rs_number
-        self.rs_layouts = gen_params.get(RSLayouts, rs_entries_bits=self.rs_entries_bits)
+        self.rs_layouts = gen_params.get(RSLayouts, rs_entries=rs_entries)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.func_units = list(func_units)
 

@@ -22,7 +22,7 @@ from transactron.testing.functions import data_const_to_dict
 class WakeupTestCircuit(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
-        self.layouts = gen_params.get(RSLayouts, rs_entries_bits=gen_params.max_rs_entries_bits)
+        self.layouts = gen_params.get(RSLayouts, rs_entries=gen_params.max_rs_entries)
 
     def elaborate(self, platform):
         m = Module()
