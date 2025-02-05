@@ -61,11 +61,17 @@ class ExceptionInformationRegister(Elaboratable):
 
         self.layouts = gen_params.get(ExceptionRegisterLayouts)
 
+        self.report = Method(i=self.layouts.report)
+
         # Break long combinational paths from single-cycle FUs
-        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
-        self.report = self.fu_report_fifo.write
+        def call_report(m: TModule, **kwargs):
+            report_fifo = BasicFifo(self.layouts.report, 1)
+            report_fifo.write(m, **kwargs)
+            report_connector = ConnectTrans(report_fifo.read, self.report)
+            m.submodules += [report_fifo, report_connector]
+
         dm = DependencyContext.get()
-        dm.add_dependency(ExceptionReportKey(), self.report)
+        dm.add_dependency(ExceptionReportKey(), call_report)
 
         self.get = Method(o=self.layouts.get)
 
@@ -77,12 +83,7 @@ class ExceptionInformationRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        report = Method(i=self.layouts.report)
-
-        m.submodules.report_fifo = self.fu_report_fifo
-        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
-
-        @def_method(m, report)
+        @def_method(m, self.report)
         def _(cause, rob_id, pc, mtval):
             should_write = Signal()
 
