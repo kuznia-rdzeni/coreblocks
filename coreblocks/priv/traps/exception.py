@@ -65,7 +65,7 @@ class ExceptionInformationRegister(Elaboratable):
 
         # Break long combinational paths from single-cycle FUs
         def call_report(m: TModule, **kwargs):
-            report_fifo = BasicFifo(self.layouts.report, 1)
+            report_fifo = BasicFifo(self.layouts.report, 2)
             report_fifo.write(m, **kwargs)
             report_connector = ConnectTrans(report_fifo.read, self.report)
             m.submodules += [report_fifo, report_connector]
