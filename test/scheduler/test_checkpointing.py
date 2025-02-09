@@ -22,8 +22,8 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                     RSBlockComponent([], rs_entries=4, rs_number=0),
                     RSBlockComponent([], rs_entries=4, rs_number=1),
                 ),
-                #                tag_bits=2,
-                #                checkpoint_count=3,
+                tag_bits=2,
+                checkpoint_count=3,
             )
         )
 
@@ -32,7 +32,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
 
         branch_in_flight = set()
 
-        instr_cnt = 512
+        instr_cnt = 512 * 2
         exp_rs_branch = deque()
         exp_rs_arith = deque()
 
@@ -114,7 +114,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
 
         async def input_process(sim):
             nonlocal end
-            for i in range(instr_cnt):
+            for _ in range(instr_cnt):
                 data = get_instr()
                 await dut.instr_inp.call(sim, data)
                 await self.random_wait_geom(sim, 0.5)
@@ -153,7 +153,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 current_tag += entry["tag_increment"]
                 current_tag %= 2**gen_params.tag_bits
 
-                if active_tags & (1 << current_tag):
+                if active_tags[current_tag]:
                     # check for instructions on vaild speculation path retiring in order
                     assert rob_id_to_imm_id[rob_id] == retire_imm_ids
                     retire_imm_ids += 1
@@ -239,7 +239,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
 
                 active_tags_val = dut.get_active_tags.get_outputs(sim)["active_tags"]
                 wrong_path_rollback_legal = instr["encoding"] == BranchEncoding.WRONG_PATH_WITH_ROLLBACK and (
-                    active_tags_val & (1 << instr["tag"])
+                    active_tags_val[instr["tag"]]
                 )
 
                 if wrong_path_rollback_legal or instr["encoding"] == BranchEncoding.CORRECT_PATH_MISPRED_EXIT:
@@ -259,7 +259,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 await dut.rob_done.call(sim, rob_id=rob_done_queue[0])
                 rob_done_queue.popleft()
 
-        with self.run_simulation(dut, max_cycles=2000) as sim:
+        with self.run_simulation(dut, max_cycles=4000) as sim:
             sim.add_testbench(input_process)
             sim.add_testbench(free_rf_process, background=True)
             sim.add_testbench(branch_fu_process, background=True)

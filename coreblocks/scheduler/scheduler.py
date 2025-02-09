@@ -358,7 +358,7 @@ class RSInsertion(Elaboratable):
             core_state = DependencyContext.get().get_dependency(CoreStateKey())
             flushing = core_state(m).flushing
 
-            tag_inactive = ~(self.crat_active_tags(m).active_tags & (1 << instr.tag)).any()
+            tag_inactive = ~self.crat_active_tags(m).active_tags[instr.tag]
 
             skip_source_registers = flushing | tag_inactive
 
