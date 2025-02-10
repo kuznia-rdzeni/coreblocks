@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739210481155,
+  "lastUpdate": 1739210482607,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -34807,6 +34807,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1456,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1136,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4331,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "faebb5449f89e1e55e8b03e61402f4bf11ea3e5f",
+          "message": "Implement Zalrsc - load-reserved/store-conditional instructions extension (#782)",
+          "timestamp": "2025-02-10T18:46:43+01:00",
+          "tree_id": "5caf68fd8cb02e9a96cada9633ea4ef922d011fc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/faebb5449f89e1e55e8b03e61402f4bf11ea3e5f"
+        },
+        "date": 1739210482289,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 43.81,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15253,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1424,
             "unit": "LUT"
           },
           {
