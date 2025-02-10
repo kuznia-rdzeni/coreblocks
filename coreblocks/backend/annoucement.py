@@ -26,7 +26,7 @@ class ResultAnnouncement(Elaboratable):
         which should be announced in core. This method assumes that results
         from different FUs are already serialized.
     rob_mark_done : Method
-        Method which is invoked to mark that instruction ended without exception.
+        Method which is invoked to mark that instruction ended.
     rs_update : Method
         Method which is invoked to pass value which is an output of finished instruction
         to RS, so that RS can save it if there are instructions which wait for it.
