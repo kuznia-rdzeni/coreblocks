@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1738691062954,
+  "lastUpdate": 1739178958230,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15831,6 +15831,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/70d2274a0c8bda6789ae73deae25031d7807b997"
         },
         "date": 1738691054798,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4167172604951732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5323272232657555,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.372720734441765,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6317178955308316,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35912088567932915,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29081033772652387,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3277132509054577,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4430657901349061,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d71c5a0598118b05c0a293e4df47846ea00f42db",
+          "message": "Remove transactron from pyrightconfig (#801)",
+          "timestamp": "2025-02-10T10:01:21+01:00",
+          "tree_id": "31cd43d5c35df26f4d075f2694ece8af3cf19a8c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d71c5a0598118b05c0a293e4df47846ea00f42db"
+        },
+        "date": 1739178953162,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
