@@ -60,8 +60,8 @@ class TestDecode(TestCaseWithSimulator):
         self.m = SimpleTestCircuit(
             ModuleConnector(
                 decode=self.decode,
-                fifo_in_write=self.push_raw,
-                fifo_out_read=self.get_decoded,
+                push_raw=self.push_raw,
+                get_decoded=self.get_decoded,
             )
         )
 
