@@ -18,10 +18,10 @@ class DecodeStage(Elaboratable):
 
     Attributes
     ----------
-    get_raw : Method
+    get_raw : Method, required
         Method which is invoked to get raw instruction from previous step
         (e.g. from fetch unit) it uses `FetchLayout`.
-    push_decoded : Method
+    push_decoded : Method, required
         Method which is invoked to send decoded data to the next step.
         It has layout as described by `DecodeLayouts`.
     """

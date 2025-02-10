@@ -19,11 +19,11 @@ class WakeupSelect(Elaboratable):
 
     Attributes
     ----------
-    get_ready : Method
+    get_ready : Method, required
         Method which is invoked to get the vector of readiness. It uses `RSLayouts.get_ready_list_out`.
-    take_row : Method
+    take_row : Method, required
         Method which is invoked to get a single ready row. It uses `RSLayouts.take_out`.
-    issue : Method
+    issue : Method, required
         Method which is invoked to a push row down the pipeline. It uses `FuncUnitLayouts.issue`.
     """
 

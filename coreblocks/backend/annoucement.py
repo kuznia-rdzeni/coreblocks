@@ -21,16 +21,16 @@ class ResultAnnouncement(Elaboratable):
 
     Attributes
     ----------
-    get_result : Method
+    get_result : Method, required
         Method which is invoked to get results of next ready instruction,
         which should be announced in core. This method assumes that results
         from different FUs are already serialized.
-    rob_mark_done : Method
+    rob_mark_done : Method, required
         Method which is invoked to mark that instruction ended.
-    rs_update : Method
+    rs_update : Method, required
         Method which is invoked to pass value which is an output of finished instruction
         to RS, so that RS can save it if there are instructions which wait for it.
-    rf_write : Method
+    rf_write : Method, required
         Method which is invoked to save value which is an output of finished instruction to RF.
     """
 
