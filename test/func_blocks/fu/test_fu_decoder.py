@@ -25,6 +25,7 @@ class TestFuDecoder(TestCaseWithSimulator):
             funct7_match = inp["funct7"] == inst[3] if len(inst) >= 4 else True
 
             if op_type_match and funct3_match and funct7_match:
+                assert inst  # TODO: better typing
                 acc |= inst[0]
 
         return acc

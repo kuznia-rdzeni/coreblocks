@@ -194,8 +194,8 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 class PrivilegedUnitComponent(FunctionalComponentParams):
     decoder_manager: PrivilegedFn = PrivilegedFn()
 
-    def get_module(self, gp: GenParams) -> FuncUnit:
-        unit = PrivilegedFuncUnit(gp, self.decoder_manager)
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
+        unit = PrivilegedFuncUnit(gen_params, self.decoder_manager)
         connections = DependencyContext.get()
         connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
         return unit

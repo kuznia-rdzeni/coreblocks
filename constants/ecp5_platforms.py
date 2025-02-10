@@ -83,7 +83,7 @@ def make_ecp5_platform(resource_builder: ResourceBuilder):
 
         connectors = []
 
-        def toolchain_program(self):
+        def toolchain_program(self, products, name, **kwargs):
             pass
 
     return ECP5BG756Platform
