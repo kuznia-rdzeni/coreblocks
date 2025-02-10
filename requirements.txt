@@ -2,4 +2,4 @@ amaranth==0.5.3
 amaranth-stubs @ git+https://github.com/kuznia-rdzeni/amaranth-stubs.git@481b28c70812936d067e93e4e4cf2eb34bcc50d3
 amaranth-yosys==0.40.0.0.post100
 dataclasses-json==0.6.3
-transactron @ git+https://github.com/kuznia-rdzeni/transactron.git@cb42874bc61b5f32bd62519465fa041d6ec2d6d7
+transactron @ git+https://github.com/tilk/transactron.git@7ca844b953d89958371a0b928f5cc562b86a97f0
