@@ -66,6 +66,10 @@ class RegAllocation(Elaboratable):
 
 
 class InstructionTagger(Elaboratable):
+    """
+    `Scheduler` driver of `CheckpointRAT` `tag` stage. See `CheckpointRAT.tag` for description.
+    """
+
     def __init__(self, *, get_instr: Method, push_instr: Method, crat_tag: Method, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)

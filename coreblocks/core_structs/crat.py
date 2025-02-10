@@ -21,12 +21,41 @@ class CheckpointRAT(Elaboratable):
     """Checkpoint RAT
     Register Alias Table that supports saving (checkpointing) and rolling back its state.
     It is an replacement of plain Frontend-RAT (FRAT).
-    Usage:
 
-    Parameters
+    It contains two pipelined stages `tag` and `rename`, placed in `Scheduler`. See attributes description for details.
+    `tag` for instruction must be executed at least one cycle before `rename`.
+
+    There are two resources allocated: "virtual" speculation tags, which are monotonic, issued and freed in-order,
+    used to track if instructions are on valid speculation path in the core;
+    and checkpoints, which are physical saved FRAT states, used for rollbacks.
+    Checkpoints are freed immediately while tags are only marked as non-active, but still allocated until free in
+    `Retirement`. Checkpoints are tied to some tags.
+
+    Attributes
     ----------
     free_tag: Method
-
+        Free a tag that is no longer referenced in the core.
+        Associated checkpoints are freed to.
+        This method accepts no arguments, because all tags must be freed in-order, so call means freeing
+        oldest issued tag.
+    get_active_tags: Method
+        Gets bit array of tags that are currently active.
+        If bit is set it means that a tag is on a valid
+        speculation path.
+    tag: Method
+        Tag stage of CheckpointRAT. Issues instruction speculation tags.
+        It needs rollback_tag information from core `Frontend`, that identifies first instruction fetched after
+        rollback and fetch redirect. Infromation if checkpoint should be created after given instruction is expected
+        to be provided from previous stage.
+        It manages allocating new tags, scheduler flushing, information for unlocking FRAT
+        and stalling the pipeline in case FRAT is not yet restored.
+    rename: Method
+        Rename stage of CheckpointRAT. Works like FRAT rename.
+        Renames source registers and updates destination register mapping on valid tagged instructions.
+        It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
+    rollback: Method
+        Rollback listener automatically registered to `RollbackKey`.
+        Invalidates tags, frees checkpoints, initiates FRAT restore and Scheduler flushing.
     """
 
     def __init__(self, gen_params: GenParams):
@@ -52,9 +81,9 @@ class CheckpointRAT(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # ---------------------------------------
+        # ------------------------
         # Internal data structres
-        # ---------------------------------------
+        # ------------------------
 
         # Initialize with one allocated, active, but not checkpointed tag 0
         # With current freeing mechanism one tag must always be allocated, so head==tail -> full
@@ -200,6 +229,8 @@ class CheckpointRAT(Elaboratable):
             stall = Signal()
 
             with m.If(~flushing_scheduler):
+                # Normal instruction flow tagging operation - if commit_checkpoint is needed, allocate pending tags
+                # and schedule new tag for next instruction
                 m.d.av_comb += tag_increment_allocate.eq(next_tag_increment)
                 m.d.av_comb += tag_allocation_set_active.eq(1)
                 # branch instruction is the last one with the current tag (checkpoint is added to existing tag)
@@ -207,23 +238,32 @@ class CheckpointRAT(Elaboratable):
                 m.d.av_comb += out_commit_checkpoint.eq(commit_checkpoint)
 
             with m.Else():
+                # In-rollback flow
                 m.d.sync += next_tag_increment.eq(0)
                 m.d.av_comb += out_commit_checkpoint.eq(0)
 
                 with m.If(rollback_target_valid & ~rollback_frat_ready):
+                    # FRAT is still not loaded with correct rollback checkpoint,
+                    # and a valid instruction from newly fetched path is currently waiting
+                    # (invalid instructions from scheduler were flushed).
                     m.d.av_comb += stall.eq(1)
                 with m.Elif(rollback_target_valid & rollback_frat_ready):
+                    # FRAT has correct checkpoint loaded (currently or in next cycle) and scheduler
+                    # finished flushing. Resume normal operation.
                     m.d.av_comb += tag_increment_allocate.eq(1)
                     m.d.av_comb += tag_allocation_set_active.eq(1)
+                    # There may be still invalid entries (from old speculation path/flushed), between `tag`
+                    # and `rename` stages. Issue new tag, and set `rename` to unblock writes on it.
                     m.d.sync += frat_unlock_tag.eq(out_tag)
                     m.d.sync += flushing_scheduler.eq(0)
                     m.d.sync += next_tag_increment.eq(commit_checkpoint)
                     m.d.av_comb += out_commit_checkpoint.eq(commit_checkpoint)
-                    log.debug(m, True, "flushing fin {}+1 {} {}", out_tag, frat_unlock_tag, rollback_tag)
                 with m.Else():
+                    # Instructions from old speculation path that should be flushed. FRAT has writes locked,
+                    # and tags are already marked as non-active.
                     m.d.av_comb += tag_increment_allocate.eq(next_tag_increment)
+                    # Pending tag must be issed for checkpoint correctness, but is issued as non-active
                     m.d.av_comb += tag_allocation_set_active.eq(0)
-                    log.debug(m, True, "flushing {}", out_tag)
 
             with condition(m, nonblocking=False, priority=False) as cond:
                 with cond(~stall & tag_increment_allocate):
@@ -275,7 +315,7 @@ class CheckpointRAT(Elaboratable):
             # restored checkpoint that will no longer be used.
             m.d.sync += checkpoints_head.eq(rollback_checkpoint_id)
             m.d.sync += checkpoints_full.eq(0)
-            # Only rollback target tag remains active without checkpoint
+            # Rollback target tag still remains active, but without checkpoint
             m.d.comb += checkpointed_tags_reset_mask_0.eq(1 << rollback_target_tag)
 
             storage.read_req(m, addr=rollback_checkpoint_id)
@@ -300,11 +340,10 @@ class CheckpointRAT(Elaboratable):
 
             freed_tag = tags_tail
 
-            # deallocate tag that is no longer referenced by the core
             m.d.comb += active_tags_reset_mask_1.eq(1 << freed_tag)
             m.d.sync += tags_tail.eq(freed_tag + 1)
 
-            # deallocate any physical checkpoints (but not tags) associated with freed tags
+            # deallocate physical checkpoints (but not tags) associated with freed tag
             with m.If(((checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
                 m.d.comb += checkpoints_next_tail_comb.eq(
                     Mux(checkpoints_tail + 1 == self.gen_params.checkpoint_count, 0, checkpoints_tail + 1)
@@ -317,7 +356,7 @@ class CheckpointRAT(Elaboratable):
 
             m.d.comb += checkpointed_tags_reset_mask_1.eq(1 << freed_tag)
 
-            log.debug(m, True, "freed tag 0x{:x} {:x} {:x}", freed_tag, active_tags, checkpointed_tags)
+            log.debug(m, True, "freed tag 0x{:x}", freed_tag)
             log.assertion(m, (tags_tail + 1) != tags_head, "tag free underflow")
 
         # -----

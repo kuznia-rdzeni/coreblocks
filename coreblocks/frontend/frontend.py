@@ -17,6 +17,15 @@ from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
 class RollbackTagger(Elaboratable):
+    """
+    Provides `rollback_tag` field for instructions leaving the `Frontend` and decides on which instructions
+    a checkpoint should be created.
+
+    `rollback_tag` is used to identify new instructions fetched after each rollback.
+    Instructions from previous rollback are flushed internally in `Frontend` (and this module),
+    but this is needed to differentiate from instructions that left `Frontend` earlier.
+    """
+
     def __init__(self, *, get_instr: Method, push_instr: Method, gen_params: GenParams) -> None:
         self.gen_params = gen_params
 
