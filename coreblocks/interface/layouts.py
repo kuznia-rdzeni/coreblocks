@@ -5,7 +5,7 @@ from amaranth.lib.enum import IntFlag, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
-from transactron.utils.transactron_helpers import from_method_layout, make_layout, extend_layout
+from transactron.utils.transactron_helpers import make_layout, extend_layout
 
 __all__ = [
     "CommonLayoutFields",
@@ -303,8 +303,12 @@ class ROBLayouts:
 class RSLayoutFields:
     """Layout fields used in the reservation station."""
 
-    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
-        self.rs_data: LayoutListField = ("rs_data", data_layout)
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_fields: set[str]):
+        full_data = gen_params.get(RSFullDataLayout)
+
+        self.data_layout = layout_subset(full_data.data_layout, fields=data_fields)
+
+        self.rs_data: LayoutListField = ("rs_data", self.data_layout)
         """Data about an instuction stored in a reservation station (RS)."""
 
         self.rs_entry_id: LayoutListField = ("rs_entry_id", rs_entries_bits)
@@ -336,11 +340,11 @@ class RSFullDataLayout:
 class RSInterfaceLayouts:
     """Layouts used in functional blocks."""
 
-    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
+    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_fields: set[str]):
         fields = gen_params.get(CommonLayoutFields)
-        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
+        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_fields=data_fields)
 
-        self.data_layout = from_method_layout(data_layout)
+        self.data_layout = rs_fields.data_layout
 
         self.select_out = make_layout(rs_fields.rs_entry_id)
 
@@ -369,33 +373,28 @@ class RSLayouts:
     """Layouts used in the reservation station."""
 
     def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
-        data = gen_params.get(RSFullDataLayout)
+        data_fields = {
+            "rp_s1",
+            "rp_s2",
+            "rp_dst",
+            "rob_id",
+            "exec_fn",
+            "s1_val",
+            "s2_val",
+            "imm",
+            "pc",
+        }
+
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_fields=data_fields)
+        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_fields=data_fields)
 
         self.ready_list: LayoutListField = ("ready_list", 2**rs_entries_bits)
         """Bitmask of reservation station entries containing instructions which are ready to run."""
 
-        data_layout = layout_subset(
-            data.data_layout,
-            fields={
-                "rp_s1",
-                "rp_s2",
-                "rp_dst",
-                "rob_id",
-                "exec_fn",
-                "s1_val",
-                "s2_val",
-                "imm",
-                "pc",
-            },
-        )
-
-        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
-        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
-
         self.take_in = make_layout(rs_fields.rs_entry_id)
 
         self.take_out = layout_subset(
-            data.data_layout,
+            self.rs.data_layout,
             fields={
                 "s1_val",
                 "s2_val",
@@ -616,25 +615,23 @@ class CSRUnitLayouts:
     """Layouts used in the control and status functional unit."""
 
     def __init__(self, gen_params: GenParams):
-        data = gen_params.get(RSFullDataLayout)
         self.rs_entries_bits = 0
 
-        data_layout = layout_subset(
-            data.data_layout,
-            fields={
-                "rp_s1",
-                "rp_s1_reg",
-                "rp_dst",
-                "rob_id",
-                "exec_fn",
-                "s1_val",
-                "imm",
-                "csr",
-                "pc",
-            },
-        )
+        data_fields = {
+            "rp_s1",
+            "rp_s1_reg",
+            "rp_dst",
+            "rob_id",
+            "exec_fn",
+            "s1_val",
+            "imm",
+            "csr",
+            "pc",
+        }
 
-        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_fields=data_fields)
+
+        self.data_layout = self.rs.data_layout
 
 
 class ExceptionRegisterLayouts:
