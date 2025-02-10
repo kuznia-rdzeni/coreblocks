@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1739178962099,
+  "lastUpdate": 1739210481155,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -15895,6 +15895,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d71c5a0598118b05c0a293e4df47846ea00f42db"
         },
         "date": 1739178953162,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4167172604951732,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5323272232657555,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.372720734441765,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6317178955308316,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35912088567932915,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29081033772652387,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3277132509054577,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4430657901349061,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "faebb5449f89e1e55e8b03e61402f4bf11ea3e5f",
+          "message": "Implement Zalrsc - load-reserved/store-conditional instructions extension (#782)",
+          "timestamp": "2025-02-10T18:46:43+01:00",
+          "tree_id": "5caf68fd8cb02e9a96cada9633ea4ef922d011fc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/faebb5449f89e1e55e8b03e61402f4bf11ea3e5f"
+        },
+        "date": 1739210476714,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
