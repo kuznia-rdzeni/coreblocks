@@ -16,7 +16,8 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.crat import CheckpointRAT
+from coreblocks.core_structs.rat import RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
@@ -62,7 +63,7 @@ class Core(Component):
 
         self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
 
-        self.FRAT = FRAT(gen_params=self.gen_params)
+        self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
@@ -108,7 +109,7 @@ class Core(Component):
         m.submodules.frontend = self.frontend
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
-        m.submodules.FRAT = frat = self.FRAT
+        m.submodules.CRAT = crat = self.CRAT
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
@@ -128,7 +129,9 @@ class Core(Component):
         m.submodules.scheduler = Scheduler(
             get_instr=get_instr.method,
             get_free_reg=rf_allocator.alloc[0],
-            rat_rename=frat.rename,
+            crat_rename=crat.rename,
+            crat_tag=crat.tag,
+            crat_active_tags=crat.get_active_tags,
             rob_put=rob.put,
             rf_read_req1=rf.read_req1,
             rf_read_req2=rf.read_req2,
@@ -159,11 +162,13 @@ class Core(Component):
             rf_free=rf.free,
             exception_cause_get=self.exception_information_register.get,
             exception_cause_clear=self.exception_information_register.clear,
-            frat_rename=frat.rename,
+            frat_rename=crat.rename,
             fetch_continue=self.frontend.resume_from_exception,
             instr_decrement=core_counter.decrement,
             trap_entry=self.interrupt_controller.entry,
             async_interrupt_cause=self.interrupt_controller.interrupt_cause,
+            checkpoint_get_active_tags=crat.get_active_tags,
+            checkpoint_tag_free=crat.free_tag,
         )
 
         return m
