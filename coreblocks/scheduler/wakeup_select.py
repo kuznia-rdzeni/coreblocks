@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron.utils import assign, AssignType
+from transactron.utils import PriorityEncoder, assign, AssignType
 from transactron.core import *
 
 __all__ = ["WakeupSelect"]
@@ -42,13 +42,10 @@ class WakeupSelect(Elaboratable):
 
         with Transaction().body(m):
             ready = self.get_ready(m)
-            ready_width = ready.shape().size
-            last = Signal((ready_width - 1).bit_length())
-            for i in range(ready_width):
-                with m.If(ready.ready_list[i]):
-                    m.d.comb += last.eq(i)
-
-            row = self.take_row(m, last)
+            ready_width = len(ready.ready_list)
+            m.submodules.prio_encoder = prio_encoder = PriorityEncoder(ready_width)
+            m.d.av_comb += prio_encoder.i.eq(ready.ready_list)
+            row = self.take_row(m, prio_encoder.o)
             issue_rec = Signal(self.gen_params.get(FuncUnitLayouts).issue)
             m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
             self.issue(m, issue_rec)
