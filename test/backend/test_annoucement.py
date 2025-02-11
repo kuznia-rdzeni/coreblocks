@@ -48,12 +48,12 @@ class BackendTestCircuit(Elaboratable):
         m.submodules.result_announcement = result_announcement = ResultAnnouncement(gen_params=self.gen_params)
 
         # Create stubs for interfaces used by result announcement
-        result_announcement.m_get_result.proxy(m, serialized_results_fifo.read)
-        self.rs_announce_val_tbio = TestbenchIO(Adapter(result_announcement.m_rs_update))
+        result_announcement.get_result.proxy(m, serialized_results_fifo.read)
+        self.rs_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rs_update))
         m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
-        self.rf_announce_val_tbio = TestbenchIO(Adapter(result_announcement.m_rf_write_val))
+        self.rf_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rf_write_val))
         m.submodules.rf_announce_val_tbio = self.rf_announce_val_tbio
-        self.rob_mark_done_tbio = TestbenchIO(Adapter(result_announcement.m_rob_mark_done))
+        self.rob_mark_done_tbio = TestbenchIO(Adapter(result_announcement.rob_mark_done))
         m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
 
         return m

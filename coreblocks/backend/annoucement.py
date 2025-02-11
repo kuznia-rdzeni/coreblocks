@@ -43,25 +43,25 @@ class ResultAnnouncement(Elaboratable):
             fetch unit.
         """
 
-        self.m_get_result = Method(o=gen_params.get(FuncUnitLayouts).push_result)
-        self.m_rob_mark_done = Method(i=gen_params.get(ROBLayouts).mark_done_layout)
-        self.m_rs_update = Method(
+        self.get_result = Method(o=gen_params.get(FuncUnitLayouts).push_result)
+        self.rob_mark_done = Method(i=gen_params.get(ROBLayouts).mark_done_layout)
+        self.rs_update = Method(
             i=gen_params.get(RSLayouts, rs_entries_bits=gen_params.max_rs_entries_bits).rs.update_in
         )
-        self.m_rf_write_val = Method(i=gen_params.get(RFLayouts).rf_write)
+        self.rf_write_val = Method(i=gen_params.get(RFLayouts).rf_write)
 
     def debug_signals(self):
-        return [self.m_get_result.debug_signals()]
+        return [self.get_result.debug_signals()]
 
     def elaborate(self, platform):
         m = TModule()
 
         with Transaction().body(m):
-            result = self.m_get_result(m)
-            self.m_rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
+            result = self.get_result(m)
+            self.rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
 
-            self.m_rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
+            self.rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
             with m.If(result.rp_dst != 0):
-                self.m_rs_update(m, reg_id=result.rp_dst, reg_val=result.result)
+                self.rs_update(m, reg_id=result.rp_dst, reg_val=result.result)
 
         return m

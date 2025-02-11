@@ -140,10 +140,10 @@ class Core(Component):
             m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
-        announcement.m_get_result.proxy(m, self.func_blocks_unifier.get_result)
-        announcement.m_rob_mark_done.proxy(m, self.ROB.mark_done)
-        announcement.m_rs_update.proxy(m, self.func_blocks_unifier.update)
-        announcement.m_rf_write_val.proxy(m, self.RF.write)
+        announcement.get_result.proxy(m, self.func_blocks_unifier.get_result)
+        announcement.rob_mark_done.proxy(m, self.ROB.mark_done)
+        announcement.rs_update.proxy(m, self.func_blocks_unifier.update)
+        announcement.rf_write_val.proxy(m, self.RF.write)
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
 
