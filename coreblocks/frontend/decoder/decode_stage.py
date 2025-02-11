@@ -3,7 +3,7 @@ from amaranth import *
 from coreblocks.arch import *
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
-from coreblocks.interface.layouts import JumpBranchLayouts
+from coreblocks.interface.layouts import DecodeLayouts, FetchLayouts, JumpBranchLayouts
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
 from .instr_decoder import InstrDecoder
@@ -16,25 +16,27 @@ class DecodeStage(Elaboratable):
     submodule `InstrDecoder`. This `InstrDecoder` makes actual decoding in
     a combinatorial manner.
 
+    Attributes
+    ----------
+    get_raw : Method, required
+        Method which is invoked to get raw instruction from previous step
+        (e.g. from fetch unit) it uses `FetchLayout`.
+    push_decoded : Method, required
+        Method which is invoked to send decoded data to the next step.
+        It has layout as described by `DecodeLayouts`.
     """
 
-    def __init__(self, gen_params: GenParams, get_raw: Method, push_decoded: Method) -> None:
+    def __init__(self, gen_params: GenParams) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        get_raw : Method
-            Method which is invoked to get raw instruction from previous step
-            (e.g. from fetch unit) it uses `FetchLayout`.
-        push_decoded : Method
-            Method which is invoked to send decoded data to the next step.
-            It has layout as described by `DecodeLayouts`.
         """
         self.gen_params = gen_params
-        self.get_raw = get_raw
-        self.push_decoded = push_decoded
+        self.get_raw = Method(o=gen_params.get(FetchLayouts).raw_instr)
+        self.push_decoded = Method(i=gen_params.get(DecodeLayouts).decoded_instr)
 
         self.perf_illegal_instr = HwCounter("frontend.decode.illegal_instr")
 
