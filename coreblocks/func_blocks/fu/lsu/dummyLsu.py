@@ -161,7 +161,7 @@ class LSUComponent(FunctionalComponentParams):
         unit = LSUDummy(gen_params, bus_master)
         return unit
 
-    def get_decoder_manager(self):
+    def get_decoder_manager(self):  # type: ignore
         pass  # LSU component currently doesn't have a decoder manager
 
     def get_optypes(self) -> set[OpType]:
