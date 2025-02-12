@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
+from transactron.lib.dependencies import SimpleKey, ListKey
 from transactron import Method
-from transactron.lib import Collector
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
@@ -16,7 +15,7 @@ __all__ = [
     "InstructionPrecommitKey",
     "BranchVerifyKey",
     "PredictedJumpTargetKey",
-    "FetchResumeKey",
+    "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
     "CSRInstancesKey",
     "AsyncInterruptInsertSignalKey",
@@ -48,7 +47,12 @@ class PredictedJumpTargetKey(SimpleKey[tuple[Method, Method]]):
 
 
 @dataclass(frozen=True)
-class FetchResumeKey(UnifierKey, unifier=Collector):
+class UnsafeInstructionResolvedKey(SimpleKey[Method]):
+    """
+    Represents a method that is called by functional units when
+    an unsafe instruction is executed and the core should be resumed.
+    """
+
     pass
 
 

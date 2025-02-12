@@ -1,11 +1,9 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from coreblocks.interface.keys import FetchResumeKey
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import popcount, assign, StableSelectingNetwork
-from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -32,9 +30,18 @@ class FetchUnit(Elaboratable):
 
     The unit also deals with expanding compressed instructions and managing instructions that aren't aligned to
     4-byte boundaries.
+
+    Attributes
+    ----------
+    redirect : Method
+        Redirects the fetch unit to the specified PC
+    flush : Method
+        Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled.
     """
 
-    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method) -> None:
+    def __init__(
+        self, gen_params: GenParams, icache: CacheInterface, cont: Method, stall_lock: Method, stall_unsafe: Method
+    ) -> None:
         """
         Parameters
         ----------
@@ -46,16 +53,21 @@ class FetchUnit(Elaboratable):
         cont : Method
             Method which should be invoked to send fetched instruction to the next step.
             It has layout as described by `FetchLayout`.
+        stall_lock : Method
+            Method whose readiness determines if the fetch unit is stalled
+        stall_unsafe : Method
+            Method that is called when an unsafe instruction is fetched
         """
         self.gen_params = gen_params
         self.icache = icache
         self.cont = cont
+        self.stall_lock = stall_lock
+        self.stall_unsafe = stall_unsafe
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
-        self.resume_from_unsafe = Method(i=self.layouts.resume)
-        self.resume_from_exception = Method(i=self.layouts.resume)
-        self.stall_exception = Method()
+        self.redirect = Method(i=self.layouts.redirect)
+        self.flush = Method()
 
         self.perf_fetch_utilization = TaggedCounter(
             "frontend.fetch.fetch_block_util",
@@ -83,7 +95,9 @@ class FetchUnit(Elaboratable):
         )
 
         with Transaction(name="cont").body(m):
-            self.cont(m, serializer.read(m, count=1).data[0])
+            raw_instr = serializer.read(m, count=1).data[0]
+            log.info(m, True, "Sending an instr to the backend pc=0x{:x} instr=0x{:x}", raw_instr.pc, raw_instr.instr)
+            self.cont(m, raw_instr)
 
         m.submodules.cache_requests = cache_requests = BasicFifo(layout=[("addr", self.gen_params.isa.xlen)], depth=2)
 
@@ -100,18 +114,13 @@ class FetchUnit(Elaboratable):
 
         current_pc = Signal(self.gen_params.isa.xlen, init=self.gen_params.start_pc)
 
-        stalled_unsafe = Signal()
-        stalled_exception = Signal()
-
-        stalled = Signal()
-        m.d.av_comb += stalled.eq(stalled_unsafe | stalled_exception)
-
         #
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
         #
-        with Transaction(name="Fetch_Stage0").body(m, request=~stalled):
+        with Transaction(name="Fetch_Stage0").body(m):
+            self.stall_lock(m)
             req_counter.acquire(m)
             self.icache.issue_req(m, addr=current_pc)
             cache_requests.write(m, addr=current_pc)
@@ -351,7 +360,7 @@ class FetchUnit(Elaboratable):
                         # TODO: Raise different code for page fault when supported
                         # could be passed in 3rd bit of access_fault
                         flush()
-                        m.d.sync += stalled_unsafe.eq(1)
+                        self.stall_unsafe(m)
                     with m.Elif(redirect):
                         self.perf_fetch_redirects.incr(m)
                         new_pc = Signal.like(current_pc)
@@ -372,86 +381,14 @@ class FetchUnit(Elaboratable):
         with m.If(flush_now):
             m.d.sync += flushing_counter.eq(req_counter.count_next)
 
-        @def_method(m, self.resume_from_unsafe, ready=(stalled & (flushing_counter == 0)))
-        def _(pc: Value):
-            log.info(m, ~stalled_exception, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
-            m.d.sync += current_pc.eq(pc)
-            # If core is stalled because of exception, effect of this call will be ignored, as
-            # `stalled_exception` is not changed
-            m.d.sync += stalled_unsafe.eq(0)
-
-        @def_method(m, self.resume_from_exception, ready=(stalled_exception & (flushing_counter == 0)))
-        def _(pc: Value):
-            log.info(m, True, "Resuming from exception new_pc=0x{:x}", pc)
-            # Resume from exception has implicit priority to resume from unsafe instructions call.
-            # Both could happen at the same time due to resume methods being blocked.
-            # `resume_from_unsafe` will never overwrite `resume_from_exception` event, because there is at most one
-            # unsafe instruction in the core that will call resume_from_unsafe before or at the same time as
-            # `resume_from_exception`.
-            # `current_pc` is set to correct entry at a complete unstall due to method declaration order
-            # See https://github.com/kuznia-rdzeni/coreblocks/pull/654#issuecomment-2057478960
-            m.d.sync += current_pc.eq(pc)
-            m.d.sync += stalled_unsafe.eq(0)
-            m.d.sync += stalled_exception.eq(0)
-
-        # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
-        # of exception report, both can happen at any time during normal excecution.
-        # In case of simultaneous call, fetch will be correctly stalled, becasue separate signal is used
-        @def_method(m, self.stall_exception)
+        @def_method(m, self.flush)
         def _():
-            log.info(m, True, "Stalling the fetch unit because of an exception")
-            serializer.clear(m)
-            m.d.sync += stalled_exception.eq(1)
             flush()
+            serializer.clear(m)
 
-        # Fetch resume verification
-        if self.gen_params.extra_verification:
-            expect_unstall_unsafe = Signal()
-            prev_stalled_unsafe = Signal()
-            dependencies = DependencyContext.get()
-            fetch_resume = dependencies.get_optional_dependency(FetchResumeKey())
-            if fetch_resume is not None:
-                unifier_ready = fetch_resume[0].ready
-            else:
-                unifier_ready = C(0)
-
-            m.d.sync += prev_stalled_unsafe.eq(stalled_unsafe)
-            with m.FSM("running"):
-                with m.State("running"):
-                    log.error(m, stalled_exception | prev_stalled_unsafe, "fetch was expected to be running")
-                    log.error(
-                        m,
-                        unifier_ready,
-                        "resume_from_unsafe unifier is ready before stall",
-                    )
-                    with m.If(stalled_unsafe):
-                        m.next = "stalled_unsafe"
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
-                with m.State("stalled_unsafe"):
-                    m.d.sync += expect_unstall_unsafe.eq(1)
-                    with m.If(self.resume_from_unsafe.run):
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        m.next = "running"
-                    with m.If(self.stall_exception.run):
-                        m.next = "stalled_exception"
-                    log.error(
-                        m,
-                        self.resume_from_exception.run & ~self.stall_exception.run,
-                        "unexpected resume_from_exception",
-                    )
-                with m.State("stalled_exception"):
-                    with m.If(self.resume_from_unsafe.run):
-                        log.error(m, ~expect_unstall_unsafe, "unexpected resume_from_unsafe")
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                    with m.If(self.resume_from_exception.run):
-                        # unstall_form_unsafe may be skipped if excpetion was reported on unsafe instruction,
-                        # invalid cases are verified by readiness check in running state
-                        m.d.sync += expect_unstall_unsafe.eq(0)
-                        m.d.sync += prev_stalled_unsafe.eq(0)  # it is fine to be stalled now
-                        with m.If(~self.stall_exception.run):
-                            m.next = "running"
+        @def_method(m, self.redirect)
+        def _(pc):
+            m.d.sync += current_pc.eq(pc)
 
         return m
 
