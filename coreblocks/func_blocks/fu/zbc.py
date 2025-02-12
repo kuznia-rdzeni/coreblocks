@@ -21,12 +21,11 @@ class ZbcFn(DecoderManager):
         CLMULH = auto()
         CLMULR = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.CLMUL, OpType.CLMUL, Funct3.CLMUL),
-            (cls.Fn.CLMULH, OpType.CLMUL, Funct3.CLMULH),
-            (cls.Fn.CLMULR, OpType.CLMUL, Funct3.CLMULR),
+            (ZbcFn.Fn.CLMUL, OpType.CLMUL, Funct3.CLMUL),
+            (ZbcFn.Fn.CLMULH, OpType.CLMUL, Funct3.CLMULH),
+            (ZbcFn.Fn.CLMULR, OpType.CLMUL, Funct3.CLMULR),
         ]
 
 

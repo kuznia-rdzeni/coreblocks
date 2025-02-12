@@ -276,7 +276,7 @@ def _create_test(function, name, mod, *args, **kwargs):
     _my_test.__qualname__ = name
     _my_test.__module__ = mod.__name__
 
-    return cocotb.test()(_my_test)
+    return cocotb.test()(_my_test)  # type: ignore
 
 
 def generate_tests(test_function: Callable[[Any, Any], Coroutine[Any, Any, None]], test_names: list[str]):
