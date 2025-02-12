@@ -9,7 +9,7 @@ from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
 from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
-from transactron.utils._typing import AbstractInterface, AbstractSignature
+from transactron.utils._typing import AbstractInterface
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
 from transactron.lib import logging
@@ -59,7 +59,7 @@ class WishboneSignature(Signature):
         return cast(WishboneInterface, PureInterface(self, path=path, src_loc_at=src_loc_at + 1))
 
 
-class WishboneInterface(AbstractInterface[AbstractSignature], Protocol):
+class WishboneInterface(AbstractInterface[WishboneSignature], Protocol):
     dat_r: Signal
     dat_w: Signal
     rst: Signal
