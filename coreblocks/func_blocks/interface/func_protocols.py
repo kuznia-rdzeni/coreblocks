@@ -11,8 +11,6 @@ class FuncUnit(HasElaborate, Protocol):
     issue: Provided[Method]
     push_result: Required[Method]
 
-    # TODO move this to another class, and
-    # make all but JumpBranchWrapper inherit from it instead
     gen_params: Required[GenParams]
     layouts: Required[FuncUnitLayouts]
 
