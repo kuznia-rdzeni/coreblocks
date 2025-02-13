@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from amaranth import *
 
-from transactron import Method, def_method, Transaction, TModule
+from transactron import def_method, Transaction, TModule
 from transactron.lib.connectors import FIFO, Forwarder
 from transactron.utils import DependencyContext
 from transactron.lib.simultaneous import condition
@@ -11,7 +11,7 @@ from coreblocks.params import *
 from coreblocks.arch import OpType
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.frontend.decoder import *
-from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import LSULayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
@@ -37,15 +37,12 @@ class LSUDummy(FuncUnit, Elaboratable):
             An instance of the bus master for interfacing with the data bus.
         """
 
-        self.gen_params = gen_params
-        self.fu_layouts = gen_params.get(FuncUnitLayouts)
+        super().__init__(gen_params)
+        self.fu_layouts = self.layouts  # alisas for clarification
         self.lsu_layouts = gen_params.get(LSULayouts)
 
         self.dependency_manager = DependencyContext.get()
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
-
-        self.issue = Method(i=self.fu_layouts.issue)
-        self.push_result = Method(i=self.fu_layouts.push_result)
 
         self.bus = bus
 

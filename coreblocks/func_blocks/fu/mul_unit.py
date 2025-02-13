@@ -9,7 +9,6 @@ from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import Sequentia
 from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
@@ -98,15 +97,9 @@ class MulUnit(FuncUnit, Elaboratable):
         gen_params: GenParams
             Core generation parameters.
         """
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.mul_type = mul_type
         self.dsp_width = dsp_width
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
         self.mul_fn = mul_fn
 
     def elaborate(self, platform):

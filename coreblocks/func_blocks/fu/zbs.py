@@ -5,8 +5,7 @@ from amaranth import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron import Method, TModule, def_method
+from transactron import TModule, def_method
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
@@ -96,12 +95,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, zbs_fn=ZbsFunction()):
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.gen_params = gen_params
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
+        super().__init__(gen_params)
         self.zbs_fn = zbs_fn
 
     def elaborate(self, platform):

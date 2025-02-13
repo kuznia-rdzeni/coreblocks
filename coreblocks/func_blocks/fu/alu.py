@@ -6,7 +6,6 @@ from transactron import *
 from transactron.lib.metrics import *
 
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params import GenParams, FunctionalComponentParams
 from transactron.utils import HasElaborate, OneHotSwitch
 
@@ -235,14 +234,8 @@ class Alu(Elaboratable):
 
 class AluFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.alu_fn = alu_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
         self.perf_instr = TaggedCounter(
             "backend.fu.alu.instr",
             "Counts of instructions executed by the jumpbranch unit",
