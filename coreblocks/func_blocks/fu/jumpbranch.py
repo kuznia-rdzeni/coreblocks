@@ -12,7 +12,7 @@ from transactron.lib import logging
 from transactron.utils import DependencyContext, from_method_layout
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
-from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
+from coreblocks.interface.layouts import JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     BranchVerifyKey,
@@ -129,13 +129,7 @@ class JumpBranch(Elaboratable):
 
 class JumpBranchFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, jb_fn=JumpBranchFn()):
-        self.gen_params = gen_params
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
+        super().__init__(gen_params)
         self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
 
         self.jb_fn = jb_fn

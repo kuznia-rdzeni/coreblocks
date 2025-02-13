@@ -6,7 +6,6 @@ from transactron import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
@@ -77,13 +76,8 @@ class ShiftUnit(Elaboratable):
 
 class ShiftFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, shift_unit_fn=ShiftUnitFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.shift_unit_fn = shift_unit_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()

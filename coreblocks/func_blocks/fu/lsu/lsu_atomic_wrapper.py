@@ -8,7 +8,6 @@ from transactron.utils import assign, layout_subset, AssignType
 from coreblocks.arch import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
-from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params import GenParams, FunctionalComponentParams
 
 
@@ -28,12 +27,8 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, lsu: FuncUnit):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.lsu = lsu
-
-        self.fu_layouts = fu_layouts = gen_params.get(FuncUnitLayouts)
-        self.issue = Method(i=fu_layouts.issue)
-        self.push_result = Method(i=fu_layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()
@@ -43,7 +38,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
         atomic_in_progress = Signal()
         atomic_op = Signal(
-            layout_subset(self.fu_layouts.issue, fields=set(["rob_id", "s1_val", "s2_val", "rp_dst", "exec_fn"]))
+            layout_subset(self.layouts.issue, fields=set(["rob_id", "s1_val", "s2_val", "rp_dst", "exec_fn"]))
         )
 
         def atomic_op_res(v1: Value, v2: Value):
@@ -101,7 +96,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 m.d.av_comb += issue_store.eq(1)
                 m.d.av_comb += sc_fail.eq(~reservation_valid)
 
-            atomic_issue_op = Signal(self.fu_layouts.issue)
+            atomic_issue_op = Signal(self.layouts.issue)
             m.d.av_comb += assign(atomic_issue_op, arg)
             m.d.av_comb += assign(
                 atomic_issue_op.exec_fn,
@@ -127,7 +122,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
         atomic_second_reqest = Signal()
         atomic_fin = Signal()
 
-        push_lsu_result = Method(i=self.fu_layouts.push_result)
+        push_lsu_result = Method(i=self.layouts.push_result)
 
         @def_method(m, push_lsu_result)
         def _(arg):
@@ -135,7 +130,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
             # LR/SC
             with m.If((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & atomic_is_lr_sc):
-                atomic_res = Signal(self.fu_layouts.push_result)
+                atomic_res = Signal(self.layouts.push_result)
                 m.d.av_comb += assign(atomic_res, arg)
                 with m.If(funct7 == Funct7.SC):
                     m.d.av_comb += atomic_res.result.eq(0)
@@ -158,7 +153,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
             # 2nd AMO result
             with m.Elif(atomic_in_progress & atomic_fin):
-                atomic_res = Signal(self.fu_layouts.push_result)
+                atomic_res = Signal(self.layouts.push_result)
                 m.d.av_comb += assign(atomic_res, arg)
                 m.d.av_comb += atomic_res.result.eq(Mux(arg.exception, 0, load_val))
                 self.push_result(m, atomic_res)
@@ -189,7 +184,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
         sc_failed_trans.add_conflict(push_lsu_result, priority=Priority.RIGHT)
 
         with Transaction().body(m, request=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
-            atomic_store_op = Signal(self.fu_layouts.issue)
+            atomic_store_op = Signal(self.layouts.issue)
             m.d.av_comb += assign(atomic_store_op, atomic_op)
             m.d.av_comb += assign(atomic_store_op.exec_fn, {"op_type": OpType.STORE, "funct3": Funct3.W})
             m.d.av_comb += atomic_store_op.imm.eq(0)

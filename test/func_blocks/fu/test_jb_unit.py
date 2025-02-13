@@ -19,7 +19,7 @@ from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 class JumpBranchWrapper(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, auipc_test: bool):
-        self.gp = gen_params
+        self.gen_params = gen_params
         self.auipc_test = auipc_test
         layouts = gen_params.get(JumpBranchLayouts)
 
@@ -41,7 +41,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         m = TModule()
 
         m.submodules.jb_unit = self.jb
-        m.submodules.res_fifo = res_fifo = BasicFifo(self.gp.get(FuncUnitLayouts).push_result, 2)
+        m.submodules.res_fifo = res_fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).push_result, 2)
 
         self.jb.push_result.proxy(m, res_fifo.write)
 

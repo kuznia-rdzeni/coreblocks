@@ -2,7 +2,7 @@ from collections import deque
 import random
 from amaranth import *
 from amaranth.utils import ceil_log2
-from transactron import Method, TModule
+from transactron import TModule
 from transactron.lib import Adapter, AdapterTrans
 from transactron.testing import MethodMock, SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, def_method_mock
 
@@ -10,18 +10,13 @@ from coreblocks.arch.isa_consts import Funct3, Funct7
 from coreblocks.arch.optypes import OpType
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapper
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
-from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params.configurations import test_core_config
 from coreblocks.params.genparams import GenParams
 
 
 class FuncUnitMock(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams):
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
+        super().__init__(gen_params)
         self.issue_tb = TestbenchIO(Adapter(self.issue))
         self.push_result_tb = TestbenchIO(AdapterTrans(self.push_result))
 

@@ -7,8 +7,7 @@ from amaranth import *
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron import Method, Transaction, def_method, TModule
+from transactron import Transaction, def_method, TModule
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -161,13 +160,9 @@ class ZbcUnit(FuncUnit, Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
-        layouts = gen_params.get(FuncUnitLayouts)
-
+        super().__init__(gen_params)
         self.zbc_fn = zbc_fn
         self.recursion_depth = recursion_depth
-        self.gen_params = gen_params
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()

@@ -8,7 +8,6 @@ from amaranth.lib import data
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
@@ -42,15 +41,9 @@ def get_input(arg: data.View) -> tuple[Value, Value]:
 
 class DivUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, ipc: int = 4, div_fn=DivFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.ipc = ipc
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
         self.clear = Method()
-
         self.div_fn = div_fn
 
     def elaborate(self, platform):

@@ -15,7 +15,7 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.interface.layouts import FetchLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -47,14 +47,9 @@ class PrivilegedFn(DecoderManager):
 
 class PrivilegedFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.priv_fn = priv_fn
-
-        self.layouts = layouts = gen_params.get(FuncUnitLayouts)
         self.dm = DependencyContext.get()
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
         self.fetch_resume_fifo = BasicFifo(self.gen_params.get(FetchLayouts).resume, 2)
 
