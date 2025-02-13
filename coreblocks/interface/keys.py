@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
 from transactron import Method
@@ -53,7 +53,7 @@ class FetchResumeKey(UnifierKey, unifier=Collector):
 
 
 @dataclass(frozen=True)
-class ExceptionReportKey(SimpleKey[Method]):
+class ExceptionReportKey(SimpleKey[Callable]):
     pass
 
 
