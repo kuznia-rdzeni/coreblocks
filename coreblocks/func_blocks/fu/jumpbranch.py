@@ -74,13 +74,7 @@ class JumpBranch(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        branch_target = Signal(self.gen_params.isa.xlen)
-
-        # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
-        # and is added to the current pc to give the target address."
-        # Multiplies of 2 are converted to the real offset in the decode stage, so we have 13 bits.
-        m.d.comb += branch_target.eq(self.in_pc + self.in_imm[:13].as_signed())
-
+        m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm)
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
         if Extension.C in self.gen_params.isa.extensions:
@@ -89,39 +83,25 @@ class JumpBranch(Elaboratable):
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
-                # Spec: "[...] the J-immediate encodes a signed offset in multiples of 2 bytes.
-                # The offset is sign-extended and added to the pc to form the jump target address."
-                # Multiplies of 2 are converted to the real offset in the decode stage, so we have 21 bits.
-                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:21].as_signed())
+                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm)
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.JALR):
-                # Spec: "The target address is obtained by adding the 12-bit signed I-immediate
-                # to the register rs1, then setting the least-significant bit of the result to zero."
-                m.d.comb += self.jmp_addr.eq(self.in1 + self.in_imm[:12].as_signed())
+                m.d.comb += self.jmp_addr.eq(self.in1 + self.in_imm)
                 m.d.comb += self.jmp_addr[0].eq(0)
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.AUIPC):
-                # Spec: "AUIPC forms a 32-bit offset from the 20-bit U-immediate, filling in the
-                # lowest 12 bits with zeros, adds this offset to the pc"
-                # Order of arguments in Cat is reversed
-                m.d.comb += self.reg_res.eq(self.in_pc + Cat(C(0, 12), self.in_imm[12:]))
+                m.d.comb += self.reg_res.eq(self.in_pc + self.in_imm)
             with OneHotCase(JumpBranchFn.Fn.BEQ):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1 == self.in2)
             with OneHotCase(JumpBranchFn.Fn.BNE):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1 != self.in2)
             with OneHotCase(JumpBranchFn.Fn.BLT):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_signed() < self.in2.as_signed())
             with OneHotCase(JumpBranchFn.Fn.BLTU):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() < self.in2.as_unsigned())
             with OneHotCase(JumpBranchFn.Fn.BGE):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_signed() >= self.in2.as_signed())
             with OneHotCase(JumpBranchFn.Fn.BGEU):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() >= self.in2.as_unsigned())
 
         return m
