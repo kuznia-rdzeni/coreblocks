@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740001279360,
+  "lastUpdate": 1740001280719,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -46546,6 +46546,53 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1940,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1664,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6824,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Marek Materzok",
+            "username": "tilk",
+            "email": "tilk@tilk.eu"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "047aec07a52e63a61b7231bef7dc55460fae676a",
+          "message": "Update transactron and pyright (#802)",
+          "timestamp": "2025-02-12T15:18:54Z",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/047aec07a52e63a61b7231bef7dc55460fae676a"
+        },
+        "date": 1740001280394,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.69,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 27910,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1908,
             "unit": "LUT"
           },
           {
