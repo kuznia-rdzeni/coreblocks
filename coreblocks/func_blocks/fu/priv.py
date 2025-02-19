@@ -64,6 +64,8 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
             tags=PrivilegedFn.Fn,
         )
 
+        self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -82,7 +84,6 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
         wfi_resume = self.dm.get_dependency(WaitForInterruptResumeKey())
-        exception_report = self.dm.get_dependency(ExceptionReportKey())
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
@@ -161,7 +162,9 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                     m, (instr_fn != PrivilegedFn.Fn.MRET) & (instr_fn != PrivilegedFn.Fn.WFI), "missing Funct12 case"
                 )
 
-                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr)
+                self.exception_report(
+                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr
+                )
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
@@ -171,7 +174,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
                 # would normally return to (mepc value is preserved)
                 m.d.av_comb += exception.eq(1)
-                exception_report(
+                self.exception_report(
                     m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
                 )
             with m.Else():

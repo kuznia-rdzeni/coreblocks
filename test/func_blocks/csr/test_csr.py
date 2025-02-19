@@ -40,7 +40,11 @@ class CSRUnitTestCircuit(Elaboratable):
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
+            Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+        )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -48,12 +52,8 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
-        m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report)
-        )
         m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
         m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
-        DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 

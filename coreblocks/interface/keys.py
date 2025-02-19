@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Concatenate
 
 from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
-from transactron import Method
+from transactron import Method, TModule
 from transactron.lib import Collector
+from transactron.utils import MethodStruct
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
@@ -53,7 +54,7 @@ class FetchResumeKey(UnifierKey, unifier=Collector):
 
 
 @dataclass(frozen=True)
-class ExceptionReportKey(SimpleKey[Callable]):
+class ExceptionReportKey(SimpleKey[Callable[[], Callable[Concatenate[TModule, ...], MethodStruct]]]):
     pass
 
 

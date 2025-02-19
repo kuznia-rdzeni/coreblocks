@@ -83,6 +83,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
 
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
+
     def _create_regfile(self):
         # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
         for csr in self.dependency_manager.get_dependency(CSRListKey()):
@@ -208,7 +210,6 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
 
-            report = self.dependency_manager.get_dependency(ExceptionReportKey())
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
 
             with m.If(exception):
@@ -226,14 +227,14 @@ class CSRUnit(FuncBlock, Elaboratable):
                     )
                 )  # rl_s1 or imm
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
+                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
                 # At this time CSR operation is finished. If it caused triggering an interrupt, it would be represented
                 # by interrupt signal in this cycle.
                 # CSR instructions are never compressed, PC+4 is always next instruction
-                report(
+                self.report(
                     m,
                     rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
