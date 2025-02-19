@@ -47,12 +47,12 @@ class FarPathMethodLayout:
 class FarPathModule(Elaboratable):
     """Far Path module
     Based on: https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf.
-    This module implement far path of adder/subtractor.
+    This module implements far path of adder/subtractor.
     It performs subtraction for operands whose exponent differs by more than 1 and addition
-    for all combination of operand. Besides addition it also perform rounding at the same time
-    as addition using two adder (one producing a+b and second one producing a+b+1). The correct
-    output is chosen by flags that differ for each rounding module. To deal with certain
-    complication that may arise during addition in certaing roudning modes the input of second
+    for all combinations of operands. Besides addition it also performs rounding at the same time
+    as addition using two adders (one producing a+b and second one producing a+b+1). The correct
+    output is chosen by flags that differ for each rounding mode. To deal with certain
+    complication that may arise during addition in certaing rounding modes the input of second
     may be either input operand or (a & b)<<1 and (a^b). This allows second adder to compute
     a+b+2 in special cases that are better explained in paper linked above.
 

@@ -1,22 +1,6 @@
 from amaranth.lib import enum, data
 
 
-def create_data_layout(sig_width: int, exp_width: int):
-    return data.StructLayout(
-        {
-            "sign": 1,
-            "sig": sig_width,
-            "exp": exp_width,
-            "is_inf": 1,
-            "is_nan": 1,
-            "is_zero": 1,
-        }
-    )
-
-
-float_number_layout = create_data_layout(24, 8)
-
-
 class RoundingModes(enum.Enum):
     ROUND_UP = 3
     ROUND_DOWN = 2
@@ -52,3 +36,16 @@ class FPUParams:
     ):
         self.sig_width = sig_width
         self.exp_width = exp_width
+
+
+def create_data_layout(params: FPUParams):
+    return data.StructLayout(
+        {
+            "sign": 1,
+            "sig": params.sig_width,
+            "exp": params.exp_width,
+            "is_inf": 1,
+            "is_nan": 1,
+            "is_zero": 1,
+        }
+    )
