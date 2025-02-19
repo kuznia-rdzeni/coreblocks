@@ -30,7 +30,7 @@ class StallController(Elaboratable):
     ----------
     stall_unsafe : Method
         Signals that the frontend should be stalled because an unsafe (i.e. causing
-        difficult to handle side effects) was just fetched.
+        difficult to handle side effects) instruction was just fetched.
     stall_exception : Method
         Signals that the frontend should be stalled because of an exception.
     stall_guard : Method
