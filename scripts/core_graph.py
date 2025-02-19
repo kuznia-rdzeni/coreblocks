@@ -19,7 +19,7 @@ from test.test_core import CoreTestElaboratable  # noqa: E402
 from coreblocks.params.configurations import basic_core_config  # noqa: E402
 from transactron.core import TransactionModule  # noqa: E402
 from transactron.core.keys import TransactionManagerKey  # noqa: E402
-from transactron.utils import DependencyManager, DependencyContext # noqa: E402
+from transactron.utils import DependencyManager, DependencyContext  # noqa: E402
 
 with DependencyContext(DependencyManager()):
     gp = GenParams(basic_core_config)

@@ -52,6 +52,7 @@ class OpType(IntEnum):
     SFENCEVMA = auto()
     CZERO = auto()
     ATOMIC_MEMORY_OP = auto()
+    ATOMIC_LR_SC = auto()
     #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
     EXCEPTION = auto()
 
@@ -132,6 +133,9 @@ optypes_by_extensions = {
     ],
     Extension.ZAAMO: [
         OpType.ATOMIC_MEMORY_OP,
+    ],
+    Extension.ZALRSC: [
+        OpType.ATOMIC_LR_SC,
     ],
     Extension.ZBS: [
         OpType.SINGLE_BIT_MANIPULATION,

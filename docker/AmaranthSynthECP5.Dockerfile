@@ -1,18 +1,18 @@
-FROM ubuntu:23.04
+FROM ubuntu:24.04
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
-    python3.11 python3-pip python3.11-venv git yosys lsb-release \
+    git yosys lsb-release ca-certificates \
     build-essential cmake python3-dev libboost-all-dev libeigen3-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install prjtrellis
-RUN git clone --recursive \
+RUN git clone --recursive --shallow-since=2025.01.01 \
     https://github.com/YosysHQ/prjtrellis.git \
     prjtrellis && \
     cd prjtrellis && \
-    git checkout 35f5affe10a2995bdace49e23fcbafb5723c5347
+    git checkout 14ac883fa639b11fdc98f3cdef87a5d01f79e73d
 RUN cd prjtrellis && \
     cd libtrellis && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local . && \
@@ -21,13 +21,15 @@ RUN cd prjtrellis && \
     make clean
 
 # Install nexpnr-ecp5
-RUN git clone \
+RUN git clone  --shallow-since=2025.01.01 \
     https://github.com/YosysHQ/nextpnr/ \
     nextpnr && \
     cd nextpnr && \
-    git checkout b5d30c73877be032c1d87cd820ebdfe4db556fdb
+    git checkout 0c060512c1bf6719391e2d3351c8cb757bec29cc
 RUN cd nextpnr && \
-    cmake . -DARCH=ecp5 -DTRELLIS_INSTALL_PREFIX=/usr/local && \
-    make -j$(nproc) && \
+    git submodule init && git submodule update && \
+    cmake . -B build -DARCH=ecp5 -DTRELLIS_INSTALL_PREFIX=/usr/local && \
+    cmake --build build && \
+    cd build && \
     make install && \
     make clean

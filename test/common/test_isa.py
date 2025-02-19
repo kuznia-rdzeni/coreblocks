@@ -17,7 +17,11 @@ class TestISA(unittest.TestCase):
         ISATestEntry("rv32i", True, 32, 32, Extension.I),
         ISATestEntry("RV32I", True, 32, 32, Extension.I),
         ISATestEntry(
-            "rv32ima", True, 32, 32, Extension.I | Extension.M | Extension.ZMMUL | Extension.A | Extension.ZAAMO
+            "rv32ima",
+            True,
+            32,
+            32,
+            Extension.I | Extension.M | Extension.ZMMUL | Extension.A | Extension.ZAAMO | Extension.ZALRSC,
         ),
         ISATestEntry(
             "rv32imafdc_zicsr",
@@ -28,6 +32,7 @@ class TestISA(unittest.TestCase):
             | Extension.M
             | Extension.A
             | Extension.ZAAMO
+            | Extension.ZALRSC
             | Extension.F
             | Extension.D
             | Extension.C
@@ -72,6 +77,7 @@ class TestISA(unittest.TestCase):
             | Extension.ZMMUL
             | Extension.A
             | Extension.ZAAMO
+            | Extension.ZALRSC
             | Extension.F
             | Extension.D
             | Extension.C
@@ -88,6 +94,7 @@ class TestISA(unittest.TestCase):
             | Extension.ZMMUL
             | Extension.A
             | Extension.ZAAMO
+            | Extension.ZALRSC
             | Extension.F
             | Extension.D
             | Extension.C
@@ -104,6 +111,7 @@ class TestISA(unittest.TestCase):
             | Extension.ZMMUL
             | Extension.A
             | Extension.ZAAMO
+            | Extension.ZALRSC
             | Extension.F
             | Extension.D
             | Extension.C
@@ -122,6 +130,7 @@ class TestISA(unittest.TestCase):
             | Extension.ZMMUL
             | Extension.A
             | Extension.ZAAMO
+            | Extension.ZALRSC
             | Extension.F
             | Extension.D
             | Extension.ZIFENCEI
