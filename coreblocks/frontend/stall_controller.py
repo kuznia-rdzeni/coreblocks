@@ -38,7 +38,8 @@ class StallController(Elaboratable):
     resume_from_exception: Method
         Signals that the backend handled the exception and the frontend can be resumed.
     redirect_frontend : Method (bodyless)
-        A method that will be called when the frontend needs to be redirected.
+        A method that will be called when the frontend needs to be redirected. Should be always
+        ready.
     """
 
     def __init__(self, gen_params: GenParams):
@@ -65,6 +66,9 @@ class StallController(Elaboratable):
         @def_method(m, self.stall_guard, ready=~(stalled_unsafe | stalled_exception), nonexclusive=True)
         def _():
             pass
+        
+        with Transaction().body(m):
+            log.assertion(m, self.redirect_frontend.ready)
 
         def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
             # Make sure that there is at most one caller - there can be only one unsafe instruction
