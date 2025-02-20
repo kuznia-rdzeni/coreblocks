@@ -52,7 +52,7 @@ class FarPathModule(Elaboratable):
     for all combinations of operands. Besides addition it also performs rounding at the same time
     as addition using two adders (one producing a+b and second one producing a+b+1). The correct
     output is chosen by flags that differ for each rounding mode. To deal with certain
-    complication that may arise during addition in certaing rounding modes the input of second
+    complication that may arise during addition in certain rounding modes the input of second
     may be either input operand or (a & b)<<1 and (a^b). This allows second adder to compute
     a+b+2 in special cases that are better explained in paper linked above.
 
