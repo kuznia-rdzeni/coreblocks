@@ -144,7 +144,7 @@ class ClosePathModule(Elaboratable):
                 m.d.av_comb += final_exp.eq(0)
             with m.Else():
                 shifted_sig = Signal(self.params.sig_width)
-                shifted_exp = Signal(self.params.sig_width)
+                shifted_exp = Signal(self.params.exp_width)
 
                 m.d.av_comb += shifted_sig.eq(final_result << lza_resp["shift_amount"])
                 m.d.av_comb += shifted_exp.eq(exp - lza_resp["shift_amount"])
