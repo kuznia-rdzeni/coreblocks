@@ -83,14 +83,13 @@ class JumpBranch(Elaboratable):
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
-                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm)
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.JALR):
                 m.d.comb += self.jmp_addr.eq(self.in1 + self.in_imm)
                 m.d.comb += self.jmp_addr[0].eq(0)
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.AUIPC):
-                m.d.comb += self.reg_res.eq(self.in_pc + self.in_imm)
+                m.d.comb += self.reg_res.eq(self.jmp_addr)
             with OneHotCase(JumpBranchFn.Fn.BEQ):
                 m.d.comb += self.taken.eq(self.in1 == self.in2)
             with OneHotCase(JumpBranchFn.Fn.BNE):
