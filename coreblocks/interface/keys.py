@@ -65,6 +65,7 @@ class ExceptionReportKey(SimpleKey[Callable[[], Callable[Concatenate[TModule, ..
     returned acts like a method call and can be used multiple times
     in `elaborate`.
     """
+
     pass
 
 
