@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740142218276,
+  "lastUpdate": 1740146363978,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16149,6 +16149,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d912f5b2c81347a05bc6c46c11b697ecd435338"
         },
         "date": 1740142211365,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40775334123348045,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5395756191076446,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3707496352822354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6441069025187464,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3493070169073362,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2936555797003504,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33073446531141404,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.44572925523358686,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f4260b3f6bae18c15391aaa733363c9064e5aa8b",
+          "message": "Remove constructor passed methods (#786)",
+          "timestamp": "2025-02-21T14:44:32+01:00",
+          "tree_id": "d7c286c330c59d12b2d16773a114f28768e12612",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f4260b3f6bae18c15391aaa733363c9064e5aa8b"
+        },
+        "date": 1740146359122,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
