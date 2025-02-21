@@ -466,6 +466,7 @@ class FetchLayouts:
             fields.predicted_taken,
         )
 
+        self.redirect = make_layout(fields.pc)
         self.resume = make_layout(fields.pc)
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))

@@ -7,7 +7,7 @@ from coreblocks.arch.isa_consts import Funct12, Funct3, Opcode, PrivilegeLevel
 
 
 from transactron import *
-from transactron.lib import BasicFifo, logging
+from transactron.lib import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
@@ -15,14 +15,14 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     CSRInstancesKey,
     InstructionPrecommitKey,
-    FetchResumeKey,
+    UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
 )
@@ -56,8 +56,6 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.push_result = Method(i=layouts.push_result)
 
-        self.fetch_resume_fifo = BasicFifo(self.gen_params.get(FetchLayouts).resume, 2)
-
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
             "Number of instructions precommited with side effects by the priviledge unit",
@@ -87,8 +85,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
-
-        m.submodules.fetch_resume_fifo = self.fetch_resume_fifo
+        resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
@@ -180,7 +177,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                self.fetch_resume_fifo.write(m, pc=ret_pc)
+                resume_core(m, pc=ret_pc)
 
             self.push_result(
                 m,
@@ -198,7 +195,4 @@ class PrivilegedUnitComponent(FunctionalComponentParams):
     decoder_manager: PrivilegedFn = PrivilegedFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = PrivilegedFuncUnit(gen_params, self.decoder_manager)
-        connections = DependencyContext.get()
-        connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
-        return unit
+        return PrivilegedFuncUnit(gen_params, self.decoder_manager)
