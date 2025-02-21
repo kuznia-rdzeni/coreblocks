@@ -10,7 +10,7 @@ from test.regression.cocotb import CocotbSimulation  # noqa: E402
 from test.regression.signature import run_test  # noqa: E402
 
 
-@cocotb.test()
+@cocotb.test()  # type: ignore
 async def do_test(dut):
     test_name = os.environ["TESTNAME"]
     if test_name is None:
