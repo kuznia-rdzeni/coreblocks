@@ -59,6 +59,12 @@ class UnsafeInstructionResolvedKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class ExceptionReportKey(SimpleKey[Callable[[], Callable[Concatenate[TModule, ...], MethodStruct]]]):
+    """
+    Used to report exception details to the `ExceptionInformationRegister`.
+    Needs to be called once in the component's constructor. The callable
+    returned acts like a method call and can be used multiple times
+    in `elaborate`.
+    """
     pass
 
 
