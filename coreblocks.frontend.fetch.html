@@ -100,9 +100,19 @@ depends on GenParams.fetch_block_bytes and is related to how many instructions t
 handle at once, which can vary if extension C is on.</p>
 <p>The unit also deals with expanding compressed instructions and managing instructions that aren’t aligned to
 4-byte boundaries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>redirect</strong><span class="classifier">Method</span></dt><dd><p>Redirects the fetch unit to the specified PC</p>
+</dd>
+<dt><strong>flush</strong><span class="classifier">Method</span></dt><dd><p>Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.fetch.fetch.FetchUnit.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.FetchUnit.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">icache</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface" title="coreblocks.cache.iface.CacheInterface"><span class="pre">CacheInterface</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cont</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stall_lock</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stall_unsafe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.frontend.fetch.fetch.FetchUnit.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -113,6 +123,10 @@ fetch unit.</p>
 </dd>
 <dt><strong>cont</strong><span class="classifier">Method</span></dt><dd><p>Method which should be invoked to send fetched instruction to the next step.
 It has layout as described by <cite>FetchLayout</cite>.</p>
+</dd>
+<dt><strong>stall_lock</strong><span class="classifier">Method</span></dt><dd><p>Method whose readiness determines if the fetch unit is stalled</p>
+</dd>
+<dt><strong>stall_unsafe</strong><span class="classifier">Method</span></dt><dd><p>Method that is called when an unsafe instruction is fetched</p>
 </dd>
 </dl>
 </dd>
@@ -192,7 +206,7 @@ It checks for the following errors:</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 15:19 2025-02-12.
+      <span class="lastupdated">Last updated on 12:36 2025-02-21.
       </span></p>
   </div>
 

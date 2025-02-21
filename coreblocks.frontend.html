@@ -122,8 +122,6 @@
 </dd>
 <dt><strong>resume_from_exception: Method</strong></dt><dd><p>Resume the frontend from the given PC after an exception.</p>
 </dd>
-<dt><strong>resume_from_unsafe: Method</strong></dt><dd><p>Resume the frontend from the given PC after an unsafe instruction.</p>
-</dd>
 <dt><strong>stall: Method</strong></dt><dd><p>Stall and flush the frontend.</p>
 </dd>
 </dl>
@@ -169,6 +167,41 @@
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.frontend.stall_controller">
+<span id="coreblocks-frontend-stall-controller-module"></span><h2>coreblocks.frontend.stall_controller module<a class="headerlink" href="#module-coreblocks.frontend.stall_controller" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.stall_controller.</span></span><span class="sig-name descname"><span class="pre">StallController</span></span><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>The stall controller is responsible for managing all stall/unstall signals
+that may be triggered in the core and based on them deciding if and where
+the frontend should be resumed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>stall_unsafe</strong><span class="classifier">Method</span></dt><dd><p>Signals that the frontend should be stalled because an unsafe (i.e. causing
+difficult to handle side effects) instruction was just fetched.</p>
+</dd>
+<dt><strong>stall_exception</strong><span class="classifier">Method</span></dt><dd><p>Signals that the frontend should be stalled because of an exception.</p>
+</dd>
+<dt><strong>stall_guard</strong><span class="classifier">Method</span></dt><dd><p>A non-exclusive method whose readiness denotes if the frontend is currently stalled.</p>
+</dd>
+<dt><strong>resume_from_exception: Method</strong></dt><dd><p>Signals that the backend handled the exception and the frontend can be resumed.</p>
+</dd>
+<dt><strong>redirect_frontend</strong><span class="classifier">Method (bodyless)</span></dt><dd><p>A method that will be called when the frontend needs to be redirected. Should be always
+ready.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.frontend">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.frontend" title="Permalink to this heading"></a></h2>
 </div>
@@ -186,7 +219,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 15:19 2025-02-12.
+      <span class="lastupdated">Last updated on 12:36 2025-02-21.
       </span></p>
   </div>
 
