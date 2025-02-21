@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740001280719,
+  "lastUpdate": 1740142215959,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16115,6 +16115,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "slre",
             "value": 0.2936540530986333,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33073446531141404,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.44572925523358686,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d912f5b2c81347a05bc6c46c11b697ecd435338",
+          "message": "Add the stall controller (#796)",
+          "timestamp": "2025-02-21T13:35:26+01:00",
+          "tree_id": "13281f911625ef1390ac6e01113ef079a5ac539a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d912f5b2c81347a05bc6c46c11b697ecd435338"
+        },
+        "date": 1740142211365,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.40775334123348045,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5395756191076446,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3707496352822354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6441069025187464,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3493070169073362,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2936555797003504,
             "unit": "Instructions Per Cycle"
           },
           {
