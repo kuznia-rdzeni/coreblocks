@@ -66,7 +66,7 @@ class StallController(Elaboratable):
         @def_method(m, self.stall_guard, ready=~(stalled_unsafe | stalled_exception), nonexclusive=True)
         def _():
             pass
-        
+
         with Transaction().body(m):
             log.assertion(m, self.redirect_frontend.ready)
 
