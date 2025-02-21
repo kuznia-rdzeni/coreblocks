@@ -100,25 +100,31 @@ this value.</p>
 <p>Method <cite>get_result</cite> gets already serialized instruction results, so in
 case in which we have more than one FU, then their outputs should be connected by
 <cite>ManyToOneConnectTrans</cite> to a FIFO.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>get_result</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to get results of next ready instruction,
+which should be announced in core. This method assumes that results
+from different FUs are already serialized.</p>
+</dd>
+<dt><strong>rob_mark_done</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to mark that instruction ended.</p>
+</dd>
+<dt><strong>rs_update</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to pass value which is an output of finished instruction
+to RS, so that RS can save it if there are instructions which wait for it.</p>
+</dd>
+<dt><strong>rf_write</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to save value which is an output of finished instruction to RF.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.backend.annoucement.ResultAnnouncement.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_mark_done</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_update</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rf_write</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.backend.annoucement.ResultAnnouncement.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.backend.annoucement.ResultAnnouncement.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters which should be used to generate
 fetch unit.</p>
-</dd>
-<dt><strong>get_result</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to get results of next ready instruction,
-which should be announced in core. This method assumes that results
-from different FUs are already serialized.</p>
-</dd>
-<dt><strong>rob_mark_done</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to mark that instruction ended without exception.</p>
-</dd>
-<dt><strong>rs_update</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to pass value which is an output of finished instruction
-to RS, so that RS can save it if there are instructions which wait for it.</p>
-</dd>
-<dt><strong>rf_write</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to save value which is an output of finished instruction to RF.</p>
 </dd>
 </dl>
 </dd>
@@ -141,7 +147,7 @@ to RS, so that RS can save it if there are instructions which wait for it.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.backend.retirement.Retirement.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_peek</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_retire</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_rat_commit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_rat_peek</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_rf_put</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rf_free</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception_cause_get</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exception_cause_clear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frat_rename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch_continue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instr_decrement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trap_entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_interrupt_cause</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.backend.retirement.Retirement.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.backend.retirement.Retirement.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -164,7 +170,7 @@ to RS, so that RS can save it if there are instructions which wait for it.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 12:36 2025-02-21.
+      <span class="lastupdated">Last updated on 13:45 2025-02-21.
       </span></p>
   </div>
 

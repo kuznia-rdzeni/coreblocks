@@ -156,24 +156,45 @@ where 1 on i-th position means i-th row is ready to be taken and 0 means it is n
 step if any row is ready to be taken it calls <cite>take_row</cite> with i (position of last ready row)
 as an argument in order to get its value and then calls method <cite>issue</cite> with i-th row as
 argument. It is prepared to work with RS and functional unit interfaces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>get_ready</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to get the vector of readiness. It uses <cite>RSLayouts.get_ready_list_out</cite>.</p>
+</dd>
+<dt><strong>take_row</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to get a single ready row. It uses <cite>RSLayouts.take_out</cite>.</p>
+</dd>
+<dt><strong>issue</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to a push row down the pipeline. It uses <cite>FuncUnitLayouts.issue</cite>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.scheduler.wakeup_select.WakeupSelect.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_ready</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">take_row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Method</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rs_entries_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect.__init__" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Instance of GenParams with parameters describing the core.</p>
 </dd>
-<dt><strong>get_ready</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to get the vector of readiness. It uses <cite>RSLayouts.get_ready_list_out</cite>.</p>
-</dd>
-<dt><strong>take_row</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to get a single ready row. It uses <cite>RSLayouts.take_out</cite>.</p>
-</dd>
-<dt><strong>issue</strong><span class="classifier">Method</span></dt><dd><p>Method which is invoked to a push row down the pipeline. It uses <cite>FuncUnitLayouts.issue</cite>.</p>
-</dd>
 </dl>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.scheduler.wakeup_select.WakeupSelect.get_ready">
+<span class="sig-name descname"><span class="pre">get_ready</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect.get_ready" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.scheduler.wakeup_select.WakeupSelect.issue">
+<span class="sig-name descname"><span class="pre">issue</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect.issue" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.scheduler.wakeup_select.WakeupSelect.take_row">
+<span class="sig-name descname"><span class="pre">take_row</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.scheduler.wakeup_select.WakeupSelect.take_row" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -194,7 +215,7 @@ argument. It is prepared to work with RS and functional unit interfaces.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 12:36 2025-02-21.
+      <span class="lastupdated">Last updated on 13:45 2025-02-21.
       </span></p>
   </div>
 
