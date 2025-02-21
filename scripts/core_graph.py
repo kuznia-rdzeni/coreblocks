@@ -19,10 +19,15 @@ from test.test_core import CoreTestElaboratable  # noqa: E402
 from coreblocks.params.configurations import basic_core_config  # noqa: E402
 from transactron.core import TransactionModule  # noqa: E402
 from transactron.core.keys import TransactionManagerKey  # noqa: E402
+from transactron.core.transaction_base import TransactionBase  # noqa: E402
 
-gp = GenParams(basic_core_config)
+# simultaneous tx make graph extremely ugly
+TransactionBase.simultaneous = lambda*a: None  # type: ignore
+
+gp = GenParams(basic_core_config.replace(debug_signals=False))
 elaboratable = CoreTestElaboratable(gp)
 tm = TransactionModule(elaboratable)
+
 fragment = TracingFragment.get(tm, platform=None).prepare()
 
 core = fragment
