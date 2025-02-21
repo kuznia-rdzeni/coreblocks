@@ -76,9 +76,9 @@ class CoreFrontend(Elaboratable):
         m.submodules.instr_buffer = self.instr_buffer
 
         m.submodules.decode_pipe = self.decode_pipe
-        m.submodules.decode = DecodeStage(
-            gen_params=self.gen_params, get_raw=self.instr_buffer.read, push_decoded=self.decode_pipe.write
-        )
+        m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
+        decode.get_raw.proxy(m, self.instr_buffer.read)
+        decode.push_decoded.proxy(m, self.decode_pipe.write)
 
         m.submodules.stall_ctrl = self.stall_ctrl
 
