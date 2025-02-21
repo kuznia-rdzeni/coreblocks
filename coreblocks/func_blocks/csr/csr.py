@@ -12,10 +12,10 @@ from coreblocks.arch.isa_consts import Opcode
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
-    FetchResumeKey,
+    UnsafeInstructionResolvedKey,
     CSRInstancesKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
@@ -71,8 +71,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = DependencyContext.get()
 
-        self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
-
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRUnitLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
@@ -99,7 +97,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        call_resume = Signal()
         exception = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
@@ -210,6 +207,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             report = self.dependency_manager.get_dependency(ExceptionReportKey())
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
+            resume_core = self.dependency_manager.get_dependency(UnsafeInstructionResolvedKey())
 
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)
@@ -243,7 +241,9 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += exception.eq(0)
 
-            m.d.comb += call_resume.eq(exe_side_fx & ~exception & ~interrupt)
+            with m.If(exe_side_fx & ~exception & ~interrupt):
+                # CSR instructions are never compressed, PC+4 is always next instruction
+                resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,
@@ -252,23 +252,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_resume, call_resume)
-        def _():
-            # This call will always execute, because there is at most one unsafe instruction in the core, and it can be
-            # stored in unifer's Forwarder unitl resume becomes ready.
-            # CSR instructions are never compressed, PC+4 is always next instruction
-            return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
-
         return m
 
 
 @dataclass(frozen=True)
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
-        connections = DependencyContext.get()
-        unit = CSRUnit(gen_params)
-        connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
-        return unit
+        return CSRUnit(gen_params)
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}

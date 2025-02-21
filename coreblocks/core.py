@@ -1,17 +1,15 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, In, Out
 from transactron.lib.allocators import PriorityEncoderAllocator
-from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
 from transactron.core import TModule
-from transactron.lib import ConnectTrans, MethodProduct
+from transactron.lib import MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
-    FetchResumeKey,
     CSRInstancesKey,
     CommonBusDataKey,
 )
@@ -139,13 +137,6 @@ class Core(Component):
         )
 
         m.submodules.exception_information_register = self.exception_information_register
-
-        fetch_resume = self.connections.get_optional_dependency(FetchResumeKey())
-        if fetch_resume is not None:
-            fetch_resume_fb, fetch_resume_unifiers = fetch_resume
-            m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
-
-            m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
 
         m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
