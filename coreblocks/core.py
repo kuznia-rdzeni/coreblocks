@@ -1,17 +1,15 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, In, Out
 from transactron.lib.allocators import PriorityEncoderAllocator
-from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
 from transactron.core import TModule
-from transactron.lib import ConnectTrans, MethodProduct
+from transactron.lib import MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
-    FetchResumeKey,
     CSRInstancesKey,
     CommonBusDataKey,
 )
@@ -80,14 +78,6 @@ class Core(Component):
             blocks=gen_params.func_units_config,
         )
 
-        self.announcement = ResultAnnouncement(
-            gen_params=self.gen_params,
-            get_result=self.func_blocks_unifier.get_result,
-            rob_mark_done=self.ROB.mark_done,
-            rs_update=self.func_blocks_unifier.update,
-            rf_write=self.RF.write,
-        )
-
         self.csr_generic = GenericCSRRegisters(self.gen_params)
         self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)
 
@@ -140,30 +130,27 @@ class Core(Component):
 
         m.submodules.exception_information_register = self.exception_information_register
 
-        fetch_resume = self.connections.get_optional_dependency(FetchResumeKey())
-        if fetch_resume is not None:
-            fetch_resume_fb, fetch_resume_unifiers = fetch_resume
-            m.submodules.fetch_resume_unifiers = ModuleConnector(**fetch_resume_unifiers)
+        m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
+        announcement.get_result.proxy(m, self.func_blocks_unifier.get_result)
+        announcement.rob_mark_done.proxy(m, self.ROB.mark_done)
+        announcement.rs_update.proxy(m, self.func_blocks_unifier.update)
+        announcement.rf_write_val.proxy(m, self.RF.write)
 
-            m.submodules.fetch_resume_connector = ConnectTrans(fetch_resume_fb, self.frontend.resume_from_unsafe)
-
-        m.submodules.announcement = self.announcement
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
-        m.submodules.retirement = Retirement(
-            self.gen_params,
-            rob_peek=rob.peek,
-            rob_retire=rob.retire,
-            r_rat_commit=rrat.commit,
-            r_rat_peek=rrat.peek,
-            free_rf_put=rf_allocator.free[0],
-            rf_free=rf.free,
-            exception_cause_get=self.exception_information_register.get,
-            exception_cause_clear=self.exception_information_register.clear,
-            frat_rename=frat.rename,
-            fetch_continue=self.frontend.resume_from_exception,
-            instr_decrement=core_counter.decrement,
-            trap_entry=self.interrupt_controller.entry,
-            async_interrupt_cause=self.interrupt_controller.interrupt_cause,
-        )
+
+        m.submodules.retirement = retirement = Retirement(self.gen_params)
+        retirement.rob_peek.proxy(m, rob.peek)
+        retirement.rob_retire.proxy(m, rob.retire)
+        retirement.r_rat_commit.proxy(m, rrat.commit)
+        retirement.r_rat_peek.proxy(m, rrat.peek)
+        retirement.free_rf_put.proxy(m, rf_allocator.free[0])
+        retirement.rf_free.proxy(m, rf.free)
+        retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
+        retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
+        retirement.f_rat_rename.proxy(m, frat.rename)
+        retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
+        retirement.instr_decrement.proxy(m, core_counter.decrement)
+        retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
+        retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
 
         return m
