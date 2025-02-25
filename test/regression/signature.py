@@ -7,10 +7,10 @@ class ToHostMMIO(MemorySegment):
         super().__init__(addr, SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
 
-    def read(self, _) -> ReadReply:
+    def read(self, req) -> ReadReply:
         return ReadReply()
 
-    def write(self, _) -> WriteReply:
+    def write(self, req) -> WriteReply:
         self.on_finish()
         return WriteReply()
 
@@ -19,7 +19,7 @@ def map_mem_segments(
     elf_path: str, stop_callback: Callable[[], None]
 ) -> tuple[list[MemorySegment], RandomAccessMemory]:
     mem_segments = []
-    signature_ram = RandomAccessMemory(range(0, 0), SegmentFlags.WRITE, bytearray())
+    signature_ram = RandomAccessMemory(range(0, 0), SegmentFlags.WRITE, bytes())
 
     with open(elf_path, "rb") as f:
         elffile = ELFFile(f)

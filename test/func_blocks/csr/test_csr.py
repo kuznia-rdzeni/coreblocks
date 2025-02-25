@@ -9,9 +9,10 @@ from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
+    UnsafeInstructionResolvedKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
     CSRInstancesKey,
@@ -40,7 +41,11 @@ class CSRUnitTestCircuit(Elaboratable):
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
+        m.submodules.exception_report = self.exception_report = TestbenchIO(
+            Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+        )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -48,16 +53,14 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
-        m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(
+            Adapter.create(i=self.gen_params.get(FetchLayouts).resume)
         )
         m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
         m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
-        DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
-
-        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(AdapterTrans(self.dut.fetch_resume))
+        DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self.fetch_resume.adapter.iface)
 
         self.csr = {}
 

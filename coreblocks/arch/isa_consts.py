@@ -36,6 +36,7 @@ class Opcode(IntEnum, shape=5):
     OP_IMM_32 = 0b00110
     STORE = 0b01000
     STORE_FP = 0b01001
+    AMO = 0b01011
     OP = 0b01100
     LUI = 0b01101
     OP32 = 0b01110
@@ -59,18 +60,24 @@ class Funct3(IntEnum, shape=3):
 
 
 class Funct7(IntEnum, shape=7):
-    SL = SLT = ADD = XOR = OR = AND = 0b0000000
-    SA = SUB = ANDN = ORN = XNOR = 0b0100000
+    SL = SLT = ADD = XOR = OR = AND = AMOADD = 0b0000000
     MULDIV = 0b0000001
-    SH1ADD = SH2ADD = SH3ADD = 0b0010000
-    BCLR = BEXT = 0b0100100
-    BINV = REV8 = 0b0110100
-    BSET = ORCB = 0b0010100
+    ZEXTH = AMOSWAP = 0b0000100
     MAX = MIN = CLMUL = 0b0000101
     CZERO = 0b0000111
-    ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
-    ZEXTH = 0b0000100
+    LR = 0b0001000
     SFENCEVMA = 0b0001001
+    SC = 0b0001100
+    SH1ADD = SH2ADD = SH3ADD = AMOXOR = 0b0010000
+    BSET = ORCB = 0b0010100
+    SA = SUB = ANDN = ORN = XNOR = AMOOR = 0b0100000
+    BCLR = BEXT = 0b0100100
+    ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = AMOAND = 0b0110000
+    BINV = REV8 = 0b0110100
+    AMOMIN = 0b1000000
+    AMOMAX = 0b1010000
+    AMOMINU = 0b1100000
+    AMOMAXU = 0b1110000
 
 
 class Funct12(IntEnum, shape=12):

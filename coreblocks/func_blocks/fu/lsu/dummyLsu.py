@@ -42,10 +42,10 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.lsu_layouts = gen_params.get(LSULayouts)
 
         self.dependency_manager = DependencyContext.get()
-        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
         self.issue = Method(i=self.fu_layouts.issue)
-        self.accept = Method(o=self.fu_layouts.accept)
+        self.push_result = Method(i=self.fu_layouts.push_result)
 
         self.bus = bus
 
@@ -73,7 +73,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
 
-        @def_method(m, self.issue, single_caller=True)
+        @def_method(m, self.issue)
         def _(arg):
             self.log.debug(
                 m, 1, "issue rob_id={} funct3={} op_type={}", arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type
@@ -121,8 +121,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             results_noop.write(m, data=0, exception=0, cause=0, addr=0)
             issued_noop.write(m, arg)
 
-        @def_method(m, self.accept)
-        def _():
+        with Transaction().body(m):
             arg = Signal(self.fu_layouts.issue)
             res = Signal(self.lsu_layouts.accept)
             with condition(m) as branch:
@@ -138,12 +137,13 @@ class LSUDummy(FuncUnit, Elaboratable):
 
             self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
 
-            return {
-                "rob_id": arg["rob_id"],
-                "rp_dst": arg["rp_dst"],
-                "result": res["data"],
-                "exception": res["exception"],
-            }
+            self.push_result(
+                m,
+                rob_id=arg["rob_id"],
+                rp_dst=arg["rp_dst"],
+                result=res["data"],
+                exception=res["exception"],
+            )
 
         with Transaction().body(m):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
@@ -160,6 +160,9 @@ class LSUComponent(FunctionalComponentParams):
         bus_master = connections.get_dependency(CommonBusDataKey())
         unit = LSUDummy(gen_params, bus_master)
         return unit
+
+    def get_decoder_manager(self):  # type: ignore
+        pass  # LSU component currently doesn't have a decoder manager
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.LOAD, OpType.STORE, OpType.FENCE}

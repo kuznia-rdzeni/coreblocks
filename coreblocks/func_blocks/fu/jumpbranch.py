@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from amaranth import *
 
 from enum import IntFlag, auto
@@ -133,7 +134,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
 
@@ -151,6 +152,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
         )
         self.perf_mispredictions = HwCounter("backend.fu.jumpbranch.mispredictions", "Number of branch mispredictions")
+
+        self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
         m = TModule()
@@ -180,8 +183,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
-        @def_method(m, self.accept)
-        def _():
+        with Transaction().body(m):
             instr = instr_fifo.read(m)
             target_prediction = jump_target_resp(m)
 
@@ -203,7 +205,6 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             ) != 0
 
             async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
-            exception_report = self.dm.get_dependency(ExceptionReportKey())
 
             exception = Signal()
 
@@ -213,7 +214,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
                 m.d.comb += exception.eq(1)
-                exception_report(
+                self.exception_report(
                     m,
                     rob_id=instr.rob_id,
                     cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED,
@@ -227,14 +228,14 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # Exceptions have priority, because the instruction that reports async interrupt is commited
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
-                exception_report(
+                self.exception_report(
                     m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result, mtval=0
                 )
             with m.Elif(misprediction):
                 # Async interrupts can have priority, because `jump_result` is handled in the same way.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
                 m.d.comb += exception.eq(1)
-                exception_report(
+                self.exception_report(
                     m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result, mtval=0
                 )
 
@@ -249,12 +250,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     misprediction,
                 )
 
-            return {
-                "rob_id": instr.rob_id,
-                "result": instr.reg_res,
-                "rp_dst": instr.rp_dst,
-                "exception": exception,
-            }
+            self.push_result(
+                m,
+                rob_id=instr.rob_id,
+                result=instr.reg_res,
+                rp_dst=instr.rp_dst,
+                exception=exception,
+            )
 
         @def_method(m, self.issue)
         def _(arg):
@@ -288,13 +290,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         return m
 
 
+@dataclass(frozen=True)
 class JumpComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.jb_fn = JumpBranchFn()
+    decoder_manager: JumpBranchFn = JumpBranchFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
-        return unit
-
-    def get_optypes(self) -> set[OpType]:
-        return self.jb_fn.get_op_types()
+        return JumpBranchFuncUnit(gen_params, self.decoder_manager)

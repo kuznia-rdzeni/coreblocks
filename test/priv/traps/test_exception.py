@@ -61,11 +61,10 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
                 report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc, "mtval": report_mtval}
 
                 expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
-                await self.dut.report.call(sim, report_arg)
-                # additional FIFO delay
-                *_, fetch_stall_mock_done = await self.fetch_stall_mock.sample_outputs_done(sim)
-
-                assert fetch_stall_mock_done
+                res1, res2 = (
+                    await CallTrigger(sim).call(self.dut.report, report_arg).sample(self.fetch_stall_mock).until_done()
+                )
+                assert res1 is not None and res2 is not None  # fetch_stall is called in the same cycle
 
                 new_state = data_const_to_dict(await self.dut.get.call(sim))
 

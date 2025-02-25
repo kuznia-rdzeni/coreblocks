@@ -61,11 +61,28 @@ class ExceptionInformationRegister(Elaboratable):
 
         self.layouts = gen_params.get(ExceptionRegisterLayouts)
 
+        self.report = Method(i=self.layouts.report)
+
+        self.clears: list[Method] = []
+
         # Break long combinational paths from single-cycle FUs
-        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
-        self.report = self.fu_report_fifo.write
+        def call_report():
+            report_fifo = BasicFifo(self.layouts.report, 2)
+            report_connector = ConnectTrans(report_fifo.read, self.report)
+            self.clears.append(report_fifo.clear)
+            added = False
+
+            def call(m: TModule, **kwargs):
+                nonlocal added
+                if not added:
+                    m.submodules += [report_fifo, report_connector]
+                    added = True
+                return report_fifo.write(m, **kwargs)
+
+            return call
+
         dm = DependencyContext.get()
-        dm.add_dependency(ExceptionReportKey(), self.report)
+        dm.add_dependency(ExceptionReportKey(), call_report)
 
         self.get = Method(o=self.layouts.get)
 
@@ -77,12 +94,7 @@ class ExceptionInformationRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        report = Method(i=self.layouts.report)
-
-        m.submodules.report_fifo = self.fu_report_fifo
-        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
-
-        @def_method(m, report)
+        @def_method(m, self.report)
         def _(cause, rob_id, pc, mtval):
             should_write = Signal()
 
@@ -116,5 +128,8 @@ class ExceptionInformationRegister(Elaboratable):
         @def_method(m, self.clear)
         def _():
             m.d.sync += self.valid.eq(0)
+            for clear in self.clears:
+                clear(m)
+            del self.clears  # exception will be raised if new fifos are created later
 
         return m
