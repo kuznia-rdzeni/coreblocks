@@ -42,7 +42,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.lsu_layouts = gen_params.get(LSULayouts)
 
         self.dependency_manager = DependencyContext.get()
-        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
         self.issue = Method(i=self.fu_layouts.issue)
         self.push_result = Method(i=self.fu_layouts.push_result)

@@ -56,7 +56,7 @@ class PMAIndirectTestCircuit(Elaboratable):
             Adapter.create(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
-        DependencyContext.get().add_dependency(ExceptionReportKey(), self.exception_report.adapter.iface)
+        DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
