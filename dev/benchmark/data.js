@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1740492909875,
+  "lastUpdate": 1741094016773,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16277,6 +16277,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b94b45b6168e51bc2c5adb0a57b28d3ce073d11a"
         },
         "date": 1740492899741,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4172105975017901,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.532416884765878,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37303373958208363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.644345150026632,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35839097061429304,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30154061325589343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3350113080907565,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.444100502328478,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4e315b60b74b1237746d58b91ee56b7140edd766",
+          "message": "Far path for fpu adder/subtractor (#768)",
+          "timestamp": "2025-03-04T13:59:02+01:00",
+          "tree_id": "d115de08430b3a3a7c605c840f86b9b924e454a7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4e315b60b74b1237746d58b91ee56b7140edd766"
+        },
+        "date": 1741094011241,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
