@@ -88,6 +88,76 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.far_path">
+<span id="coreblocks-func-blocks-fu-fpu-far-path-module"></span><h2>coreblocks.func_blocks.fu.fpu.far_path module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.far_path" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.far_path.FarPathMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.far_path.</span></span><span class="sig-name descname"><span class="pre">FarPathMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.far_path.FarPathMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Far path module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.far_path.FarPathMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.far_path.FarPathMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>r_sign - result sign
+sig_a - significand of first operand (for effective subtraction in two’s complement form)
+sig_b - significand of second operand (for effective subtraction in two’s complement form)
+exp - exponent of result before shift
+sub_op - effective operation. 1 for subtraction 0 for addition
+rounding_mode - rounding mode
+guard_bit - guard bit (pth bit of second significand where p is precision)
+round_bit - round bit ((p+1)th bit of second significand where p is precision)
+sticky_bit - sticky_bit
+(OR of all bits with index &gt;=p of second significand where p is precision)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.far_path.FarPathModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.far_path.</span></span><span class="sig-name descname"><span class="pre">FarPathModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.far_path.FarPathModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Far Path module
+Based on: <a class="reference external" href="https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf">https://userpages.cs.umbc.edu/phatak/645/supl/lza/lza-survey-arith01.pdf</a>.
+This module implements far path of adder/subtractor.
+It performs subtraction for operands whose exponent differs by more than 1 and addition
+for all combinations of operands. Besides addition it also performs rounding at the same time
+as addition using two adders (one producing a+b and second one producing a+b+1). The correct
+output is chosen by flags that differ for each rounding mode. To deal with certain
+complication that may arise during addition in certain rounding modes the input of second
+may be either input operand or (a &amp; b)&lt;&lt;1 and (a^b). This allows second adder to compute
+a+b+2 in special cases that are better explained in paper linked above.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU rounding module parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>far_path_request: Method</strong></dt><dd><p>Transactional method for initiating far path computation.
+Takes ‘far_path_in_layout’ as argument.
+Returns result as ‘far_path_out_layout’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.far_path.FarPathModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.far_path.FarPathModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_common">
 <span id="coreblocks-func-blocks-fu-fpu-fpu-common-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_common module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_common" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -178,6 +248,11 @@
 <dd></dd></dl>
 
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_layout">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_data_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_layout" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_error_module">
@@ -371,7 +446,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 14:00 2025-02-25.
+      <span class="lastupdated">Last updated on 13:00 2025-03-04.
       </span></p>
   </div>
 

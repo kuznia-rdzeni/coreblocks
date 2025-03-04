@@ -4,6 +4,14 @@ coreblocks.func\_blocks.fu.fpu package
 Submodules
 ----------
 
+coreblocks.func\_blocks.fu.fpu.far\_path module
+-----------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.far_path
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.fpu.fpu\_common module
 -------------------------------------------------
 
