@@ -52,7 +52,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
         self.push_result = Method(i=layouts.push_result)
 
         self.dm = DependencyContext.get()
-        self.report = self.dm.get_dependency(ExceptionReportKey())
+        self.report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
         m = TModule()

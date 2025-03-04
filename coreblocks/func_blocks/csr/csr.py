@@ -12,10 +12,10 @@ from coreblocks.arch.isa_consts import Opcode
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
-    FetchResumeKey,
+    UnsafeInstructionResolvedKey,
     CSRInstancesKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
@@ -71,8 +71,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = DependencyContext.get()
 
-        self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
-
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRUnitLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
@@ -82,6 +80,8 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.get_result = Method(o=self.fu_layouts.push_result)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
+
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
     def _create_regfile(self):
         # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
@@ -99,7 +99,6 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        call_resume = Signal()
         exception = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
@@ -208,8 +207,8 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
 
-            report = self.dependency_manager.get_dependency(ExceptionReportKey())
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
+            resume_core = self.dependency_manager.get_dependency(UnsafeInstructionResolvedKey())
 
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)
@@ -226,14 +225,14 @@ class CSRUnit(FuncBlock, Elaboratable):
                     )
                 )  # rl_s1 or imm
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
+                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
                 # At this time CSR operation is finished. If it caused triggering an interrupt, it would be represented
                 # by interrupt signal in this cycle.
                 # CSR instructions are never compressed, PC+4 is always next instruction
-                report(
+                self.report(
                     m,
                     rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
@@ -243,7 +242,9 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += exception.eq(0)
 
-            m.d.comb += call_resume.eq(exe_side_fx & ~exception & ~interrupt)
+            with m.If(exe_side_fx & ~exception & ~interrupt):
+                # CSR instructions are never compressed, PC+4 is always next instruction
+                resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,
@@ -252,23 +253,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_resume, call_resume)
-        def _():
-            # This call will always execute, because there is at most one unsafe instruction in the core, and it can be
-            # stored in unifer's Forwarder unitl resume becomes ready.
-            # CSR instructions are never compressed, PC+4 is always next instruction
-            return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
-
         return m
 
 
 @dataclass(frozen=True)
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
-        connections = DependencyContext.get()
-        unit = CSRUnit(gen_params)
-        connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
-        return unit
+        return CSRUnit(gen_params)
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}

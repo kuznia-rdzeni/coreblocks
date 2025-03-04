@@ -6,7 +6,6 @@ from parameterized import parameterized_class
 import random
 
 from amaranth import Elaboratable, Module
-from coreblocks.interface.keys import FetchResumeKey
 
 from transactron.core import Method
 from transactron.lib import AdapterTrans, Adapter, BasicFifo
@@ -27,7 +26,6 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
-from transactron.utils.dependencies import DependencyContext
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -77,19 +75,32 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
         self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.clean_fifo = TestbenchIO(AdapterTrans(fifo.clear))
+        self.clear_fifo = TestbenchIO(AdapterTrans(fifo.clear))
         self.fetch_resume_mock = TestbenchIO(Adapter.create())
-        DependencyContext.get().add_dependency(FetchResumeKey(), self.fetch_resume_mock.adapter.iface)
 
-        self.fetch = SimpleTestCircuit(FetchUnit(self.gen_params, self.icache, fifo.write))
+        self.mock_stall_lock = TestbenchIO(Adapter.create())
+        self.mock_stall_unsafe = TestbenchIO(Adapter.create())
 
-        self.m = ModuleConnector(self.icache, fifo, self.io_out, self.clean_fifo, self.fetch)
+        self.fetch = SimpleTestCircuit(
+            FetchUnit(
+                self.gen_params,
+                self.icache,
+                fifo.write,
+                self.mock_stall_lock.adapter.iface,
+                self.mock_stall_unsafe.adapter.iface,
+            )
+        )
+
+        self.m = ModuleConnector(
+            self.icache, fifo, self.io_out, self.clear_fifo, self.fetch, self.mock_stall_lock, self.mock_stall_unsafe
+        )
 
         self.instr_queue = deque()
         self.mem = {}
         self.memerr = set()
         self.input_q = deque()
         self.output_q = deque()
+        self.stalled = False
 
         random.seed(41)
 
@@ -183,6 +194,14 @@ class TestFetchUnit(TestCaseWithSimulator):
         if self.output_q:
             return self.output_q[0]
 
+    @def_method_mock(lambda self: self.mock_stall_lock, enable=lambda self: not self.stalled)
+    def stall_lock_mock(self):
+        pass
+
+    @def_method_mock(lambda self: self.mock_stall_unsafe)
+    def stall_lock_unsafe(self):
+        pass
+
     async def fetch_out_check(self, sim: TestbenchContext):
         while self.instr_queue:
             instr = self.instr_queue.popleft()
@@ -202,11 +221,12 @@ class TestFetchUnit(TestCaseWithSimulator):
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 await self.random_wait(sim, 5)
-                await self.fetch.stall_exception.call(sim)
+                self.stalled = True
+                await self.fetch.flush.call(sim)
                 await self.random_wait(sim, 5)
 
                 # Empty the pipeline
-                await self.clean_fifo.call_try(sim)
+                await self.clear_fifo.call_try(sim)
                 await sim.tick()
 
                 resume_pc = instr["next_pc"]
@@ -217,8 +237,10 @@ class TestFetchUnit(TestCaseWithSimulator):
                     ) + self.gen_params.fetch_block_bytes
 
                 # Resume the fetch unit
-                while await self.fetch.resume_from_exception.call_try(sim, pc=resume_pc) is None:
+                while await self.fetch.redirect.call_try(sim, pc=resume_pc) is None:
                     pass
+
+                self.stalled = False
 
     def run_sim(self):
         with self.run_simulation(self.m) as sim:
