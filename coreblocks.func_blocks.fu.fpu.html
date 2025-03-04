@@ -88,6 +88,69 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.close_path">
+<span id="coreblocks-func-blocks-fu-fpu-close-path-module"></span><h2>coreblocks.func_blocks.fu.fpu.close_path module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.close_path" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.close_path.ClosePathMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.close_path.</span></span><span class="sig-name descname"><span class="pre">ClosePathMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.close_path.ClosePathMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Close path module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.close_path.ClosePathMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.close_path.ClosePathMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>r_sign - sign of the result
+sig_a - two’s complement form of first significand
+sig_2 - two’s complement form of second significand
+exp - exponent of result before shifts
+rounding_mode - rounding mode
+guard_bit - guard_bit (pth bit of second significand where p is precision)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.close_path.</span></span><span class="sig-name descname"><span class="pre">ClosePathModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Close path module
+Based on <a class="reference external" href="http://i.stanford.edu/pub/cstr/reports/csl/tr/90/442/CSL-TR-90-442.pdf">http://i.stanford.edu/pub/cstr/reports/csl/tr/90/442/CSL-TR-90-442.pdf</a>.
+This module computes results for efficient subtraction,
+whenever difference of exponents is lesser than 2.
+Besides computing the result, this implementation also performs rounding at the same time
+as subtraction by using two adders (one computing a+b and the other one computing a+b+1).
+The correct output is chosen based on flags that are different for each rounding mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU rounding module parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>close_path_request: Method</strong></dt><dd><p>Transactional method for initiating close path computation.
+Takes ‘close_path_in_layout’ as argument.
+Returns result as ‘close_path_out_layout’.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.far_path">
 <span id="coreblocks-func-blocks-fu-fpu-far-path-module"></span><h2>coreblocks.func_blocks.fu.fpu.far_path module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.far_path" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -446,7 +509,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 13:00 2025-03-04.
+      <span class="lastupdated">Last updated on 13:17 2025-03-04.
       </span></p>
   </div>
 
