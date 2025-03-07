@@ -7,7 +7,7 @@ from coreblocks.arch.isa_consts import Funct12, Funct3, Opcode, PrivilegeLevel
 
 
 from transactron import *
-from transactron.lib import BasicFifo, logging
+from transactron.lib import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
@@ -15,14 +15,14 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts, FetchLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     CSRInstancesKey,
     InstructionPrecommitKey,
-    FetchResumeKey,
+    UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
 )
@@ -41,12 +41,11 @@ class PrivilegedFn(DecoderManager):
         FENCEI = auto()
         WFI = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
-        return [(cls.Fn.MRET, OpType.MRET), (cls.Fn.FENCEI, OpType.FENCEI), (cls.Fn.WFI, OpType.WFI)]
+    def get_instructions(self) -> Sequence[tuple]:
+        return [(self.Fn.MRET, OpType.MRET), (self.Fn.FENCEI, OpType.FENCEI), (self.Fn.WFI, OpType.WFI)]
 
 
-class PrivilegedFuncUnit(Elaboratable):
+class PrivilegedFuncUnit(FuncUnit, Elaboratable):
     def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
         self.gen_params = gen_params
         self.priv_fn = priv_fn
@@ -55,15 +54,15 @@ class PrivilegedFuncUnit(Elaboratable):
         self.dm = DependencyContext.get()
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
-
-        self.fetch_resume_fifo = BasicFifo(self.gen_params.get(FetchLayouts).resume, 2)
+        self.push_result = Method(i=layouts.push_result)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
             "Number of instructions precommited with side effects by the priviledge unit",
             tags=PrivilegedFn.Fn,
         )
+
+        self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
         m = TModule()
@@ -83,12 +82,10 @@ class PrivilegedFuncUnit(Elaboratable):
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
         wfi_resume = self.dm.get_dependency(WaitForInterruptResumeKey())
-        exception_report = self.dm.get_dependency(ExceptionReportKey())
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
-
-        m.submodules.fetch_resume_fifo = self.fetch_resume_fifo
+        resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
@@ -128,8 +125,7 @@ class PrivilegedFuncUnit(Elaboratable):
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
-        @def_method(m, self.accept, ready=instr_valid & finished)
-        def _():
+        with Transaction().body(m, request=instr_valid & finished):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
@@ -163,7 +159,9 @@ class PrivilegedFuncUnit(Elaboratable):
                     m, (instr_fn != PrivilegedFn.Fn.MRET) & (instr_fn != PrivilegedFn.Fn.WFI), "missing Funct12 case"
                 )
 
-                exception_report(m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr)
+                self.exception_report(
+                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr
+                )
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
@@ -173,20 +171,21 @@ class PrivilegedFuncUnit(Elaboratable):
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
                 # would normally return to (mepc value is preserved)
                 m.d.av_comb += exception.eq(1)
-                exception_report(
+                self.exception_report(
                     m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
                 )
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                self.fetch_resume_fifo.write(m, pc=ret_pc)
+                resume_core(m, pc=ret_pc)
 
-            return {
-                "rob_id": instr_rob,
-                "exception": exception,
-                "rp_dst": 0,
-                "result": 0,
-            }
+            self.push_result(
+                m,
+                rob_id=instr_rob,
+                exception=exception,
+                rp_dst=0,
+                result=0,
+            )
 
         return m
 
@@ -195,8 +194,5 @@ class PrivilegedFuncUnit(Elaboratable):
 class PrivilegedUnitComponent(FunctionalComponentParams):
     decoder_manager: PrivilegedFn = PrivilegedFn()
 
-    def get_module(self, gp: GenParams) -> FuncUnit:
-        unit = PrivilegedFuncUnit(gp, self.decoder_manager)
-        connections = DependencyContext.get()
-        connections.add_dependency(FetchResumeKey(), unit.fetch_resume_fifo.read)
-        return unit
+    def get_module(self, gen_params: GenParams) -> FuncUnit:
+        return PrivilegedFuncUnit(gen_params, self.decoder_manager)

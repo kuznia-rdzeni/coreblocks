@@ -8,7 +8,7 @@ from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
 from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron import Method, def_method, TModule
+from transactron import Method, Transaction, def_method, TModule
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -21,12 +21,11 @@ class ZbcFn(DecoderManager):
         CLMULH = auto()
         CLMULR = auto()
 
-    @classmethod
-    def get_instructions(cls) -> Sequence[tuple]:
+    def get_instructions(self) -> Sequence[tuple]:
         return [
-            (cls.Fn.CLMUL, OpType.CLMUL, Funct3.CLMUL),
-            (cls.Fn.CLMULH, OpType.CLMUL, Funct3.CLMULH),
-            (cls.Fn.CLMULR, OpType.CLMUL, Funct3.CLMULR),
+            (ZbcFn.Fn.CLMUL, OpType.CLMUL, Funct3.CLMUL),
+            (ZbcFn.Fn.CLMULH, OpType.CLMUL, Funct3.CLMULH),
+            (ZbcFn.Fn.CLMULR, OpType.CLMUL, Funct3.CLMULR),
         ]
 
 
@@ -149,7 +148,7 @@ class ClMultiplier(Elaboratable):
         return m
 
 
-class ZbcUnit(Elaboratable):
+class ZbcUnit(FuncUnit, Elaboratable):
     """
     Module responsible for executing Zbc instructions (carry-less multiplication)
 
@@ -157,8 +156,8 @@ class ZbcUnit(Elaboratable):
     ----------
     issue: Method(i=FuncUnitLayouts.issue)
         Method used for requesting computation.
-    accept: Method(i=FuncUnitLayouts.accept)
-        Method used for getting result of requested computation.
+    push_result: Method(i=FuncUnitLayouts.push_result)
+        Method called for pushing result of requested computation.
     """
 
     def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
@@ -168,7 +167,7 @@ class ZbcUnit(Elaboratable):
         self.recursion_depth = recursion_depth
         self.gen_params = gen_params
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()
@@ -187,8 +186,7 @@ class ZbcUnit(Elaboratable):
 
         m.d.comb += clmul.reset.eq(0)
 
-        @def_method(m, self.accept, ready=~clmul.busy)
-        def _():
+        with Transaction().body(m, request=~clmul.busy):
             xlen = self.gen_params.isa.xlen
 
             output = clmul.result
@@ -197,7 +195,7 @@ class ZbcUnit(Elaboratable):
             result = Mux(params.high_res, output[xlen:], output[:xlen])
             reversed_result = Mux(params.rev_res, result[::-1], result)
 
-            return {"rob_id": params.rob_id, "rp_dst": params.rp_dst, "result": reversed_result, "exception": 0}
+            self.push_result(m, rob_id=params.rob_id, rp_dst=params.rp_dst, result=reversed_result, exception=0)
 
         @def_method(m, self.issue)
         def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):

@@ -3,7 +3,6 @@ from typing import Sequence
 from amaranth import *
 
 from transactron import *
-from transactron.lib import FIFO
 from transactron.lib.metrics import *
 
 from coreblocks.arch import OpType, Funct3, Funct7
@@ -242,7 +241,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.alu.instr",
@@ -256,12 +255,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         m.submodules += [self.perf_instr]
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
-
-        @def_method(m, self.accept)
-        def _():
-            return fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -273,7 +267,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
             self.perf_instr.incr(m, decoder.decode_fn)
 
-            fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
+            self.push_result(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 
         return m
 
@@ -281,6 +275,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 @dataclass(frozen=True)
 class ALUComponent(FunctionalComponentParams):
     _: KW_ONLY
+    result_fifo: bool = True
     zba_enable: bool = False
     zbb_enable: bool = False
     zicond_enable: bool = False

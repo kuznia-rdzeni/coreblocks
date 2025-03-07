@@ -9,6 +9,7 @@ from coreblocks.arch.optypes import OpType
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.frontend.fetch.fetch import FetchUnit
+from coreblocks.frontend.stall_controller import StallController
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
@@ -75,8 +76,6 @@ class CoreFrontend(Elaboratable):
         Consume a single decoded instruction.
     resume_from_exception: Method
         Resume the frontend from the given PC after an exception.
-    resume_from_unsafe: Method
-        Resume the frontend from the given PC after an unsafe instruction.
     stall: Method
         Stall and flush the frontend.
     """
@@ -96,7 +95,15 @@ class CoreFrontend(Elaboratable):
 
         self.connections.add_dependency(FlushICacheKey(), self.icache.flush)
 
-        self.fetch = FetchUnit(self.gen_params, self.icache, self.instr_buffer.write)
+        self.stall_ctrl = StallController(self.gen_params)
+
+        self.fetch = FetchUnit(
+            self.gen_params,
+            self.icache,
+            self.instr_buffer.write,
+            self.stall_ctrl.stall_guard,
+            self.stall_ctrl.stall_unsafe,
+        )
 
         self.output_pipe = Pipe(self.gen_params.get(SchedulerLayouts).scheduler_in)
         self.decode_buff = Connect(self.gen_params.get(DecodeLayouts).decoded_instr)
@@ -108,8 +115,7 @@ class CoreFrontend(Elaboratable):
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
 
         self.consume_instr = self.output_pipe.read
-        self.resume_from_exception = self.fetch.resume_from_exception
-        self.resume_from_unsafe = self.fetch.resume_from_unsafe
+        self.resume_from_exception = self.stall_ctrl.resume_from_exception
         self.stall = Method()
 
         self.rollback_tagger = RollbackTagger(
@@ -126,13 +132,17 @@ class CoreFrontend(Elaboratable):
         m.submodules.fetch = self.fetch
         m.submodules.instr_buffer = self.instr_buffer
 
-        m.submodules.decode = DecodeStage(
-            gen_params=self.gen_params, get_raw=self.instr_buffer.read, push_decoded=self.decode_buff.write
-        )
+        m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
+        decode.get_raw.proxy(m, self.instr_buffer.read)
+        decode.push_decoded.proxy(m, self.decode_buff.write)
+        
         m.submodules.decode_buff = self.decode_buff
 
         m.submodules.rollback_tagger = self.rollback_tagger
         m.submodules.output_pipe = self.output_pipe
+        
+        m.submodules.stall_ctrl = self.stall_ctrl
+        self.stall_ctrl.redirect_frontend.proxy(m, self.fetch.redirect)
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):
@@ -148,12 +158,13 @@ class CoreFrontend(Elaboratable):
             return {"valid": 0, "cfi_target": 0}
 
         def flush_frontend():
+            self.fetch.flush(m)
             self.instr_buffer.clear(m)
             self.output_pipe.clean(m)
 
         @def_method(m, self.stall)
         def _():
             flush_frontend()
-            self.fetch.stall_exception(m)
+            self.stall_ctrl.stall_exception(m)
 
         return m
