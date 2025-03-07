@@ -8,7 +8,7 @@ from transactron.lib.connectors import Pipe
 from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
 from transactron.lib.storage import MemoryBank
-from transactron.utils import DependencyContext, cyclic_mask, make_layout, popcount
+from transactron.utils import DependencyContext, cyclic_mask, make_layout, mod_incr, popcount
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
@@ -119,9 +119,7 @@ class CheckpointRAT(Elaboratable):
         m.d.comb += next_tag.eq(tags_head + 1)
 
         next_checkpoint = Signal.like(checkpoints_head)
-        m.d.comb += next_checkpoint.eq(
-            Mux(checkpoints_head + 1 == self.gen_params.checkpoint_count, 0, checkpoints_head + 1)
-        )
+        m.d.comb += next_checkpoint.eq(mod_incr(checkpoints_head, self.gen_params.checkpoint_count))
 
         checkpoints_full_overwrite = Signal()
         checkpoints_next_tail_comb = Signal.like(checkpoints_tail)
@@ -346,7 +344,7 @@ class CheckpointRAT(Elaboratable):
             # deallocate physical checkpoints (but not tags) associated with freed tag
             with m.If(((checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
                 m.d.comb += checkpoints_next_tail_comb.eq(
-                    Mux(checkpoints_tail + 1 == self.gen_params.checkpoint_count, 0, checkpoints_tail + 1)
+                    mod_incr(checkpoints_tail, self.gen_params.checkpoint_count)
                 )
                 m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
                 with m.If(~checkpoints_full_overwrite):

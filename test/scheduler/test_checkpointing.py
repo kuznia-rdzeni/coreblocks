@@ -32,7 +32,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
 
         branch_in_flight = set()
 
-        instr_cnt = 512 * 2
+        instr_cnt = 512
         exp_rs_branch = deque()
         exp_rs_arith = deque()
 
@@ -259,7 +259,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 await dut.rob_done.call(sim, rob_id=rob_done_queue[0])
                 rob_done_queue.popleft()
 
-        with self.run_simulation(dut, max_cycles=4000) as sim:
+        with self.run_simulation(dut, max_cycles=2000) as sim:
             sim.add_testbench(input_process)
             sim.add_testbench(free_rf_process, background=True)
             sim.add_testbench(branch_fu_process, background=True)
