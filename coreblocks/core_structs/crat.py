@@ -179,7 +179,7 @@ class CheckpointRAT(Elaboratable):
                     create_checkpoint_pipe.write(m, checkpoint=checkpoint_id)
                     # Future optimization: If no change happened in FRAT, then checkpoint
                     # could be shared with multiple tags (useful for branch chains)
-                with cond(~(commit_checkpoint & tag_valid)):
+                with cond(~(commit_checkpoint & tag_valid)):  # FIXME: amaranth detects comb cycle here
                     pass
 
             with m.If(tag_valid & (rl_dst != 0)):
@@ -343,9 +343,7 @@ class CheckpointRAT(Elaboratable):
 
             # deallocate physical checkpoints (but not tags) associated with freed tag
             with m.If(((checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
-                m.d.comb += checkpoints_next_tail_comb.eq(
-                    mod_incr(checkpoints_tail, self.gen_params.checkpoint_count)
-                )
+                m.d.comb += checkpoints_next_tail_comb.eq(mod_incr(checkpoints_tail, self.gen_params.checkpoint_count))
                 m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
                 with m.If(~checkpoints_full_overwrite):
                     m.d.sync += checkpoints_full.eq(0)

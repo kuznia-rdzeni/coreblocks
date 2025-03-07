@@ -111,7 +111,7 @@ class Core(Component):
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
-        drop_second_ret_value = (self.gen_params.get(DecodeLayouts).decoded_instr, lambda _, rets: rets[0])
+        drop_second_ret_value = (self.gen_params.get(SchedulerLayouts).scheduler_in, lambda _, rets: rets[0])
         m.submodules.get_instr = get_instr = MethodProduct(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
@@ -150,7 +150,7 @@ class Core(Component):
         retirement.rf_free.proxy(m, rf.free)
         retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
         retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
-        retirement.f_rat_rename.proxy(m, crat.rename)
+        retirement.c_rat_rename.proxy(m, crat.rename)
         retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
         retirement.instr_decrement.proxy(m, core_counter.decrement)
         retirement.trap_entry.proxy(m, self.interrupt_controller.entry)

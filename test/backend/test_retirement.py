@@ -56,9 +56,9 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
             Adapter(self.retirement.async_interrupt_cause)
         )
-        
+
         m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
-                Adapter(self.retirement.checkpoint_tag_free)
+            Adapter(self.retirement.checkpoint_tag_free)
         )
         m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
             Adapter(self.retirement.checkpoint_get_active_tags)

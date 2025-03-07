@@ -135,12 +135,12 @@ class CoreFrontend(Elaboratable):
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
         decode.get_raw.proxy(m, self.instr_buffer.read)
         decode.push_decoded.proxy(m, self.decode_buff.write)
-        
+
         m.submodules.decode_buff = self.decode_buff
 
         m.submodules.rollback_tagger = self.rollback_tagger
         m.submodules.output_pipe = self.output_pipe
-        
+
         m.submodules.stall_ctrl = self.stall_ctrl
         self.stall_ctrl.redirect_frontend.proxy(m, self.fetch.redirect)
 

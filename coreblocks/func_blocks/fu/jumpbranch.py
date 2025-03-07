@@ -285,6 +285,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
+                tag=arg.tag,
             )
             self.perf_instr.incr(m, decoder.decode_fn)
 

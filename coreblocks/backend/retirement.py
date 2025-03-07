@@ -38,8 +38,8 @@ class Retirement(Elaboratable):
         self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
-        self.f_rat_rename = Method(
-            i=gen_params.get(RATLayouts).frat_rename_in, o=gen_params.get(RATLayouts).frat_rename_out
+        self.c_rat_rename = Method(
+            i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out
         )
         self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
@@ -100,7 +100,16 @@ class Retirement(Elaboratable):
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
             # restore original rl_dst->rp_dst mapping in F-RAT
-            self.f_rat_rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+            # FIXME: some lock bypass is needed here ??? - tag field
+            self.c_rat_rename(
+                m,
+                rl_s1=0,
+                rl_s2=0,
+                rl_dst=rob_entry.rob_data.rl_dst,
+                rp_dst=rat_out.old_rp_dst,
+                commit_checkpoint=0,
+                tag=0,
+            )
 
         retire_valid = Signal()
         with Transaction().body(m) as validate_transaction:
@@ -121,7 +130,7 @@ class Retirement(Elaboratable):
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
 
-                    with m.If(rob_entry.tag_increment):
+                    with m.If(rob_entry.rob_data.tag_increment):
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
@@ -199,7 +208,7 @@ class Retirement(Elaboratable):
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
 
-                    with m.If(rob_entry.tag_increment):
+                    with m.If(rob_entry.rob_data.tag_increment):
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
