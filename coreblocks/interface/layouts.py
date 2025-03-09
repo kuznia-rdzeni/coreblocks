@@ -140,6 +140,24 @@ class CommonLayoutFields:
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
         """A mask denoting which instruction in a fetch blocks is a branch."""
 
+        self.tag: LayoutListField = ("tag", gen_params.tag_bits)
+        """Instruction tag. Identifies speculation path of the instuction."""
+
+        self.rollback_tag: LayoutListField = ("rollback_tag", gen_params.tag_bits)
+        """Target tag of last rollback that happened before instuction.
+        For tracking rollbacks in scheduler/CRAT only."""
+
+        self.rollback_tag_v: LayoutListField = ("rollback_tag_v", 1)
+        """Valid bit for `rollback_tag`.
+        It is set only for first instuction that exits fetch after rollback to `rollback_tag`."""
+
+        self.tag_increment: LayoutListField = ("tag_increment", 1)
+        """Compressed tag representation used in ROB.
+        Instuction with this bit set has tag of previous instuction incremented by one."""
+
+        self.commit_checkpoint: LayoutListField = ("commit_checkpoint", 1)
+        """New checkpoint should be made for this instuction"""
+
 
 class SchedulerLayouts:
     """Layouts used in the scheduler."""
@@ -165,24 +183,40 @@ class SchedulerLayouts:
         )
         """Logical register number for the destination operand, before ROB allocation."""
 
-        self.reg_alloc_in = make_layout(
+        self.reg_alloc_in = self.scheduler_in = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.rollback_tag,
+            fields.rollback_tag_v,
+            fields.commit_checkpoint,
         )
 
-        self.reg_alloc_out = make_layout(
+        self.instr_tag_in = self.reg_alloc_out = make_layout(
             fields.exec_fn,
             fields.regs_l,
             self.regs_p_alloc_out,
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.rollback_tag,
+            fields.rollback_tag_v,
+            fields.commit_checkpoint,
         )
 
-        self.renaming_in = self.reg_alloc_out
+        self.renaming_in = self.instr_tag_out = make_layout(
+            fields.exec_fn,
+            fields.regs_l,
+            self.regs_p_alloc_out,
+            fields.imm,
+            fields.csr,
+            fields.pc,
+            fields.tag,
+            fields.tag_increment,
+            fields.commit_checkpoint,
+        )
 
         self.renaming_out = make_layout(
             fields.exec_fn,
@@ -191,6 +225,8 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
+            fields.tag_increment,
         )
 
         self.rob_allocate_in = self.renaming_out
@@ -202,6 +238,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
         )
 
         self.rs_select_in = self.rob_allocate_out
@@ -215,6 +252,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
         )
 
         self.rs_insert_in = self.rs_select_out
@@ -246,6 +284,10 @@ class RATLayouts:
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 
+        self.active_tags_bitmask: LayoutListField = ("active_tags", ArrayLayout(1, 2**gen_params.tag_bits))
+        """Bitmask, when bit is set when corresponding tag is on the current speculation/execution
+        path and reset when instruction was already rolled back (is not included in current FRAT)"""
+
         self.frat_rename_in = make_layout(
             fields.rl_s1,
             fields.rl_s2,
@@ -260,6 +302,17 @@ class RATLayouts:
         self.rrat_peek_in = make_layout(fields.rl_dst)
         self.rrat_peek_out = self.rrat_commit_out
 
+        self.rollback_in = make_layout(fields.tag)
+        self.get_active_tags_out = make_layout(self.active_tags_bitmask)
+
+        self.crat_rename_in = extend_layout(self.frat_rename_in, fields.tag, fields.commit_checkpoint)
+        self.crat_rename_out = self.frat_rename_out
+
+        self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
+        self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
+
+        self.crat_flush_restore = make_layout(fields.rl_dst, fields.rp_dst)
+
 
 class ROBLayouts:
     """Layouts used in the reorder buffer."""
@@ -270,6 +323,7 @@ class ROBLayouts:
         self.data_layout = make_layout(
             fields.rl_dst,
             fields.rp_dst,
+            fields.tag_increment,
         )
 
         self.rob_data: LayoutListField = ("rob_data", self.data_layout)
@@ -334,6 +388,7 @@ class RSFullDataLayout:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
         )
 
 
@@ -383,6 +438,7 @@ class RSLayouts:
             "s2_val",
             "imm",
             "pc",
+            "tag",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_fields=data_fields)
@@ -403,6 +459,7 @@ class RSLayouts:
                 "exec_fn",
                 "imm",
                 "pc",
+                "tag",
             },
         )
 
@@ -523,6 +580,7 @@ class FuncUnitLayouts:
             fields.exec_fn,
             fields.imm,
             fields.pc,
+            fields.tag,
         )
 
         self.push_result = make_layout(
@@ -628,6 +686,7 @@ class CSRUnitLayouts:
             "imm",
             "csr",
             "pc",
+            "tag",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_fields=data_fields)
