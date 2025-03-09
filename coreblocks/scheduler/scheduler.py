@@ -483,9 +483,7 @@ class Scheduler(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(
-            self.layouts.reg_alloc_out, 2
-        )  # TODO: can be changed to connect?
+        m.submodules.alloc_rename_buf = alloc_rename_buf = Connect(self.layouts.reg_alloc_out)
         m.submodules.reg_alloc = RegAllocation(
             get_instr=self.get_instr,
             push_instr=alloc_rename_buf.write,
