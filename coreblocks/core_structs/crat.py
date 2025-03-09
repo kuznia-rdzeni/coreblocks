@@ -12,7 +12,7 @@ from transactron.utils import DependencyContext, cyclic_mask, make_layout, mod_i
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
-from coreblocks.interface.keys import RollbackKey
+from coreblocks.interface.keys import CoreStateKey, RollbackKey
 
 log = logging.HardwareLogger("core_structs.crat")
 
@@ -53,6 +53,9 @@ class CheckpointRAT(Elaboratable):
         Rename stage of CheckpointRAT. Works like FRAT rename.
         Renames source registers and updates destination register mapping on valid tagged instructions.
         It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
+    flush_restore: Method
+        Subset of `rename`. Used for restoring RAT state from Retirement on hard flushes.
+        Blocks until restores are safe to be made. `Rollback` must not be called after first restore.
     rollback: Method
         Rollback listener automatically registered to `RollbackKey`.
         Invalidates tags, frees checkpoints, initiates FRAT restore and Scheduler flushing.
@@ -71,9 +74,11 @@ class CheckpointRAT(Elaboratable):
         layouts = gen_params.get(RATLayouts)
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
         self.rename = Method(i=layouts.crat_rename_in, o=layouts.crat_rename_out)
+        self.flush_restore = Method(i=layouts.crat_flush_restore)
 
         self.rollback = Method(i=layouts.rollback_in)
-        DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
+        self.dm = DependencyContext.get()
+        self.dm.add_dependency(RollbackKey(), self.rollback)
 
         self.free_tag = Method()
         self.get_active_tags = Method(o=layouts.get_active_tags_out)
@@ -108,6 +113,8 @@ class CheckpointRAT(Elaboratable):
 
         frat_lock = Signal()
         frat_unlock_tag = Signal(self.gen_params.tag_bits + 1)
+
+        last_rollback_finished = Signal(init=1)
 
         # ---------------------------------------
         # Internal tag and checkpoint allocation
@@ -204,6 +211,16 @@ class CheckpointRAT(Elaboratable):
             checkpoint = create_checkpoint_pipe.read(m).checkpoint
             storage.write(m, addr=checkpoint, data={"rat": self.frat})
 
+        # Block until last FRAT overwrite from Rollback is finished.
+        # Retirement restores entries on hard-flushes that were not covered by checkpoints one-by-one, don't overwrite.
+        @def_method(m, self.flush_restore, ready=last_rollback_finished)
+        def _(rl_dst: Value, rp_dst: Value):
+            with m.If(rl_dst != 0):  # Duplicated, because otherwise causes comb loop in rename condition
+                m.d.sync += self.frat[rl_dst].eq(rp_dst)
+
+        self.flush_restore.add_conflict(self.rename, Priority.RIGHT)
+        self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
+
         # -------------------------------------------
         # Instructon tagging and stalling before RAT
         # -------------------------------------------
@@ -298,8 +315,10 @@ class CheckpointRAT(Elaboratable):
                 )
 
             log.assertion(m, ((active_tags & checkpointed_tags) & (1 << tag)).any(), "rollback to illegal tag")
+            log.assertion(m, ~self.dm.get_dependency(CoreStateKey())(m).flushing, "rollback during core hard flush")
 
             m.d.sync += rollback_target_tag.eq(tag)
+            m.d.sync += last_rollback_finished.eq(0)
             m.d.sync += flushing_scheduler.eq(1)
 
             m.d.sync += frat_lock.eq(1)
@@ -322,6 +341,7 @@ class CheckpointRAT(Elaboratable):
         with Transaction().body(m):
             rollback_frat = storage.read_resp(m)
             m.d.sync += self.frat.eq(rollback_frat)  # (frat is locked)
+            m.d.sync += last_rollback_finished.eq((rollback_target_tag == rollback_tag_s2) & ~self.rollback.run)
             log.debug(m, True, "frat restored to rollback tag 0x{:x}", rollback_tag_s2)
 
         # --------------
@@ -372,13 +392,13 @@ class CheckpointRAT(Elaboratable):
             sample_width=self.gen_params.tag_bits + 1,
         )
         m.submodules.perf_tags_active = perf_tags_active = HwExpHistogram(
-            "struct.crat.tags_allocated",
+            "struct.crat.tags_active",
             description="Number of tags that are currently active (on valid speculation path)",
             bucket_count=self.gen_params.tag_bits + 1,
             sample_width=self.gen_params.tag_bits + 1,
         )
         m.submodules.perf_checkpoints = perf_checkpoints = HwExpHistogram(
-            "struct.crat.tags_allocated",
+            "struct.crat.checkpoints_allocated",
             description="Number of allocated physical checkpoints",
             bucket_count=ceil_log2(self.gen_params.checkpoint_count),
             sample_width=ceil_log2(self.gen_params.checkpoint_count),

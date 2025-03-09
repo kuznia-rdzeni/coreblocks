@@ -311,6 +311,8 @@ class RATLayouts:
         self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
         self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
 
+        self.crat_flush_restore = make_layout(fields.rl_dst, fields.rp_dst)
+
 
 class ROBLayouts:
     """Layouts used in the reorder buffer."""

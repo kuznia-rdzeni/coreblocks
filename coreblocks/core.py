@@ -150,7 +150,7 @@ class Core(Component):
         retirement.rf_free.proxy(m, rf.free)
         retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
         retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
-        retirement.c_rat_rename.proxy(m, crat.rename)
+        retirement.c_rat_restore.proxy(m, crat.flush_restore)
         retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
         retirement.instr_decrement.proxy(m, core_counter.decrement)
         retirement.trap_entry.proxy(m, self.interrupt_controller.entry)

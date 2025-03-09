@@ -38,9 +38,7 @@ class Retirement(Elaboratable):
         self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
-        self.c_rat_rename = Method(
-            i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out
-        )
+        self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
         self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
         self.trap_entry = Method()
@@ -100,16 +98,7 @@ class Retirement(Elaboratable):
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
             # restore original rl_dst->rp_dst mapping in F-RAT
-            # FIXME: some lock bypass is needed here ??? - tag field
-            self.c_rat_rename(
-                m,
-                rl_s1=0,
-                rl_s2=0,
-                rl_dst=rob_entry.rob_data.rl_dst,
-                rp_dst=rat_out.old_rp_dst,
-                commit_checkpoint=0,
-                tag=0,
-            )
+            self.c_rat_restore(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
         retire_valid = Signal()
         with Transaction().body(m) as validate_transaction:
