@@ -219,7 +219,8 @@ class CheckpointRAT(Elaboratable):
                 m.d.sync += self.frat[rl_dst].eq(rp_dst)
 
         self.flush_restore.add_conflict(self.rename, Priority.RIGHT)
-        self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
+        # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
+        # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
         # -------------------------------------------
         # Instructon tagging and stalling before RAT
