@@ -1,29 +1,29 @@
-from enum import Enum
 import random
-
-from collections import deque
+import pytest
 from amaranth.lib.enum import auto
-from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
+from collections import deque
+from enum import Enum
 
-from transactron.testing import MethodMock
-from coreblocks.params import GenParams
 from coreblocks.arch import OpType
+from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
+from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from transactron.testing import CallTrigger, TestCaseWithSimulator, def_method_mock
+from transactron.testing import CallTrigger, MethodMock, TestCaseWithSimulator, def_method_mock
+
 from test.scheduler.test_scheduler import SchedulerTestCircuit
 
 
-# TODO: make tests with small/large delays & counts
 class TestSchedulerCheckpointing(TestCaseWithSimulator):
-    def test_randomized(self):
+    @pytest.mark.parametrize("tag_bits, checkpoint_count", [(2, 3), (5, 8)])
+    def test_randomized(self, tag_bits: int, checkpoint_count: int):
         gen_params = GenParams(
             test_core_config.replace(
                 func_units_config=(
                     RSBlockComponent([], rs_entries=4, rs_number=0),
                     RSBlockComponent([], rs_entries=4, rs_number=1),
                 ),
-                tag_bits=2,
-                checkpoint_count=3,
+                tag_bits=tag_bits,
+                checkpoint_count=checkpoint_count,
             )
         )
 

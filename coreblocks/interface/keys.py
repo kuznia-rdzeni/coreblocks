@@ -25,6 +25,7 @@ __all__ = [
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
+    "RollbackKey",
 ]
 
 
