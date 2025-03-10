@@ -73,6 +73,12 @@ class _CoreConfigurationDataClass:
         Size of the Reorder Buffer is 2**rob_entries_bits.
     start_pc: int
         Initial Program Counter value.
+    checkpoint_count: int
+        Size of active checkpoints storage. This is a maximum speculation depth. It doesn't include current state.
+    tag_bits: int
+        Numer of tags is 2**tag_bits. Tag space fits unique monotonic checkpoint ids of all instructions
+        currently in core, including instructions from already rolled-back checkpoints, that didn't leave the
+        pipeline yet. Tag space size must be greater that checkpoint count.
     icache_enable: bool
         Enable instruction cache. If disabled, requestes are bypassed directly to the bus.
     icache_ways: int
@@ -125,6 +131,9 @@ class _CoreConfigurationDataClass:
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
     start_pc: int = 0
+
+    checkpoint_count: int = 16
+    tag_bits: int = 5
 
     icache_enable: bool = True
     icache_ways: int = 2
