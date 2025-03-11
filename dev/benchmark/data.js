@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1741685311546,
+  "lastUpdate": 1741685313443,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -35820,6 +35820,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1424,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1408,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4313,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c72724498b9aabf64aa63f33662519c217e49825",
+          "message": "Simplify JumpBranchFn (#804)\n\n* Simplify JumpBranchFn\n\n* Fix test\n\n* Further simplifications",
+          "timestamp": "2025-03-11T10:13:14+01:00",
+          "tree_id": "11743edc978886681dc3b346e4edf9f9c1bf22bb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c72724498b9aabf64aa63f33662519c217e49825"
+        },
+        "date": 1741685313004,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 51.86,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15848,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1372,
             "unit": "LUT"
           },
           {
