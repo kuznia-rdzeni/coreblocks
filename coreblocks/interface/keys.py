@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Concatenate
 
+from transactron.utils import MethodStruct
 from transactron.lib.dependencies import SimpleKey, ListKey
-from transactron import Method
+from transactron import Method, TModule
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
@@ -57,7 +58,14 @@ class UnsafeInstructionResolvedKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class ExceptionReportKey(SimpleKey[Method]):
+class ExceptionReportKey(SimpleKey[Callable[[], Callable[Concatenate[TModule, ...], MethodStruct]]]):
+    """
+    Used to report exception details to the `ExceptionInformationRegister`.
+    Needs to be called once in the component's constructor. The callable
+    returned acts like a method call and can be used multiple times
+    in `elaborate`.
+    """
+
     pass
 
 
