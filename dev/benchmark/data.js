@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1741970123052,
+  "lastUpdate": 1741970125063,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -47835,6 +47835,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 27660,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1888,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1936,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6806,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4efbc6a69e7589ab4203f5f50b4538c30e5ad8ba",
+          "message": "Refector Wishbone to ComponentInterface (#808)",
+          "timestamp": "2025-03-14T17:20:21+01:00",
+          "tree_id": "22aa26e2bdf3301cf5df48f7e10ff740f995d5ff",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4efbc6a69e7589ab4203f5f50b4538c30e5ad8ba"
+        },
+        "date": 1741970124240,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 37.94,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 27212,
             "unit": "LUT4"
           },
           {
