@@ -198,7 +198,7 @@ class ZbcUnit(FuncUnit, Elaboratable):
             self.push_result(m, rob_id=params.rob_id, rp_dst=params.rp_dst, result=reversed_result, exception=0)
 
         @def_method(m, self.issue)
-        def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc):
+        def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag):
             m.d.av_comb += decoder.exec_fn.eq(exec_fn)
 
             i1 = s1_val
