@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1742290332265,
+  "lastUpdate": 1742290333778,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -47997,6 +47997,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 27212,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1888,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1936,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6806,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ar2rb0k@interia.pl",
+            "name": "Artur Bieniek",
+            "username": "ArturBieniek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bde737c8f29ab76c18fb024045d808bf4038a611",
+          "message": "Change custom machine cause reg values in isa_consts.py (#811)",
+          "timestamp": "2025-03-18T10:17:13+01:00",
+          "tree_id": "67e8f2cd73a6784c6a7314171b5bf98359192f6a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bde737c8f29ab76c18fb024045d808bf4038a611"
+        },
+        "date": 1742290333379,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 35.98,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 28092,
             "unit": "LUT4"
           },
           {
