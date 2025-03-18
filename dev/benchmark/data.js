@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1741970125063,
+  "lastUpdate": 1742290330977,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16597,6 +16597,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4efbc6a69e7589ab4203f5f50b4538c30e5ad8ba"
         },
         "date": 1741970115704,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4172105975017901,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.532416884765878,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37303373958208363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.644345150026632,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35839097061429304,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30154061325589343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3350113080907565,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.444100502328478,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ar2rb0k@interia.pl",
+            "name": "Artur Bieniek",
+            "username": "ArturBieniek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bde737c8f29ab76c18fb024045d808bf4038a611",
+          "message": "Change custom machine cause reg values in isa_consts.py (#811)",
+          "timestamp": "2025-03-18T10:17:13+01:00",
+          "tree_id": "67e8f2cd73a6784c6a7314171b5bf98359192f6a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bde737c8f29ab76c18fb024045d808bf4038a611"
+        },
+        "date": 1742290325937,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
