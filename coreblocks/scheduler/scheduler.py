@@ -4,15 +4,15 @@ from amaranth import *
 
 from transactron import Method, Transaction, TModule
 from transactron.lib import FIFO
-from coreblocks.interface.layouts import SchedulerLayouts
-from coreblocks.params import GenParams
-from coreblocks.arch.optypes import OpType
 from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
+
+from coreblocks.interface.layouts import SchedulerLayouts
+from coreblocks.params import GenParams
+from coreblocks.arch.optypes import OpType
 from coreblocks.interface.keys import CoreStateKey
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-
 
 __all__ = ["Scheduler"]
 
@@ -65,6 +65,46 @@ class RegAllocation(Elaboratable):
         return m
 
 
+class InstructionTagger(Elaboratable):
+    """
+    `Scheduler` driver of `CheckpointRAT` `tag` stage. See `CheckpointRAT.tag` for description.
+    """
+
+    def __init__(self, *, get_instr: Method, push_instr: Method, crat_tag: Method, gen_params: GenParams):
+        self.gen_params = gen_params
+        layouts = gen_params.get(SchedulerLayouts)
+        self.input_layout = layouts.instr_tag_in
+        self.output_layout = layouts.instr_tag_out
+
+        self.get_instr = get_instr
+        self.push_instr = push_instr
+        self.crat_tag = crat_tag
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        data_out = Signal(self.output_layout)
+
+        with Transaction().body(m):
+            instr = self.get_instr(m)
+
+            tag_out = self.crat_tag(
+                m,
+                rollback_tag=instr.rollback_tag,
+                rollback_tag_v=instr.rollback_tag_v,
+                commit_checkpoint=instr.commit_checkpoint,
+            )
+
+            m.d.av_comb += assign(data_out, instr, fields=AssignType.COMMON)
+            m.d.av_comb += data_out.tag.eq(tag_out.tag)
+            m.d.av_comb += data_out.tag_increment.eq(tag_out.tag_increment)
+            m.d.av_comb += data_out.commit_checkpoint.eq(tag_out.commit_checkpoint)
+
+            self.push_instr(m, data_out)
+
+        return m
+
+
 class Renaming(Elaboratable):
     """
     Module performing the "Renaming source register" (translation from logical register
@@ -108,9 +148,11 @@ class Renaming(Elaboratable):
                 rl_s2=instr.regs_l.rl_s2,
                 rl_dst=instr.regs_l.rl_dst,
                 rp_dst=instr.regs_p.rp_dst,
+                tag=instr.tag,
+                commit_checkpoint=instr.commit_checkpoint,
             )
 
-            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc"})
+            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
             m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
             m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
             m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
@@ -162,6 +204,7 @@ class ROBAllocation(Elaboratable):
                 m,
                 rl_dst=instr.regs_l.rl_dst,
                 rp_dst=instr.regs_p.rp_dst,
+                tag_increment=instr.tag_increment,
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
@@ -273,6 +316,7 @@ class RSInsertion(Elaboratable):
         rs_insert: Sequence[Method],
         rf_read_resp1: Method,
         rf_read_resp2: Method,
+        crat_active_tags: Method,
         gen_params: GenParams
     ):
         """
@@ -298,6 +342,7 @@ class RSInsertion(Elaboratable):
         self.rs_insert = rs_insert
         self.rf_read_resp1 = rf_read_resp1
         self.rf_read_resp2 = rf_read_resp2
+        self.crat_active_tags = crat_active_tags
 
     def elaborate(self, platform):
         m = TModule()
@@ -311,14 +356,21 @@ class RSInsertion(Elaboratable):
 
             # when core is flushed, rp_dst are discarded.
             # source operands may never become ready, skip waiting for them in any in RSes/FBs.
+            # it could happen when rp is already announced and freed in RF due to flushing, but remaining instructions
+            # could still depend on it.
+
             core_state = DependencyContext.get().get_dependency(CoreStateKey())
             flushing = core_state(m).flushing
+
+            tag_inactive = ~self.crat_active_tags(m).active_tags[instr.tag]
+
+            skip_source_registers = flushing | tag_inactive
 
             data = {
                 # when operand value is valid the convention is to set operand source to 0
                 "rs_data": {
-                    "rp_s1": Mux(source1.valid | flushing, 0, instr.regs_p.rp_s1),
-                    "rp_s2": Mux(source2.valid | flushing, 0, instr.regs_p.rp_s2),
+                    "rp_s1": Mux(source1.valid | skip_source_registers, 0, instr.regs_p.rp_s1),
+                    "rp_s2": Mux(source2.valid | skip_source_registers, 0, instr.regs_p.rp_s2),
                     "rp_s1_reg": instr.regs_p.rp_s1,
                     "rp_s2_reg": instr.regs_p.rp_s2,
                     "rp_dst": instr.regs_p.rp_dst,
@@ -329,6 +381,7 @@ class RSInsertion(Elaboratable):
                     "imm": instr.imm,
                     "csr": instr.csr,
                     "pc": instr.pc,
+                    "tag": instr.tag,
                 },
             }
 
@@ -368,7 +421,9 @@ class Scheduler(Elaboratable):
         *,
         get_instr: Method,
         get_free_reg: Method,
-        rat_rename: Method,
+        crat_rename: Method,
+        crat_tag: Method,
+        crat_active_tags: Method,
         rob_put: Method,
         rf_read_req1: Method,
         rf_read_req2: Method,
@@ -385,9 +440,13 @@ class Scheduler(Elaboratable):
             layout as described by `DecodeLayouts.decoded_instr`.
         get_free_reg: Method
             Method providing the ID of a currently free physical register.
-        rat_rename: Method
-            Method used for renaming the source register in F-RAT. Uses `RATLayouts.rat_rename_in`
-            and `RATLayouts.rat_rename_out`.
+        crat_rename: Method
+            Method used for renaming the source register in C-RAT. Uses `RATLayouts.crat_rename_in`
+            and `RATLayouts.crat_rename_out`.
+        crat_tag: Method
+            Method used for tagging instruction to checkpoints in C-RAT.
+        crat_active_tags: Method
+            Method used to get information about tags that are on current speculation path from C-RAT.
         rob_put: Method
             Method used for getting a free entry in ROB. Uses `ROBLayouts.data_layout`.
         rf_read_req1: Method
@@ -411,7 +470,9 @@ class Scheduler(Elaboratable):
         self.layouts = self.gen_params.get(SchedulerLayouts)
         self.get_instr = get_instr
         self.get_free_reg = get_free_reg
-        self.rat_rename = rat_rename
+        self.crat_rename = crat_rename
+        self.crat_active_tags = crat_active_tags
+        self.crat_tag = crat_tag
         self.rob_put = rob_put
         self.rf_read_req1 = rf_read_req1
         self.rf_read_req2 = rf_read_req2
@@ -422,6 +483,7 @@ class Scheduler(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        # This could be ideally changed to Connect, but unfortunatelly causes comb loop
         m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
         m.submodules.reg_alloc = RegAllocation(
             get_instr=self.get_instr,
@@ -430,18 +492,26 @@ class Scheduler(Elaboratable):
             gen_params=self.gen_params,
         )
 
-        m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
-        m.submodules.renaming = Renaming(
+        m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)
+        m.submodules.instr_tag = InstructionTagger(
             get_instr=alloc_rename_buf.read,
-            push_instr=rename_out_buf.write,
-            rename=self.rat_rename,
+            push_instr=instr_tag_buf.write,
+            crat_tag=self.crat_tag,
             gen_params=self.gen_params,
         )
 
-        m.submodules.reg_alloc_out_buf = reg_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
+        m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
+        m.submodules.renaming = Renaming(
+            get_instr=instr_tag_buf.read,
+            push_instr=rename_out_buf.write,
+            rename=self.crat_rename,
+            gen_params=self.gen_params,
+        )
+
+        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
         m.submodules.rob_alloc = ROBAllocation(
             get_instr=rename_out_buf.read,
-            push_instr=reg_alloc_out_buf.write,
+            push_instr=rob_alloc_out_buf.write,
             rob_put=self.rob_put,
             gen_params=self.gen_params,
         )
@@ -449,7 +519,7 @@ class Scheduler(Elaboratable):
         m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
         m.submodules.rs_selector = RSSelection(
             gen_params=self.gen_params,
-            get_instr=reg_alloc_out_buf.read,
+            get_instr=rob_alloc_out_buf.read,
             rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
             push_instr=rs_select_out_buf.write,
             rf_read_req1=self.rf_read_req1,
@@ -461,6 +531,7 @@ class Scheduler(Elaboratable):
             rs_insert=[rs.insert for rs, _ in self.rs],
             rf_read_resp1=self.rf_read_resp1,
             rf_read_resp2=self.rf_read_resp2,
+            crat_active_tags=self.crat_active_tags,
             gen_params=self.gen_params,
         )
 
