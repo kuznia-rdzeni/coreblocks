@@ -2,7 +2,7 @@ from amaranth import *
 
 from typing import Optional
 from coreblocks.arch import CSRAddress
-from coreblocks.arch.csr_address import MstatusFieldOffsets
+from coreblocks.arch.csr_address import MstatusFieldOffsets, PMPConfigFieldOffsets
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
 from coreblocks.params.genparams import GenParams
@@ -85,6 +85,26 @@ class MachineModeCSRRegisters(Elaboratable):
         self.misa = CSRRegister(
             CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
         )
+
+        for i in range(16):
+            pmpcsr = AliasedCSR(getattr(CSRAddress, f'PMPCFG{i}'), gen_params)
+            # pmp_L = CSRRegister(None, gen_params, width=1)
+            # pmpcsr.add_field(PMPConfigFieldOffsets.L, pmp_L)
+            # pmp_O = CSRRegister(None, gen_params, width=1)
+            # pmpcsr.add_field(PMPConfigFieldOffsets.O, pmp_O)
+            # pmp_A = CSRRegister(None, gen_params, width=2)
+            # pmpcsr.add_field(PMPConfigFieldOffsets.A, pmp_A)
+            # pmp_X = CSRRegister(None, gen_params, width=1)
+            # pmpcsr.add_field(PMPConfigFieldOffsets.X, pmp_X)
+            # pmp_W = CSRRegister(None, gen_params, width=1)
+            # pmpcsr.add_field(PMPConfigFieldOffsets.W, pmp_W)
+            # pmp_R = CSRRegister(None, gen_params, width=1)
+            # pmpcsr.add_field(PMPConfigFieldOffsets.R, pmp_R)
+            setattr(self, f'pmpcfg{i}', pmpcsr)
+
+
+        for i in range(64):
+            setattr(self, f'pmpaddr{i}', CSRRegister(getattr(CSRAddress, f'PMPADDR{i}'), gen_params))
 
         self.priv_mode = CSRRegister(
             None,
