@@ -87,24 +87,16 @@ class MachineModeCSRRegisters(Elaboratable):
         )
 
         for i in range(16):
-            pmpcsr = AliasedCSR(getattr(CSRAddress, f'PMPCFG{i}'), gen_params)
-            # pmp_L = CSRRegister(None, gen_params, width=1)
-            # pmpcsr.add_field(PMPConfigFieldOffsets.L, pmp_L)
-            # pmp_O = CSRRegister(None, gen_params, width=1)
-            # pmpcsr.add_field(PMPConfigFieldOffsets.O, pmp_O)
-            # pmp_A = CSRRegister(None, gen_params, width=2)
-            # pmpcsr.add_field(PMPConfigFieldOffsets.A, pmp_A)
-            # pmp_X = CSRRegister(None, gen_params, width=1)
-            # pmpcsr.add_field(PMPConfigFieldOffsets.X, pmp_X)
-            # pmp_W = CSRRegister(None, gen_params, width=1)
-            # pmpcsr.add_field(PMPConfigFieldOffsets.W, pmp_W)
-            # pmp_R = CSRRegister(None, gen_params, width=1)
-            # pmpcsr.add_field(PMPConfigFieldOffsets.R, pmp_R)
-            setattr(self, f'pmpcfg{i}', pmpcsr)
-
+            pmpcsr = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
+            csr_fields = {"L": 1, "A": 2, "X": 1, "W": 1, "R": 1}
+            for field, width in csr_fields.items():
+                reg = CSRRegister(None, gen_params, width=width)
+                pmpcsr.add_field(getattr(PMPConfigFieldOffsets, field), reg)
+                setattr(self, f"pmpcfg{i}_{field}", reg)
+            setattr(self, f"pmpcfg{i}", pmpcsr)
 
         for i in range(64):
-            setattr(self, f'pmpaddr{i}', CSRRegister(getattr(CSRAddress, f'PMPADDR{i}'), gen_params))
+            setattr(self, f"pmpaddr{i}", CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params))
 
         self.priv_mode = CSRRegister(
             None,

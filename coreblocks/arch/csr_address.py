@@ -1,10 +1,6 @@
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = [
-    "CSRAddress",
-    "MstatusFieldOffsets",
-    "PMPConfigFieldOffsets"
-]
+__all__ = ["CSRAddress", "MstatusFieldOffsets", "PMPConfigFieldOffsets"]
 
 
 @unique
@@ -475,5 +471,5 @@ class PMPConfigFieldOffsets(IntEnum):
     W = 1
     X = 2
     A = 3
-    O = 5
-    L = 6
+    # 0[4,5] - Two bytes are reserved
+    L = 7
