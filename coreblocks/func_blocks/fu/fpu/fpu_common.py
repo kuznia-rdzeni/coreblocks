@@ -60,3 +60,20 @@ def create_data_input_layout(params: FPUParams):
             "is_zero": 1,
         }
     )
+
+
+def create_output_layout(params: FPUParams):
+    return data.StructLayout(
+        {
+            "sign": 1,
+            "sig": params.sig_width,
+            "exp": params.exp_width,
+            "exceptions": Errors,
+        }
+    )
+
+
+class FPUCommonValues:
+    def __init__(self, fpu_params: FPUParams):
+        self.params = fpu_params
+        self.canonical_nan_sig = 2 ^ (fpu_params.sig_width - 1) | 2 ^ (fpu_params.sig_width - 2)
