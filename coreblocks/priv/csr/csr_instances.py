@@ -2,7 +2,7 @@ from amaranth import *
 
 from typing import Optional
 from coreblocks.arch import CSRAddress
-from coreblocks.arch.csr_address import MstatusFieldOffsets, PMPConfigFieldOffsets
+from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
 from coreblocks.params.genparams import GenParams
@@ -87,13 +87,7 @@ class MachineModeCSRRegisters(Elaboratable):
         )
 
         for i in range(16):
-            pmpcsr = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
-            csr_fields = {"L": 1, "A": 2, "X": 1, "W": 1, "R": 1}
-            for field, width in csr_fields.items():
-                reg = CSRRegister(None, gen_params, width=width)
-                pmpcsr.add_field(getattr(PMPConfigFieldOffsets, field), reg)
-                setattr(self, f"pmpcfg{i}_{field}", reg)
-            setattr(self, f"pmpcfg{i}", pmpcsr)
+            setattr(self, f"pmpcfg{i}", AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params))
 
         for i in range(64):
             setattr(self, f"pmpaddr{i}", CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params))

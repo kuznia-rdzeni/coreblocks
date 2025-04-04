@@ -1,6 +1,6 @@
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = ["CSRAddress", "MstatusFieldOffsets", "PMPConfigFieldOffsets"]
+__all__ = ["CSRAddress", "MstatusFieldOffsets"]
 
 
 @unique
@@ -463,13 +463,3 @@ class MstatusFieldOffsets(IntEnum):
     SBE = 36  # Supervisor Endianess Control
     MBE = 37  # Machine Endianess Contorol
     SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus
-
-
-@unique
-class PMPConfigFieldOffsets(IntEnum):
-    R = 0
-    W = 1
-    X = 2
-    A = 3
-    # 0[4,5] - Two bytes are reserved
-    L = 7
