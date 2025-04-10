@@ -92,17 +92,16 @@ class MachineModeCSRRegisters(Elaboratable):
                 pmpcfg_i = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
                 for j in range(8):
                     pmp_j_cfg = CSRRegister(None, gen_params, width=8)
-                    pmpcfg_i.add_field(j*CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
+                    pmpcfg_i.add_field(j * CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
                     setattr(self, f"pmp{i*8+j}cfg", pmp_j_cfg)
                 setattr(self, f"pmpcfg{i}", pmpcfg_i)
 
-        
         elif gen_params.isa.xlen == 32:
             for i in range(CSRAddress.PMPCFG_COUNT):
                 pmpcfg_i = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
                 for j in range(4):
                     pmp_j_cfg = CSRRegister(None, gen_params, width=4)
-                    pmpcfg_i.add_field(j*CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
+                    pmpcfg_i.add_field(j * CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
                     setattr(self, f"pmp{i*4+j}cfg", pmp_j_cfg)
                 setattr(self, f"pmpcfg{i}", pmpcfg_i)
 
