@@ -86,10 +86,27 @@ class MachineModeCSRRegisters(Elaboratable):
             CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
         )
 
-        for i in range(16):
-            setattr(self, f"pmpcfg{i}", AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params))
+        if gen_params.isa.xlen == 64:
+            # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
+            for i in range(0, CSRAddress.PMPCFG_COUNT, 2):
+                pmpcfg_i = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
+                for j in range(8):
+                    pmp_j_cfg = CSRRegister(None, gen_params, width=8)
+                    pmpcfg_i.add_field(j*CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
+                    setattr(self, f"pmp{i*8+j}cfg", pmp_j_cfg)
+                setattr(self, f"pmpcfg{i}", pmpcfg_i)
 
-        for i in range(64):
+        
+        elif gen_params.isa.xlen == 32:
+            for i in range(CSRAddress.PMPCFG_COUNT):
+                pmpcfg_i = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
+                for j in range(4):
+                    pmp_j_cfg = CSRRegister(None, gen_params, width=4)
+                    pmpcfg_i.add_field(j*CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
+                    setattr(self, f"pmp{i*4+j}cfg", pmp_j_cfg)
+                setattr(self, f"pmpcfg{i}", pmpcfg_i)
+
+        for i in range(CSRAddress.PMPADDR_COUNT):
             setattr(self, f"pmpaddr{i}", CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params))
 
         self.priv_mode = CSRRegister(
