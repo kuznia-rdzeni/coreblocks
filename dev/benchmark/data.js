@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744368775932,
+  "lastUpdate": 1744372689308,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16725,6 +16725,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/56a8369a88131e8688bac5182c95cff0adf3f1d5"
         },
         "date": 1744368768391,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4172105975017901,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.532416884765878,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37303373958208363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.644345150026632,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35839097061429304,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30154061325589343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3350113080907565,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.444100502328478,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6d2d9bab7beff595236f961d26ed506f4bc823dd",
+          "message": "Enable `riscv-tests` for new extensions (#790)",
+          "timestamp": "2025-04-11T13:43:15+02:00",
+          "tree_id": "6b11b9e258dbe2007e06b54a77b851504b376bd7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6d2d9bab7beff595236f961d26ed506f4bc823dd"
+        },
+        "date": 1744372683913,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
