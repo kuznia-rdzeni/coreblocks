@@ -36,8 +36,8 @@ class InternalInterruptController(Component):
         Level-triggered input for interrupts with numbers 0-15, assigned by spec for standard interrupts (internal use)
     custom_report: In, interrupt_custom_count
         Input for reporting custom/local interrupts starting with number 16.
-        Each custom interrupt can be either level-triggered or edge-triggered, configured by `CoreConfigration`.
-        See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfigration`.
+        Each custom interrupt can be either level-triggered or edge-triggered, configured by `CoreConfiguration`.
+        See `interrupt_custom_count` and `interrupt_custom_edge_trig_mask` in `CoreConfiguration`.
     interrupt_insert: Out, 1
         Internal interface, signals pending interrupt.
     entry: Method
