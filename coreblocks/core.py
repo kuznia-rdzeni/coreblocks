@@ -14,7 +14,8 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
 )
 from coreblocks.params.genparams import GenParams
-from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.crat import CheckpointRAT
+from coreblocks.core_structs.rat import RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
@@ -60,7 +61,7 @@ class Core(Component):
 
         self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
 
-        self.FRAT = FRAT(gen_params=self.gen_params)
+        self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
@@ -98,7 +99,7 @@ class Core(Component):
         m.submodules.frontend = self.frontend
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
-        m.submodules.FRAT = frat = self.FRAT
+        m.submodules.CRAT = crat = self.CRAT
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
         m.submodules.ROB = rob = self.ROB
@@ -110,7 +111,7 @@ class Core(Component):
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
-        drop_second_ret_value = (self.gen_params.get(DecodeLayouts).decoded_instr, lambda _, rets: rets[0])
+        drop_second_ret_value = (self.gen_params.get(SchedulerLayouts).scheduler_in, lambda _, rets: rets[0])
         m.submodules.get_instr = get_instr = MethodProduct(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
@@ -118,7 +119,9 @@ class Core(Component):
         m.submodules.scheduler = Scheduler(
             get_instr=get_instr.method,
             get_free_reg=rf_allocator.alloc[0],
-            rat_rename=frat.rename,
+            crat_rename=crat.rename,
+            crat_tag=crat.tag,
+            crat_active_tags=crat.get_active_tags,
             rob_put=rob.put,
             rf_read_req1=rf.read_req1,
             rf_read_req2=rf.read_req2,
@@ -147,10 +150,12 @@ class Core(Component):
         retirement.rf_free.proxy(m, rf.free)
         retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
         retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
-        retirement.f_rat_rename.proxy(m, frat.rename)
+        retirement.c_rat_restore.proxy(m, crat.flush_restore)
         retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
         retirement.instr_decrement.proxy(m, core_counter.decrement)
         retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
         retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
+        retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
+        retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
 
         return m
