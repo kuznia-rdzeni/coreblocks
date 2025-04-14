@@ -34,7 +34,6 @@ class RSBase(Elaboratable):
         self.internal_layout = make_layout(
             ("rs_data", self.layouts.rs.data_layout),
             ("rec_full", 1),
-            ("rec_reserved", 1),
         )
 
         self.insert = Method(i=self.layouts.rs.insert_in)
@@ -120,9 +119,10 @@ class RSBase(Elaboratable):
             return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
-            reordered_list = Cat(ready_list.bit_select(self.order[i], 1) for i in range(self.rs_entries))
+            tk_ready_list = ready_list & takeable_mask
+            reordered_list = Cat(tk_ready_list.bit_select(self.order[i], 1) for i in range(self.rs_entries))
 
-            @def_method(m, get_ready_list, ready=(ready_list & takeable_mask).any(), nonexclusive=True)
+            @def_method(m, get_ready_list, ready=tk_ready_list.any(), nonexclusive=True)
             def _() -> RecordDict:
                 return {"ready_list": reordered_list}
 
