@@ -7,7 +7,7 @@ from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
 from coreblocks.arch import *
 from unittest import TestCase
-from typing import Optional
+from typing import Optional, TypeAlias
 
 
 class TestDecoder(TestCaseWithSimulator):
@@ -185,6 +185,7 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(
             0x0C21A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP | 0x2, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP
         ),
+        InstrTest(0x1812A1AF, Opcode.AMO, Funct3.W, Funct7.SC, rd=3, rs2=1, rs1=5, op=OpType.ATOMIC_LR_SC),
     ]
 
     def setup_method(self):
@@ -314,10 +315,12 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
             sim.add_testbench(process)
 
 
+code_type: TypeAlias = tuple[Optional[int], Optional[int], Optional[int], Optional[int]]
+funct_code_type: TypeAlias = tuple[Optional[int], Optional[int]]
+
+
 class TestEncodingUniqueness(TestCase):
     def test_encoding_uniqueness(self):
-        code_type = tuple[Optional[int], Optional[int], Optional[int], Optional[int]]
-
         def instruction_code(instr: Encoding) -> code_type:
             op_code = int(instr.opcode)
             funct3 = int(instr.funct3) if instr.funct3 is not None else None
@@ -367,8 +370,6 @@ class TestEncodingUniqueness(TestCase):
                 known_codes[code] = instruction
 
     def test_decoded_distinguishable(self):
-        code_type = tuple[Optional[int], Optional[int]]
-
         collisions: dict[OpType, set[Encoding]] = {
             OpType.ARITHMETIC: {
                 Encoding(Opcode.OP_IMM, Funct3.ADD),
@@ -399,7 +400,7 @@ class TestEncodingUniqueness(TestCase):
             },
         }
 
-        def instruction_code(instr: Encoding) -> code_type:
+        def instruction_code(instr: Encoding) -> funct_code_type:
             funct3 = int(instr.funct3) if instr.funct3 is not None else 0
             funct7 = int(instr.funct7) if instr.funct7 is not None else 0
 
@@ -409,7 +410,7 @@ class TestEncodingUniqueness(TestCase):
             return (funct3, funct7)
 
         for ext, instructions in instructions_by_optype.items():
-            known_codes: set[code_type] = set()
+            known_codes: set[funct_code_type] = set()
             ext_collisions = collisions[ext] if ext in collisions else set()
 
             for instruction in instructions:

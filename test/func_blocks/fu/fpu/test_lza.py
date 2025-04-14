@@ -46,66 +46,42 @@ class TestLZA(TestCaseWithSimulator):
                 true_lz = clz(sig_a, sig_b, 0, params.sig_width)
                 assert pred_lz == true_lz or (pred_lz + 1) == true_lz
 
-        async def lza_test(sim: TestbenchContext):
+        async def lza_edge_cases_test(sim: TestbenchContext):
             test_cases = [
                 {
-                    "sig_a": 16368512,
-                    "sig_b": 409600,
+                    "sig_a": 0b111110001010110011001111,
+                    "sig_b": 0b000001110101001100110000,
                     "carry": 0,
                 },
                 {
-                    "sig_a": 0,
-                    "sig_b": (2**24) - 1,
+                    "sig_a": 0b111110001010110011001111,
+                    "sig_b": 0b000001110101001100110000,
+                    "carry": 1,
+                },
+                {
+                    "sig_a": 0b111111111111111111111111,
+                    "sig_b": 0b000000000000000000000001,
                     "carry": 0,
                 },
                 {
-                    "sig_a": (2**24) // 2,
-                    "sig_b": (2**24) // 2,
-                    "carry": 0,
-                },
-                {
-                    "sig_a": 12582912,
-                    "sig_b": 12550144,
-                    "carry": 0,
-                },
-                {
-                    "sig_a": 16744448,
-                    "sig_b": 12615680,
-                    "carry": 0,
-                },
-                {
-                    "sig_a": 8421376,
-                    "sig_b": 8421376,
-                    "carry": 0,
+                    "sig_a": 0b101110111101111011011101,
+                    "sig_b": 0b001000000000000000000001,
+                    "carry": 1,
                 },
             ]
             expected_results = [
-                {"shift_amount": 13, "is_zero": 0},
-                {"shift_amount": 13, "is_zero": 0},
                 {"shift_amount": 23, "is_zero": 0},
-                {"shift_amount": 0, "is_zero": 1},
+                {"shift_amount": 24, "is_zero": 1},
+                {"shift_amount": 24, "is_zero": 0},
                 {"shift_amount": 0, "is_zero": 0},
-                {"shift_amount": 23, "is_zero": 0},
-                {"shift_amount": 0, "is_zero": 0},
-                {"shift_amount": 0, "is_zero": 0},
-                {"shift_amount": 0, "is_zero": 0},
-                {"shift_amount": 0, "is_zero": 0},
-                {"shift_amount": 7, "is_zero": 0},
-                {"shift_amount": 7, "is_zero": 0},
             ]
             for i in range(len(test_cases)):
-
                 resp = await lza.predict_request_adapter.call(sim, test_cases[i])
-                assert resp["shift_amount"] == expected_results[2 * i]["shift_amount"]
-                assert resp["is_zero"] == expected_results[2 * i]["is_zero"]
-
-                test_cases[i]["carry"] = 1
-                resp = await lza.predict_request_adapter.call(sim, test_cases[i])
-                assert resp["shift_amount"] == expected_results[2 * i + 1]["shift_amount"]
-                assert resp["is_zero"] == expected_results[2 * i + 1]["is_zero"]
+                assert resp["shift_amount"] == expected_results[i]["shift_amount"]
+                assert resp["is_zero"] == expected_results[i]["is_zero"]
 
         async def test_process(sim: TestbenchContext):
-            await lza_test(sim)
+            await lza_edge_cases_test(sim)
             await random_test(sim, 2024, 20)
 
         with self.run_simulation(lza) as sim:

@@ -109,7 +109,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.report_mock = TestbenchIO(Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report))
         self.csrs = GenericCSRRegisters(self.gen_params)
 
-        DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
+        DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 

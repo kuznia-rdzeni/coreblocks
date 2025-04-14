@@ -1,5 +1,14 @@
 from amaranth import *
-from coreblocks.interface.layouts import RetirementLayouts
+from coreblocks.interface.layouts import (
+    CoreInstructionCounterLayouts,
+    ExceptionRegisterLayouts,
+    FetchLayouts,
+    InternalInterruptControllerLayouts,
+    RATLayouts,
+    RFLayouts,
+    ROBLayouts,
+    RetirementLayouts,
+)
 
 from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
@@ -17,35 +26,25 @@ class Retirement(Elaboratable):
     def __init__(
         self,
         gen_params: GenParams,
-        *,
-        rob_peek: Method,
-        rob_retire: Method,
-        r_rat_commit: Method,
-        r_rat_peek: Method,
-        free_rf_put: Method,
-        rf_free: Method,
-        exception_cause_get: Method,
-        exception_cause_clear: Method,
-        frat_rename: Method,
-        fetch_continue: Method,
-        instr_decrement: Method,
-        trap_entry: Method,
-        async_interrupt_cause: Method,
     ):
         self.gen_params = gen_params
-        self.rob_peek = rob_peek
-        self.rob_retire = rob_retire
-        self.r_rat_commit = r_rat_commit
-        self.r_rat_peek = r_rat_peek
-        self.free_rf_put = free_rf_put
-        self.rf_free = rf_free
-        self.exception_cause_get = exception_cause_get
-        self.exception_cause_clear = exception_cause_clear
-        self.rename = frat_rename
-        self.fetch_continue = fetch_continue
-        self.instr_decrement = instr_decrement
-        self.trap_entry = trap_entry
-        self.async_interrupt_cause = async_interrupt_cause
+        self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
+        self.rob_retire = Method()
+        self.r_rat_commit = Method(
+            i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
+        )
+        self.r_rat_peek = Method(i=gen_params.get(RATLayouts).rrat_peek_in, o=gen_params.get(RATLayouts).rrat_peek_out)
+        self.free_rf_put = Method(i=[("ident", range(gen_params.phys_regs))])
+        self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
+        self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
+        self.exception_cause_clear = Method()
+        self.f_rat_rename = Method(
+            i=gen_params.get(RATLayouts).frat_rename_in, o=gen_params.get(RATLayouts).frat_rename_out
+        )
+        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
+        self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
+        self.trap_entry = Method()
+        self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
@@ -99,7 +98,7 @@ class Retirement(Elaboratable):
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
             # restore original rl_dst->rp_dst mapping in F-RAT
-            self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+            self.f_rat_rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
         retire_valid = Signal()
         with Transaction().body(m) as validate_transaction:

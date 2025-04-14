@@ -25,9 +25,9 @@ jobs:
           (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
         )
       )
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2025.01.31
     steps:
       - uses: actions/checkout@v4
 
