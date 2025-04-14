@@ -66,6 +66,16 @@ class RSBase(Elaboratable):
         raise NotImplementedError
 
     def _elaborate(self, m: TModule, takeable_mask: ValueLike, alloc: Method, free_idx: Method, order: Method):
+        # The role of _elaborate is to accomodate FifoRS, which is currently
+        # used in the LSU. This is a stop-gap - if one day a real LSU
+        # is implemented, FifoRS should be removed.
+
+        # The alloc, free_idx, order parameters follow the interface of
+        # Transactron's PreservedOrderAllocator.
+        # The takeable_mask parameter is a bitmask which marks which rows can
+        # be taken. For a normal RS, it should contain all ones. For FifoRS,
+        # only one row is takeable at a given moment.
+
         m.submodules += [self.perf_rs_wait_time, self.perf_num_full]
 
         for i, record in enumerate(self.data):
