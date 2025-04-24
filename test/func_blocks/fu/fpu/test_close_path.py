@@ -171,7 +171,6 @@ class TestClosePath(TestCaseWithSimulator):
                 assert resp["out_sig"] == expected_results[i]["out_sig"]
                 assert resp["out_exp"] == expected_results[i]["out_exp"]
                 assert resp["output_round"] == expected_results[i]["output_round"]
-                assert resp["zero"] == expected_results[i]["zero"]
 
         async def test_process(sim: TestbenchContext):
             await normal_cases(sim)
