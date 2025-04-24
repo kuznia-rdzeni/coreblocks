@@ -36,7 +36,7 @@ class ClosePathMethodLayout:
             ("out_exp", fpu_params.exp_width),
             ("out_sig", fpu_params.sig_width),
             ("output_round", 1),
-            ("zero", 1),
+            ("output_sticky", 1),
         ]
 
 
@@ -87,7 +87,6 @@ class ClosePathModule(Elaboratable):
 
         shift_in_bit = Signal()
         l_flag = Signal()
-        is_zero = Signal()
 
         m.submodules.zero_lza = zero_lza = LZAModule(fpu_params=self.params)
         m.submodules.one_lza = one_lza = LZAModule(fpu_params=self.params)
@@ -126,9 +125,8 @@ class ClosePathModule(Elaboratable):
                     zero_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=0),
                 )
                 m.d.av_comb += lza_resp.eq(resp)
-                m.d.av_comb += is_zero.eq(lza_resp["is_zero"])
 
-            with m.If(is_zero | (exp == 0)):
+            with m.If(exp == 0):
                 m.d.av_comb += final_sig.eq(final_result)
                 m.d.av_comb += final_exp.eq(0)
                 m.d.av_comb += final_round.eq(guard_bit)
@@ -175,6 +173,6 @@ class ClosePathModule(Elaboratable):
                         m.d.av_comb += final_sig.eq((shifted_sig << 1) | (shift_in_bit << (lza_resp["shift_amount"])))
                         m.d.av_comb += final_exp.eq(shifted_exp - 1)
 
-            return {"out_exp": final_exp, "out_sig": final_sig, "output_round": final_round, "zero": is_zero}
+            return {"out_exp": final_exp, "out_sig": final_sig, "output_round": final_round, "output_sticky": 0}
 
         return m

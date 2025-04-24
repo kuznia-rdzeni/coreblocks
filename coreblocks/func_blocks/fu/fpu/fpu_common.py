@@ -10,11 +10,11 @@ class RoundingModes(enum.Enum):
 
 
 class Errors(enum.IntFlag):
-    INVALID_OPERATION = enum.auto()
-    DIVISION_BY_ZERO = enum.auto()
-    OVERFLOW = enum.auto()
-    UNDERFLOW = enum.auto()
     INEXACT = enum.auto()
+    UNDERFLOW = enum.auto()
+    OVERFLOW = enum.auto()
+    DIVISION_BY_ZERO = enum.auto()
+    INVALID_OPERATION = enum.auto()
 
 
 class FPUParams:
@@ -68,7 +68,7 @@ def create_output_layout(params: FPUParams):
             "sign": 1,
             "sig": params.sig_width,
             "exp": params.exp_width,
-            "exceptions": Errors,
+            "errors": Errors,
         }
     )
 
@@ -76,4 +76,5 @@ def create_output_layout(params: FPUParams):
 class FPUCommonValues:
     def __init__(self, fpu_params: FPUParams):
         self.params = fpu_params
-        self.canonical_nan_sig = 2 ^ (fpu_params.sig_width - 1) | 2 ^ (fpu_params.sig_width - 2)
+        self.canonical_nan_sig = (2 ** (fpu_params.sig_width - 1)) | (2 ** (fpu_params.sig_width - 2))
+        self.max_exp = (2**self.params.exp_width) - 1
