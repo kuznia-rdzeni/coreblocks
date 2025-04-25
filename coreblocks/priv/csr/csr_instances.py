@@ -86,6 +86,7 @@ class MachineModeCSRRegisters(Elaboratable):
             CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
         )
 
+        self.pmpxcfg = []
         pmpcsr_width = 8 if gen_params.isa.xlen == 64 else 4
         # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
         for i in range(0, CSRAddress.PMPCFG_COUNT, 2 if gen_params.isa.xlen == 64 else 1):
@@ -93,6 +94,7 @@ class MachineModeCSRRegisters(Elaboratable):
             for j in range(pmpcsr_width):
                 pmp_j_cfg = CSRRegister(None, gen_params, width=pmpcsr_width)
                 pmpcfg_i.add_field(j * CSRAddress.PMPXCFG_WIDTH, pmp_j_cfg)
+                self.pmpxcfg.append(pmp_j_cfg)
                 setattr(self, f"pmp{i*pmpcsr_width+j}cfg", pmp_j_cfg)
             setattr(self, f"pmpcfg{i}", pmpcfg_i)
 
