@@ -25,7 +25,7 @@ from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
-from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface, WishboneSignature
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from transactron.lib.metrics import HwMetricsEnabledKey
 
 __all__ = ["Core"]
@@ -39,8 +39,8 @@ class Core(Component):
     def __init__(self, *, gen_params: GenParams):
         super().__init__(
             {
-                "wb_instr": Out(WishboneSignature(gen_params.wb_params)),
-                "wb_data": Out(WishboneSignature(gen_params.wb_params)),
+                "wb_instr": Out(WishboneInterface(gen_params.wb_params).signature),
+                "wb_data": Out(WishboneInterface(gen_params.wb_params).signature),
                 "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
             }
         )
