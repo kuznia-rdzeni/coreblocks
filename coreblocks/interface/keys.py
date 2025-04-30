@@ -110,4 +110,9 @@ class FlushICacheKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class RollbackKey(UnifierKey, unifier=MethodProduct):
+    """
+    Collects method that want to be notifed about tag rollback event.
+    Expected layout is `RATLayouts.rollback_in`.
+    """
+
     pass

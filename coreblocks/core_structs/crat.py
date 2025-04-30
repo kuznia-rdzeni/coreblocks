@@ -8,7 +8,7 @@ from transactron.lib.connectors import Pipe
 from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
 from transactron.lib.storage import MemoryBank
-from transactron.utils import DependencyContext, cyclic_mask, make_layout, mod_incr, popcount
+from transactron.utils import DependencyContext, assign, cyclic_mask, mod_incr, popcount
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
@@ -35,7 +35,7 @@ class CheckpointRAT(Elaboratable):
     ----------
     free_tag: Method
         Free a tag that is no longer referenced in the core.
-        Associated checkpoints are freed to.
+        Associated checkpoints are freed too.
         This method accepts no arguments, because all tags must be freed in-order, so call means freeing
         oldest issued tag.
     get_active_tags: Method
@@ -45,7 +45,7 @@ class CheckpointRAT(Elaboratable):
     tag: Method
         Tag stage of CheckpointRAT. Issues instruction speculation tags.
         It needs rollback_tag information from core `Frontend`, that identifies first instruction fetched after
-        rollback and fetch redirect. Infromation if checkpoint should be created after given instruction is expected
+        rollback and fetch redirect. Information if checkpoint should be created after given instruction is expected
         to be provided from previous stage.
         It manages allocating new tags, scheduler flushing, information for unlocking FRAT
         and stalling the pipeline in case FRAT is not yet restored.
@@ -55,7 +55,7 @@ class CheckpointRAT(Elaboratable):
         It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
     flush_restore: Method
         Subset of `rename`. Used for restoring RAT state from Retirement on hard flushes.
-        Blocks until restores are safe to be made. `Rollback` must not be called after first restore.
+        Blocks until restores are safe to be made. `rollback` must not be called after first restore.
     rollback: Method
         Rollback listener automatically registered to `RollbackKey`.
         Invalidates tags, frees checkpoints, initiates FRAT restore and Scheduler flushing.
@@ -64,7 +64,6 @@ class CheckpointRAT(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
-        assert (2**gen_params.tag_bits) > gen_params.checkpoint_count
         # Checkpoint count = 1 is not currently possible because of how retirement freeing works
         assert gen_params.checkpoint_count > 1
 
@@ -102,13 +101,13 @@ class CheckpointRAT(Elaboratable):
         active_tags = Signal(2**self.gen_params.tag_bits, init=1)
         checkpointed_tags = Signal(2**self.gen_params.tag_bits, init=0)
 
-        storage = MemoryBank(shape=make_layout(("rat", self.frat_layout)), depth=self.gen_params.checkpoint_count)
+        storage = MemoryBank(shape=self.frat_layout, depth=self.gen_params.checkpoint_count)
         tag_map = MemoryBank(
-            shape=make_layout(("checkpoint", range(self.gen_params.checkpoint_count))),
+            shape=range(self.gen_params.checkpoint_count),
             depth=2**self.gen_params.tag_bits,
         )
 
-        flushing_scheduler = Signal()
+        rollback_just_started = Signal()
         rollback_target_tag = Signal(self.gen_params.tag_bits)
 
         frat_lock = Signal()
@@ -176,7 +175,7 @@ class CheckpointRAT(Elaboratable):
             with m.If(tag_valid):
                 m.d.sync += frat_lock.eq(0)
 
-            with condition(m, nonblocking=False) as cond:
+            with condition(m, nonblocking=True) as cond:
                 with cond(commit_checkpoint & tag_valid):
                     checkpoint_id = make_new_checkpoint(from_tag=tag).checkpoint
                     log.debug(m, True, "checkpoint created t 0x{:x} -> c 0x{:x}", tag, checkpoint_id)
@@ -186,8 +185,6 @@ class CheckpointRAT(Elaboratable):
                     create_checkpoint_pipe.write(m, checkpoint=checkpoint_id)
                     # Future optimization: If no change happened in FRAT, then checkpoint
                     # could be shared with multiple tags (useful for branch chains)
-                with cond(~(commit_checkpoint & tag_valid)):  # FIXME: amaranth detects comb cycle here
-                    pass
 
             with m.If(tag_valid & (rl_dst != 0)):
                 m.d.sync += self.frat[rl_dst].eq(rp_dst)
@@ -209,7 +206,7 @@ class CheckpointRAT(Elaboratable):
 
         with Transaction().body(m):
             checkpoint = create_checkpoint_pipe.read(m).checkpoint
-            storage.write(m, addr=checkpoint, data={"rat": self.frat})
+            storage.write(m, addr=checkpoint, data=self.frat)
 
         # Block until last FRAT overwrite from Rollback is finished.
         # Retirement restores entries on hard-flushes that were not covered by checkpoints one-by-one, don't overwrite.
@@ -244,7 +241,7 @@ class CheckpointRAT(Elaboratable):
             tag_allocation_set_active = Signal()
             stall = Signal()
 
-            with m.If(~flushing_scheduler):
+            with m.If(~rollback_just_started):
                 # Normal instruction flow tagging operation - if commit_checkpoint is needed, allocate pending tags
                 # and schedule new tag for next instruction
                 m.d.av_comb += tag_increment_allocate.eq(next_tag_increment)
@@ -271,7 +268,7 @@ class CheckpointRAT(Elaboratable):
                     # There may be still invalid entries (from old speculation path/flushed), between `tag`
                     # and `rename` stages. Issue new tag, and set `rename` to unblock writes on it.
                     m.d.sync += frat_unlock_tag.eq(out_tag)
-                    m.d.sync += flushing_scheduler.eq(0)
+                    m.d.sync += rollback_just_started.eq(0)
                     m.d.sync += next_tag_increment.eq(commit_checkpoint)
                     m.d.av_comb += out_commit_checkpoint.eq(commit_checkpoint)
                 with m.Else():
@@ -281,7 +278,7 @@ class CheckpointRAT(Elaboratable):
                     # Pending tag must be issed for checkpoint correctness, but is issued as non-active
                     m.d.av_comb += tag_allocation_set_active.eq(0)
 
-            with condition(m, nonblocking=False, priority=False) as cond:
+            with condition(m) as cond:
                 with cond(~stall & tag_increment_allocate):
                     m.d.comb += out_tag.eq(allocate_tag(m, active=tag_allocation_set_active))
                 with cond(~stall & ~tag_increment_allocate):
@@ -320,14 +317,14 @@ class CheckpointRAT(Elaboratable):
 
             m.d.sync += rollback_target_tag.eq(tag)
             m.d.sync += last_rollback_finished.eq(0)
-            m.d.sync += flushing_scheduler.eq(1)
+            m.d.sync += rollback_just_started.eq(1)
 
             m.d.sync += frat_lock.eq(1)
             m.d.sync += frat_unlock_tag.eq(1 << self.gen_params.tag_bits)  # lock to non-existent tag
 
         checkpointed_tags_reset_mask_0 = Signal.like(checkpointed_tags)
         with Transaction().body(m):
-            rollback_checkpoint_id = tag_map.read_resp(m).data.checkpoint
+            rollback_checkpoint_id = tag_map.read_resp(m)
 
             # Delete suffix of used checkpoints on wrong speculation path, including currently
             # restored checkpoint that will no longer be used.
@@ -341,7 +338,7 @@ class CheckpointRAT(Elaboratable):
 
         with Transaction().body(m):
             rollback_frat = storage.read_resp(m)
-            m.d.sync += self.frat.eq(rollback_frat)  # (frat is locked)
+            m.d.sync += assign(self.frat, rollback_frat.data)  # (frat is locked)
             m.d.sync += last_rollback_finished.eq((rollback_target_tag == rollback_tag_s2) & ~self.rollback.run)
             log.debug(m, True, "frat restored to rollback tag 0x{:x}", rollback_tag_s2)
 

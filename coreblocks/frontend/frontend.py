@@ -25,16 +25,17 @@ class RollbackTagger(Elaboratable):
     `rollback_tag` is used to identify new instructions fetched after each rollback.
     Instructions from previous rollback are flushed internally in `Frontend` (and this module),
     but this is needed to differentiate from instructions that left `Frontend` earlier.
+
+    Requires `get_instr` and `push_instr` methods
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
+        self.get_instr = Method(o=gen_params.get(DecodeLayouts).decoded_instr)
+        self.push_instr = Method(i=gen_params.get(SchedulerLayouts).scheduler_in)
 
-        rat_layouts = gen_params.get(RATLayouts)
-        self.rollback = Method(i=rat_layouts.rollback_in)
+        self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
         DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
 
     def elaborate(self, platform):
@@ -118,9 +119,7 @@ class CoreFrontend(Elaboratable):
         self.resume_from_exception = self.stall_ctrl.resume_from_exception
         self.stall = Method()
 
-        self.rollback_tagger = RollbackTagger(
-            gen_params=self.gen_params, get_instr=self.decode_buff.read, push_instr=self.output_pipe.write
-        )
+        self.rollback_tagger = RollbackTagger(self.gen_params)
 
     def elaborate(self, platform):
         m = TModule()
@@ -138,7 +137,10 @@ class CoreFrontend(Elaboratable):
 
         m.submodules.decode_buff = self.decode_buff
 
-        m.submodules.rollback_tagger = self.rollback_tagger
+        m.submodules.rollback_tagger = rollback_tagger = self.rollback_tagger
+        rollback_tagger.get_instr.proxy(m, self.decode_buff.read)
+        rollback_tagger.push_instr.proxy(m, self.output_pipe.write)
+
         m.submodules.output_pipe = self.output_pipe
 
         m.submodules.stall_ctrl = self.stall_ctrl

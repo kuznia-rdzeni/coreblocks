@@ -1,10 +1,10 @@
 from amaranth import *
 from transactron import Method, Transaction, def_method, TModule
-from transactron.utils import popcount
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.lib.storage import MemoryBank
+from transactron.utils.amaranth_ext.functions import popcount
 
 __all__ = ["RegisterFile"]
 

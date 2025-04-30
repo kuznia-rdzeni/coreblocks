@@ -366,7 +366,7 @@ class FetchUnit(Elaboratable):
                         new_pc = Signal.like(current_pc)
                         m.d.av_comb += new_pc.eq(predcheck_res.redirect_target)
 
-                        log.debug(m, True, "Fetch redirected itself to pc=0x{:x}. Flushing...", new_pc)
+                        log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
                         flush()
                         m.d.sync += current_pc.eq(new_pc)
 
