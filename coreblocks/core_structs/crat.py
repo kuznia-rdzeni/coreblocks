@@ -241,6 +241,12 @@ class CheckpointRAT(Elaboratable):
             tag_allocation_set_active = Signal()
             stall = Signal()
 
+            # tag is incremented:
+            # * on next instruction after each branch (next speculation path validity point,
+            # checkpoint will be attached to it on next branch).
+            # * on first instruction after rollback (so mispeculated instructions from last tag and
+            # without checkpoint made could be invalidated).
+
             with m.If(~rollback_just_started):
                 # Normal instruction flow tagging operation - if commit_checkpoint is needed, allocate pending tags
                 # and schedule new tag for next instruction
