@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744372692037,
+  "lastUpdate": 1746788754181,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16789,6 +16789,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6d2d9bab7beff595236f961d26ed506f4bc823dd"
         },
         "date": 1744372683913,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4172105975017901,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.532416884765878,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37303373958208363,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.644345150026632,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35839097061429304,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30154061325589343,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3350113080907565,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.444100502328478,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e69d349668221859293b07715fe8b414072b92d2",
+          "message": "gen_verilog: use amaranth-yosys by default (#815)",
+          "timestamp": "2025-05-09T12:50:27+02:00",
+          "tree_id": "e9ecf68ddaf37a836877c79dde605d1d7f2156d2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e69d349668221859293b07715fe8b414072b92d2"
+        },
+        "date": 1746788749055,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
