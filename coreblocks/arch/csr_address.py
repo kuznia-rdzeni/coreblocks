@@ -196,8 +196,6 @@ class CSRAddress(IntEnum, shape=12):
     MSECCFGH = 0x757  # Upper 32 bits of `mseccfg`, RV32 only
 
     # Machine Memory Protection
-    PMPCFG_COUNT = 16
-    PMPXCFG_WIDTH = 8
     PMPCFG0 = 0x3A0  # Physical memory protection configuration
     PMPCFG1 = 0x3A1  # Physical memory protection configuration, RV32 only
     PMPCFG2 = 0x3A2  # Physical memory protection configuration
