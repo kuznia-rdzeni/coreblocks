@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Concatenate
 
 from transactron.utils import MethodStruct
-from transactron.lib.dependencies import SimpleKey, ListKey
+from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
+from transactron.lib.transformers import MethodProduct
 from transactron import Method, TModule
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
@@ -24,6 +25,7 @@ __all__ = [
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
+    "RollbackKey",
 ]
 
 
@@ -103,4 +105,14 @@ class CSRListKey(ListKey["CSRRegister"]):
 
 @dataclass(frozen=True)
 class FlushICacheKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class RollbackKey(UnifierKey, unifier=MethodProduct):
+    """
+    Collects method that want to be notifed about tag rollback event.
+    Expected layout is `RATLayouts.rollback_in`.
+    """
+
     pass

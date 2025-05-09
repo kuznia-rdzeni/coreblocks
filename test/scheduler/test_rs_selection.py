@@ -94,6 +94,7 @@ class TestRSSelect(TestCaseWithSimulator):
                     "imm": immediate,
                     "csr": csr,
                     "pc": pc,
+                    "tag": 0,
                 }
 
                 self.instr_in.append(instr)
