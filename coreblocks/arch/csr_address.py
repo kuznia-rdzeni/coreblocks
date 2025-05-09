@@ -1,9 +1,6 @@
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = [
-    "CSRAddress",
-    "MstatusFieldOffsets",
-]
+__all__ = ["CSRAddress", "MstatusFieldOffsets"]
 
 
 @unique
@@ -215,6 +212,7 @@ class CSRAddress(IntEnum, shape=12):
     PMPCFG13 = 0x3AD  # Physical memory protection configuration, RV32 only
     PMPCFG14 = 0x3AE  # Physical memory protection configuration
     PMPCFG15 = 0x3AF  # Physical memory protection configuration, RV32 only
+    PMPADDR_COUNT = 64
     PMPADDR0 = 0x3B0  # Physical memory protection address register
     PMPADDR1 = 0x3B1  # Physical memory protection address register
     PMPADDR2 = 0x3B2  # Physical memory protection address register
