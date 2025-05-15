@@ -14,6 +14,7 @@ PMPCFG_COUNT = 16
 PMPXCFG_WIDTH = 8
 PMPADDR_COUNT = 64
 
+
 class DoubleCounterCSR(Elaboratable):
     """DoubleCounterCSR
     Groups two `CSRRegisters` to form counter with double `isa.xlen` width.
