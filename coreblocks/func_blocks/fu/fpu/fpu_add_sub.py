@@ -110,8 +110,6 @@ class FPUAddSubModule(Elaboratable):
                 assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
                 assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
 
-            # m.d.av_comb += Print("exp_diff: ",exp_diff, " exp1: ", op_1.exp, " exp2: ", op_2.exp)
-            # m.d.av_comb += Print(true_operation)
             sign_xor = pre_shift_op1.sign ^ pre_shift_op2.sign
 
             with m.If(~sign_xor):
@@ -124,58 +122,65 @@ class FPUAddSubModule(Elaboratable):
             is_one_subnormal = (pre_shift_op1.exp > 0) & (pre_shift_op2.exp == 0)
             m.d.av_comb += norm_shift_amount.eq(pre_shift_op1.exp - pre_shift_op2.exp - is_one_subnormal)
 
-            # m.d.av_comb += Print("nsa: ",norm_shift_amount)
-
             path_op1 = gen_float(self.fpu_params)
-            path_op2_ext = gen_ext_float(self.fpu_params)
-            path_op2 = gen_float(self.fpu_params)
+            far_path_op2_ext = gen_ext_float(self.fpu_params)
+            far_path_op2 = gen_float(self.fpu_params)
+            close_path_op2 = gen_float(self.fpu_params)
 
             m.d.av_comb += path_op1.sig.eq(pre_shift_op1.sig)
             with m.If(norm_shift_amount > (self.fpu_params.sig_width + 2)):
                 m.d.av_comb += sticky_bit.eq(pre_shift_op2.sig.any())
-                m.d.av_comb += path_op2_ext.sig.eq(0)
+                m.d.av_comb += far_path_op2_ext.sig.eq(0)
             with m.Else():
                 l_shift = Signal(range(0, self.fpu_params.sig_width + 2))
                 sticky_bit_mask = Signal(self.fpu_params.sig_width + 2)
                 m.d.av_comb += l_shift.eq((self.fpu_params.sig_width + 2) - norm_shift_amount)
                 m.d.av_comb += sticky_bit_mask.eq(pre_shift_op2.sig << l_shift)
                 m.d.av_comb += sticky_bit.eq(sticky_bit_mask.any())
-                m.d.av_comb += path_op2_ext.sig.eq(pre_shift_op2.sig >> norm_shift_amount)
+                m.d.av_comb += far_path_op2_ext.sig.eq(pre_shift_op2.sig >> norm_shift_amount)
 
-            guard_bit = path_op2_ext.sig[1]
-            round_bit = path_op2_ext.sig[0]
+            close_path_guard_bit = Signal()
+
+            with m.If(norm_shift_amount[0] == 0):
+                m.d.av_comb += close_path_op2.sig.eq(~(pre_shift_op2.sig >> 2))
+                m.d.av_comb += close_path_guard_bit.eq(0)
+            with m.Else():
+                m.d.av_comb += close_path_op2.sig.eq(~(pre_shift_op2.sig >> 3))
+                m.d.av_comb += close_path_guard_bit.eq(pre_shift_op2.sig[0])
+
+            guard_bit = far_path_op2_ext.sig[1]
+            round_bit = far_path_op2_ext.sig[0]
 
             assign_values(path_op1, pre_shift_op1.exp, pre_shift_op1.sig >> 2, pre_shift_op1.sign)
             with m.If(true_operation):
                 assign_values(
-                    path_op2, (pre_shift_op2.exp + norm_shift_amount), ~(path_op2_ext.sig >> 2), pre_shift_op2.sign
+                    far_path_op2,
+                    (pre_shift_op2.exp + norm_shift_amount),
+                    ~(far_path_op2_ext.sig >> 2),
+                    pre_shift_op2.sign,
                 )
             with m.Else():
                 assign_values(
-                    path_op2, (pre_shift_op2.exp + norm_shift_amount), path_op2_ext.sig >> 2, pre_shift_op2.sign
+                    far_path_op2, (pre_shift_op2.exp + norm_shift_amount), far_path_op2_ext.sig >> 2, pre_shift_op2.sign
                 )
 
-            # m.d.av_comb += Print(Format("op1_exp: {:08b}",path_op1.exp))
-            # m.d.av_comb += Print(Format(" op1_sig: {:024b}", path_op1.sig))
-            # m.d.av_comb += Print(Format(" op2_sig: {:024b}", path_op2.sig))
             close_path = (norm_shift_amount <= 1) & true_operation
-            # m.d.av_comb += Print(guard_bit)
             resp = Mux(
                 close_path,
                 close_path_module.close_path_request(
                     m,
                     r_sign=final_sign,
                     sig_a=path_op1.sig,
-                    sig_b=path_op2.sig,
+                    sig_b=close_path_op2.sig,
                     exp=path_op1.exp,
                     rounding_mode=rounding_mode,
-                    guard_bit=guard_bit,
+                    guard_bit=close_path_guard_bit,
                 ),
                 far_path_module.far_path_request(
                     m,
                     r_sign=final_sign,
                     sig_a=path_op1.sig,
-                    sig_b=path_op2.sig,
+                    sig_b=far_path_op2.sig,
                     exp=path_op1.exp,
                     sub_op=true_operation,
                     rounding_mode=rounding_mode,
@@ -185,9 +190,7 @@ class FPUAddSubModule(Elaboratable):
                 ),
             )
             m.d.av_comb += path_response.eq(resp)
-            # m.d.av_comb += Print("out_exp: ",path_response["out_exp"], " out_sig:", path_response["out_sig"])
-
-            eq_signs = path_op2.sign == path_op1.sign
+            eq_signs = pre_shift_op2.sign == path_op1.sign
             is_inf = op_1.is_inf | op_2.is_inf
             wrong_inf = (op_1.is_inf & op_2.is_inf) & ~(eq_signs)
             is_nan = (op_1.is_nan | op_2.is_nan) | wrong_inf
@@ -198,23 +201,25 @@ class FPUAddSubModule(Elaboratable):
             normal_case = ~(is_nan | is_inf | is_zero)
             exception_op = gen_float(self.fpu_params)
 
-            # m.d.av_comb += Print(normal_case)
-
             with m.If(~normal_case):
                 m.d.av_comb += exception_round_bit.eq(0)
                 m.d.av_comb += exception_sticky_bit.eq(0)
-
-            with m.If(is_inf & ~(wrong_inf)):
-                m.d.av_comb += exception_op.sign.eq(op_1.sign)
-                m.d.av_comb += exception_op.exp.eq(op_1.exp)
-                m.d.av_comb += exception_op.sig.eq(op_1.sig)
-            with m.Elif(is_nan):
-                is_any_snan = (~op_1.sig[-2]) | (~op_2.sig[-2])
+            with m.If(is_nan):
+                is_any_snan = ((~op_1.sig[-2]) & op_1.is_nan) | ((~op_2.sig[-2]) & op_2.is_nan)
                 with m.If(is_any_snan | wrong_inf):
                     m.d.av_comb += invalid_operation.eq(1)
                 m.d.av_comb += exception_op.sign.eq(0)
                 m.d.av_comb += exception_op.exp.eq(max_exp)
                 m.d.av_comb += exception_op.sig.eq(self.common_values.canonical_nan_sig)
+            with m.Elif(is_inf & ~(wrong_inf)):
+                with m.If(op_1.is_inf):
+                    m.d.av_comb += exception_op.sign.eq(op_1.sign)
+                    m.d.av_comb += exception_op.exp.eq(op_1.exp)
+                    m.d.av_comb += exception_op.sig.eq(op_1.sig)
+                with m.Else():
+                    m.d.av_comb += exception_op.sign.eq(pre_shift_op2.sign)
+                    m.d.av_comb += exception_op.exp.eq(op_2.exp)
+                    m.d.av_comb += exception_op.sig.eq(op_2.sig)
             with m.Elif(is_zero):
                 with m.If(eq_signs):
                     m.d.av_comb += exception_op.sign.eq(op_1.sign)
@@ -225,11 +230,13 @@ class FPUAddSubModule(Elaboratable):
             with m.Elif(normal_case):
                 m.d.av_comb += exception_op.sign.eq(final_sign)
                 m.d.av_comb += exception_op.exp.eq(path_response["out_exp"])
-                m.d.av_comb += exception_op.sig.eq(path_response["out_sig"])
                 m.d.av_comb += exception_round_bit.eq(path_response["output_round"])
                 m.d.av_comb += exception_sticky_bit.eq(path_response["output_sticky"])
+                with m.If(path_response["out_exp"] == max_exp):
+                    m.d.av_comb += exception_op.sig.eq(2 ** (self.fpu_params.sig_width - 1))
+                with m.Else():
+                    m.d.av_comb += exception_op.sig.eq(path_response["out_sig"])
 
-            # m.d.av_comb += Print(Format(" op1e_sig: {:024b}", exception_op.sig))
             inexact = exception_sticky_bit | exception_round_bit
             resp = exception_module.error_checking_request(
                 m,
