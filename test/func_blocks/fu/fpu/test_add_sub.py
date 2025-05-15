@@ -1,18 +1,58 @@
 from coreblocks.func_blocks.fu.fpu.fpu_add_sub import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, FPUCommonValues, RoundingModes
+from test.func_blocks.fu.fpu.add_sub_test_cases import *
 from transactron import TModule
 from transactron.lib import AdapterTrans
 from transactron.testing import *
 from amaranth import *
 
-# ADD
-# 7F21FFFF 3CBB907D 7F21FFFF 01
-# FF80013F FFFFFFFF FFFFFFFF 10
-# 3F7F0040 BFFFFFFF BF807FDF 00
-# SUB
-# C00007EF 3DFFF7BF C00807AD 01
-# 8683F7FF C07F3FFF 407F3FFF 01
-# E6FFFFFE B3FFFFFF E6FFFFFE 01
+
+def print_test_case_debug(t_case, num):
+    print(f"test_case {num}")
+    print("op_1")
+    print(f"sign: {t_case["op_1"]["sign"]}")
+    print("exp: {:08b}".format(t_case["op_1"]["exp"]))
+    print("sig: {:024b}".format(t_case["op_1"]["sig"]))
+    print(f"is_nan: {t_case["op_1"]["is_nan"]}")
+    print("op_2")
+    print(f"sign: {t_case["op_2"]["sign"]}")
+    print("exp: {:08b}".format(t_case["op_2"]["exp"]))
+    print("sig: {:024b}".format(t_case["op_2"]["sig"]))
+    print(f"is_nan: {t_case["op_2"]["is_nan"]}")
+
+
+def print_response_debug(resp, num):
+    print(f"response: {num}")
+    print(f"sign: {resp["sign"]}")
+    print("exp: {:08b}".format(resp["exp"]))
+    print("sig: {:024b}".format(resp["sig"]))
+    print(f"exceptions: {resp["errors"]}")
+
+
+class FPUTester:
+    def __init__(self, params: FPUParams):
+        self.params = params
+        self.converter = ToFloatConverter(params)
+
+    def __compare_results__(self, lhs, rhs):
+        assert lhs["sign"] == rhs["sign"]
+        assert lhs["exp"] == rhs["exp"]
+        assert lhs["sig"] == rhs["sig"]
+
+    async def run_test_set(self, cases, result, common_input, sim: TestbenchContext, request_adapter: AdapterTrans):
+        assert len(cases) == len(result)
+        for num, case in enumerate(cases):
+            input_dict = {}
+            for key, value in common_input.items():
+                input_dict[key] = value
+            input_dict["op_1"] = self.converter.from_hex(case[0])
+            input_dict["op_2"] = self.converter.from_hex(case[1])
+            print_test_case_debug(input_dict, num)
+            resp = await request_adapter.call(sim, input_dict)
+            print_response_debug(resp, num)
+            self.__compare_results__(resp, self.converter.from_hex(result[num][0]))
+
+            assert resp["errors"] == int(result[num][1], 16)
 
 
 class ToFloatConverter:
@@ -35,8 +75,8 @@ class ToFloatConverter:
             "sign": number >> (self.all_width - 1),
             "exp": exp,
             "sig": sig,
-            "is_inf": ((exp == self.cv.max_exp) & (sig == 0)),
-            "is_nan": ((exp == self.cv.max_exp) & (sig != 0)),
+            "is_inf": ((exp == self.cv.max_exp) & ((sig & (~self.implicit_one)) == 0)),
+            "is_nan": ((exp == self.cv.max_exp) & ((sig & (~self.implicit_one)) != 0)),
             "is_zero": ((exp == 0) & (sig == 0)),
         }
 
@@ -56,114 +96,123 @@ class TestAddSub(TestCaseWithSimulator):
 
     def test_manual(self):
         params = FPUParams(sig_width=24, exp_width=8)
-        converter = ToFloatConverter(params)
+        tester = FPUTester(params)
         add_sub = TestAddSub.AddSubModuleTest(params)
-
-        def compare_results(lhs, rhs):
-            assert lhs["sign"] == rhs["sign"]
-            assert lhs["exp"] == rhs["exp"]
-            assert lhs["sig"] == rhs["sig"]
-
-        def print_test_case_debug(t_case, num):
-            print(f"test_case {num}")
-            print("op_1")
-            print(f"sign: {t_case["op_1"]["sign"]}")
-            print("exp: {:08b}".format(t_case["op_1"]["exp"]))
-            print("sig: {:024b}".format(t_case["op_1"]["sig"]))
-            # print(f"is_nan: {t_case["op_1"]["is_nan"]}")
-            print("op_2")
-            print(f"sign: {t_case["op_2"]["sign"]}")
-            print("exp: {:08b}".format(t_case["op_2"]["exp"]))
-            print("sig: {:024b}".format(t_case["op_2"]["sig"]))
-            # print(f"is_nan: {t_case["op_2"]["is_nan"]}")
-
-        def print_response_debug(resp, num):
-            print(f"response: {num}")
-            print(f"sign: {resp["sign"]}")
-            print("exp: {:08b}".format(resp["exp"]))
-            print("sig: {:024b}".format(resp["sig"]))
-            print(f"exceptions: {resp["errors"]}")
-
-        async def nc_add_rnte(sim: TestbenchContext):
-            test_cases = [
-                {
-                    "op_1": converter.from_hex("7F21FFFF"),
-                    "op_2": converter.from_hex("3CBB907D"),
-                },
-                {
-                    "op_1": converter.from_hex("FF80013F"),
-                    "op_2": converter.from_hex("FFFFFFFF"),
-                },
-                {
-                    "op_1": converter.from_hex("3F7F0040"),
-                    "op_2": converter.from_hex("BFFFFFFF"),
-                },
-            ]
-            result_number = [
-                converter.from_hex("7F21FFFF"),
-                converter.from_hex("7FC00000"),
-                converter.from_hex("BF807FDF"),
-            ]
-
-            result_exceptions = [
-                int("01", 16),
-                int("10", 16),
-                int("00", 16),
-            ]
-
-            for num, t_case in enumerate(test_cases):
-                t_case["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
-                t_case["operation"] = 0
-                # print_test_case_debug(t_case,num)
-                resp = await add_sub.add_sub_request_adapter.call(sim, t_case)
-                # print_response_debug(resp,num)
-                compare_results(resp, result_number[num])
-                assert resp["errors"] == result_exceptions[num]
-
-        async def nc_sub_rnte(sim: TestbenchContext):
-            test_cases = [
-                {
-                    "op_1": converter.from_hex("C00007EF"),
-                    "op_2": converter.from_hex("3DFFF7BF"),
-                },
-                {
-                    "op_1": converter.from_hex("8683F7FF"),
-                    "op_2": converter.from_hex("C07F3FFF"),
-                },
-                {
-                    "op_1": converter.from_hex("E6FFFFFE"),
-                    "op_2": converter.from_hex("B3FFFFFF"),
-                },
-                # E6FFFFFE B3FFFFFF E6FFFFFE 01
-            ]
-            result_number = [
-                converter.from_hex("C00807AD"),
-                converter.from_hex("407F3FFF"),
-                converter.from_hex("E6FFFFFE"),
-            ]
-
-            result_exceptions = [
-                int("01", 16),
-                int("01", 16),
-                int("01", 16),
-            ]
-
-            for num, t_case in enumerate(test_cases):
-                t_case["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
-                t_case["operation"] = 1
-                # print_test_case_debug(t_case,num)
-                resp = await add_sub.add_sub_request_adapter.call(sim, t_case)
-                # print_response_debug(resp,num)
-                compare_results(resp, result_number[num])
-                assert resp["errors"] == result_exceptions[num]
 
         async def corner_cases(sim: TestbenchContext):
             assert 2 == 4
 
         async def test_process(sim: TestbenchContext):
-            await nc_add_rnte(sim)
-            await nc_sub_rnte(sim)
-            await corner_cases(sim)
+            await tester.run_test_set(
+                nc_add_rtne,
+                nc_add_rtne_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 0},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_add_rtna,
+                nc_add_rtna_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY, "operation": 0},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_add_up,
+                nc_add_up_resp,
+                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 0},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_add_down,
+                nc_add_down_resp,
+                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 0},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_add_zero,
+                nc_add_zero_resp,
+                {"rounding_mode": RoundingModes.ROUND_ZERO, "operation": 0},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_sub_rtne,
+                nc_sub_rtne_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_sub_rtna,
+                nc_sub_rtna_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_sub_up,
+                nc_sub_up_resp,
+                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_sub_down,
+                nc_sub_down_resp,
+                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                nc_sub_zero,
+                nc_sub_zero_resp,
+                {"rounding_mode": RoundingModes.ROUND_ZERO, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                edge_cases_add,
+                edge_cases_add_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 0},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                edge_cases_sub,
+                edge_cases_sub_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+
+            await tester.run_test_set(
+                edge_cases_sub_down,
+                edge_cases_sub_down_resp,
+                {"rounding_mode": RoundingModes.ROUND_DOWN, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
+            await tester.run_test_set(
+                edge_cases_sub_up,
+                edge_cases_sub_up_resp,
+                {"rounding_mode": RoundingModes.ROUND_UP, "operation": 1},
+                sim,
+                add_sub.add_sub_request_adapter,
+            )
 
         with self.run_simulation(add_sub) as sim:
             sim.add_testbench(test_process)
