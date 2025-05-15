@@ -8,10 +8,11 @@ from transactron.utils.dependencies import DependencyContext
 from transactron.testing.method_mock import MethodMock
 from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from coreblocks.params import GenParams
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey, CSRInstancesKey
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
@@ -77,6 +78,9 @@ class DummyLSUTestCircuit(Elaboratable):
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
+
+        m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
