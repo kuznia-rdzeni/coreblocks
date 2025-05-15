@@ -12,7 +12,7 @@ from transactron.core import Method, Transaction, def_method, TModule
 
 PMPCFG_COUNT = 16
 PMPXCFG_WIDTH = 8
-
+PMPADDR_COUNT = 64
 
 class DoubleCounterCSR(Elaboratable):
     """DoubleCounterCSR
@@ -102,7 +102,7 @@ class MachineModeCSRRegisters(Elaboratable):
             setattr(self, f"pmpcfg{i}", pmpcfg_i)
 
         self.pmpaddrx = []
-        for i in range(CSRAddress.PMPADDR_COUNT):
+        for i in range(PMPADDR_COUNT):
             reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
