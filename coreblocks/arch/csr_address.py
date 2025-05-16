@@ -1,9 +1,6 @@
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = [
-    "CSRAddress",
-    "MstatusFieldOffsets",
-]
+__all__ = ["CSRAddress", "MstatusFieldOffsets"]
 
 
 @unique
