@@ -5,40 +5,40 @@
            subgraph CoreTestElaboratable["elaboratable CoreTestElaboratable"]
                subgraph Core["core Core"]
                    subgraph WishboneMaster["wb_master_instr WishboneMaster"]
-                       WishboneMaster_WishboneMaster["WishboneMaster"]
-                       WishboneMaster_request["request"]
                        WishboneMaster_result["result"]
+                       WishboneMaster_request["request"]
+                       WishboneMaster_WishboneMaster["WishboneMaster"]
                        subgraph Forwarder["result Forwarder"]
-                           Forwarder_write["write"]
                            Forwarder_read["read"]
+                           Forwarder_write["write"]
                        end
                    end
                    subgraph WishboneMaster1["wb_master_data WishboneMaster"]
-                       WishboneMaster1_WishboneMaster["WishboneMaster"]
                        WishboneMaster1_result["result"]
                        WishboneMaster1_request["request"]
+                       WishboneMaster1_WishboneMaster["WishboneMaster"]
                        subgraph Forwarder1["result Forwarder"]
-                           Forwarder1_write["write"]
                            Forwarder1_read["read"]
+                           Forwarder1_write["write"]
                        end
                    end
                    subgraph WishboneMasterAdapter["bus_master_instr_adapter WishboneMasterAdapter"]
-                       WishboneMasterAdapter_request_read["request_read"]
                        WishboneMasterAdapter_get_read_response["get_read_response"]
+                       WishboneMasterAdapter_request_read["request_read"]
                        subgraph Serializer["bus_serializer Serializer"]
-                           Serializer_serialize_out0["serialize_out0"]
                            Serializer_serialize_in0["serialize_in0"]
+                           Serializer_serialize_out0["serialize_out0"]
                            subgraph BasicFifo["pending_requests BasicFifo"]
-                               BasicFifo_write["write"]
                                BasicFifo_read["read"]
+                               BasicFifo_write["write"]
                            end
                        end
                    end
                    subgraph WishboneMasterAdapter1["bus_master_data_adapter WishboneMasterAdapter"]
-                       WishboneMasterAdapter1_get_read_response["get_read_response"]
                        WishboneMasterAdapter1_request_write["request_write"]
-                       WishboneMasterAdapter1_request_read["request_read"]
+                       WishboneMasterAdapter1_get_read_response["get_read_response"]
                        WishboneMasterAdapter1_get_write_response["get_write_response"]
+                       WishboneMasterAdapter1_request_read["request_read"]
                        subgraph Serializer1["bus_serializer Serializer"]
                            Serializer1_serialize_in1["serialize_in1"]
                            Serializer1_serialize_in0["serialize_in0"]
@@ -61,22 +61,22 @@
                            BasicFifo2_read["read"]
                        end
                        subgraph SimpleCommonBusCacheRefiller["icache_refiller SimpleCommonBusCacheRefiller"]
-                           SimpleCommonBusCacheRefiller_accept_refill["accept_refill"]
-                           SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller["SimpleCommonBusCacheRefiller"]
-                           SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1["SimpleCommonBusCacheRefiller"]
                            SimpleCommonBusCacheRefiller_start_refill["start_refill"]
+                           SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller["SimpleCommonBusCacheRefiller"]
+                           SimpleCommonBusCacheRefiller_accept_refill["accept_refill"]
+                           SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1["SimpleCommonBusCacheRefiller"]
                            subgraph Forwarder2["resp_fwd Forwarder"]
-                               Forwarder2_read["read"]
                                Forwarder2_write["write"]
+                               Forwarder2_read["read"]
                            end
                        end
                        subgraph ICache["icache ICache"]
-                           ICache_MemRead["MemRead"]
-                           ICache_accept_res["accept_res"]
+                           ICache_ICache["ICache"]
                            ICache_issue_req["issue_req"]
                            ICache_flush["flush"]
-                           ICache_ICache["ICache"]
                            ICache_ICache1["ICache"]
+                           ICache_accept_res["accept_res"]
+                           ICache_MemRead["MemRead"]
                            subgraph HwCounter["perf_loads HwCounter"]
                                HwCounter__incr["_incr"]
                            end
@@ -99,43 +99,43 @@
                                    HwExpHistogram__add["_add"]
                                end
                                subgraph FIFO["fifo FIFO"]
-                                   FIFO_read["read"]
                                    FIFO_write["write"]
+                                   FIFO_read["read"]
                                end
                            end
                            subgraph ArgumentsToResultsZipper["req_zipper ArgumentsToResultsZipper"]
-                               ArgumentsToResultsZipper_read["read"]
                                ArgumentsToResultsZipper_write_results["write_results"]
                                ArgumentsToResultsZipper_write_args["write_args"]
+                               ArgumentsToResultsZipper_read["read"]
                                subgraph BasicFifo3["fifo BasicFifo"]
                                    BasicFifo3_peek["peek"]
-                                   BasicFifo3_write["write"]
                                    BasicFifo3_read["read"]
+                                   BasicFifo3_write["write"]
                                end
                                subgraph Forwarder3["forwarder Forwarder"]
-                                   Forwarder3_read["read"]
                                    Forwarder3_write["write"]
+                                   Forwarder3_read["read"]
                                end
                            end
                        end
                        subgraph StallController["stall_ctrl StallController"]
-                           StallController_stall_exception["stall_exception"]
-                           StallController__resume_from_unsafe_cond0["_resume_from_unsafe_cond0"]
-                           StallController__resume_from_unsafe["_resume_from_unsafe"]
                            StallController_stall_guard["stall_guard"]
-                           StallController__resume_from_unsafe_cond1["_resume_from_unsafe_cond1"]
                            StallController_stall_unsafe["stall_unsafe"]
+                           StallController__resume_from_unsafe_cond0["_resume_from_unsafe_cond0"]
+                           StallController__resume_from_unsafe_cond1["_resume_from_unsafe_cond1"]
+                           StallController_stall_exception["stall_exception"]
+                           StallController__resume_from_unsafe["_resume_from_unsafe"]
                            StallController_resume_from_exception["resume_from_exception"]
                        end
                        subgraph FetchUnit["fetch FetchUnit"]
+                           FetchUnit_Fetch_Stage2_cond0["Fetch_Stage2_cond0"]
                            FetchUnit_Fetch_Stage0["Fetch_Stage0"]
+                           FetchUnit_cont["cont"]
+                           FetchUnit_Fetch_Stage1["Fetch_Stage1"]
                            FetchUnit_flush["flush"]
                            FetchUnit_Fetch_Stage2["Fetch_Stage2"]
-                           FetchUnit_Fetch_Stage2_cond0["Fetch_Stage2_cond0"]
-                           FetchUnit_cont["cont"]
-                           FetchUnit_Fetch_Stage2_cond1["Fetch_Stage2_cond1"]
                            FetchUnit_redirect["redirect"]
-                           FetchUnit_Fetch_Stage1["Fetch_Stage1"]
+                           FetchUnit_Fetch_Stage2_cond1["Fetch_Stage2_cond1"]
                            subgraph TaggedCounter["perf_fetch_utilization TaggedCounter"]
                                TaggedCounter__incr["_incr"]
                            end
@@ -148,12 +148,12 @@
                                WideFifo_write["write"]
                            end
                            subgraph BasicFifo4["cache_requests BasicFifo"]
-                               BasicFifo4_write["write"]
                                BasicFifo4_read["read"]
+                               BasicFifo4_write["write"]
                            end
                            subgraph Semaphore["req_counter Semaphore"]
-                               Semaphore_release["release"]
                                Semaphore_acquire["acquire"]
+                               Semaphore_release["release"]
                            end
                            subgraph Pipe["s1_s2_pipe Pipe"]
                                Pipe_write["write"]
@@ -176,13 +176,13 @@
                            end
                        end
                        subgraph Pipe1["output_pipe Pipe"]
-                           Pipe1_read["read"]
                            Pipe1_clean["clean"]
                            Pipe1_write["write"]
+                           Pipe1_read["read"]
                        end
                        subgraph Connect["decode_buff Connect"]
-                           Connect_read["read"]
                            Connect_write["write"]
+                           Connect_read["read"]
                        end
                        subgraph RollbackTagger["rollback_tagger RollbackTagger"]
                            RollbackTagger_RollbackTagger["RollbackTagger"]
@@ -195,24 +195,24 @@
                        end
                    end
                    subgraph PriorityEncoderAllocator["rf_allocator PriorityEncoderAllocator"]
-                       PriorityEncoderAllocator_free0["free0"]
                        PriorityEncoderAllocator_alloc0["alloc0"]
+                       PriorityEncoderAllocator_free0["free0"]
                    end
                    subgraph CheckpointRAT["CRAT CheckpointRAT"]
                        CheckpointRAT_CheckpointRAT["CheckpointRAT"]
-                       CheckpointRAT_flush_restore["flush_restore"]
-                       CheckpointRAT_CheckpointRAT1["CheckpointRAT"]
-                       CheckpointRAT_tag_cond1["tag_cond1"]
+                       CheckpointRAT_free_tag["free_tag"]
+                       CheckpointRAT_allocate_checkpoint["allocate_checkpoint"]
+                       CheckpointRAT_tag_cond0["tag_cond0"]
+                       CheckpointRAT_rename["rename"]
                        CheckpointRAT_rename_cond0["rename_cond0"]
-                       CheckpointRAT_rename_cond1["rename_cond1"]
+                       CheckpointRAT_CheckpointRAT1["CheckpointRAT"]
                        CheckpointRAT_CheckpointRAT2["CheckpointRAT"]
                        CheckpointRAT_get_active_tags["get_active_tags"]
-                       CheckpointRAT_tag_cond0["tag_cond0"]
-                       CheckpointRAT_allocate_checkpoint["allocate_checkpoint"]
+                       CheckpointRAT_flush_restore["flush_restore"]
+                       CheckpointRAT_rename_cond1["rename_cond1"]
                        CheckpointRAT_CheckpointRAT3["CheckpointRAT"]
-                       CheckpointRAT_rename["rename"]
-                       CheckpointRAT_free_tag["free_tag"]
                        CheckpointRAT_tag["tag"]
+                       CheckpointRAT_tag_cond1["tag_cond1"]
                        CheckpointRAT_allocate_tag["allocate_tag"]
                        CheckpointRAT_CheckpointRAT4["CheckpointRAT"]
                        CheckpointRAT_CheckpointRAT5["CheckpointRAT"]
@@ -226,13 +226,13 @@
                            HwExpHistogram3__add["_add"]
                        end
                        subgraph MemoryBank["storage MemoryBank"]
-                           MemoryBank_read_req0["read_req0"]
-                           MemoryBank_read_resp0["read_resp0"]
                            MemoryBank_write0["write0"]
+                           MemoryBank_read_resp0["read_resp0"]
+                           MemoryBank_read_req0["read_req0"]
                        end
                        subgraph MemoryBank1["tag_map MemoryBank"]
-                           MemoryBank1_write0["write0"]
                            MemoryBank1_read_resp0["read_resp0"]
+                           MemoryBank1_write0["write0"]
                        end
                        subgraph Pipe2["create_checkpoint_pipe Pipe"]
                            Pipe2_read["read"]
@@ -244,29 +244,29 @@
                        RRAT_peek["peek"]
                    end
                    subgraph RegisterFile["RF RegisterFile"]
-                       RegisterFile_write["write"]
                        RegisterFile_perf["perf"]
                        RegisterFile_free["free"]
                        RegisterFile_read_req1["read_req1"]
+                       RegisterFile_write["write"]
+                       RegisterFile_read_resp1["read_resp1"]
                        RegisterFile_read_req2["read_req2"]
                        RegisterFile_read_resp2["read_resp2"]
-                       RegisterFile_read_resp1["read_resp1"]
                        subgraph MemoryBank2["entries MemoryBank"]
-                           MemoryBank2_write0["write0"]
-                           MemoryBank2_read_resp1["read_resp1"]
-                           MemoryBank2_read_req1["read_req1"]
                            MemoryBank2_read_resp0["read_resp0"]
                            MemoryBank2_read_req0["read_req0"]
+                           MemoryBank2_read_req1["read_req1"]
+                           MemoryBank2_read_resp1["read_resp1"]
+                           MemoryBank2_write0["write0"]
                        end
                        subgraph TaggedLatencyMeasurer["perf_rf_valid_time TaggedLatencyMeasurer"]
-                           TaggedLatencyMeasurer__stop["_stop"]
                            TaggedLatencyMeasurer__start["_start"]
+                           TaggedLatencyMeasurer__stop["_stop"]
                            subgraph HwExpHistogram4["histogram HwExpHistogram"]
                                HwExpHistogram4__add["_add"]
                            end
                            subgraph AsyncMemoryBank["slots AsyncMemoryBank"]
-                               AsyncMemoryBank_write0["write0"]
                                AsyncMemoryBank_read0["read0"]
+                               AsyncMemoryBank_write0["write0"]
                            end
                        end
                        subgraph HwExpHistogram5["perf_num_valid HwExpHistogram"]
@@ -274,12 +274,12 @@
                        end
                    end
                    subgraph ReorderBuffer["ROB ReorderBuffer"]
-                       ReorderBuffer_perf["perf"]
                        ReorderBuffer_retire["retire"]
-                       ReorderBuffer_get_indices["get_indices"]
+                       ReorderBuffer_put["put"]
+                       ReorderBuffer_perf["perf"]
                        ReorderBuffer_peek["peek"]
                        ReorderBuffer_mark_done["mark_done"]
-                       ReorderBuffer_put["put"]
+                       ReorderBuffer_get_indices["get_indices"]
                        subgraph FIFOLatencyMeasurer1["perf_rob_wait_time FIFOLatencyMeasurer"]
                            FIFOLatencyMeasurer1__stop["_stop"]
                            FIFOLatencyMeasurer1__start["_start"]
@@ -287,8 +287,8 @@
                                HwExpHistogram6__add["_add"]
                            end
                            subgraph FIFO1["fifo FIFO"]
-                               FIFO1_write["write"]
                                FIFO1_read["read"]
+                               FIFO1_write["write"]
                            end
                        end
                        subgraph HwExpHistogram7["perf_rob_size HwExpHistogram"]
@@ -296,15 +296,15 @@
                        end
                    end
                    subgraph ExceptionInformationRegister["exception_information_register ExceptionInformationRegister"]
+                       ExceptionInformationRegister_report["report"]
                        ExceptionInformationRegister_clear["clear"]
                        ExceptionInformationRegister_get["get"]
-                       ExceptionInformationRegister_report["report"]
                    end
                    subgraph FuncBlocksUnifier["func_blocks_unifier FuncBlocksUnifier"]
                        subgraph Collector["result_collector Collector"]
                            subgraph Forwarder4["forwarder Forwarder"]
-                               Forwarder4_write["write"]
                                Forwarder4_read["read"]
+                               Forwarder4_write["write"]
                            end
                            subgraph ManyToOneConnectTrans["connect ManyToOneConnectTrans"]
                                subgraph ConnectTrans["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -326,29 +326,35 @@
                        end
                        subgraph RSFuncBlock["rs_block_0 RSFuncBlock"]
                            subgraph RS["rs RS"]
-                               RS_take["take"]
-                               RS_update["update"]
-                               RS_RS["RS"]
-                               RS_RS1["RS"]
-                               RS_RS2["RS"]
                                RS_perf["perf"]
-                               RS_insert["insert"]
+                               RS_RS["RS"]
                                RS_select["select"]
+                               RS_insert["insert"]
+                               RS_update["update"]
+                               RS_RS1["RS"]
+                               RS_take["take"]
+                               RS_RS2["RS"]
                                RS_RS3["RS"]
                                RS_RS4["RS"]
+                               RS_RS5["RS"]
                                subgraph TaggedLatencyMeasurer1["perf_rs_wait_time TaggedLatencyMeasurer"]
-                                   TaggedLatencyMeasurer1__start["_start"]
                                    TaggedLatencyMeasurer1__stop["_stop"]
+                                   TaggedLatencyMeasurer1__start["_start"]
                                    subgraph HwExpHistogram8["histogram HwExpHistogram"]
                                        HwExpHistogram8__add["_add"]
                                    end
                                    subgraph AsyncMemoryBank1["slots AsyncMemoryBank"]
-                                       AsyncMemoryBank1_write0["write0"]
                                        AsyncMemoryBank1_read0["read0"]
+                                       AsyncMemoryBank1_write0["write0"]
                                    end
                                end
                                subgraph HwExpHistogram9["perf_num_full HwExpHistogram"]
                                    HwExpHistogram9__add["_add"]
+                               end
+                               subgraph PreservedOrderAllocator["allocator PreservedOrderAllocator"]
+                                   PreservedOrderAllocator_alloc["alloc"]
+                                   PreservedOrderAllocator_order["order"]
+                                   PreservedOrderAllocator_free_idx["free_idx"]
                                end
                            end
                            subgraph AluFuncUnit["func_unit_0 AluFuncUnit"]
@@ -361,8 +367,8 @@
                                WakeupSelect_WakeupSelect["WakeupSelect"]
                            end
                            subgraph FIFO2["connector_0 FIFO"]
-                               FIFO2_write["write"]
                                FIFO2_read["read"]
+                               FIFO2_write["write"]
                            end
                            subgraph ShiftFuncUnit["func_unit_1 ShiftFuncUnit"]
                                ShiftFuncUnit_issue["issue"]
@@ -378,8 +384,8 @@
                                JumpBranchFuncUnit_JumpBranchFuncUnit["JumpBranchFuncUnit"]
                                JumpBranchFuncUnit_issue["issue"]
                                subgraph FIFO4["fifo_branch_resolved FIFO"]
-                                   FIFO4_write["write"]
                                    FIFO4_read["read"]
+                                   FIFO4_write["write"]
                                end
                                subgraph TaggedCounter5["perf_instr TaggedCounter"]
                                    TaggedCounter5__incr["_incr"]
@@ -395,9 +401,9 @@
                                    BasicFifo5_read["read"]
                                end
                                subgraph BasicFifo6["None BasicFifo"]
-                                   BasicFifo6_clear["clear"]
                                    BasicFifo6_read["read"]
                                    BasicFifo6_write["write"]
+                                   BasicFifo6_clear["clear"]
                                end
                                subgraph ConnectTrans4["None ConnectTrans"]
                                    ConnectTrans4_ConnectTrans["ConnectTrans"]
@@ -407,15 +413,15 @@
                                WakeupSelect2_WakeupSelect["WakeupSelect"]
                            end
                            subgraph Connect1["connector_2 Connect"]
-                               Connect1_write["write"]
                                Connect1_read["read"]
+                               Connect1_write["write"]
                            end
                            subgraph ExceptionFuncUnit["func_unit_3 ExceptionFuncUnit"]
                                ExceptionFuncUnit_issue["issue"]
                                subgraph BasicFifo7["None BasicFifo"]
-                                   BasicFifo7_write["write"]
                                    BasicFifo7_read["read"]
                                    BasicFifo7_clear["clear"]
+                                   BasicFifo7_write["write"]
                                end
                                subgraph ConnectTrans5["None ConnectTrans"]
                                    ConnectTrans5_ConnectTrans["ConnectTrans"]
@@ -429,20 +435,20 @@
                                FIFO5_read["read"]
                            end
                            subgraph PrivilegedFuncUnit["func_unit_4 PrivilegedFuncUnit"]
-                               PrivilegedFuncUnit_PrivilegedFuncUnit_cond3["PrivilegedFuncUnit_cond3"]
-                               PrivilegedFuncUnit_PrivilegedFuncUnit_cond2["PrivilegedFuncUnit_cond2"]
                                PrivilegedFuncUnit_PrivilegedFuncUnit["PrivilegedFuncUnit"]
+                               PrivilegedFuncUnit_PrivilegedFuncUnit1["PrivilegedFuncUnit"]
+                               PrivilegedFuncUnit_PrivilegedFuncUnit_cond2["PrivilegedFuncUnit_cond2"]
+                               PrivilegedFuncUnit_PrivilegedFuncUnit_cond0["PrivilegedFuncUnit_cond0"]
                                PrivilegedFuncUnit_issue["issue"]
                                PrivilegedFuncUnit_PrivilegedFuncUnit_cond1["PrivilegedFuncUnit_cond1"]
-                               PrivilegedFuncUnit_PrivilegedFuncUnit1["PrivilegedFuncUnit"]
-                               PrivilegedFuncUnit_PrivilegedFuncUnit_cond0["PrivilegedFuncUnit_cond0"]
+                               PrivilegedFuncUnit_PrivilegedFuncUnit_cond3["PrivilegedFuncUnit_cond3"]
                                subgraph TaggedCounter6["perf_instr TaggedCounter"]
                                    TaggedCounter6__incr["_incr"]
                                end
                                subgraph BasicFifo8["None BasicFifo"]
-                                   BasicFifo8_write["write"]
-                                   BasicFifo8_clear["clear"]
                                    BasicFifo8_read["read"]
+                                   BasicFifo8_clear["clear"]
+                                   BasicFifo8_write["write"]
                                end
                                subgraph ConnectTrans6["None ConnectTrans"]
                                    ConnectTrans6_ConnectTrans["ConnectTrans"]
@@ -457,8 +463,8 @@
                            end
                            subgraph Collector1["collector Collector"]
                                subgraph Forwarder5["forwarder Forwarder"]
-                                   Forwarder5_read["read"]
                                    Forwarder5_write["write"]
+                                   Forwarder5_read["read"]
                                end
                                subgraph ManyToOneConnectTrans1["connect ManyToOneConnectTrans"]
                                    subgraph ConnectTrans7["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -481,13 +487,14 @@
                        end
                        subgraph RSFuncBlock1["rs_block_1 RSFuncBlock"]
                            subgraph RS1["rs RS"]
-                               RS1_perf["perf"]
                                RS1_RS["RS"]
-                               RS1_RS1["RS"]
-                               RS1_select["select"]
                                RS1_take["take"]
-                               RS1_insert["insert"]
+                               RS1_perf["perf"]
+                               RS1_select["select"]
+                               RS1_RS1["RS"]
+                               RS1_RS2["RS"]
                                RS1_update["update"]
+                               RS1_insert["insert"]
                                subgraph TaggedLatencyMeasurer2["perf_rs_wait_time TaggedLatencyMeasurer"]
                                    TaggedLatencyMeasurer2__stop["_stop"]
                                    TaggedLatencyMeasurer2__start["_start"]
@@ -495,12 +502,17 @@
                                        HwExpHistogram10__add["_add"]
                                    end
                                    subgraph AsyncMemoryBank2["slots AsyncMemoryBank"]
-                                       AsyncMemoryBank2_read0["read0"]
                                        AsyncMemoryBank2_write0["write0"]
+                                       AsyncMemoryBank2_read0["read0"]
                                    end
                                end
                                subgraph HwExpHistogram11["perf_num_full HwExpHistogram"]
                                    HwExpHistogram11__add["_add"]
+                               end
+                               subgraph PreservedOrderAllocator1["allocator PreservedOrderAllocator"]
+                                   PreservedOrderAllocator1_alloc["alloc"]
+                                   PreservedOrderAllocator1_free_idx["free_idx"]
+                                   PreservedOrderAllocator1_order["order"]
                                end
                            end
                            subgraph MulUnit["func_unit_0 MulUnit"]
@@ -511,8 +523,8 @@
                                    FIFO6_read["read"]
                                end
                                subgraph SequentialUnsignedMul["multiplier SequentialUnsignedMul"]
-                                   SequentialUnsignedMul_accept["accept"]
                                    SequentialUnsignedMul_issue["issue"]
+                                   SequentialUnsignedMul_accept["accept"]
                                    subgraph DSPMulUnit["dsp DSPMulUnit"]
                                        DSPMulUnit_compute["compute"]
                                    end
@@ -532,12 +544,12 @@
                                DivUnit_DivUnit["DivUnit"]
                                DivUnit_issue["issue"]
                                subgraph FIFO7["params_fifo FIFO"]
-                                   FIFO7_read["read"]
                                    FIFO7_write["write"]
+                                   FIFO7_read["read"]
                                end
                                subgraph LongDivider["divider LongDivider"]
-                                   LongDivider_issue["issue"]
                                    LongDivider_accept["accept"]
+                                   LongDivider_issue["issue"]
                                end
                            end
                            subgraph WakeupSelect6["wakeup_select_1 WakeupSelect"]
@@ -549,8 +561,8 @@
                            end
                            subgraph Collector2["collector Collector"]
                                subgraph Forwarder6["forwarder Forwarder"]
-                                   Forwarder6_read["read"]
                                    Forwarder6_write["write"]
+                                   Forwarder6_read["read"]
                                end
                                subgraph ManyToOneConnectTrans2["connect ManyToOneConnectTrans"]
                                    subgraph ConnectTrans12["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -564,11 +576,15 @@
                        end
                        subgraph RSFuncBlock2["rs_block_2 RSFuncBlock"]
                            subgraph FifoRS["rs FifoRS"]
-                               FifoRS_insert["insert"]
-                               FifoRS_perf["perf"]
                                FifoRS_FifoRS["FifoRS"]
-                               FifoRS_update["update"]
+                               FifoRS_free_idx["free_idx"]
+                               FifoRS_insert["insert"]
+                               FifoRS_FifoRS1["FifoRS"]
                                FifoRS_take["take"]
+                               FifoRS_alloc["alloc"]
+                               FifoRS_update["update"]
+                               FifoRS_order["order"]
+                               FifoRS_perf["perf"]
                                FifoRS_select["select"]
                                subgraph TaggedLatencyMeasurer3["perf_rs_wait_time TaggedLatencyMeasurer"]
                                    TaggedLatencyMeasurer3__start["_start"]
@@ -587,33 +603,33 @@
                            end
                            subgraph LSUDummy["func_unit_0 LSUDummy"]
                                LSUDummy_LSUDummy["LSUDummy"]
+                               LSUDummy_LSUDummy_cond0["LSUDummy_cond0"]
                                LSUDummy_LSUDummy1["LSUDummy"]
                                LSUDummy_LSUDummy2["LSUDummy"]
                                LSUDummy_LSUDummy3["LSUDummy"]
-                               LSUDummy_LSUDummy4["LSUDummy"]
-                               LSUDummy_LSUDummy_cond0["LSUDummy_cond0"]
-                               LSUDummy_issue["issue"]
                                LSUDummy_LSUDummy_cond1["LSUDummy_cond1"]
+                               LSUDummy_LSUDummy4["LSUDummy"]
+                               LSUDummy_issue["issue"]
                                subgraph LSURequester["requester LSURequester"]
-                                   LSURequester_issue_cond2["issue_cond2"]
+                                   LSURequester_accept_cond0["accept_cond0"]
                                    LSURequester_issue_cond0["issue_cond0"]
+                                   LSURequester_accept["accept"]
+                                   LSURequester_issue_cond2["issue_cond2"]
+                                   LSURequester_accept_cond1["accept_cond1"]
                                    LSURequester_issue_cond1["issue_cond1"]
                                    LSURequester_issue["issue"]
-                                   LSURequester_accept_cond1["accept_cond1"]
-                                   LSURequester_accept_cond0["accept_cond0"]
-                                   LSURequester_accept["accept"]
                                    subgraph BasicFifo9["args_fifo BasicFifo"]
-                                       BasicFifo9_read["read"]
                                        BasicFifo9_write["write"]
+                                       BasicFifo9_read["read"]
                                    end
                                end
                                subgraph Forwarder7["requests Forwarder"]
-                                   Forwarder7_write["write"]
                                    Forwarder7_read["read"]
+                                   Forwarder7_write["write"]
                                end
                                subgraph FIFO8["results_noop FIFO"]
-                                   FIFO8_read["read"]
                                    FIFO8_write["write"]
+                                   FIFO8_read["read"]
                                end
                                subgraph FIFO9["issued FIFO"]
                                    FIFO9_write["write"]
@@ -624,9 +640,9 @@
                                    FIFO10_read["read"]
                                end
                                subgraph BasicFifo10["None BasicFifo"]
+                                   BasicFifo10_clear["clear"]
                                    BasicFifo10_write["write"]
                                    BasicFifo10_read["read"]
-                                   BasicFifo10_clear["clear"]
                                end
                                subgraph ConnectTrans14["None ConnectTrans"]
                                    ConnectTrans14_ConnectTrans["ConnectTrans"]
@@ -636,13 +652,13 @@
                                WakeupSelect7_WakeupSelect["WakeupSelect"]
                            end
                            subgraph Connect5["connector_0 Connect"]
-                               Connect5_write["write"]
                                Connect5_read["read"]
+                               Connect5_write["write"]
                            end
                            subgraph Collector3["collector Collector"]
                                subgraph Forwarder8["forwarder Forwarder"]
-                                   Forwarder8_read["read"]
                                    Forwarder8_write["write"]
+                                   Forwarder8_read["read"]
                                end
                                subgraph ManyToOneConnectTrans3["connect ManyToOneConnectTrans"]
                                    subgraph ConnectTrans15["ManyToOneConnectTrans_input_0 ConnectTrans"]
@@ -653,14 +669,14 @@
                        end
                        subgraph CSRUnit["rs_block_3 CSRUnit"]
                            CSRUnit_CSRUnit["CSRUnit"]
-                           CSRUnit_update["update"]
-                           CSRUnit_get_result["get_result"]
-                           CSRUnit_select["select"]
                            CSRUnit_insert["insert"]
+                           CSRUnit_select["select"]
+                           CSRUnit_get_result["get_result"]
+                           CSRUnit_update["update"]
                            subgraph BasicFifo11["None BasicFifo"]
                                BasicFifo11_clear["clear"]
-                               BasicFifo11_read["read"]
                                BasicFifo11_write["write"]
+                               BasicFifo11_read["read"]
                            end
                            subgraph ConnectTrans16["None ConnectTrans"]
                                ConnectTrans16_ConnectTrans["ConnectTrans"]
@@ -718,14 +734,14 @@
                                AliasedCSR__fu_write["_fu_write"]
                            end
                            subgraph AliasedCSR1["mstatush AliasedCSR"]
-                               AliasedCSR1__fu_read["_fu_read"]
                                AliasedCSR1__fu_write["_fu_write"]
+                               AliasedCSR1__fu_read["_fu_read"]
                            end
                            subgraph CSRRegister6["mcause CSRRegister"]
-                               CSRRegister6__internal_fu_read["_internal_fu_read"]
-                               CSRRegister6_write["write"]
                                CSRRegister6__internal_fu_write["_internal_fu_write"]
                                CSRRegister6_read["read"]
+                               CSRRegister6__internal_fu_read["_internal_fu_read"]
+                               CSRRegister6_write["write"]
                                subgraph MethodMap12["fu_write_map MethodMap"]
                                    MethodMap12_method["method"]
                                end
@@ -737,14 +753,14 @@
                                end
                            end
                            subgraph AliasedCSR2["mtvec AliasedCSR"]
-                               AliasedCSR2__fu_write["_fu_write"]
                                AliasedCSR2__fu_read["_fu_read"]
+                               AliasedCSR2__fu_write["_fu_write"]
                            end
                            subgraph CSRRegister7["mepc CSRRegister"]
-                               CSRRegister7__internal_fu_write["_internal_fu_write"]
-                               CSRRegister7_read["read"]
                                CSRRegister7__internal_fu_read["_internal_fu_read"]
+                               CSRRegister7_read["read"]
                                CSRRegister7_write["write"]
+                               CSRRegister7__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap14["fu_write_map MethodMap"]
                                    MethodMap14_method["method"]
                                end
@@ -756,9 +772,9 @@
                                end
                            end
                            subgraph CSRRegister8["mtval CSRRegister"]
+                               CSRRegister8__internal_fu_read["_internal_fu_read"]
                                CSRRegister8_write["write"]
                                CSRRegister8__internal_fu_write["_internal_fu_write"]
-                               CSRRegister8__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap16["fu_write_map MethodMap"]
                                    MethodMap16_method["method"]
                                end
@@ -822,8 +838,8 @@
                                end
                            end
                            subgraph CSRRegister13["pmp3cfg CSRRegister"]
-                               CSRRegister13__internal_fu_write["_internal_fu_write"]
                                CSRRegister13__internal_fu_read["_internal_fu_read"]
+                               CSRRegister13__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap26["fu_write_map MethodMap"]
                                    MethodMap26_method["method"]
                                end
@@ -835,8 +851,8 @@
                                end
                            end
                            subgraph AliasedCSR3["pmpcfg0 AliasedCSR"]
-                               AliasedCSR3__fu_read["_fu_read"]
                                AliasedCSR3__fu_write["_fu_write"]
+                               AliasedCSR3__fu_read["_fu_read"]
                            end
                            subgraph CSRRegister14["pmp4cfg CSRRegister"]
                                CSRRegister14__internal_fu_read["_internal_fu_read"]
@@ -878,8 +894,8 @@
                                end
                            end
                            subgraph CSRRegister17["pmp7cfg CSRRegister"]
-                               CSRRegister17__internal_fu_write["_internal_fu_write"]
                                CSRRegister17__internal_fu_read["_internal_fu_read"]
+                               CSRRegister17__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap34["fu_write_map MethodMap"]
                                    MethodMap34_method["method"]
                                end
@@ -891,8 +907,8 @@
                                end
                            end
                            subgraph AliasedCSR4["pmpcfg1 AliasedCSR"]
-                               AliasedCSR4__fu_read["_fu_read"]
                                AliasedCSR4__fu_write["_fu_write"]
+                               AliasedCSR4__fu_read["_fu_read"]
                            end
                            subgraph CSRRegister18["pmp8cfg CSRRegister"]
                                CSRRegister18__internal_fu_write["_internal_fu_write"]
@@ -921,8 +937,8 @@
                                end
                            end
                            subgraph CSRRegister20["pmp10cfg CSRRegister"]
-                               CSRRegister20__internal_fu_write["_internal_fu_write"]
                                CSRRegister20__internal_fu_read["_internal_fu_read"]
+                               CSRRegister20__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap40["fu_write_map MethodMap"]
                                    MethodMap40_method["method"]
                                end
@@ -1059,8 +1075,8 @@
                                end
                            end
                            subgraph AliasedCSR7["pmpcfg4 AliasedCSR"]
-                               AliasedCSR7__fu_write["_fu_write"]
                                AliasedCSR7__fu_read["_fu_read"]
+                               AliasedCSR7__fu_write["_fu_write"]
                            end
                            subgraph CSRRegister30["pmp20cfg CSRRegister"]
                                CSRRegister30__internal_fu_read["_internal_fu_read"]
@@ -1300,8 +1316,8 @@
                                end
                            end
                            subgraph CSRRegister47["pmp37cfg CSRRegister"]
-                               CSRRegister47__internal_fu_read["_internal_fu_read"]
                                CSRRegister47__internal_fu_write["_internal_fu_write"]
+                               CSRRegister47__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap94["fu_write_map MethodMap"]
                                    MethodMap94_method["method"]
                                end
@@ -1343,8 +1359,8 @@
                                AliasedCSR12__fu_read["_fu_read"]
                            end
                            subgraph CSRRegister50["pmp40cfg CSRRegister"]
-                               CSRRegister50__internal_fu_write["_internal_fu_write"]
                                CSRRegister50__internal_fu_read["_internal_fu_read"]
+                               CSRRegister50__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap100["fu_write_map MethodMap"]
                                    MethodMap100_method["method"]
                                end
@@ -1395,8 +1411,8 @@
                                end
                            end
                            subgraph AliasedCSR13["pmpcfg10 AliasedCSR"]
-                               AliasedCSR13__fu_read["_fu_read"]
                                AliasedCSR13__fu_write["_fu_write"]
+                               AliasedCSR13__fu_read["_fu_read"]
                            end
                            subgraph CSRRegister54["pmp44cfg CSRRegister"]
                                CSRRegister54__internal_fu_write["_internal_fu_write"]
@@ -1468,8 +1484,8 @@
                                end
                            end
                            subgraph CSRRegister59["pmp49cfg CSRRegister"]
-                               CSRRegister59__internal_fu_write["_internal_fu_write"]
                                CSRRegister59__internal_fu_read["_internal_fu_read"]
+                               CSRRegister59__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap118["fu_write_map MethodMap"]
                                    MethodMap118_method["method"]
                                end
@@ -1619,8 +1635,8 @@
                                end
                            end
                            subgraph AliasedCSR17["pmpcfg14 AliasedCSR"]
-                               AliasedCSR17__fu_write["_fu_write"]
                                AliasedCSR17__fu_read["_fu_read"]
+                               AliasedCSR17__fu_write["_fu_write"]
                            end
                            subgraph CSRRegister70["pmp60cfg CSRRegister"]
                                CSRRegister70__internal_fu_write["_internal_fu_write"]
@@ -1636,8 +1652,8 @@
                                end
                            end
                            subgraph CSRRegister71["pmp61cfg CSRRegister"]
-                               CSRRegister71__internal_fu_read["_internal_fu_read"]
                                CSRRegister71__internal_fu_write["_internal_fu_write"]
+                               CSRRegister71__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap142["fu_write_map MethodMap"]
                                    MethodMap142_method["method"]
                                end
@@ -1705,8 +1721,8 @@
                                end
                            end
                            subgraph CSRRegister76["pmpaddr2 CSRRegister"]
-                               CSRRegister76__internal_fu_write["_internal_fu_write"]
                                CSRRegister76__internal_fu_read["_internal_fu_read"]
+                               CSRRegister76__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap152["fu_write_map MethodMap"]
                                    MethodMap152_method["method"]
                                end
@@ -1770,8 +1786,8 @@
                                end
                            end
                            subgraph CSRRegister81["pmpaddr7 CSRRegister"]
-                               CSRRegister81__internal_fu_write["_internal_fu_write"]
                                CSRRegister81__internal_fu_read["_internal_fu_read"]
+                               CSRRegister81__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap162["fu_write_map MethodMap"]
                                    MethodMap162_method["method"]
                                end
@@ -1783,8 +1799,8 @@
                                end
                            end
                            subgraph CSRRegister82["pmpaddr8 CSRRegister"]
-                               CSRRegister82__internal_fu_read["_internal_fu_read"]
                                CSRRegister82__internal_fu_write["_internal_fu_write"]
+                               CSRRegister82__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap164["fu_write_map MethodMap"]
                                    MethodMap164_method["method"]
                                end
@@ -1939,8 +1955,8 @@
                                end
                            end
                            subgraph CSRRegister94["pmpaddr20 CSRRegister"]
-                               CSRRegister94__internal_fu_read["_internal_fu_read"]
                                CSRRegister94__internal_fu_write["_internal_fu_write"]
+                               CSRRegister94__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap188["fu_write_map MethodMap"]
                                    MethodMap188_method["method"]
                                end
@@ -1991,8 +2007,8 @@
                                end
                            end
                            subgraph CSRRegister98["pmpaddr24 CSRRegister"]
-                               CSRRegister98__internal_fu_read["_internal_fu_read"]
                                CSRRegister98__internal_fu_write["_internal_fu_write"]
+                               CSRRegister98__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap196["fu_write_map MethodMap"]
                                    MethodMap196_method["method"]
                                end
@@ -2251,8 +2267,8 @@
                                end
                            end
                            subgraph CSRRegister118["pmpaddr44 CSRRegister"]
-                               CSRRegister118__internal_fu_write["_internal_fu_write"]
                                CSRRegister118__internal_fu_read["_internal_fu_read"]
+                               CSRRegister118__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap236["fu_write_map MethodMap"]
                                    MethodMap236_method["method"]
                                end
@@ -2407,8 +2423,8 @@
                                end
                            end
                            subgraph CSRRegister130["pmpaddr56 CSRRegister"]
-                               CSRRegister130__internal_fu_read["_internal_fu_read"]
                                CSRRegister130__internal_fu_write["_internal_fu_write"]
+                               CSRRegister130__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap260["fu_write_map MethodMap"]
                                    MethodMap260_method["method"]
                                end
@@ -2472,8 +2488,8 @@
                                end
                            end
                            subgraph CSRRegister135["pmpaddr61 CSRRegister"]
-                               CSRRegister135__internal_fu_read["_internal_fu_read"]
                                CSRRegister135__internal_fu_write["_internal_fu_write"]
+                               CSRRegister135__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap270["fu_write_map MethodMap"]
                                    MethodMap270_method["method"]
                                end
@@ -2515,10 +2531,10 @@
                                CSRRegister138_write["write"]
                            end
                            subgraph CSRRegister139["mstatus_mie CSRRegister"]
+                               CSRRegister139__internal_fu_read["_internal_fu_read"]
                                CSRRegister139_write["write"]
                                CSRRegister139__internal_fu_write["_internal_fu_write"]
                                CSRRegister139_read["read"]
-                               CSRRegister139__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap278["fu_write_map MethodMap"]
                                    MethodMap278_method["method"]
                                end
@@ -2532,8 +2548,8 @@
                            subgraph CSRRegister140["mstatus_mpie CSRRegister"]
                                CSRRegister140_read["read"]
                                CSRRegister140_write["write"]
-                               CSRRegister140__internal_fu_write["_internal_fu_write"]
                                CSRRegister140__internal_fu_read["_internal_fu_read"]
+                               CSRRegister140__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap280["fu_write_map MethodMap"]
                                    MethodMap280_method["method"]
                                end
@@ -2545,10 +2561,10 @@
                                end
                            end
                            subgraph CSRRegister141["mstatus_mpp CSRRegister"]
+                               CSRRegister141_read["read"]
                                CSRRegister141__internal_fu_read["_internal_fu_read"]
                                CSRRegister141__internal_fu_write["_internal_fu_write"]
                                CSRRegister141_write["write"]
-                               CSRRegister141_read["read"]
                                subgraph MethodMap282["fu_write_map MethodMap"]
                                    MethodMap282_method["method"]
                                end
@@ -2574,9 +2590,9 @@
                                end
                            end
                            subgraph CSRRegister143["mstatus_tw CSRRegister"]
+                               CSRRegister143__internal_fu_write["_internal_fu_write"]
                                CSRRegister143_read["read"]
                                CSRRegister143__internal_fu_read["_internal_fu_read"]
-                               CSRRegister143__internal_fu_write["_internal_fu_write"]
                                subgraph MethodMap286["fu_write_map MethodMap"]
                                    MethodMap286_method["method"]
                                end
@@ -2588,9 +2604,9 @@
                                end
                            end
                            subgraph CSRRegister144["mtvec_base CSRRegister"]
-                               CSRRegister144_read["read"]
                                CSRRegister144__internal_fu_write["_internal_fu_write"]
                                CSRRegister144__internal_fu_read["_internal_fu_read"]
+                               CSRRegister144_read["read"]
                                subgraph MethodMap288["fu_write_map MethodMap"]
                                    MethodMap288_method["method"]
                                end
@@ -2603,8 +2619,8 @@
                            end
                            subgraph CSRRegister145["mtvec_mode CSRRegister"]
                                CSRRegister145__internal_fu_write["_internal_fu_write"]
-                               CSRRegister145__internal_fu_read["_internal_fu_read"]
                                CSRRegister145_read["read"]
+                               CSRRegister145__internal_fu_read["_internal_fu_read"]
                                subgraph MethodMap290["fu_write_map MethodMap"]
                                    MethodMap290_method["method"]
                                end
@@ -2619,9 +2635,9 @@
                        subgraph DoubleCounterCSR["csr_cycle DoubleCounterCSR"]
                            DoubleCounterCSR_increment["increment"]
                            subgraph CSRRegister146["register_low CSRRegister"]
+                               CSRRegister146_read["read"]
                                CSRRegister146_write["write"]
                                CSRRegister146__internal_fu_read["_internal_fu_read"]
-                               CSRRegister146_read["read"]
                                subgraph MethodMap293["fu_read_map MethodMap"]
                                    MethodMap293_method["method"]
                                end
@@ -2646,9 +2662,9 @@
                                end
                            end
                            subgraph CSRRegister149["register_high CSRRegister"]
-                               CSRRegister149_read["read"]
                                CSRRegister149__internal_fu_read["_internal_fu_read"]
                                CSRRegister149_write["write"]
+                               CSRRegister149_read["read"]
                                subgraph MethodMap299["fu_read_map MethodMap"]
                                    MethodMap299_method["method"]
                                end
@@ -2664,8 +2680,8 @@
                        InternalInterruptController_mret["mret"]
                        subgraph CSRRegister150["mie CSRRegister"]
                            CSRRegister150_read["read"]
-                           CSRRegister150__internal_fu_write["_internal_fu_write"]
                            CSRRegister150__internal_fu_read["_internal_fu_read"]
+                           CSRRegister150__internal_fu_write["_internal_fu_write"]
                            subgraph MethodMap300["fu_write_map MethodMap"]
                                MethodMap300_method["method"]
                            end
@@ -2677,8 +2693,8 @@
                            end
                        end
                        subgraph CSRRegister151["mip CSRRegister"]
-                           CSRRegister151__internal_fu_read["_internal_fu_read"]
                            CSRRegister151_write["write"]
+                           CSRRegister151__internal_fu_read["_internal_fu_read"]
                            CSRRegister151__internal_fu_write["_internal_fu_write"]
                            CSRRegister151_read_comb["read_comb"]
                            CSRRegister151_read["read"]
@@ -2694,8 +2710,8 @@
                        end
                    end
                    subgraph CoreInstructionCounter["core_counter CoreInstructionCounter"]
-                       CoreInstructionCounter_increment["increment"]
                        CoreInstructionCounter_decrement["decrement"]
+                       CoreInstructionCounter_increment["increment"]
                    end
                    subgraph MethodProduct1["get_instr MethodProduct"]
                        MethodProduct1_method["method"]
@@ -2730,8 +2746,8 @@
                            ROBAllocation_ROBAllocation["ROBAllocation"]
                        end
                        subgraph FIFO14["rs_select_out_buf FIFO"]
-                           FIFO14_write["write"]
                            FIFO14_read["read"]
+                           FIFO14_write["write"]
                        end
                        subgraph RSSelection["rs_selector RSSelection"]
                            RSSelection_RSSelection["RSSelection"]
@@ -2747,13 +2763,13 @@
                        ResultAnnouncement_ResultAnnouncement["ResultAnnouncement"]
                    end
                    subgraph Retirement["retirement Retirement"]
-                       Retirement_Retirement_cond0["Retirement_cond0"]
                        Retirement_precommit["precommit"]
+                       Retirement_core_state["core_state"]
                        Retirement_Retirement["Retirement"]
                        Retirement_Retirement1["Retirement"]
-                       Retirement_Retirement_cond1["Retirement_cond1"]
-                       Retirement_core_state["core_state"]
                        Retirement_Retirement2["Retirement"]
+                       Retirement_Retirement_cond1["Retirement_cond1"]
+                       Retirement_Retirement_cond0["Retirement_cond0"]
                        Retirement_Retirement3["Retirement"]
                        subgraph DoubleCounterCSR2["instret_csr DoubleCounterCSR"]
                            DoubleCounterCSR2_increment["increment"]
@@ -2766,9 +2782,9 @@
                                end
                            end
                            subgraph CSRRegister153["register_high CSRRegister"]
-                               CSRRegister153_read["read"]
-                               CSRRegister153_write["write"]
                                CSRRegister153__internal_fu_read["_internal_fu_read"]
+                               CSRRegister153_write["write"]
+                               CSRRegister153_read["read"]
                                subgraph MethodMap307["fu_read_map MethodMap"]
                                    MethodMap307_method["method"]
                                end
@@ -2784,65 +2800,65 @@
                                HwExpHistogram14__add["_add"]
                            end
                            subgraph FIFO15["fifo FIFO"]
-                               FIFO15_write["write"]
                                FIFO15_read["read"]
+                               FIFO15_write["write"]
                            end
                        end
                    end
                end
            end
            subgraph TransactionManager["transaction_manager TransactionManager"]
-               TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0["Fetch_Stage2_Fetch_Stage2_cond0"]
-               TransactionManager_InstructionTagger_tag_cond1["InstructionTagger_tag_cond1"]
-               TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3["PrivilegedFuncUnit_PrivilegedFuncUnit_cond3"]
-               TransactionManager_LSUDummy_issue_cond0["LSUDummy_issue_cond0"]
+               TransactionManager_Retirement_cond1_Retirement["Retirement_cond1_Retirement"]
+               TransactionManager_DivUnit_ConnectTrans["DivUnit_ConnectTrans"]
+               TransactionManager_ConnectTrans__resume_from_unsafe_cond0["ConnectTrans__resume_from_unsafe_cond0"]
+               TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0["PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0"]
                TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans["PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans"]
+               TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1["ConnectTrans_LSUDummy_LSUDummy_cond1"]
+               TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans["LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans"]
                TransactionManager_InstructionTagger_tag_cond0["InstructionTagger_tag_cond0"]
-               TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1["LSUDummy_ConnectTrans_LSUDummy_cond1"]
-               TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans["PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans"]
+               TransactionManager_Retirement_cond0_Retirement["Retirement_cond0_Retirement"]
+               TransactionManager_JumpBranchFuncUnit_ConnectTrans["JumpBranchFuncUnit_ConnectTrans"]
                TransactionManager_Renaming_rename_cond0_ROBAllocation["Renaming_rename_cond0_ROBAllocation"]
                TransactionManager_Renaming_rename_cond1_ROBAllocation["Renaming_rename_cond1_ROBAllocation"]
-               TransactionManager_LSUDummy_issue_cond1["LSUDummy_issue_cond1"]
-               TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans["LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans"]
-               TransactionManager__resume_from_unsafe_cond0_ConnectTrans["_resume_from_unsafe_cond0_ConnectTrans"]
+               TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans["accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans"]
                TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1["PrivilegedFuncUnit_PrivilegedFuncUnit_cond1"]
-               TransactionManager_Retirement_Retirement_cond1["Retirement_Retirement_cond1"]
-               TransactionManager_Retirement_cond0_Retirement["Retirement_cond0_Retirement"]
-               TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2["PrivilegedFuncUnit_PrivilegedFuncUnit_cond2"]
-               TransactionManager_ConnectTrans_MulUnit["ConnectTrans_MulUnit"]
-               TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans["LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans"]
-               TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0["PrivilegedFuncUnit_PrivilegedFuncUnit_cond0"]
+               TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3["PrivilegedFuncUnit_PrivilegedFuncUnit_cond3"]
                TransactionManager_DecodeStage_RollbackTagger["DecodeStage_RollbackTagger"]
-               TransactionManager_JumpBranchFuncUnit_ConnectTrans["JumpBranchFuncUnit_ConnectTrans"]
-               TransactionManager__resume_from_unsafe_cond1_ConnectTrans["_resume_from_unsafe_cond1_ConnectTrans"]
-               TransactionManager_LSUDummy_issue_cond2["LSUDummy_issue_cond2"]
+               TransactionManager_InstructionTagger_tag_cond1["InstructionTagger_tag_cond1"]
+               TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0["Fetch_Stage2_Fetch_Stage2_cond0"]
+               TransactionManager_issue_cond1_LSUDummy["issue_cond1_LSUDummy"]
+               TransactionManager_issue_cond2_LSUDummy["issue_cond2_LSUDummy"]
+               TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2["PrivilegedFuncUnit_PrivilegedFuncUnit_cond2"]
+               TransactionManager_issue_cond0_LSUDummy["issue_cond0_LSUDummy"]
                TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1["Fetch_Stage2_Fetch_Stage2_cond1"]
-               TransactionManager_DivUnit_ConnectTrans["DivUnit_ConnectTrans"]
+               TransactionManager__resume_from_unsafe_cond1_ConnectTrans["_resume_from_unsafe_cond1_ConnectTrans"]
+               TransactionManager_ConnectTrans_MulUnit["ConnectTrans_MulUnit"]
+               TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0["PrivilegedFuncUnit_PrivilegedFuncUnit_cond0"]
            end
        end
    WishboneMaster_WishboneMaster --> Forwarder_write
    WishboneMaster1_WishboneMaster --> Forwarder1_write
    FIFO4_read --> CoreFrontend_DiscardBranchVerify
-   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller --> WishboneMasterAdapter_request_read
-   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller --> Serializer_serialize_in0
-   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller --> BasicFifo_write
-   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller --> WishboneMaster_request
-   WishboneMasterAdapter_get_read_response --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1
-   Serializer_serialize_out0 --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1
-   BasicFifo_read --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1
-   WishboneMaster_result --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1
-   Forwarder_read --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1
-   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1 --> Forwarder2_write
-   ICache_ICache1 <--> HwCounter4__incr
+   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1 --> WishboneMasterAdapter_request_read
+   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1 --> Serializer_serialize_in0
+   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1 --> BasicFifo_write
+   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller1 --> WishboneMaster_request
+   WishboneMasterAdapter_get_read_response --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller
+   Serializer_serialize_out0 --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller
+   BasicFifo_read --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller
+   WishboneMaster_result --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller
+   Forwarder_read --> SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller
+   SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller --> Forwarder2_write
+   ICache_ICache <--> HwCounter4__incr
    BasicFifo3_peek --> ICache_MemRead
    ICache_MemRead <--> HwCounter1__incr
    ICache_MemRead --> ArgumentsToResultsZipper_write_results
    ICache_MemRead --> Forwarder3_write
    ICache_MemRead <--> HwCounter2__incr
    ICache_MemRead --> SimpleCommonBusCacheRefiller_start_refill
-   SimpleCommonBusCacheRefiller_accept_refill --> ICache_ICache
-   Forwarder2_read --> ICache_ICache
-   ICache_ICache <--> HwCounter3__incr
+   SimpleCommonBusCacheRefiller_accept_refill --> ICache_ICache1
+   Forwarder2_read --> ICache_ICache1
+   ICache_ICache1 <--> HwCounter3__incr
    WideFifo_read --> FetchUnit_cont
    FetchUnit_cont --> BasicFifo2_write
    FetchUnit_Fetch_Stage0 <--> StallController_stall_guard
@@ -2863,14 +2879,14 @@
    BasicFifo3_read --> FetchUnit_Fetch_Stage1
    Forwarder3_read --> FetchUnit_Fetch_Stage1
    FetchUnit_Fetch_Stage1 --> Pipe_write
-   Pipe2_read --> CheckpointRAT_CheckpointRAT3
-   CheckpointRAT_CheckpointRAT3 --> MemoryBank_write0
+   Pipe2_read --> CheckpointRAT_CheckpointRAT1
+   CheckpointRAT_CheckpointRAT1 --> MemoryBank_write0
    MemoryBank1_read_resp0 --> CheckpointRAT_CheckpointRAT5
    CheckpointRAT_CheckpointRAT5 --> MemoryBank_read_req0
-   MemoryBank_read_resp0 --> CheckpointRAT_CheckpointRAT
-   CheckpointRAT_CheckpointRAT4 --> HwExpHistogram1__add
-   CheckpointRAT_CheckpointRAT2 --> HwExpHistogram2__add
-   CheckpointRAT_CheckpointRAT1 --> HwExpHistogram3__add
+   MemoryBank_read_resp0 --> CheckpointRAT_CheckpointRAT4
+   CheckpointRAT_CheckpointRAT --> HwExpHistogram1__add
+   CheckpointRAT_CheckpointRAT3 --> HwExpHistogram2__add
+   CheckpointRAT_CheckpointRAT2 --> HwExpHistogram3__add
    RegisterFile_perf --> HwExpHistogram5__add
    ReorderBuffer_perf --> HwExpHistogram7__add
    GenericCSRRegisters_GenericCSRRegisters <--> DoubleCounterCSR_increment
@@ -2883,27 +2899,27 @@
    GenericCSRRegisters_GenericCSRRegisters --> CSRRegister148_write
    CSRRegister149_read --> GenericCSRRegisters_GenericCSRRegisters
    GenericCSRRegisters_GenericCSRRegisters --> CSRRegister149_write
+   CSRRegister139_read --> InternalInterruptController_InternalInterruptController2
    CSRRegister139_read --> InternalInterruptController_InternalInterruptController1
-   CSRRegister139_read --> InternalInterruptController_InternalInterruptController
+   CSRRegister138_read --> InternalInterruptController_InternalInterruptController2
    CSRRegister138_read --> InternalInterruptController_InternalInterruptController1
-   CSRRegister138_read --> InternalInterruptController_InternalInterruptController
    CSRRegister138_read --> WakeupSelect3_WakeupSelect
    CSRRegister138_read --> CSRUnit_CSRUnit
-   CSRRegister138_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
-   CSRRegister138_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
    CSRRegister138_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
+   CSRRegister138_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
    CSRRegister138_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
-   CSRRegister150_read --> InternalInterruptController_InternalInterruptController1
-   CSRRegister151_read --> InternalInterruptController_InternalInterruptController1
-   CSRRegister151_read_comb --> InternalInterruptController_InternalInterruptController2
-   InternalInterruptController_InternalInterruptController2 --> CSRRegister151_write
-   InternalInterruptController_InternalInterruptController --> CSRRegister139_write
-   InternalInterruptController_InternalInterruptController --> CSRRegister140_write
-   InternalInterruptController_InternalInterruptController --> CSRRegister141_write
-   InternalInterruptController_InternalInterruptController --> CSRRegister138_write
-   CSRRegister140_read --> InternalInterruptController_InternalInterruptController
-   CSRRegister141_read --> InternalInterruptController_InternalInterruptController
-   InternalInterruptController_InternalInterruptController --> CSRRegister142_write
+   CSRRegister138_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+   CSRRegister150_read --> InternalInterruptController_InternalInterruptController2
+   CSRRegister151_read --> InternalInterruptController_InternalInterruptController2
+   CSRRegister151_read_comb --> InternalInterruptController_InternalInterruptController
+   InternalInterruptController_InternalInterruptController --> CSRRegister151_write
+   InternalInterruptController_InternalInterruptController1 --> CSRRegister139_write
+   InternalInterruptController_InternalInterruptController1 --> CSRRegister140_write
+   InternalInterruptController_InternalInterruptController1 --> CSRRegister141_write
+   InternalInterruptController_InternalInterruptController1 --> CSRRegister138_write
+   CSRRegister140_read --> InternalInterruptController_InternalInterruptController1
+   CSRRegister141_read --> InternalInterruptController_InternalInterruptController1
+   InternalInterruptController_InternalInterruptController1 --> CSRRegister142_write
    MethodProduct1_method --> RegAllocation_RegAllocation
    Pipe1_read --> RegAllocation_RegAllocation
    RegAllocation_RegAllocation <--> CoreInstructionCounter_increment
@@ -2914,6 +2930,7 @@
    FIFO13_read --> RSSelection_RSSelection1
    FIFO13_read --> RSSelection_RSSelection2
    RS_select --> RSSelection_RSSelection3
+   PreservedOrderAllocator_alloc --> RSSelection_RSSelection3
    RSSelection_RSSelection3 --> FIFO14_write
    RSSelection_RSSelection --> FIFO14_write
    RSSelection_RSSelection1 --> FIFO14_write
@@ -2935,7 +2952,9 @@
    RSSelection_RSSelection1 --> MemoryBank2_read_req1
    RSSelection_RSSelection2 --> MemoryBank2_read_req1
    RS1_select --> RSSelection_RSSelection
+   PreservedOrderAllocator1_alloc --> RSSelection_RSSelection
    FifoRS_select --> RSSelection_RSSelection1
+   FifoRS_alloc --> RSSelection_RSSelection1
    RSSelection_RSSelection2 <--> CSRUnit_select
    FIFO14_read --> RSInsertion_RSInsertion
    RegisterFile_read_resp1 --> RSInsertion_RSInsertion
@@ -2943,7 +2962,7 @@
    RegisterFile_read_resp2 --> RSInsertion_RSInsertion
    MemoryBank2_read_resp1 --> RSInsertion_RSInsertion
    Retirement_core_state --> RSInsertion_RSInsertion
-   Retirement_core_state --> LSUDummy_LSUDummy
+   Retirement_core_state --> LSUDummy_LSUDummy4
    CheckpointRAT_get_active_tags --> RSInsertion_RSInsertion
    RSInsertion_RSInsertion --> RS_insert
    RSInsertion_RSInsertion --> TaggedLatencyMeasurer1__start
@@ -2966,13 +2985,19 @@
    ResultAnnouncement_ResultAnnouncement --> RS1_update
    ResultAnnouncement_ResultAnnouncement --> FifoRS_update
    ResultAnnouncement_ResultAnnouncement --> CSRUnit_update
+   PreservedOrderAllocator_order --> RS_RS
    RS_perf --> HwExpHistogram9__add
-   RS_RS --> WakeupSelect_WakeupSelect
+   RS_RS1 --> WakeupSelect_WakeupSelect
    RS_take --> WakeupSelect_WakeupSelect
    RS_take --> WakeupSelect1_WakeupSelect
    RS_take --> WakeupSelect2_WakeupSelect
    RS_take --> WakeupSelect3_WakeupSelect
    RS_take --> WakeupSelect4_WakeupSelect
+   WakeupSelect_WakeupSelect --> PreservedOrderAllocator_free_idx
+   WakeupSelect1_WakeupSelect --> PreservedOrderAllocator_free_idx
+   WakeupSelect2_WakeupSelect --> PreservedOrderAllocator_free_idx
+   WakeupSelect3_WakeupSelect --> PreservedOrderAllocator_free_idx
+   WakeupSelect4_WakeupSelect --> PreservedOrderAllocator_free_idx
    WakeupSelect_WakeupSelect --> TaggedLatencyMeasurer1__stop
    WakeupSelect1_WakeupSelect --> TaggedLatencyMeasurer1__stop
    WakeupSelect2_WakeupSelect --> TaggedLatencyMeasurer1__stop
@@ -2991,7 +3016,7 @@
    WakeupSelect_WakeupSelect --> AluFuncUnit_issue
    WakeupSelect_WakeupSelect --> TaggedCounter4__incr
    WakeupSelect_WakeupSelect --> FIFO2_write
-   RS_RS1 --> WakeupSelect1_WakeupSelect
+   RS_RS5 --> WakeupSelect1_WakeupSelect
    WakeupSelect1_WakeupSelect --> ShiftFuncUnit_issue
    WakeupSelect1_WakeupSelect --> FIFO3_write
    BasicFifo6_read --> ConnectTrans4_ConnectTrans
@@ -3035,33 +3060,36 @@
    ConnectTrans6_ConnectTrans <--> StallController_stall_exception
    ConnectTrans14_ConnectTrans <--> StallController_stall_exception
    ConnectTrans16_ConnectTrans <--> StallController_stall_exception
-   RS_RS3 --> WakeupSelect2_WakeupSelect
+   RS_RS4 --> WakeupSelect2_WakeupSelect
    WakeupSelect2_WakeupSelect --> JumpBranchFuncUnit_issue
    WakeupSelect2_WakeupSelect <--> CoreFrontend_target_pred_req
    WakeupSelect2_WakeupSelect --> BasicFifo5_write
    WakeupSelect2_WakeupSelect --> TaggedCounter5__incr
    BasicFifo7_read --> ConnectTrans5_ConnectTrans
-   RS_RS4 --> WakeupSelect3_WakeupSelect
+   RS_RS2 --> WakeupSelect3_WakeupSelect
    WakeupSelect3_WakeupSelect --> ExceptionFuncUnit_issue
    WakeupSelect3_WakeupSelect --> BasicFifo7_write
    WakeupSelect3_WakeupSelect --> FIFO5_write
    BasicFifo8_read --> ConnectTrans6_ConnectTrans
-   RS_RS2 --> WakeupSelect4_WakeupSelect
+   RS_RS3 --> WakeupSelect4_WakeupSelect
    WakeupSelect4_WakeupSelect --> PrivilegedFuncUnit_issue
    ConnectTrans7_ConnectTrans --> Forwarder5_write
    ConnectTrans8_ConnectTrans --> Forwarder5_write
    ConnectTrans10_ConnectTrans --> Forwarder5_write
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans --> Forwarder5_write
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> Forwarder5_write
    TransactionManager_JumpBranchFuncUnit_ConnectTrans --> Forwarder5_write
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> Forwarder5_write
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 --> Forwarder5_write
    FIFO2_read --> ConnectTrans7_ConnectTrans
    FIFO3_read --> ConnectTrans8_ConnectTrans
    FIFO5_read --> ConnectTrans10_ConnectTrans
+   PreservedOrderAllocator1_order --> RS1_RS2
    RS1_perf --> HwExpHistogram11__add
    RecursiveWithSingleDSPMul_RecursiveWithSingleDSPMul <--> DSPMulUnit_compute
-   RS1_RS1 --> WakeupSelect5_WakeupSelect
+   RS1_RS --> WakeupSelect5_WakeupSelect
    RS1_take --> WakeupSelect5_WakeupSelect
    RS1_take --> WakeupSelect6_WakeupSelect
+   WakeupSelect5_WakeupSelect --> PreservedOrderAllocator1_free_idx
+   WakeupSelect6_WakeupSelect --> PreservedOrderAllocator1_free_idx
    WakeupSelect5_WakeupSelect --> TaggedLatencyMeasurer2__stop
    WakeupSelect6_WakeupSelect --> TaggedLatencyMeasurer2__stop
    AsyncMemoryBank2_read0 --> WakeupSelect5_WakeupSelect
@@ -3071,44 +3099,46 @@
    WakeupSelect5_WakeupSelect --> MulUnit_issue
    WakeupSelect5_WakeupSelect --> FIFO6_write
    WakeupSelect5_WakeupSelect --> SequentialUnsignedMul_issue
-   RS1_RS --> WakeupSelect6_WakeupSelect
+   RS1_RS1 --> WakeupSelect6_WakeupSelect
    WakeupSelect6_WakeupSelect --> DivUnit_issue
    WakeupSelect6_WakeupSelect --> FIFO7_write
    WakeupSelect6_WakeupSelect --> LongDivider_issue
+   FifoRS_order --> FifoRS_FifoRS
    FifoRS_perf --> HwExpHistogram13__add
-   Forwarder7_read --> LSUDummy_LSUDummy3
-   Forwarder7_read --> TransactionManager_LSUDummy_issue_cond1
-   Forwarder7_read --> TransactionManager_LSUDummy_issue_cond2
-   Forwarder7_read --> TransactionManager_LSUDummy_issue_cond0
-   LSUDummy_LSUDummy3 --> FIFO8_write
+   Forwarder7_read --> LSUDummy_LSUDummy1
+   Forwarder7_read --> TransactionManager_issue_cond2_LSUDummy
+   Forwarder7_read --> TransactionManager_issue_cond0_LSUDummy
+   Forwarder7_read --> TransactionManager_issue_cond1_LSUDummy
+   LSUDummy_LSUDummy1 --> FIFO8_write
    WakeupSelect7_WakeupSelect --> FIFO8_write
-   TransactionManager_LSUDummy_issue_cond1 --> FIFO8_write
-   TransactionManager_LSUDummy_issue_cond2 --> FIFO8_write
-   TransactionManager_LSUDummy_issue_cond0 --> FIFO8_write
-   LSUDummy_LSUDummy3 --> FIFO10_write
+   TransactionManager_issue_cond2_LSUDummy --> FIFO8_write
+   TransactionManager_issue_cond0_LSUDummy --> FIFO8_write
+   TransactionManager_issue_cond1_LSUDummy --> FIFO8_write
+   LSUDummy_LSUDummy1 --> FIFO10_write
    WakeupSelect7_WakeupSelect --> FIFO10_write
-   TransactionManager_LSUDummy_issue_cond1 --> FIFO10_write
-   TransactionManager_LSUDummy_issue_cond2 --> FIFO10_write
-   TransactionManager_LSUDummy_issue_cond0 --> FIFO10_write
-   LSUDummy_LSUDummy4 --> Retirement_precommit
+   TransactionManager_issue_cond2_LSUDummy --> FIFO10_write
+   TransactionManager_issue_cond0_LSUDummy --> FIFO10_write
+   TransactionManager_issue_cond1_LSUDummy --> FIFO10_write
+   LSUDummy_LSUDummy --> Retirement_precommit
    CSRUnit_CSRUnit --> Retirement_precommit
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 --> Retirement_precommit
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 --> Retirement_precommit
    TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 --> Retirement_precommit
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 --> Retirement_precommit
    TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 --> Retirement_precommit
-   ReorderBuffer_peek --> LSUDummy_LSUDummy4
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 --> Retirement_precommit
+   ReorderBuffer_peek --> LSUDummy_LSUDummy
    ReorderBuffer_peek --> CSRUnit_CSRUnit
-   ReorderBuffer_peek --> Retirement_Retirement
+   ReorderBuffer_peek --> Retirement_Retirement2
    ReorderBuffer_peek --> Retirement_Retirement1
-   ReorderBuffer_peek --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
-   ReorderBuffer_peek --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
+   ReorderBuffer_peek --> TransactionManager_Retirement_cond1_Retirement
    ReorderBuffer_peek --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
-   ReorderBuffer_peek --> TransactionManager_Retirement_Retirement_cond1
-   ReorderBuffer_peek --> TransactionManager_Retirement_cond0_Retirement
+   ReorderBuffer_peek --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
    ReorderBuffer_peek --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+   ReorderBuffer_peek --> TransactionManager_Retirement_cond0_Retirement
+   ReorderBuffer_peek --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
    BasicFifo10_read --> ConnectTrans14_ConnectTrans
-   FifoRS_FifoRS --> WakeupSelect7_WakeupSelect
+   FifoRS_FifoRS1 --> WakeupSelect7_WakeupSelect
    FifoRS_take --> WakeupSelect7_WakeupSelect
+   WakeupSelect7_WakeupSelect --> FifoRS_free_idx
    WakeupSelect7_WakeupSelect --> TaggedLatencyMeasurer3__stop
    AsyncMemoryBank3_read0 --> WakeupSelect7_WakeupSelect
    WakeupSelect7_WakeupSelect --> HwExpHistogram12__add
@@ -3888,51 +3918,51 @@
    ConnectTrans_ConnectTrans --> Forwarder4_write
    ConnectTrans1_ConnectTrans --> Forwarder4_write
    ConnectTrans2_ConnectTrans --> Forwarder4_write
+   TransactionManager_ConnectTrans__resume_from_unsafe_cond0 --> Forwarder4_write
    TransactionManager__resume_from_unsafe_cond1_ConnectTrans --> Forwarder4_write
-   TransactionManager__resume_from_unsafe_cond0_ConnectTrans --> Forwarder4_write
    Forwarder5_read --> ConnectTrans_ConnectTrans
    Forwarder6_read --> ConnectTrans1_ConnectTrans
    Forwarder8_read --> ConnectTrans2_ConnectTrans
-   ExceptionInformationRegister_get --> Retirement_Retirement
-   ExceptionInformationRegister_get --> TransactionManager_Retirement_Retirement_cond1
+   ExceptionInformationRegister_get --> Retirement_Retirement2
+   ExceptionInformationRegister_get --> TransactionManager_Retirement_cond1_Retirement
    ExceptionInformationRegister_get --> TransactionManager_Retirement_cond0_Retirement
    Retirement_Retirement1 <--> ReorderBuffer_retire
-   TransactionManager_Retirement_Retirement_cond1 <--> ReorderBuffer_retire
+   TransactionManager_Retirement_cond1_Retirement <--> ReorderBuffer_retire
    TransactionManager_Retirement_cond0_Retirement <--> ReorderBuffer_retire
    Retirement_Retirement1 <--> FIFOLatencyMeasurer1__stop
-   TransactionManager_Retirement_Retirement_cond1 <--> FIFOLatencyMeasurer1__stop
+   TransactionManager_Retirement_cond1_Retirement <--> FIFOLatencyMeasurer1__stop
    TransactionManager_Retirement_cond0_Retirement <--> FIFOLatencyMeasurer1__stop
    FIFO1_read --> Retirement_Retirement1
-   FIFO1_read --> TransactionManager_Retirement_Retirement_cond1
+   FIFO1_read --> TransactionManager_Retirement_cond1_Retirement
    FIFO1_read --> TransactionManager_Retirement_cond0_Retirement
    Retirement_Retirement1 --> HwExpHistogram6__add
-   TransactionManager_Retirement_Retirement_cond1 --> HwExpHistogram6__add
+   TransactionManager_Retirement_cond1_Retirement --> HwExpHistogram6__add
    TransactionManager_Retirement_cond0_Retirement --> HwExpHistogram6__add
    Retirement_Retirement1 <--> CheckpointRAT_free_tag
-   TransactionManager_Retirement_Retirement_cond1 <--> CheckpointRAT_free_tag
+   TransactionManager_Retirement_cond1_Retirement <--> CheckpointRAT_free_tag
    TransactionManager_Retirement_cond0_Retirement <--> CheckpointRAT_free_tag
    CoreInstructionCounter_decrement --> Retirement_Retirement1
-   CoreInstructionCounter_decrement --> TransactionManager_Retirement_Retirement_cond1
+   CoreInstructionCounter_decrement --> TransactionManager_Retirement_cond1_Retirement
    CoreInstructionCounter_decrement --> TransactionManager_Retirement_cond0_Retirement
    RRAT_peek --> Retirement_Retirement1
-   RRAT_peek --> TransactionManager_Retirement_Retirement_cond1
+   RRAT_peek --> TransactionManager_Retirement_cond1_Retirement
    Retirement_Retirement1 --> RegisterFile_free
-   TransactionManager_Retirement_Retirement_cond1 --> RegisterFile_free
+   TransactionManager_Retirement_cond1_Retirement --> RegisterFile_free
    TransactionManager_Retirement_cond0_Retirement --> RegisterFile_free
    Retirement_Retirement1 --> TaggedLatencyMeasurer__stop
-   TransactionManager_Retirement_Retirement_cond1 --> TaggedLatencyMeasurer__stop
+   TransactionManager_Retirement_cond1_Retirement --> TaggedLatencyMeasurer__stop
    TransactionManager_Retirement_cond0_Retirement --> TaggedLatencyMeasurer__stop
    AsyncMemoryBank_read0 --> Retirement_Retirement1
-   AsyncMemoryBank_read0 --> TransactionManager_Retirement_Retirement_cond1
+   AsyncMemoryBank_read0 --> TransactionManager_Retirement_cond1_Retirement
    AsyncMemoryBank_read0 --> TransactionManager_Retirement_cond0_Retirement
    Retirement_Retirement1 --> HwExpHistogram4__add
-   TransactionManager_Retirement_Retirement_cond1 --> HwExpHistogram4__add
+   TransactionManager_Retirement_cond1_Retirement --> HwExpHistogram4__add
    TransactionManager_Retirement_cond0_Retirement --> HwExpHistogram4__add
    Retirement_Retirement1 --> PriorityEncoderAllocator_free0
-   TransactionManager_Retirement_Retirement_cond1 --> PriorityEncoderAllocator_free0
+   TransactionManager_Retirement_cond1_Retirement --> PriorityEncoderAllocator_free0
    TransactionManager_Retirement_cond0_Retirement --> PriorityEncoderAllocator_free0
    Retirement_Retirement1 --> CheckpointRAT_flush_restore
-   TransactionManager_Retirement_Retirement_cond1 --> CheckpointRAT_flush_restore
+   TransactionManager_Retirement_cond1_Retirement --> CheckpointRAT_flush_restore
    Retirement_Retirement3 <--> FIFOLatencyMeasurer2__stop
    FIFO15_read --> Retirement_Retirement3
    Retirement_Retirement3 --> HwExpHistogram14__add
@@ -3941,171 +3971,21 @@
    CSRRegister6_read --> Retirement_Retirement3
    Retirement_Retirement3 --> StallController_resume_from_exception
    Retirement_Retirement3 --> FetchUnit_redirect
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans --> FetchUnit_redirect
-   TransactionManager__resume_from_unsafe_cond0_ConnectTrans --> FetchUnit_redirect
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 --> FetchUnit_redirect
+   TransactionManager_ConnectTrans__resume_from_unsafe_cond0 --> FetchUnit_redirect
    Retirement_Retirement3 <--> ExceptionInformationRegister_clear
    Retirement_Retirement3 <--> BasicFifo6_clear
    Retirement_Retirement3 <--> BasicFifo7_clear
    Retirement_Retirement3 <--> BasicFifo8_clear
    Retirement_Retirement3 <--> BasicFifo10_clear
    Retirement_Retirement3 <--> BasicFifo11_clear
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 <--> FetchUnit_Fetch_Stage2
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> FetchUnit_Fetch_Stage2
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 <--> Semaphore_release
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> Semaphore_release
-   Pipe_read --> TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1
-   Pipe_read --> TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> Predecoder_predecode
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> Predecoder_predecode
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> PredictionChecker_check
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> PredictionChecker_check
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> TaggedCounter1__incr
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter1__incr
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> TaggedCounter2__incr
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter2__incr
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> TaggedCounter3__incr
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter3__incr
-   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 <--> FetchUnit_Fetch_Stage2_cond1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 --> TaggedCounter6__incr
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 --> TaggedCounter6__incr
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 --> TaggedCounter6__incr
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 --> TaggedCounter6__incr
-   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
-   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
-   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
-   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 <--> ICache_flush
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans <--> PrivilegedFuncUnit_PrivilegedFuncUnit
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans <--> PrivilegedFuncUnit_PrivilegedFuncUnit
-   CSRRegister7_read --> TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans
-   CSRRegister7_read --> TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans --> BasicFifo8_write
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> BasicFifo8_write
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans --> StallController__resume_from_unsafe
-   TransactionManager__resume_from_unsafe_cond1_ConnectTrans --> StallController__resume_from_unsafe
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> StallController__resume_from_unsafe
-   TransactionManager__resume_from_unsafe_cond0_ConnectTrans --> StallController__resume_from_unsafe
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans --> Connect2_write
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> Connect2_write
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans <--> StallController__resume_from_unsafe_cond0
-   TransactionManager__resume_from_unsafe_cond0_ConnectTrans <--> StallController__resume_from_unsafe_cond0
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans <--> ConnectTrans11_ConnectTrans
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans <--> ConnectTrans11_ConnectTrans
-   Connect2_read --> TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond0_ConnectTrans
-   Connect2_read --> TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans <--> LSUDummy_LSUDummy1
-   TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1 <--> LSUDummy_LSUDummy1
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> LSUDummy_LSUDummy1
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans --> BasicFifo10_write
-   TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1 --> BasicFifo10_write
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans --> BasicFifo10_write
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans --> Connect5_write
-   TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1 --> Connect5_write
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans --> Connect5_write
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans <--> LSUDummy_LSUDummy_cond0
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> LSUDummy_LSUDummy_cond0
-   LSURequester_accept --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   LSURequester_accept --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   BasicFifo9_read --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   BasicFifo9_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   FIFO9_read --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   FIFO9_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans <--> LSURequester_accept_cond0
-   WishboneMasterAdapter1_get_write_response --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   Serializer1_serialize_out1 --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   BasicFifo1_read --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   BasicFifo1_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   WishboneMaster1_result --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   WishboneMaster1_result --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   Forwarder1_read --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   Forwarder1_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans <--> ConnectTrans15_ConnectTrans
-   TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1 <--> ConnectTrans15_ConnectTrans
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> ConnectTrans15_ConnectTrans
-   TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans --> Forwarder8_write
-   TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1 --> Forwarder8_write
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans --> Forwarder8_write
-   Connect5_read --> TransactionManager_LSUDummy_LSUDummy_cond0_accept_cond0_ConnectTrans
-   Connect5_read --> TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1
-   Connect5_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   TransactionManager_InstructionTagger_tag_cond0 <--> InstructionTagger_InstructionTagger
-   TransactionManager_InstructionTagger_tag_cond1 <--> InstructionTagger_InstructionTagger
-   FIFO11_read --> TransactionManager_InstructionTagger_tag_cond0
-   FIFO11_read --> TransactionManager_InstructionTagger_tag_cond1
-   TransactionManager_InstructionTagger_tag_cond0 <--> CheckpointRAT_tag
-   TransactionManager_InstructionTagger_tag_cond1 <--> CheckpointRAT_tag
-   TransactionManager_InstructionTagger_tag_cond0 --> FIFO12_write
-   TransactionManager_InstructionTagger_tag_cond1 --> FIFO12_write
-   TransactionManager_InstructionTagger_tag_cond0 <--> CheckpointRAT_tag_cond0
-   CheckpointRAT_allocate_tag --> TransactionManager_InstructionTagger_tag_cond0
-   TransactionManager_ConnectTrans_MulUnit <--> ConnectTrans12_ConnectTrans
-   TransactionManager_ConnectTrans_MulUnit --> Forwarder6_write
-   TransactionManager_DivUnit_ConnectTrans --> Forwarder6_write
-   Connect3_read --> TransactionManager_ConnectTrans_MulUnit
-   TransactionManager_ConnectTrans_MulUnit <--> MulUnit_MulUnit
-   SequentialUnsignedMul_accept --> TransactionManager_ConnectTrans_MulUnit
-   FIFO6_read --> TransactionManager_ConnectTrans_MulUnit
-   TransactionManager_ConnectTrans_MulUnit --> Connect3_write
-   TransactionManager__resume_from_unsafe_cond1_ConnectTrans <--> StallController__resume_from_unsafe_cond1
-   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans <--> StallController__resume_from_unsafe_cond1
-   TransactionManager__resume_from_unsafe_cond1_ConnectTrans <--> ConnectTrans3_ConnectTrans
-   TransactionManager__resume_from_unsafe_cond0_ConnectTrans <--> ConnectTrans3_ConnectTrans
-   CSRUnit_get_result --> TransactionManager__resume_from_unsafe_cond1_ConnectTrans
-   CSRUnit_get_result --> TransactionManager__resume_from_unsafe_cond0_ConnectTrans
-   TransactionManager__resume_from_unsafe_cond1_ConnectTrans --> BasicFifo11_write
-   TransactionManager__resume_from_unsafe_cond0_ConnectTrans --> BasicFifo11_write
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> JumpBranchFuncUnit_JumpBranchFuncUnit
-   BasicFifo5_read --> TransactionManager_JumpBranchFuncUnit_ConnectTrans
-   CoreFrontend_target_pred_resp --> TransactionManager_JumpBranchFuncUnit_ConnectTrans
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> HwCounter8__incr
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> HwCounter7__incr
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans --> BasicFifo6_write
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans --> FIFO4_write
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans --> Connect1_write
-   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> ConnectTrans9_ConnectTrans
-   Connect1_read --> TransactionManager_JumpBranchFuncUnit_ConnectTrans
-   TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1 <--> LSUDummy_LSUDummy_cond1
-   FIFO8_read --> TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1
-   FIFO10_read --> TransactionManager_LSUDummy_ConnectTrans_LSUDummy_cond1
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
-   TransactionManager_DivUnit_ConnectTrans <--> DivUnit_DivUnit
-   LongDivider_accept --> TransactionManager_DivUnit_ConnectTrans
-   FIFO7_read --> TransactionManager_DivUnit_ConnectTrans
-   TransactionManager_DivUnit_ConnectTrans --> Connect4_write
-   TransactionManager_DivUnit_ConnectTrans <--> ConnectTrans13_ConnectTrans
-   Connect4_read --> TransactionManager_DivUnit_ConnectTrans
-   TransactionManager_Retirement_Retirement_cond1 <--> Retirement_Retirement2
-   TransactionManager_Retirement_cond0_Retirement <--> Retirement_Retirement2
-   TransactionManager_Retirement_Retirement_cond1 <--> FIFOLatencyMeasurer2__start
-   TransactionManager_Retirement_cond0_Retirement <--> FIFOLatencyMeasurer2__start
-   TransactionManager_Retirement_Retirement_cond1 --> FIFO15_write
-   TransactionManager_Retirement_cond0_Retirement --> FIFO15_write
-   InternalInterruptController_interrupt_cause --> TransactionManager_Retirement_Retirement_cond1
-   InternalInterruptController_interrupt_cause --> TransactionManager_Retirement_cond0_Retirement
-   TransactionManager_Retirement_Retirement_cond1 --> CSRRegister6_write
-   TransactionManager_Retirement_cond0_Retirement --> CSRRegister6_write
-   TransactionManager_Retirement_Retirement_cond1 --> CSRRegister7_write
-   TransactionManager_Retirement_cond0_Retirement --> CSRRegister7_write
-   TransactionManager_Retirement_Retirement_cond1 --> CSRRegister8_write
-   TransactionManager_Retirement_cond0_Retirement --> CSRRegister8_write
-   TransactionManager_Retirement_Retirement_cond1 <--> InternalInterruptController_entry
-   TransactionManager_Retirement_cond0_Retirement <--> InternalInterruptController_entry
-   TransactionManager_Retirement_Retirement_cond1 <--> Retirement_Retirement_cond1
-   TransactionManager_Retirement_cond0_Retirement <--> Retirement_Retirement_cond0
-   TransactionManager_Retirement_cond0_Retirement --> RRAT_commit
-   TransactionManager_Retirement_cond0_Retirement <--> DoubleCounterCSR2_increment
-   CSRRegister152_read --> TransactionManager_Retirement_cond0_Retirement
-   TransactionManager_Retirement_cond0_Retirement --> CSRRegister152_write
-   CSRRegister153_read --> TransactionManager_Retirement_cond0_Retirement
-   TransactionManager_Retirement_cond0_Retirement --> CSRRegister153_write
-   TransactionManager_Retirement_cond0_Retirement <--> HwCounter9__incr
-   TransactionManager_InstructionTagger_tag_cond1 <--> CheckpointRAT_tag_cond1
+   TransactionManager_DecodeStage_RollbackTagger <--> DecodeStage_DecodeStage
+   BasicFifo2_read --> TransactionManager_DecodeStage_RollbackTagger
+   TransactionManager_DecodeStage_RollbackTagger <--> HwCounter6__incr
+   TransactionManager_DecodeStage_RollbackTagger --> Connect_write
+   TransactionManager_DecodeStage_RollbackTagger <--> RollbackTagger_RollbackTagger
+   Connect_read --> TransactionManager_DecodeStage_RollbackTagger
+   TransactionManager_DecodeStage_RollbackTagger --> Pipe1_write
    TransactionManager_Renaming_rename_cond0_ROBAllocation <--> Renaming_Renaming
    TransactionManager_Renaming_rename_cond1_ROBAllocation <--> Renaming_Renaming
    FIFO12_read --> TransactionManager_Renaming_rename_cond0_ROBAllocation
@@ -4130,44 +4010,194 @@
    TransactionManager_Renaming_rename_cond1_ROBAllocation --> FIFO1_write
    TransactionManager_Renaming_rename_cond0_ROBAllocation --> FIFO13_write
    TransactionManager_Renaming_rename_cond1_ROBAllocation --> FIFO13_write
-   TransactionManager_DecodeStage_RollbackTagger <--> DecodeStage_DecodeStage
-   BasicFifo2_read --> TransactionManager_DecodeStage_RollbackTagger
-   TransactionManager_DecodeStage_RollbackTagger <--> HwCounter6__incr
-   TransactionManager_DecodeStage_RollbackTagger --> Connect_write
-   TransactionManager_DecodeStage_RollbackTagger <--> RollbackTagger_RollbackTagger
-   Connect_read --> TransactionManager_DecodeStage_RollbackTagger
-   TransactionManager_DecodeStage_RollbackTagger --> Pipe1_write
-   TransactionManager_LSUDummy_issue_cond1 <--> LSUDummy_LSUDummy2
-   TransactionManager_LSUDummy_issue_cond2 <--> LSUDummy_LSUDummy2
-   TransactionManager_LSUDummy_issue_cond0 <--> LSUDummy_LSUDummy2
-   TransactionManager_LSUDummy_issue_cond1 --> LSURequester_issue
-   TransactionManager_LSUDummy_issue_cond2 --> LSURequester_issue
-   TransactionManager_LSUDummy_issue_cond0 --> LSURequester_issue
-   TransactionManager_LSUDummy_issue_cond1 --> BasicFifo9_write
-   TransactionManager_LSUDummy_issue_cond2 --> BasicFifo9_write
-   TransactionManager_LSUDummy_issue_cond0 --> BasicFifo9_write
-   TransactionManager_LSUDummy_issue_cond1 --> FIFO9_write
-   TransactionManager_LSUDummy_issue_cond2 --> FIFO9_write
-   TransactionManager_LSUDummy_issue_cond0 --> FIFO9_write
-   TransactionManager_LSUDummy_issue_cond1 <--> LSURequester_issue_cond1
-   TransactionManager_LSUDummy_issue_cond1 --> WishboneMasterAdapter1_request_read
-   TransactionManager_LSUDummy_issue_cond1 --> Serializer1_serialize_in0
-   TransactionManager_LSUDummy_issue_cond1 --> BasicFifo1_write
-   TransactionManager_LSUDummy_issue_cond0 --> BasicFifo1_write
-   TransactionManager_LSUDummy_issue_cond1 --> WishboneMaster1_request
-   TransactionManager_LSUDummy_issue_cond0 --> WishboneMaster1_request
-   TransactionManager_Renaming_rename_cond1_ROBAllocation <--> CheckpointRAT_rename_cond1
-   TransactionManager_LSUDummy_issue_cond2 <--> LSURequester_issue_cond2
-   TransactionManager_LSUDummy_issue_cond0 <--> LSURequester_issue_cond0
-   TransactionManager_LSUDummy_issue_cond0 --> WishboneMasterAdapter1_request_write
-   TransactionManager_LSUDummy_issue_cond0 --> Serializer1_serialize_in1
-   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> LSURequester_accept_cond1
-   WishboneMasterAdapter1_get_read_response --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   Serializer1_serialize_out0 --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
-   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 <--> InternalInterruptController_mret
+   TransactionManager_InstructionTagger_tag_cond1 <--> InstructionTagger_InstructionTagger
+   TransactionManager_InstructionTagger_tag_cond0 <--> InstructionTagger_InstructionTagger
+   FIFO11_read --> TransactionManager_InstructionTagger_tag_cond1
+   FIFO11_read --> TransactionManager_InstructionTagger_tag_cond0
+   TransactionManager_InstructionTagger_tag_cond1 <--> CheckpointRAT_tag
+   TransactionManager_InstructionTagger_tag_cond0 <--> CheckpointRAT_tag
+   TransactionManager_InstructionTagger_tag_cond1 --> FIFO12_write
+   TransactionManager_InstructionTagger_tag_cond0 --> FIFO12_write
+   TransactionManager_InstructionTagger_tag_cond1 <--> CheckpointRAT_tag_cond1
+   TransactionManager_Retirement_cond1_Retirement <--> Retirement_Retirement_cond1
+   TransactionManager_Retirement_cond1_Retirement <--> Retirement_Retirement
+   TransactionManager_Retirement_cond0_Retirement <--> Retirement_Retirement
+   TransactionManager_Retirement_cond1_Retirement <--> FIFOLatencyMeasurer2__start
+   TransactionManager_Retirement_cond0_Retirement <--> FIFOLatencyMeasurer2__start
+   TransactionManager_Retirement_cond1_Retirement --> FIFO15_write
+   TransactionManager_Retirement_cond0_Retirement --> FIFO15_write
+   InternalInterruptController_interrupt_cause --> TransactionManager_Retirement_cond1_Retirement
+   InternalInterruptController_interrupt_cause --> TransactionManager_Retirement_cond0_Retirement
+   TransactionManager_Retirement_cond1_Retirement --> CSRRegister6_write
+   TransactionManager_Retirement_cond0_Retirement --> CSRRegister6_write
+   TransactionManager_Retirement_cond1_Retirement --> CSRRegister7_write
+   TransactionManager_Retirement_cond0_Retirement --> CSRRegister7_write
+   TransactionManager_Retirement_cond1_Retirement --> CSRRegister8_write
+   TransactionManager_Retirement_cond0_Retirement --> CSRRegister8_write
+   TransactionManager_Retirement_cond1_Retirement <--> InternalInterruptController_entry
+   TransactionManager_Retirement_cond0_Retirement <--> InternalInterruptController_entry
+   TransactionManager_InstructionTagger_tag_cond0 <--> CheckpointRAT_tag_cond0
+   CheckpointRAT_allocate_tag --> TransactionManager_InstructionTagger_tag_cond0
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 <--> PrivilegedFuncUnit_PrivilegedFuncUnit1
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 --> TaggedCounter6__incr
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 --> TaggedCounter6__incr
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 --> TaggedCounter6__incr
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 --> TaggedCounter6__incr
+   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
+   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
+   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+   CSRRegister143_read --> TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> JumpBranchFuncUnit_JumpBranchFuncUnit
+   BasicFifo5_read --> TransactionManager_JumpBranchFuncUnit_ConnectTrans
+   CoreFrontend_target_pred_resp --> TransactionManager_JumpBranchFuncUnit_ConnectTrans
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> HwCounter8__incr
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> HwCounter7__incr
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans --> BasicFifo6_write
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans --> FIFO4_write
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans --> Connect1_write
+   TransactionManager_JumpBranchFuncUnit_ConnectTrans <--> ConnectTrans9_ConnectTrans
+   Connect1_read --> TransactionManager_JumpBranchFuncUnit_ConnectTrans
+   TransactionManager_issue_cond2_LSUDummy <--> LSURequester_issue_cond2
+   TransactionManager_issue_cond2_LSUDummy <--> LSUDummy_LSUDummy2
+   TransactionManager_issue_cond0_LSUDummy <--> LSUDummy_LSUDummy2
+   TransactionManager_issue_cond1_LSUDummy <--> LSUDummy_LSUDummy2
+   TransactionManager_issue_cond2_LSUDummy --> LSURequester_issue
+   TransactionManager_issue_cond0_LSUDummy --> LSURequester_issue
+   TransactionManager_issue_cond1_LSUDummy --> LSURequester_issue
+   TransactionManager_issue_cond2_LSUDummy --> BasicFifo9_write
+   TransactionManager_issue_cond0_LSUDummy --> BasicFifo9_write
+   TransactionManager_issue_cond1_LSUDummy --> BasicFifo9_write
+   TransactionManager_issue_cond2_LSUDummy --> FIFO9_write
+   TransactionManager_issue_cond0_LSUDummy --> FIFO9_write
+   TransactionManager_issue_cond1_LSUDummy --> FIFO9_write
+   TransactionManager_DivUnit_ConnectTrans <--> DivUnit_DivUnit
+   LongDivider_accept --> TransactionManager_DivUnit_ConnectTrans
+   FIFO7_read --> TransactionManager_DivUnit_ConnectTrans
+   TransactionManager_DivUnit_ConnectTrans --> Connect4_write
+   TransactionManager_DivUnit_ConnectTrans <--> ConnectTrans13_ConnectTrans
+   TransactionManager_DivUnit_ConnectTrans --> Forwarder6_write
+   TransactionManager_ConnectTrans_MulUnit --> Forwarder6_write
+   Connect4_read --> TransactionManager_DivUnit_ConnectTrans
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 <--> FetchUnit_Fetch_Stage2
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> FetchUnit_Fetch_Stage2
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 <--> Semaphore_release
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> Semaphore_release
+   Pipe_read --> TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1
+   Pipe_read --> TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> Predecoder_predecode
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> Predecoder_predecode
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> PredictionChecker_check
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> PredictionChecker_check
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> TaggedCounter1__incr
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter1__incr
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> TaggedCounter2__incr
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter2__incr
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --> TaggedCounter3__incr
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter3__incr
+   TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 <--> FetchUnit_Fetch_Stage2_cond1
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans <--> PrivilegedFuncUnit_PrivilegedFuncUnit
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 <--> PrivilegedFuncUnit_PrivilegedFuncUnit
+   CSRRegister7_read --> TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans
+   CSRRegister7_read --> TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> BasicFifo8_write
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 --> BasicFifo8_write
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> StallController__resume_from_unsafe
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 --> StallController__resume_from_unsafe
+   TransactionManager_ConnectTrans__resume_from_unsafe_cond0 --> StallController__resume_from_unsafe
+   TransactionManager__resume_from_unsafe_cond1_ConnectTrans --> StallController__resume_from_unsafe
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans --> Connect2_write
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 --> Connect2_write
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans <--> StallController__resume_from_unsafe_cond1
+   TransactionManager__resume_from_unsafe_cond1_ConnectTrans <--> StallController__resume_from_unsafe_cond1
+   TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans <--> ConnectTrans11_ConnectTrans
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 <--> ConnectTrans11_ConnectTrans
+   Connect2_read --> TransactionManager_PrivilegedFuncUnit__resume_from_unsafe_cond1_ConnectTrans
+   Connect2_read --> TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans <--> LSURequester_accept_cond0
+   WishboneMasterAdapter1_get_write_response --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   Serializer1_serialize_out1 --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   BasicFifo1_read --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   BasicFifo1_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   WishboneMaster1_result --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   WishboneMaster1_result --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   Forwarder1_read --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   Forwarder1_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans <--> LSUDummy_LSUDummy_cond0
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> LSUDummy_LSUDummy_cond0
+   LSURequester_accept --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   LSURequester_accept --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   BasicFifo9_read --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   BasicFifo9_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   FIFO9_read --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   FIFO9_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans <--> LSUDummy_LSUDummy3
+   TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1 <--> LSUDummy_LSUDummy3
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> LSUDummy_LSUDummy3
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans --> BasicFifo10_write
+   TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1 --> BasicFifo10_write
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans --> BasicFifo10_write
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans --> Connect5_write
+   TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1 --> Connect5_write
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans --> Connect5_write
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans <--> ConnectTrans15_ConnectTrans
+   TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1 <--> ConnectTrans15_ConnectTrans
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> ConnectTrans15_ConnectTrans
+   TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans --> Forwarder8_write
+   TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1 --> Forwarder8_write
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans --> Forwarder8_write
+   Connect5_read --> TransactionManager_accept_cond0_LSUDummy_cond0_LSUDummy_ConnectTrans
+   Connect5_read --> TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1
+   Connect5_read --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   TransactionManager_issue_cond0_LSUDummy <--> LSURequester_issue_cond0
+   TransactionManager_issue_cond0_LSUDummy --> WishboneMasterAdapter1_request_write
+   TransactionManager_issue_cond0_LSUDummy --> Serializer1_serialize_in1
+   TransactionManager_issue_cond0_LSUDummy --> BasicFifo1_write
+   TransactionManager_issue_cond1_LSUDummy --> BasicFifo1_write
+   TransactionManager_issue_cond0_LSUDummy --> WishboneMaster1_request
+   TransactionManager_issue_cond1_LSUDummy --> WishboneMaster1_request
    TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> FetchUnit_Fetch_Stage2_cond0
    TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> StallController_stall_unsafe
    TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 <--> HwCounter5__incr
    TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> TaggedCounter__incr
    TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --> WideFifo_write
+   TransactionManager_Renaming_rename_cond1_ROBAllocation <--> CheckpointRAT_rename_cond1
+   TransactionManager_issue_cond1_LSUDummy <--> LSURequester_issue_cond1
+   TransactionManager_issue_cond1_LSUDummy --> WishboneMasterAdapter1_request_read
+   TransactionManager_issue_cond1_LSUDummy --> Serializer1_serialize_in0
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 <--> InternalInterruptController_mret
+   TransactionManager_Retirement_cond0_Retirement <--> Retirement_Retirement_cond0
+   TransactionManager_Retirement_cond0_Retirement --> RRAT_commit
+   TransactionManager_Retirement_cond0_Retirement <--> DoubleCounterCSR2_increment
+   CSRRegister152_read --> TransactionManager_Retirement_cond0_Retirement
+   TransactionManager_Retirement_cond0_Retirement --> CSRRegister152_write
+   CSRRegister153_read --> TransactionManager_Retirement_cond0_Retirement
+   TransactionManager_Retirement_cond0_Retirement --> CSRRegister153_write
+   TransactionManager_Retirement_cond0_Retirement <--> HwCounter9__incr
+   TransactionManager_PrivilegedFuncUnit_ConnectTrans__resume_from_unsafe_cond0 <--> StallController__resume_from_unsafe_cond0
+   TransactionManager_ConnectTrans__resume_from_unsafe_cond0 <--> StallController__resume_from_unsafe_cond0
+   TransactionManager_ConnectTrans__resume_from_unsafe_cond0 <--> ConnectTrans3_ConnectTrans
+   TransactionManager__resume_from_unsafe_cond1_ConnectTrans <--> ConnectTrans3_ConnectTrans
+   CSRUnit_get_result --> TransactionManager_ConnectTrans__resume_from_unsafe_cond0
+   CSRUnit_get_result --> TransactionManager__resume_from_unsafe_cond1_ConnectTrans
+   TransactionManager_ConnectTrans__resume_from_unsafe_cond0 --> BasicFifo11_write
+   TransactionManager__resume_from_unsafe_cond1_ConnectTrans --> BasicFifo11_write
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 <--> PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+   TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 <--> ICache_flush
+   TransactionManager_ConnectTrans_MulUnit <--> ConnectTrans12_ConnectTrans
+   Connect3_read --> TransactionManager_ConnectTrans_MulUnit
+   TransactionManager_ConnectTrans_MulUnit <--> MulUnit_MulUnit
+   SequentialUnsignedMul_accept --> TransactionManager_ConnectTrans_MulUnit
+   FIFO6_read --> TransactionManager_ConnectTrans_MulUnit
+   TransactionManager_ConnectTrans_MulUnit --> Connect3_write
+   TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1 <--> LSUDummy_LSUDummy_cond1
+   FIFO8_read --> TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1
+   FIFO10_read --> TransactionManager_ConnectTrans_LSUDummy_LSUDummy_cond1
+   TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans <--> LSURequester_accept_cond1
+   WishboneMasterAdapter1_get_read_response --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
+   Serializer1_serialize_out0 --> TransactionManager_LSUDummy_cond0_accept_cond1_LSUDummy_ConnectTrans
