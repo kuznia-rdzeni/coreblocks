@@ -40,6 +40,7 @@ def create_data_list(gen_params: GenParams, count: int):
             "s2_val": k,
             "imm": k,
             "pc": k,
+            "tag": 0,
         }
         for k in range(count)
     ]
@@ -160,6 +161,7 @@ class TestRSMethodInsert(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
+                    "tag": 0,
                 },
             }
             for id in range(2**self.rs_entries_bits)
@@ -203,6 +205,7 @@ class TestRSMethodSelect(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
+                    "tag": 0,
                 },
             }
             for id in range(2**self.rs_entries_bits - 1)
@@ -261,6 +264,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
+                    "tag": 0,
                 },
             }
             for id in range(2**self.rs_entries_bits)
@@ -310,6 +314,7 @@ class TestRSMethodUpdate(TestCaseWithSimulator):
             "s1_val": 0,
             "s2_val": 0,
             "pc": 40,
+            "tag": 0,
         }
 
         for index in range(2):
@@ -347,6 +352,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
+                    "tag": 0,
                 },
             }
             for id in range(2**self.rs_entries_bits)
@@ -399,6 +405,7 @@ class TestRSMethodTake(TestCaseWithSimulator):
             "s2_val": 0,
             "imm": 1,
             "pc": 40,
+            "tag": 0,
         }
 
         for index in range(2):
@@ -439,6 +446,7 @@ class TestRSMethodGetReadyList(TestCaseWithSimulator):
                     "s2_val": id,
                     "imm": id,
                     "pc": id,
+                    "tag": 0,
                 },
             }
             for id in range(2**self.rs_entries_bits)
