@@ -159,6 +159,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             ("reg_res", self.gen_params.isa.xlen),
             ("taken", 1),
             fields.predicted_taken,
+            fields.tag,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
@@ -263,6 +264,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
+                tag=arg.tag,
             )
             self.perf_instr.incr(m, decoder.decode_fn)
 

@@ -41,6 +41,7 @@ def create_data_list(gen_params: GenParams, count: int, optypes: int = 1):
             "s2_val": k,
             "imm": k,
             "pc": k,
+            "tag": 0,
         }
         for k in range(count)
     ]

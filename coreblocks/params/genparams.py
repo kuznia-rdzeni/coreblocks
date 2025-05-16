@@ -69,6 +69,10 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
 
+        self.checkpoint_count = cfg.checkpoint_count
+        self.tag_bits = cfg.tag_bits
+        assert cfg.checkpoint_count < 2**cfg.tag_bits
+
         self.min_instr_width_bytes = 2 if cfg.compressed else 4
         self.min_instr_width_bytes_log = exact_log2(self.min_instr_width_bytes)
 
