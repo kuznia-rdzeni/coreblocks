@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747409444212,
+  "lastUpdate": 1747409445861,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -36621,6 +36621,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 6617,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cbe4cdc51a5b1afb14ad74fcdbb6e5a6c1ebb6d3",
+          "message": "Checkpointing part 1: CheckpointRAT, Scheduler integration (#777)",
+          "timestamp": "2025-05-16T17:08:35+02:00",
+          "tree_id": "488b1b4660069e188c5977cda50a8e5f598b329a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cbe4cdc51a5b1afb14ad74fcdbb6e5a6c1ebb6d3"
+        },
+        "date": 1747409445194,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.85,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21077,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1384,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1536,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6722,
             "unit": "LUT"
           }
         ]
