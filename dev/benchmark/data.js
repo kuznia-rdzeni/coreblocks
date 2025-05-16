@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747390165983,
+  "lastUpdate": 1747390167135,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -36508,6 +36508,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 4313,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ar2rekb@gmail.com",
+            "name": "Artur Bieniek",
+            "username": "ArturBieniek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75c7c44e866743f369b2ab79697400f633328b2a",
+          "message": "Add PMP CSR registers (#812)",
+          "timestamp": "2025-05-16T11:48:18+02:00",
+          "tree_id": "66055550e1139f457a9d33accb6c7e12305b5f9a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/75c7c44e866743f369b2ab79697400f633328b2a"
+        },
+        "date": 1747390166748,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.88,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 19941,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1404,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1408,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6617,
             "unit": "LUT"
           }
         ]
