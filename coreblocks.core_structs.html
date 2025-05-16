@@ -86,6 +86,62 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </div>
+<div class="section" id="module-coreblocks.core_structs.crat">
+<span id="coreblocks-core-structs-crat-module"></span><h2>coreblocks.core_structs.crat module<a class="headerlink" href="#module-coreblocks.core_structs.crat" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.core_structs.crat.CheckpointRAT">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.core_structs.crat.</span></span><span class="sig-name descname"><span class="pre">CheckpointRAT</span></span><a class="headerlink" href="#coreblocks.core_structs.crat.CheckpointRAT" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Checkpoint RAT
+Register Alias Table that supports saving (checkpointing) and rolling back its state.
+It is an replacement of plain Frontend-RAT (FRAT).</p>
+<p>It contains two pipelined stages <cite>tag</cite> and <cite>rename</cite>, placed in <cite>Scheduler</cite>. See attributes description for details.
+<cite>tag</cite> for instruction must be executed at least one cycle before <cite>rename</cite>.</p>
+<p>There are two resources allocated: “virtual” speculation tags, which are monotonic, issued and freed in-order,
+used to track if instructions are on valid speculation path in the core;
+and checkpoints, which are physical saved FRAT states, used for rollbacks.
+Checkpoints are freed immediately while tags are only marked as non-active, but still allocated until free in
+<cite>Retirement</cite>. Checkpoints are tied to some tags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>free_tag: Method</strong></dt><dd><p>Free a tag that is no longer referenced in the core.
+Associated checkpoints are freed too.
+This method accepts no arguments, because all tags must be freed in-order, so call means freeing
+oldest issued tag.</p>
+</dd>
+<dt><strong>get_active_tags: Method</strong></dt><dd><p>Gets bit array of tags that are currently active.
+If bit is set it means that a tag is on a valid
+speculation path.</p>
+</dd>
+<dt><strong>tag: Method</strong></dt><dd><p>Tag stage of CheckpointRAT. Issues instruction speculation tags.
+It needs rollback_tag information from core <cite>Frontend</cite>, that identifies first instruction fetched after
+rollback and fetch redirect. Information if checkpoint should be created after given instruction is expected
+to be provided from previous stage.
+It manages allocating new tags, scheduler flushing, information for unlocking FRAT
+and stalling the pipeline in case FRAT is not yet restored.</p>
+</dd>
+<dt><strong>rename: Method</strong></dt><dd><p>Rename stage of CheckpointRAT. Works like FRAT rename.
+Renames source registers and updates destination register mapping on valid tagged instructions.
+It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.</p>
+</dd>
+<dt><strong>flush_restore: Method</strong></dt><dd><p>Subset of <cite>rename</cite>. Used for restoring RAT state from Retirement on hard flushes.
+Blocks until restores are safe to be made. <cite>rollback</cite> must not be called after first restore.</p>
+</dd>
+<dt><strong>rollback: Method</strong></dt><dd><p>Rollback listener automatically registered to <cite>RollbackKey</cite>.
+Invalidates tags, frees checkpoints, initiates FRAT restore and Scheduler flushing.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.core_structs.crat.CheckpointRAT.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.core_structs.crat.CheckpointRAT.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.core_structs.rat">
 <span id="coreblocks-core-structs-rat-module"></span><h2>coreblocks.core_structs.rat module<a class="headerlink" href="#module-coreblocks.core_structs.rat" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -156,7 +212,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 09:49 2025-05-16.
+      <span class="lastupdated">Last updated on 15:09 2025-05-16.
       </span></p>
   </div>
 

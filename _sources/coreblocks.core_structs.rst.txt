@@ -4,6 +4,14 @@ coreblocks.core\_structs package
 Submodules
 ----------
 
+coreblocks.core\_structs.crat module
+------------------------------------
+
+.. automodule:: coreblocks.core_structs.crat
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.core\_structs.rat module
 -----------------------------------
 
