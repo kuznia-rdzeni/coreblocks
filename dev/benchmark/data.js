@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1747390168263,
+  "lastUpdate": 1747409444212,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -16957,6 +16957,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.444100502328478,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Piotr Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cbe4cdc51a5b1afb14ad74fcdbb6e5a6c1ebb6d3",
+          "message": "Checkpointing part 1: CheckpointRAT, Scheduler integration (#777)",
+          "timestamp": "2025-05-16T17:08:35+02:00",
+          "tree_id": "488b1b4660069e188c5977cda50a8e5f598b329a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cbe4cdc51a5b1afb14ad74fcdbb6e5a6c1ebb6d3"
+        },
+        "date": 1747409438255,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4065092078375923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5253515724878548,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3546437125547631,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6416017207596093,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35055345179143604,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29045295378935515,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3263449648212636,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43173653494304143,
             "unit": "Instructions Per Cycle"
           }
         ]
