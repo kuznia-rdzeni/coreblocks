@@ -1,3 +1,8 @@
+.include "init_regs.s"
+
+_start:
+    INIT_REGS_LOAD
+
     li x1, 0x100 # set handler vector
     csrw mtvec, x1
     li x1, 0x10000 # enable custom interrupt 0
@@ -23,3 +28,5 @@ skip:
 
 .org 0x100
     j handler
+
+INIT_REGS_ALLOCATION

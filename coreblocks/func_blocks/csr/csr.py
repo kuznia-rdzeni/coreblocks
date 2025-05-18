@@ -8,13 +8,15 @@ from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
+from coreblocks.arch.isa_consts import Opcode
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts, CSRUnitLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
-    FetchResumeKey,
+    UnsafeInstructionResolvedKey,
+    CSRInstancesKey,
     InstructionPrecommitKey,
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
@@ -55,8 +57,8 @@ class CSRUnit(FuncBlock, Elaboratable):
     update: Method
         Method from standard RS interface. Receives announcements of computed register values.
     get_result: Method
-        `accept` method from standard FU interface. Used to receive instruction result and pass it
-        to the next pipeline stage.
+        Method from standard RS func block interface. Used to receive instruction result and pass
+        it to the next pipeline stage.
     """
 
     def __init__(self, gen_params: GenParams):
@@ -69,17 +71,17 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.gen_params = gen_params
         self.dependency_manager = DependencyContext.get()
 
-        self.fetch_resume = Method(o=gen_params.get(FetchLayouts).resume)
-
         # Standard RS interface
         self.csr_layouts = gen_params.get(CSRUnitLayouts)
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.select = Method(o=self.csr_layouts.rs.select_out)
         self.insert = Method(i=self.csr_layouts.rs.insert_in)
         self.update = Method(i=self.csr_layouts.rs.update_in)
-        self.get_result = Method(o=self.fu_layouts.accept)
+        self.get_result = Method(o=self.fu_layouts.push_result)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
+
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
     def _create_regfile(self):
         # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
@@ -97,15 +99,13 @@ class CSRUnit(FuncBlock, Elaboratable):
         reserved = Signal()
         ready_to_process = Signal()
         done = Signal()
-        call_resume = Signal()
         exception = Signal()
-        precommitting = Signal()
 
         current_result = Signal(self.gen_params.isa.xlen)
 
         instr = Signal(StructLayout(self.csr_layouts.rs.data_layout.members | {"valid": 1}))
 
-        m.d.comb += ready_to_process.eq(precommitting & instr.valid & (instr.rp_s1 == 0))
+        m.d.comb += ready_to_process.eq(instr.valid & (instr.rp_s1 == 0))
 
         # RISCV Zicsr spec Table 1.1
         should_read_csr = Signal()
@@ -128,13 +128,13 @@ class CSRUnit(FuncBlock, Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
-        # Temporary, until privileged spec is implemented
-        priv_level = Signal(PrivilegeLevel, reset=PrivilegeLevel.MACHINE)
-
         exe_side_fx = Signal()
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
+            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
+            info = precommit(m, instr.rob_id)
+            m.d.top_comb += exe_side_fx.eq(info.side_fx)
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
@@ -142,7 +142,10 @@ class CSRUnit(FuncBlock, Elaboratable):
 
                     with m.Case(csr_number):
                         priv_valid = Signal()
-                        m.d.comb += priv_valid.eq(priv_level_required <= priv_level)
+                        current_priv_mode = (
+                            self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
+                        )
+                        m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
                         with m.If(priv_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
@@ -188,7 +191,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += assign(instr, rs_data)
 
             with m.If(rs_data.exec_fn.op_type == OpType.CSR_IMM):  # Pass immediate as first operand
-                m.d.sync += instr.s1_val.eq(rs_data.imm)
+                m.d.sync += instr.s1_val.eq(rs_data.imm[0:5])
 
             m.d.sync += instr.valid.eq(1)
 
@@ -204,27 +207,44 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.d.sync += instr.valid.eq(0)
             m.d.sync += done.eq(0)
 
-            report = self.dependency_manager.get_dependency(ExceptionReportKey())
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
+            resume_core = self.dependency_manager.get_dependency(UnsafeInstructionResolvedKey())
 
             with m.If(exception):
-                report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc)
+                mtval = Signal(self.gen_params.isa.xlen)
+                # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise mtval must be 0)
+                m.d.av_comb += mtval[0:2].eq(0b11)
+                m.d.av_comb += mtval[2:7].eq(Opcode.SYSTEM)
+                m.d.av_comb += mtval[7:12].eq(instr.imm[32 - self.gen_params.isa.reg_cnt_log : 32])  # rl_rd
+                m.d.av_comb += mtval[12:15].eq(instr.exec_fn.funct3)
+                m.d.av_comb += mtval[15:20].eq(
+                    Mux(
+                        instr.exec_fn.op_type == OpType.CSR_IMM,
+                        instr.imm[0:5],
+                        instr.imm[32 - self.gen_params.isa.reg_cnt_log * 2 : 32 - self.gen_params.isa.reg_cnt_log],
+                    )
+                )  # rl_s1 or imm
+                m.d.av_comb += mtval[20:32].eq(instr.csr)
+                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
                 # At this time CSR operation is finished. If it caused triggering an interrupt, it would be represented
                 # by interrupt signal in this cycle.
                 # CSR instructions are never compressed, PC+4 is always next instruction
-                report(
+                self.report(
                     m,
                     rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
                     pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                    mtval=0,
                 )
 
             m.d.sync += exception.eq(0)
 
-            m.d.comb += call_resume.eq(exe_side_fx & ~exception & ~interrupt)
+            with m.If(exe_side_fx & ~exception & ~interrupt):
+                # CSR instructions are never compressed, PC+4 is always next instruction
+                resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,
@@ -233,31 +253,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                 "exception": exception | interrupt,
             }
 
-        @def_method(m, self.fetch_resume, call_resume)
-        def _():
-            # This call will always execute, because there is at most one unsafe instruction in the core, and it can be
-            # stored in unifer's Forwarder unitl resume becomes ready.
-            # CSR instructions are never compressed, PC+4 is always next instruction
-            return {"pc": instr.pc + self.gen_params.isa.ilen_bytes}
-
-        # Generate precommitting signal from precommit
-        with Transaction().body(m):
-            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(instr.rob_id == info.rob_id):
-                m.d.comb += precommitting.eq(1)
-                m.d.comb += exe_side_fx.eq(info.side_fx)
-
         return m
 
 
 @dataclass(frozen=True)
 class CSRBlockComponent(BlockComponentParams):
     def get_module(self, gen_params: GenParams) -> FuncBlock:
-        connections = DependencyContext.get()
-        unit = CSRUnit(gen_params)
-        connections.add_dependency(FetchResumeKey(), unit.fetch_resume)
-        return unit
+        return CSRUnit(gen_params)
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}

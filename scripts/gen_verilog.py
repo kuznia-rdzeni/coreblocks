@@ -31,6 +31,10 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str):
         gp = GenParams(core_config)
         top = TransactionComponent(Core(gen_params=gp), dependency_manager=DependencyContext.get())
 
+        # use known working yosys version shipped with amaranth by default
+        if "AMARANTH_USE_YOSYS" not in os.environ:
+            os.environ["AMARANTH_USE_YOSYS"] = "builtin"
+
         verilog_text, gen_info = generate_verilog(top)
 
         gen_info.encode(f"{output_path}.json")
@@ -66,6 +70,8 @@ def main():
         "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
     )
 
+    parser.add_argument("--reset-pc", action="store", default="0x0", help="Set core reset address")
+
     args = parser.parse_args()
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
@@ -76,6 +82,9 @@ def main():
     config = str_to_coreconfig[args.config]
     if args.strip_debug:
         config = config.replace(debug_signals=False)
+
+    assert args.reset_pc[:2] == "0x", "Expected hex number as --reset-pc"
+    config = config.replace(start_pc=int(args.reset_pc[2:], base=16))
 
     gen_verilog(config, args.output)
 

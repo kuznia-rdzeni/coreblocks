@@ -1,8 +1,8 @@
+from dataclasses import dataclass, KW_ONLY, field
 from typing import Sequence
 from amaranth import *
 
 from transactron import *
-from transactron.lib import FIFO
 from transactron.lib.metrics import *
 
 from coreblocks.arch import OpType, Funct3, Funct7
@@ -21,9 +21,10 @@ __all__ = ["AluFuncUnit", "ALUComponent"]
 
 
 class AluFn(DecoderManager):
-    def __init__(self, zba_enable=False, zbb_enable=False) -> None:
+    def __init__(self, zba_enable=False, zbb_enable=False, zicond_enable=False) -> None:
         self.zba_enable = zba_enable
         self.zbb_enable = zbb_enable
+        self.zicond_enable = zicond_enable
 
     class Fn(IntFlag):
         ADD = auto()  # Addition
@@ -60,6 +61,10 @@ class AluFn(DecoderManager):
         ORCB = auto()  # Bitwise or combine
         REV8 = auto()  # Reverse byte ordering
 
+        # ZICOND extension
+        CZEROEQZ = auto()  # Move zero if condition if equal to zero
+        CZERONEZ = auto()  # Move zero if condition is nonzero
+
     def get_instructions(self) -> Sequence[tuple]:
         return (
             [
@@ -95,6 +100,11 @@ class AluFn(DecoderManager):
                 (self.Fn.CPOP, OpType.UNARY_BIT_MANIPULATION_5, Funct3.CPOP),
             ]
             * self.zbb_enable
+            + [
+                (self.Fn.CZEROEQZ, OpType.CZERO, Funct3.CZEROEQZ),
+                (self.Fn.CZERONEZ, OpType.CZERO, Funct3.CZERONEZ),
+            ]
+            * self.zicond_enable
         )
 
 
@@ -114,6 +124,7 @@ class Alu(Elaboratable):
     def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
         self.zba_enable = alu_fn.zba_enable
         self.zbb_enable = alu_fn.zbb_enable
+        self.zicond_enable = alu_fn.zicond_enable
         self.gen_params = gen_params
 
         self.fn = alu_fn.get_function()
@@ -206,6 +217,19 @@ class Alu(Elaboratable):
                     for i in range(en):
                         j = en - i - 1
                         m.d.comb += self.out[i * 8 : (i + 1) * 8].eq(self.in1[j * 8 : (j + 1) * 8])
+
+            if self.zicond_enable:
+                czero_cases = [
+                    (AluFn.Fn.CZERONEZ, lambda is_zero: self.in1 if is_zero else 0),
+                    (AluFn.Fn.CZEROEQZ, lambda is_zero: 0 if is_zero else self.in1),
+                ]
+                for fn, output_fn in czero_cases:
+                    with OneHotCase(fn):
+                        with m.If(self.in2.any()):
+                            m.d.comb += self.out.eq(output_fn(False))
+                        with m.Else():
+                            m.d.comb += self.out.eq(output_fn(True))
+
         return m
 
 
@@ -217,7 +241,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.alu.instr",
@@ -231,36 +255,34 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         m.submodules += [self.perf_instr]
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.fifo = fifo = FIFO(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
-
-        @def_method(m, self.accept)
-        def _():
-            return fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.comb += alu.fn.eq(decoder.decode_fn)
+            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += alu.fn.eq(decoder.decode_fn)
 
-            m.d.comb += alu.in1.eq(arg.s1_val)
-            m.d.comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
+            m.d.av_comb += alu.in1.eq(arg.s1_val)
+            m.d.av_comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
             self.perf_instr.incr(m, decoder.decode_fn)
 
-            fifo.write(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
+            self.push_result(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 
         return m
 
 
+@dataclass(frozen=True)
 class ALUComponent(FunctionalComponentParams):
-    def __init__(self, zba_enable=False, zbb_enable=False):
-        self.zba_enable = zba_enable
-        self.zbb_enable = zbb_enable
-        self.alu_fn = AluFn(zba_enable=zba_enable, zbb_enable=zbb_enable)
+    _: KW_ONLY
+    result_fifo: bool = True
+    zba_enable: bool = False
+    zbb_enable: bool = False
+    zicond_enable: bool = False
+    decoder_manager: AluFn = field(init=False)
+
+    def get_decoder_manager(self):
+        return AluFn(zba_enable=self.zba_enable, zbb_enable=self.zbb_enable, zicond_enable=self.zicond_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return AluFuncUnit(gen_params, self.alu_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.alu_fn.get_op_types()
+        return AluFuncUnit(gen_params, self.decoder_manager)

@@ -20,9 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -51,7 +48,7 @@ jobs:
   build-riscof-tests:
     name: Build regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
     timeout-minutes: 10
     env:
       PYENV_ROOT: "/root/.pyenv"
@@ -140,7 +137,7 @@ jobs:
 
   run-riscof-tests:
     name: Run regression tests (riscv-arch-test)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-riscof-tests, build-core ]
     timeout-minutes: 30
@@ -152,9 +149,6 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -206,7 +200,7 @@ jobs:
   build-regression-tests:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -250,7 +244,7 @@ jobs:
 
   run-regression-tests:
     name: Run regression tests (riscv-tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 10
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-regression-tests, build-core ]
@@ -262,9 +256,6 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -313,13 +304,10 @@ jobs:
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -352,9 +340,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5

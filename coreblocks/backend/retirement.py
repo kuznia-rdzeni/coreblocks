@@ -1,5 +1,14 @@
 from amaranth import *
-from coreblocks.interface.layouts import RetirementLayouts
+from coreblocks.interface.layouts import (
+    CoreInstructionCounterLayouts,
+    ExceptionRegisterLayouts,
+    FetchLayouts,
+    InternalInterruptControllerLayouts,
+    RATLayouts,
+    RFLayouts,
+    ROBLayouts,
+    RetirementLayouts,
+)
 
 from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
@@ -8,43 +17,34 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, GenericCSRRegistersKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.arch.isa_consts import TrapVectorMode
 
 
 class Retirement(Elaboratable):
     def __init__(
         self,
         gen_params: GenParams,
-        *,
-        rob_peek: Method,
-        rob_retire: Method,
-        r_rat_commit: Method,
-        r_rat_peek: Method,
-        free_rf_put: Method,
-        rf_free: Method,
-        exception_cause_get: Method,
-        exception_cause_clear: Method,
-        frat_rename: Method,
-        fetch_continue: Method,
-        instr_decrement: Method,
-        trap_entry: Method,
-        async_interrupt_cause: Method,
     ):
         self.gen_params = gen_params
-        self.rob_peek = rob_peek
-        self.rob_retire = rob_retire
-        self.r_rat_commit = r_rat_commit
-        self.r_rat_peek = r_rat_peek
-        self.free_rf_put = free_rf_put
-        self.rf_free = rf_free
-        self.exception_cause_get = exception_cause_get
-        self.exception_cause_clear = exception_cause_clear
-        self.rename = frat_rename
-        self.fetch_continue = fetch_continue
-        self.instr_decrement = instr_decrement
-        self.trap_entry = trap_entry
-        self.async_interrupt_cause = async_interrupt_cause
+        self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
+        self.rob_retire = Method()
+        self.r_rat_commit = Method(
+            i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
+        )
+        self.r_rat_peek = Method(i=gen_params.get(RATLayouts).rrat_peek_in, o=gen_params.get(RATLayouts).rrat_peek_out)
+        self.free_rf_put = Method(i=[("ident", range(gen_params.phys_regs))])
+        self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
+        self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
+        self.exception_cause_clear = Method()
+        self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
+        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
+        self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
+        self.trap_entry = Method()
+        self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
+        self.checkpoint_tag_free = Method()
+        self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
         self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
@@ -55,11 +55,12 @@ class Retirement(Elaboratable):
             max_latency=2 * 2**gen_params.rob_entries_bits,
         )
 
+        layouts = self.gen_params.get(RetirementLayouts)
         self.dependency_manager = DependencyContext.get()
-        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
+        self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        self.precommit = Method(o=self.gen_params.get(RetirementLayouts).precommit, nonexclusive=True)
+        self.precommit = Method(i=layouts.precommit_in, o=layouts.precommit_out)
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
@@ -67,10 +68,10 @@ class Retirement(Elaboratable):
 
         m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
-        m_csr = self.dependency_manager.get_dependency(GenericCSRRegistersKey()).m_mode
+        m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
-        side_fx = Signal(reset=1)
+        side_fx = Signal(init=1)
 
         def free_phys_reg(rp_dst: Value):
             # mark reg in Register File as free
@@ -97,7 +98,7 @@ class Retirement(Elaboratable):
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
             # restore original rl_dst->rp_dst mapping in F-RAT
-            self.rename(m, rl_s1=0, rl_s2=0, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+            self.c_rat_restore(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
         retire_valid = Signal()
         with Transaction().body(m) as validate_transaction:
@@ -118,6 +119,9 @@ class Retirement(Elaboratable):
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
 
+                    with m.If(rob_entry.rob_data.tag_increment):
+                        self.checkpoint_tag_free(m)
+
                     core_empty = self.instr_decrement(m)
 
                     commit = Signal()
@@ -129,7 +133,7 @@ class Retirement(Elaboratable):
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
-                        arch_trap = Signal(reset=1)
+                        arch_trap = Signal(init=1)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
@@ -162,6 +166,7 @@ class Retirement(Elaboratable):
                             # Register RISC-V architectural trap in CSRs
                             m_csr.mcause.write(m, cause_entry)
                             m_csr.mepc.write(m, cause_register.pc)
+                            m_csr.mtval.write(m, cause_register.mtval)
                             self.trap_entry(m)
 
                         # Fetch is already stalled by ExceptionCauseRegister
@@ -192,6 +197,9 @@ class Retirement(Elaboratable):
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
 
+                    with m.If(rob_entry.rob_data.tag_increment):
+                        self.checkpoint_tag_free(m)
+
                     core_empty = self.instr_decrement(m)
 
                     flush_instr(rob_entry)
@@ -207,8 +215,17 @@ class Retirement(Elaboratable):
                     self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
-                    # mtvec without mode is [mxlen-1:2], mode is two last bits. Only direct mode is supported
-                    m.d.av_comb += handler_pc.eq(m_csr.mtvec.read(m).data & ~(0b11))
+                    mtvec_offset = Signal(self.gen_params.isa.xlen)
+                    mtvec_base = m_csr.mtvec_base.read(m).data
+                    mtvec_mode = m_csr.mtvec_mode.read(m).data
+                    mcause = m_csr.mcause.read(m).data
+
+                    # When mode is Vectored, interrupts set pc to base + 4 * cause_number
+                    with m.If(mcause[-1] & (mtvec_mode == TrapVectorMode.VECTORED)):
+                        m.d.av_comb += mtvec_offset.eq(mcause << 2)
+
+                    # (mtvec_base stores base[MXLEN-1:2])
+                    m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
 
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
@@ -223,13 +240,23 @@ class Retirement(Elaboratable):
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
 
-        @def_method(m, self.core_state)
+        @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
 
-        @def_method(m, self.precommit)
-        def _():
-            rob_entry = self.rob_peek(m)
-            return {"rob_id": rob_entry.rob_id, "side_fx": side_fx}
+        rob_id_val = Signal(self.gen_params.rob_entries_bits)
+
+        # The argument is only used in argument validation, it is not needed in the method body.
+        # A dummy combiner is provided.
+        @def_method(
+            m,
+            self.precommit,
+            validate_arguments=lambda rob_id: rob_id == rob_id_val,
+            nonexclusive=True,
+            combiner=lambda m, args, runs: 0,
+        )
+        def _(rob_id):
+            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
+            return {"side_fx": side_fx}
 
         return m

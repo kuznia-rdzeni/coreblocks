@@ -6,18 +6,26 @@ from collections import deque
 from typing import Generic, TypeVar
 
 from amaranth import Elaboratable, Signal
-from amaranth.sim import Passive
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from transactron.testing.functions import data_const_to_dict
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.arch import Funct3, Funct7
-from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey
+from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, CSRInstancesKey
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
-from transactron.testing import RecordIntDict, RecordIntDictRet, TestbenchIO, TestCaseWithSimulator, SimpleTestCircuit
+from transactron.testing import (
+    RecordIntDict,
+    TestbenchIO,
+    TestCaseWithSimulator,
+    SimpleTestCircuit,
+    ProcessContext,
+    TestbenchContext,
+)
 from transactron.utils import ModuleConnector
 
 
@@ -98,18 +106,20 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config)
 
-        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.report_mock = TestbenchIO(Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.csrs = GenericCSRRegisters(self.gen_params)
 
-        DependencyContext.get().add_dependency(ExceptionReportKey(), self.report_mock.adapter.iface)
+        DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 
         self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
-        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock)
+        self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)
         self.requests = deque[RecordIntDict]()
-        self.responses = deque[RecordIntDictRet]()
-        self.exceptions = deque[RecordIntDictRet]()
+        self.responses = deque[RecordIntDict]()
+        self.exceptions = deque[RecordIntDict]()
 
         max_int = 2**self.gen_params.isa.xlen - 1
         functions = list(self.ops.keys())
@@ -140,44 +150,53 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             cause = None
             if "exception" in results:
                 cause = results["exception"]
-                self.exceptions.append({"rob_id": rob_id, "cause": cause, "pc": results.setdefault("exception_pc", pc)})
+                self.exceptions.append(
+                    {
+                        "rob_id": rob_id,
+                        "cause": cause,
+                        "pc": results.setdefault("exception_pc", pc),
+                        "mtval": results.setdefault("mtval", 0),
+                    }
+                )
 
                 results.pop("exception")
                 results.pop("exception_pc")
+                results.pop("mtval")
 
             self.responses.append({"rob_id": rob_id, "rp_dst": rp_dst, "exception": int(cause is not None)} | results)
 
-    def consumer(self):
+    async def consumer(self, sim: TestbenchContext):
         while self.responses:
             expected = self.responses.pop()
-            result = yield from self.m.accept.call()
-            assert expected == result
-            yield from self.random_wait(self.max_wait)
+            result = await self.m.push_result.call(sim)
+            assert expected == data_const_to_dict(result)
+            await self.random_wait(sim, self.max_wait)
 
-    def producer(self):
+    async def producer(self, sim: TestbenchContext):
         while self.requests:
             req = self.requests.pop()
-            yield from self.m.issue.call(req)
-            yield from self.random_wait(self.max_wait)
+            await self.m.issue.call(sim, req)
+            await self.random_wait(sim, self.max_wait)
 
-    def exception_consumer(self):
-        while self.exceptions:
-            expected = self.exceptions.pop()
-            result = yield from self.report_mock.call()
-            assert expected == result
-            yield from self.random_wait(self.max_wait)
+    async def exception_consumer(self, sim: TestbenchContext):
+        # This is a background testbench so that extra calls can be detected reliably
+        with sim.critical():
+            while self.exceptions:
+                expected = self.exceptions.pop()
+                result = await self.report_mock.call(sim)
+                assert expected == data_const_to_dict(result)
+                await self.random_wait(sim, self.max_wait)
 
         # keep partialy dependent tests from hanging up and detect extra calls
-        yield Passive()
-        result = yield from self.report_mock.call()
+        result = await self.report_mock.call(sim)
         assert not True, "unexpected report call"
 
-    def pipeline_verifier(self):
-        yield Passive()
-        while True:
-            assert (yield self.m.issue.adapter.iface.ready)
-            assert (yield self.m.issue.adapter.en) == (yield self.m.issue.adapter.done)
-            yield
+    async def pipeline_verifier(self, sim: ProcessContext):
+        async for *_, ready, en, done in sim.tick().sample(
+            self.m.issue.adapter.iface.ready, self.m.issue.adapter.en, self.m.issue.adapter.done
+        ):
+            assert ready
+            assert en == done
 
     def run_standard_fu_test(self, pipeline_test=False):
         if pipeline_test:
@@ -186,8 +205,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             self.max_wait = 10
 
         with self.run_simulation(self.circ) as sim:
-            sim.add_sync_process(self.producer)
-            sim.add_sync_process(self.consumer)
-            sim.add_sync_process(self.exception_consumer)
+            sim.add_testbench(self.producer)
+            sim.add_testbench(self.consumer)
+            sim.add_testbench(self.exception_consumer, background=True)
             if pipeline_test:
-                sim.add_sync_process(self.pipeline_verifier)
+                sim.add_process(self.pipeline_verifier)

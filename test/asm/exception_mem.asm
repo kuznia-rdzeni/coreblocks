@@ -9,3 +9,5 @@ sw x2, 4(x0)
 sw x1, 4(x0)  /* TODO: actually check the side fx */
 li x2, 9
 
+.section .bss
+.skip 0x8

@@ -48,7 +48,7 @@ class DivUnit(FuncUnit, Elaboratable):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
         self.clear = Method()
 
         self.div_fn = div_fn
@@ -56,7 +56,6 @@ class DivUnit(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.result_fifo = result_fifo = BasicFifo(self.gen_params.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
@@ -75,16 +74,11 @@ class DivUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.clear)
         def _():
-            result_fifo.clear(m)
             divider.clear(m)
-
-        @def_method(m, self.accept)
-        def _():
-            return result_fifo.read(m)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             flip_sign = Signal(1)  # if result is negative number
@@ -98,27 +92,27 @@ class DivUnit(FuncUnit, Elaboratable):
 
             with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
                 with OneHotCase(DivFn.Fn.DIVU):
-                    m.d.comb += flip_sign.eq(0)
-                    m.d.comb += rem_res.eq(0)
-                    m.d.comb += dividend.eq(i1)
-                    m.d.comb += divisor.eq(i2)
+                    m.d.av_comb += flip_sign.eq(0)
+                    m.d.av_comb += rem_res.eq(0)
+                    m.d.av_comb += dividend.eq(i1)
+                    m.d.av_comb += divisor.eq(i2)
                 with OneHotCase(DivFn.Fn.DIV):
                     # quotient is negative if divisor and dividend have different signs
-                    m.d.comb += flip_sign.eq(i1[sign_bit] ^ i2[sign_bit])
-                    m.d.comb += rem_res.eq(0)
-                    m.d.comb += dividend.eq(_abs(i1))
-                    m.d.comb += divisor.eq(_abs(i2))
+                    m.d.av_comb += flip_sign.eq(i1[sign_bit] ^ i2[sign_bit])
+                    m.d.av_comb += rem_res.eq(0)
+                    m.d.av_comb += dividend.eq(_abs(i1))
+                    m.d.av_comb += divisor.eq(_abs(i2))
                 with OneHotCase(DivFn.Fn.REMU):
-                    m.d.comb += flip_sign.eq(0)
-                    m.d.comb += rem_res.eq(1)
-                    m.d.comb += dividend.eq(i1)
-                    m.d.comb += divisor.eq(i2)
+                    m.d.av_comb += flip_sign.eq(0)
+                    m.d.av_comb += rem_res.eq(1)
+                    m.d.av_comb += dividend.eq(i1)
+                    m.d.av_comb += divisor.eq(i2)
                 with OneHotCase(DivFn.Fn.REM):
                     # sign of remainder is equal to sign of dividend
-                    m.d.comb += flip_sign.eq(i1[sign_bit])
-                    m.d.comb += rem_res.eq(1)
-                    m.d.comb += dividend.eq(_abs(i1))
-                    m.d.comb += divisor.eq(_abs(i2))
+                    m.d.av_comb += flip_sign.eq(i1[sign_bit])
+                    m.d.av_comb += rem_res.eq(1)
+                    m.d.av_comb += dividend.eq(_abs(i1))
+                    m.d.av_comb += divisor.eq(_abs(i2))
 
             params_fifo.write(m, rob_id=arg.rob_id, rp_dst=arg.rp_dst, flip_sign=flip_sign, rem_res=rem_res)
 
@@ -132,19 +126,17 @@ class DivUnit(FuncUnit, Elaboratable):
             flip_sig = Mux(params.flip_sign, ~result[sign_bit], 0)
             sign_result = Mux(flip_sig, -result, result)
 
-            result_fifo.write(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst, exception=0)
+            self.push_result(m, rob_id=params.rob_id, result=sign_result, rp_dst=params.rp_dst, exception=0)
 
         return m
 
 
-@dataclass
+@dataclass(frozen=True)
 class DivComponent(FunctionalComponentParams):
     _: KW_ONLY
+    result_fifo: bool = False  # last step is registered
     ipc: int = 3  # iterations per cycle
-    div_fn = DivFn()
+    decoder_manager: DivFn = DivFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return DivUnit(gen_params, self.ipc, self.div_fn)
-
-    def get_optypes(self) -> set[OpType]:
-        return self.div_fn.get_op_types()
+        return DivUnit(gen_params, self.ipc, self.decoder_manager)

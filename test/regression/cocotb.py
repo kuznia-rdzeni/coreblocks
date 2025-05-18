@@ -153,9 +153,11 @@ class CocotbSimulation(SimulationBackend):
                 # function instead of 'getattr' - this is required by cocotb.
                 obj = obj._id(component, extended=False)
             except AttributeError:
-                # Try with escaped name
+                # Try with escaped or unescaped name
                 if component[0] != "\\" and component[-1] != " ":
                     obj = obj._id("\\" + component + " ", extended=False)
+                elif component[0] == "\\":
+                    obj = obj._id(component[1:], extended=False)
                 else:
                     raise
 
@@ -274,7 +276,7 @@ def _create_test(function, name, mod, *args, **kwargs):
     _my_test.__qualname__ = name
     _my_test.__module__ = mod.__name__
 
-    return cocotb.test()(_my_test)
+    return cocotb.test()(_my_test)  # type: ignore
 
 
 def generate_tests(test_function: Callable[[Any, Any], Coroutine[Any, Any, None]], test_names: list[str]):

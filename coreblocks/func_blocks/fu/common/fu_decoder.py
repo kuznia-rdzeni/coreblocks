@@ -37,6 +37,7 @@ class Decoder(Elaboratable):
 
             cond = optype_match & funct3_match & funct7_match
 
+            assert op  # for typing, TODO: better typing
             signal_num = op[0].bit_length() - 1
 
             m.d.comb += self.decode_fn[signal_num].eq(cond)

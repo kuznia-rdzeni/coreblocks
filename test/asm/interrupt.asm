@@ -1,4 +1,9 @@
-# fibonacci spiced with interrupt handler (also with fibonacci)
+.include "init_regs.s"
+
+_start:
+    INIT_REGS_LOAD
+
+    # fibonacci spiced with interrupt handler (also with fibonacci)
     li x1, 0x200
     csrw mtvec, x1
     li x27, 0     # handler count
@@ -95,3 +100,5 @@ fail:
 .org 0x200
     j int_handler
     li x31, 0xae  # should never happen
+
+INIT_REGS_ALLOCATION

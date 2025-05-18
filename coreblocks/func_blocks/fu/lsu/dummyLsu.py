@@ -15,7 +15,7 @@ from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
-from coreblocks.interface.keys import ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
 __all__ = ["LSUDummy", "LSUComponent"]
 
@@ -42,10 +42,10 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.lsu_layouts = gen_params.get(LSULayouts)
 
         self.dependency_manager = DependencyContext.get()
-        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())
+        self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
-        self.issue = Method(i=self.fu_layouts.issue, single_caller=True)
-        self.accept = Method(o=self.fu_layouts.accept)
+        self.issue = Method(i=self.fu_layouts.issue)
+        self.push_result = Method(i=self.fu_layouts.push_result)
 
         self.bus = bus
 
@@ -54,6 +54,11 @@ class LSUDummy(FuncUnit, Elaboratable):
     def elaborate(self, platform):
         m = TModule()
         flush = Signal()  # exception handling, requests are not issued
+
+        with Transaction().body(m):
+            core_state = self.dependency_manager.get_dependency(CoreStateKey())
+            state = core_state(m)
+            m.d.comb += flush.eq(state.flushing)
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
@@ -77,7 +82,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             with m.If(~is_fence):
                 requests.write(m, arg)
             with m.Else():
-                results_noop.write(m, data=0, exception=0, cause=0)
+                results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
@@ -106,18 +111,17 @@ class LSUDummy(FuncUnit, Elaboratable):
 
             with m.If(res["exception"]):
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"])
+                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"], addr=addr)
             with m.Else():
                 issued.write(m, arg)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, request=flush):
             arg = requests.read(m)
-            results_noop.write(m, data=0, exception=0, cause=0)
+            results_noop.write(m, data=0, exception=0, cause=0, addr=0)
             issued_noop.write(m, arg)
 
-        @def_method(m, self.accept)
-        def _():
+        with Transaction().body(m):
             arg = Signal(self.fu_layouts.issue)
             res = Signal(self.lsu_layouts.accept)
             with condition(m) as branch:
@@ -129,24 +133,22 @@ class LSUDummy(FuncUnit, Elaboratable):
                     m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"])
+                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"])
 
             self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
 
-            return {
-                "rob_id": arg["rob_id"],
-                "rp_dst": arg["rp_dst"],
-                "result": res["data"],
-                "exception": res["exception"],
-            }
+            self.push_result(
+                m,
+                rob_id=arg["rob_id"],
+                rp_dst=arg["rp_dst"],
+                result=res["data"],
+                exception=res["exception"],
+            )
 
         with Transaction().body(m):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m)
-            with m.If(info.rob_id == request_rob_id):
-                m.d.comb += rob_id_match.eq(1)
-            with m.If(~info.side_fx):
-                m.d.comb += flush.eq(1)
+            precommit(m, request_rob_id)
+            m.d.comb += rob_id_match.eq(1)
 
         return m
 
@@ -158,6 +160,9 @@ class LSUComponent(FunctionalComponentParams):
         bus_master = connections.get_dependency(CommonBusDataKey())
         unit = LSUDummy(gen_params, bus_master)
         return unit
+
+    def get_decoder_manager(self):  # type: ignore
+        pass  # LSU component currently doesn't have a decoder manager
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.LOAD, OpType.STORE, OpType.FENCE}

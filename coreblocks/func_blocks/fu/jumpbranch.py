@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from amaranth import *
 
 from enum import IntFlag, auto
@@ -8,7 +9,7 @@ from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
 from transactron.lib import logging
-from transactron.utils import DependencyContext
+from transactron.utils import DependencyContext, from_method_layout
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
@@ -73,13 +74,7 @@ class JumpBranch(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        branch_target = Signal(self.gen_params.isa.xlen)
-
-        # Spec: "The 12-bit B-immediate encodes signed offsets in multiples of 2,
-        # and is added to the current pc to give the target address."
-        # Multiplies of 2 are converted to the real offset in the decode stage, so we have 13 bits.
-        m.d.comb += branch_target.eq(self.in_pc + self.in_imm[:13].as_signed())
-
+        m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm)
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
         if Extension.C in self.gen_params.isa.extensions:
@@ -88,39 +83,24 @@ class JumpBranch(Elaboratable):
 
         with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(JumpBranchFn.Fn.JAL):
-                # Spec: "[...] the J-immediate encodes a signed offset in multiples of 2 bytes.
-                # The offset is sign-extended and added to the pc to form the jump target address."
-                # Multiplies of 2 are converted to the real offset in the decode stage, so we have 21 bits.
-                m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm[:21].as_signed())
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.JALR):
-                # Spec: "The target address is obtained by adding the 12-bit signed I-immediate
-                # to the register rs1, then setting the least-significant bit of the result to zero."
-                m.d.comb += self.jmp_addr.eq(self.in1 + self.in_imm[:12].as_signed())
+                m.d.comb += self.jmp_addr.eq(self.in1 + self.in_imm)
                 m.d.comb += self.jmp_addr[0].eq(0)
                 m.d.comb += self.taken.eq(1)
             with OneHotCase(JumpBranchFn.Fn.AUIPC):
-                # Spec: "AUIPC forms a 32-bit offset from the 20-bit U-immediate, filling in the
-                # lowest 12 bits with zeros, adds this offset to the pc"
-                # Order of arguments in Cat is reversed
-                m.d.comb += self.reg_res.eq(self.in_pc + Cat(C(0, 12), self.in_imm[12:]))
+                m.d.comb += self.reg_res.eq(self.jmp_addr)
             with OneHotCase(JumpBranchFn.Fn.BEQ):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1 == self.in2)
             with OneHotCase(JumpBranchFn.Fn.BNE):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1 != self.in2)
             with OneHotCase(JumpBranchFn.Fn.BLT):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_signed() < self.in2.as_signed())
             with OneHotCase(JumpBranchFn.Fn.BLTU):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() < self.in2.as_unsigned())
             with OneHotCase(JumpBranchFn.Fn.BGE):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_signed() >= self.in2.as_signed())
             with OneHotCase(JumpBranchFn.Fn.BGEU):
-                m.d.comb += self.jmp_addr.eq(branch_target)
                 m.d.comb += self.taken.eq(self.in1.as_unsigned() >= self.in2.as_unsigned())
 
         return m
@@ -133,7 +113,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         layouts = gen_params.get(FuncUnitLayouts)
 
         self.issue = Method(i=layouts.issue)
-        self.accept = Method(o=layouts.accept)
+        self.push_result = Method(i=layouts.push_result)
 
         self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
 
@@ -151,6 +131,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
         )
         self.perf_mispredictions = HwCounter("backend.fu.jumpbranch.mispredictions", "Number of branch mispredictions")
+
+        self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
         m = TModule()
@@ -177,11 +159,11 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             ("reg_res", self.gen_params.isa.xlen),
             ("taken", 1),
             fields.predicted_taken,
+            fields.tag,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
-        @def_method(m, self.accept)
-        def _():
+        with Transaction().body(m):
             instr = instr_fifo.read(m)
             target_prediction = jump_target_resp(m)
 
@@ -203,7 +185,6 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             ) != 0
 
             async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
-            exception_report = self.dm.get_dependency(ExceptionReportKey())
 
             exception = Signal()
 
@@ -213,23 +194,30 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
                 m.d.comb += exception.eq(1)
-                exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED, pc=instr.pc
+                self.exception_report(
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED,
+                    pc=instr.pc,
+                    mtval=instr.jmp_addr,
                 )
+
             with m.Elif(async_interrupt_active & ~is_auipc):
                 # Jump instructions are entry points for async interrupts.
                 # This way we can store known pc via report to global exception register and avoid it in ROB.
                 # Exceptions have priority, because the instruction that reports async interrupt is commited
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
-                exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result
+                self.exception_report(
+                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result, mtval=0
                 )
             with m.Elif(misprediction):
                 # Async interrupts can have priority, because `jump_result` is handled in the same way.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
                 m.d.comb += exception.eq(1)
-                exception_report(m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result)
+                self.exception_report(
+                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result, mtval=0
+                )
 
             with m.If(~is_auipc):
                 self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
@@ -242,12 +230,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     misprediction,
                 )
 
-            return {
-                "rob_id": instr.rob_id,
-                "result": instr.reg_res,
-                "rp_dst": instr.rp_dst,
-                "exception": exception,
-            }
+            self.push_result(
+                m,
+                rob_id=instr.rob_id,
+                result=instr.reg_res,
+                rp_dst=instr.rp_dst,
+                exception=exception,
+            )
 
         @def_method(m, self.issue)
         def _(arg):
@@ -275,19 +264,16 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
+                tag=arg.tag,
             )
             self.perf_instr.incr(m, decoder.decode_fn)
 
         return m
 
 
+@dataclass(frozen=True)
 class JumpComponent(FunctionalComponentParams):
-    def __init__(self):
-        self.jb_fn = JumpBranchFn()
+    decoder_manager: JumpBranchFn = JumpBranchFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        unit = JumpBranchFuncUnit(gen_params, self.jb_fn)
-        return unit
-
-    def get_optypes(self) -> set[OpType]:
-        return self.jb_fn.get_op_types()
+        return JumpBranchFuncUnit(gen_params, self.decoder_manager)

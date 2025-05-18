@@ -1,6 +1,5 @@
 from parameterized import parameterized_class
 
-from amaranth.sim import Settle
 from amaranth import *
 
 from coreblocks.frontend.decoder.rvc import InstrDecompress
@@ -9,7 +8,7 @@ from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from transactron.utils import ValueLike
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 COMMON_TESTS = [
     # Illegal instruction
@@ -283,15 +282,18 @@ class TestInstrDecompress(TestCaseWithSimulator):
         )
         self.m = InstrDecompress(self.gen_params)
 
-        def process():
-            for instr_in, instr_out in self.test_cases:
-                yield self.m.instr_in.eq(instr_in)
-                expected = Signal(32)
-                yield expected.eq(instr_out)
-                yield Settle()
+        async def process(sim: TestbenchContext):
+            illegal = Const.cast(IllegalInstr()).value
 
-                assert (yield self.m.instr_out) == (yield expected)
-                yield
+            for instr_in, instr_out in self.test_cases:
+                sim.set(self.m.instr_in, instr_in)
+                expected = Const.cast(instr_out).value
+
+                if expected == illegal:
+                    expected = instr_in  # for exception handling
+
+                assert sim.get(self.m.instr_out) == expected
+                await sim.tick()
 
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(process)
+            sim.add_testbench(process)

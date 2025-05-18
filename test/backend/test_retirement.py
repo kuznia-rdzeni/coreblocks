@@ -1,17 +1,11 @@
-from coreblocks.interface.layouts import (
-    CoreInstructionCounterLayouts,
-    ExceptionRegisterLayouts,
-    FetchLayouts,
-    InternalInterruptControllerLayouts,
-)
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 
 from transactron.lib import FIFO, Adapter
-from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import ROBLayouts, RFLayouts, SchedulerLayouts
 from coreblocks.params.configurations import test_core_config
+from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
 from collections import deque
@@ -23,63 +17,51 @@ class RetirementTestCircuit(Elaboratable):
         self.gen_params = gen_params
 
     def elaborate(self, platform):
-        m = Module()
-
-        rob_layouts = self.gen_params.get(ROBLayouts)
-        rf_layouts = self.gen_params.get(RFLayouts)
-        scheduler_layouts = self.gen_params.get(SchedulerLayouts)
-        exception_layouts = self.gen_params.get(ExceptionRegisterLayouts)
-        fetch_layouts = self.gen_params.get(FetchLayouts)
-        interrupt_controller_layouts = self.gen_params.get(InternalInterruptControllerLayouts)
-        core_instr_counter_layouts = self.gen_params.get(CoreInstructionCounterLayouts)
+        m = TModule()
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
-        m.submodules.f_rat = self.frat = FRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
-            scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
+            [("ident", range(self.gen_params.phys_regs))], self.gen_params.phys_regs
         )
-
-        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
-            Adapter(o=rob_layouts.peek_layout, nonexclusive=True)
-        )
-
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter())
-
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(i=rf_layouts.rf_free))
-
-        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
-            Adapter(o=exception_layouts.get, nonexclusive=True)
-        )
-        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(Adapter())
 
         m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
-        DependencyContext.get().add_dependency(GenericCSRRegistersKey(), self.generic_csr)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.generic_csr)
 
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(Adapter(i=fetch_layouts.resume))
+        m.submodules.retirement = self.retirement = Retirement(self.gen_params)
+
+        self.retirement.r_rat_commit.proxy(m, self.rat.commit)
+        self.retirement.r_rat_peek.proxy(m, self.rat.peek)
+        self.retirement.free_rf_put.proxy(m, self.free_rf.write)
+
+        m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
+            Adapter(self.retirement.rob_peek, nonexclusive=True)
+        )
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(self.retirement.rob_retire))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(self.retirement.rf_free))
+        m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
+            Adapter(self.retirement.exception_cause_get, nonexclusive=True)
+        )
+        m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(
+            Adapter(self.retirement.exception_cause_clear)
+        )
+        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
+            Adapter(self.retirement.fetch_continue)
+        )
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
-            Adapter(o=core_instr_counter_layouts.decrement)
+            Adapter(self.retirement.instr_decrement)
         )
-        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter())
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter(self.retirement.trap_entry))
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
-            Adapter(o=interrupt_controller_layouts.interrupt_cause)
+            Adapter(self.retirement.async_interrupt_cause)
         )
 
-        m.submodules.retirement = self.retirement = Retirement(
-            self.gen_params,
-            rob_retire=self.mock_rob_retire.adapter.iface,
-            rob_peek=self.mock_rob_peek.adapter.iface,
-            r_rat_commit=self.rat.commit,
-            r_rat_peek=self.rat.peek,
-            free_rf_put=self.free_rf.write,
-            rf_free=self.mock_rf_free.adapter.iface,
-            exception_cause_get=self.mock_exception_cause.adapter.iface,
-            exception_cause_clear=self.mock_exception_clear.adapter.iface,
-            frat_rename=self.frat.rename,
-            fetch_continue=self.mock_fetch_continue.adapter.iface,
-            instr_decrement=self.mock_instr_decrement.adapter.iface,
-            trap_entry=self.mock_trap_entry.adapter.iface,
-            async_interrupt_cause=self.mock_async_interrupt_cause.adapter.iface,
+        m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
+            Adapter(self.retirement.checkpoint_tag_free)
         )
+        m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
+            Adapter(self.retirement.checkpoint_get_active_tags)
+        )
+        m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(Adapter(self.retirement.c_rat_restore))
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
@@ -120,45 +102,46 @@ class TestRetirement(TestCaseWithSimulator):
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
-    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q), sched_prio=1)
+    @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q))
     def retire_process(self):
-        self.submit_q.popleft()
+        @MethodMock.effect
+        def eff():
+            self.submit_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
         return self.submit_q[0]
 
-    def free_reg_process(self):
+    async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
-            reg = yield from self.retc.free_rf_adapter.call()
-            assert reg["reg_id"] == self.rf_exp_q.popleft()
+            reg = await self.retc.free_rf_adapter.call(sim)
+            assert reg["ident"] == self.rf_exp_q.popleft()
 
-    def rat_process(self):
+    async def rat_process(self, sim: TestbenchContext):
         while self.rat_map_q:
             current_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            while (yield self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+            while sim.get(self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
-                yield
+                await sim.tick()
         assert not self.submit_q
         assert not self.rf_free_q
 
-    def precommit_process(self):
-        yield from self.retc.precommit_adapter.call_init()
+    async def precommit_process(self, sim: TestbenchContext):
         while self.precommit_q:
-            yield
-            info = yield from self.retc.precommit_adapter.call_result()
+            info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None
             assert info["side_fx"]
-            assert self.precommit_q[0] == info["rob_id"]
             self.precommit_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_rf_free, sched_prio=2)
+    @def_method_mock(lambda self: self.retc.mock_rf_free)
     def rf_free_process(self, reg_id):
-        assert reg_id == self.rf_free_q.popleft()
+        @MethodMock.effect
+        def eff():
+            assert reg_id == self.rf_free_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
@@ -177,16 +160,24 @@ class TestRetirement(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)
-    def mock_fetch_continue_process(self):
+    def mock_fetch_continue_process(self, pc):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
 
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
+    def mock_checkpoint_get_active_tags(self):
+        return {"active_tags": -1}
+
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_tag_free)
+    def mock_checkpoint_tag_free(self):
+        pass
+
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)
         with self.run_simulation(self.retc) as sim:
-            sim.add_sync_process(self.free_reg_process)
-            sim.add_sync_process(self.rat_process)
-            sim.add_sync_process(self.precommit_process)
+            sim.add_testbench(self.free_reg_process)
+            sim.add_testbench(self.rat_process)
+            sim.add_testbench(self.precommit_process)

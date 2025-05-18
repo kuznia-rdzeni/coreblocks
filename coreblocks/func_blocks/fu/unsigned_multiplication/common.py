@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from amaranth import *
 
 from coreblocks.params import GenParams
@@ -34,6 +35,10 @@ class MulBaseUnsigned(Elaboratable):
 
         self.issue = Method(i=layout.issue)
         self.accept = Method(o=layout.accept)
+
+    @abstractmethod
+    def elaborate(self, platform) -> TModule:
+        raise NotImplementedError()
 
 
 class DSPMulUnit(Elaboratable):

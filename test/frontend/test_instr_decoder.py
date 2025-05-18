@@ -1,13 +1,13 @@
 from amaranth.sim import *
 
-from transactron.testing import TestCaseWithSimulator
+from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.frontend.decoder.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
 from coreblocks.arch import *
 from unittest import TestCase
-from typing import Optional
+from typing import Optional, TypeAlias
 
 
 class TestDecoder(TestCaseWithSimulator):
@@ -170,71 +170,95 @@ class TestDecoder(TestCaseWithSimulator):
             op=OpType.UNARY_BIT_MANIPULATION_1,
         ),
     ]
+    DECODER_TESTS_ZICOND = [
+        #      CZERO    RS2   RS1   EQZ   RD     OP
+        # nez 0b0000111 00000 00000 111 00000 0110011
+        # eqz 0b0000111 00000 00000 101 00000 0110011
+        # CZERO.NEZ
+        InstrTest(0x0E007033, Opcode.OP, Funct3.CZERONEZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
+        # CZERO.EQZ
+        InstrTest(0x0E005033, Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
+    ]
+
+    DECODER_TESTS_A = [
+        InstrTest(0x0821A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP),
+        InstrTest(
+            0x0C21A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP | 0x2, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP
+        ),
+        InstrTest(0x1812A1AF, Opcode.AMO, Funct3.W, Funct7.SC, rd=3, rs2=1, rs1=5, op=OpType.ATOMIC_LR_SC),
+    ]
 
     def setup_method(self):
         self.gen_params = GenParams(
             test_core_config.replace(
-                _implied_extensions=Extension.G | Extension.XINTMACHINEMODE | Extension.XINTSUPERVISOR | Extension.ZBB
+                _implied_extensions=Extension.G
+                | Extension.XINTMACHINEMODE
+                | Extension.XINTSUPERVISOR
+                | Extension.ZBB
+                | Extension.ZICOND
             )
         )
         self.decoder = InstrDecoder(self.gen_params)
         self.cnt = 1
 
     def do_test(self, tests: list[InstrTest]):
-        def process():
+        async def process(sim: TestbenchContext):
             for test in tests:
-                yield self.decoder.instr.eq(test.encoding)
-                yield Settle()
+                sim.set(self.decoder.instr, test.encoding)
 
-                assert (yield self.decoder.illegal) == test.illegal
+                assert sim.get(self.decoder.illegal) == test.illegal
                 if test.illegal:
                     return
 
-                assert (yield self.decoder.opcode) == test.opcode
+                assert sim.get(self.decoder.opcode) == test.opcode
 
                 if test.funct3 is not None:
-                    assert (yield self.decoder.funct3) == test.funct3
-                assert (yield self.decoder.funct3_v) == (test.funct3 is not None)
+                    assert sim.get(self.decoder.funct3) == test.funct3
+                assert sim.get(self.decoder.funct3_v) == (test.funct3 is not None)
 
                 if test.funct7 is not None:
-                    assert (yield self.decoder.funct7) == test.funct7
-                assert (yield self.decoder.funct7_v) == (test.funct7 is not None)
+                    assert sim.get(self.decoder.funct7) == test.funct7
+                assert sim.get(self.decoder.funct7_v) == (test.funct7 is not None)
 
                 if test.funct12 is not None:
-                    assert (yield self.decoder.funct12) == test.funct12
-                assert (yield self.decoder.funct12_v) == (test.funct12 is not None)
+                    assert sim.get(self.decoder.funct12) == test.funct12
+                assert sim.get(self.decoder.funct12_v) == (test.funct12 is not None)
 
                 if test.rd is not None:
-                    assert (yield self.decoder.rd) == test.rd
-                assert (yield self.decoder.rd_v) == (test.rd is not None)
+                    assert sim.get(self.decoder.rd) == test.rd
+                assert sim.get(self.decoder.rd_v) == (test.rd is not None)
 
                 if test.rs1 is not None:
-                    assert (yield self.decoder.rs1) == test.rs1
-                assert (yield self.decoder.rs1_v) == (test.rs1 is not None)
+                    assert sim.get(self.decoder.rs1) == test.rs1
+                assert sim.get(self.decoder.rs1_v) == (test.rs1 is not None)
 
                 if test.rs2 is not None:
-                    assert (yield self.decoder.rs2) == test.rs2
-                assert (yield self.decoder.rs2_v) == (test.rs2 is not None)
+                    assert sim.get(self.decoder.rs2) == test.rs2
+                assert sim.get(self.decoder.rs2_v) == (test.rs2 is not None)
 
                 if test.imm is not None:
-                    assert (yield self.decoder.imm.as_signed()) == test.imm
+                    if test.csr is not None:
+                        # in CSR instruction additional fields are passed in unused bits of imm field
+                        assert sim.get(self.decoder.imm.as_signed() & ((2**5) - 1)) == test.imm
+                    else:
+                        assert sim.get(self.decoder.imm.as_signed()) == test.imm
 
                 if test.succ is not None:
-                    assert (yield self.decoder.succ) == test.succ
+                    assert sim.get(self.decoder.succ) == test.succ
 
                 if test.pred is not None:
-                    assert (yield self.decoder.pred) == test.pred
+                    assert sim.get(self.decoder.pred) == test.pred
 
                 if test.fm is not None:
-                    assert (yield self.decoder.fm) == test.fm
+                    assert sim.get(self.decoder.fm) == test.fm
 
                 if test.csr is not None:
-                    assert (yield self.decoder.csr) == test.csr
+                    assert sim.get(self.decoder.csr) == test.csr
 
-                assert (yield self.decoder.optype) == test.op
+                assert sim.get(self.decoder.optype) == test.op
 
         with self.run_simulation(self.decoder) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
 
     def test_i(self):
         self.do_test(self.DECODER_TESTS_I)
@@ -260,6 +284,12 @@ class TestDecoder(TestCaseWithSimulator):
     def test_zbb(self):
         self.do_test(self.DECODER_TESTS_ZBB)
 
+    def test_zicond(self):
+        self.do_test(self.DECODER_TESTS_ZICOND)
+
+    def test_a(self):
+        self.do_test(self.DECODER_TESTS_A)
+
 
 class TestDecoderEExtLegal(TestCaseWithSimulator):
     E_TEST = [
@@ -276,20 +306,21 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
         self.gen_params = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
         self.decoder = InstrDecoder(self.gen_params)
 
-        def process():
+        async def process(sim: TestbenchContext):
             for encoding, illegal in self.E_TEST:
-                yield self.decoder.instr.eq(encoding)
-                yield Settle()
-                assert (yield self.decoder.illegal) == illegal
+                sim.set(self.decoder.instr, encoding)
+                assert sim.get(self.decoder.illegal) == illegal
 
         with self.run_simulation(self.decoder) as sim:
-            sim.add_process(process)
+            sim.add_testbench(process)
+
+
+code_type: TypeAlias = tuple[Optional[int], Optional[int], Optional[int], Optional[int]]
+funct_code_type: TypeAlias = tuple[Optional[int], Optional[int]]
 
 
 class TestEncodingUniqueness(TestCase):
     def test_encoding_uniqueness(self):
-        code_type = tuple[Optional[int], Optional[int], Optional[int], Optional[int]]
-
         def instruction_code(instr: Encoding) -> code_type:
             op_code = int(instr.opcode)
             funct3 = int(instr.funct3) if instr.funct3 is not None else None
@@ -339,8 +370,6 @@ class TestEncodingUniqueness(TestCase):
                 known_codes[code] = instruction
 
     def test_decoded_distinguishable(self):
-        code_type = tuple[Optional[int], Optional[int]]
-
         collisions: dict[OpType, set[Encoding]] = {
             OpType.ARITHMETIC: {
                 Encoding(Opcode.OP_IMM, Funct3.ADD),
@@ -371,7 +400,7 @@ class TestEncodingUniqueness(TestCase):
             },
         }
 
-        def instruction_code(instr: Encoding) -> code_type:
+        def instruction_code(instr: Encoding) -> funct_code_type:
             funct3 = int(instr.funct3) if instr.funct3 is not None else 0
             funct7 = int(instr.funct7) if instr.funct7 is not None else 0
 
@@ -381,7 +410,7 @@ class TestEncodingUniqueness(TestCase):
             return (funct3, funct7)
 
         for ext, instructions in instructions_by_optype.items():
-            known_codes: set[code_type] = set()
+            known_codes: set[funct_code_type] = set()
             ext_collisions = collisions[ext] if ext in collisions else set()
 
             for instruction in instructions:

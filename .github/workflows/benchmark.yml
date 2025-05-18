@@ -25,9 +25,9 @@ jobs:
           (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
         )
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2025.01.31
     steps:
       - uses: actions/checkout@v4
 
@@ -35,9 +35,6 @@ jobs:
         run: |
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -83,7 +80,7 @@ jobs:
           (github.event.action == 'labeled' && github.event.label.name == 'benchmark')
         )
       )
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.03.12
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -101,7 +98,7 @@ jobs:
 
   run-perf-benchmarks:
     name: Run performance benchmarks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 30
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: build-perf-benchmarks
@@ -113,9 +110,6 @@ jobs:
         run: |
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -164,9 +158,6 @@ jobs:
         run: |
           # https://github.com/actions/runner/issues/2033
           chown -R $(id -u):$(id -g) $PWD
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive amaranth-stubs
 
       - name: Set up Python
         uses: actions/setup-python@v5

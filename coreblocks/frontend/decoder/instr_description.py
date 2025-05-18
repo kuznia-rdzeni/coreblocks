@@ -204,4 +204,23 @@ instructions_by_optype = {
             Opcode.SYSTEM, Funct3.PRIV, Funct7.SFENCEVMA, rd_zero=True, instr_type_override=InstrType.R
         ),  # sfence.vma
     ],
+    OpType.CZERO: [
+        Encoding(Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO),
+        Encoding(Opcode.OP, Funct3.CZERONEZ, Funct7.CZERO),
+    ],
+    OpType.ATOMIC_MEMORY_OP: [
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOSWAP),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOADD),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOAND),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOOR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOXOR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMAXU),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMINU),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMAX),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.AMOMIN),
+    ],
+    OpType.ATOMIC_LR_SC: [
+        Encoding(Opcode.AMO, Funct3.W, Funct7.LR),
+        Encoding(Opcode.AMO, Funct3.W, Funct7.SC),
+    ],
 }

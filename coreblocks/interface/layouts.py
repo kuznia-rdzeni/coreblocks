@@ -1,10 +1,11 @@
 from typing import Optional
 from amaranth import signed
-from amaranth.lib.data import StructLayout, ArrayLayout
+from amaranth.lib.data import ArrayLayout
+from amaranth.lib.enum import IntFlag, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
-from transactron.utils.transactron_helpers import from_method_layout, make_layout
+from transactron.utils.transactron_helpers import make_layout, extend_layout
 
 __all__ = [
     "CommonLayoutFields",
@@ -139,6 +140,24 @@ class CommonLayoutFields:
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
         """A mask denoting which instruction in a fetch blocks is a branch."""
 
+        self.tag: LayoutListField = ("tag", gen_params.tag_bits)
+        """Instruction tag. Identifies speculation path of the instuction."""
+
+        self.rollback_tag: LayoutListField = ("rollback_tag", gen_params.tag_bits)
+        """Target tag of last rollback that happened before instuction.
+        For tracking rollbacks in scheduler/CRAT only."""
+
+        self.rollback_tag_v: LayoutListField = ("rollback_tag_v", 1)
+        """Valid bit for `rollback_tag`.
+        It is set only for first instuction that exits fetch after rollback to `rollback_tag`."""
+
+        self.tag_increment: LayoutListField = ("tag_increment", 1)
+        """Compressed tag representation used in ROB.
+        Instuction with this bit set has tag of previous instuction incremented by one."""
+
+        self.commit_checkpoint: LayoutListField = ("commit_checkpoint", 1)
+        """New checkpoint should be made for this instuction"""
+
 
 class SchedulerLayouts:
     """Layouts used in the scheduler."""
@@ -164,24 +183,40 @@ class SchedulerLayouts:
         )
         """Logical register number for the destination operand, before ROB allocation."""
 
-        self.reg_alloc_in = make_layout(
+        self.reg_alloc_in = self.scheduler_in = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.rollback_tag,
+            fields.rollback_tag_v,
+            fields.commit_checkpoint,
         )
 
-        self.reg_alloc_out = make_layout(
+        self.instr_tag_in = self.reg_alloc_out = make_layout(
             fields.exec_fn,
             fields.regs_l,
             self.regs_p_alloc_out,
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.rollback_tag,
+            fields.rollback_tag_v,
+            fields.commit_checkpoint,
         )
 
-        self.renaming_in = self.reg_alloc_out
+        self.renaming_in = self.instr_tag_out = make_layout(
+            fields.exec_fn,
+            fields.regs_l,
+            self.regs_p_alloc_out,
+            fields.imm,
+            fields.csr,
+            fields.pc,
+            fields.tag,
+            fields.tag_increment,
+            fields.commit_checkpoint,
+        )
 
         self.renaming_out = make_layout(
             fields.exec_fn,
@@ -190,6 +225,8 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
+            fields.tag_increment,
         )
 
         self.rob_allocate_in = self.renaming_out
@@ -201,6 +238,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
         )
 
         self.rs_select_in = self.rob_allocate_out
@@ -214,6 +252,7 @@ class SchedulerLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
         )
 
         self.rs_insert_in = self.rs_select_out
@@ -245,6 +284,10 @@ class RATLayouts:
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 
+        self.active_tags_bitmask: LayoutListField = ("active_tags", ArrayLayout(1, 2**gen_params.tag_bits))
+        """Bitmask, when bit is set when corresponding tag is on the current speculation/execution
+        path and reset when instruction was already rolled back (is not included in current FRAT)"""
+
         self.frat_rename_in = make_layout(
             fields.rl_s1,
             fields.rl_s2,
@@ -259,6 +302,17 @@ class RATLayouts:
         self.rrat_peek_in = make_layout(fields.rl_dst)
         self.rrat_peek_out = self.rrat_commit_out
 
+        self.rollback_in = make_layout(fields.tag)
+        self.get_active_tags_out = make_layout(self.active_tags_bitmask)
+
+        self.crat_rename_in = extend_layout(self.frat_rename_in, fields.tag, fields.commit_checkpoint)
+        self.crat_rename_out = self.frat_rename_out
+
+        self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
+        self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
+
+        self.crat_flush_restore = make_layout(fields.rl_dst, fields.rp_dst)
+
 
 class ROBLayouts:
     """Layouts used in the reorder buffer."""
@@ -269,6 +323,7 @@ class ROBLayouts:
         self.data_layout = make_layout(
             fields.rl_dst,
             fields.rp_dst,
+            fields.tag_increment,
         )
 
         self.rob_data: LayoutListField = ("rob_data", self.data_layout)
@@ -302,11 +357,15 @@ class ROBLayouts:
 class RSLayoutFields:
     """Layout fields used in the reservation station."""
 
-    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
-        self.rs_data: LayoutListField = ("rs_data", data_layout)
+    def __init__(self, gen_params: GenParams, *, rs_entries: int, data_fields: set[str]):
+        full_data = gen_params.get(RSFullDataLayout)
+
+        self.data_layout = layout_subset(full_data.data_layout, fields=data_fields)
+
+        self.rs_data: LayoutListField = ("rs_data", self.data_layout)
         """Data about an instuction stored in a reservation station (RS)."""
 
-        self.rs_entry_id: LayoutListField = ("rs_entry_id", rs_entries_bits)
+        self.rs_entry_id: LayoutListField = ("rs_entry_id", range(rs_entries))
         """Index in a reservation station (RS)."""
 
 
@@ -329,17 +388,18 @@ class RSFullDataLayout:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.tag,
         )
 
 
 class RSInterfaceLayouts:
     """Layouts used in functional blocks."""
 
-    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int, data_layout: LayoutList):
+    def __init__(self, gen_params: GenParams, *, rs_entries: int, data_fields: set[str]):
         fields = gen_params.get(CommonLayoutFields)
-        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
+        rs_fields = gen_params.get(RSLayoutFields, rs_entries=rs_entries, data_fields=data_fields)
 
-        self.data_layout = from_method_layout(data_layout)
+        self.data_layout = rs_fields.data_layout
 
         self.select_out = make_layout(rs_fields.rs_entry_id)
 
@@ -354,7 +414,9 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit = make_layout(fields.rob_id, fields.side_fx)
+        self.precommit_in = make_layout(fields.rob_id)
+
+        self.precommit_out = make_layout(fields.side_fx)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """
@@ -365,34 +427,30 @@ class RetirementLayouts:
 class RSLayouts:
     """Layouts used in the reservation station."""
 
-    def __init__(self, gen_params: GenParams, *, rs_entries_bits: int):
-        data = gen_params.get(RSFullDataLayout)
+    def __init__(self, gen_params: GenParams, *, rs_entries: int):
+        data_fields = {
+            "rp_s1",
+            "rp_s2",
+            "rp_dst",
+            "rob_id",
+            "exec_fn",
+            "s1_val",
+            "s2_val",
+            "imm",
+            "pc",
+            "tag",
+        }
 
-        self.ready_list: LayoutListField = ("ready_list", 2**rs_entries_bits)
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=rs_entries, data_fields=data_fields)
+        rs_fields = gen_params.get(RSLayoutFields, rs_entries=rs_entries, data_fields=data_fields)
+
+        self.ready_list: LayoutListField = ("ready_list", rs_entries)
         """Bitmask of reservation station entries containing instructions which are ready to run."""
-
-        data_layout = layout_subset(
-            data.data_layout,
-            fields={
-                "rp_s1",
-                "rp_s2",
-                "rp_dst",
-                "rob_id",
-                "exec_fn",
-                "s1_val",
-                "s2_val",
-                "imm",
-                "pc",
-            },
-        )
-
-        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
-        rs_fields = gen_params.get(RSLayoutFields, rs_entries_bits=rs_entries_bits, data_layout=data_layout)
 
         self.take_in = make_layout(rs_fields.rs_entry_id)
 
         self.take_out = layout_subset(
-            data.data_layout,
+            self.rs.data_layout,
             fields={
                 "s1_val",
                 "s2_val",
@@ -401,6 +459,7 @@ class RSLayouts:
                 "exec_fn",
                 "imm",
                 "pc",
+                "tag",
             },
         )
 
@@ -441,11 +500,20 @@ class ICacheLayouts:
 class FetchLayouts:
     """Layouts used in the fetcher."""
 
+    class AccessFaultFlag(IntFlag):
+        # standard access fault when accessing instruction
+        # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
+        ACCESS_FAULT = auto()
+        # with C extension (2-byte alignment enabled) fault condition
+        # could only affect second half of 4-byte instruction.
+        # Bit set if this is the case
+        ACCESS_FAULT_ON_SECOND_HALF = auto()
+
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.access_fault: LayoutListField = ("access_fault", 1)
-        """Instruction fetch failed."""
+        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.AccessFaultFlag)
+        """Instruction fetch errors. See `FetchLayouts.AccessFaultFlag` fields documentation"""
 
         self.raw_instr = make_layout(
             fields.instr,
@@ -455,6 +523,7 @@ class FetchLayouts:
             fields.predicted_taken,
         )
 
+        self.redirect = make_layout(fields.pc)
         self.resume = make_layout(fields.pc)
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
@@ -511,9 +580,10 @@ class FuncUnitLayouts:
             fields.exec_fn,
             fields.imm,
             fields.pc,
+            fields.tag,
         )
 
-        self.accept = make_layout(
+        self.push_result = make_layout(
             fields.rob_id,
             self.result,
             fields.rp_dst,
@@ -571,17 +641,13 @@ class LSULayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        retirement = gen_params.get(RetirementLayouts)
-
-        self.precommit = retirement.precommit
-
         self.store: LayoutListField = ("store", 1)
 
         self.issue = make_layout(fields.addr, fields.data, fields.funct3, self.store)
 
         self.issue_out = make_layout(fields.exception, fields.cause)
 
-        self.accept = make_layout(fields.data, fields.exception, fields.cause)
+        self.accept = make_layout(fields.data, fields.exception, fields.cause, fields.addr)
 
 
 class CSRRegisterLayouts:
@@ -608,36 +674,34 @@ class CSRUnitLayouts:
     """Layouts used in the control and status functional unit."""
 
     def __init__(self, gen_params: GenParams):
-        data = gen_params.get(RSFullDataLayout)
-        self.rs_entries_bits = 0
+        self.rs_entries = 0
 
-        data_layout = layout_subset(
-            data.data_layout,
-            fields={
-                "rp_s1",
-                "rp_s1_reg",
-                "rp_dst",
-                "rob_id",
-                "exec_fn",
-                "s1_val",
-                "imm",
-                "csr",
-                "pc",
-            },
-        )
+        data_fields = {
+            "rp_s1",
+            "rp_s1_reg",
+            "rp_dst",
+            "rob_id",
+            "exec_fn",
+            "s1_val",
+            "imm",
+            "csr",
+            "pc",
+            "tag",
+        }
 
-        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries_bits=self.rs_entries_bits, data_layout=data_layout)
+        self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=self.rs_entries, data_fields=data_fields)
 
-        retirement = gen_params.get(RetirementLayouts)
-
-        self.precommit = retirement.precommit
+        self.data_layout = self.rs.data_layout
 
 
 class ExceptionRegisterLayouts:
-    """Layouts used in the exception register."""
+    """Layouts used in the exception information register."""
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+
+        self.mtval: LayoutListField = ("mtval", gen_params.isa.xlen)
+        """ Value to set for mtval CSR register """
 
         self.valid: LayoutListField = ("valid", 1)
 
@@ -645,9 +709,10 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            self.mtval,
         )
 
-        self.get = StructLayout(self.report.members | make_layout(self.valid).members)
+        self.get = extend_layout(self.report, self.valid)
 
 
 class InternalInterruptControllerLayouts:

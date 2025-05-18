@@ -40,8 +40,8 @@ def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) ->
     return _update
 
 
-class ExceptionCauseRegister(Elaboratable):
-    """ExceptionCauseRegister
+class ExceptionInformationRegister(Elaboratable):
+    """ExceptionInformationRegister
 
     Stores parameters of earliest (in instruction order) exception, to save resources in the `ReorderBuffer`.
     All FUs that report exceptions should `report` the details to `ExceptionCauseRegister` and set `exception` bit in
@@ -56,17 +56,35 @@ class ExceptionCauseRegister(Elaboratable):
         self.cause = Signal(ExceptionCause)
         self.rob_id = Signal(gen_params.rob_entries_bits)
         self.pc = Signal(gen_params.isa.xlen)
+        self.mtval = Signal(gen_params.isa.xlen)
         self.valid = Signal()
 
         self.layouts = gen_params.get(ExceptionRegisterLayouts)
 
-        # Break long combinational paths from single-cycle FUs
-        self.fu_report_fifo = BasicFifo(self.layouts.report, 2)
-        self.report = self.fu_report_fifo.write
-        dm = DependencyContext.get()
-        dm.add_dependency(ExceptionReportKey(), self.report)
+        self.report = Method(i=self.layouts.report)
 
-        self.get = Method(o=self.layouts.get, nonexclusive=True)
+        self.clears: list[Method] = []
+
+        # Break long combinational paths from single-cycle FUs
+        def call_report():
+            report_fifo = BasicFifo(self.layouts.report, 2)
+            report_connector = ConnectTrans(report_fifo.read, self.report)
+            self.clears.append(report_fifo.clear)
+            added = False
+
+            def call(m: TModule, **kwargs):
+                nonlocal added
+                if not added:
+                    m.submodules += [report_fifo, report_connector]
+                    added = True
+                return report_fifo.write(m, **kwargs)
+
+            return call
+
+        dm = DependencyContext.get()
+        dm.add_dependency(ExceptionReportKey(), call_report)
+
+        self.get = Method(o=self.layouts.get)
 
         self.clear = Method()
 
@@ -76,13 +94,8 @@ class ExceptionCauseRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        report = Method(i=self.layouts.report)
-
-        m.submodules.report_fifo = self.fu_report_fifo
-        m.submodules.report_connector = ConnectTrans(self.fu_report_fifo.read, report)
-
-        @def_method(m, report)
-        def _(cause, rob_id, pc):
+        @def_method(m, self.report)
+        def _(cause, rob_id, pc, mtval):
             should_write = Signal()
 
             with m.If(self.valid & (self.rob_id == rob_id)):
@@ -101,18 +114,22 @@ class ExceptionCauseRegister(Elaboratable):
                 m.d.sync += self.rob_id.eq(rob_id)
                 m.d.sync += self.cause.eq(cause)
                 m.d.sync += self.pc.eq(pc)
+                m.d.sync += self.mtval.eq(mtval)
 
             m.d.sync += self.valid.eq(1)
 
             # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
             self.fetch_stall_exception(m)
 
-        @def_method(m, self.get)
+        @def_method(m, self.get, nonexclusive=True)
         def _():
-            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "valid": self.valid}
+            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "mtval": self.mtval, "valid": self.valid}
 
         @def_method(m, self.clear)
         def _():
             m.d.sync += self.valid.eq(0)
+            for clear in self.clears:
+                clear(m)
+            del self.clears  # exception will be raised if new fifos are created later
 
         return m

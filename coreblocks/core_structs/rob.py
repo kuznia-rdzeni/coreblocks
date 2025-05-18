@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.data import View
+import amaranth.lib.memory as memory
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
@@ -14,12 +14,12 @@ class ReorderBuffer(Elaboratable):
         layouts = gen_params.get(ROBLayouts)
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
         self.mark_done = Method(i=layouts.mark_done_layout)
-        self.peek = Method(o=layouts.peek_layout, nonexclusive=True)
+        self.peek = Method(o=layouts.peek_layout)
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
-        self.data = Memory(width=layouts.data_layout.size, depth=2**self.params.rob_entries_bits)
-        self.get_indices = Method(o=layouts.get_indices, nonexclusive=True)
+        self.data = memory.Memory(shape=layouts.data_layout, depth=2**self.params.rob_entries_bits, init=[])
+        self.get_indices = Method(o=layouts.get_indices)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
             "backend.rob.wait_time",
@@ -45,15 +45,16 @@ class ReorderBuffer(Elaboratable):
         peek_possible = start_idx != end_idx
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
-        m.submodules.read_port = read_port = self.data.read_port()
-        m.submodules.write_port = write_port = self.data.write_port()
+        m.submodules.data = self.data
+        write_port = self.data.write_port()
+        read_port = self.data.read_port(transparent_for=[write_port])
 
         m.d.comb += read_port.addr.eq(start_idx)
 
-        @def_method(m, self.peek, ready=peek_possible)
+        @def_method(m, self.peek, ready=peek_possible, nonexclusive=True)
         def _():
-            return {  # remove View after Amaranth upgrade
-                "rob_data": View(self.params.get(ROBLayouts).data_layout, read_port.data),
+            return {
+                "rob_data": read_port.data,
                 "rob_id": start_idx,
                 "exception": self.exception[start_idx],
             }
@@ -82,7 +83,7 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += self.done[rob_id].eq(1)
             m.d.sync += self.exception[rob_id].eq(exception)
 
-        @def_method(m, self.get_indices)
+        @def_method(m, self.get_indices, nonexclusive=True)
         def _():
             return {"start": start_idx, "end": end_idx}
 

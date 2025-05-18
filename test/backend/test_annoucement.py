@@ -3,12 +3,13 @@ from operator import and_
 from functools import reduce
 
 from amaranth import *
+from transactron import TModule
 from transactron.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
 from coreblocks.backend.annoucement import ResultAnnouncement
 from coreblocks.interface.layouts import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from transactron.testing import TestCaseWithSimulator, TestbenchIO
+from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
 
 
 class BackendTestCircuit(Elaboratable):
@@ -19,14 +20,9 @@ class BackendTestCircuit(Elaboratable):
         self.fu_fifo_ins = []
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
-        self.lay_result = self.gen_params.get(FuncUnitLayouts).accept
-        self.lay_rob_mark_done = self.gen_params.get(ROBLayouts).mark_done_layout
-        self.lay_rs_write = self.gen_params.get(
-            RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits
-        ).rs.update_in
-        self.lay_rf_write = self.gen_params.get(RFLayouts).rf_write
+        self.lay_result = self.gen_params.get(FuncUnitLayouts).push_result
 
         # Initialize for each FU an FIFO which will be a stub for that FU
         fu_fifos = []
@@ -48,22 +44,17 @@ class BackendTestCircuit(Elaboratable):
             get_results=get_results, put_result=serialized_results_fifo.write
         )
 
-        # Create stubs for interfaces used by result announcement
-        self.rs_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rs_write, o=self.lay_rs_write))
-        m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
-        self.rf_announce_val_tbio = TestbenchIO(Adapter(i=self.lay_rf_write, o=self.lay_rf_write))
-        m.submodules.rf_announce_val_tbio = self.rf_announce_val_tbio
-        self.rob_mark_done_tbio = TestbenchIO(Adapter(i=self.lay_rob_mark_done, o=self.lay_rob_mark_done))
-        m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
-
         # Create result announcement
-        m.submodules.result_announcement = ResultAnnouncement(
-            gen_params=self.gen_params,
-            get_result=serialized_results_fifo.read,
-            rob_mark_done=self.rob_mark_done_tbio.adapter.iface,
-            rs_update=self.rs_announce_val_tbio.adapter.iface,
-            rf_write=self.rf_announce_val_tbio.adapter.iface,
-        )
+        m.submodules.result_announcement = result_announcement = ResultAnnouncement(gen_params=self.gen_params)
+
+        # Create stubs for interfaces used by result announcement
+        result_announcement.get_result.proxy(m, serialized_results_fifo.read)
+        self.rs_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rs_update))
+        m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
+        self.rf_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rf_write_val))
+        m.submodules.rf_announce_val_tbio = self.rf_announce_val_tbio
+        self.rob_mark_done_tbio = TestbenchIO(Adapter(result_announcement.rob_mark_done))
+        m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
 
         return m
 
@@ -104,32 +95,33 @@ class TestBackend(TestCaseWithSimulator):
         results to its output FIFO. This records will be next serialized by FUArbiter.
         """
 
-        def producer():
+        async def producer(sim: TestbenchContext):
             inputs = self.fu_inputs[i]
             for rob_id, result, rp_dst in inputs:
                 io: TestbenchIO = self.m.fu_fifo_ins[i]
-                yield from io.call_init(rob_id=rob_id, result=result, rp_dst=rp_dst)
-                yield from self.random_wait(self.max_wait)
+                io.call_init(sim, rob_id=rob_id, result=result, rp_dst=rp_dst)
+                await self.random_wait(sim, self.max_wait)
             self.producer_end[i] = True
 
         return producer
 
-    def consumer(self):
-        yield from self.m.rs_announce_val_tbio.enable()
-        yield from self.m.rob_mark_done_tbio.enable()
+    async def consumer(self, sim: TestbenchContext):
+        # TODO: this test doesn't do anything, fix it!
+        self.m.rs_announce_val_tbio.enable(sim)
+        self.m.rob_mark_done_tbio.enable(sim)
         while reduce(and_, self.producer_end, True):
             # All 3 methods (in RF, RS and ROB) need to be enabled for the result
             # announcement transaction to take place. We want to have at least one
             # method disabled most of the time, so that the transaction is performed
             # only when we enable it inside the loop. Otherwise the transaction could
             # get executed at any time, particularly when we wouldn't be monitoring it
-            yield from self.m.rf_announce_val_tbio.enable()
+            self.m.rf_announce_val_tbio.enable(sim)
 
-            rf_result = yield from self.m.rf_announce_val_tbio.method_argument()
-            rs_result = yield from self.m.rs_announce_val_tbio.method_argument()
-            rob_result = yield from self.m.rob_mark_done_tbio.method_argument()
+            rf_result = self.m.rf_announce_val_tbio.get_outputs(sim)
+            rs_result = self.m.rs_announce_val_tbio.get_outputs(sim)
+            rob_result = self.m.rob_mark_done_tbio.get_outputs(sim)
 
-            yield from self.m.rf_announce_val_tbio.disable()
+            self.m.rf_announce_val_tbio.disable(sim)
 
             assert rf_result is not None
             assert rs_result is not None
@@ -144,20 +136,20 @@ class TestBackend(TestCaseWithSimulator):
                 del self.expected_output[t]
             else:
                 self.expected_output[t] -= 1
-            yield from self.random_wait(self.max_wait)
+            await self.random_wait(sim, self.max_wait)
 
     def test_one_out(self):
         self.fu_count = 1
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.consumer)
+            sim.add_testbench(self.consumer)
             for i in range(self.fu_count):
-                sim.add_sync_process(self.generate_producer(i))
+                sim.add_testbench(self.generate_producer(i))
 
     def test_many_out(self):
         self.fu_count = 4
         self.initialize()
         with self.run_simulation(self.m) as sim:
-            sim.add_sync_process(self.consumer)
+            sim.add_testbench(self.consumer)
             for i in range(self.fu_count):
-                sim.add_sync_process(self.generate_producer(i))
+                sim.add_testbench(self.generate_producer(i))

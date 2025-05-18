@@ -12,6 +12,7 @@ __all__ = [
     "Registers",
     "PrivilegeLevel",
     "InterruptCauseNumber",
+    "XlenEncoding",
 ]
 
 
@@ -35,6 +36,7 @@ class Opcode(IntEnum, shape=5):
     OP_IMM_32 = 0b00110
     STORE = 0b01000
     STORE_FP = 0b01001
+    AMO = 0b01011
     OP = 0b01100
     LUI = 0b01101
     OP32 = 0b01110
@@ -52,23 +54,30 @@ class Funct3(IntEnum, shape=3):
     W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
     D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
     BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
-    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = 0b101
+    BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = CZEROEQZ = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
-    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = 0b111
+    BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = CZERONEZ = 0b111
 
 
 class Funct7(IntEnum, shape=7):
-    SL = SLT = ADD = XOR = OR = AND = 0b0000000
-    SA = SUB = ANDN = ORN = XNOR = 0b0100000
+    SL = SLT = ADD = XOR = OR = AND = AMOADD = 0b0000000
     MULDIV = 0b0000001
-    SH1ADD = SH2ADD = SH3ADD = 0b0010000
-    BCLR = BEXT = 0b0100100
-    BINV = REV8 = 0b0110100
-    BSET = ORCB = 0b0010100
+    ZEXTH = AMOSWAP = 0b0000100
     MAX = MIN = CLMUL = 0b0000101
-    ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = 0b0110000
-    ZEXTH = 0b0000100
+    CZERO = 0b0000111
+    LR = 0b0001000
     SFENCEVMA = 0b0001001
+    SC = 0b0001100
+    SH1ADD = SH2ADD = SH3ADD = AMOXOR = 0b0010000
+    BSET = ORCB = 0b0010100
+    SA = SUB = ANDN = ORN = XNOR = AMOOR = 0b0100000
+    BCLR = BEXT = 0b0100100
+    ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = AMOAND = 0b0110000
+    BINV = REV8 = 0b0110100
+    AMOMIN = 0b1000000
+    AMOMAX = 0b1010000
+    AMOMINU = 0b1100000
+    AMOMAXU = 0b1110000
 
 
 class Funct12(IntEnum, shape=12):
@@ -153,8 +162,8 @@ class ExceptionCause(IntEnum, shape=5):
     INSTRUCTION_PAGE_FAULT = 12
     LOAD_PAGE_FAULT = 13
     STORE_PAGE_FAULT = 15
-    _COREBLOCKS_ASYNC_INTERRUPT = 16
-    _COREBLOCKS_MISPREDICTION = 17
+    _COREBLOCKS_ASYNC_INTERRUPT = 24
+    _COREBLOCKS_MISPREDICTION = 25
 
 
 @unique
@@ -165,6 +174,12 @@ class PrivilegeLevel(IntEnum, shape=2):
 
 
 @unique
+class TrapVectorMode(IntEnum, shape=2):
+    DIRECT = 0b00
+    VECTORED = 0b01
+
+
+@unique
 class InterruptCauseNumber(IntEnum):
     SSI = 1  # supervisor software interrupt
     MSI = 3  # machine software interrupt
@@ -172,3 +187,10 @@ class InterruptCauseNumber(IntEnum):
     MTI = 7  # machine timer interrupt
     SEI = 9  # supervisor external interrupt
     MEI = 11  # machine external interrupt
+
+
+@unique
+class XlenEncoding(IntEnum, shape=2):
+    W32 = 1
+    W64 = 2
+    W128 = 3

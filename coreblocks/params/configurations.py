@@ -22,6 +22,7 @@ from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
+from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 
@@ -31,6 +32,13 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
         [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
         rs_entries=4,
+    ),
+    RSBlockComponent(
+        [
+            MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+            DivComponent(),
+        ],
+        rs_entries=2,
     ),
     RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
@@ -65,6 +73,12 @@ class _CoreConfigurationDataClass:
         Size of the Reorder Buffer is 2**rob_entries_bits.
     start_pc: int
         Initial Program Counter value.
+    checkpoint_count: int
+        Size of active checkpoints storage. This is a maximum speculation depth. It doesn't include current state.
+    tag_bits: int
+        Numer of tags is 2**tag_bits. Tag space fits unique monotonic checkpoint ids of all instructions
+        currently in core, including instructions from already rolled-back checkpoints, that didn't leave the
+        pipeline yet. Tag space size must be greater that checkpoint count.
     icache_enable: bool
         Enable instruction cache. If disabled, requestes are bypassed directly to the bus.
     icache_ways: int
@@ -83,6 +97,8 @@ class _CoreConfigurationDataClass:
         Bit mask specifing if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
+    user_mode: bool
+        Enable User Mode.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -116,6 +132,9 @@ class _CoreConfigurationDataClass:
     rob_entries_bits: int = 7
     start_pc: int = 0
 
+    checkpoint_count: int = 16
+    tag_bits: int = 5
+
     icache_enable: bool = True
     icache_ways: int = 2
     icache_sets_bits: int = 7
@@ -125,8 +144,10 @@ class _CoreConfigurationDataClass:
 
     instr_buffer_size: int = 4
 
-    interrupt_custom_count: int = 0
+    interrupt_custom_count: int = 16
     interrupt_custom_edge_trig_mask: int = 0
+
+    user_mode: bool = True
 
     allow_partial_extensions: bool = False
 
@@ -135,7 +156,9 @@ class _CoreConfigurationDataClass:
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
 
-    pma: list[PMARegion] = field(default_factory=list)
+    pma: list[PMARegion] = field(
+        default_factory=lambda: [PMARegion(0xE0000000, 0xFFFFFFFF, mmio=True)]
+    )  # default I/O region used in LiteX coreblocks
 
 
 class CoreConfiguration(_CoreConfigurationDataClass):
@@ -151,12 +174,15 @@ basic_core_config = CoreConfiguration()
 tiny_core_config = CoreConfiguration(
     embedded=True,
     func_units_config=(
-        RSBlockComponent([ALUComponent(), ShiftUnitComponent(), JumpComponent()], rs_entries=2),
+        RSBlockComponent(
+            [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent()], rs_entries=2
+        ),
         RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     ),
     phys_regs_bits=basic_core_config.phys_regs_bits - 1,
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
-    allow_partial_extensions=True,  # No exception unit
+    icache_enable=False,
+    user_mode=False,
 )
 
 # Core configuration with all supported components
@@ -164,7 +190,7 @@ full_core_config = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True),
+                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
                 ZbcComponent(),
                 ZbsComponent(),
@@ -181,7 +207,7 @@ full_core_config = CoreConfiguration(
             ],
             rs_entries=2,
         ),
-        RSBlockComponent([LSUComponent()], rs_entries=4, rs_type=FifoRS),
+        RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
     ),
     compressed=True,
