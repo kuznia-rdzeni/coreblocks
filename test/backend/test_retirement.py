@@ -30,7 +30,6 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
         self.retirement.r_rat_commit.proxy(m, self.rat.commit)
-        self.retirement.r_rat_peek.proxy(m, self.rat.peek)
         self.retirement.free_rf_put.proxy(m, self.free_rf.write)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
@@ -122,7 +121,7 @@ class TestRetirement(TestCaseWithSimulator):
             current_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            while sim.get(self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+            while sim.get(self.retc.rat.entries.mem.data[current_map["rl_dst"]]) != current_map["rp_dst"]:
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"

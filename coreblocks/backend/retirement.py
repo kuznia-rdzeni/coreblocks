@@ -33,7 +33,6 @@ class Retirement(Elaboratable):
         self.r_rat_commit = Method(
             i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
         )
-        self.r_rat_peek = Method(i=gen_params.get(RATLayouts).rrat_peek_in, o=gen_params.get(RATLayouts).rrat_peek_out)
         self.free_rf_put = Method(i=[("ident", range(gen_params.phys_regs))])
         self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
@@ -82,7 +81,7 @@ class Retirement(Elaboratable):
 
         def retire_instr(rob_entry):
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst, commit=1)
 
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(rat_out.old_rp_dst)
@@ -92,7 +91,7 @@ class Retirement(Elaboratable):
 
         def flush_instr(rob_entry):
             # get original rp_dst mapped to instruction rl_dst in R-RAT
-            rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
+            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=0, commit=0)
 
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(rob_entry.rob_data.rp_dst)

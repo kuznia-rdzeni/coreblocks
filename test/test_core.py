@@ -67,7 +67,7 @@ class TestCoreBase(TestCaseWithSimulator):
     m: CoreTestElaboratable
 
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
-        return sim.get(self.m.core.RRAT.entries[reg_id])
+        return sim.get(self.m.core.RRAT.entries.mem.data[reg_id])
 
     def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
         # TODO: better stubs for memory, remove ignore

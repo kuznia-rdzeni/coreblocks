@@ -284,6 +284,9 @@ class RATLayouts:
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 
+        self.commit: LayoutListField = ("commit", 1)
+        """Perorm the commit. If 0, only read is performed."""
+
         self.active_tags_bitmask: LayoutListField = ("active_tags", ArrayLayout(1, 2**gen_params.tag_bits))
         """Bitmask, when bit is set when corresponding tag is on the current speculation/execution
         path and reset when instruction was already rolled back (is not included in current FRAT)"""
@@ -296,11 +299,8 @@ class RATLayouts:
         )
         self.frat_rename_out = make_layout(fields.rp_s1, fields.rp_s2)
 
-        self.rrat_commit_in = make_layout(fields.rl_dst, fields.rp_dst)
+        self.rrat_commit_in = make_layout(fields.rl_dst, fields.rp_dst, self.commit)
         self.rrat_commit_out = make_layout(self.old_rp_dst)
-
-        self.rrat_peek_in = make_layout(fields.rl_dst)
-        self.rrat_peek_out = self.rrat_commit_out
 
         self.rollback_in = make_layout(fields.tag)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)

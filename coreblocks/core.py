@@ -145,7 +145,6 @@ class Core(Component):
         retirement.rob_peek.proxy(m, rob.peek)
         retirement.rob_retire.proxy(m, rob.retire)
         retirement.r_rat_commit.proxy(m, rrat.commit)
-        retirement.r_rat_peek.proxy(m, rrat.peek)
         retirement.free_rf_put.proxy(m, rf_allocator.free[0])
         retirement.rf_free.proxy(m, rf.free)
         retirement.exception_cause_get.proxy(m, self.exception_information_register.get)

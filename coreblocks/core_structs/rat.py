@@ -31,23 +31,19 @@ class RRAT(Elaboratable):
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
 
-        self.entries = AsyncMemoryBank(shape=self.gen_params.phys_regs_bits, depth=self.gen_params.isa.reg_cnt, read_ports=2)
+        self.entries = AsyncMemoryBank(shape=self.gen_params.phys_regs_bits, depth=self.gen_params.isa.reg_cnt)
 
         layouts = gen_params.get(RATLayouts)
         self.commit = Method(i=layouts.rrat_commit_in, o=layouts.rrat_commit_out)
-        self.peek = Method(i=layouts.rrat_peek_in, o=layouts.rrat_peek_out)
 
     def elaborate(self, platform):
         m = TModule()
         m.submodules.entries = self.entries
 
         @def_method(m, self.commit)
-        def _(rp_dst: Value, rl_dst: Value):
-            self.entries.write(m, addr=rl_dst, data=rp_dst)
-            return {"old_rp_dst": self.entries.read[0](m, addr=rl_dst).data}
-
-        @def_method(m, self.peek)
-        def _(rl_dst: Value):
-            return self.entries.read[1](m, addr=rl_dst).data
+        def _(rp_dst: Value, rl_dst: Value, commit: Value):
+            with m.If(commit):
+                self.entries.write(m, addr=rl_dst, data=rp_dst)
+            return {"old_rp_dst": self.entries.read(m, addr=rl_dst).data}
 
         return m
