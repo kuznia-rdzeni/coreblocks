@@ -7,28 +7,6 @@ from transactron.testing import *
 from amaranth import *
 
 
-def print_test_case_debug(t_case, num):
-    print(f"test_case {num}")
-    print("op_1")
-    print(f"sign: {t_case["op_1"]["sign"]}")
-    print("exp: {:08b}".format(t_case["op_1"]["exp"]))
-    print("sig: {:024b}".format(t_case["op_1"]["sig"]))
-    print(f"is_nan: {t_case["op_1"]["is_nan"]}")
-    print("op_2")
-    print(f"sign: {t_case["op_2"]["sign"]}")
-    print("exp: {:08b}".format(t_case["op_2"]["exp"]))
-    print("sig: {:024b}".format(t_case["op_2"]["sig"]))
-    print(f"is_nan: {t_case["op_2"]["is_nan"]}")
-
-
-def print_response_debug(resp, num):
-    print(f"response: {num}")
-    print(f"sign: {resp["sign"]}")
-    print("exp: {:08b}".format(resp["exp"]))
-    print("sig: {:024b}".format(resp["sig"]))
-    print(f"exceptions: {resp["errors"]}")
-
-
 class FPUTester:
     def __init__(self, params: FPUParams):
         self.params = params
@@ -47,9 +25,7 @@ class FPUTester:
                 input_dict[key] = value
             input_dict["op_1"] = self.converter.from_hex(case[0])
             input_dict["op_2"] = self.converter.from_hex(case[1])
-            print_test_case_debug(input_dict, num)
             resp = await request_adapter.call(sim, input_dict)
-            print_response_debug(resp, num)
             self.__compare_results__(resp, self.converter.from_hex(result[num][0]))
 
             assert resp["errors"] == int(result[num][1], 16)

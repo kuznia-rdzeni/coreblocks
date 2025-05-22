@@ -15,6 +15,14 @@ from coreblocks.func_blocks.fu.fpu.fpu_error_module import FPUErrorModule
 
 
 class FPUAddSubMethodLayout:
+    """FPU addition/subtraction top module method layout
+
+    Parameters
+    ----------
+    fpu_params; FPUParams
+        FPU parameters
+    """
+
     def __init__(self, *, fpu_params: FPUParams):
         self.add_sub_in_layout = [
             ("op_1", create_data_layout(fpu_params)),
@@ -26,6 +34,21 @@ class FPUAddSubMethodLayout:
 
 
 class FPUAddSubModule(Elaboratable):
+    """FPU addition/subtraction top module
+
+    Parameters
+    ----------
+    fpu_params: FPUParams
+        FPU rounding module parameters
+
+    Attributes
+    ----------
+    add_sub_request: Method
+        Transactional method for initiating far path computation.
+        Takes 'add_sub_in_layout' as argument.
+        Returns result as 'add_sub_out_layout'.
+    """
+
     def __init__(self, *, fpu_params: FPUParams):
         self.fpu_params = fpu_params
         self.method_layouts = FPUAddSubMethodLayout(fpu_params=self.fpu_params)
