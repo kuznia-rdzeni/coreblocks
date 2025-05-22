@@ -1,6 +1,6 @@
 from amaranth import *
-import amaranth.lib.memory as memory
 from transactron import Method, Transaction, def_method, TModule
+from transactron.lib import WideFifo
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.params import GenParams
@@ -18,7 +18,9 @@ class ReorderBuffer(Elaboratable):
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
-        self.data = memory.Memory(shape=layouts.data_layout, depth=2**self.params.rob_entries_bits, init=[])
+        self.data = WideFifo(
+            shape=layouts.data_layout, depth=2**self.params.rob_entries_bits, read_width=1, write_width=1
+        )
         self.get_indices = Method(o=layouts.get_indices)
 
         self.perf_rob_wait_time = FIFOLatencyMeasurer(
@@ -46,15 +48,11 @@ class ReorderBuffer(Elaboratable):
         put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
 
         m.submodules.data = self.data
-        write_port = self.data.write_port()
-        read_port = self.data.read_port(transparent_for=[write_port])
-
-        m.d.comb += read_port.addr.eq(start_idx)
 
         @def_method(m, self.peek, ready=peek_possible, nonexclusive=True)
         def _():
             return {
-                "rob_data": read_port.data,
+                "rob_data": self.data.peek(m).data[0],
                 "rob_id": start_idx,
                 "exception": self.exception[start_idx],
             }
@@ -62,16 +60,14 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.retire, ready=self.done[start_idx])
         def _():
             self.perf_rob_wait_time.stop(m)
+            self.data.read(m, count=1)
             m.d.sync += start_idx.eq(start_idx + 1)
-            m.d.comb += read_port.addr.eq(start_idx + 1)
             m.d.sync += self.done[start_idx].eq(0)
 
         @def_method(m, self.put, ready=put_possible)
         def _(arg):
             self.perf_rob_wait_time.start(m)
-            m.d.av_comb += write_port.addr.eq(end_idx)
-            m.d.av_comb += write_port.data.eq(arg)
-            m.d.comb += write_port.en.eq(1)
+            self.data.write(m, count=1, data=[arg])
             m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
 
