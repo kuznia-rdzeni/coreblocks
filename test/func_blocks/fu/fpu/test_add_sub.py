@@ -17,7 +17,7 @@ class FPUTester:
         assert lhs["exp"] == rhs["exp"]
         assert lhs["sig"] == rhs["sig"]
 
-    async def run_test_set(self, cases, result, common_input, sim: TestbenchContext, request_adapter: AdapterTrans):
+    async def run_test_set(self, cases, result, common_input, sim: TestbenchContext, request_adapter: TestbenchIO):
         assert len(cases) == len(result)
         for num, case in enumerate(cases):
             input_dict = {}
