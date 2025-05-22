@@ -56,12 +56,11 @@ class TestClosePath(TestCaseWithSimulator):
                     "out_exp": 100,
                     "out_sig": 0b100001000000000000000000,
                     "output_round": 1,
-                    "zero": 0,
                 },
-                {"out_exp": 100, "out_sig": 0b100001111100000000000010, "output_round": 1, "zero": 0},  # case 2
-                {"out_exp": 97, "out_sig": 0b100000000000000000000100, "output_round": 0, "zero": 0},  # case 3
-                {"out_exp": 97, "out_sig": 0b100000000000000000001000, "output_round": 0, "zero": 0},  # case 4
-                {"out_exp": 94, "out_sig": 0b100000000000000000100000, "output_round": 0, "zero": 0},  # case 5
+                {"out_exp": 100, "out_sig": 0b100001111100000000000010, "output_round": 1},  # case 2
+                {"out_exp": 97, "out_sig": 0b100000000000000000000100, "output_round": 0},  # case 3
+                {"out_exp": 97, "out_sig": 0b100000000000000000001000, "output_round": 0},  # case 4
+                {"out_exp": 94, "out_sig": 0b100000000000000000100000, "output_round": 0},  # case 5
             ]
 
             for rm in RoundingModes:
@@ -91,7 +90,6 @@ class TestClosePath(TestCaseWithSimulator):
                         assert resp["output_round"] == 0
                     else:
                         assert resp["output_round"] == expected_results[i]["output_round"]
-                    assert resp["zero"] == expected_results[i]["zero"]
 
         async def corner_cases(sim: TestbenchContext):
             test_cases = [
@@ -157,14 +155,13 @@ class TestClosePath(TestCaseWithSimulator):
                     "out_exp": 0,
                     "out_sig": 0b000111000000000000000001,
                     "output_round": 0,
-                    "zero": 0,
                 },
-                {"out_exp": 0, "out_sig": 0b000000100000000000000000, "output_round": 1, "zero": 0},  # case 2
-                {"out_exp": 100, "out_sig": 0b101110000010000000000001, "output_round": 0, "zero": 0},  # case 3
-                {"out_exp": 0, "out_sig": 0b010000000000000000010000, "output_round": 0, "zero": 0},  # case 4
-                {"out_exp": 76, "out_sig": 0b100000000000000000000000, "output_round": 0, "zero": 0},  # case 5
-                {"out_exp": 100, "out_sig": 0b100000100000000000000000, "output_round": 0, "zero": 0},  # case 6
-                {"out_exp": 0, "out_sig": 0b000000000000000000000000, "output_round": 0, "zero": 1},  # case 7
+                {"out_exp": 0, "out_sig": 0b000000100000000000000000, "output_round": 1},  # case 2
+                {"out_exp": 100, "out_sig": 0b101110000010000000000001, "output_round": 0},  # case 3
+                {"out_exp": 0, "out_sig": 0b010000000000000000010000, "output_round": 0},  # case 4
+                {"out_exp": 76, "out_sig": 0b100000000000000000000000, "output_round": 0},  # case 5
+                {"out_exp": 100, "out_sig": 0b100000100000000000000000, "output_round": 0},  # case 6
+                {"out_exp": 0, "out_sig": 0b000000000000000000000000, "output_round": 0},  # case 7
             ]
             for i in range(len(test_cases)):
                 resp = await close_path.close_path_request_adapter.call(sim, test_cases[i])
