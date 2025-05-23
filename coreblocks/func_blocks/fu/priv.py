@@ -101,7 +101,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
             info = precommit(m, instr_rob)
             m.d.sync += finished.eq(1)
-            self.perf_instr.incr(m, instr_fn, cond=info.side_fx)
+            self.perf_instr.incr(m, instr_fn, enable_call=info.side_fx)
 
             priv_data = priv_mode.read(m).data
 

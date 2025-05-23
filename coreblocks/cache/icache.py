@@ -155,7 +155,7 @@ class ICache(Elaboratable, CacheInterface):
         flush_finish = Signal()
 
         with Transaction().body(m):
-            self.perf_flushes.incr(m, cond=flush_finish)
+            self.perf_flushes.incr(m, enable_call=flush_finish)
 
         with m.FSM(init="FLUSH") as fsm:
             with m.State("FLUSH"):
@@ -196,7 +196,7 @@ class ICache(Elaboratable, CacheInterface):
 
             with m.If(tag_hit_any | refill_error_saved):
                 m.d.comb += forwarding_response_now.eq(1)
-                self.perf_hits.incr(m, cond=tag_hit_any)
+                self.perf_hits.incr(m, enable_call=tag_hit_any)
                 mem_out = Signal(self.params.fetch_block_bytes * 8)
                 for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
                     m.d.av_comb += mem_out.eq(self.mem.data_rd_data[i])
@@ -257,7 +257,7 @@ class ICache(Elaboratable, CacheInterface):
             ret = self.refiller.accept_refill(m)
             deserialized = self.deserialize_addr(ret.addr)
 
-            self.perf_errors.incr(m, cond=ret.error)
+            self.perf_errors.incr(m, enable_call=ret.error)
 
             m.d.top_comb += [
                 self.mem.data_wr_addr.index.eq(deserialized["index"]),
