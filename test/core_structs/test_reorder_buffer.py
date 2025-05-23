@@ -19,7 +19,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
             await self.random_wait_geom(sim, 0.5)  # to slow down puts
             log_reg = self.rand.randint(0, self.log_regs - 1)
             phys_reg = self.regs_left_queue.get()
-            regs = {"rl_dst": log_reg, "rp_dst": phys_reg}
+            regs = {"rl_dst": log_reg, "rp_dst": phys_reg, "tag_increment": 0}
             rob_id = (await self.m.put.call(sim, regs)).rob_id
             self.to_execute_list.append((rob_id, phys_reg))
             self.retire_queue.put((regs, rob_id))
