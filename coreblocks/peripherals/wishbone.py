@@ -1,15 +1,14 @@
 from amaranth import *
 import amaranth.lib.memory as memory
-from amaranth.lib.wiring import PureInterface, Signature, In, Out, Component
+from amaranth.lib.wiring import In, Out, Component
 from functools import reduce
-from typing import Protocol, cast
 import operator
 
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
 from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
-from transactron.utils._typing import AbstractInterface
+from transactron.utils.amaranth_ext.component_interface import ComponentInterface, CIn, COut
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
 from transactron.lib import logging
@@ -34,45 +33,21 @@ class WishboneParameters:
         self.granularity = granularity
 
 
-class WishboneSignature(Signature):
+class WishboneInterface(ComponentInterface):
     def __init__(self, wb_params: WishboneParameters):
-        super().__init__(
-            {
-                "dat_r": In(wb_params.data_width),
-                "dat_w": Out(wb_params.data_width),
-                "rst": Out(1),
-                "ack": In(1),
-                "adr": Out(wb_params.addr_width),
-                "cyc": Out(1),
-                "stall": In(1),
-                "err": In(1),
-                "lock": Out(1),
-                "rty": In(1),
-                "sel": Out(wb_params.data_width // wb_params.granularity),
-                "stb": Out(1),
-                "we": Out(1),
-            }
-        )
-
-    def create(self, *, path: tuple[str | int, ...] = (), src_loc_at: int = 0):
-        """Create a WishboneInterface."""  # workaround for Sphinx problem with Amaranth docstring
-        return cast(WishboneInterface, PureInterface(self, path=path, src_loc_at=src_loc_at + 1))
-
-
-class WishboneInterface(AbstractInterface[WishboneSignature], Protocol):
-    dat_r: Signal
-    dat_w: Signal
-    rst: Signal
-    ack: Signal
-    adr: Signal
-    cyc: Signal
-    stall: Signal
-    err: Signal
-    lock: Signal
-    rty: Signal
-    sel: Signal
-    stb: Signal
-    we: Signal
+        self.dat_r = CIn(wb_params.data_width)
+        self.dat_w = COut(wb_params.data_width)
+        self.rst = COut()
+        self.ack = CIn()
+        self.adr = COut(wb_params.addr_width)
+        self.cyc = COut()
+        self.stall = CIn()
+        self.err = CIn()
+        self.lock = COut()
+        self.rty = CIn()
+        self.sel = COut(wb_params.data_width // wb_params.granularity)
+        self.stb = COut()
+        self.we = COut()
 
 
 class WishboneMasterMethodLayout:
@@ -130,7 +105,7 @@ class WishboneMaster(Component):
     wb_master: WishboneInterface
 
     def __init__(self, wb_params: WishboneParameters, name: str = ""):
-        super().__init__({"wb_master": Out(WishboneSignature(wb_params))})
+        super().__init__({"wb_master": Out(WishboneInterface(wb_params).signature)})
         self.name = name
         self.wb_params = wb_params
 
@@ -262,7 +237,7 @@ class PipelinedWishboneMaster(Component):
     wb: WishboneInterface
 
     def __init__(self, wb_params: WishboneParameters, *, max_req: int = 8):
-        super().__init__({"wb": Out(WishboneSignature(wb_params))})
+        super().__init__({"wb": Out(WishboneInterface(wb_params).signature)})
         self.wb_params = wb_params
         self.max_req = max_req
 
@@ -366,8 +341,8 @@ class WishboneMuxer(Component):
     def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
         super().__init__(
             {
-                "master_wb": Out(WishboneSignature(wb_params)),
-                "slaves": In(WishboneSignature(wb_params)).array(num_slaves),
+                "master_wb": Out(WishboneInterface(wb_params).signature),
+                "slaves": In(WishboneInterface(wb_params).signature).array(num_slaves),
             }
         )
         self.sselTGA = ssel_tga
@@ -439,8 +414,8 @@ class WishboneArbiter(Component):
     def __init__(self, wb_params: WishboneParameters, num_masters: int):
         super().__init__(
             {
-                "slave_wb": Out(WishboneSignature(wb_params)),
-                "masters": In(WishboneSignature(wb_params)).array(num_masters),
+                "slave_wb": Out(WishboneInterface(wb_params).signature),
+                "masters": In(WishboneInterface(wb_params).signature).array(num_masters),
             }
         )
 
@@ -516,7 +491,7 @@ class WishboneMemorySlave(Component):
     bus: WishboneInterface
 
     def __init__(self, wb_params: WishboneParameters, **kwargs):
-        super().__init__({"bus": In(WishboneSignature(wb_params))})
+        super().__init__({"bus": In(WishboneInterface(wb_params).signature)})
         if "shape" not in kwargs:
             kwargs["shape"] = wb_params.data_width
         if kwargs["shape"] not in (8, 16, 32, 64):

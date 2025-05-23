@@ -192,7 +192,7 @@ def load_segments_from_elf(
     with open(file_path, "rb") as f:
         elffile = ELFFile(f)
         for segment in elffile.iter_segments():
-            if segment.header["p_type"] != "PT_LOAD":
+            if segment.header["p_type"] != "PT_LOAD" and segment.header["p_type"] != "PT_NULL":
                 continue
             segments.append(
                 load_segment(

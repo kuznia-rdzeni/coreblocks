@@ -45,9 +45,7 @@ class ResultAnnouncement(Elaboratable):
 
         self.get_result = Method(o=gen_params.get(FuncUnitLayouts).push_result)
         self.rob_mark_done = Method(i=gen_params.get(ROBLayouts).mark_done_layout)
-        self.rs_update = Method(
-            i=gen_params.get(RSLayouts, rs_entries_bits=gen_params.max_rs_entries_bits).rs.update_in
-        )
+        self.rs_update = Method(i=gen_params.get(RSLayouts, rs_entries=gen_params.max_rs_entries).rs.update_in)
         self.rf_write_val = Method(i=gen_params.get(RFLayouts).rf_write)
 
     def debug_signals(self):

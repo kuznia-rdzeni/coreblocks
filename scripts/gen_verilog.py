@@ -31,6 +31,10 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str):
         gp = GenParams(core_config)
         top = TransactionComponent(Core(gen_params=gp), dependency_manager=DependencyContext.get())
 
+        # use known working yosys version shipped with amaranth by default
+        if "AMARANTH_USE_YOSYS" not in os.environ:
+            os.environ["AMARANTH_USE_YOSYS"] = "builtin"
+
         verilog_text, gen_info = generate_verilog(top)
 
         gen_info.encode(f"{output_path}.json")
