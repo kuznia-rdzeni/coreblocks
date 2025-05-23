@@ -44,12 +44,9 @@ class ReorderBuffer(Elaboratable):
         start_idx = Signal(self.params.rob_entries_bits)
         end_idx = Signal(self.params.rob_entries_bits)
 
-        peek_possible = start_idx != end_idx
-        put_possible = (end_idx + 1)[0 : len(end_idx)] != start_idx
-
         m.submodules.data = self.data
 
-        @def_method(m, self.peek, ready=peek_possible, nonexclusive=True)
+        @def_method(m, self.peek, nonexclusive=True)
         def _():
             return {
                 "rob_data": self.data.peek(m).data[0],
@@ -64,7 +61,7 @@ class ReorderBuffer(Elaboratable):
             m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.done[start_idx].eq(0)
 
-        @def_method(m, self.put, ready=put_possible)
+        @def_method(m, self.put)
         def _(arg):
             self.perf_rob_wait_time.start(m)
             self.data.write(m, count=1, data=[arg])
