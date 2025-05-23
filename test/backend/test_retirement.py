@@ -131,6 +131,9 @@ class TestRetirement(TestCaseWithSimulator):
         assert not self.rf_free_q
 
     async def precommit_process(self, sim: TestbenchContext):
+        # wait until R-RAT clears itself after reset
+        # TODO: mock R-RAT properly
+        await self.tick(sim, self.gen_params.isa.reg_cnt)
         while self.precommit_q:
             info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None

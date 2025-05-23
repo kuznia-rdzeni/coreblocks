@@ -1,5 +1,5 @@
 from amaranth import *
-from transactron import Method, def_method, TModule
+from transactron import Method, Transaction, def_method, TModule
 from transactron.lib.storage import AsyncMemoryBank
 from coreblocks.interface.layouts import RATLayouts
 from coreblocks.params import GenParams
@@ -40,7 +40,15 @@ class RRAT(Elaboratable):
         m = TModule()
         m.submodules.entries = self.entries
 
-        @def_method(m, self.commit)
+        initialized = Signal()
+        rl_idx = Signal(range(self.gen_params.isa.reg_cnt))
+        with Transaction().body(m, request=~initialized):
+            self.entries.write(m, addr=rl_idx, data=0)
+            m.d.sync += rl_idx.eq(rl_idx + 1)
+            with m.If(rl_idx == self.gen_params.isa.reg_cnt - 1):
+                m.d.sync += initialized.eq(1)
+
+        @def_method(m, self.commit, ready=initialized)
         def _(rp_dst: Value, rl_dst: Value, commit: Value):
             with m.If(commit):
                 self.entries.write(m, addr=rl_dst, data=rp_dst)
