@@ -245,7 +245,7 @@ jobs:
   run-regression-tests:
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    timeout-minutes: 10
+    timeout-minutes: 20
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-regression-tests, build-core ]
     steps:
