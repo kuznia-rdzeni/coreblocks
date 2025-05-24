@@ -178,7 +178,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.av_comb += misprediction.eq(
                 ~(is_auipc | (predicted_addr_correctly & (instr.taken == instr.predicted_taken)))
             )
-            self.perf_mispredictions.incr(m, cond=misprediction)
+            self.perf_mispredictions.incr(m, enable_call=misprediction)
 
             jmp_addr_misaligned = (
                 instr.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)
