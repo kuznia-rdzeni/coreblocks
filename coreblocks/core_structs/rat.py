@@ -35,6 +35,7 @@ class RRAT(Elaboratable):
 
         layouts = gen_params.get(RATLayouts)
         self.commit = Method(i=layouts.rrat_commit_in, o=layouts.rrat_commit_out)
+        self.peek = Method(i=layouts.rrat_peek_in, o=layouts.rrat_peek_out)
 
     def elaborate(self, platform):
         m = TModule()
@@ -49,9 +50,12 @@ class RRAT(Elaboratable):
                 m.d.sync += initialized.eq(1)
 
         @def_method(m, self.commit, ready=initialized)
-        def _(rp_dst: Value, rl_dst: Value, commit: Value):
-            with m.If(commit):
-                self.entries.write(m, addr=rl_dst, data=rp_dst)
+        def _(rp_dst: Value, rl_dst: Value):
+            self.entries.write(m, addr=rl_dst, data=rp_dst)
             return {"old_rp_dst": self.entries.read(m, addr=rl_dst).data}
+
+        @def_method(m, self.peek, ready=initialized)
+        def _(rl_dst: Value):
+            return self.entries.read(m, addr=rl_dst).data
 
         return m
