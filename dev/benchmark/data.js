@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748016259932,
+  "lastUpdate": 1748097527690,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -17109,6 +17109,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0bfe6d15262be84f9e3cb3e5c294e48041f76f60"
         },
         "date": 1748016250176,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4119586086836292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5394976959130355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.35744473671754023,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6418664976639302,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35055855750884807,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29216255217465514,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32757882722214293,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43390376484799675,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d59f9f97f41218e0aa55e7749b6105cc0dde13b5",
+          "message": "R-RAT refactor (#818)",
+          "timestamp": "2025-05-24T16:16:27+02:00",
+          "tree_id": "11f7dda5a30b7f3d307ca6809cb3c53de0f03689",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d59f9f97f41218e0aa55e7749b6105cc0dde13b5"
+        },
+        "date": 1748097521532,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
