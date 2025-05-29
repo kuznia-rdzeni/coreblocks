@@ -7,11 +7,12 @@ from transactron.utils import HasElaborate
 from transactron.core import TModule, Transaction
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron.utils.amaranth_ext.functions import count_trailing_zeros
+from coreblocks.arch.isa_consts import PMPAFlagEncoding
 
 
 class PMPLayout(data.StructLayout):
     def __init__(self):
-        super().__init__({"xwr": unsigned(3)})
+        super().__init__({"x": unsigned(1), "w": unsigned(1), "r": unsigned(1)})
 
 
 class PMPChecker(Elaboratable):
@@ -44,25 +45,28 @@ class PMPChecker(Elaboratable):
             for i, (cfg, addr) in enumerate(zip(pmpxcfg_val, pmpaddrx_val)):
                 a_flag = (cfg & 0b11000) >> 3
                 matching = Signal(init=0)
-                with m.If(a_flag == 1):
-                    # A=1 - Top of range - od wartości poprzedniego do tego addr
-                    start = pmpaddrx_val[i - 1] if i > 0 else 0
-                    end = addr
-                    with m.If((self.addr >= start) & (self.addr < end)):
-                        matching.eq(1)
-                with m.Elif(a_flag == 2):
-                    # A=2 - NA4 - region 4 bajtowy
-                    with m.If(self.addr >> 2 == addr):
-                        matching.eq(1)
-                with m.Elif(a_flag == 3):
-                    # A=3 - NAPOT - region 2^(3 + tyle na jakiej pozycji jest pierwsze zero od prawej)
-                    fzero = count_trailing_zeros(~addr)
-                    size = 1 << (fzero + 3)
-                    start = addr - (fzero - 1)
-                    end = start + size
-                    with m.If((self.addr >= start) & (self.addr < end)):
-                        matching.eq(1)
-                    pass
+                with m.Switch(a_flag):
+                    with m.Case(PMPAFlagEncoding.OFF):
+                        m.d.comb += matching.eq(0)
+                    with m.Case(PMPAFlagEncoding.TOR):
+                        # A=1 - Top of range - od wartości poprzedniego do tego addr
+                        start = pmpaddrx_val[i - 1] if i > 0 else 0
+                        end = addr
+                        with m.If((self.addr >= start) & (self.addr < end)):
+                            m.d.comb += matching.eq(1)
+                    with m.Case(PMPAFlagEncoding.NA4):
+                        # A=2 - NA4 - region 4 bajtowy
+                        with m.If(self.addr >> 2 == addr):
+                            m.d.comb += matching.eq(1)
+                    with m.Case(PMPAFlagEncoding.NAPOT):
+                        # A=3 - NAPOT - region 2^(3 + tyle na jakiej pozycji jest pierwsze zero od prawej)
+                        fzero = count_trailing_zeros(~addr)
+                        size = 1 << (fzero + 3)
+                        start = addr - (fzero - 1)
+                        end = start + size
+                        with m.If((self.addr >= start) & (self.addr < end)):
+                            m.d.comb += matching.eq(1)
+                        pass
                 m.d.comb += outputs[i].eq(cfg & 111)
                 m.d.comb += matchings[i].eq(matching)
             m.submodules.enc_select = enc_select = PriorityEncoder(width=len(pmpxcfg_val))

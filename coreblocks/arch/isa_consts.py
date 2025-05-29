@@ -194,3 +194,11 @@ class XlenEncoding(IntEnum, shape=2):
     W32 = 1
     W64 = 2
     W128 = 3
+
+
+@unique
+class PMPAFlagEncoding(IntEnum, shape=2):
+    OFF = 0
+    TOR = 1
+    NA4 = 2
+    NAPOT = 3

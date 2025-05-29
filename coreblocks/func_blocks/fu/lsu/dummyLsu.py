@@ -91,7 +91,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         # Memory loads can be issued speculatively.
         pmas = pma_checker.result
         pmps = pmp_checker.result
-        can_reorder = is_load & ~pmas["mmio"] & pmps["xwr"]
+        can_reorder = is_load & ~pmas["mmio"] & pmps["r"]
         want_issue = rob_id_match | can_reorder
 
         do_issue = ~flush & want_issue
