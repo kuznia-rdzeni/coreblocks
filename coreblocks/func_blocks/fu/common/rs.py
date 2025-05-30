@@ -1,9 +1,12 @@
 from abc import abstractmethod
 from collections.abc import Iterable
+from functools import reduce
+from operator import or_
 from typing import Optional
 from amaranth import *
+from amaranth.lib.data import ArrayLayout
 from amaranth.utils import ceil_log2
-from transactron import Method, Transaction, def_method, TModule
+from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib import logging
 from transactron.lib.allocators import PreservedOrderAllocator
 from coreblocks.params import GenParams
@@ -25,11 +28,13 @@ class RSBase(Elaboratable):
         gen_params: GenParams,
         rs_entries: int,
         rs_number: int,
+        rs_ways: int = 1,
         ready_for: Optional[Iterable[Iterable[OpType]]] = None,
     ) -> None:
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.rs_entries = rs_entries
+        self.rs_ways = rs_ways
         self.layouts = gen_params.get(RSLayouts, rs_entries=self.rs_entries)
         self.internal_layout = make_layout(
             ("rs_data", self.layouts.rs.data_layout),
@@ -38,13 +43,13 @@ class RSBase(Elaboratable):
 
         self.insert = Method(i=self.layouts.rs.insert_in)
         self.select = Method(o=self.layouts.rs.select_out)
-        self.update = Method(i=self.layouts.rs.update_in)
+        self.update = Methods(rs_ways, i=self.layouts.rs.update_in)
         self.take = Method(i=self.layouts.take_in, o=self.layouts.take_out)
 
         self.ready_for = [list(op_list) for op_list in ready_for]
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out) for _ in self.ready_for]
 
-        self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
+        self.data = Signal(ArrayLayout(self.internal_layout, self.rs_entries))
         self.data_ready = Signal(self.rs_entries)
 
         self.perf_rs_wait_time = TaggedLatencyMeasurer(
@@ -78,7 +83,7 @@ class RSBase(Elaboratable):
 
         m.submodules += [self.perf_rs_wait_time, self.perf_num_full]
 
-        for i, record in enumerate(self.data):
+        for i, record in enumerate(iter(self.data)):
             m.d.comb += self.data_ready[i].eq(
                 ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full
             )
@@ -94,16 +99,28 @@ class RSBase(Elaboratable):
             self.log.debug(m, True, "selected entry {}", selected_id)
             return {"rs_entry_id": selected_id}
 
-        @def_method(m, self.update)
-        def _(reg_id: Value, reg_val: Value) -> None:
-            for record in self.data:
-                with m.If(record.rs_data.rp_s1 == reg_id):
-                    m.d.sync += record.rs_data.rp_s1.eq(0)
-                    m.d.sync += record.rs_data.s1_val.eq(reg_val)
+        matches_s1 = Signal(ArrayLayout(len(self.update), self.rs_entries))
+        matches_s2 = Signal(ArrayLayout(len(self.update), self.rs_entries))
 
-                with m.If(record.rs_data.rp_s2 == reg_id):
-                    m.d.sync += record.rs_data.rp_s2.eq(0)
-                    m.d.sync += record.rs_data.s2_val.eq(reg_val)
+        @def_methods(m, self.update)
+        def _(k: int, reg_id: Value, reg_val: Value) -> None:
+            for i, record in enumerate(iter(self.data)):
+                m.d.comb += matches_s1[i][k].eq(record.rs_data.rp_s1 == reg_id)
+                m.d.comb += matches_s2[i][k].eq(record.rs_data.rp_s2 == reg_id)
+
+        # It is assumed that two simultaneous update calls never update the same physical register.
+        for i, record in enumerate(iter(self.data)):
+            with m.If(matches_s1[i].any()):
+                m.d.sync += record.rs_data.rp_s1.eq(0)
+                m.d.sync += record.rs_data.s1_val.eq(
+                    reduce(or_, (Mux(matches_s1[i][k], self.update[k].data_in.reg_val, 0) for k in range(self.rs_ways)))
+                )
+
+            with m.If(matches_s2[i].any()):
+                m.d.sync += record.rs_data.rp_s2.eq(0)
+                m.d.sync += record.rs_data.s2_val.eq(
+                    reduce(or_, (Mux(matches_s2[i][k], self.update[k].data_in.reg_val, 0) for k in range(self.rs_ways)))
+                )
 
         @def_method(m, self.insert)
         def _(rs_entry_id: Value, rs_data: Value) -> None:
