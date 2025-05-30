@@ -90,7 +90,6 @@ class LSUDummy(FuncUnit, Elaboratable):
         pmas = pma_checker.result
         can_reorder = is_load & ~pmas["mmio"]
         want_issue = rob_id_match | can_reorder
-
         do_issue = ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             arg = requests.read(m)
