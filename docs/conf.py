@@ -56,7 +56,7 @@ pygments_style = "sphinx"
 html_theme = general_theme
 
 # The title to be shown at all html documents.
-# Deafult is "<project> v<release> documentation".
+# Default is "<project> v<release> documentation".
 html_title = project
 
 # A shorter title to appear at the navigation bar. Default is html_title.

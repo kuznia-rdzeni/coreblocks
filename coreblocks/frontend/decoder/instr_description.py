@@ -23,10 +23,10 @@ class Encoding:
         Specify `InstrType` used for decoding of register and immediate for single opcode.
         If set to `None` optype is determined from instrustion opcode, which is almost always correct.
     rd_zero: bool
-        `rd` field is specifed as constant zero in instruction encoding. Other fields are decoded
+        `rd` field is specified as constant zero in instruction encoding. Other fields are decoded
         accordingly to `InstrType`. Default is False.
     rs1_zero: bool
-        `rs1` field is specifed as constant zero in instruction encoding. Other fields are decoded
+        `rs1` field is specified as constant zero in instruction encoding. Other fields are decoded
         accordingly to `InstrType`. Default is False.
     """
 
