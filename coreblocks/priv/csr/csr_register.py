@@ -88,7 +88,7 @@ class CSRRegister(Elaboratable):
         fu_write_priority: bool
             Priority of CSR instruction write over `write` method, if both are called at the same cycle.
             If `ro_bits` are set, both operations will be performed, respecting priority on writeable bits.
-            Defults to True.
+            Defaults to True.
         fu_write_filtermap: function (TModule, Value) -> (ValueLike, ValueLike)
             Filter + map on CSR writes from instruction. First Value in returned tuple signals if write should be
             performed, second is modified input data.
