@@ -62,7 +62,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
             return self.recursive_module()
 
     def recursive_module(self) -> TModule:
-        # Classic Multiplying Algorythm
+        # Classic Multiplying Algorithm
         #
         # bit: N       N/2      0
         #      +--------+-------+

@@ -11,7 +11,7 @@ theme_path = get_html_theme_path() + "/" + general_theme
 # Minimal Sphinx version.
 needs_sphinx = "5.1.0"
 
-# Add any extenstions here. These could be both Sphinx or custom ones.
+# Add any extensions here. These could be both Sphinx or custom ones.
 extensions = [
     "myst_parser",
     "sphinx.ext.intersphinx",

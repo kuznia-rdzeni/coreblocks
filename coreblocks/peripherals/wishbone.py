@@ -56,7 +56,7 @@ class WishboneMasterMethodLayout:
     Parameters
     ----------
     wb_params: WishboneParameters
-        Patameters used to generate Wishbone master layouts
+        Parameters used to generate Wishbone master layouts
 
     Attributes
     ----------

@@ -94,7 +94,7 @@ class _CoreConfigurationDataClass:
     interrupt_custom_count: int
         Number of custom/local async interrupts to support. First interrupt will be registered at id 16.
     interrupt_custom_edge_trig_mask: int
-        Bit mask specifing if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
+        Bit mask specifying if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
@@ -103,8 +103,8 @@ class _CoreConfigurationDataClass:
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
-    _implied_extensions: Extenstion
-        Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
+    _implied_extensions: Extension
+        Bit flag specifying enabled extensions that are not specified by func_units_config. Used in internal tests.
     _generate_test_hardware: bool
         Enables generation of additional hardware used for use in internal unit tests.
     pma : list[PMARegion]

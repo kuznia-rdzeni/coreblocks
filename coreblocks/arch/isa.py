@@ -207,7 +207,7 @@ class ISA:
                             f"ISA extension {ext.name} requires the {req.name} extension to be supported"
                         )
 
-        # I & E extensions can coexist if I extenstion can be disableable at runtime
+        # I & E extensions can coexist if I extension can be disableable at runtime
         if self.extensions & Extension.E and not self.extensions & Extension.I:
             self.reg_cnt = 16
         else:
