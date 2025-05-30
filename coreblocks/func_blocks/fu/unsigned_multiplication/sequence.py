@@ -24,7 +24,7 @@ class RecursiveWithSingleDSPMul(Elaboratable):
     confirm: Signal(1), out
         Signal providing information if computation is finished.
     reset: Signal(1), in
-        Signal erasing previous result, and staring new computation of provided inputs.
+        Signal erasing previous result, and starting new computation of provided inputs.
     """
 
     def __init__(self, dsp: DSPMulUnit, n: int):

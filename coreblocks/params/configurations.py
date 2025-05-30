@@ -80,7 +80,7 @@ class _CoreConfigurationDataClass:
         currently in core, including instructions from already rolled-back checkpoints, that didn't leave the
         pipeline yet. Tag space size must be greater that checkpoint count.
     icache_enable: bool
-        Enable instruction cache. If disabled, requestes are bypassed directly to the bus.
+        Enable instruction cache. If disabled, requests are bypassed directly to the bus.
     icache_ways: int
         Associativity of the instruction cache.
     icache_sets_bits: int

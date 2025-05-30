@@ -11,7 +11,7 @@ from transactron.lib.fifo import BasicFifo
 
 
 # NOTE: This function is not used in ExceptionCauseRegister, but may be useful in computing priorities before reporting
-def should_update_prioriy(m: TModule, current_cause: Value, new_cause: Value) -> Value:
+def should_update_priority(m: TModule, current_cause: Value, new_cause: Value) -> Value:
     # Comparing all priorities would be expensive, this function only checks conditions that could happen in hardware
     _update = Signal()
 
