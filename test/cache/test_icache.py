@@ -640,7 +640,7 @@ class TestICache(TestCaseWithSimulator):
         self.init_module(1, 4)
 
         async def cache_process(sim: TestbenchContext):
-            self.add_bad_addr(0x00010000)  # Bad addr at the beggining of the line
+            self.add_bad_addr(0x00010000)  # Bad addr at the beginning of the line
             self.add_bad_addr(0x00020008)  # Bad addr in the middle of the line
             self.add_bad_addr(
                 0x00030000 + self.cp.line_size_bytes - self.cp.word_width_bytes

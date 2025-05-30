@@ -22,7 +22,7 @@ from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 from coreblocks.frontend.frontend import CoreFrontend
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.backend.annoucement import ResultAnnouncement
+from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface

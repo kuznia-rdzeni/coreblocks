@@ -33,7 +33,7 @@ Resource usage and maximum clock frequency is [automatically measured and record
 
 ## Contributing
 
-Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documetation.
+Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documentation.
 
 External contributors are welcome to submit pull requests for simple contributions directly.
 For larger changes, please discuss your plans with us through the [issues page](https://github.com/kuznia-rdzeni/coreblocks/issues) or the [discussions page](https://github.com/kuznia-rdzeni/coreblocks/discussions) first.

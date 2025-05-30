@@ -20,9 +20,9 @@ graph
     Reg[<b>REGISTER ALLOCATION</b><br>-get free register from FREE RF list]
     Reg --> Rename;
     Rename[<b>RENAMING</b><br>-rename source registers using F-RAT<br>-save mapping to allocated output register in F-RAT]
-    Rename --> AlocRob;
-    AlocRob[<b>ROB ALLOCATION</b><br>-get ID of free entry in ROB<br>-save instruction in ROB entry]
-    AlocRob --> Select;
+    Rename --> AllocRob;
+    AllocRob[<b>ROB ALLOCATION</b><br>-get ID of free entry in ROB<br>-save instruction in ROB entry]
+    AllocRob --> Select;
     Select[<b>RS SELECTION</b><br>-choose RS to which instruction should be send<br>-reserve entry in that RS]
     Select --> Insert;
     Insert[<b>RS INSERTION</b><br>-insert instruction to selected RS<br>-get operands from RF<br>-save them in RS field of new instruction]

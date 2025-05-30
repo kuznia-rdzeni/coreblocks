@@ -445,14 +445,14 @@ class MstatusFieldOffsets(IntEnum):
     SIE = 1  # Supervisor Interrupt Enable
     MIE = 3  # Machine Interrupt Enable
     SPIE = 5  # Supervisor Previous Interrupt Enable
-    UBE = 6  # User Endianess Control
+    UBE = 6  # User Endianness Control
     MPIE = 7  # Machine Previous Interrupt Enable
-    SPP = 8  # Supervisor Previous Pirvilege
+    SPP = 8  # Supervisor Previous Privilege
     VS = 9  # Vector Context Status
-    MPP = 11  # Machine Previous Pirvilege
+    MPP = 11  # Machine Previous Privilege
     FS = 13  # Float Context Status
     XS = 15  # Additional Extension State Context Status
-    MPRV = 17  # Modify Pirvilege
+    MPRV = 17  # Modify Privilege
     SUM = 18  # Supervisor User Memory Access
     MXR = 19  # Make Executable Readable
     TVM = 20  # Trap Virtual Memory
@@ -460,6 +460,6 @@ class MstatusFieldOffsets(IntEnum):
     TSR = 22  # Trap SRET
     UXL = 32  # User XLEN
     SXL = 34  # Supervisor XLEN
-    SBE = 36  # Supervisor Endianess Control
-    MBE = 37  # Machine Endianess Contorol
+    SBE = 36  # Supervisor Endianness Control
+    MBE = 37  # Machine Endianness Control
     SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus

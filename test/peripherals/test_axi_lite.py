@@ -175,7 +175,7 @@ class TestAXILiteMaster(TestCaseWithSimulator):
             slave.slave_wr_get(sim)
             await slave.slave_wr_respond(sim, 1)
 
-            # 3nd write request and 2st respond
+            # 3rd write request and 2nd respond
             slave.slave_wa_get_and_verify(sim, 8, 0)
             slave.slave_wd_get_and_verify(sim, 12, 3)
             slave.slave_wr_get(sim)

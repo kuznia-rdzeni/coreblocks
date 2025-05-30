@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ -z "$MAKEFILE_PATH" ]; then
-  echo "Makefile path not specifed. Exiting... "
+  echo "Makefile path not specified. Exiting... "
   exit 1
 fi
 

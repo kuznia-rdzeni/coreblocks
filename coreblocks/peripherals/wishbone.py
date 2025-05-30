@@ -56,7 +56,7 @@ class WishboneMasterMethodLayout:
     Parameters
     ----------
     wb_params: WishboneParameters
-        Patameters used to generate Wishbone master layouts
+        Parameters used to generate Wishbone master layouts
 
     Attributes
     ----------
@@ -322,7 +322,7 @@ class WishboneMuxer(Component):
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
         is asserted.
-        Note that if Pipelined Wishbone implementation is used, then before staring any new request with
+        Note that if Pipelined Wishbone implementation is used, then before starting any new request with
         different `ssel_tga` value, all pending request have to be finished (and `stall` cleared) and
         there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
         requests should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.

@@ -141,22 +141,22 @@ class CommonLayoutFields:
         """A mask denoting which instruction in a fetch blocks is a branch."""
 
         self.tag: LayoutListField = ("tag", gen_params.tag_bits)
-        """Instruction tag. Identifies speculation path of the instuction."""
+        """Instruction tag. Identifies speculation path of the instruction."""
 
         self.rollback_tag: LayoutListField = ("rollback_tag", gen_params.tag_bits)
-        """Target tag of last rollback that happened before instuction.
+        """Target tag of last rollback that happened before instruction.
         For tracking rollbacks in scheduler/CRAT only."""
 
         self.rollback_tag_v: LayoutListField = ("rollback_tag_v", 1)
         """Valid bit for `rollback_tag`.
-        It is set only for first instuction that exits fetch after rollback to `rollback_tag`."""
+        It is set only for first instruction that exits fetch after rollback to `rollback_tag`."""
 
         self.tag_increment: LayoutListField = ("tag_increment", 1)
         """Compressed tag representation used in ROB.
-        Instuction with this bit set has tag of previous instuction incremented by one."""
+        Instruction with this bit set has tag of previous instruction incremented by one."""
 
         self.commit_checkpoint: LayoutListField = ("commit_checkpoint", 1)
-        """New checkpoint should be made for this instuction"""
+        """New checkpoint should be made for this instruction"""
 
 
 class SchedulerLayouts:
@@ -363,7 +363,7 @@ class RSLayoutFields:
         self.data_layout = layout_subset(full_data.data_layout, fields=data_fields)
 
         self.rs_data: LayoutListField = ("rs_data", self.data_layout)
-        """Data about an instuction stored in a reservation station (RS)."""
+        """Data about an instruction stored in a reservation station (RS)."""
 
         self.rs_entry_id: LayoutListField = ("rs_entry_id", range(rs_entries))
         """Index in a reservation station (RS)."""

@@ -56,7 +56,7 @@ class FastRecursiveMul(Elaboratable):
             return self.recursive_module()
 
     def recursive_module(self) -> TModule:
-        # Fast Recursive Multiplying Algorythm
+        # Fast Recursive Multiplying Algorithm
         #
         # bit: N       N/2      0
         #      +--------+-------+

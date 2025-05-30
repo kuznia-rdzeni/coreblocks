@@ -58,7 +58,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
-            "Number of instructions precommited with side effects by the priviledge unit",
+            "Number of instructions precommited with side effects by the privilege unit",
             tags=PrivilegedFn.Fn,
         )
 

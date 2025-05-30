@@ -180,7 +180,7 @@ class MachineModeCSRRegisters(Elaboratable):
             )
             mstatus.add_read_only_field(MstatusFieldOffsets.SXL, XlenEncoding.as_shape().width, 0)
 
-        # Little-endianess
+        # Little-endianness
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
         if gen_params.isa.xlen == 32:
             mstatush.add_read_only_field(MstatusFieldOffsets.SBE - mstatus.width, 1, 0)
