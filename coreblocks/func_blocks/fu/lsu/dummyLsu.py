@@ -14,7 +14,6 @@ from coreblocks.frontend.decoder import *
 from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
-from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
@@ -67,7 +66,6 @@ class LSUDummy(FuncUnit, Elaboratable):
         is_load = Signal()
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
@@ -90,10 +88,8 @@ class LSUDummy(FuncUnit, Elaboratable):
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
         pmas = pma_checker.result
-        pmps = pmp_checker.result
-        can_reorder = is_load & ~pmas["mmio"] & pmps["r"]
+        can_reorder = is_load & ~pmas["mmio"]
         want_issue = rob_id_match | can_reorder
-
         do_issue = ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             arg = requests.read(m)
