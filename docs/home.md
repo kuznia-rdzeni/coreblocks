@@ -22,7 +22,7 @@ graph
     E --FU--> B
     B[<b>BACKEND</b><br>-listen for results from FU<br>-announce results to RF and RS<br>-mark done in ROB]
     B --> R
-    R[<b>RETIREMENT</b><br>-check rediness of instruction from the end of ROB<br>-update RAT<br>-deallocate old register<br>-deallocate ROB]
+    R[<b>RETIREMENT</b><br>-check readiness of instruction from the end of ROB<br>-update RAT<br>-deallocate old register<br>-deallocate ROB]
 
     ROB((ROB))
     RF((RF))
