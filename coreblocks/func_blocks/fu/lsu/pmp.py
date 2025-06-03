@@ -44,20 +44,19 @@ class PMPChecker(Elaboratable):
             matchings = Array(Signal() for _ in pmpxcfg_val)
             for i, (cfg, addr) in enumerate(zip(pmpxcfg_val, pmpaddrx_val)):
                 a_flag = (cfg & 0b11000) >> 3
-                matching = Signal(init=0)
                 with m.Switch(a_flag):
                     with m.Case(PMPAFlagEncoding.OFF):
-                        m.d.comb += matching.eq(0)
+                        m.d.comb += matchings[i].eq(0)
                     with m.Case(PMPAFlagEncoding.TOR):
                         # A=1 - Top of range - from value of previous address to this address
                         start = pmpaddrx_val[i - 1] if i > 0 else 0
                         end = addr
                         with m.If((self.addr >= start) & (self.addr < end)):
-                            m.d.comb += matching.eq(1)
+                            m.d.comb += matchings[i].eq(1)
                     with m.Case(PMPAFlagEncoding.NA4):
                         # A=2 - NA4 - 4-byte region
                         with m.If(self.addr >> 2 == addr):
-                            m.d.comb += matching.eq(1)
+                            m.d.comb += matchings[i].eq(1)
                     with m.Case(PMPAFlagEncoding.NAPOT):
                         # A=3 - NAPOT - 2^(3 + position of first zero from right) region
                         fzero = count_trailing_zeros(~addr)
@@ -65,9 +64,8 @@ class PMPChecker(Elaboratable):
                         start = addr - (fzero - 1)
                         end = start + size
                         with m.If((self.addr >= start) & (self.addr < end)):
-                            m.d.comb += matching.eq(1)
+                            m.d.comb += matchings[i].eq(1)
                 m.d.comb += outputs[i].eq(cfg)
-                m.d.comb += matchings[i].eq(matching)
             m.submodules.enc_select = enc_select = PriorityEncoder(width=len(pmpxcfg_val))
             select_vector = Cat(matchings)
             m.d.comb += enc_select.i.eq(select_vector)
