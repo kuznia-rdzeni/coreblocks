@@ -38,8 +38,8 @@ class PMPChecker(Elaboratable):
         m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
 
         with Transaction(name="PMP_CSR_read").body(m):
-            pmpxcfg_val = [cfg.read(m).data for cfg in m_csr.pmpxcfg]
-            pmpaddrx_val = [addr.read(m).data for addr in m_csr.pmpaddrx]
+            pmpxcfg_val = Array(cfg.read(m).data for cfg in m_csr.pmpxcfg)
+            pmpaddrx_val = Array(addr.read(m).data for addr in m_csr.pmpaddrx)
             matchings = Array(Signal() for _ in pmpxcfg_val)
             for i, (cfg, addr) in enumerate(zip(pmpxcfg_val, pmpaddrx_val)):
                 a_flag = (cfg & 0b11000) >> 3
