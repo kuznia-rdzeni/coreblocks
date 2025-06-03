@@ -66,7 +66,7 @@ class PMPChecker(Elaboratable):
                         end = start + size
                         with m.If((self.addr >= start) & (self.addr < end)):
                             m.d.comb += matching.eq(1)
-                m.d.comb += outputs[i].eq(cfg & 0b111)
+                m.d.comb += outputs[i].eq(cfg)
                 m.d.comb += matchings[i].eq(matching)
             m.submodules.enc_select = enc_select = PriorityEncoder(width=len(pmpxcfg_val))
             select_vector = Cat(matchings)
