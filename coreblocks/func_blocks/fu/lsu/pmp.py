@@ -49,17 +49,17 @@ class PMPChecker(Elaboratable):
                     with m.Case(PMPAFlagEncoding.OFF):
                         m.d.comb += matching.eq(0)
                     with m.Case(PMPAFlagEncoding.TOR):
-                        # A=1 - Top of range - od wartości poprzedniego do tego addr
+                        # A=1 - Top of range - from value of previous address to this address
                         start = pmpaddrx_val[i - 1] if i > 0 else 0
                         end = addr
                         with m.If((self.addr >= start) & (self.addr < end)):
                             m.d.comb += matching.eq(1)
                     with m.Case(PMPAFlagEncoding.NA4):
-                        # A=2 - NA4 - region 4 bajtowy
+                        # A=2 - NA4 - 4-byte region
                         with m.If(self.addr >> 2 == addr):
                             m.d.comb += matching.eq(1)
                     with m.Case(PMPAFlagEncoding.NAPOT):
-                        # A=3 - NAPOT - region 2^(3 + tyle na jakiej pozycji jest pierwsze zero od prawej)
+                        # A=3 - NAPOT - 2^(3 + position of first zero from right) region
                         fzero = count_trailing_zeros(~addr)
                         size = 1 << (fzero + 3)
                         start = addr - (fzero - 1)
