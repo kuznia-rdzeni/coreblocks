@@ -140,19 +140,16 @@ class LSURequester(Elaboratable):
                 with branch(aligned & ~store):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
 
-            with m.If(aligned):
-                with m.If(has_permission):
-                    args_fifo.write(m, addr=addr, funct3=funct3, store=store)
-                with m.Else():
-                    m.d.av_comb += exception.eq(1)
-                    m.d.av_comb += cause.eq(
-                        Mux(store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
-                    )
-            with m.Else():
+            with m.If(~aligned):
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
                     Mux(store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED)
                 )
+            with m.Elif(~has_permission):
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(Mux(store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT))
+            with m.Else():
+                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
 
             return {"exception": exception, "cause": cause}
 
