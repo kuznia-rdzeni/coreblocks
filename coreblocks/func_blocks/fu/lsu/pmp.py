@@ -40,7 +40,6 @@ class PMPChecker(Elaboratable):
         with Transaction(name="PMP_CSR_read").body(m):
             pmpxcfg_val = [cfg.read(m).data for cfg in m_csr.pmpxcfg]
             pmpaddrx_val = [addr.read(m).data for addr in m_csr.pmpaddrx]
-            outputs = Array(Signal(PMPLayout()) for _ in pmpxcfg_val)
             matchings = Array(Signal() for _ in pmpxcfg_val)
             for i, (cfg, addr) in enumerate(zip(pmpxcfg_val, pmpaddrx_val)):
                 a_flag = (cfg & 0b11000) >> 3
@@ -65,12 +64,11 @@ class PMPChecker(Elaboratable):
                         end = start + size
                         with m.If((self.addr >= start) & (self.addr < end)):
                             m.d.comb += matchings[i].eq(1)
-                m.d.comb += outputs[i].eq(cfg)
             m.submodules.enc_select = enc_select = PriorityEncoder(width=len(pmpxcfg_val))
             select_vector = Cat(matchings)
             m.d.comb += enc_select.i.eq(select_vector)
             with m.If(enc_select.n):
                 m.d.sync += self.result.eq(0b111)
             with m.Else():
-                m.d.sync += self.result.eq(outputs[enc_select.o])
+                m.d.sync += self.result.eq(pmpxcfg_val[enc_select.o])
         return m
