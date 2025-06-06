@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1748606672725,
+  "lastUpdate": 1749206700558,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -17237,6 +17237,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/15d4bbf258ceb81bf4c6637087a372648e9a404a"
         },
         "date": 1748606664163,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4119586086836292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5394976959130355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.35744473671754023,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6418664976639302,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35055855750884807,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29216255217465514,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32757882722214293,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43390376484799675,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ar2rekb@gmail.com",
+            "name": "Artur Bieniek",
+            "username": "ArturBieniek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3c0f3fadf34178da7c660931651143bae305261",
+          "message": "Fix some typos (#823)",
+          "timestamp": "2025-06-06T12:22:48+02:00",
+          "tree_id": "a801eb1a1997cfdb9f1d5d4237827e330f099bd6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e3c0f3fadf34178da7c660931651143bae305261"
+        },
+        "date": 1749206694897,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
