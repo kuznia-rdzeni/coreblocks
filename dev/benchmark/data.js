@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749206702096,
+  "lastUpdate": 1749206703495,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -49617,6 +49617,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 33891,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1906,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2080,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9044,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ar2rekb@gmail.com",
+            "name": "Artur Bieniek",
+            "username": "ArturBieniek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3c0f3fadf34178da7c660931651143bae305261",
+          "message": "Fix some typos (#823)",
+          "timestamp": "2025-06-06T12:22:48+02:00",
+          "tree_id": "a801eb1a1997cfdb9f1d5d4237827e330f099bd6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e3c0f3fadf34178da7c660931651143bae305261"
+        },
+        "date": 1749206703029,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.17,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 35395,
             "unit": "LUT4"
           },
           {
