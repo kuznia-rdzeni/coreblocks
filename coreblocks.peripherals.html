@@ -213,7 +213,7 @@ Returns response state as ‘wr_response_layout’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>axil_params: AXILiteParameters</strong></dt><dd><p>Patameters used to generate AXI-Lite signature</p>
+<dt><strong>axil_params: AXILiteParameters</strong></dt><dd><p>Parameters used to generate AXI-Lite signature</p>
 </dd>
 </dl>
 </dd>
@@ -521,7 +521,7 @@ Returns state of request (error or success) and data (in case of read request) a
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>wb_params: WishboneParameters</strong></dt><dd><p>Patameters used to generate Wishbone master layouts</p>
+<dt><strong>wb_params: WishboneParameters</strong></dt><dd><p>Parameters used to generate Wishbone master layouts</p>
 </dd>
 </dl>
 </dd>
@@ -593,7 +593,7 @@ are not specified, then they’re inferred from <cite>wb_params</cite>: <cite>da
 <dt><strong>ssel_tga: Signal</strong></dt><dd><p>Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
 to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
 is asserted.
-Note that if Pipelined Wishbone implementation is used, then before staring any new request with
+Note that if Pipelined Wishbone implementation is used, then before starting any new request with
 different <cite>ssel_tga</cite> value, all pending request have to be finished (and <cite>stall</cite> cleared) and
 there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
 requests should be implemented in block that controlls <cite>ssel_tga</cite> signal, before the Wishbone Master.</p>
@@ -668,7 +668,7 @@ requests should be implemented in block that controlls <cite>ssel_tga</cite> sig
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 11:43 2025-05-30.
+      <span class="lastupdated">Last updated on 10:23 2025-06-06.
       </span></p>
   </div>
 

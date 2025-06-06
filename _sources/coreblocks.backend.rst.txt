@@ -4,10 +4,10 @@ coreblocks.backend package
 Submodules
 ----------
 
-coreblocks.backend.annoucement module
--------------------------------------
+coreblocks.backend.announcement module
+--------------------------------------
 
-.. automodule:: coreblocks.backend.annoucement
+.. automodule:: coreblocks.backend.announcement
    :members:
    :undoc-members:
    :show-inheritance:

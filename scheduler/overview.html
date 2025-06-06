@@ -107,9 +107,9 @@ Its main tasks are:</p>
     Reg[&lt;b&gt;REGISTER ALLOCATION&lt;/b&gt;&lt;br&gt;-get free register from FREE RF list]
     Reg --&gt; Rename;
     Rename[&lt;b&gt;RENAMING&lt;/b&gt;&lt;br&gt;-rename source registers using F-RAT&lt;br&gt;-save mapping to allocated output register in F-RAT]
-    Rename --&gt; AlocRob;
-    AlocRob[&lt;b&gt;ROB ALLOCATION&lt;/b&gt;&lt;br&gt;-get ID of free entry in ROB&lt;br&gt;-save instruction in ROB entry]
-    AlocRob --&gt; Select;
+    Rename --&gt; AllocRob;
+    AllocRob[&lt;b&gt;ROB ALLOCATION&lt;/b&gt;&lt;br&gt;-get ID of free entry in ROB&lt;br&gt;-save instruction in ROB entry]
+    AllocRob --&gt; Select;
     Select[&lt;b&gt;RS SELECTION&lt;/b&gt;&lt;br&gt;-choose RS to which instruction should be send&lt;br&gt;-reserve entry in that RS]
     Select --&gt; Insert;
     Insert[&lt;b&gt;RS INSERTION&lt;/b&gt;&lt;br&gt;-insert instruction to selected RS&lt;br&gt;-get operands from RF&lt;br&gt;-save them in RS field of new instruction]
@@ -145,7 +145,7 @@ During implementation each phase should be treated as a separate hardware block 
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 11:43 2025-05-30.
+      <span class="lastupdated">Last updated on 10:23 2025-06-06.
       </span></p>
   </div>
 
