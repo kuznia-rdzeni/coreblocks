@@ -116,7 +116,7 @@ class TestFuDecoder(TestCaseWithSimulator):
         self.run_test_case(decoder_manager, test_inputs)
 
     def test_3(self) -> None:
-        # diffecrent op types, different instruction length
+        # different op types, different instruction length
         class DM(DecoderManager):
             class Fn(IntFlag):
                 INST1 = auto()
