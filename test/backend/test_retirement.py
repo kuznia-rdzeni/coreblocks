@@ -2,7 +2,7 @@ from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
 
 from transactron.lib import FIFO, Adapter
-from coreblocks.core_structs.rat import FRAT, RRAT
+from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from transactron.lib.adapters import AdapterTrans
@@ -20,7 +20,6 @@ class RetirementTestCircuit(Elaboratable):
         m = TModule()
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
-        m.submodules.f_rat = self.frat = FRAT(gen_params=self.gen_params)
         m.submodules.free_rf_list = self.free_rf = FIFO(
             [("ident", range(self.gen_params.phys_regs))], self.gen_params.phys_regs
         )
@@ -33,7 +32,6 @@ class RetirementTestCircuit(Elaboratable):
         self.retirement.r_rat_commit.proxy(m, self.rat.commit)
         self.retirement.r_rat_peek.proxy(m, self.rat.peek)
         self.retirement.free_rf_put.proxy(m, self.free_rf.write)
-        self.retirement.f_rat_rename.proxy(m, self.frat.rename)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
             Adapter(self.retirement.rob_peek, nonexclusive=True)
@@ -56,6 +54,14 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
             Adapter(self.retirement.async_interrupt_cause)
         )
+
+        m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
+            Adapter(self.retirement.checkpoint_tag_free)
+        )
+        m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
+            Adapter(self.retirement.checkpoint_get_active_tags)
+        )
+        m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(Adapter(self.retirement.c_rat_restore))
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
 
@@ -113,10 +119,11 @@ class TestRetirement(TestCaseWithSimulator):
 
     async def rat_process(self, sim: TestbenchContext):
         while self.rat_map_q:
-            current_map = self.rat_map_q.popleft()
+            curr_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            while sim.get(self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+            # TODO: abstract memories don't implement MemoryData, but standard lib.Memory used in tests
+            while sim.get(self.retc.rat.entries.mem.data[curr_map["rl_dst"]]) != curr_map["rp_dst"]:  # type: ignore
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
@@ -125,6 +132,8 @@ class TestRetirement(TestCaseWithSimulator):
         assert not self.rf_free_q
 
     async def precommit_process(self, sim: TestbenchContext):
+        # wait until R-RAT clears itself after reset
+        await self.tick(sim, self.gen_params.isa.reg_cnt)
         while self.precommit_q:
             info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None
@@ -160,6 +169,14 @@ class TestRetirement(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
+
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
+    def mock_checkpoint_get_active_tags(self):
+        return {"active_tags": -1}
+
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_tag_free)
+    def mock_checkpoint_tag_free(self):
+        pass
 
     def test_rand(self):
         self.retc = RetirementTestCircuit(self.gen_params)

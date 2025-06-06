@@ -159,6 +159,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             ("reg_res", self.gen_params.isa.xlen),
             ("taken", 1),
             fields.predicted_taken,
+            fields.tag,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
@@ -177,7 +178,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             m.d.av_comb += misprediction.eq(
                 ~(is_auipc | (predicted_addr_correctly & (instr.taken == instr.predicted_taken)))
             )
-            self.perf_mispredictions.incr(m, cond=misprediction)
+            self.perf_mispredictions.incr(m, enable_call=misprediction)
 
             jmp_addr_misaligned = (
                 instr.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)
@@ -263,6 +264,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
+                tag=arg.tag,
             )
             self.perf_instr.incr(m, decoder.decode_fn)
 

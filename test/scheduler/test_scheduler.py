@@ -1,10 +1,10 @@
 import random
+from amaranth import *
 
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
-from amaranth import *
 from parameterized import parameterized_class
-from coreblocks.interface.keys import CoreStateKey
+from coreblocks.interface.keys import CoreStateKey, RollbackKey
 from coreblocks.interface.layouts import RetirementLayouts
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
@@ -12,12 +12,13 @@ from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.testing.functions import MethodData, data_const_to_dict
 from transactron.testing.method_mock import MethodMock
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.core_structs.rf import RegisterFile
-from coreblocks.core_structs.rat import FRAT
+from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import RSLayouts, DecodeLayouts, SchedulerLayouts
+from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
@@ -33,16 +34,15 @@ class SchedulerTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        rs_layouts = self.gen_params.get(RSLayouts, rs_entries_bits=self.gen_params.max_rs_entries_bits)
-        decode_layouts = self.gen_params.get(DecodeLayouts)
+        rs_layouts = self.gen_params.get(RSLayouts, rs_entries=self.gen_params.max_rs_entries)
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         # data structures
-        m.submodules.instr_fifo = instr_fifo = FIFO(decode_layouts.decoded_instr, 16)
+        m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.scheduler_in, 16)
         m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
-        m.submodules.rat = rat = FRAT(gen_params=self.gen_params)
+        m.submodules.crat = self.crat = crat = CheckpointRAT(gen_params=self.gen_params)
         m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
         m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
 
@@ -86,18 +86,25 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
         m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
         m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
+        m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans(self.rob.peek))
+        m.submodules.rob_get_indices = self.rob_get_indices = TestbenchIO(AdapterTrans(self.rob.get_indices))
         m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
         m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
         m.submodules.core_state = self.core_state = TestbenchIO(
             Adapter.create(o=self.gen_params.get(RetirementLayouts).core_state)
         )
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+        m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans(crat.get_active_tags))
+        m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans(crat.free_tag))
+        dm = DependencyContext.get()
+        dm.add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         # main scheduler
         m.submodules.scheduler = self.scheduler = Scheduler(
             get_instr=instr_fifo.read,
             get_free_reg=free_rf_fifo.read,
-            rat_rename=rat.rename,
+            crat_rename=crat.rename,
+            crat_tag=crat.tag,
+            crat_active_tags=crat.get_active_tags,
             rob_put=self.rob.put,
             rf_read_req1=self.rf.read_req1,
             rf_read_req2=self.rf.read_req2,
@@ -106,6 +113,10 @@ class SchedulerTestCircuit(Elaboratable):
             reservation_stations=rs_blocks,
             gen_params=self.gen_params,
         )
+
+        rollback, rollback_unifiers = dm.get_dependency(RollbackKey())
+        m.submodules.rollback_unifiers = ModuleConnector(**rollback_unifiers)
+        m.submodules.rollback = self.rollback = TestbenchIO(AdapterTrans(rollback))
 
         return m
 

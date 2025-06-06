@@ -24,9 +24,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
                 func_units_config=tuple(RSBlockComponent([], rs_entries=16, rs_number=k) for k in range(2))
             )
         )
-        self.m = SimpleTestCircuit(
-            WakeupSelect(gen_params=self.gen_params, rs_entries_bits=self.gen_params.max_rs_entries_bits)
-        )
+        self.m = SimpleTestCircuit(WakeupSelect(gen_params=self.gen_params, rs_entries=16))
         self.cycles = 50
         self.taken = deque()
 

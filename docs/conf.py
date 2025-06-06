@@ -11,7 +11,7 @@ theme_path = get_html_theme_path() + "/" + general_theme
 # Minimal Sphinx version.
 needs_sphinx = "5.1.0"
 
-# Add any extenstions here. These could be both Sphinx or custom ones.
+# Add any extensions here. These could be both Sphinx or custom ones.
 extensions = [
     "myst_parser",
     "sphinx.ext.intersphinx",
@@ -56,7 +56,7 @@ pygments_style = "sphinx"
 html_theme = general_theme
 
 # The title to be shown at all html documents.
-# Deafult is "<project> v<release> documentation".
+# Default is "<project> v<release> documentation".
 html_title = project
 
 # A shorter title to appear at the navigation bar. Default is html_title.

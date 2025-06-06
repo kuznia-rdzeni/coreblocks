@@ -52,7 +52,7 @@ class GenParams(DependentCache):
 
         # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
-        #     raise Exception(f"Functional unit configuration fo not support all extension required by{isa_str}")
+        #     raise Exception(f"Functional unit configuration do not support all extension required by{isa_str}")
 
         self.max_rs_entries = 1
 
@@ -68,6 +68,10 @@ class GenParams(DependentCache):
         self.rob_entries_bits = cfg.rob_entries_bits
         self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
+
+        self.checkpoint_count = cfg.checkpoint_count
+        self.tag_bits = cfg.tag_bits
+        assert cfg.checkpoint_count < 2**cfg.tag_bits
 
         self.min_instr_width_bytes = 2 if cfg.compressed else 4
         self.min_instr_width_bytes_log = exact_log2(self.min_instr_width_bytes)

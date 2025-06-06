@@ -7,8 +7,6 @@ from coreblocks.params.configurations import test_core_config
 from collections import deque
 from random import Random
 
-from transactron.testing.testbenchio import CallTrigger
-
 
 class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
     def gen_input(self):
@@ -62,16 +60,15 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
             self.to_execute_list.append({"rl": rl, "rp": rp})
 
     async def do_commit(self, sim: TestbenchContext):
+        # wait until R-RAT clears itself after reset
+        await self.tick(sim, self.gen_params.isa.reg_cnt)
         for _ in range(self.test_steps):
             to_execute = self.to_execute_list.pop()
-            peek_res, res = (
-                await CallTrigger(sim)
-                .call(self.m.peek, rl_dst=to_execute["rl"])
-                .call(self.m.commit, rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
-            )
-            assert peek_res is not None and res is not None
+            if self.rand.randrange(2):
+                peek_res = await self.m.peek.call(sim, rl_dst=to_execute["rl"])
+                assert peek_res.old_rp_dst == self.expected_entries[to_execute["rl"]]
+            res = await self.m.commit.call(sim, rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
             assert res.old_rp_dst == self.expected_entries[to_execute["rl"]]
-            assert peek_res.old_rp_dst == res["old_rp_dst"]
 
             self.expected_entries[to_execute["rl"]] = to_execute["rp"]
 

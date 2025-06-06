@@ -73,8 +73,14 @@ class _CoreConfigurationDataClass:
         Size of the Reorder Buffer is 2**rob_entries_bits.
     start_pc: int
         Initial Program Counter value.
+    checkpoint_count: int
+        Size of active checkpoints storage. This is a maximum speculation depth. It doesn't include current state.
+    tag_bits: int
+        Numer of tags is 2**tag_bits. Tag space fits unique monotonic checkpoint ids of all instructions
+        currently in core, including instructions from already rolled-back checkpoints, that didn't leave the
+        pipeline yet. Tag space size must be greater that checkpoint count.
     icache_enable: bool
-        Enable instruction cache. If disabled, requestes are bypassed directly to the bus.
+        Enable instruction cache. If disabled, requests are bypassed directly to the bus.
     icache_ways: int
         Associativity of the instruction cache.
     icache_sets_bits: int
@@ -88,7 +94,7 @@ class _CoreConfigurationDataClass:
     interrupt_custom_count: int
         Number of custom/local async interrupts to support. First interrupt will be registered at id 16.
     interrupt_custom_edge_trig_mask: int
-        Bit mask specifing if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
+        Bit mask specifying if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
@@ -97,8 +103,8 @@ class _CoreConfigurationDataClass:
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
-    _implied_extensions: Extenstion
-        Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
+    _implied_extensions: Extension
+        Bit flag specifying enabled extensions that are not specified by func_units_config. Used in internal tests.
     _generate_test_hardware: bool
         Enables generation of additional hardware used for use in internal unit tests.
     pma : list[PMARegion]
@@ -125,6 +131,9 @@ class _CoreConfigurationDataClass:
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
     start_pc: int = 0
+
+    checkpoint_count: int = 16
+    tag_bits: int = 5
 
     icache_enable: bool = True
     icache_ways: int = 2
