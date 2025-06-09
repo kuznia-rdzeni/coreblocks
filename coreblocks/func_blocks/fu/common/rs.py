@@ -1,7 +1,5 @@
 from abc import abstractmethod
 from collections.abc import Iterable
-from functools import reduce
-from operator import or_
 from typing import Optional
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
@@ -9,6 +7,7 @@ from amaranth.utils import ceil_log2
 from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib import logging
 from transactron.lib.allocators import PreservedOrderAllocator
+from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
@@ -113,13 +112,21 @@ class RSBase(Elaboratable):
             with m.If(matches_s1[i].any()):
                 m.d.sync += record.rs_data.rp_s1.eq(0)
                 m.d.sync += record.rs_data.s1_val.eq(
-                    reduce(or_, (Mux(matches_s1[i][k], self.update[k].data_in.reg_val, 0) for k in range(self.rs_ways)))
+                    OneHotMux.create(
+                        m,
+                        [(matches_s1[i][k], self.update[k].data_in.reg_val) for k in range(self.rs_ways)],
+                        C(0, self.gen_params.isa.xlen),
+                    )
                 )
 
             with m.If(matches_s2[i].any()):
                 m.d.sync += record.rs_data.rp_s2.eq(0)
                 m.d.sync += record.rs_data.s2_val.eq(
-                    reduce(or_, (Mux(matches_s2[i][k], self.update[k].data_in.reg_val, 0) for k in range(self.rs_ways)))
+                    OneHotMux.create(
+                        m,
+                        [(matches_s2[i][k], self.update[k].data_in.reg_val) for k in range(self.rs_ways)],
+                        C(0, self.gen_params.isa.xlen),
+                    )
                 )
 
         @def_method(m, self.insert)
