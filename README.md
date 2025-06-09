@@ -17,13 +17,22 @@ In the future, we would like to achieve the following goals:
 
  * Performance (up to a point, on FPGAs). We would like Coreblocks not to be too sluggish, without compromising the simplicity goal.
    We don't wish to compete with high performance cores like [BOOM](https://github.com/riscv-boom/riscv-boom) though.
- * Wide(r) RISC-V support. Currently, we are focusing on getting the support for the core RV32I ISA right, but the ambitious long term plan is to be able to run full operating systems (e.g. Linux) on the core.
+ * Wide RISC-V support.
+   The core can currently run [Zephyr](https://github.com/kuznia-rdzeni/zephyr-on-litex-coreblocks) and [a MMU-less Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
+   Running a fully-featured Linux core in supervisor mode is our next target.
 
 ## State of the project
 
-The core currently supports the full RV32I instruction set and several extensions, including M (multiplication and division) and C (compressed instructions).
-Exceptions and some of machine-mode CSRs are supported, the support for interrupts is currently rudimentary and incompatible with the RISC-V spec.
-Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex) (currently using a [patched version](https://github.com/kuznia-rdzeni/litex/tree/coreblocks)).
+The core currently supports the full unprivileged RV32I instruction set and a number of extensions, including:
+
+ * M - integer multiplication and division, with Zmmul only as an option,
+ * B - bit manipulation, comprising of Zba, Zbb and Zbs,
+ * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
+ * C - compressed instructions.
+
+Machine mode is fully implemented. Support for supervisor mode is currently missing.
+
+Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex).
 
 ## Documentation
 
