@@ -26,13 +26,13 @@ In the future, we would like to achieve the following goals:
 The core currently supports the full unprivileged RV32I instruction set and a number of extensions, including:
 
  * M - integer multiplication and division, with Zmmul only as an option,
- * B - bit manipulation, comprising of Zba, Zbb and Zbs,
  * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
- * C - compressed instructions.
+ * C - compressed instructions,
+ * B - bit manipulation, comprising of Zba, Zbb and Zbs.
 
 Machine mode is fully implemented. Support for supervisor mode is currently missing.
 
-Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex).
+Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
 
 ## Documentation
 
