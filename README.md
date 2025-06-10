@@ -28,7 +28,7 @@ The core currently supports the full unprivileged RV32I instruction set and a nu
  * M - integer multiplication and division, with Zmmul only as an option,
  * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
  * C - compressed instructions,
- * B - bit manipulation, comprising of Zba, Zbb and Zbs.
+ * B - bit manipulation, comprising of Zba, Zbb and Zbs, extension Zbc is implemented too.
 
 Machine mode is fully implemented. Support for supervisor mode is currently missing.
 
