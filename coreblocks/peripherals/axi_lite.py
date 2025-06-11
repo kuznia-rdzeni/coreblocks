@@ -32,7 +32,7 @@ class AXILiteSignature(Signature):
     Parameters
     ----------
     axil_params: AXILiteParameters
-        Patameters used to generate AXI-Lite signature
+        Parameters used to generate AXI-Lite signature
     """
 
     def __init__(self, axil_params: AXILiteParameters):
@@ -144,7 +144,7 @@ class AXILiteMasterMethodLayouts:
     Parameters
     ----------
     axil_params: AXILiteParameters
-        Patameters used to generate AXI-Lite master layouts
+        Parameters used to generate AXI-Lite master layouts
 
     Attributes
     ----------

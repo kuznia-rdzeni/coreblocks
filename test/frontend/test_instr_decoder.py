@@ -359,7 +359,7 @@ class TestEncodingUniqueness(TestCase):
                     if prefix in known_codes:
                         encoding = known_codes[prefix]
 
-                        # prefix of instruction can not be equal to code of any other isntruction
+                        # prefix of instruction can not be equal to code of any other instruction
                         assert encoding is None, f"Instruction is not unique: I1 = {encoding} I2 = {instruction}"
 
                     known_codes[prefix] = None
