@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1749729979861,
+  "lastUpdate": 1749729981075,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -49946,6 +49946,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1874,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2080,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9044,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "605115c34f8a8fc55428bc7c5f6c8bb762800b08",
+          "message": "Added sign injection (#810)",
+          "timestamp": "2025-06-12T13:43:59+02:00",
+          "tree_id": "301310259bef4a7745530cb0b1fb3dc997dd3116",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/605115c34f8a8fc55428bc7c5f6c8bb762800b08"
+        },
+        "date": 1749729980690,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.56,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 34883,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1906,
             "unit": "LUT"
           },
           {
