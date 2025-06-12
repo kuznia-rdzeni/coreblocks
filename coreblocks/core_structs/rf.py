@@ -4,11 +4,14 @@ from transactron import Methods, Transaction, def_methods, TModule
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
+from transactron.lib import logging
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.lib.storage import MemoryBank
 from transactron.utils.amaranth_ext.functions import popcount
 
 __all__ = ["RegisterFile"]
+
+log = logging.HardwareLogger("core_structs.rf")
 
 
 class RegisterFile(Elaboratable):
@@ -80,15 +83,41 @@ class RegisterFile(Elaboratable):
             m.d.comb += being_written[k].eq(reg_id)
             m.d.av_comb += written_value[k].eq(reg_val)
             with m.If(reg_id != 0):
-                self.entries.write(m, addr=reg_id, data=reg_val)
+                log.assertion(m, ~self.valids[reg_id], "Valid register {} written", reg_id)
+                self.entries.write[k](m, addr=reg_id, data=reg_val)
                 m.d.sync += self.valids[reg_id].eq(1)
                 self.perf_rf_valid_time.start[k](m, slot=reg_id)
 
         @def_methods(m, self.free)
         def _(k: int, reg_id: Value):
             with m.If(reg_id != 0):
+                log.assertion(m, self.valids[reg_id], "Invalid register {} freed", reg_id)
                 m.d.sync += self.valids[reg_id].eq(0)
                 self.perf_rf_valid_time.stop[k](m, slot=reg_id)
+
+        # It is assumed that two simultaneous write calls never write the same physical register.
+        for k1, m1 in enumerate(self.write):
+            for k2, m2 in enumerate(self.write[k1 + 1 :]):
+                log.error(
+                    m,
+                    m1.run & m2.run & (m1.data_in.reg_id == m2.data_in.reg_id) & (m1.data_in.reg_id != 0),
+                    "Write methods {} and {} both called with reg_id {}",
+                    k1,
+                    k2,
+                    m1.data_in.reg_id,
+                )
+
+        # It is assumed that two simultaneous free calls never free the same physical register.
+        for k1, m1 in enumerate(self.free):
+            for k2, m2 in enumerate(self.free[k1 + 1 :]):
+                log.error(
+                    m,
+                    m1.run & m2.run & (m1.data_in.reg_id == m2.data_in.reg_id) & (m1.data_in.reg_id != 0),
+                    "Free methods {} and {} both called with reg_id {}",
+                    k1,
+                    k2,
+                    m1.data_in.reg_id,
+                )
 
         if self.perf_num_valid.metrics_enabled():
             num_valid = Signal(self.gen_params.phys_regs_bits + 1)
