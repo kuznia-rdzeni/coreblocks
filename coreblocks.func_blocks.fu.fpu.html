@@ -313,8 +313,13 @@ Returns result as ‘far_path_out_layout’.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_layout">
-<span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_data_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_layout" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_data_input_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_output_layout">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_data_output_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_output_layout" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </div>
@@ -423,6 +428,90 @@ Returns rounded number and errors as ‘rounding_out_layout’</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_sign_injection">
+<span id="coreblocks-func-blocks-fu-fpu-fpu-sign-injection-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_sign_injection module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_sign_injection" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_sign_injection.</span></span><span class="sig-name descname"><span class="pre">SIMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Sign injection module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>op_1 - first operand
+op_2 - second operand
+operation - type of sign injection operation</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_sign_injection.</span></span><span class="sig-name descname"><span class="pre">SIModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Sign injection module
+Module responsible for performing sign injection operations.
+Only things worth noting about this module are:
+1. Sign injection do not set floating-point exception flags
+2. Sign injection do not canonicalize NaNs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU rounding module parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>si_request: Method</strong></dt><dd><p>Transactional method for initiating leading sign injection.
+Takes ‘si_in_layout’ as argument
+Returns result as ‘si_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_sign_injection.</span></span><span class="sig-name descname"><span class="pre">SIOperations</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntFlag" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.FSGNJN_S">
+<span class="sig-name descname"><span class="pre">FSGNJN_S</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.FSGNJN_S" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.FSGNJX_S">
+<span class="sig-name descname"><span class="pre">FSGNJX_S</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.FSGNJX_S" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.FSGNJ_S">
+<span class="sig-name descname"><span class="pre">FSGNJ_S</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.FSGNJ_S" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.lza">
 <span id="coreblocks-func-blocks-fu-fpu-lza-module"></span><h2>coreblocks.func_blocks.fu.fpu.lza module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.lza" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -509,7 +598,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 15:05 2025-06-11.
+      <span class="lastupdated">Last updated on 11:44 2025-06-12.
       </span></p>
   </div>
 
