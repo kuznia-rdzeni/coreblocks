@@ -112,11 +112,11 @@ class RSBase(Elaboratable):
             for k2, u2 in enumerate(self.update[k1 + 1 :]):
                 self.log.error(
                     m,
-                    u1.run & u2.run & (u1.data_in.reg_val == u2.data_in.reg_val),
+                    u1.run & u2.run & (u1.data_in.reg_id == u2.data_in.reg_id),
                     "Update methods {} and {} both called with reg_id {}",
                     k1,
                     k2,
-                    u1.data_in.reg_val,
+                    u1.data_in.reg_id,
                 )
 
         for i, record in enumerate(iter(self.data)):
