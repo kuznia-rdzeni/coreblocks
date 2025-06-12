@@ -63,7 +63,7 @@ class Core(Component):
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
-        self.RF = RegisterFile(gen_params=self.gen_params)
+        self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
@@ -123,10 +123,10 @@ class Core(Component):
             crat_tag=crat.tag,
             crat_active_tags=crat.get_active_tags,
             rob_put=rob.put,
-            rf_read_req1=rf.read_req1,
-            rf_read_req2=rf.read_req2,
-            rf_read_resp1=rf.read_resp1,
-            rf_read_resp2=rf.read_resp2,
+            rf_read_req1=rf.read_req[0],
+            rf_read_req2=rf.read_req[1],
+            rf_read_resp1=rf.read_resp[0],
+            rf_read_resp2=rf.read_resp[1],
             reservation_stations=self.func_blocks_unifier.rs_blocks,
             gen_params=self.gen_params,
         )
@@ -137,7 +137,7 @@ class Core(Component):
         announcement.get_result.proxy(m, self.func_blocks_unifier.get_result)
         announcement.rob_mark_done.proxy(m, self.ROB.mark_done)
         announcement.rs_update.proxy(m, self.func_blocks_unifier.update)
-        announcement.rf_write_val.proxy(m, self.RF.write)
+        announcement.rf_write_val.proxy(m, self.RF.write[0])
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
 
@@ -147,7 +147,7 @@ class Core(Component):
         retirement.r_rat_commit.proxy(m, rrat.commit)
         retirement.r_rat_peek.proxy(m, rrat.peek)
         retirement.free_rf_put.proxy(m, rf_allocator.free[0])
-        retirement.rf_free.proxy(m, rf.free)
+        retirement.rf_free.proxy(m, rf.free[0])
         retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
         retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
         retirement.c_rat_restore.proxy(m, crat.flush_restore)
