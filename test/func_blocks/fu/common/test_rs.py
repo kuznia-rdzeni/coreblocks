@@ -1,3 +1,4 @@
+import functools
 import random
 from collections import deque
 import pytest
@@ -55,9 +56,10 @@ def create_data_list(gen_params: GenParams, count: int, optypes: int = 1):
         FifoRS,
     ],
 )
+@pytest.mark.parametrize("rs_ways", [1, 2])
 @pytest.mark.parametrize("ready_lists", [1, 2])
 class TestRS(TestCaseWithSimulator):
-    def test_rs(self, rs_type: type[RSBase], ready_lists: int):
+    def test_rs(self, rs_type: type[RSBase], ready_lists: int, rs_ways: int):
         random.seed(42)
         optypes_per_list = 2
         num_optypes = optypes_per_list * ready_lists
@@ -65,7 +67,7 @@ class TestRS(TestCaseWithSimulator):
         self.optype_groups = list(zip(*(iter(optypes),) * optypes_per_list))
         self.gen_params = GenParams(test_core_config)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
-        self.m = SimpleTestCircuit(rs_type(self.gen_params, 2**self.rs_entries_bits, 0, self.optype_groups))
+        self.m = SimpleTestCircuit(rs_type(self.gen_params, 2**self.rs_entries_bits, 0, rs_ways, self.optype_groups))
         self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits, num_optypes)
         self.select_queue: deque[int] = deque()
         self.regs_to_update: set[int] = set()
@@ -75,7 +77,8 @@ class TestRS(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.select_process)
             sim.add_testbench(self.insert_process)
-            sim.add_testbench(self.update_process)
+            for i in range(rs_ways):
+                sim.add_testbench(functools.partial(self.update_process, i=i))
             sim.add_testbench(self.take_process)
 
     async def select_process(self, sim: TestbenchContext):
@@ -99,7 +102,7 @@ class TestRS(TestCaseWithSimulator):
             if data["rp_s2"]:
                 self.regs_to_update.add(data["rp_s2"])
 
-    async def update_process(self, sim: TestbenchContext):
+    async def update_process(self, sim: TestbenchContext, i: int):
         while not self.finished:
             await self.random_wait_geom(sim, 0.5)
             await sim.delay(1e-9)  # so that insert_process can insert into the set
@@ -116,7 +119,7 @@ class TestRS(TestCaseWithSimulator):
                 if self.data_list[k]["rp_s2"] == reg_id:
                     self.data_list[k]["rp_s2"] = 0
                     self.data_list[k]["s2_val"] = reg_val
-            await self.m.update.call(sim, reg_id=reg_id, reg_val=reg_val)
+            await self.m.update[i].call(sim, reg_id=reg_id, reg_val=reg_val)
 
     async def take_process(self, sim: TestbenchContext):
         taken: set[int] = set()
