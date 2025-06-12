@@ -1,6 +1,7 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from transactron import Methods, Transaction, def_methods, TModule
+from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
@@ -60,11 +61,18 @@ class RegisterFile(Elaboratable):
         def _(k: int, reg_id: Value):
             forward = Signal()
             reg_written = Signal(len(self.write))
-            m.d.av_comb += reg_written.eq(Cat(being_written[i] == reg_id for i in range(len(self.write))))
-            m.d.av_comb += forward.eq(reg_written.any() & (reg_id != 0))
+            m.d.av_comb += reg_written.eq(
+                Cat((being_written[i] == reg_id) & (reg_id != 0) for i in range(len(self.write)))
+            )
+            m.d.av_comb += forward.eq(reg_written.any())
+            reg_val = OneHotMux.create(
+                m,
+                [(reg_written[i], written_value[i]) for i in range(len(self.write))],
+                self.entries.read_resp[k](m).data,
+            )
             return {
-                "reg_val": Mux(forward, written_value, self.entries.read_resp[k](m).data),
-                "valid": Mux(forward, 1, self.valids[reg_id]),
+                "reg_val": reg_val,
+                "valid": forward | self.valids[reg_id],
             }
 
         @def_methods(m, self.write)
