@@ -3,6 +3,7 @@ from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass, field
 
+from enum import Enum, auto
 from typing import Self
 from transactron.utils._typing import type_self_kwargs_as
 
@@ -26,7 +27,14 @@ from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperCom
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 
-__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
+__all__ = [
+    "MultiportMemoryType",
+    "CoreConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "full_core_config",
+    "test_core_config",
+]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
@@ -43,6 +51,12 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
 )
+
+
+class MultiportMemoryType(Enum):
+    STANDARD = auto()
+    FPGA_XOR_ILVT = auto()
+    FPGA_1HOT_ILVT = auto()
 
 
 @dataclass(kw_only=True)
@@ -103,6 +117,8 @@ class _CoreConfigurationDataClass:
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
+    multiport_memory_type: MultiportMemoryType
+        The type of multiport synchronous memory to be used in the core, e.g. in superscalar structures.
     _implied_extensions: Extension
         Bit flag specifying enabled extensions that are not specified by func_units_config. Used in internal tests.
     _generate_test_hardware: bool
@@ -152,6 +168,8 @@ class _CoreConfigurationDataClass:
     allow_partial_extensions: bool = False
 
     extra_verification: bool = True
+
+    multiport_memory_type: MultiportMemoryType = MultiportMemoryType.STANDARD
 
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False

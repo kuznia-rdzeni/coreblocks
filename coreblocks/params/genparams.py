@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from amaranth.utils import ceil_log2, exact_log2
+from amaranth.lib.memory import Memory
+from amaranth_types.memory import AbstractMemoryConstructor
 
 from coreblocks.arch.isa import ISA, gen_isa_string
+from coreblocks.params.configurations import MultiportMemoryType
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
 from transactron.utils import DependentCache
+from transactron.utils.amaranth_ext.memory import MultiportXORILVTMemory, MultiportOneHotILVTMemory
 
 from typing import TYPE_CHECKING
 
@@ -17,6 +21,8 @@ __all__ = ["GenParams"]
 
 
 class GenParams(DependentCache):
+    multiport_memory_type: AbstractMemoryConstructor
+
     def __init__(self, cfg: CoreConfiguration):
         super().__init__()
 
@@ -97,3 +103,11 @@ class GenParams(DependentCache):
 
         self.marchid = cfg.marchid
         self.mimpid = cfg.mimpid
+
+        match cfg.multiport_memory_type:
+            case MultiportMemoryType.STANDARD:
+                self.multiport_memory_type = Memory
+            case MultiportMemoryType.FPGA_XOR_ILVT:
+                self.multiport_memory_type = MultiportXORILVTMemory
+            case MultiportMemoryType.FPGA_1HOT_ILVT:
+                self.multiport_memory_type = MultiportOneHotILVTMemory
