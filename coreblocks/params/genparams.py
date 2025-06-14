@@ -97,3 +97,5 @@ class GenParams(DependentCache):
 
         self.marchid = cfg.marchid
         self.mimpid = cfg.mimpid
+
+        self.multiport_memory_type = cfg.multiport_memory_type

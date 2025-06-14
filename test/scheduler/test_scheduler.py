@@ -44,7 +44,7 @@ class SchedulerTestCircuit(Elaboratable):
         )
         m.submodules.crat = self.crat = crat = CheckpointRAT(gen_params=self.gen_params)
         m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
-        m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
+        m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
 
         # mocked RSFuncBlock
         class MockedRSFuncBlock(FuncBlock):
@@ -82,8 +82,8 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
 
         # mocked input and output
-        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
-        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
+        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write[0]))
+        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free[0]))
         m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
         m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
         m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans(self.rob.peek))
@@ -106,10 +106,10 @@ class SchedulerTestCircuit(Elaboratable):
             crat_tag=crat.tag,
             crat_active_tags=crat.get_active_tags,
             rob_put=self.rob.put,
-            rf_read_req1=self.rf.read_req1,
-            rf_read_req2=self.rf.read_req2,
-            rf_read_resp1=self.rf.read_resp1,
-            rf_read_resp2=self.rf.read_resp2,
+            rf_read_req1=self.rf.read_req[0],
+            rf_read_req2=self.rf.read_req[1],
+            rf_read_resp1=self.rf.read_resp[0],
+            rf_read_resp2=self.rf.read_resp[1],
             reservation_stations=rs_blocks,
             gen_params=self.gen_params,
         )
