@@ -3,9 +3,10 @@ from collections.abc import Collection
 import dataclasses
 from dataclasses import dataclass, field
 
-from enum import Enum, auto
 from typing import Self
 from transactron.utils._typing import type_self_kwargs_as
+from amaranth_types.memory import AbstractMemoryConstructor
+from amaranth.lib.memory import Memory
 
 from coreblocks.arch.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -28,7 +29,6 @@ from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 
 __all__ = [
-    "MultiportMemoryType",
     "CoreConfiguration",
     "basic_core_config",
     "tiny_core_config",
@@ -51,12 +51,6 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent([LSUComponent()], rs_entries=2, rs_type=FifoRS),
     CSRBlockComponent(),
 )
-
-
-class MultiportMemoryType(Enum):
-    STANDARD = auto()
-    FPGA_XOR_ILVT = auto()
-    FPGA_1HOT_ILVT = auto()
 
 
 @dataclass(kw_only=True)
@@ -117,7 +111,7 @@ class _CoreConfigurationDataClass:
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
-    multiport_memory_type: MultiportMemoryType
+    multiport_memory_type: AbstractMemoryConstructor
         The type of multiport synchronous memory to be used in the core, e.g. in superscalar structures.
     _implied_extensions: Extension
         Bit flag specifying enabled extensions that are not specified by func_units_config. Used in internal tests.
@@ -169,7 +163,7 @@ class _CoreConfigurationDataClass:
 
     extra_verification: bool = True
 
-    multiport_memory_type: MultiportMemoryType = MultiportMemoryType.STANDARD
+    multiport_memory_type: AbstractMemoryConstructor = Memory
 
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
