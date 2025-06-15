@@ -13,6 +13,8 @@ __all__ = [
 class Extension(enum.IntFlag):
     """
     Enum of available RISC-V extensions.
+
+    Extensions are ordered by ISA naming convention: IMAFDQLCBKJTPVH, Z[category letter order]*, S[vshm]*, X*
     """
 
     #: Reduced integer operations
@@ -45,20 +47,22 @@ class Extension(enum.IntFlag):
     V = auto()
     #: User-level interruptions
     N = auto()
+    #: Enables base counters and timers
+    ZICNTR = auto()
+    #: Integer conditional operations
+    ZICOND = auto()
     #: Control and Status Register access
     ZICSR = auto()
     #: Instruction-Fetch fence operations
     ZIFENCEI = auto()
-    #: Enables sending pause hint for energy saving
-    ZIHINTPAUSE = auto()
     #: Enables non-temporal locality hints
     ZIHINTNTL = auto()
-    #: Enables base counters and timers
-    ZICNTR = auto()
+    #: Enables sending pause hint for energy saving
+    ZIHINTPAUSE = auto()
     #: Enables hardware performance counters
     ZIHPM = auto()
-    #: Integer conditional operations
-    ZICOND = auto()
+    #: Integer multiplication operations
+    ZMMUL = auto()
     #: Atomic memory operations
     ZAAMO = auto()
     #: Load-Reserved/Store-Conditional Instructions
@@ -75,8 +79,6 @@ class Extension(enum.IntFlag):
     ZDINX = auto()
     #: Support for half precision floating-point operations in integer registers
     ZHINX = auto()
-    #: Integer multiplication operations
-    ZMMUL = auto()
     #: Extended shift operations
     ZBA = auto()
     #: Basic bit manipulation operations
