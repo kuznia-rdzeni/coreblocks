@@ -112,7 +112,7 @@ extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.A: Extension.ZAAMO | Extension.ZALRSC,
-    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
+    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBS,
 }
 
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
