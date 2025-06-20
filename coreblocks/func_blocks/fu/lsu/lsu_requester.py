@@ -123,7 +123,7 @@ class LSURequester(Elaboratable):
             m.d.av_comb += pmp_checker.addr.eq(addr)
             has_permission = Mux(store, pmps["w"], pmps["r"])
 
-            self.log.debug(
+            self.log.info(
                 m,
                 1,
                 "issue addr=0x{:08x} data=0x{:08x} funct3={} store={} aligned={}",
@@ -147,8 +147,10 @@ class LSURequester(Elaboratable):
                 )
             with m.Elif(~has_permission):
                 m.d.av_comb += exception.eq(1)
+                self.log.info(m, 1, "Memory protection violation!")
                 m.d.av_comb += cause.eq(Mux(store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT))
             with m.Else():
+                m.d.av_comb += exception.eq(0)
                 args_fifo.write(m, addr=addr, funct3=funct3, store=store)
 
             return {"exception": exception, "cause": cause}
@@ -179,6 +181,7 @@ class LSURequester(Elaboratable):
                 m.d.av_comb += cause.eq(
                     Mux(request_args.store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
                 )
+                self.log.info(m, 1, "Memory bus access failed!")
 
             return {"data": data, "exception": exception, "cause": cause, "addr": request_args.addr}
 
