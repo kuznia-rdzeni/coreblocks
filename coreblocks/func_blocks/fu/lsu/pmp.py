@@ -8,6 +8,7 @@ from transactron.core import TModule, Transaction
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron.utils.amaranth_ext.functions import count_trailing_zeros
 from coreblocks.arch.isa_consts import PMPAFlagEncoding
+from transactron.lib.logging import HardwareLogger
 
 
 class PMPLayout(data.StructLayout):
@@ -31,6 +32,7 @@ class PMPChecker(Elaboratable):
     def __init__(self, gen_params: GenParams) -> None:
         self.result = Signal(PMPLayout())
         self.addr = Signal(gen_params.isa.xlen)
+        self.log = HardwareLogger("backend.lsu.pmp")
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
@@ -68,7 +70,16 @@ class PMPChecker(Elaboratable):
             select_vector = Cat(matchings)
             m.d.comb += enc_select.i.eq(select_vector)
             with m.If(enc_select.n):
-                m.d.sync += self.result.eq(0b111)
+                m.d.sync += self.result.eq(0)
+                with m.If(self.addr != 0):
+                    self.log.debug(
+                        m, 1, "PMP check addr=0x{:08x} NOT MATCHED", self.addr, pmpaddrx_val[0], pmpxcfg_val[0]
+                    )
             with m.Else():
                 m.d.sync += self.result.eq(pmpxcfg_val[enc_select.o])
+                with m.If(self.addr != 0):
+                    self.log.debug(
+                        m, 1, "PMP check addr=0x{:08x} result={}", self.addr, pmpxcfg_val[enc_select.o] & 0b111
+                    )
+
         return m
