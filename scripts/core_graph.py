@@ -22,7 +22,7 @@ from transactron.core.keys import TransactionManagerKey  # noqa: E402
 from transactron.utils import DependencyManager, DependencyContext  # noqa: E402
 
 with DependencyContext(DependencyManager()):
-    gp = GenParams(basic_core_config)
+    gp = GenParams(basic_core_config.replace(debug_signals=False))
     elaboratable = CoreTestElaboratable(gp)
     tm = TransactionModule(elaboratable)
     fragment = TracingFragment.get(tm, platform=None).prepare()
