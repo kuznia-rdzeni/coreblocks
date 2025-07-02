@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1750345279191,
+  "lastUpdate": 1751456255053,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -17621,6 +17621,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f3dc7fc4a83a8b98ae1dc0d6a9184a3a44e4178b"
         },
         "date": 1750345269028,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4119586086836292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5394976959130355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.35744473671754023,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6418664976639302,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35055855750884807,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29216255217465514,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32757882722214293,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43390376484799675,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3f5556717864779cae5ae6eb959835b40ff8d93",
+          "message": "Superscalar RF (#827)",
+          "timestamp": "2025-07-02T13:15:46+02:00",
+          "tree_id": "dd1b5cc56a2f318a8b1631b9901fb46a72bab157",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e3f5556717864779cae5ae6eb959835b40ff8d93"
+        },
+        "date": 1751456248475,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
