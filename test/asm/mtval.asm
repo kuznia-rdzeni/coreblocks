@@ -5,7 +5,13 @@
     csrw mtvec, x1
     li x8, 0
 
-    li x7, 0x80000000 
+setup: # Allow access if no other rule matches
+    li t0, 0xFFFFFFFF
+    csrw pmpaddr60, t0
+    li t0, 0b00001111 # TOR RWX
+    csrw pmpcfg15, t0
+
+    li x7, 0x80000000
 c0: # load from illegal address. mtval=addr mcause=LOAD_ACCESS_FAULT 
     lw x1, 0x230(x7)
 c1: # mtval=pc mcause=BREAKPOINT

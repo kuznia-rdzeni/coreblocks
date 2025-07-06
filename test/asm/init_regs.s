@@ -1,3 +1,9 @@
+setup: # Allow access if no other rule matches
+    li t0, 0xFFFFFFFF
+    csrw pmpaddr60, t0
+    li t0, 0b00001111 # TOR RWX
+    csrw pmpcfg15, t0
+
 .macro INIT_REGS_LOAD
 # load the initial states of registers
 # the value of a register `n` is assumed to be stored under address `0x100 + n * 4`.

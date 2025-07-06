@@ -148,6 +148,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
+        ("pmp", "pmp.asm", 500, {}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
@@ -159,6 +160,9 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
     async def run_and_check(self, sim: TestbenchContext):
         await self.tick(sim, self.cycle_count)
+
+        for reg_id in range(1, 17):
+            print("x", reg_id, ": ", self.get_arch_reg_val(sim, reg_id), sep="")
 
         for reg_id, val in self.expected_regvals.items():
             assert self.get_arch_reg_val(sim, reg_id) == val
