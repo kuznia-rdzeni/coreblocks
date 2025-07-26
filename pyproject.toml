@@ -82,3 +82,4 @@ NEXTPNR_ECP5 = "yowasp-nextpnr-ecp5"
 ECPPACK = "yowasp-ecppack"
 [tool.pdm.scripts]
 synthesize = "scripts/synthesize.py"
+gen_verilog = "scripts/gen_verilog.py"
