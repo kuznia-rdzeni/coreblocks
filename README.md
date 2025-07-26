@@ -21,6 +21,14 @@ In the future, we would like to achieve the following goals:
    The core can currently run [Zephyr](https://github.com/kuznia-rdzeni/zephyr-on-litex-coreblocks) and [a MMU-less Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
    Running a fully-featured Linux core in supervisor mode is our next target.
 
+## Getting started:
+
+First, ensure you have [PDM](https://pdm-project.org/) installed. Then run:
+```
+     $ pdm install
+```
+
+
 ## State of the project
 
 The core currently supports the full unprivileged RV32I instruction set and a number of extensions, including:
