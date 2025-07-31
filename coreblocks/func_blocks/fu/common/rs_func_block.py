@@ -100,7 +100,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 
         self.insert.proxy(m, self.rs.insert)
         self.select.proxy(m, self.rs.select)
-        self.update.proxy(m, self.rs.update)
+        self.update.proxy(m, self.rs.update[0])
         self.get_result.proxy(m, collector.method)
 
         return m
