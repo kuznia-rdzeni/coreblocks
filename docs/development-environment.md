@@ -43,7 +43,8 @@ Thanks to this, if a given test class name is unique, just the class name can be
 The `run_tests.py` script has the following options:
 
 * `-l`, `--list` -- lists available tests. This option is helpful, e.g., to find a name of some specific instance of a parametrized test.
-* `-t`, `--trace` -- generates waveforms in the `vcd` format and `gtkw` files for the `gtkwave` tool.
+* `-t`, `--trace` -- generates waveforms in the `vcd` format, which can be used, among others, in [gtkwave](https://github.com/gtkwave/gtkwave) and [surfer](https://gitlab.com/surfer-project/surfer).
+  Also, `gtkw` files (for `gtkwave`) are generated, which can help find commonly used signals.
   The files are saved in the `test/__traces__/` directory.
   Useful for debugging and test-driven development.
 * `-p`, `--profile` -- generates Transactron execution profile information, which can then be read by `transactron-prof`.
