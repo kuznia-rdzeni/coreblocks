@@ -1,12 +1,12 @@
 from typing import Protocol
 
 from amaranth import *
+from amaranth_types import HasElaborate
 
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.peripherals.axi_lite import AXILiteMaster
 
 from transactron import Method, def_method, TModule
-from transactron.utils import HasElaborate
 from transactron.lib import Serializer
 from transactron.utils.transactron_helpers import make_layout
 

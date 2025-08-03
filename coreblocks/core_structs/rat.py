@@ -43,7 +43,7 @@ class RRAT(Elaboratable):
 
         initialized = Signal()
         rl_idx = Signal(range(self.gen_params.isa.reg_cnt))
-        with Transaction().body(m, request=~initialized):
+        with Transaction().body(m, ready=~initialized):
             self.entries.write(m, addr=rl_idx, data=0)
             m.d.sync += rl_idx.eq(rl_idx + 1)
             with m.If(rl_idx == self.gen_params.isa.reg_cnt - 1):

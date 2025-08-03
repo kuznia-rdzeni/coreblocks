@@ -1,6 +1,6 @@
 from amaranth import *
+from amaranth_types import ModuleLike
 from transactron import Method, def_method, TModule
-from transactron.utils import ModuleLike
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 from transactron.lib import BasicFifo

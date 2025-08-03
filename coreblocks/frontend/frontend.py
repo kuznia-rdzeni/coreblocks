@@ -132,19 +132,19 @@ class CoreFrontend(Elaboratable):
         m.submodules.instr_buffer = self.instr_buffer
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
-        decode.get_raw.proxy(m, self.instr_buffer.read)
-        decode.push_decoded.proxy(m, self.decode_buff.write)
+        decode.get_raw.proxy(self.instr_buffer.read)
+        decode.push_decoded.proxy(self.decode_buff.write)
 
         m.submodules.decode_buff = self.decode_buff
 
         m.submodules.rollback_tagger = rollback_tagger = self.rollback_tagger
-        rollback_tagger.get_instr.proxy(m, self.decode_buff.read)
-        rollback_tagger.push_instr.proxy(m, self.output_pipe.write)
+        rollback_tagger.get_instr.proxy(self.decode_buff.read)
+        rollback_tagger.push_instr.proxy(self.output_pipe.write)
 
         m.submodules.output_pipe = self.output_pipe
 
         m.submodules.stall_ctrl = self.stall_ctrl
-        self.stall_ctrl.redirect_frontend.proxy(m, self.fetch.redirect)
+        self.stall_ctrl.redirect_frontend.proxy(self.fetch.redirect)
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):

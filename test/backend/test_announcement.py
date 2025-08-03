@@ -48,7 +48,7 @@ class BackendTestCircuit(Elaboratable):
         m.submodules.result_announcement = result_announcement = ResultAnnouncement(gen_params=self.gen_params)
 
         # Create stubs for interfaces used by result announcement
-        result_announcement.get_result.proxy(m, serialized_results_fifo.read)
+        result_announcement.get_result.proxy(serialized_results_fifo.read)
         self.rs_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rs_update))
         m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
         self.rf_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rf_write_val))

@@ -1,6 +1,7 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import Enum
+from amaranth_types import ValueLike, SrcLoc
 
 from typing import Optional
 from collections.abc import Callable
@@ -13,7 +14,6 @@ from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import get_src_loc
-from transactron.utils._typing import ValueLike, SrcLoc
 
 
 class CSRRegister(Elaboratable):
