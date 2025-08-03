@@ -284,7 +284,7 @@ class PipelinedWishboneMaster(Component):
 
             m.d.comb += req_finish.eq(1)
 
-        self.result.proxy(m, self.result_fifo.read)
+        self.result.proxy(self.result_fifo.read)
 
         @def_method(m, self.request, ready=request_ready)
         def _(arg) -> None:

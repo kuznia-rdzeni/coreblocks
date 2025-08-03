@@ -2,7 +2,7 @@ from typing import Protocol
 
 from transactron import Method
 
-from transactron.utils._typing import HasElaborate
+from amaranth_types import HasElaborate
 
 __all__ = ["CacheInterface", "CacheRefillerInterface"]
 

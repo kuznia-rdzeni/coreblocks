@@ -171,9 +171,9 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
             with m.Else():
                 self.push_result(m, arg)
 
-        self.lsu.push_result.proxy(m, push_lsu_result)
+        self.lsu.push_result.proxy(push_lsu_result)
 
-        with Transaction().body(m, request=atomic_in_progress & sc_failed) as sc_failed_trans:
+        with Transaction().body(m, ready=atomic_in_progress & sc_failed) as sc_failed_trans:
             m.d.sync += sc_failed.eq(0)
             m.d.sync += atomic_in_progress.eq(0)
             self.push_result(
@@ -188,7 +188,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
         sc_failed_trans.add_conflict(push_lsu_result, priority=Priority.RIGHT)
 
-        with Transaction().body(m, request=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
+        with Transaction().body(m, ready=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
             atomic_store_op = Signal(self.fu_layouts.issue)
             m.d.av_comb += assign(atomic_store_op, atomic_op)
             m.d.av_comb += assign(atomic_store_op.exec_fn, {"op_type": OpType.STORE, "funct3": Funct3.W})

@@ -43,7 +43,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         m.submodules.jb_unit = self.jb
         m.submodules.res_fifo = res_fifo = BasicFifo(self.gp.get(FuncUnitLayouts).push_result, 2)
 
-        self.jb.push_result.proxy(m, res_fifo.write)
+        self.jb.push_result.proxy(res_fifo.write)
 
         @def_method(m, self.target_pred_req)
         def _():

@@ -4,6 +4,7 @@ from typing import Optional
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from amaranth.utils import ceil_log2
+from amaranth_types import ValueLike
 from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib import logging
 from transactron.lib.allocators import PreservedOrderAllocator
@@ -12,9 +13,8 @@ from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
-from transactron.utils import RecordDict, ValueLike
-from transactron.utils import assign
-from transactron.utils.assign import AssignType
+from transactron.utils import RecordDict
+from transactron.utils.assign import assign, AssignType
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 

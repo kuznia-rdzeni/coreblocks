@@ -9,6 +9,7 @@ from amaranth.build import Platform
 from amaranth.build.res import PortGroup
 from amaranth import *
 from amaranth.lib.wiring import Component, Flow, Out, connect, flipped
+from amaranth_types import AbstractInterface
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +18,6 @@ if __name__ == "__main__":
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
-from transactron.utils._typing import AbstractInterface
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
@@ -27,7 +27,7 @@ from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
-from transactron import TransactionModule
+from transactron import TransactronContextElaboratable
 from transactron.lib import Adapter, AdapterTrans
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
 from constants.ecp5_platforms import (
@@ -104,7 +104,7 @@ def unit_core(gen_params: GenParams):
 
     module = ModuleConnector(core=core, connector=connector)
 
-    return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
+    return resources, TransactronContextElaboratable(module, dependency_manager=DependencyContext.get())
 
 
 def unit_fu(unit_params: FunctionalComponentParams):
@@ -126,7 +126,7 @@ def unit_fu(unit_params: FunctionalComponentParams):
             accept_adapter=push_result_adapter,
         )
 
-        return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
+        return resources, TransactronContextElaboratable(module, dependency_manager=DependencyContext.get())
 
     return unit
 

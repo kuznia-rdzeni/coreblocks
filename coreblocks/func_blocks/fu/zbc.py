@@ -186,7 +186,7 @@ class ZbcUnit(FuncUnit, Elaboratable):
 
         m.d.comb += clmul.reset.eq(0)
 
-        with Transaction().body(m, request=~clmul.busy):
+        with Transaction().body(m, ready=~clmul.busy):
             xlen = self.gen_params.isa.xlen
 
             output = clmul.result

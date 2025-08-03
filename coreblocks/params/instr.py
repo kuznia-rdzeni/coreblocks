@@ -11,8 +11,8 @@ from typing import Optional
 
 from amaranth.hdl import ValueCastable
 from amaranth import *
+from amaranth_types import ValueLike
 
-from transactron.utils import ValueLike
 from coreblocks.arch import Opcode, Registers, Funct3, Funct12
 
 
