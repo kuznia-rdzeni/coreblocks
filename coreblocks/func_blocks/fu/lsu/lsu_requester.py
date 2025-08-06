@@ -9,6 +9,7 @@ from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.interface.layouts import LSULayouts
+from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
 
 
 class LSURequester(Elaboratable):
@@ -108,6 +109,7 @@ class LSURequester(Elaboratable):
         m.submodules.args_fifo = args_fifo = BasicFifo(
             [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], self.depth
         )
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
 
         @def_method(m, self.issue)
         def _(addr: Value, data: Value, funct3: Value, store: Value):
@@ -117,8 +119,11 @@ class LSURequester(Elaboratable):
             aligned = self.check_align(m, funct3, addr)
             bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
             bus_data = self.prepare_data_to_save(m, funct3, data, addr)
+            pmps = pmp_checker.result
+            m.d.av_comb += pmp_checker.addr.eq(addr)
+            has_permission = Mux(store, pmps["w"], pmps["r"])
 
-            self.log.debug(
+            self.log.info(
                 m,
                 1,
                 "issue addr=0x{:08x} data=0x{:08x} funct3={} store={} aligned={}",
@@ -135,13 +140,18 @@ class LSURequester(Elaboratable):
                 with branch(aligned & ~store):
                     self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
 
-            with m.If(aligned):
-                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
-            with m.Else():
+            with m.If(~aligned):
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
                     Mux(store, ExceptionCause.STORE_ADDRESS_MISALIGNED, ExceptionCause.LOAD_ADDRESS_MISALIGNED)
                 )
+            with m.Elif(~has_permission):
+                m.d.av_comb += exception.eq(1)
+                self.log.info(m, 1, "Memory protection violation!")
+                m.d.av_comb += cause.eq(Mux(store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT))
+            with m.Else():
+                m.d.av_comb += exception.eq(0)
+                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
 
             return {"exception": exception, "cause": cause}
 
@@ -171,6 +181,7 @@ class LSURequester(Elaboratable):
                 m.d.av_comb += cause.eq(
                     Mux(request_args.store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
                 )
+                self.log.info(m, 1, "Memory bus access failed!")
 
             return {"data": data, "exception": exception, "cause": cause, "addr": request_args.addr}
 

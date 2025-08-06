@@ -1,3 +1,9 @@
+setup: # Allow access if no other rule matches
+    li t0, 0xFFFFFFFF
+    csrw pmpaddr60, t0
+    li t0, 0b00001111 # TOR RWX
+    csrw pmpcfg15, t0
+
 # Data adress space:
 # 0x0 - one
 # 0x4 - two
