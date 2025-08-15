@@ -14,7 +14,7 @@ from transactron import *
 
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import UnsafeInstructionResolvedKey
+from coreblocks.interface.keys import RollbackKey, UnsafeInstructionResolvedKey
 
 log = logging.HardwareLogger("frontend.stall_ctrl")
 
@@ -56,6 +56,8 @@ class StallController(Elaboratable):
         self.redirect_frontend = Method(i=layouts.redirect)
 
         DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
+        self.rollback_handler = Method(i=gen_params.get(RATLayouts).rollback_in)
+        DependencyContext.get().add_dependency(RollbackKey(), self.rollback_handler)
 
     def elaborate(self, platform):
         m = TModule()
@@ -86,6 +88,9 @@ class StallController(Elaboratable):
                 with branch(~stalled_exception):
                     log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
                     self.redirect_frontend(m, pc=pc)
+        
+        redirect_frontend = Signal()
+        redirect_frontend_pc = Signal(self.gen_params.isa.xlen)
 
         @def_method(m, self.resume_from_exception)
         def _(pc):
@@ -93,7 +98,8 @@ class StallController(Elaboratable):
             m.d.sync += stalled_exception.eq(0)
 
             log.info(m, True, "Resuming from exception new_pc=0x{:x}", pc)
-            self.redirect_frontend(m, pc=pc)
+            m.d.comb += redirect_frontend.eq(1)
+            m.d.comb += redirect_frontend_pc.eq(pc)
 
         @def_method(m, self.stall_unsafe)
         def _():
@@ -107,5 +113,30 @@ class StallController(Elaboratable):
         def _():
             log.info(m, ~stalled_exception, "Stalling the frontend because of an exception")
             m.d.sync += stalled_exception.eq(1)
+            # maybe move tracking to ECR itself?
+
+
+        @def_method(m, self.rollback_handler)
+        def _(tag: Signal, pc: Signal):
+            # rollback invalidates prefix of instructions, therefore always clears unsafe state
+            m.d.sync += stalled_unsafe.eq(0)
+            log.info(m, stalled_unsafe, "Resuming from unsafe state because of an rollback new_pc=0x{:x}", pc)
+            # Check if it is safe to redirect a running fetch?
+            # AHHH -> it is flushed / cleared on a rollback.
+            # Can we move this logic here? 
+            
+            # Hmm, we have a rollback tagger already installed, this is all not that bad!
+
+            # it seems to be? check if blocking to update th PC may be necessary. - no -> clear.
+            # resume exn will not confilct.
+            
+            m.d.comb += redirect_frontend.eq(1)
+            m.d.comb += redirect_frontend_pc.eq(pc)
+
+        with Transaction().body(m, request=redirect_frontend):
+            # remove confilct between rollbacks and resume_from_exception. (resume_from_exception happens only
+            # on empty core).
+            self.redirect_frontend(m, pc=redirect_frontend_pc)
+
 
         return m

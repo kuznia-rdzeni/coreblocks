@@ -12,7 +12,7 @@ from transactron.utils import DependencyContext, assign, cyclic_mask, mod_incr, 
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
-from coreblocks.interface.keys import CoreStateKey, RollbackKey
+from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey, RollbackKey
 
 log = logging.HardwareLogger("core_structs.crat")
 
@@ -81,6 +81,7 @@ class CheckpointRAT(Elaboratable):
 
         self.free_tag = Method()
         self.get_active_tags = Method(o=layouts.get_active_tags_out)
+        self.dm.add_dependency(ActiveTagsKey(), self.get_active_tags)
 
     def elaborate(self, platform):
         m = TModule()
@@ -304,7 +305,7 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_0 = Signal.like(active_tags, init=0)
 
         @def_method(m, self.rollback)
-        def _(tag: Value):
+        def _(tag: Value, pc: Value):
             tag_map.read_req(m, addr=tag)
             m.d.sync += rollback_tag_s1.eq(tag)
 

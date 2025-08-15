@@ -26,6 +26,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "RollbackKey",
+    "ActiveTagsKey",
 ]
 
 
@@ -113,6 +114,15 @@ class RollbackKey(UnifierKey, unifier=MethodProduct):
     """
     Collects method that want to be notifed about tag rollback event.
     Expected layout is `RATLayouts.rollback_in`.
+    """
+
+    pass
+
+@dataclass(frozen=True)
+class ActiveTagsKey(SimpleKey[Method]):
+    """
+    Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path (and should 
+    side-effects be executed).
     """
 
     pass

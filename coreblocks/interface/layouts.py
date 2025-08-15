@@ -302,7 +302,7 @@ class RATLayouts:
         self.rrat_peek_in = make_layout(fields.rl_dst)
         self.rrat_peek_out = self.rrat_commit_out
 
-        self.rollback_in = make_layout(fields.tag)
+        self.rollback_in = make_layout(fields.tag, fields.pc)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
 
         self.crat_rename_in = extend_layout(self.frat_rename_in, fields.tag, fields.commit_checkpoint)
@@ -414,7 +414,7 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit_in = make_layout(fields.rob_id)
+        self.precommit_in = make_layout(fields.rob_id, fields.tag)
 
         self.precommit_out = make_layout(fields.side_fx)
 

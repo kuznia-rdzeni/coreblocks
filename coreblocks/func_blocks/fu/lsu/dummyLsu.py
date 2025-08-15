@@ -62,7 +62,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
-        rob_id_match = Signal()
+        request_tag = Signal(self.gen_params.tag_bits)
+        request_side_fx = Signal()
         is_load = Signal()
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
@@ -89,17 +90,20 @@ class LSUDummy(FuncUnit, Elaboratable):
         # Memory loads can be issued speculatively.
         pmas = pma_checker.result
         can_reorder = is_load & ~pmas["mmio"]
-        want_issue = rob_id_match | can_reorder
+        want_issue = request_side_fx | can_reorder
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             arg = requests.read(m)
+            
+            # Refactor after adding Forwarder.peek? or just separate and leave comment?
+            m.d.av_comb += request_rob_id.eq(arg.rob_id) 
+            m.d.av_comb += request_tag.eq(arg.tag) 
 
             addr = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
             m.d.av_comb += pma_checker.addr.eq(addr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
-            m.d.av_comb += request_rob_id.eq(arg.rob_id)
 
             res = requester.issue(
                 m,
@@ -147,8 +151,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         with Transaction().body(m):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            precommit(m, request_rob_id)
-            m.d.comb += rob_id_match.eq(1)
+            m.d.comb += request_side_fx.eq(precommit(m, rob_id=request_rob_id, tag=request_tag).side_fx)
 
         return m
 

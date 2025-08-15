@@ -77,6 +77,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
         instr_rob = Signal(self.gen_params.rob_entries_bits)
         instr_pc = Signal(self.gen_params.isa.xlen)
+        instr_tag = Signal(self.gen_params.tag_bits)
         instr_fn = self.priv_fn.get_function()
 
         mret = self.dm.get_dependency(MretKey())
@@ -94,12 +95,13 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
+                instr_tag.eq(arg.tag),
                 instr_fn.eq(decoder.decode_fn),
             ]
 
         with Transaction().body(m, request=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, instr_rob)
+            info = precommit(m, rob_id=instr_rob, tag=instr_tag)
             m.d.sync += finished.eq(1)
             self.perf_instr.incr(m, instr_fn, enable_call=info.side_fx)
 

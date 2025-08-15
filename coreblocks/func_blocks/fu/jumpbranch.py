@@ -14,10 +14,12 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
     BranchVerifyKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
+    RollbackKey,
 )
 from transactron.utils import OneHotSwitch
 from transactron.utils.transactron_helpers import make_layout
@@ -142,6 +144,12 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_misaligned,
             self.perf_mispredictions,
         ]
+        
+        # Rollback does a lot of operations, break combinational path here (future todo: add as parameter to UnifierKey?)
+        rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
+        m.submodules += rollback_unifiers.values() # FIXME
+        m.submodules.rollback_fifo = rollback_fifo = BasicFifo(rollback_trigger_handlers.layout_in, depth=2)
+        m.submodules.rollbakc_connect = ConnectTrans(rollback_fifo.read, rollback_trigger_handlers)
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
 
@@ -186,10 +194,23 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
 
+            get_active_tags = self.dm.get_dependency(ActiveTagsKey())
+            instr_tag_active = get_active_tags(m).active_tags[instr.tag]
+            # ok, do we want to trigger rollback on core flushing?
+            # how this works in relation to hard-flushes?
+            # I think so - don't touch the CRAT, wait for rollback, restore entry by entry from RRAT on active insns. (or just copy RRAT at once huh?).
+            # why we are doing it slowly now????
+            # now that free RF is on bitmask we can copy that too -> maintain only referenced in RRAT mask.
+            # instructions are still in the core, but we can invalidate them to no do any RP related actions. OK -> dont do it for now. But we can copy RAT yay.
+            # lets say no exceptions for now!
+            
             exception = Signal()
+            
+            with m.If(~instr_tag_active):
+                pass # already inactive instructions should be ignored and not trigger any extra actions
+            with m.Elif(~is_auipc & instr.taken & jmp_addr_misaligned):
+                self.perf_misaligned.incr(m) # NOTE: perfs like that (outside precommit) are invalid in speculative OoO + it triggers on core flush :(
 
-            with m.If(~is_auipc & instr.taken & jmp_addr_misaligned):
-                self.perf_misaligned.incr(m)
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
@@ -212,12 +233,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result, mtval=0
                 )
             with m.Elif(misprediction):
-                # Async interrupts can have priority, because `jump_result` is handled in the same way.
+                # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                m.d.comb += exception.eq(1)
-                self.exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result, mtval=0
-                )
+                rollback_fifo.write(m, tag=instr.tag, pc=jump_result) # trigger rollback and mispredicted path invalidation
 
             with m.If(~is_auipc):
                 self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)

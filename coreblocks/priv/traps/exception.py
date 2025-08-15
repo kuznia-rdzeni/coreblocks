@@ -10,36 +10,6 @@ from transactron.lib.connectors import ConnectTrans
 from transactron.lib.fifo import BasicFifo
 
 
-# NOTE: This function is not used in ExceptionCauseRegister, but may be useful in computing priorities before reporting
-def should_update_priority(m: TModule, current_cause: Value, new_cause: Value) -> Value:
-    # Comparing all priorities would be expensive, this function only checks conditions that could happen in hardware
-    _update = Signal()
-
-    # All breakpoint kinds have the highest priority in conflicting cases
-    with m.If(new_cause == ExceptionCause.BREAKPOINT):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        ((new_cause == ExceptionCause.INSTRUCTION_PAGE_FAULT) | (new_cause == ExceptionCause.INSTRUCTION_ACCESS_FAULT))
-        & (current_cause != ExceptionCause.BREAKPOINT)
-    ):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        (new_cause == ExceptionCause.LOAD_ADDRESS_MISALIGNED)
-        & ((current_cause == ExceptionCause.LOAD_ACCESS_FAULT) | (current_cause == ExceptionCause.LOAD_PAGE_FAULT))
-    ):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        (new_cause == ExceptionCause.STORE_ADDRESS_MISALIGNED)
-        & ((current_cause == ExceptionCause.STORE_ACCESS_FAULT) | (current_cause == ExceptionCause.STORE_PAGE_FAULT))
-    ):
-        m.d.comb += _update.eq(1)
-
-    return _update
-
-
 class ExceptionInformationRegister(Elaboratable):
     """ExceptionInformationRegister
 
@@ -110,7 +80,7 @@ class ExceptionInformationRegister(Elaboratable):
             with m.Else():
                 m.d.comb += should_write.eq(1)
 
-            with m.If(should_write):
+            with m.If(should_write): # TODO: convert to dict
                 m.d.sync += self.rob_id.eq(rob_id)
                 m.d.sync += self.cause.eq(cause)
                 m.d.sync += self.pc.eq(pc)

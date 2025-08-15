@@ -133,7 +133,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, request=(ready_to_process & ~done)):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, instr.rob_id)
+            info = precommit(m, rob_id=instr.rob_id, tag=instr.tag)
             m.d.top_comb += exe_side_fx.eq(info.side_fx)
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():

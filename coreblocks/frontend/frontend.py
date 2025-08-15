@@ -61,7 +61,7 @@ class RollbackTagger(Elaboratable):
             self.push_instr(m, out)
 
         @def_method(m, self.rollback)
-        def _(tag: Value):
+        def _(tag: Value, pc: Value):
             m.d.sync += rollback_tag.eq(tag)
             m.d.sync += rollback_tag_v.eq(1)
 
@@ -120,6 +120,9 @@ class CoreFrontend(Elaboratable):
         self.stall = Method()
 
         self.rollback_tagger = RollbackTagger(self.gen_params)
+        
+        self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
+        DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
 
     def elaborate(self, platform):
         m = TModule()
@@ -168,5 +171,9 @@ class CoreFrontend(Elaboratable):
         def _():
             flush_frontend()
             self.stall_ctrl.stall_exception(m)
+        
+        @def_method(m, self.rollback)
+        def _(tag, pc):
+            flush_frontend() # check if the methods are exclusive (or ok to confilct)
 
         return m
