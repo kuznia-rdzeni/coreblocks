@@ -415,7 +415,7 @@ class RetirementLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.precommit_in = make_layout(fields.rob_id, fields.tag)
-
+        self.internal_precommit_in = make_layout(fields.rob_id)
         self.precommit_out = make_layout(fields.side_fx)
 
         self.flushing = ("flushing", 1)

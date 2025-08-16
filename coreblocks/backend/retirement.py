@@ -1,6 +1,7 @@
 from functools import reduce
 import operator
 from amaranth import *
+from amaranth_types import ModuleLike
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionRegisterLayouts,
@@ -57,13 +58,10 @@ class Retirement(Elaboratable):
             max_latency=2 * 2**gen_params.rob_entries_bits,
         )
 
-        layouts = self.gen_params.get(RetirementLayouts)
+        self.layouts = self.gen_params.get(RetirementLayouts)
         self.dependency_manager = DependencyContext.get()
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
-
-        self.precommit = Method(i=layouts.precommit_in, o=layouts.precommit_out)
-        self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
         m = TModule()
@@ -244,38 +242,39 @@ class Retirement(Elaboratable):
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
-
-
-        rob_id_val = Signal(self.gen_params.rob_entries_bits)
-
-
-        #def select_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
-        def select_combiner(m: Module, args, runs: Value):
-            # Make sure that there is at most one caller - there can be only one unsafe instruction
-            #log.assertion(m, popcount(runs) <= 1)
-            # NOTE: alternatively do tag lookup on all, and with runs 
-            tags = [Mux(runs[i], v.tag, 0) for i, v in enumerate(args)]
-            return {"rob_id": 0, "tag": reduce(operator.or_, tags)} # oof that produces comb cycle. But why is it dependent?
-
         
-        # The `rob_id` argument is only used in argument validation, it is not needed in the method body.
-        # A dummy combiner is provided.
-        @def_method(
-            m,
-            self.precommit,
-            validate_arguments=lambda rob_id, tag: rob_id == rob_id_val,
-            nonexclusive=True,
-            combiner=select_combiner
-        )
-        def _(rob_id, tag):
-            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
-            
+        _precommit = Method(i=self.layouts.internal_precommit_in)
+
+        # NOTE: Alternatively this could be done automagically bt returning new method on new key get
+        def precommit(m: TModule, *, rob_id: Value, tag: Value):
             # Disable executing any side effects when core is flushing or instruction was 
-            # on a (finnaly) wrong speculation path.
+            # on a final wrong speculation path.
+
             side_fx = Signal()
             instr_active = self.checkpoint_get_active_tags(m).active_tags[tag]
-            m.d.top_comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH") & instr_active)
-            
-            return {"side_fx": side_fx}
+            m.d.av_comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH") & instr_active)
 
+            # separate function is used to avoid post-combiner speculation loop on argument dependent part
+            # Call internal method to block until rob_id is on precommit position
+            _precommit(m, rob_id=rob_id)
+
+            ret = Signal(self.layouts.precommit_out)
+            m.d.av_comb += ret.side_fx.eq(side_fx)
+            return ret
+
+        self.dependency_manager.add_dependency(InstructionPrecommitKey(), precommit)
+                
+        # The `rob_id` argument is only used in argument validation, it is not needed in the method body.
+        # A dummy combiner is provided.
+        rob_peek_id_val = Signal(self.gen_params.rob_entries_bits)
+        @def_method(
+            m,
+            _precommit,
+            validate_arguments=lambda rob_id: rob_id == rob_peek_id_val,
+            nonexclusive=True,
+            combiner=lambda m, args, runs: 0
+        )
+        def _(rob_id):
+            m.d.top_comb += rob_peek_id_val.eq(self.rob_peek(m).rob_id)
+            
         return m

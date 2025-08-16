@@ -115,6 +115,24 @@ class Core(Component):
         m.submodules.get_instr = get_instr = MethodProduct(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
+        
+        m.submodules.retirement = retirement = Retirement(self.gen_params)
+        retirement.rob_peek.proxy(m, rob.peek)
+        retirement.rob_retire.proxy(m, rob.retire)
+        retirement.r_rat_commit.proxy(m, rrat.commit)
+        retirement.r_rat_peek.proxy(m, rrat.peek)
+        retirement.free_rf_put.proxy(m, rf_allocator.free[0])
+        retirement.rf_free.proxy(m, rf.free[0])
+        retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
+        retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
+        retirement.c_rat_restore.proxy(m, crat.flush_restore)
+        retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
+        retirement.instr_decrement.proxy(m, core_counter.decrement)
+        retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
+        retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
+        retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
+        retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
+
 
         m.submodules.scheduler = Scheduler(
             get_instr=get_instr.method,
@@ -140,22 +158,5 @@ class Core(Component):
         announcement.rf_write_val.proxy(m, self.RF.write[0])
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
-
-        m.submodules.retirement = retirement = Retirement(self.gen_params)
-        retirement.rob_peek.proxy(m, rob.peek)
-        retirement.rob_retire.proxy(m, rob.retire)
-        retirement.r_rat_commit.proxy(m, rrat.commit)
-        retirement.r_rat_peek.proxy(m, rrat.peek)
-        retirement.free_rf_put.proxy(m, rf_allocator.free[0])
-        retirement.rf_free.proxy(m, rf.free[0])
-        retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
-        retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
-        retirement.c_rat_restore.proxy(m, crat.flush_restore)
-        retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
-        retirement.instr_decrement.proxy(m, core_counter.decrement)
-        retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
-        retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
-        retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
-        retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
 
         return m

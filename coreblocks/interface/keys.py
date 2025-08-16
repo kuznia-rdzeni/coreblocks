@@ -36,7 +36,7 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(SimpleKey[Method]):
+class InstructionPrecommitKey(SimpleKey[Callable]):
     pass
 
 
