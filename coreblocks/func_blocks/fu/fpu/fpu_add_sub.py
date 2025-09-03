@@ -5,7 +5,7 @@ from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     RoundingModes,
     FPUParams,
-    create_data_layout,
+    create_data_input_layout,
     create_output_layout,
     FPUCommonValues,
 )
@@ -25,16 +25,41 @@ class FPUAddSubMethodLayout:
 
     def __init__(self, *, fpu_params: FPUParams):
         self.add_sub_in_layout = [
-            ("op_1", create_data_layout(fpu_params)),
-            ("op_2", create_data_layout(fpu_params)),
+            ("op_1", create_data_input_layout(fpu_params)),
+            ("op_2", create_data_input_layout(fpu_params)),
             ("rounding_mode", RoundingModes),
             ("operation", 1),
         ]
+        """
+        | Input layout for addition/subtraction
+        | op_1 - layout containing data of the first operand
+        | op_2 - layout containing data of the second operand
+        | rounding_mode - selected rounding mode
+        | op - selected operation; 1 - subtraction, 0 - addition
+        | op_1 and op_2 are created using
+          :meth:`create_data_input_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout>`
+        """
         self.add_sub_out_layout = create_output_layout(fpu_params)
+        """
+        Output layout for addition/subtraction created using
+        :meth:`create_output_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout>`
+        """
 
 
 class FPUAddSubModule(Elaboratable):
-    """FPU addition/subtraction top module
+    """
+    | FPU addition/subtraction top module
+    | This module implements addition and subtraction using
+      two path approach with rounding prediction.
+    | The module can be divided into two segments:
+    | 1. Receiving data and preparing it for one of the two path submodules
+      by calculating effective operation, swapping operands and aligning exponents.
+    | 2. Receiving data from one of the path submodules and preparing it for error checking
+      module by checking for various conditions
+    | For more info about close path and far path check
+      :meth:`close path module <coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule>`
+       and
+      :meth:`far path module <coreblocks.func_blocks.fu.fpu.far_path.FarPathModule>`
 
     Parameters
     ----------
@@ -44,9 +69,12 @@ class FPUAddSubModule(Elaboratable):
     Attributes
     ----------
     add_sub_request: Method
-        Transactional method for initiating far path computation.
-        Takes 'add_sub_in_layout' as argument.
-        Returns result as 'add_sub_out_layout'.
+        Transactional method for initiating addition or subtraction.
+        Takes
+        :meth:`add_sub_in_layout <coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_in_layout>`
+        as argument.
+        Returns result as
+        :meth:`add_sub_out_layout <coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout>`.
     """
 
     def __init__(self, *, fpu_params: FPUParams):
