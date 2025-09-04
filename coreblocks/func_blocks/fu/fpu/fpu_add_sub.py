@@ -112,7 +112,7 @@ class FPUAddSubModule(Elaboratable):
         max_exp = (2 ** (self.fpu_params.exp_width)) - 1
 
         final_sign = Signal(1)
-        exp_diff = Signal(range(-max_exp, max_exp))
+        exp_diff = Signal(range(-max_exp, max_exp + 1))
         norm_shift_amount = Signal(range(max_exp))
         sticky_bit = Signal(1)
         true_operation = Signal(1)
