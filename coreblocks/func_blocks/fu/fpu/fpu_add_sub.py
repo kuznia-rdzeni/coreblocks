@@ -1,6 +1,7 @@
 from amaranth import *
 from amaranth.lib import data
 from transactron import TModule, Method, def_method
+from transactron.utils import assign
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     RoundingModes,
@@ -112,9 +113,7 @@ class FPUAddSubModule(Elaboratable):
             )
 
         def assign_values(lhs, exp, sig, sign):
-            m.d.av_comb += lhs.exp.eq(exp)
-            m.d.av_comb += lhs.sig.eq(sig)
-            m.d.av_comb += lhs.sign.eq(sign)
+            m.d.av_comb += assign(lhs, {"sign": sign, "exp": exp, "sig": sig})
 
         m.submodules.close_path_module = close_path_module = ClosePathModule(fpu_params=self.fpu_params)
         m.submodules.far_path_module = far_path_module = FarPathModule(fpu_params=self.fpu_params)
