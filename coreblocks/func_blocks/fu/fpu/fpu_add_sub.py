@@ -1,5 +1,4 @@
 from amaranth import *
-from amaranth.lib import data
 from transactron import TModule, Method, def_method
 from transactron.utils import assign
 from transactron.utils.transactron_helpers import from_method_layout
@@ -8,6 +7,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
     FPUParams,
     create_data_input_layout,
     create_output_layout,
+    create_raw_float_layout,
     FPUCommonValues,
 )
 from coreblocks.func_blocks.fu.fpu.far_path import FarPathModule
@@ -42,8 +42,20 @@ class FPUAddSubMethodLayout:
         """
         self.add_sub_out_layout = create_output_layout(fpu_params)
         """
-        Output layout for addition/subtraction created using
+        Output layout for addition/subtraction. Created using
         :meth:`create_output_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout>`
+        """
+        self.raw_float_layout = create_raw_float_layout(fpu_params)
+        """
+        Output layout for raw float. Created using
+        :meth:`create_raw_float_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout>`
+        """
+        ext_paramas = FPUParams(sig_width=fpu_params.sig_width + 2, exp_width=fpu_params.exp_width)
+        self.ext_float_layout = create_raw_float_layout(ext_paramas)
+        """
+        Output layout for raw float with significand larger by two bits from selected format.
+        Created using
+        :meth:`create_raw_float_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout>`
         """
 
 
@@ -90,28 +102,6 @@ class FPUAddSubModule(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        def gen_float(fpu_params: FPUParams):
-            return Signal(
-                data.StructLayout(
-                    {
-                        "sign": 1,
-                        "sig": fpu_params.sig_width,
-                        "exp": fpu_params.exp_width,
-                    }
-                )
-            )
-
-        def gen_ext_float(fpu_params: FPUParams):
-            return Signal(
-                data.StructLayout(
-                    {
-                        "sign": 1,
-                        "sig": fpu_params.sig_width + 2,
-                        "exp": fpu_params.exp_width,
-                    }
-                )
-            )
-
         def assign_values(lhs, exp, sig, sign):
             m.d.av_comb += assign(lhs, {"sign": sign, "exp": exp, "sig": sig})
 
@@ -139,8 +129,8 @@ class FPUAddSubModule(Elaboratable):
 
             m.d.av_comb += exp_diff.eq(op_1.exp - op_2.exp)
 
-            pre_shift_op1 = gen_ext_float(self.fpu_params)
-            pre_shift_op2 = gen_ext_float(self.fpu_params)
+            pre_shift_op1 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
+            pre_shift_op2 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
 
             with m.If(exp_diff == 0):
                 sig_diff = op_1.sig - op_2.sig
@@ -172,10 +162,10 @@ class FPUAddSubModule(Elaboratable):
             is_one_subnormal = (pre_shift_op1.exp > 0) & (pre_shift_op2.exp == 0)
             m.d.av_comb += norm_shift_amount.eq(pre_shift_op1.exp - pre_shift_op2.exp - is_one_subnormal)
 
-            path_op1 = gen_float(self.fpu_params)
-            far_path_op2_ext = gen_ext_float(self.fpu_params)
-            far_path_op2 = gen_float(self.fpu_params)
-            close_path_op2 = gen_float(self.fpu_params)
+            path_op1 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
+            far_path_op2_ext = Signal(from_method_layout(self.method_layouts.ext_float_layout))
+            far_path_op2 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
+            close_path_op2 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
 
             m.d.av_comb += path_op1.sig.eq(pre_shift_op1.sig)
             with m.If(norm_shift_amount > (self.fpu_params.sig_width + 2)):
@@ -249,7 +239,7 @@ class FPUAddSubModule(Elaboratable):
             both_op_zero = op_1.is_zero & op_2.is_zero
             is_zero = both_op_zero | (output_exact & output_zero)
             normal_case = ~(is_nan | is_inf | is_zero)
-            exception_op = gen_float(self.fpu_params)
+            exception_op = Signal(from_method_layout(self.method_layouts.raw_float_layout))
 
             with m.If(~normal_case):
                 m.d.av_comb += exception_round_bit.eq(0)

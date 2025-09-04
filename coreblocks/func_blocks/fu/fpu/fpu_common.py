@@ -62,6 +62,16 @@ def create_data_input_layout(params: FPUParams):
     )
 
 
+def create_raw_float_layout(params: FPUParams):
+    return data.StructLayout(
+        {
+            "sign": 1,
+            "sig": params.sig_width,
+            "exp": params.exp_width,
+        }
+    )
+
+
 def create_output_layout(params: FPUParams):
     return data.StructLayout(
         {
