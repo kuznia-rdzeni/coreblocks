@@ -1,14 +1,15 @@
 from amaranth import *
-
-from typing import Optional
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
+from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
+from typing import Optional
 from transactron.core import Method, Transaction, def_method, TModule
+from transactron.utils import DependencyContext
 
 PMPCFG_COUNT = 16
 PMPXCFG_WIDTH = 8
@@ -90,6 +91,11 @@ class MachineModeCSRRegisters(Elaboratable):
             CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
         )
 
+        self.mcycle = DoubleCounterCSR(gen_params, CSRAddress.MCYCLE, CSRAddress.MCYCLEH)
+        self.cycle = DoubleCounterCSR(
+            gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH
+        )  # FIXME: this should be a R/O shadow of mcycle
+
         self.pmpxcfg = []
         pmpcsr_width = 8 if gen_params.isa.xlen == 64 else 4
         # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
@@ -122,11 +128,15 @@ class MachineModeCSRRegisters(Elaboratable):
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         for name, value in vars(self).items():
             if isinstance(value, CSRRegister):
                 m.submodules[name] = value
+
+        with Transaction().body(m):
+            self.mcycle.increment(m)
+            self.cycle.increment(m)
 
         return m
 
@@ -253,11 +263,6 @@ class GenericCSRRegisters(Elaboratable):
 
         self.m_mode = MachineModeCSRRegisters(gen_params)
 
-        self.csr_mcycle = DoubleCounterCSR(gen_params, CSRAddress.MCYCLE, CSRAddress.MCYCLEH)
-        self.csr_cycle = DoubleCounterCSR(
-            gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH
-        )  # TODO: this should be a shadow of mcycle
-
         if gen_params._generate_test_hardware:
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
 
@@ -271,7 +276,6 @@ class GenericCSRRegisters(Elaboratable):
             m.submodules.csr_time = csr_time = DoubleCounterCSR(self.gen_params, CSRAddress.TIME, CSRAddress.TIMEH)
             with Transaction().body(m):
                 csr_time.increment(m)
-
         else:
             m.submodules.csr_time = csr_time = CSRRegister(CSRAddress.TIME, self.gen_params)
             m.submodules.csr_timeh = csr_timeh = CSRRegister(CSRAddress.TIMEH, self.gen_params)
@@ -279,13 +283,7 @@ class GenericCSRRegisters(Elaboratable):
                 csr_time.write(m, data=mtime[: csr_time.width])
                 csr_timeh.write(m, data=mtime[csr_time.width :])
 
-        m.submodules.csr_cycle = self.csr_cycle
-        m.submodules.csr_mcycle = self.csr_mcycle
         if self.gen_params._generate_test_hardware:
             m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
-
-        with Transaction().body(m):
-            self.csr_mcycle.increment(m)
-            self.csr_cycle.increment(m)
 
         return m

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from transactron.core.tmodule import SimpleKey
 from transactron.lib.dependencies import DependencyContext
 
-from coreblocks.peripherals.wishbone import WishboneInterface, WishboneParameters, WishboneSignature
-from coreblocks.soc.common import add_memory_mapped_register
+from coreblocks.peripherals.wishbone import WishboneInterface, WishboneParameters
+from coreblocks.socks.peripheral import SocksPeripheral, gen_memory_mapped_register, is_perpiheral_request
 
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class ClintMtimeKey(SimpleKey[Value]):
     pass
 
 
-class ClintPeriph(Component):
+class ClintPeriph(Component, SocksPeripheral):
     bus: WishboneInterface
     mtip: Signal
     msip: Signal
@@ -29,11 +29,11 @@ class ClintPeriph(Component):
         msip_offset=0x0000,
         mtimecmp_offset=0x4000,
         mtime_offset=0xBFF8,
-        space_size: int = 0xC000
+        addr_space_size: int = 0xC000
     ):
         super().__init__(
             {
-                "bus": In(WishboneSignature(wb_params)),
+                "bus": In(WishboneInterface(wb_params).signature),
                 "mtip": Out(1),
                 "msip": Out(hart_count),
             }
@@ -41,7 +41,7 @@ class ClintPeriph(Component):
         self.time_width = 64
         self.ipi_width = 64
         self.base_addr = base_addr
-        self.space_size = space_size
+        self.addr_space_size = addr_space_size
         self.hart_count = hart_count
 
         self.msip_offset = msip_offset
@@ -64,22 +64,14 @@ class ClintPeriph(Component):
             m.d.comb += self.mtip[i].eq(self.mtime >= self.mtimecmp[i])
             m.d.comb += self.msip[i].eq(self.ipi[i])
 
-        wb_addr_shift = self.bus.dat_r.shape().width // 8
-        in_range = (self.bus.adr >= (self.base_addr >> wb_addr_shift)) & (
-            self.bus.adr < ((self.base_addr + self.space_size) >> wb_addr_shift)
-        )
-        with m.If(self.bus.stb & self.bus.cyc & in_range):
-            m.d.comb += self.bus.err.eq(1)
+        with m.If(is_perpiheral_request(self)):
+            m.d.comb += self.bus.err.eq(1)  # default - overwritten by memory mapped registers declaration
             m.d.comb += self.bus.ack.eq(0)
 
-            for hart in range(self.hart_count):
-                add_memory_mapped_register(
-                    m, self.bus, self.base_addr + self.msip_offset + self.ipi_width * hart, self.ipi[hart]
-                )
-                add_memory_mapped_register(
-                    m, self.bus, self.base_addr + self.mtimecmp_offset + self.time_width * hart, self.mtimecmp[hart]
-                )
+        for hart in range(self.hart_count):
+            gen_memory_mapped_register(m, self, self.msip_offset + self.ipi_width * hart, self.ipi[hart])
+            gen_memory_mapped_register(m, self, self.mtimecmp_offset + self.time_width * hart, self.mtimecmp[hart])
 
-            add_memory_mapped_register(m, self.bus, self.base_addr + self.mtime_offset, self.mtime)
+        gen_memory_mapped_register(m, self, self.mtime_offset, self.mtime)
 
         return m

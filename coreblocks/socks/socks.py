@@ -4,12 +4,15 @@ from amaranth.lib.wiring import Component, In, Out, connect, flipped
 from coreblocks.arch.isa_consts import InterruptCauseNumber
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.peripherals.wishbone import WishboneInterface, WishboneMuxer, WishboneSignature
+from coreblocks.peripherals.wishbone import WishboneInterface, WishboneMuxer
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS
-from coreblocks.soc.clint import ClintPeriph
+from coreblocks.socks.clint import ClintPeriph
+from coreblocks.socks.peripheral import bus_in_periph_range
+
+CLINT_BASE = 0xE1000000
 
 
-class SoC(Component):
+class Socks(Component):
     wb_instr: WishboneInterface
     wb_data: WishboneInterface
     interrupts: Signal
@@ -17,13 +20,13 @@ class SoC(Component):
     def __init__(self, core: Core, core_gen_params: GenParams):
         super().__init__(
             {
-                "wb_instr": Out(WishboneSignature(core_gen_params.wb_params)),
-                "wb_data": Out(WishboneSignature(core_gen_params.wb_params)),
+                "wb_instr": Out(WishboneInterface(core_gen_params.wb_params).signature),
+                "wb_data": Out(WishboneInterface(core_gen_params.wb_params).signature),
                 "interrupts": In(ISA_RESERVED_INTERRUPTS + core_gen_params.interrupt_custom_count),
             }
         )
 
-        self.clint = ClintPeriph(base_addr=0xE1000000, wb_params=core_gen_params.wb_params)
+        self.clint = ClintPeriph(base_addr=CLINT_BASE, wb_params=core_gen_params.wb_params)
 
         self.core = core
         self.core_gen_params = core_gen_params
@@ -33,20 +36,18 @@ class SoC(Component):
 
         muxer_ssel = Signal(2)
         periph_muxer = WishboneMuxer(self.core_gen_params.wb_params, 2, muxer_ssel)
+        periph_bus = self.clint.bus  # only one peripheral for now
 
         connect(m, self.core.wb_instr, flipped(self.wb_instr))
 
         connect(m, self.core.wb_data, periph_muxer.master_wb)
         connect(m, periph_muxer.slaves[0], flipped(self.wb_data))
 
-        connect(m, periph_muxer.slaves[1], self.clint.bus)
+        connect(m, periph_muxer.slaves[1], periph_bus)
 
-        in_core_periph_space = Signal()
-        m.d.comb += in_core_periph_space.eq(
-            (self.core.wb_data.adr <= self.clint.base_addr)
-            & (self.core.wb_data.adr > self.clint.base_addr + self.clint.space_size)
-        )
-        m.d.comb += muxer_ssel.eq(Cat(~in_core_periph_space, in_core_periph_space))
+        clint_addr = Signal()
+        m.d.comb += clint_addr.eq(bus_in_periph_range(self.core.wb_data, self.clint))
+        m.d.comb += muxer_ssel.eq(Cat(~clint_addr, clint_addr))
 
         m.submodules.clint = self.clint
         m.submodules.periph_muxer = periph_muxer
