@@ -9,7 +9,7 @@ from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from amaranth import Signal
 
 if TYPE_CHECKING:
-    from coreblocks.priv.csr.csr_instances import GenericCSRRegisters  # noqa: F401
+    from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
     from coreblocks.priv.csr.csr_register import CSRRegister  # noqa: F401
 
 __all__ = [
@@ -72,7 +72,7 @@ class ExceptionReportKey(SimpleKey[Callable[[], Callable[Concatenate[TModule, ..
 
 
 @dataclass(frozen=True)
-class CSRInstancesKey(SimpleKey["GenericCSRRegisters"]):
+class CSRInstancesKey(SimpleKey["CSRInstances"]):
     pass
 
 

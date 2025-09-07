@@ -257,7 +257,7 @@ class MachineModeCSRRegisters(Elaboratable):
         return misa_value
 
 
-class GenericCSRRegisters(Elaboratable):
+class CSRInstances(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
@@ -266,24 +266,30 @@ class GenericCSRRegisters(Elaboratable):
         if gen_params._generate_test_hardware:
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
 
+        self.time = CSRRegister(CSRAddress.TIME, self.gen_params)
+        self.timeh = CSRRegister(CSRAddress.TIMEH, self.gen_params)
+
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.m_mode = self.m_mode
 
-        mtime = DependencyContext.get().get_optional_dependency(ClintMtimeKey())
-        if mtime is None:
-            m.submodules.csr_time = csr_time = DoubleCounterCSR(self.gen_params, CSRAddress.TIME, CSRAddress.TIMEH)
-            with Transaction().body(m):
-                csr_time.increment(m)
-        else:
-            m.submodules.csr_time = csr_time = CSRRegister(CSRAddress.TIME, self.gen_params)
-            m.submodules.csr_timeh = csr_timeh = CSRRegister(CSRAddress.TIMEH, self.gen_params)
-            with Transaction().body(m):
-                csr_time.write(m, data=mtime[: csr_time.width])
-                csr_timeh.write(m, data=mtime[csr_time.width :])
-
         if self.gen_params._generate_test_hardware:
             m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
+
+        # TIME CSR is a R/O alias to Memory-Mapped `mtime` value (from clint). If `mtime` is not available,
+        # then fallback to providing a cycle counter source.
+        clint_mtime = DependencyContext.get().get_optional_dependency(ClintMtimeKey())
+        time_counter = Signal(64)
+        m.d.sync += time_counter.eq(time_counter + 1)
+        time_source = time_counter if clint_mtime is None else clint_mtime
+
+        with Transaction().body(m):
+            if clint_mtime is not None:
+                self.time.write(m, data=time_source[: self.time.width])
+                self.timeh.write(m, data=time_source[self.time.width :])
+
+        m.submodules.time = self.time
+        m.submodules.timeh = self.timeh
 
         return m
