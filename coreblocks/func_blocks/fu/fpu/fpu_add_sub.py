@@ -125,7 +125,8 @@ class FPUAddSubModule(Elaboratable):
 
         @def_method(m, self.add_sub_request)
         def _(op_1, op_2, rounding_mode, operation):
-            op_2_true_sign = operation ^ op_2.sign
+            op_2_true_sign = Signal()
+            m.d.av_comb += op_2_true_sign.eq(operation ^ op_2.sign)
 
             m.d.av_comb += exp_diff.eq(op_1.exp - op_2.exp)
 
@@ -133,7 +134,8 @@ class FPUAddSubModule(Elaboratable):
             pre_shift_op2 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
 
             with m.If(exp_diff == 0):
-                sig_diff = op_1.sig - op_2.sig
+                sig_diff = Signal(range(-self.fpu_params.sig_width))
+                m.d.av_comb += sig_diff.eq(op_1.sig - op_2.sig)
                 with m.If(sig_diff == 0):
                     assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
                     assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
@@ -150,7 +152,7 @@ class FPUAddSubModule(Elaboratable):
                 assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
                 assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
 
-            sign_xor = pre_shift_op1.sign ^ pre_shift_op2.sign
+            sign_xor = op_1.sign ^ op_2_true_sign
 
             with m.If(~sign_xor):
                 m.d.av_comb += final_sign.eq(pre_shift_op1.sign)
@@ -237,7 +239,8 @@ class FPUAddSubModule(Elaboratable):
             output_zero = (path_response["out_exp"] == 0) & (path_response["out_sig"] == 0)
             output_exact = ~(path_response["output_round"] | path_response["output_sticky"])
             both_op_zero = op_1.is_zero & op_2.is_zero
-            is_zero = both_op_zero | (output_exact & output_zero)
+            is_zero = Signal()
+            m.d.av_comb += is_zero.eq(both_op_zero | (output_exact & output_zero))
             normal_case = ~(is_nan | is_inf | is_zero)
             exception_op = Signal(from_method_layout(self.method_layouts.raw_float_layout))
 
