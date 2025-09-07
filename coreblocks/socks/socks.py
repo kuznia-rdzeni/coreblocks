@@ -54,7 +54,8 @@ class Socks(Component):
 
         m.submodules.core = self.core
 
-        m.d.comb += self.core.interrupts[InterruptCauseNumber.MEI].eq(self.clint.mtip)
+        m.d.comb += self.core.interrupts[InterruptCauseNumber.MEI].eq(self.interrupts[InterruptCauseNumber.MEI])
+        m.d.comb += self.core.interrupts[InterruptCauseNumber.MTI].eq(self.clint.mtip)
         m.d.comb += self.core.interrupts[InterruptCauseNumber.MSI].eq(self.clint.msip)
         m.d.comb += self.core.interrupts[ISA_RESERVED_INTERRUPTS:].eq(self.interrupts[ISA_RESERVED_INTERRUPTS:])
 
