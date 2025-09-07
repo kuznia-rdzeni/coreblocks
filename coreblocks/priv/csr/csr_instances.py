@@ -131,7 +131,7 @@ class MachineModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, CSRRegister):
+            if isinstance(value, CSRRegister) or isinstance(value, DoubleCounterCSR):
                 m.submodules[name] = value
 
         with Transaction().body(m):

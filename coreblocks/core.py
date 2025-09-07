@@ -62,12 +62,12 @@ class Core(Component):
 
         self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
 
-        self.retirement = Retirement(self.gen_params)
-
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
+
+        self.retirement = Retirement(self.gen_params)
 
         self.exception_information_register = ExceptionInformationRegister(
             self.gen_params,
@@ -103,7 +103,7 @@ class Core(Component):
         m.submodules.CRAT = crat = self.CRAT
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
-        rob = self.ROB
+        m.submodules.rob = rob = self.ROB
 
         m.submodules.csr_instances = self.csr_instances
         m.submodules.interrupt_controller = self.interrupt_controller
@@ -140,7 +140,7 @@ class Core(Component):
         announcement.rs_update.proxy(m, self.func_blocks_unifier.update)
         announcement.rf_write_val.proxy(m, self.RF.write[0])
 
-        retirement = self.retirement
+        m.submodules.retirement = retirement = self.retirement
         retirement.rob_peek.proxy(m, rob.peek)
         retirement.rob_retire.proxy(m, rob.retire)
         retirement.r_rat_commit.proxy(m, rrat.commit)
@@ -156,8 +156,6 @@ class Core(Component):
         retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
         retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
         retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
-        m.submodules.retirement = retirement
-        m.submodules.ROB = rob
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
 

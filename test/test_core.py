@@ -59,9 +59,7 @@ class CoreTestElaboratable(Elaboratable):
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
-        if self.with_socks:
-            m.submodules.top = self.top
-        m.submodules.c = self.core
+        m.submodules.c = self.top
 
         connect(m, self.top.wb_instr, self.wb_mem_slave.bus)
         connect(m, self.top.wb_data, self.wb_mem_slave_data.bus)
@@ -155,7 +153,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
-        ("socks_clint", "socks_clint.asm", "1000", {2: 5, 8: 1}, basic_core_config),
+        ("socks_clint", "socks_clint.asm", 1000, {2: 5, 8: 1}, basic_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
