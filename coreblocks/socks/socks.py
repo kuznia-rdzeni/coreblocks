@@ -11,6 +11,11 @@ from coreblocks.socks.peripheral import bus_in_periph_range
 
 CLINT_BASE = 0xE1000000
 
+# This is a temporary wrapper solution to provide external memory-mapped components, required to run Linux.
+# It is intended to be only usable with LiteX, that uses a simple core-facing interface and Wishbone bus
+# (and is currenty the only supported integration).
+# TODO: Replace this with a proper bus-agnostic (and multicore?) soultion at a later stage.
+
 
 class Socks(Component):
     wb_instr: WishboneInterface
