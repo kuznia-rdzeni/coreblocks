@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757428538347,
+  "lastUpdate": 1757428540291,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -51252,6 +51252,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 9044,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d2ddd40c1f4980b98a6fa0c15d771da5b5cba1e",
+          "message": "CoreSoCks and CLINT peripheral (#835)",
+          "timestamp": "2025-09-09T16:13:04+02:00",
+          "tree_id": "cc89dd06260e21a9c5905e12ddb533bbdf72ac43",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d2ddd40c1f4980b98a6fa0c15d771da5b5cba1e"
+        },
+        "date": 1757428539506,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.72,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 34534,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1906,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2080,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 9046,
             "unit": "LUT"
           }
         ]
