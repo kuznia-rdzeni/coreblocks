@@ -23,6 +23,7 @@ from coreblocks.params.configurations import *
 str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
+    "small_linux": small_linux_config,
     "full": full_core_config,
 }
 
