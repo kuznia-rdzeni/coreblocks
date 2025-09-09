@@ -1,5 +1,5 @@
 from coreblocks.backend.retirement import *
-from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 
 from transactron.lib import FIFO, Adapter
 from coreblocks.core_structs.rat import RRAT
@@ -24,8 +24,8 @@ class RetirementTestCircuit(Elaboratable):
             [("ident", range(self.gen_params.phys_regs))], self.gen_params.phys_regs
         )
 
-        m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
-        DependencyContext.get().add_dependency(CSRInstancesKey(), self.generic_csr)
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 

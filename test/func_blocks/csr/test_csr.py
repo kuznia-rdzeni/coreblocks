@@ -5,7 +5,7 @@ from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
@@ -56,7 +56,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(
             Adapter.create(i=self.gen_params.get(FetchLayouts).resume)
         )
-        m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
         m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)

@@ -16,6 +16,7 @@ from coreblocks.params.instr import *
 from coreblocks.params.configurations import *
 from coreblocks.peripherals.wishbone import WishboneMemorySlave
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS
+from coreblocks.socks.socks import Socks
 
 import random
 import subprocess
@@ -26,10 +27,13 @@ from transactron.utils.dependencies import DependencyContext
 
 
 class CoreTestElaboratable(Elaboratable):
-    def __init__(self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: list[int] = []):
+    def __init__(
+        self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: list[int] = [], with_socks: bool = False
+    ):
         self.gen_params = gen_params
         self.instr_mem = instr_mem
         self.data_mem = data_mem
+        self.with_socks = with_socks
 
     def elaborate(self, platform):
         m = Module()
@@ -44,6 +48,7 @@ class CoreTestElaboratable(Elaboratable):
         )
 
         self.core = Core(gen_params=self.gen_params)
+        self.top = Socks(self.core, self.gen_params) if self.with_socks else self.core
 
         if self.gen_params.interrupt_custom_count == 2:
             self.interrupt_level = Signal()
@@ -54,10 +59,10 @@ class CoreTestElaboratable(Elaboratable):
 
         m.submodules.wb_mem_slave = self.wb_mem_slave
         m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
-        m.submodules.c = self.core
+        m.submodules.c = self.top
 
-        connect(m, self.core.wb_instr, self.wb_mem_slave.bus)
-        connect(m, self.core.wb_data, self.wb_mem_slave_data.bus)
+        connect(m, self.top.wb_instr, self.wb_mem_slave.bus)
+        connect(m, self.top.wb_data, self.wb_mem_slave_data.bus)
 
         return m
 
@@ -148,6 +153,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
+        ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, basic_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
@@ -170,8 +176,11 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
         if self.name == "mtval":
             bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
+        socks_test = self.name.startswith("socks_")
 
-        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
+        self.m = CoreTestElaboratable(
+            self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"], with_socks=socks_test
+        )
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.run_and_check)
@@ -226,14 +235,14 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         random.seed(1500100900)
 
     async def clear_level_interrupt_process(self, sim: ProcessContext):
-        async for *_, value in sim.tick().sample(self.m.core.csr_generic.csr_coreblocks_test.value):
+        async for *_, value in sim.tick().sample(self.m.core.csr_instances.csr_coreblocks_test.value):
             if value == 0:
                 continue
 
             if value == 2:
                 assert False, "`fail` called"
 
-            sim.set(self.m.core.csr_generic.csr_coreblocks_test.value, 0)
+            sim.set(self.m.core.csr_instances.csr_coreblocks_test.value, 0)
             sim.set(self.m.interrupt_level, 0)
 
     async def run_with_interrupt_process(self, sim: TestbenchContext):
@@ -345,14 +354,14 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
 
             # wait for the interrupt to get registered
             await wait_or_timeout(
-                self.m.core.csr_generic.m_mode.priv_mode.value, lambda value: value == PrivilegeLevel.MACHINE
+                self.m.core.csr_instances.m_mode.priv_mode.value, lambda value: value == PrivilegeLevel.MACHINE
             )
 
             sim.set(self.m.interrupt_level, 0)
 
             # wait until ISR returns
             await wait_or_timeout(
-                self.m.core.csr_generic.m_mode.priv_mode.value, lambda value: value != PrivilegeLevel.MACHINE
+                self.m.core.csr_instances.m_mode.priv_mode.value, lambda value: value != PrivilegeLevel.MACHINE
             )
 
             await self.random_wait(sim, 5)
