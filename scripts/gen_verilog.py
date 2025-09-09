@@ -13,6 +13,7 @@ if __name__ == "__main__":
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.core import Core
+from coreblocks.socks.socks import Socks
 from transactron import TransactronContextComponent
 from transactron.utils import DependencyManager, DependencyContext
 from transactron.utils.gen import generate_verilog
@@ -22,14 +23,19 @@ from coreblocks.params.configurations import *
 str_to_coreconfig: dict[str, CoreConfiguration] = {
     "basic": basic_core_config,
     "tiny": tiny_core_config,
+    "small_linux": small_linux_config,
     "full": full_core_config,
 }
 
 
-def gen_verilog(core_config: CoreConfiguration, output_path: str):
+def gen_verilog(core_config: CoreConfiguration, output_path: str, *, wrap_socks: bool = False):
     with DependencyContext(DependencyManager()):
         gp = GenParams(core_config)
-        top = TransactronContextComponent(Core(gen_params=gp), dependency_manager=DependencyContext.get())
+        core = Core(gen_params=gp)
+        if wrap_socks:
+            core = Socks(core, core_gen_params=gp)
+
+        top = TransactronContextComponent(core, dependency_manager=DependencyContext.get())
 
         # use known working yosys version shipped with amaranth by default
         if "AMARANTH_USE_YOSYS" not in os.environ:
@@ -67,10 +73,16 @@ def main():
     )
 
     parser.add_argument(
-        "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
+        "--with-socks",
+        action="store_true",
+        help="Wrap Coreblocks in CoreSoCks providing additional memory-mapped or CSR peripherals",
     )
 
     parser.add_argument("--reset-pc", action="store", default="0x0", help="Set core reset address")
+
+    parser.add_argument(
+        "-o", "--output", action="store", default="core.v", help="Output file path. Default: %(default)s"
+    )
 
     args = parser.parse_args()
 
@@ -86,7 +98,7 @@ def main():
     assert args.reset_pc[:2] == "0x", "Expected hex number as --reset-pc"
     config = config.replace(start_pc=int(args.reset_pc[2:], base=16))
 
-    gen_verilog(config, args.output)
+    gen_verilog(config, args.output, wrap_socks=args.with_socks)
 
 
 if __name__ == "__main__":

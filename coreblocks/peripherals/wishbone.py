@@ -341,8 +341,8 @@ class WishboneMuxer(Component):
     def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
         super().__init__(
             {
-                "master_wb": Out(WishboneInterface(wb_params).signature),
-                "slaves": In(WishboneInterface(wb_params).signature).array(num_slaves),
+                "master_wb": In(WishboneInterface(wb_params).signature),
+                "slaves": Out(WishboneInterface(wb_params).signature).array(num_slaves),
             }
         )
         self.sselTGA = ssel_tga

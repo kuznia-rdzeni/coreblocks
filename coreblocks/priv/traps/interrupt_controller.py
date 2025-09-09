@@ -72,9 +72,9 @@ class InternalInterruptController(Component):
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
 
         mie_writeable = (
-            # (1 << InterruptCauseNumber.MSI) TODO: CLINT
-            # (1 << InterruptCauseNumber.MTI) TODO: CLINT
-            (1 << InterruptCauseNumber.MEI)
+            (1 << InterruptCauseNumber.MSI)
+            | (1 << InterruptCauseNumber.MTI)
+            | (1 << InterruptCauseNumber.MEI)
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
         self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
