@@ -171,7 +171,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
             with m.Else():
                 self.push_result(m, arg)
 
-        self.lsu.push_result.proxy(push_lsu_result)
+        self.lsu.push_result.provide(push_lsu_result)
 
         with Transaction().body(m, ready=atomic_in_progress & sc_failed) as sc_failed_trans:
             m.d.sync += sc_failed.eq(0)

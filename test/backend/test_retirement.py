@@ -29,44 +29,46 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
-        self.retirement.r_rat_commit.proxy(self.rat.commit)
-        self.retirement.r_rat_peek.proxy(self.rat.peek)
-        self.retirement.free_rf_put.proxy(self.free_rf.write)
+        self.retirement.r_rat_commit.provide(self.rat.commit)
+        self.retirement.r_rat_peek.provide(self.rat.peek)
+        self.retirement.free_rf_put.provide(self.free_rf.write)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
-            Adapter(self.retirement.rob_peek, nonexclusive=True)
+            Adapter.create(self.retirement.rob_peek, nonexclusive=True)
         )
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(self.retirement.rob_retire))
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(self.retirement.rf_free))
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter.create(self.retirement.rob_retire))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(self.retirement.rf_free))
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
-            Adapter(self.retirement.exception_cause_get, nonexclusive=True)
+            Adapter.create(self.retirement.exception_cause_get, nonexclusive=True)
         )
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(
-            Adapter(self.retirement.exception_cause_clear)
+            Adapter.create(self.retirement.exception_cause_clear)
         )
         m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
-            Adapter(self.retirement.fetch_continue)
+            Adapter.create(self.retirement.fetch_continue)
         )
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
-            Adapter(self.retirement.instr_decrement)
+            Adapter.create(self.retirement.instr_decrement)
         )
-        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter(self.retirement.trap_entry))
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter.create(self.retirement.trap_entry))
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
-            Adapter(self.retirement.async_interrupt_cause)
+            Adapter.create(self.retirement.async_interrupt_cause)
         )
 
         m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
-            Adapter(self.retirement.checkpoint_tag_free)
+            Adapter.create(self.retirement.checkpoint_tag_free)
         )
         m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
-            Adapter(self.retirement.checkpoint_get_active_tags)
+            Adapter.create(self.retirement.checkpoint_get_active_tags)
         )
-        m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(Adapter(self.retirement.c_rat_restore))
+        m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
+            Adapter.create(self.retirement.c_rat_restore)
+        )
 
-        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
+        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))
 
         precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
-        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans(precommit))
+        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans.create(precommit))
 
         return m
 

@@ -115,14 +115,14 @@ class CSRRegister(Elaboratable):
 
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
         self._internal_fu_write = Method(i=csr_layouts._fu_write)
-        self.fu_write_map = MethodMap(
+        self.fu_write_map = MethodMap.create(
             self._internal_fu_write,
             i_transform=(csr_layouts._fu_write, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
         )
-        self.fu_write_filter = MethodFilter(
+        self.fu_write_filter = MethodFilter.create(
             self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms["data"])[0]
         )
-        self.fu_read_map = MethodMap(
+        self.fu_read_map = MethodMap.create(
             self._internal_fu_read,
             o_transform=(csr_layouts._fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
         )

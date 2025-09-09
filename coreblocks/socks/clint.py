@@ -3,8 +3,7 @@ from amaranth.lib.wiring import Component, In, Out
 
 from dataclasses import dataclass
 
-from transactron.core.tmodule import SimpleKey
-from transactron.lib.dependencies import DependencyContext
+from transactron.lib.dependencies import DependencyContext, SimpleKey
 
 from coreblocks.peripherals.wishbone import WishboneInterface, WishboneParameters
 from coreblocks.socks.peripheral import SocksPeripheral, gen_memory_mapped_register, is_perpiheral_request

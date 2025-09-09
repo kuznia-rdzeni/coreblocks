@@ -262,7 +262,7 @@ class PipelinedWishboneMaster(Component):
         m = TModule()
 
         m.submodules.result_fifo = self.result_fifo = BasicFifo(self.result_out_layout, self.max_req)
-        m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans(self.result_fifo.write)
+        m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans.create(self.result_fifo.write)
 
         pending_req_cnt = Signal(range(self.max_req + 1))
         req_start = Signal()
@@ -284,7 +284,7 @@ class PipelinedWishboneMaster(Component):
 
             m.d.comb += req_finish.eq(1)
 
-        self.result.proxy(self.result_fifo.read)
+        self.result.provide(self.result_fifo.read)
 
         @def_method(m, self.request, ready=request_ready)
         def _(arg) -> None:

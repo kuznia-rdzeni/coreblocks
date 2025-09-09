@@ -110,8 +110,8 @@ def unit_core(gen_params: GenParams):
 def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
-        issue_adapter = AdapterTrans(fu.issue)
-        push_result_adapter = Adapter(fu.push_result)
+        issue_adapter = AdapterTrans.create(fu.issue)
+        push_result_adapter = Adapter.create(fu.push_result)
 
         issue_connector, issue_resources = InterfaceConnector.with_resources(issue_adapter, "adapter", 0)
         push_connector, push_resources = InterfaceConnector.with_resources(push_result_adapter, "adapter", 1)
