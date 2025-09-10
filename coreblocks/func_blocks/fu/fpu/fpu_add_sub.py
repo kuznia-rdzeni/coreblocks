@@ -174,10 +174,9 @@ class FPUAddSubModule(Elaboratable):
                 m.d.av_comb += sticky_bit.eq(pre_shift_op2.sig.any())
                 m.d.av_comb += far_path_op2_ext.sig.eq(0)
             with m.Else():
-                l_shift = Signal(range(0, self.fpu_params.sig_width + 2))
-                sticky_bit_mask = Signal(self.fpu_params.sig_width + 2)
-                m.d.av_comb += l_shift.eq((self.fpu_params.sig_width + 2) - norm_shift_amount)
-                m.d.av_comb += sticky_bit_mask.eq(pre_shift_op2.sig << l_shift)
+                sticky_bit_mask = Cat(Signal().replicate(self.fpu_params.sig_width), pre_shift_op2.sig).bit_select(
+                    norm_shift_amount, self.fpu_params.sig_width
+                )
                 m.d.av_comb += sticky_bit.eq(sticky_bit_mask.any())
                 m.d.av_comb += far_path_op2_ext.sig.eq(pre_shift_op2.sig >> norm_shift_amount)
 
@@ -194,17 +193,12 @@ class FPUAddSubModule(Elaboratable):
             round_bit = far_path_op2_ext.sig[0]
 
             assign_values(path_op1, pre_shift_op1.exp, pre_shift_op1.sig >> 2, pre_shift_op1.sign)
-            with m.If(true_operation):
-                assign_values(
-                    far_path_op2,
-                    (pre_shift_op2.exp + norm_shift_amount),
-                    ~(far_path_op2_ext.sig >> 2),
-                    pre_shift_op2.sign,
-                )
-            with m.Else():
-                assign_values(
-                    far_path_op2, (pre_shift_op2.exp + norm_shift_amount), far_path_op2_ext.sig >> 2, pre_shift_op2.sign
-                )
+            assign_values(
+                far_path_op2,
+                (pre_shift_op2.exp + norm_shift_amount),
+                Mux(true_operation, ~(far_path_op2_ext.sig >> 2), far_path_op2_ext.sig >> 2),
+                pre_shift_op2.sign,
+            )
 
             close_path = (norm_shift_amount <= 1) & true_operation
             resp = Mux(
@@ -255,14 +249,12 @@ class FPUAddSubModule(Elaboratable):
                 m.d.av_comb += exception_op.exp.eq(max_exp)
                 m.d.av_comb += exception_op.sig.eq(self.common_values.canonical_nan_sig)
             with m.Elif(is_inf & ~(wrong_inf)):
-                with m.If(op_1.is_inf):
-                    m.d.av_comb += exception_op.sign.eq(op_1.sign)
-                    m.d.av_comb += exception_op.exp.eq(op_1.exp)
-                    m.d.av_comb += exception_op.sig.eq(op_1.sig)
-                with m.Else():
-                    m.d.av_comb += exception_op.sign.eq(pre_shift_op2.sign)
-                    m.d.av_comb += exception_op.exp.eq(op_2.exp)
-                    m.d.av_comb += exception_op.sig.eq(op_2.sig)
+                assign_values(
+                    exception_op,
+                    Mux(op_1.is_inf, op_1.exp, op_2.exp),
+                    Mux(op_1.is_inf, op_1.sig, op_2.sig),
+                    Mux(op_1.is_inf, op_1.sign, pre_shift_op2.sign),
+                )
             with m.Elif(is_zero):
                 with m.If(eq_signs):
                     m.d.av_comb += exception_op.sign.eq(op_1.sign)
