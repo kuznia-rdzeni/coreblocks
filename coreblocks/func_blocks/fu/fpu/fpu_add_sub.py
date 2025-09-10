@@ -132,25 +132,18 @@ class FPUAddSubModule(Elaboratable):
 
             pre_shift_op1 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             pre_shift_op2 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
+            assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
+            assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
 
             with m.If(exp_diff == 0):
                 sig_diff = Signal(range(-self.fpu_params.sig_width))
                 m.d.av_comb += sig_diff.eq(op_1.sig - op_2.sig)
-                with m.If(sig_diff == 0):
-                    assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
-                    assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
-                with m.Elif(sig_diff < 0):
+                with m.If(sig_diff < 0):
                     assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
                     assign_values(pre_shift_op2, op_1.exp, op_1.sig << 2, op_1.sign)
-                with m.Elif(sig_diff > 0):
-                    assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
-                    assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
             with m.Elif(exp_diff < 0):
                 assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
                 assign_values(pre_shift_op2, op_1.exp, op_1.sig << 2, op_1.sign)
-            with m.Elif(exp_diff > 0):
-                assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
-                assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
 
             sign_xor = op_1.sign ^ op_2_true_sign
 
