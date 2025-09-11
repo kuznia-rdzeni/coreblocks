@@ -130,6 +130,7 @@ class FPUAddSubModule(Elaboratable):
 
             m.d.av_comb += exp_diff.eq(op_1.exp - op_2.exp)
 
+            #Swapping operands to ensure that pre_shift_op1 <= pre_shift_op2
             pre_shift_op1 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             pre_shift_op2 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
@@ -145,18 +146,21 @@ class FPUAddSubModule(Elaboratable):
                 assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
                 assign_values(pre_shift_op2, op_1.exp, op_1.sig << 2, op_1.sign)
 
+            #Calculating true operation based on signs of swapped operands
             sign_xor = op_1.sign ^ op_2_true_sign
 
+            m.d.av_comb += final_sign.eq(pre_shift_op1.sign)
+
             with m.If(~sign_xor):
-                m.d.av_comb += final_sign.eq(pre_shift_op1.sign)
                 m.d.av_comb += true_operation.eq(0)
             with m.Else():
-                m.d.av_comb += final_sign.eq(pre_shift_op1.sign)
                 m.d.av_comb += true_operation.eq(1)
 
             is_one_subnormal = (pre_shift_op1.exp > 0) & (pre_shift_op2.exp == 0)
             m.d.av_comb += norm_shift_amount.eq(pre_shift_op1.exp - pre_shift_op2.exp - is_one_subnormal)
 
+
+            #Aligning exponents and calculating GRB bits
             path_op1 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
             far_path_op2_ext = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             far_path_op2 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
@@ -185,6 +189,7 @@ class FPUAddSubModule(Elaboratable):
             guard_bit = far_path_op2_ext.sig[1]
             round_bit = far_path_op2_ext.sig[0]
 
+            #Assigning operands for close path and far path
             assign_values(path_op1, pre_shift_op1.exp, pre_shift_op1.sig >> 2, pre_shift_op1.sign)
             assign_values(
                 far_path_op2,
@@ -218,6 +223,8 @@ class FPUAddSubModule(Elaboratable):
                     sticky_bit=sticky_bit,
                 ),
             )
+
+            #Preparing data for error checking module
             m.d.av_comb += path_response.eq(resp)
             eq_signs = pre_shift_op2.sign == path_op1.sign
             is_inf = op_1.is_inf | op_2.is_inf
