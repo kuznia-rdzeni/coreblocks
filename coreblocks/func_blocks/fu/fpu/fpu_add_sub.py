@@ -137,7 +137,7 @@ class FPUAddSubModule(Elaboratable):
             assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
 
             with m.If(exp_diff == 0):
-                sig_diff = Signal(range(-self.fpu_params.sig_width))
+                sig_diff = Signal(range(-self.common_values.max_sig, self.common_values.max_sig + 1))
                 m.d.av_comb += sig_diff.eq(op_1.sig - op_2.sig)
                 with m.If(sig_diff < 0):
                     assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
@@ -183,7 +183,7 @@ class FPUAddSubModule(Elaboratable):
                 m.d.av_comb += close_path_guard_bit.eq(0)
             with m.Else():
                 m.d.av_comb += close_path_op2.sig.eq(~(pre_shift_op2.sig >> 3))
-                m.d.av_comb += close_path_guard_bit.eq(pre_shift_op2.sig[0])
+                m.d.av_comb += close_path_guard_bit.eq(pre_shift_op2.sig[2])
 
             guard_bit = far_path_op2_ext.sig[1]
             round_bit = far_path_op2_ext.sig[0]
