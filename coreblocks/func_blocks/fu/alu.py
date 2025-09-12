@@ -1,6 +1,7 @@
 from dataclasses import dataclass, KW_ONLY, field
 from typing import Sequence
 from amaranth import *
+from amaranth_types import HasElaborate
 
 from transactron import *
 from transactron.lib.metrics import *
@@ -8,7 +9,7 @@ from transactron.lib.metrics import *
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params import GenParams, FunctionalComponentParams
-from transactron.utils import HasElaborate, OneHotSwitch
+from transactron.utils import OneHotSwitch
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto

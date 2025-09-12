@@ -32,8 +32,8 @@ class MockedICache(Elaboratable, CacheInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.issue_req_io = TestbenchIO(Adapter.create(i=layouts.issue_req))
-        self.accept_res_io = TestbenchIO(Adapter.create(o=layouts.accept_res))
+        self.issue_req_io = TestbenchIO(Adapter(i=layouts.issue_req))
+        self.accept_res_io = TestbenchIO(Adapter(o=layouts.accept_res))
 
         self.issue_req = self.issue_req_io.adapter.iface
         self.accept_res = self.accept_res_io.adapter.iface
@@ -74,12 +74,12 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
-        self.io_out = TestbenchIO(AdapterTrans(fifo.read))
-        self.clear_fifo = TestbenchIO(AdapterTrans(fifo.clear))
-        self.fetch_resume_mock = TestbenchIO(Adapter.create())
+        self.io_out = TestbenchIO(AdapterTrans.create(fifo.read))
+        self.clear_fifo = TestbenchIO(AdapterTrans.create(fifo.clear))
+        self.fetch_resume_mock = TestbenchIO(Adapter())
 
-        self.mock_stall_lock = TestbenchIO(Adapter.create())
-        self.mock_stall_unsafe = TestbenchIO(Adapter.create())
+        self.mock_stall_lock = TestbenchIO(Adapter())
+        self.mock_stall_unsafe = TestbenchIO(Adapter())
 
         self.fetch = SimpleTestCircuit(
             FetchUnit(

@@ -22,8 +22,8 @@ class FuncUnitMock(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.push_result = Method(i=layouts.push_result)
 
-        self.issue_tb = TestbenchIO(Adapter(self.issue))
-        self.push_result_tb = TestbenchIO(AdapterTrans(self.push_result))
+        self.issue_tb = TestbenchIO(Adapter.create(self.issue))
+        self.push_result_tb = TestbenchIO(AdapterTrans.create(self.push_result))
 
     def elaborate(self, platform):
         m = TModule()

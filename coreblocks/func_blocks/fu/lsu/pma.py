@@ -3,9 +3,9 @@ from functools import reduce
 from operator import or_
 from amaranth import *
 from amaranth.lib import data
+from amaranth_types import HasElaborate
 
 from coreblocks.params import *
-from transactron.utils import HasElaborate
 from transactron.core import TModule
 
 

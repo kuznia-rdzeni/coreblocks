@@ -27,7 +27,7 @@ class TestLZA(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = TModule()
             m.submodules.lza = lza = self.lza_module = LZAModule(fpu_params=self.params)
-            m.submodules.predict = self.predict_request_adapter = TestbenchIO(AdapterTrans(lza.predict_request))
+            m.submodules.predict = self.predict_request_adapter = TestbenchIO(AdapterTrans.create(lza.predict_request))
             return m
 
     def test_manual(self):

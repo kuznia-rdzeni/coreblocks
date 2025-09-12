@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.lib.enum import unique, IntEnum, auto
 
-from transactron.utils._typing import ValueLike
+from amaranth_types import ValueLike
 
 from .isa import Extension, extension_implications, extension_only_implies
 

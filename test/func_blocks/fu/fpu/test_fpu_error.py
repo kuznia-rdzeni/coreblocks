@@ -20,7 +20,7 @@ class TestFPUError(TestCaseWithSimulator):
             m = TModule()
             m.submodules.fpue = fpue = self.fpu_error_module = FPUErrorModule(fpu_params=self.params)
             m.submodules.error_checking = self.error_checking_request_adapter = TestbenchIO(
-                AdapterTrans(fpue.error_checking_request)
+                AdapterTrans.create(fpue.error_checking_request)
             )
             return m
 

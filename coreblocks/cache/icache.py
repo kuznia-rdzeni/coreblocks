@@ -187,7 +187,7 @@ class ICache(Elaboratable, CacheInterface):
         accepting_requests = ~mem_read_output_valid | forwarding_response_now
 
         with Transaction(name="MemRead").body(
-            m, request=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
+            m, ready=fsm.ongoing("LOOKUP") & (mem_read_output_valid | refill_error_saved)
         ):
             req_addr = req_zipper.peek_arg(m)
 

@@ -66,8 +66,8 @@ class SchedulerTestCircuit(Elaboratable):
 
         # mocked RS
         for i, rs in enumerate(self.rs):
-            alloc_adapter = Adapter.create(o=rs_layouts.rs.select_out)
-            insert_adapter = Adapter.create(i=rs_layouts.rs.insert_in)
+            alloc_adapter = Adapter(o=rs_layouts.rs.select_out)
+            insert_adapter = Adapter(i=rs_layouts.rs.insert_in)
 
             select_test = TestbenchIO(alloc_adapter)
             insert_test = TestbenchIO(insert_adapter)
@@ -82,19 +82,19 @@ class SchedulerTestCircuit(Elaboratable):
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
 
         # mocked input and output
-        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write[0]))
-        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free[0]))
-        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
-        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
-        m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans(self.rob.peek))
-        m.submodules.rob_get_indices = self.rob_get_indices = TestbenchIO(AdapterTrans(self.rob.get_indices))
-        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
-        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
+        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans.create(self.rf.write[0]))
+        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans.create(self.rf.free[0]))
+        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans.create(self.rob.mark_done))
+        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans.create(self.rob.retire))
+        m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans.create(self.rob.peek))
+        m.submodules.rob_get_indices = self.rob_get_indices = TestbenchIO(AdapterTrans.create(self.rob.get_indices))
+        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans.create(instr_fifo.write))
+        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans.create(free_rf_fifo.write))
         m.submodules.core_state = self.core_state = TestbenchIO(
-            Adapter.create(o=self.gen_params.get(RetirementLayouts).core_state)
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
-        m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans(crat.get_active_tags))
-        m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans(crat.free_tag))
+        m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans.create(crat.get_active_tags))
+        m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans.create(crat.free_tag))
         dm = DependencyContext.get()
         dm.add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
@@ -116,7 +116,7 @@ class SchedulerTestCircuit(Elaboratable):
 
         rollback, rollback_unifiers = dm.get_dependency(RollbackKey())
         m.submodules.rollback_unifiers = ModuleConnector(**rollback_unifiers)
-        m.submodules.rollback = self.rollback = TestbenchIO(AdapterTrans(rollback))
+        m.submodules.rollback = self.rollback = TestbenchIO(AdapterTrans.create(rollback))
 
         return m
 

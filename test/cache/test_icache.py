@@ -37,8 +37,8 @@ class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
         )
 
-        self.start_refill = TestbenchIO(AdapterTrans(self.refiller.start_refill))
-        self.accept_refill = TestbenchIO(AdapterTrans(self.refiller.accept_refill))
+        self.start_refill = TestbenchIO(AdapterTrans.create(self.refiller.start_refill))
+        self.accept_refill = TestbenchIO(AdapterTrans.create(self.refiller.accept_refill))
 
         m.submodules.bus_master_adapter = self.bus_master_adapter
         m.submodules.refiller = self.refiller
@@ -160,8 +160,8 @@ class ICacheBypassTestCircuit(Elaboratable):
         m.submodules.bypass = self.bypass = ICacheBypass(
             self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
         )
-        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.bypass.issue_req))
-        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.bypass.accept_res))
+        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans.create(self.bypass.issue_req))
+        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans.create(self.bypass.accept_res))
 
         return m
 
@@ -255,8 +255,8 @@ class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.start_refill_mock = TestbenchIO(Adapter.create(i=layouts.start_refill))
-        self.accept_refill_mock = TestbenchIO(Adapter.create(o=layouts.accept_refill))
+        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
+        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
 
         self.start_refill = self.start_refill_mock.adapter.iface
         self.accept_refill = self.accept_refill_mock.adapter.iface
@@ -280,9 +280,9 @@ class ICacheTestCircuit(Elaboratable):
 
         m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gen_params)
         m.submodules.cache = self.cache = ICache(self.gen_params.get(ICacheLayouts), self.cp, self.refiller)
-        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans(self.cache.issue_req))
-        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans(self.cache.accept_res))
-        m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans(self.cache.flush))
+        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans.create(self.cache.issue_req))
+        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans.create(self.cache.accept_res))
+        m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans.create(self.cache.flush))
 
         return m
 

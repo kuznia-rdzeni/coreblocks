@@ -54,8 +54,8 @@ class TestDecode(TestCaseWithSimulator):
 
         self.decode = DecodeStage(self.gen_params)
 
-        self.push_raw = TestbenchIO(Adapter(self.decode.get_raw))
-        self.get_decoded = TestbenchIO(Adapter(self.decode.push_decoded))
+        self.push_raw = TestbenchIO(Adapter.create(self.decode.get_raw))
+        self.get_decoded = TestbenchIO(Adapter.create(self.decode.push_decoded))
 
         self.m = SimpleTestCircuit(
             ModuleConnector(

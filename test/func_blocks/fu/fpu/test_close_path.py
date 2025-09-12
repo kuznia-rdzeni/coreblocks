@@ -15,7 +15,7 @@ class TestClosePath(TestCaseWithSimulator):
             m = TModule()
             m.submodules.close = close_path = self.close_path_module = ClosePathModule(fpu_params=self.params)
             m.submodules.request = self.close_path_request_adapter = TestbenchIO(
-                AdapterTrans(close_path.close_path_request)
+                AdapterTrans.create(close_path.close_path_request)
             )
             return m
 

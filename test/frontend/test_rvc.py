@@ -1,12 +1,12 @@
 from parameterized import parameterized_class
 
 from amaranth import *
+from amaranth_types import ValueLike
 
 from coreblocks.frontend.decoder.rvc import InstrDecompress
 from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
-from transactron.utils import ValueLike
 
 from transactron.testing import TestCaseWithSimulator, TestbenchContext
 

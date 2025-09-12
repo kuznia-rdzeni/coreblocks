@@ -4,7 +4,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from typing import Self
-from transactron.utils._typing import type_self_kwargs_as
+from transactron.utils.typing import type_self_kwargs_as
 from amaranth_types.memory import AbstractMemoryConstructor
 from amaranth.lib.memory import Memory
 

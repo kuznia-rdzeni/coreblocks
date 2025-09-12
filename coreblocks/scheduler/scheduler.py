@@ -285,7 +285,7 @@ class RSSelection(Elaboratable):
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
             optype_matches = Cat(lookup == op for op in optypes).any()
-            with Transaction().body(m, request=optype_matches):
+            with Transaction().body(m, ready=optype_matches):
                 instr = self.get_instr(m)
                 allocated_field = alloc(m)
 

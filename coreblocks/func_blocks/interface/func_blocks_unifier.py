@@ -18,10 +18,10 @@ class FuncBlocksUnifier(Elaboratable):
     ):
         self.rs_blocks = [(block.get_module(gen_params), block.get_optypes()) for block in blocks]
 
-        self.result_collector = Collector([block.get_result for block, _ in self.rs_blocks])
+        self.result_collector = Collector.create([block.get_result for block, _ in self.rs_blocks])
         self.get_result = self.result_collector.method
 
-        self.update_combiner = MethodProduct([block.update for block, _ in self.rs_blocks])
+        self.update_combiner = MethodProduct.create([block.update for block, _ in self.rs_blocks])
         self.update = self.update_combiner.method
 
     def elaborate(self, platform):
