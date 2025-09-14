@@ -39,6 +39,18 @@ class FPUParams:
 
 
 def create_data_output_layout(params: FPUParams):
+    """A function that creates a layout for FPU modules results.
+
+    Parameters
+    ----------
+    fpu_params; FPUParams
+        FPU parameters
+    """
+    """
+    Output layout for raw float with significand larger by two bits from selected format.
+    Created using
+    :meth:`create_raw_float_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout>`
+    """
     return data.StructLayout(
         {
             "sign": 1,
@@ -50,6 +62,13 @@ def create_data_output_layout(params: FPUParams):
 
 
 def create_data_input_layout(params: FPUParams):
+    """A function that creates a layout for FPU modules operands.
+
+    Parameters
+    ----------
+    fpu_params; FPUParams
+        FPU parameters
+    """
     return data.StructLayout(
         {
             "sign": 1,

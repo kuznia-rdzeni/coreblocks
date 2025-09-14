@@ -159,7 +159,7 @@ class FPUAddSubModule(Elaboratable):
             is_one_subnormal = (pre_shift_op1.exp > 0) & (pre_shift_op2.exp == 0)
             m.d.av_comb += norm_shift_amount.eq(pre_shift_op1.exp - pre_shift_op2.exp - is_one_subnormal)
 
-            # Aligning exponents and calculating GRB bits
+            # Aligning exponents and calculating GRS bits
             path_op1 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
             far_path_op2_ext = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             far_path_op2 = Signal(from_method_layout(self.method_layouts.raw_float_layout))
