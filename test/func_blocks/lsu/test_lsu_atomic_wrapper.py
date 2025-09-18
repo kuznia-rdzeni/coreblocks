@@ -1,5 +1,6 @@
 from collections import deque
 import random
+import pytest
 from amaranth import *
 from amaranth.utils import ceil_log2
 from transactron import Method, TModule
@@ -35,7 +36,8 @@ class FuncUnitMock(FuncUnit, Elaboratable):
 
 
 class TestLSUAtomicWrapper(TestCaseWithSimulator):
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, fixture_initialize_testing_env):
         random.seed(1258)
         self.inst_cnt = 255
         self.gen_params = GenParams(test_core_config.replace(rob_entries_bits=ceil_log2(self.inst_cnt)))
