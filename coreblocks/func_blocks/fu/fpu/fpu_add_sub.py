@@ -130,7 +130,7 @@ class FPUAddSubModule(Elaboratable):
 
             m.d.av_comb += exp_diff.eq(op_1.exp - op_2.exp)
 
-            # Swapping operands to ensure that pre_shift_op1 <= pre_shift_op2
+            # Swapping operands to ensure that abs(pre_shift_op1) => abs(pre_shift_op2)
             pre_shift_op1 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             pre_shift_op2 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
@@ -146,7 +146,7 @@ class FPUAddSubModule(Elaboratable):
                 assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
                 assign_values(pre_shift_op2, op_1.exp, op_1.sig << 2, op_1.sign)
 
-            # Calculating true operation based on signs of swapped operands
+            # Calculating true operation based on signs of operands
             sign_xor = op_1.sign ^ op_2_true_sign
 
             m.d.av_comb += final_sign.eq(pre_shift_op1.sign)
