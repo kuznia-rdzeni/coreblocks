@@ -9,7 +9,7 @@ Coreblocks is an experimental, modular out-of-order [RISC-V](https://riscv.org/s
  * Simplicity. Coreblocks is an academic project, accessible to students.
    It should be suitable for teaching essentials of out-of-order architectures.
  * Modularity. We want to be able to easily experiment with the core by adding, replacing and modifying modules without changing the source too much.
-   For this goal, we designed a transaction system called [Transactron](https://github.com/kuznia-rdzeni/transactron), which is inspired by [Bluespec](http://wiki.bluespec.com/).
+   For this goal, we designed a transaction system called [Transactron](https://github.com/kuznia-rdzeni/transactron), which is inspired by [Bluespec](http://github.com/b-lang-org/bsc).
  * Fine-grained testing. Outside of the integration tests for the full core, modules are tested individually.
    This is to support an agile style of development.
 
