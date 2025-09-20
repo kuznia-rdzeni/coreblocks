@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758397099528,
+  "lastUpdate": 1758397101104,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -38419,6 +38419,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1390,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1552,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 6547,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "quark@bluespec.com",
+            "name": "Julie Schwartz",
+            "username": "quark17"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a7b934c869da54b6c51e29a86ac7fad45f4acb7",
+          "message": "README: Update Bluespec URL (#838)",
+          "timestamp": "2025-09-20T21:15:33+02:00",
+          "tree_id": "a23175fe98c12176f8587874e003f7426289b349",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8a7b934c869da54b6c51e29a86ac7fad45f4acb7"
+        },
+        "date": 1758397100581,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 46.62,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 21787,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1422,
             "unit": "LUT"
           },
           {
