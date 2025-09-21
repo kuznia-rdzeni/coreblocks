@@ -128,7 +128,7 @@ class FPUMulModule(Elaboratable):
             #if sig is between [2,4) shift right by one
             sig_shifted_product = Signal((2*self.fpu_params.sig_width) - 1)
             m.d.av_comb += sig_shifted_product.eq(sig_product)
-            with.m.If(sig_product[-1]):
+            with m.If(sig_product[-1]):
                 m.d.av_comb += sig_shifted_product.eq(sig_product >> 1)
                 m.d.av_comb += shifted_bit.eq(sig_product[0])
                 
@@ -173,17 +173,77 @@ class FPUMulModule(Elaboratable):
                 m.d.av_comb += sticky_bit.eq(any_shifted_out | shifted_bit)
             m.d.av_comb += round_bit.eq(final_sig[0])
         
-        resp = rounding_module.rounding_request(
-            m,
-            sign = final_sign,
-            sig = final_sig >> 1,
-            exp = final_exp,
-            round_bit = round_bit,
-            sticky_bit = sticky_bit,
-            rounding_mode=rounding_mode,
-        )
- rounding_response
-        m.d.av_comb = rounding_response.eq(resp)
+            resp = rounding_module.rounding_request(
+                m,
+                sign = final_sign,
+                sig = final_sig >> 1,
+                exp = final_exp,
+                round_bit = round_bit,
+                sticky_bit = sticky_bit,
+                rounding_mode=rounding_mode,
+            )
+            m.d.av_comb = rounding_response.eq(resp)
+
+            is_inf = Signal()
+            m.d.av_comb += is_inf.eq(op_1.is_inf | op_2.is_inf)
+            wrong_inf = Signal()
+            m.d.av_comb += wrong_inf.eq((op_1.is_inf & op_2.is_zero) | (op_2.is_inf & op_1.is_zero))
+            is_zero = Signal()
+            m.d.av_comb += is_zero.eq(op_1.is_zero | op_2.is_zero)
+            is_nan = Signal()
+            m.d.av_comb += is_nan.eq(op_1.is_nan | op_2.is_nan | bad_inf)
+            
+            exc_sig = Signal(self.fpu_params.sig_width)
+            exc_exp = Signal(self.fpu_params.exp_width)
+            exc_sign = Signal()
+            inexact = Signal()
+            invalid_operation = Signal()
+            m.d.av_comb += exc_sig.eq(rounding_response["sig"])
+            m.d.av_comb += exc_exp.eq(rounding_response["exp"])
+
+            with m.If(is_nan | is_inf | is_zero):
+                    m.d.av_comb += inexact.eq(0)
+                with m.If(is_nan):
+                    is_any_snan = ((~op_1.sig[-2]) & op_1.is_nan) | ((~op_2.sig[-2]) & op_2.is_nan)
+                    with m.If(is_any_snan | wrong_inf):
+                        m.d.av_comb += invalid_operation.eq(1)
+                    m.d.av_comb += exc_sign.eq(0)
+                    m.d.av_comb += exc_exp.eq(self.common_values.max_exp)
+                    m.d.av_comb += exc_sig.eq(self.common_values.canonical_nan_sig)
+                with m.Elif(is_inf & ~(wrong_inf)):
+                        m.d.av_comb += exc_sign.eq(Mux(op_1.is_inf, op_1.sign, op_2.sign))
+                        m.d.av_comb += exc_exp.eq(Mux(op_1.is_inf, op_1.exp, op_2.exp)),
+                        m.d.av_comb += exc_sig.eq(Mux(op_1.is_inf, op_1.sig, op_2.sig)),
+                with m.Elif(is_zero):
+                    m.d.av_comb += exc_sign.eq(final_sign)
+                    m.d.av_comb += exc_exp.eq(0)
+                    m.d.av_comb += exc_sig.eq(0)
+            with m.Else():
+                m.d.av_comb += exc_sign.eq(final_sign)
+                m.d.av_comb += exc_exp.eq(rounding_response["out_exp"])
+                m.d.av_comb += inexact.eq(rounding_response["inexact"])
+                with m.If(rounding_response["out_exp"] == max_exp):
+                    m.d.av_comb += exception_op.sig.eq(2 ** (self.fpu_params.sig_width - 1))
+                with m.Else():
+                    m.d.av_comb += exception_op.sig.eq(path_response["out_sig"])
+            
+            resp = exception_module.error_checking_request(
+                    m,
+                    sign=exc_sign,
+                    sig=exc_sig,
+                    exp=exc_exp,
+                    rounding_mode=rounding_mode,
+                    inexact=inexact,
+                    invalid_operation=invalid_operation,
+                    division_by_zero=0,
+                    input_inf=is_inf,
+                )
+            m.d.av_comb += exception_response.eq(resp)
+
+            return exception_response
+        
+        return m
+    
 
 
             
