@@ -36,7 +36,7 @@ class FPUAddSubMethodLayout:
         | op_1 - layout containing data of the first operand
         | op_2 - layout containing data of the second operand
         | rounding_mode - selected rounding mode
-        | op - selected operation; 1 - subtraction, 0 - addition
+        | operation - selected operation; 1 - subtraction, 0 - addition
         | op_1 and op_2 are created using
           :meth:`create_data_input_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout>`
         """
@@ -125,29 +125,26 @@ class FPUAddSubModule(Elaboratable):
 
         @def_method(m, self.add_sub_request)
         def _(op_1, op_2, rounding_mode, operation):
-            op_2_true_sign = Signal()
-            m.d.av_comb += op_2_true_sign.eq(operation ^ op_2.sign)
+            op_2_adjusted_sign = Signal()
+            m.d.av_comb += op_2_adjusted_sign.eq(operation ^ op_2.sign)
 
             m.d.av_comb += exp_diff.eq(op_1.exp - op_2.exp)
 
-            # Swapping operands to ensure that abs(pre_shift_op1) => abs(pre_shift_op2)
+            # Swapping operands to ensure that abs(pre_shift_op1) >= abs(pre_shift_op2)
             pre_shift_op1 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
             pre_shift_op2 = Signal(from_method_layout(self.method_layouts.ext_float_layout))
-            assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
-            assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_true_sign)
+            op_1_abs_float = Cat(op_1.sig, op_1.exp)
+            op_2_abs_float = Cat(op_2.sig, op_2.exp)
 
-            with m.If(exp_diff == 0):
-                sig_diff = Signal(range(-self.common_values.max_sig, self.common_values.max_sig + 1))
-                m.d.av_comb += sig_diff.eq(op_1.sig - op_2.sig)
-                with m.If(sig_diff < 0):
-                    assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
-                    assign_values(pre_shift_op2, op_1.exp, op_1.sig << 2, op_1.sign)
-            with m.Elif(exp_diff < 0):
-                assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_true_sign)
+            with m.If(op_1_abs_float > op_2_abs_float):
+                assign_values(pre_shift_op1, op_1.exp, op_1.sig << 2, op_1.sign)
+                assign_values(pre_shift_op2, op_2.exp, op_2.sig << 2, op_2_adjusted_sign)
+            with m.Else():
+                assign_values(pre_shift_op1, op_2.exp, op_2.sig << 2, op_2_adjusted_sign)
                 assign_values(pre_shift_op2, op_1.exp, op_1.sig << 2, op_1.sign)
 
             # Calculating true operation based on signs of operands
-            sign_xor = op_1.sign ^ op_2_true_sign
+            sign_xor = op_1.sign ^ op_2_adjusted_sign
 
             m.d.av_comb += final_sign.eq(pre_shift_op1.sign)
 

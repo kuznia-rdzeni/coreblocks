@@ -15,14 +15,15 @@ class TestAddSub(TestCaseWithSimulator):
         m = SimpleTestCircuit(FPUAddSubModule(fpu_params=params))
 
         async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
-            random.seed(42)
+            seed = 42
+            test_runs = 20
+            random.seed(seed)
 
-            for i in range(20):
-
+            for i in range(test_runs):
                 input_dict = {}
                 p_float_1 = struct.unpack("f", struct.pack("f", random.uniform(0, 3.4028235 * (10**38))))[0]
                 p_float_2 = struct.unpack("f", struct.pack("f", random.uniform(0, 3.4028235 * (10**38))))[0]
-                if i < 10:
+                if i < test_runs / 2:
                     input_dict["operation"] = 0
                     result = struct.unpack("f", struct.pack("f", p_float_1 + p_float_2))[0]
                 else:
@@ -39,7 +40,6 @@ class TestAddSub(TestCaseWithSimulator):
                 result = tester.converter.from_hex(hex_result)
                 resp = await request_adapter.call(sim, input_dict)
 
-                resp = await request_adapter.call(sim, input_dict)
                 assert result["sign"] == resp["sign"]
                 assert result["exp"] == resp["exp"]
                 assert result["sig"] == resp["sig"]

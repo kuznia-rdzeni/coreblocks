@@ -29,7 +29,11 @@ class FPUTester:
 class ToFloatConverter:
     def __init__(self, params: FPUParams):
         self.params = params
-        self.all_width = self.params.sig_width - 1 + self.params.exp_width + 1
+        # Width of the entire floating point number.
+        # 1 is subtracted from sig_width because in memory significand is one bit
+        # shorter than specified. This bit is encoded by exponent.
+        sign_width = 1
+        self.all_width = self.params.sig_width - 1 + self.params.exp_width + sign_width
         self.sig_width = self.params.sig_width - 1
         self.exp_mask = (2**self.params.exp_width) - 1
         self.sig_mask = (2 ** (self.params.sig_width - 1)) - 1
