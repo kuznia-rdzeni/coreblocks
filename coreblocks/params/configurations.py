@@ -108,6 +108,8 @@ class _CoreConfigurationDataClass:
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
         Enable User Mode.
+    pmp_register_count: int
+        Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -159,6 +161,8 @@ class _CoreConfigurationDataClass:
     interrupt_custom_edge_trig_mask: int = 0
 
     user_mode: bool = True
+
+    pmp_register_count: int = 0
 
     allow_partial_extensions: bool = False
 
@@ -251,6 +255,7 @@ full_core_config = CoreConfiguration(
     compressed=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
+    pmp_register_count=16,
 )
 
 # Core configuration used in internal testbenches
