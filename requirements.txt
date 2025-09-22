@@ -2,4 +2,4 @@ amaranth==0.5.4
 amaranth-stubs==0.1.1
 amaranth-yosys==0.40.0.0.post100
 dataclasses-json==0.6.3
-transactron @ git+https://github.com/tilk/transactron.git@b6284d92359c2f09e21e00e89b367bab45525ca7
+transactron==0.3.0
