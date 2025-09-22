@@ -14,7 +14,7 @@ if __name__ == "__main__":
 from coreblocks.params.genparams import GenParams
 from coreblocks.core import Core
 from coreblocks.socks.socks import Socks
-from transactron import TransactionComponent
+from transactron import TransactronContextComponent
 from transactron.utils import DependencyManager, DependencyContext
 from transactron.utils.gen import generate_verilog
 
@@ -35,7 +35,7 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str, *, wrap_socks:
         if wrap_socks:
             core = Socks(core, core_gen_params=gp)
 
-        top = TransactionComponent(core, dependency_manager=DependencyContext.get())
+        top = TransactronContextComponent(core, dependency_manager=DependencyContext.get())
 
         # use known working yosys version shipped with amaranth by default
         if "AMARANTH_USE_YOSYS" not in os.environ:
