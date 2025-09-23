@@ -70,9 +70,9 @@ class FPUAddSubModule(Elaboratable):
     | 2. Receiving data from one of the path submodules and preparing it for error checking
       module by checking for various conditions
     | For more info about close path and far path check
-      :meth:`close path module <coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule>`
+      :class:`close path module <coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule>`
        and
-      :meth:`far path module <coreblocks.func_blocks.fu.fpu.far_path.FarPathModule>`
+      :class:`far path module <coreblocks.func_blocks.fu.fpu.far_path.FarPathModule>`
 
     Parameters
     ----------
