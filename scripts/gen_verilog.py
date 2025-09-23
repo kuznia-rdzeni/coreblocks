@@ -28,7 +28,9 @@ str_to_coreconfig: dict[str, CoreConfiguration] = {
 }
 
 
-def gen_verilog(core_config: CoreConfiguration, output_path: str, *, wrap_socks: bool = False):
+def gen_verilog(
+    core_config: CoreConfiguration, output_path: str, *, wrap_socks: bool = False, enable_vivado_hacks: bool = False
+):
     with DependencyContext(DependencyManager()):
         gp = GenParams(core_config)
         core = Core(gen_params=gp)
@@ -41,7 +43,11 @@ def gen_verilog(core_config: CoreConfiguration, output_path: str, *, wrap_socks:
         if "AMARANTH_USE_YOSYS" not in os.environ:
             os.environ["AMARANTH_USE_YOSYS"] = "builtin"
 
-        verilog_text, gen_info = generate_verilog(top)
+        enable_hacks = []
+        if enable_vivado_hacks:
+            enable_hacks.append("fixup_vivado_transparent_memories")
+
+        verilog_text, gen_info = generate_verilog(top, enable_hacks=enable_hacks)
 
         gen_info.encode(f"{output_path}.json")
         with open(output_path, "w") as f:
@@ -78,6 +84,12 @@ def main():
         help="Wrap Coreblocks in CoreSoCks providing additional memory-mapped or CSR peripherals",
     )
 
+    parser.add_argument(
+        "--enable-vivado-hacks",
+        action="store_true",
+        help="Enable elaboration and generation hacks for Vivado toolchain",
+    )
+
     parser.add_argument("--reset-pc", action="store", default="0x0", help="Set core reset address")
 
     parser.add_argument(
@@ -98,7 +110,7 @@ def main():
     assert args.reset_pc[:2] == "0x", "Expected hex number as --reset-pc"
     config = config.replace(start_pc=int(args.reset_pc[2:], base=16))
 
-    gen_verilog(config, args.output, wrap_socks=args.with_socks)
+    gen_verilog(config, args.output, wrap_socks=args.with_socks, enable_vivado_hacks=args.enable_vivado_hacks)
 
 
 if __name__ == "__main__":
