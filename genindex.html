@@ -177,6 +177,12 @@
 </li>
         <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.far_path.FarPathModule.__init__">(coreblocks.func_blocks.fu.fpu.far_path.FarPathModule method)</a>
 </li>
+        <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.__init__">(coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout method)</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule.__init__">(coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule method)</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues.__init__">(coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues method)</a>
+</li>
         <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams.__init__">(coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorMethodLayout.__init__">(coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorMethodLayout method)</a>
@@ -416,6 +422,10 @@
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.aliased.AliasedCSR.add_read_only_field">add_read_only_field() (coreblocks.priv.csr.aliased.AliasedCSR method)</a>
 </li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_in_layout">add_sub_in_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout">add_sub_out_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.aliased.AliasedCSR">AliasedCSR (class in coreblocks.priv.csr.aliased)</a>
@@ -428,10 +438,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOADD">AMOADD (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOAND">AMOAND (coreblocks.arch.isa_consts.Funct7 attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOAND">AMOAND (coreblocks.arch.isa_consts.Funct7 attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOMAX">AMOMAX (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOMAXU">AMOMAXU (coreblocks.arch.isa_consts.Funct7 attribute)</a>
@@ -895,6 +905,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.func_blocks.fu.fpu.fpu_add_sub
+
+      <ul>
+        <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.fpu_add_sub">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.func_blocks.fu.fpu.fpu_common
 
       <ul>
@@ -1247,6 +1264,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_output_layout">create_data_output_layout() (in module coreblocks.func_blocks.fu.fpu.fpu_common)</a>
 </li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout">create_output_layout() (in module coreblocks.func_blocks.fu.fpu.fpu_common)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout">create_raw_float_layout() (in module coreblocks.func_blocks.fu.fpu.fpu_common)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.CSR_IMM">CSR_IMM (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.CSR_REG">CSR_REG (coreblocks.arch.optypes.OpType attribute)</a>
@@ -1411,10 +1432,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion.end">end (coreblocks.func_blocks.fu.lsu.pma.PMARegion attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.ENVIRONMENT_CALL_FROM_M">ENVIRONMENT_CALL_FROM_M (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.ENVIRONMENT_CALL_FROM_S">ENVIRONMENT_CALL_FROM_S (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.ENVIRONMENT_CALL_FROM_U">ENVIRONMENT_CALL_FROM_U (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
@@ -1430,6 +1451,8 @@
       <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.exception.ExceptionInformationRegister">ExceptionInformationRegister (class in coreblocks.priv.traps.exception)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.exception.ExceptionUnitComponent">ExceptionUnitComponent (class in coreblocks.func_blocks.fu.exception)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.ext_float_layout">ext_float_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension">Extension (class in coreblocks.arch.isa)</a>
 </li>
@@ -1477,12 +1500,18 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.FP">FP (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorMethodLayout">FPUErrorMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout">FPUAddSubMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_add_sub)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorModule">FPUErrorModule (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule">FPUAddSubModule (class in coreblocks.func_blocks.fu.fpu.fpu_add_sub)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues">FPUCommonValues (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorMethodLayout">FPUErrorMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorModule">FPUErrorModule (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams">FPUParams (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_rounding_module.FPURoudningMethodLayout">FPURoudningMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_rounding_module)</a>
@@ -2275,10 +2304,10 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MIE">(coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MIMPID">MIMPID (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MIN">MIN (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 
       <ul>
@@ -2386,6 +2415,8 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.close_path">coreblocks.func_blocks.fu.fpu.close_path</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.far_path">coreblocks.func_blocks.fu.fpu.far_path</a>
+</li>
+        <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.fpu_add_sub">coreblocks.func_blocks.fu.fpu.fpu_add_sub</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.fpu_common">coreblocks.func_blocks.fu.fpu.fpu_common</a>
 </li>
@@ -2871,6 +2902,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InstrType.R">R (coreblocks.arch.isa_consts.InstrType attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.RA">RA (coreblocks.arch.isa_consts.Registers attribute)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.raw_float_layout">raw_float_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.ITypeInstr.rd">rd (coreblocks.params.instr.ITypeInstr attribute)</a>
 
@@ -3611,7 +3644,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 20:37 2025-09-22.
+      <span class="lastupdated">Last updated on 09:30 2025-09-24.
       </span></p>
   </div>
 

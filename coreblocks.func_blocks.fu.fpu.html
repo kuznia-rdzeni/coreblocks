@@ -221,6 +221,109 @@ Returns result as ‘far_path_out_layout’.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_add_sub">
+<span id="coreblocks-func-blocks-fu-fpu-fpu-add-sub-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_add_sub module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_add_sub" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_add_sub.</span></span><span class="sig-name descname"><span class="pre">FPUAddSubMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>FPU addition/subtraction top module method layout</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_in_layout">
+<span class="sig-name descname"><span class="pre">add_sub_in_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_in_layout" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Input layout for addition/subtraction</div>
+<div class="line">op_1 - layout containing data of the first operand</div>
+<div class="line">op_2 - layout containing data of the second operand</div>
+<div class="line">rounding_mode - selected rounding mode</div>
+<div class="line">operation - selected operation; 1 - subtraction, 0 - addition</div>
+<div class="line">op_1 and op_2 are created using
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_data_input_layout</span></code></a></div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout">
+<span class="sig-name descname"><span class="pre">add_sub_out_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Output layout for addition/subtraction. Created using
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_output_layout</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.ext_float_layout">
+<span class="sig-name descname"><span class="pre">ext_float_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.ext_float_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Output layout for raw float with significand larger by two bits from selected format.
+Created using
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_raw_float_layout</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.raw_float_layout">
+<span class="sig-name descname"><span class="pre">raw_float_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.raw_float_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Output layout for raw float. Created using
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_raw_float_layout</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_add_sub.</span></span><span class="sig-name descname"><span class="pre">FPUAddSubModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<div class="line-block">
+<div class="line">FPU addition/subtraction top module</div>
+<div class="line">This module implements addition and subtraction using
+two path approach with rounding prediction.</div>
+<div class="line">The module can be divided into two segments:</div>
+<div class="line">1. Receiving data and preparing it for one of the two path submodules
+by calculating effective operation, swapping operands and aligning exponents.</div>
+<div class="line">2. Receiving data from one of the path submodules and preparing it for error checking
+module by checking for various conditions</div>
+<div class="line">For more info about close path and far path check
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule" title="coreblocks.func_blocks.fu.fpu.close_path.ClosePathModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">close</span> <span class="pre">path</span> <span class="pre">module</span></code></a>
+ and
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.far_path.FarPathModule" title="coreblocks.func_blocks.fu.fpu.far_path.FarPathModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">far</span> <span class="pre">path</span> <span class="pre">module</span></code></a></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU rounding module parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>add_sub_request: Method</strong></dt><dd><p>Transactional method for initiating addition or subtraction.
+Takes
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_in_layout" title="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_in_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sub_in_layout</span></code></a>
+as argument.
+Returns result as
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout" title="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sub_out_layout</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_common">
 <span id="coreblocks-func-blocks-fu-fpu-fpu-common-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_common module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_common" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -229,17 +332,17 @@ Returns result as ‘far_path_out_layout’.</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntFlag" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.Errors.DIVISION_BY_ZERO">
-<span class="sig-name descname"><span class="pre">DIVISION_BY_ZERO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.DIVISION_BY_ZERO" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">DIVISION_BY_ZERO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.DIVISION_BY_ZERO" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INEXACT">
-<span class="sig-name descname"><span class="pre">INEXACT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INEXACT" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">INEXACT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INEXACT" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INVALID_OPERATION">
-<span class="sig-name descname"><span class="pre">INVALID_OPERATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INVALID_OPERATION" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">INVALID_OPERATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INVALID_OPERATION" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -249,12 +352,23 @@ Returns result as ‘far_path_out_layout’.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.Errors.UNDERFLOW">
-<span class="sig-name descname"><span class="pre">UNDERFLOW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.UNDERFLOW" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">UNDERFLOW</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.UNDERFLOW" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.Errors.__new__">
 <span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">FPUCommonValues</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -315,11 +429,39 @@ Returns result as ‘far_path_out_layout’.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout">
 <span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_data_input_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>A function that creates a layout for FPU modules operands.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_output_layout">
 <span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_data_output_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_output_layout" title="Permalink to this definition"></a></dt>
+<dd><p>A function that creates a layout for FPU modules results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_output_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout">
+<span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">create_raw_float_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_raw_float_layout" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </div>
@@ -598,7 +740,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 20:37 2025-09-22.
+      <span class="lastupdated">Last updated on 09:30 2025-09-24.
       </span></p>
   </div>
 

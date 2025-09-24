@@ -20,6 +20,14 @@ coreblocks.func\_blocks.fu.fpu.far\_path module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.fpu.fpu\_add\_sub module
+---------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_add_sub
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.fpu.fpu\_common module
 -------------------------------------------------
 
