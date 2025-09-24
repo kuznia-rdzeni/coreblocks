@@ -23,6 +23,12 @@ class TestConfigurationsISAString(TestCase):
             "rv32imzicsr_zifencei_xintmachinemode",
         ),
         ISAStrTest(
+            small_linux_config,
+            "rv32imazicsr_zifencei_xintmachinemode",
+            "rv32imazicsr_zifencei_xintmachinemode",
+            "rv32imazicsr_zifencei_xintmachinemode",
+        ),
+        ISAStrTest(
             full_core_config,
             "rv32imacbzicond_zicsr_zifencei_zbc_xintmachinemode",
             "rv32imacbzicond_zicsr_zifencei_zbc_xintmachinemode",

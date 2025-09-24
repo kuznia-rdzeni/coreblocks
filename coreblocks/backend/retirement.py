@@ -115,7 +115,7 @@ class Retirement(Elaboratable):
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
-                with Transaction().body(m, request=retire_valid) as retire_transaction:
+                with Transaction().body(m, ready=retire_valid) as retire_transaction:
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
 

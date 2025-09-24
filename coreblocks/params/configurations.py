@@ -4,7 +4,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from typing import Self
-from transactron.utils._typing import type_self_kwargs_as
+from transactron.utils.typing import type_self_kwargs_as
 from amaranth_types.memory import AbstractMemoryConstructor
 from amaranth.lib.memory import Memory
 
@@ -32,6 +32,7 @@ __all__ = [
     "CoreConfiguration",
     "basic_core_config",
     "tiny_core_config",
+    "small_linux_config",
     "full_core_config",
     "test_core_config",
 ]
@@ -195,6 +196,31 @@ tiny_core_config = CoreConfiguration(
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
     icache_enable=False,
     user_mode=False,
+)
+
+# Basic core config with minimal additions required for Linux
+small_linux_config = CoreConfiguration(
+    func_units_config=(
+        RSBlockComponent(
+            [
+                ALUComponent(),
+                ShiftUnitComponent(),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+                PrivilegedUnitComponent(),
+            ],
+            rs_entries=4,
+        ),
+        RSBlockComponent(
+            [
+                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                DivComponent(),
+            ],
+            rs_entries=2,
+        ),
+        RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
+        CSRBlockComponent(),
+    )
 )
 
 # Core configuration with all supported components

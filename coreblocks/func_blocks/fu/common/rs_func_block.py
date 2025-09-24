@@ -83,9 +83,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
                 gen_params=self.gen_params,
                 rs_entries=self.rs_entries,
             )
-            wakeup_select.get_ready.proxy(m, self.rs.get_ready_list[n])
-            wakeup_select.take_row.proxy(m, self.rs.take)
-            wakeup_select.issue.proxy(m, func_unit.issue)
+            wakeup_select.get_ready.provide(self.rs.get_ready_list[n])
+            wakeup_select.take_row.provide(self.rs.take)
+            wakeup_select.issue.provide(func_unit.issue)
             if result_fifo:
                 connector = FIFO(self.gen_params.get(FuncUnitLayouts).push_result, 2)
             else:
@@ -93,15 +93,15 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
             m.submodules[f"connector_{n}"] = connector
-            func_unit.push_result.proxy(m, connector.write)
+            func_unit.push_result.provide(connector.write)
             targets.append(connector.read)
 
-        m.submodules.collector = collector = Collector(targets)
+        m.submodules.collector = collector = Collector.create(targets)
 
-        self.insert.proxy(m, self.rs.insert)
-        self.select.proxy(m, self.rs.select)
-        self.update.proxy(m, self.rs.update[0])
-        self.get_result.proxy(m, collector.method)
+        self.insert.provide(self.rs.insert)
+        self.select.provide(self.rs.select)
+        self.update.provide(self.rs.update[0])
+        self.get_result.provide(collector.method)
 
         return m
 
