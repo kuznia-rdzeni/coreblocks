@@ -81,6 +81,8 @@ class FPUErrorModule(Elaboratable):
             unsigned(self.fpu_errors_params.sig_width),
         )
 
+        implicit_bit = 2 ** (self.fpu_errors_params.sig_width - 1)
+
         overflow = Signal()
         underflow = Signal()
         inexact = Signal()
@@ -93,7 +95,7 @@ class FPUErrorModule(Elaboratable):
 
         @def_method(m, self.error_checking_request)
         def _(arg):
-            is_nan = arg.invalid_operation | ((arg.exp == max_exp) & (arg.sig.any()))
+            is_nan = arg.invalid_operation | ((arg.exp == max_exp) & (((arg.sig & ~(implicit_bit)).any())))
             is_inf = arg.division_by_zero | arg.input_inf
             input_not_special = ~(is_nan) & ~(is_inf)
             m.d.av_comb += overflow.eq(input_not_special & (arg.exp == max_exp))
@@ -113,7 +115,7 @@ class FPUErrorModule(Elaboratable):
                     with m.Case(RoundingModes.ROUND_NEAREST_AWAY, RoundingModes.ROUND_NEAREST_EVEN):
 
                         m.d.av_comb += final_exp.eq(max_exp)
-                        m.d.av_comb += final_sig.eq(0)
+                        m.d.av_comb += final_sig.eq(implicit_bit)
                         m.d.av_comb += final_sign.eq(arg.sign)
 
                     with m.Case(RoundingModes.ROUND_ZERO):
@@ -127,7 +129,7 @@ class FPUErrorModule(Elaboratable):
                         with m.If(arg.sign):
 
                             m.d.av_comb += final_exp.eq(max_exp)
-                            m.d.av_comb += final_sig.eq(0)
+                            m.d.av_comb += final_sig.eq(implicit_bit)
                             m.d.av_comb += final_sign.eq(arg.sign)
 
                         with m.Else():
@@ -147,7 +149,7 @@ class FPUErrorModule(Elaboratable):
                         with m.Else():
 
                             m.d.av_comb += final_exp.eq(max_exp)
-                            m.d.av_comb += final_sig.eq(0)
+                            m.d.av_comb += final_sig.eq(implicit_bit)
                             m.d.av_comb += final_sign.eq(arg.sign)
 
             with m.Else():
