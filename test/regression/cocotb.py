@@ -170,9 +170,9 @@ class CocotbSimulation(SimulationBackend):
             samples = ProfileSamples()
 
             for transaction_id, location in self.gen_info.transaction_signals_location.items():
-                request_val = self.get_cocotb_handle(location.request)
+                request_val = self.get_cocotb_handle(location.ready)
                 runnable_val = self.get_cocotb_handle(location.runnable)
-                grant_val = self.get_cocotb_handle(location.grant)
+                grant_val = self.get_cocotb_handle(location.run)
                 samples.transactions[transaction_id] = TransactionSamples(
                     bool(request_val.value), bool(runnable_val.value), bool(grant_val.value)
                 )

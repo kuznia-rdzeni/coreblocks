@@ -34,7 +34,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
         sending_requests = Signal()
         req_word_counter = Signal(range(self.params.words_in_line))
 
-        with Transaction().body(m, request=sending_requests):
+        with Transaction().body(m, ready=sending_requests):
             self.bus_master.request_read(
                 m,
                 addr=Cat(req_word_counter, cache_line_address),
