@@ -11,9 +11,7 @@ from typing import Optional
 from transactron.core import Method, Transaction, def_method, TModule
 from transactron.utils import DependencyContext
 
-PMPCFG_COUNT = 16
 PMPXCFG_WIDTH = 8
-PMPADDR_COUNT = 64
 
 
 class DoubleCounterCSR(Elaboratable):
@@ -97,19 +95,24 @@ class MachineModeCSRRegisters(Elaboratable):
         )  # FIXME: this should be a R/O shadow of mcycle
 
         self.pmpxcfg = []
-        pmpcsr_width = 8 if gen_params.isa.xlen == 64 else 4
-        # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
-        for i in range(0, PMPCFG_COUNT, 2 if gen_params.isa.xlen == 64 else 1):
-            pmpcfg_i = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
-            for j in range(pmpcsr_width):
-                pmp_j_cfg = CSRRegister(None, gen_params, width=pmpcsr_width)
-                pmpcfg_i.add_field(j * PMPXCFG_WIDTH, pmp_j_cfg)
-                self.pmpxcfg.append(pmp_j_cfg)
-                setattr(self, f"pmp{i*pmpcsr_width+j}cfg", pmp_j_cfg)
-            setattr(self, f"pmpcfg{i}", pmpcfg_i)
+        pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
+        pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
+        for i in range(0, pmpcfgx_cnt):
+            # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
+            pmpcfg_index = i * 2 if gen_params.isa.xlen == 64 else i
+            pmpcfg = AliasedCSR(getattr(CSRAddress, f"PMPCFG{pmpcfg_index}"), gen_params)
+
+            # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
+            for j in range(pmpcfg_subregisters):
+                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH)
+                pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
+                self.pmpxcfg.append(pmpcfg_sub)
+                setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
+
+            setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
-        for i in range(PMPADDR_COUNT):
+        for i in range(gen_params.pmp_register_count):
             reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)

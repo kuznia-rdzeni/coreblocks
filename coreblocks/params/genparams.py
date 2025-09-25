@@ -91,6 +91,10 @@ class GenParams(DependentCache):
 
         self.user_mode = cfg.user_mode
 
+        self.pmp_register_count = cfg.pmp_register_count
+        if self.pmp_register_count not in [0, 16, 64]:
+            raise ValueError("PMP register count must be 0, 16, or 64")
+
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
 
         self._generate_test_hardware = cfg._generate_test_hardware
