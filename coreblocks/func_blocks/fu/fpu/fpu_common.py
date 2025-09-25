@@ -102,5 +102,5 @@ class FPUCommonValues:
         self.params = fpu_params
         self.canonical_nan_sig = (2 ** (fpu_params.sig_width - 1)) | (2 ** (fpu_params.sig_width - 2))
         self.max_exp = (2**self.params.exp_width) - 1
-        self.bias = (2**(self.params.exp_width - 1)) - 1
+        self.bias = (2 ** (self.params.exp_width - 1)) - 1
         self.max_sig = (2**self.params.sig_width) - 1
