@@ -89,8 +89,8 @@ class FPUMulModule(Elaboratable):
 
             final_sign = Signal()
             m.d.av_comb += final_sign.eq(op_1.sign ^ op_2.sign)
-            op_1_subn = op_1.sig[-1]
-            op_2_subn = op_2.sig[-1]
+            op_1_subn = ~op_1.sig[-1]
+            op_2_subn = ~op_2.sig[-1]
 
             # exponent before potential operand normalization
             pre_op_norm_exp = Signal(range(-2 * bias, bias + 1))
@@ -133,14 +133,13 @@ class FPUMulModule(Elaboratable):
                 m.d.av_comb += shifted_bit.eq(sig_product[0])
 
             m.d.av_comb += post_op_norm_exp.eq(pre_op_norm_exp - (op_1_norm_shift + op_2_norm_shift) + sig_product[-1])
-
             sticky_bit = Signal()
             round_bit = Signal()
             final_exp = Signal(self.fpu_params.exp_width)
             final_sig = Signal(self.fpu_params.sig_width + 1)
             normalised_sig = Signal(self.fpu_params.sig_width + 1)
-
-            m.d.av_comb += normalised_sig.eq(sig_shifted_product >> (self.fpu_params.sig_width - 1))
+            #TODO comment about shift
+            m.d.av_comb += normalised_sig.eq(sig_shifted_product >> (self.fpu_params.sig_width - 2))
 
             # TODO move RS bits computation outside if/else
             with m.If(post_op_norm_exp >= min_real_exp):
@@ -164,7 +163,7 @@ class FPUMulModule(Elaboratable):
                 with m.Else():
                     # product has (2*p) - 1 bits, p ms bits represent the fp number
                     # p+1 bit is round bit and p - 2 ls bits for initial sticky bit
-                    # For for sticky bit we have to catch those p - 2 ls bits and shift_needed bits
+                    # For sticky bit we have to catch those p - 2 ls bits and shift_needed bits
                     # from p + 1 ms bits
                     padding = Signal().replicate(self.fpu_params.sig_width)
                     shifted_out = Cat(padding, sig_shifted_product).bit_select(
@@ -173,7 +172,6 @@ class FPUMulModule(Elaboratable):
                     m.d.av_comb += any_shifted_out.eq(shifted_out.any())
                 m.d.av_comb += sticky_bit.eq(any_shifted_out | shifted_bit)
             m.d.av_comb += round_bit.eq(final_sig[0])
-
             resp = rounding_module.rounding_request(
                 m,
                 sign=final_sign,
@@ -199,9 +197,9 @@ class FPUMulModule(Elaboratable):
             exc_sign = Signal()
             inexact = Signal()
             invalid_operation = Signal()
+            #TODO DUPLICATE CODE HERE AND BELOW
             m.d.av_comb += exc_sig.eq(rounding_response["sig"])
             m.d.av_comb += exc_exp.eq(rounding_response["exp"])
-
             with m.If(is_nan | is_inf | is_zero):
                 m.d.av_comb += inexact.eq(0)
                 with m.If(is_nan):
