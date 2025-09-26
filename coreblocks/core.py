@@ -18,11 +18,11 @@ from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
-from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.frontend.frontend import CoreFrontend
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.scheduler.scheduler import Scheduler
-from coreblocks.backend.annoucement import ResultAnnouncement
+from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
@@ -47,15 +47,16 @@ class Core(Component):
 
         self.gen_params = gen_params
 
-        self.connections = DependencyContext.get()
+        self.dm = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
-            self.connections.add_dependency(HwMetricsEnabledKey(), True)
+            self.dm.add_dependency(HwMetricsEnabledKey(), True)
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
         self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
+        self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
 
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
@@ -63,10 +64,10 @@ class Core(Component):
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
-        self.RF = RegisterFile(gen_params=self.gen_params)
+        self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+        self.retirement = Retirement(self.gen_params)
 
         self.exception_information_register = ExceptionInformationRegister(
             self.gen_params,
@@ -79,8 +80,8 @@ class Core(Component):
             blocks=gen_params.func_units_config,
         )
 
-        self.csr_generic = GenericCSRRegisters(self.gen_params)
-        self.connections.add_dependency(CSRInstancesKey(), self.csr_generic)
+        self.csr_instances = CSRInstances(self.gen_params)
+        self.dm.add_dependency(CSRInstancesKey(), self.csr_instances)
 
         self.interrupt_controller = InternalInterruptController(self.gen_params)
 
@@ -102,9 +103,9 @@ class Core(Component):
         m.submodules.CRAT = crat = self.CRAT
         m.submodules.RRAT = rrat = self.RRAT
         m.submodules.RF = rf = self.RF
-        m.submodules.ROB = rob = self.ROB
+        m.submodules.rob = rob = self.ROB
 
-        m.submodules.csr_generic = self.csr_generic
+        m.submodules.csr_instances = self.csr_instances
         m.submodules.interrupt_controller = self.interrupt_controller
         m.d.comb += self.interrupt_controller.internal_report_level.eq(self.interrupts[0:16])
         m.d.comb += self.interrupt_controller.custom_report.eq(self.interrupts[16:])
@@ -112,7 +113,7 @@ class Core(Component):
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
         drop_second_ret_value = (self.gen_params.get(SchedulerLayouts).scheduler_in, lambda _, rets: rets[0])
-        m.submodules.get_instr = get_instr = MethodProduct(
+        m.submodules.get_instr = get_instr = MethodProduct.create(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
 
@@ -123,10 +124,10 @@ class Core(Component):
             crat_tag=crat.tag,
             crat_active_tags=crat.get_active_tags,
             rob_put=rob.put,
-            rf_read_req1=rf.read_req1,
-            rf_read_req2=rf.read_req2,
-            rf_read_resp1=rf.read_resp1,
-            rf_read_resp2=rf.read_resp2,
+            rf_read_req1=rf.read_req[0],
+            rf_read_req2=rf.read_req[1],
+            rf_read_resp1=rf.read_resp[0],
+            rf_read_resp2=rf.read_resp[1],
             reservation_stations=self.func_blocks_unifier.rs_blocks,
             gen_params=self.gen_params,
         )
@@ -134,28 +135,28 @@ class Core(Component):
         m.submodules.exception_information_register = self.exception_information_register
 
         m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
-        announcement.get_result.proxy(m, self.func_blocks_unifier.get_result)
-        announcement.rob_mark_done.proxy(m, self.ROB.mark_done)
-        announcement.rs_update.proxy(m, self.func_blocks_unifier.update)
-        announcement.rf_write_val.proxy(m, self.RF.write)
+        announcement.get_result.provide(self.func_blocks_unifier.get_result)
+        announcement.rob_mark_done.provide(self.ROB.mark_done)
+        announcement.rs_update.provide(self.func_blocks_unifier.update)
+        announcement.rf_write_val.provide(self.RF.write[0])
+
+        m.submodules.retirement = retirement = self.retirement
+        retirement.rob_peek.provide(rob.peek)
+        retirement.rob_retire.provide(rob.retire)
+        retirement.r_rat_commit.provide(rrat.commit)
+        retirement.r_rat_peek.provide(rrat.peek)
+        retirement.free_rf_put.provide(rf_allocator.free[0])
+        retirement.rf_free.provide(rf.free[0])
+        retirement.exception_cause_get.provide(self.exception_information_register.get)
+        retirement.exception_cause_clear.provide(self.exception_information_register.clear)
+        retirement.c_rat_restore.provide(crat.flush_restore)
+        retirement.fetch_continue.provide(self.frontend.resume_from_exception)
+        retirement.instr_decrement.provide(core_counter.decrement)
+        retirement.trap_entry.provide(self.interrupt_controller.entry)
+        retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)
+        retirement.checkpoint_get_active_tags.provide(crat.get_active_tags)
+        retirement.checkpoint_tag_free.provide(crat.free_tag)
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier
-
-        m.submodules.retirement = retirement = Retirement(self.gen_params)
-        retirement.rob_peek.proxy(m, rob.peek)
-        retirement.rob_retire.proxy(m, rob.retire)
-        retirement.r_rat_commit.proxy(m, rrat.commit)
-        retirement.r_rat_peek.proxy(m, rrat.peek)
-        retirement.free_rf_put.proxy(m, rf_allocator.free[0])
-        retirement.rf_free.proxy(m, rf.free)
-        retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
-        retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
-        retirement.c_rat_restore.proxy(m, crat.flush_restore)
-        retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
-        retirement.instr_decrement.proxy(m, core_counter.decrement)
-        retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
-        retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
-        retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
-        retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
 
         return m

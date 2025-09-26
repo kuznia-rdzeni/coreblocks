@@ -13,6 +13,8 @@ __all__ = [
 class Extension(enum.IntFlag):
     """
     Enum of available RISC-V extensions.
+
+    Extensions are ordered by ISA naming convention: IMAFDQLCBKJTPVH, Z[category letter order]*, S[vshm]*, X*
     """
 
     #: Reduced integer operations
@@ -45,20 +47,22 @@ class Extension(enum.IntFlag):
     V = auto()
     #: User-level interruptions
     N = auto()
+    #: Enables base counters and timers
+    ZICNTR = auto()
+    #: Integer conditional operations
+    ZICOND = auto()
     #: Control and Status Register access
     ZICSR = auto()
     #: Instruction-Fetch fence operations
     ZIFENCEI = auto()
-    #: Enables sending pause hint for energy saving
-    ZIHINTPAUSE = auto()
     #: Enables non-temporal locality hints
     ZIHINTNTL = auto()
-    #: Enables base counters and timers
-    ZICNTR = auto()
+    #: Enables sending pause hint for energy saving
+    ZIHINTPAUSE = auto()
     #: Enables hardware performance counters
     ZIHPM = auto()
-    #: Integer conditional operations
-    ZICOND = auto()
+    #: Integer multiplication operations
+    ZMMUL = auto()
     #: Atomic memory operations
     ZAAMO = auto()
     #: Load-Reserved/Store-Conditional Instructions
@@ -75,8 +79,6 @@ class Extension(enum.IntFlag):
     ZDINX = auto()
     #: Support for half precision floating-point operations in integer registers
     ZHINX = auto()
-    #: Integer multiplication operations
-    ZMMUL = auto()
     #: Extended shift operations
     ZBA = auto()
     #: Basic bit manipulation operations
@@ -112,7 +114,7 @@ extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.A: Extension.ZAAMO | Extension.ZALRSC,
-    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
+    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBS,
 }
 
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
@@ -158,13 +160,13 @@ class ISA:
         extensions_str = isa_str[len(xlen_str) + 2 :]
 
         if not len(xlen_str):
-            raise RuntimeError("Empty inative base integer ISA width string")
+            raise RuntimeError("Empty native base integer ISA width string")
 
         self.xlen = int(xlen_str)
         self.xlen_log = self.xlen.bit_length() - 1
 
         if self.xlen not in [32, 64, 128]:
-            raise RuntimeError("Invalid inative base integer ISA width %d" % self.xlen)
+            raise RuntimeError("Invalid native base integer ISA width %d" % self.xlen)
 
         if len(extensions_str) == 0:
             raise RuntimeError("Empty ISA extensions string")
@@ -207,7 +209,7 @@ class ISA:
                             f"ISA extension {ext.name} requires the {req.name} extension to be supported"
                         )
 
-        # I & E extensions can coexist if I extenstion can be disableable at runtime
+        # I & E extensions can coexist if I extension can be disableable at runtime
         if self.extensions & Extension.E and not self.extensions & Extension.I:
             self.reg_cnt = 16
         else:

@@ -9,7 +9,7 @@ from amaranth import Elaboratable, Signal
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.functions import data_const_to_dict
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import FunctionalComponentParams
@@ -106,8 +106,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config)
 
-        self.report_mock = TestbenchIO(Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report))
-        self.csrs = GenericCSRRegisters(self.gen_params)
+        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.csrs = CSRInstances(self.gen_params)
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.report_mock.adapter.iface)
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())

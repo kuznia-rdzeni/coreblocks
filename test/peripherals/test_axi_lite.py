@@ -96,18 +96,18 @@ class TestAXILiteMaster(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = TModule()
             m.submodules.alm = alm = self.axi_lite_master = AXILiteMaster(self.params)
-            m.submodules.rar = self.read_address_request_adapter = TestbenchIO(AdapterTrans(alm.ra_request))
-            m.submodules.rdr = self.read_data_response_adapter = TestbenchIO(AdapterTrans(alm.rd_response))
-            m.submodules.war = self.write_address_request_adapter = TestbenchIO(AdapterTrans(alm.wa_request))
-            m.submodules.wdr = self.write_data_request_adapter = TestbenchIO(AdapterTrans(alm.wd_request))
-            m.submodules.wrr = self.write_response_response_adapter = TestbenchIO(AdapterTrans(alm.wr_response))
+            m.submodules.rar = self.read_address_request_adapter = TestbenchIO(AdapterTrans.create(alm.ra_request))
+            m.submodules.rdr = self.read_data_response_adapter = TestbenchIO(AdapterTrans.create(alm.rd_response))
+            m.submodules.war = self.write_address_request_adapter = TestbenchIO(AdapterTrans.create(alm.wa_request))
+            m.submodules.wdr = self.write_data_request_adapter = TestbenchIO(AdapterTrans.create(alm.wd_request))
+            m.submodules.wrr = self.write_response_response_adapter = TestbenchIO(AdapterTrans.create(alm.wr_response))
 
             @def_method(m, self.write_request, ready=alm.wa_request.ready & alm.wd_request.ready)
             def _(arg):
                 alm.wa_request(m, addr=arg.addr, prot=arg.prot)
                 alm.wd_request(m, data=arg.data, strb=arg.strb)
 
-            m.submodules.wr = self.write_request_adapter = TestbenchIO(AdapterTrans(self.write_request))
+            m.submodules.wr = self.write_request_adapter = TestbenchIO(AdapterTrans.create(self.write_request))
 
             return m
 
@@ -175,7 +175,7 @@ class TestAXILiteMaster(TestCaseWithSimulator):
             slave.slave_wr_get(sim)
             await slave.slave_wr_respond(sim, 1)
 
-            # 3nd write request and 2st respond
+            # 3rd write request and 2nd respond
             slave.slave_wa_get_and_verify(sim, 8, 0)
             slave.slave_wd_get_and_verify(sim, 12, 3)
             slave.slave_wr_get(sim)

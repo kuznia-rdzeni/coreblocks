@@ -56,7 +56,7 @@ class WishboneMasterMethodLayout:
     Parameters
     ----------
     wb_params: WishboneParameters
-        Patameters used to generate Wishbone master layouts
+        Parameters used to generate Wishbone master layouts
 
     Attributes
     ----------
@@ -262,7 +262,7 @@ class PipelinedWishboneMaster(Component):
         m = TModule()
 
         m.submodules.result_fifo = self.result_fifo = BasicFifo(self.result_out_layout, self.max_req)
-        m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans(self.result_fifo.write)
+        m.submodules.result_write_adapter = self.result_write_adapter = AdapterTrans.create(self.result_fifo.write)
 
         pending_req_cnt = Signal(range(self.max_req + 1))
         req_start = Signal()
@@ -284,7 +284,7 @@ class PipelinedWishboneMaster(Component):
 
             m.d.comb += req_finish.eq(1)
 
-        self.result.proxy(m, self.result_fifo.read)
+        self.result.provide(self.result_fifo.read)
 
         @def_method(m, self.request, ready=request_ready)
         def _(arg) -> None:
@@ -322,7 +322,7 @@ class WishboneMuxer(Component):
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
         is asserted.
-        Note that if Pipelined Wishbone implementation is used, then before staring any new request with
+        Note that if Pipelined Wishbone implementation is used, then before starting any new request with
         different `ssel_tga` value, all pending request have to be finished (and `stall` cleared) and
         there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
         requests should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
@@ -341,8 +341,8 @@ class WishboneMuxer(Component):
     def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
         super().__init__(
             {
-                "master_wb": Out(WishboneInterface(wb_params).signature),
-                "slaves": In(WishboneInterface(wb_params).signature).array(num_slaves),
+                "master_wb": In(WishboneInterface(wb_params).signature),
+                "slaves": Out(WishboneInterface(wb_params).signature).array(num_slaves),
             }
         )
         self.sselTGA = ssel_tga

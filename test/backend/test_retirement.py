@@ -1,5 +1,5 @@
 from coreblocks.backend.retirement import *
-from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 
 from transactron.lib import FIFO, Adapter
 from coreblocks.core_structs.rat import RRAT
@@ -24,49 +24,51 @@ class RetirementTestCircuit(Elaboratable):
             [("ident", range(self.gen_params.phys_regs))], self.gen_params.phys_regs
         )
 
-        m.submodules.generic_csr = self.generic_csr = GenericCSRRegisters(self.gen_params)
-        DependencyContext.get().add_dependency(CSRInstancesKey(), self.generic_csr)
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
-        self.retirement.r_rat_commit.proxy(m, self.rat.commit)
-        self.retirement.r_rat_peek.proxy(m, self.rat.peek)
-        self.retirement.free_rf_put.proxy(m, self.free_rf.write)
+        self.retirement.r_rat_commit.provide(self.rat.commit)
+        self.retirement.r_rat_peek.provide(self.rat.peek)
+        self.retirement.free_rf_put.provide(self.free_rf.write)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
-            Adapter(self.retirement.rob_peek, nonexclusive=True)
+            Adapter.create(self.retirement.rob_peek, nonexclusive=True)
         )
-        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter(self.retirement.rob_retire))
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter(self.retirement.rf_free))
+        m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter.create(self.retirement.rob_retire))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(self.retirement.rf_free))
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
-            Adapter(self.retirement.exception_cause_get, nonexclusive=True)
+            Adapter.create(self.retirement.exception_cause_get, nonexclusive=True)
         )
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(
-            Adapter(self.retirement.exception_cause_clear)
+            Adapter.create(self.retirement.exception_cause_clear)
         )
         m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
-            Adapter(self.retirement.fetch_continue)
+            Adapter.create(self.retirement.fetch_continue)
         )
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
-            Adapter(self.retirement.instr_decrement)
+            Adapter.create(self.retirement.instr_decrement)
         )
-        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter(self.retirement.trap_entry))
+        m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter.create(self.retirement.trap_entry))
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
-            Adapter(self.retirement.async_interrupt_cause)
+            Adapter.create(self.retirement.async_interrupt_cause)
         )
 
         m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
-            Adapter(self.retirement.checkpoint_tag_free)
+            Adapter.create(self.retirement.checkpoint_tag_free)
         )
         m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
-            Adapter(self.retirement.checkpoint_get_active_tags)
+            Adapter.create(self.retirement.checkpoint_get_active_tags)
         )
-        m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(Adapter(self.retirement.c_rat_restore))
+        m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
+            Adapter.create(self.retirement.c_rat_restore)
+        )
 
-        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans(self.free_rf.read))
+        m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))
 
         precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
-        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans(precommit))
+        m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans.create(precommit))
 
         return m
 
@@ -119,10 +121,11 @@ class TestRetirement(TestCaseWithSimulator):
 
     async def rat_process(self, sim: TestbenchContext):
         while self.rat_map_q:
-            current_map = self.rat_map_q.popleft()
+            curr_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            while sim.get(self.retc.rat.entries[current_map["rl_dst"]]) != current_map["rp_dst"]:
+            # TODO: abstract memories don't implement MemoryData, but standard lib.Memory used in tests
+            while sim.get(self.retc.rat.entries.mem.data[curr_map["rl_dst"]]) != curr_map["rp_dst"]:  # type: ignore
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
@@ -131,6 +134,8 @@ class TestRetirement(TestCaseWithSimulator):
         assert not self.rf_free_q
 
     async def precommit_process(self, sim: TestbenchContext):
+        # wait until R-RAT clears itself after reset
+        await self.tick(sim, self.gen_params.isa.reg_cnt)
         while self.precommit_q:
             info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None

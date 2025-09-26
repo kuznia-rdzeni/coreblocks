@@ -154,7 +154,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 current_tag %= 2**gen_params.tag_bits
 
                 if active_tags[current_tag]:
-                    # check for instructions on vaild speculation path retiring in order
+                    # check for instructions on valid speculation path retiring in order
                     assert rob_id_to_imm_id[rob_id] == retire_imm_ids
                     retire_imm_ids += 1
 

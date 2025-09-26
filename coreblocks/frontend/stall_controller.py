@@ -102,7 +102,7 @@ class StallController(Elaboratable):
             m.d.sync += stalled_unsafe.eq(1)
 
         # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
-        # of exception report, both can happen at any time during normal excecution.
+        # of exception report, both can happen at any time during normal execution.
         @def_method(m, self.stall_exception)
         def _():
             log.info(m, ~stalled_exception, "Stalling the frontend because of an exception")

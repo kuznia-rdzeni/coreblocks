@@ -14,7 +14,7 @@ class ICacheParameters:
     line_bytes_log : int
         Log of the size of a single cache line in bytes.
     enable : bool
-        Enable the instruction cache. If disabled, requestes are bypassed to the bus.
+        Enable the instruction cache. If disabled, requests are bypassed to the bus.
     """
 
     def __init__(

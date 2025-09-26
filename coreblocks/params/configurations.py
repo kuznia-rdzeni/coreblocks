@@ -4,7 +4,9 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from typing import Self
-from transactron.utils._typing import type_self_kwargs_as
+from transactron.utils.typing import type_self_kwargs_as
+from amaranth_types.memory import AbstractMemoryConstructor
+from amaranth.lib.memory import Memory
 
 from coreblocks.arch.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -26,7 +28,14 @@ from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperCom
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
 
 
-__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
+__all__ = [
+    "CoreConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "small_linux_config",
+    "full_core_config",
+    "test_core_config",
+]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
@@ -80,7 +89,7 @@ class _CoreConfigurationDataClass:
         currently in core, including instructions from already rolled-back checkpoints, that didn't leave the
         pipeline yet. Tag space size must be greater that checkpoint count.
     icache_enable: bool
-        Enable instruction cache. If disabled, requestes are bypassed directly to the bus.
+        Enable instruction cache. If disabled, requests are bypassed directly to the bus.
     icache_ways: int
         Associativity of the instruction cache.
     icache_sets_bits: int
@@ -94,17 +103,21 @@ class _CoreConfigurationDataClass:
     interrupt_custom_count: int
         Number of custom/local async interrupts to support. First interrupt will be registered at id 16.
     interrupt_custom_edge_trig_mask: int
-        Bit mask specifing if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
+        Bit mask specifying if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
         Enable User Mode.
+    pmp_register_count: int
+        Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
-    _implied_extensions: Extenstion
-        Bit flag specifing enabled extenstions that are not specified by func_units_config. Used in internal tests.
+    multiport_memory_type: AbstractMemoryConstructor
+        The type of multiport synchronous memory to be used in the core, e.g. in superscalar structures.
+    _implied_extensions: Extension
+        Bit flag specifying enabled extensions that are not specified by func_units_config. Used in internal tests.
     _generate_test_hardware: bool
         Enables generation of additional hardware used for use in internal unit tests.
     pma : list[PMARegion]
@@ -149,9 +162,13 @@ class _CoreConfigurationDataClass:
 
     user_mode: bool = True
 
+    pmp_register_count: int = 0
+
     allow_partial_extensions: bool = False
 
     extra_verification: bool = True
+
+    multiport_memory_type: AbstractMemoryConstructor = Memory
 
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
@@ -185,6 +202,31 @@ tiny_core_config = CoreConfiguration(
     user_mode=False,
 )
 
+# Basic core config with minimal additions required for Linux
+small_linux_config = CoreConfiguration(
+    func_units_config=(
+        RSBlockComponent(
+            [
+                ALUComponent(),
+                ShiftUnitComponent(),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+                PrivilegedUnitComponent(),
+            ],
+            rs_entries=4,
+        ),
+        RSBlockComponent(
+            [
+                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                DivComponent(),
+            ],
+            rs_entries=2,
+        ),
+        RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
+        CSRBlockComponent(),
+    )
+)
+
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
     func_units_config=(
@@ -213,6 +255,7 @@ full_core_config = CoreConfiguration(
     compressed=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
+    pmp_register_count=16,
 )
 
 # Core configuration used in internal testbenches

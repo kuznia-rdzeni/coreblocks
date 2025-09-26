@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.lib.enum import unique, IntEnum, auto
 
-from transactron.utils._typing import ValueLike
+from amaranth_types import ValueLike
 
 from .isa import Extension, extension_implications, extension_only_implies
 
@@ -53,7 +53,7 @@ class OpType(IntEnum):
     CZERO = auto()
     ATOMIC_MEMORY_OP = auto()
     ATOMIC_LR_SC = auto()
-    #: Internal Coreblocks OpType, specifing that instruction caused Exception before FU execution
+    #: Internal Coreblocks OpType, specifying that instruction caused Exception before FU execution
     EXCEPTION = auto()
 
 

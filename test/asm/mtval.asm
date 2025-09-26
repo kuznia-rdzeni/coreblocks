@@ -23,7 +23,7 @@ c6: # access to missing csr mtval=raw instruction mcause=ILLEGAL_INSTRUCTION
     csrr x1, 0x123
 c7: # access to missing csr mtval=raw instruction mcause=ILLEGAL_INSTRUCTION
     csrwi 0x123, 8
-c8: # store to misaligned address mtvak=addr mcause=STORE_ADDRESS_MISALIGNED
+c8: # store to misaligned address mtval=addr mcause=STORE_ADDRESS_MISALIGNED
     sw x1, 0x231(x7)
 c9: # mtval=0 mcause=ENVIRONMENT_CALL_FROM_M 
     ecall
@@ -33,13 +33,13 @@ pass:
 
 
 handler: # test each case. test case number = in x8>>2
-    la x1, excpected_mtval
+    la x1, expected_mtval
     add x1, x1, x8
     lw x2, (x1)
     csrr x1, mtval
     bne x1, x2, fail
     
-    la x1, excpected_mcause
+    la x1, expected_mcause
     add x1, x1, x8
     lw x2, (x1)
     csrr x1, mcause
@@ -66,7 +66,7 @@ nop
 
 .data
 
-excpected_mtval:
+expected_mtval:
 .word 0x80000230
 .word c1 
 .word i_out_of_range 
@@ -78,7 +78,7 @@ excpected_mtval:
 .word 0x80000231
 .word 0
 
-excpected_mcause:
+expected_mcause:
 .word 5 
 .word 3 
 .word 1 

@@ -5,7 +5,7 @@ from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
 from coreblocks.func_blocks.csr.csr import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.priv.csr.csr_instances import GenericCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType
 from coreblocks.params.configurations import test_core_config
@@ -34,7 +34,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m = Module()
 
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter.create(
+            Adapter(
                 i=self.gen_params.get(RetirementLayouts).precommit_in,
                 o=self.gen_params.get(RetirementLayouts).precommit_out,
                 nonexclusive=True,
@@ -42,22 +42,22 @@ class CSRUnitTestCircuit(Elaboratable):
             ).set(with_validate_arguments=True)
         )
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter.create(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
-        m.submodules.select = self.select = TestbenchIO(AdapterTrans(self.dut.select))
-        m.submodules.insert = self.insert = TestbenchIO(AdapterTrans(self.dut.insert))
-        m.submodules.update = self.update = TestbenchIO(AdapterTrans(self.dut.update))
-        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans(self.dut.get_result))
-        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(
-            Adapter.create(i=self.gen_params.get(FetchLayouts).resume)
+        m.submodules.select = self.select = TestbenchIO(AdapterTrans.create(self.dut.select))
+        m.submodules.insert = self.insert = TestbenchIO(AdapterTrans.create(self.dut.insert))
+        m.submodules.update = self.update = TestbenchIO(AdapterTrans.create(self.dut.update))
+        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans.create(self.dut.get_result))
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(Adapter(i=self.gen_params.get(FetchLayouts).resume))
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
+        m.submodules.priv_io = self.priv_io = TestbenchIO(
+            AdapterTrans.create(self.csr_instances.m_mode.priv_mode.write)
         )
-        m.submodules.csr_instances = self.csr_instances = GenericCSRRegisters(self.gen_params)
-        m.submodules.priv_io = self.priv_io = TestbenchIO(AdapterTrans(self.csr_instances.m_mode.priv_mode.write))
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
         DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self.fetch_resume.adapter.iface)

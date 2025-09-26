@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-    This script parses the output of the synthesis tool and extracts the
-    following information:
-        - Max clock frequency
-        - Number of logic cells used
-        - Number of carry cells used
-        - Number of RAM cells used
-        - Number of DFF cells used
+This script parses the output of the synthesis tool and extracts the
+following information:
+    - Max clock frequency
+    - Number of logic cells used
+    - Number of carry cells used
+    - Number of RAM cells used
+    - Number of DFF cells used
 """
 
 import os

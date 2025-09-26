@@ -1,6 +1,5 @@
 from amaranth import *
-
-from transactron.utils import ValueLike
+from amaranth_types import ValueLike
 
 from coreblocks.params import GenParams
 

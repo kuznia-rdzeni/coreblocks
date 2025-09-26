@@ -1,18 +1,17 @@
 from amaranth import *
-
-from typing import Optional
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
+from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.aliased import AliasedCSR
+from typing import Optional
 from transactron.core import Method, Transaction, def_method, TModule
+from transactron.utils import DependencyContext
 
-PMPCFG_COUNT = 16
 PMPXCFG_WIDTH = 8
-PMPADDR_COUNT = 64
 
 
 class DoubleCounterCSR(Elaboratable):
@@ -90,20 +89,30 @@ class MachineModeCSRRegisters(Elaboratable):
             CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
         )
 
+        self.mcycle = DoubleCounterCSR(gen_params, CSRAddress.MCYCLE, CSRAddress.MCYCLEH)
+        self.cycle = DoubleCounterCSR(
+            gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH
+        )  # FIXME: this should be a R/O shadow of mcycle
+
         self.pmpxcfg = []
-        pmpcsr_width = 8 if gen_params.isa.xlen == 64 else 4
-        # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
-        for i in range(0, PMPCFG_COUNT, 2 if gen_params.isa.xlen == 64 else 1):
-            pmpcfg_i = AliasedCSR(getattr(CSRAddress, f"PMPCFG{i}"), gen_params)
-            for j in range(pmpcsr_width):
-                pmp_j_cfg = CSRRegister(None, gen_params, width=pmpcsr_width)
-                pmpcfg_i.add_field(j * PMPXCFG_WIDTH, pmp_j_cfg)
-                self.pmpxcfg.append(pmp_j_cfg)
-                setattr(self, f"pmp{i*pmpcsr_width+j}cfg", pmp_j_cfg)
-            setattr(self, f"pmpcfg{i}", pmpcfg_i)
+        pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
+        pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
+        for i in range(0, pmpcfgx_cnt):
+            # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
+            pmpcfg_index = i * 2 if gen_params.isa.xlen == 64 else i
+            pmpcfg = AliasedCSR(getattr(CSRAddress, f"PMPCFG{pmpcfg_index}"), gen_params)
+
+            # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
+            for j in range(pmpcfg_subregisters):
+                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH)
+                pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
+                self.pmpxcfg.append(pmpcfg_sub)
+                setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
+
+            setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
-        for i in range(PMPADDR_COUNT):
+        for i in range(gen_params.pmp_register_count):
             reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
@@ -122,11 +131,15 @@ class MachineModeCSRRegisters(Elaboratable):
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
     def elaborate(self, platform):
-        m = Module()
+        m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, CSRRegister):
+            if isinstance(value, CSRRegister) or isinstance(value, DoubleCounterCSR):
                 m.submodules[name] = value
+
+        with Transaction().body(m):
+            self.mcycle.increment(m)
+            self.cycle.increment(m)
 
         return m
 
@@ -180,7 +193,7 @@ class MachineModeCSRRegisters(Elaboratable):
             )
             mstatus.add_read_only_field(MstatusFieldOffsets.SXL, XlenEncoding.as_shape().width, 0)
 
-        # Little-endianess
+        # Little-endianness
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
         if gen_params.isa.xlen == 32:
             mstatush.add_read_only_field(MstatusFieldOffsets.SBE - mstatus.width, 1, 0)
@@ -247,31 +260,39 @@ class MachineModeCSRRegisters(Elaboratable):
         return misa_value
 
 
-class GenericCSRRegisters(Elaboratable):
+class CSRInstances(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
         self.m_mode = MachineModeCSRRegisters(gen_params)
 
-        self.csr_cycle = DoubleCounterCSR(gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH)
-        # TODO: CYCLE should be alias to TIME
-        self.csr_time = DoubleCounterCSR(gen_params, CSRAddress.TIME, CSRAddress.TIMEH)
-
         if gen_params._generate_test_hardware:
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
+
+        self.time = CSRRegister(CSRAddress.TIME, self.gen_params)
+        self.timeh = CSRRegister(CSRAddress.TIMEH, self.gen_params)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.m_mode = self.m_mode
 
-        m.submodules.csr_cycle = self.csr_cycle
-        m.submodules.csr_time = self.csr_time
         if self.gen_params._generate_test_hardware:
             m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
 
+        # TIME CSR is a R/O alias to Memory-Mapped `mtime` value (from clint). If `mtime` is not available,
+        # then fallback to providing a cycle counter source.
+        clint_mtime = DependencyContext.get().get_optional_dependency(ClintMtimeKey())
+        time_counter = Signal(64)
+        m.d.sync += time_counter.eq(time_counter + 1)
+        time_source = time_counter if clint_mtime is None else clint_mtime
+
         with Transaction().body(m):
-            self.csr_cycle.increment(m)
-            self.csr_time.increment(m)
+            if clint_mtime is not None:
+                self.time.write(m, data=time_source[: self.time.width])
+                self.timeh.write(m, data=time_source[self.time.width :])
+
+        m.submodules.time = self.time
+        m.submodules.timeh = self.timeh
 
         return m

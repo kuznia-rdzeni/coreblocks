@@ -1,10 +1,10 @@
 from typing import Protocol, TypeAlias, runtime_checkable
 from amaranth import *
 from amaranth.lib.wiring import Component, Signature, In, Out
+from amaranth_types import AbstractInterface, AbstractSignature
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib.connectors import Forwarder
-from transactron.utils._typing import AbstractInterface, AbstractSignature
 
 __all__ = ["AXILiteParameters", "AXILiteSignature", "AXILiteInterface", "AXILiteMaster"]
 
@@ -32,7 +32,7 @@ class AXILiteSignature(Signature):
     Parameters
     ----------
     axil_params: AXILiteParameters
-        Patameters used to generate AXI-Lite signature
+        Parameters used to generate AXI-Lite signature
     """
 
     def __init__(self, axil_params: AXILiteParameters):
@@ -144,7 +144,7 @@ class AXILiteMasterMethodLayouts:
     Parameters
     ----------
     axil_params: AXILiteParameters
-        Patameters used to generate AXI-Lite master layouts
+        Parameters used to generate AXI-Lite master layouts
 
     Attributes
     ----------

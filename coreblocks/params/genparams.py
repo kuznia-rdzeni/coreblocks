@@ -52,7 +52,7 @@ class GenParams(DependentCache):
 
         # Verification temporally disabled
         # if not optypes_required_by_extensions(self.isa.extensions) <= optypes_supported(func_units_config):
-        #     raise Exception(f"Functional unit configuration fo not support all extension required by{isa_str}")
+        #     raise Exception(f"Functional unit configuration do not support all extension required by{isa_str}")
 
         self.max_rs_entries = 1
 
@@ -91,9 +91,15 @@ class GenParams(DependentCache):
 
         self.user_mode = cfg.user_mode
 
+        self.pmp_register_count = cfg.pmp_register_count
+        if self.pmp_register_count not in [0, 16, 64]:
+            raise ValueError("PMP register count must be 0, 16, or 64")
+
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
 
         self._generate_test_hardware = cfg._generate_test_hardware
 
         self.marchid = cfg.marchid
         self.mimpid = cfg.mimpid
+
+        self.multiport_memory_type = cfg.multiport_memory_type

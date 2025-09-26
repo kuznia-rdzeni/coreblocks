@@ -4,8 +4,8 @@ from functools import reduce
 
 from amaranth import *
 from transactron import TModule
-from transactron.lib import FIFO, AdapterTrans, Adapter, ManyToOneConnectTrans
-from coreblocks.backend.annoucement import ResultAnnouncement
+from transactron.lib import FIFO, AdapterTrans, Adapter, CrossbarConnectTrans
+from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.interface.layouts import *
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
@@ -33,27 +33,25 @@ class BackendTestCircuit(Elaboratable):
             get_results.append(fifo.read)
             m.submodules[f"fu_fifo_{i}"] = fifo
 
-            fifo_in = TestbenchIO(AdapterTrans(fifo.write))
+            fifo_in = TestbenchIO(AdapterTrans.create(fifo.write))
             m.submodules[f"fu_fifo_{i}_in"] = fifo_in
             self.fu_fifo_ins.append(fifo_in)
 
         # Create FUArbiter, which will serialize results from different FU's
         serialized_results_fifo = FIFO(self.lay_result, 16)
         m.submodules.serialized_results_fifo = serialized_results_fifo
-        m.submodules.fu_arbitration = ManyToOneConnectTrans(
-            get_results=get_results, put_result=serialized_results_fifo.write
-        )
+        m.submodules.fu_arbitration = CrossbarConnectTrans.create(get_results, serialized_results_fifo.write)
 
         # Create result announcement
         m.submodules.result_announcement = result_announcement = ResultAnnouncement(gen_params=self.gen_params)
 
         # Create stubs for interfaces used by result announcement
-        result_announcement.get_result.proxy(m, serialized_results_fifo.read)
-        self.rs_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rs_update))
+        result_announcement.get_result.provide(serialized_results_fifo.read)
+        self.rs_announce_val_tbio = TestbenchIO(Adapter.create(result_announcement.rs_update))
         m.submodules.rs_announce_val_tbio = self.rs_announce_val_tbio
-        self.rf_announce_val_tbio = TestbenchIO(Adapter(result_announcement.rf_write_val))
+        self.rf_announce_val_tbio = TestbenchIO(Adapter.create(result_announcement.rf_write_val))
         m.submodules.rf_announce_val_tbio = self.rf_announce_val_tbio
-        self.rob_mark_done_tbio = TestbenchIO(Adapter(result_announcement.rob_mark_done))
+        self.rob_mark_done_tbio = TestbenchIO(Adapter.create(result_announcement.rob_mark_done))
         m.submodules.rob_mark_done_tbio = self.rob_mark_done_tbio
 
         return m
