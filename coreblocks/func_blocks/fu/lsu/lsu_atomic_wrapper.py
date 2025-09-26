@@ -3,6 +3,7 @@ from amaranth import *
 from dataclasses import dataclass
 
 from transactron.core import Priority, TModule, Method, Transaction, def_method
+from transactron.lib import ConnectTrans, Forwarder
 from transactron.utils import assign, layout_subset, AssignType
 
 from coreblocks.arch import Funct3, Funct7, OpType
@@ -127,9 +128,13 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
         atomic_second_reqest = Signal()
         atomic_fin = Signal()
 
-        push_lsu_result = Method(i=self.fu_layouts.push_result)
+        lsu_push_result = Method(i=self.fu_layouts.push_result)
 
-        @def_method(m, push_lsu_result)
+        m.submodules.result_buff = result = Forwarder(self.fu_layouts.push_result)
+
+        m.submodules.result_connect = ConnectTrans.create(result.read, self.push_result)
+
+        @def_method(m, lsu_push_result)
         def _(arg):
             funct7 = atomic_op.exec_fn.funct7 & ~0b11
 
@@ -143,7 +148,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 with m.If(arg.exception):
                     m.d.sync += reservation_valid.eq(0)
 
-                self.push_result(m, atomic_res)
+                result.write(m, atomic_res)
                 m.d.sync += atomic_in_progress.eq(0)
 
             # 1st AMO result
@@ -153,7 +158,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 m.d.sync += load_val.eq(arg.result)
                 m.d.sync += atomic_second_reqest.eq(1)
             with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & arg.exception):
-                self.push_result(m, arg)
+                result.write(m, arg)
                 m.d.sync += atomic_in_progress.eq(0)
 
             # 2nd AMO result
@@ -161,7 +166,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 atomic_res = Signal(self.fu_layouts.push_result)
                 m.d.av_comb += assign(atomic_res, arg)
                 m.d.av_comb += atomic_res.result.eq(Mux(arg.exception, 0, load_val))
-                self.push_result(m, atomic_res)
+                result.write(m, atomic_res)
 
                 m.d.sync += atomic_in_progress.eq(0)
                 m.d.sync += atomic_second_reqest.eq(0)
@@ -169,14 +174,14 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
             # Non-atomic results
             with m.Else():
-                self.push_result(m, arg)
+                result.write(m, arg)
 
-        self.lsu.push_result.provide(push_lsu_result)
+        self.lsu.push_result.provide(lsu_push_result)
 
         with Transaction().body(m, ready=atomic_in_progress & sc_failed) as sc_failed_trans:
             m.d.sync += sc_failed.eq(0)
             m.d.sync += atomic_in_progress.eq(0)
-            self.push_result(
+            result.write(
                 m,
                 {
                     "result": 1,
@@ -186,7 +191,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 },
             )
 
-        sc_failed_trans.add_conflict(push_lsu_result, priority=Priority.RIGHT)
+        sc_failed_trans.add_conflict(lsu_push_result, priority=Priority.RIGHT)
 
         with Transaction().body(m, ready=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
             atomic_store_op = Signal(self.fu_layouts.issue)
