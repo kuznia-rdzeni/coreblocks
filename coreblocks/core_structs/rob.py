@@ -1,11 +1,14 @@
 from amaranth import *
 import amaranth.lib.memory as memory
 from transactron import Method, Transaction, def_method, TModule
+from transactron.lib import logging
 from transactron.lib.metrics import *
 from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.params import GenParams
 
 __all__ = ["ReorderBuffer"]
+
+log = logging.HardwareLogger("core_structs.rob")
 
 
 class ReorderBuffer(Elaboratable):
@@ -80,6 +83,7 @@ class ReorderBuffer(Elaboratable):
         # could mark fields in ROB as done when they shouldn't.
         @def_method(m, self.mark_done)
         def _(rob_id: Value, exception):
+            log.assertion(m, ~self.done[rob_id], "mark_done called on already done ROB entry {}", rob_id)
             m.d.sync += self.done[rob_id].eq(1)
             m.d.sync += self.exception[rob_id].eq(exception)
 
