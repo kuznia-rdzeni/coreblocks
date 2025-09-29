@@ -1,5 +1,6 @@
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUCommonValues, FPUParams
+from coreblocks.func_blocks.fu.fpu.fpu_common import FPUCommonValues, FPUParams, RoundingModes
 from transactron.testing import *
+from enum import Enum
 
 
 class FPUTester:
@@ -54,3 +55,20 @@ class ToFloatConverter:
             "is_nan": ((exp == self.cv.max_exp) & ((sig & (~self.implicit_one)) != 0)),
             "is_zero": ((exp == 0) & (sig == 0)),
         }
+
+class FenvRm(Enum):
+    FE_TONEAREST = 0x0000
+    FE_DOWNWARD = 0x400
+    FE_UPWARD = 0x800
+    FE_TOWARDZERO = 0xc00
+
+def fenv_rm_to_fpu_rm(fenv_rm):
+    match fenv_rm:
+        case FenvRm.FE_TONEAREST:
+            return RoundingModes.ROUND_NEAREST_EVEN
+        case FenvRm.FE_DOWNWARD:
+            return RoundingModes.ROUND_DOWN
+        case FenvRm.FE_UPWARD:
+            return RoundingModes.ROUND_UP
+        case FenvRm.FE_TOWARDZERO:
+            return RoundingModes.ROUND_ZERO
