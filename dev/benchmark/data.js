@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758822573884,
+  "lastUpdate": 1759238695307,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -18261,6 +18261,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ecd730ad03faa5bab5986ab2072b428cc14f4965"
         },
         "date": 1758822563313,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4119586086836292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5394976959130355,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.35744473671754023,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6418664976639302,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35055855750884807,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29216255217465514,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32757882722214293,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.43390376484799675,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "885dbb10a06ba6559adbda82172e4ad658e471c6",
+          "message": "Fix LSUAtomicWrapper - Linux regression (#843)",
+          "timestamp": "2025-09-30T15:06:23+02:00",
+          "tree_id": "c3869f812a9f1f07a9801f762461b20c2d9f26d6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/885dbb10a06ba6559adbda82172e4ad658e471c6"
+        },
+        "date": 1759238689364,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
