@@ -130,7 +130,9 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
         lsu_push_result = Method(i=self.fu_layouts.push_result)
 
-        m.submodules.result_buff = result = Forwarder(self.fu_layouts.push_result)
+        # Forwarder here is required to workaround Transactron simultaneous transactions issue, when using
+        # conditional method calls, see https://github.com/kuznia-rdzeni/coreblocks/pull/843#issuecomment-3350907439
+        m.submodules.result_fwd = result = Forwarder(self.fu_layouts.push_result)
 
         m.submodules.result_connect = ConnectTrans.create(result.read, self.push_result)
 
@@ -191,7 +193,7 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 },
             )
 
-        sc_failed_trans.add_conflict(lsu_push_result, priority=Priority.RIGHT)
+        sc_failed_trans.add_conflict(lsu_push_result, priority=Priority.RIGHT)  # only sets the priority for performance
 
         with Transaction().body(m, ready=atomic_in_progress & amo_second_op_issue & ~amo_second_op_issue_finished):
             amo_store = Signal(self.fu_layouts.issue)
