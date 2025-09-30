@@ -3,6 +3,7 @@ from amaranth import *
 from dataclasses import dataclass
 
 from transactron.core import Priority, TModule, Method, Transaction, def_method
+from transactron.lib import ConnectTrans, Forwarder
 from transactron.utils import assign, layout_subset, AssignType
 
 from coreblocks.arch import Funct3, Funct7, OpType
@@ -124,12 +125,18 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
             m.d.sync += sc_failed.eq(sc_fail)
 
-        atomic_second_reqest = Signal()
-        atomic_fin = Signal()
+        amo_second_op_issue = Signal()
+        amo_second_op_issue_finished = Signal()
 
-        push_lsu_result = Method(i=self.fu_layouts.push_result)
+        lsu_push_result = Method(i=self.fu_layouts.push_result)
 
-        @def_method(m, push_lsu_result)
+        # Forwarder here is required to workaround Transactron simultaneous transactions issue, when using
+        # conditional method calls, see https://github.com/kuznia-rdzeni/coreblocks/pull/843#issuecomment-3350907439
+        m.submodules.result_fwd = result = Forwarder(self.fu_layouts.push_result)
+
+        m.submodules.result_connect = ConnectTrans.create(result.read, self.push_result)
+
+        @def_method(m, lsu_push_result)
         def _(arg):
             funct7 = atomic_op.exec_fn.funct7 & ~0b11
 
@@ -143,40 +150,40 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 with m.If(arg.exception):
                     m.d.sync += reservation_valid.eq(0)
 
-                self.push_result(m, atomic_res)
+                result.write(m, atomic_res)
                 m.d.sync += atomic_in_progress.eq(0)
 
             # 1st AMO result
-            with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & ~arg.exception):
+            with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~amo_second_op_issue & ~arg.exception):
                 # NOTE: This branch could be optimised by replacing Ifs with condition to be independent of
                 # push_result.ready, but it causes combinational loop because of `rob_id` data dependency.
                 m.d.sync += load_val.eq(arg.result)
-                m.d.sync += atomic_second_reqest.eq(1)
-            with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~atomic_second_reqest & arg.exception):
-                self.push_result(m, arg)
+                m.d.sync += amo_second_op_issue.eq(1)
+            with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & ~amo_second_op_issue & arg.exception):
+                result.write(m, arg)
                 m.d.sync += atomic_in_progress.eq(0)
 
             # 2nd AMO result
-            with m.Elif(atomic_in_progress & atomic_fin):
+            with m.Elif((arg.rob_id == atomic_op.rob_id) & atomic_in_progress & amo_second_op_issue_finished):
                 atomic_res = Signal(self.fu_layouts.push_result)
                 m.d.av_comb += assign(atomic_res, arg)
                 m.d.av_comb += atomic_res.result.eq(Mux(arg.exception, 0, load_val))
-                self.push_result(m, atomic_res)
+                result.write(m, atomic_res)
 
                 m.d.sync += atomic_in_progress.eq(0)
-                m.d.sync += atomic_second_reqest.eq(0)
-                m.d.sync += atomic_fin.eq(0)
+                m.d.sync += amo_second_op_issue.eq(0)
+                m.d.sync += amo_second_op_issue_finished.eq(0)
 
             # Non-atomic results
             with m.Else():
-                self.push_result(m, arg)
+                result.write(m, arg)
 
-        self.lsu.push_result.provide(push_lsu_result)
+        self.lsu.push_result.provide(lsu_push_result)
 
         with Transaction().body(m, ready=atomic_in_progress & sc_failed) as sc_failed_trans:
             m.d.sync += sc_failed.eq(0)
             m.d.sync += atomic_in_progress.eq(0)
-            self.push_result(
+            result.write(
                 m,
                 {
                     "result": 1,
@@ -186,18 +193,18 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
                 },
             )
 
-        sc_failed_trans.add_conflict(push_lsu_result, priority=Priority.RIGHT)
+        sc_failed_trans.add_conflict(lsu_push_result, priority=Priority.RIGHT)  # only sets the priority for performance
 
-        with Transaction().body(m, ready=atomic_in_progress & atomic_second_reqest & ~atomic_fin):
-            atomic_store_op = Signal(self.fu_layouts.issue)
-            m.d.av_comb += assign(atomic_store_op, atomic_op)
-            m.d.av_comb += assign(atomic_store_op.exec_fn, {"op_type": OpType.STORE, "funct3": Funct3.W})
-            m.d.av_comb += atomic_store_op.imm.eq(0)
-            m.d.av_comb += atomic_store_op.s2_val.eq(atomic_op_res(load_val, atomic_op.s2_val))
+        with Transaction().body(m, ready=atomic_in_progress & amo_second_op_issue & ~amo_second_op_issue_finished):
+            amo_store = Signal(self.fu_layouts.issue)
+            m.d.av_comb += assign(amo_store, atomic_op)
+            m.d.av_comb += assign(amo_store.exec_fn, {"op_type": OpType.STORE, "funct3": Funct3.W})
+            m.d.av_comb += amo_store.imm.eq(0)
+            m.d.av_comb += amo_store.s2_val.eq(atomic_op_res(load_val, atomic_op.s2_val))
 
-            self.lsu.issue(m, atomic_store_op)
+            self.lsu.issue(m, amo_store)
 
-            m.d.sync += atomic_fin.eq(1)
+            m.d.sync += amo_second_op_issue_finished.eq(1)
 
         m.submodules.lsu = self.lsu
 
