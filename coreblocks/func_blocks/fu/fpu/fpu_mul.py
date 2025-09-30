@@ -11,6 +11,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
 from coreblocks.func_blocks.fu.fpu.fpu_error_module import FPUErrorModule
 from coreblocks.func_blocks.fu.fpu.fpu_rounding_module import FPURounding
 from transactron.utils.amaranth_ext import count_leading_zeros
+from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import FastRecursiveMul
 
 
 class FPUMulMethodLayout:
@@ -71,12 +72,14 @@ class FPUMulModule(Elaboratable):
             i=self.method_layouts.mul_in_layout,
             o=self.method_layouts.mul_out_layout,
         )
+        self.mul_params = {"isa":{"xlen":self.fpu_params.sig_width}}
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.rounding_module = rounding_module = FPURounding(fpu_params=self.fpu_params)
         m.submodules.exception_module = exception_module = FPUErrorModule(fpu_params=self.fpu_params)
+        m.submodules.multiplier = multiplier = FastRecursiveMul(self.fpu_params.sig_width,self.fpu_params.sig_width//2)
 
         rounding_response = Signal(from_method_layout(rounding_module.method_layouts.rounding_out_layout))
         exception_response = Signal(from_method_layout(exception_module.method_layouts.error_out_layout))
@@ -121,7 +124,10 @@ class FPUMulModule(Elaboratable):
             shifted_bit = Signal()
 
             sig_product = Signal(2 * self.fpu_params.sig_width)
-            m.d.av_comb += sig_product.eq((norm_op_1_sig * norm_op_2_sig))
+            m.d.av_comb += multiplier.i1.eq(norm_op_1_sig)
+            m.d.av_comb += multiplier.i2.eq(norm_op_2_sig)
+            #m.d.av_comb += sig_product.eq((norm_op_1_sig * norm_op_2_sig))
+            m.d.av_comb += sig_product.eq(multiplier.r)
 
             # First step of normalization
             # if sig is between [1,2) leave it alone
