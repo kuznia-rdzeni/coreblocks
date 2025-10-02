@@ -47,6 +47,13 @@ class FPUMulMethodLayout:
 class FPUMulModule(Elaboratable):
     """
     | FPU multiplication top module
+    | The floating point multiplication consists of two parts:
+    | 1. Exponent calcuation - turning both exponents from biased form into un-biased form
+    | and then adding them together and turing result back into biased form
+    | 2. Significand multiplication - This is essentialy fixed-point multiplication with
+    | two bits for integer part and 2*n - 2 bits for fractional part.
+    | We deal with with subnormal number by extending exponents range and turning subnormal
+    | numbers into normalised numbers.  
 
     Parameters
     ----------
