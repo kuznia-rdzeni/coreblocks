@@ -103,7 +103,7 @@ class FPUMulModule(Elaboratable):
             op_2_subn = ~op_2.sig[-1]
 
             # exponent before potential operand normalization
-            pre_op_norm_exp = Signal(range(-2 * bias, bias + 1))
+            pre_op_norm_exp = Signal(signed(self.fpu_params.exp_width + 1))
             sum_of_exp = op_1.exp + op_2.exp - 2 * bias
             # Because exp = 0 and exp = 1 represent the same exponent emin,
             # to properly calcuate pre_op_norm_exp we have to adjust those exponents
@@ -119,77 +119,76 @@ class FPUMulModule(Elaboratable):
             m.d.av_comb += op_1_norm_shift.eq(count_leading_zeros(op_1.sig))
             m.d.av_comb += op_2_norm_shift.eq(count_leading_zeros(op_2.sig))
 
-            post_op_norm_exp = Signal(range(-2 * bias - 2 * self.fpu_params.sig_width, bias + 1))
-
             norm_op_1_sig = Signal(self.fpu_params.sig_width)
             norm_op_2_sig = Signal(self.fpu_params.sig_width)
 
             m.d.av_comb += norm_op_1_sig.eq(op_1.sig << op_1_norm_shift)
             m.d.av_comb += norm_op_2_sig.eq(op_2.sig << op_2_norm_shift)
-            # TODO change names of some variables, they are awful
-            # Use normalize to indicate that they come from this part?
-            shifted_bit = Signal()
+
+            shifted_out_bit = Signal()
 
             sig_product = Signal(2 * self.fpu_params.sig_width)
             m.d.av_comb += multiplier.i1.eq(norm_op_1_sig)
             m.d.av_comb += multiplier.i2.eq(norm_op_2_sig)
-            #m.d.av_comb += sig_product.eq((norm_op_1_sig * norm_op_2_sig))
             m.d.av_comb += sig_product.eq(multiplier.r)
 
             # First step of normalization
             # if sig is between [1,2) leave it alone
             # if sig is between [2,4) shift right by one
-            sig_shifted_product = Signal((2 * self.fpu_params.sig_width) - 1)
-            m.d.av_comb += sig_shifted_product.eq(sig_product)
+            fixed_sig_product_norm = Signal((2 * self.fpu_params.sig_width) - 1)
+            m.d.av_comb += fixed_sig_product_norm.eq(sig_product)
             with m.If(sig_product[-1]):
-                m.d.av_comb += sig_shifted_product.eq(sig_product >> 1)
-                m.d.av_comb += shifted_bit.eq(sig_product[0])
+                m.d.av_comb += fixed_sig_product_norm.eq(sig_product >> 1)
+                m.d.av_comb += shifted_out_bit.eq(sig_product[0])
 
-            m.d.av_comb += post_op_norm_exp.eq(pre_op_norm_exp - (op_1_norm_shift + op_2_norm_shift) + sig_product[-1])
+            post_multiplication_exp = Signal(signed(self.fpu_params.exp_width + 1))
+            m.d.av_comb += post_multiplication_exp.eq(pre_op_norm_exp - (op_1_norm_shift + op_2_norm_shift) + sig_product[-1])
+            
             sticky_bit = Signal()
             round_bit = Signal()
-            final_exp = Signal(self.fpu_params.exp_width)
-            final_sig = Signal(self.fpu_params.sig_width + 1)
-            normalised_sig = Signal(self.fpu_params.sig_width + 1)
+            mult_exp = Signal(self.fpu_params.exp_width)
+            mult_sig = Signal(self.fpu_params.sig_width + 1)
+            #One additional bit for round bit
+            normalised_ext_sig = Signal(self.fpu_params.sig_width + 1)
             #TODO comment about shift
-            m.d.av_comb += normalised_sig.eq(sig_shifted_product >> (self.fpu_params.sig_width - 2))
+            m.d.av_comb += normalised_ext_sig.eq(fixed_sig_product_norm >> (self.fpu_params.sig_width - 2))
 
             # TODO move RS bits computation outside if/else
-            with m.If(post_op_norm_exp >= min_real_exp):
-                m.d.av_comb += final_exp.eq(post_op_norm_exp + bias)
-                m.d.av_comb += final_sig.eq(normalised_sig)
-                shifted_bits = sig_shifted_product.bit_select(0, self.fpu_params.sig_width - 2).any()
-                m.d.av_comb += sticky_bit.eq(shifted_bits | shifted_bit)
-                with m.If(final_sig[-1] == 0):
+            with m.If(post_multiplication_exp >= min_real_exp):
+                m.d.av_comb += mult_exp.eq(post_multiplication_exp + bias)
+                m.d.av_comb += mult_sig.eq(normalised_ext_sig)
+                shifted_out_bits = fixed_sig_product_norm.bit_select(0, self.fpu_params.sig_width - 2).any()
+                m.d.av_comb += sticky_bit.eq(shifted_out_bits | shifted_out_bit)
+                with m.If(mult_sig[-1] == 0):
                     # TODO find example that would result in this case being true
                     # highest possible normal value and subnormal ?
-                    m.d.av_comb += final_exp.eq(0)
-            with m.Elif(post_op_norm_exp < min_real_exp):
+                    m.d.av_comb += mult_exp.eq(0)
+            with m.Elif(post_multiplication_exp < min_real_exp):
                 # In this case value always will be subnormal
-                m.d.av_comb += final_exp.eq(0)
+                m.d.av_comb += mult_exp.eq(0)
                 shift_needed = Signal(unsigned(self.fpu_params.exp_width))
-                m.d.av_comb += shift_needed.eq(min_real_exp - post_op_norm_exp)
-                m.d.av_comb += final_sig.eq(normalised_sig >> shift_needed)
+                m.d.av_comb += shift_needed.eq(min_real_exp - post_multiplication_exp)
+                m.d.av_comb += mult_sig.eq(normalised_ext_sig >> shift_needed)
                 any_shifted_out = Signal()
                 with m.If(shift_needed > (self.fpu_params.sig_width)):
-                    m.d.av_comb += any_shifted_out.eq(sig_shifted_product.any())
+                    m.d.av_comb += any_shifted_out.eq(fixed_sig_product_norm.any())
                 with m.Else():
                     # product has (2*p) - 1 bits, p ms bits represent the fp number
                     # p+1 bit is round bit and p - 2 ls bits for initial sticky bit
                     # For sticky bit we have to catch those p - 2 ls bits and shift_needed bits
                     # from p + 1 ms bits
                     padding = Signal().replicate(self.fpu_params.sig_width)
-                    shifted_out = Cat(padding, sig_shifted_product).bit_select(
+                    shifted_out = Cat(padding, fixed_sig_product_norm).bit_select(
                         shift_needed, 2 * self.fpu_params.sig_width - 2
                     )
                     m.d.av_comb += any_shifted_out.eq(shifted_out.any())
-                m.d.av_comb += sticky_bit.eq(any_shifted_out | shifted_bit)
-            m.d.av_comb += round_bit.eq(final_sig[0])
+                m.d.av_comb += sticky_bit.eq(any_shifted_out | shifted_out_bit)
+            m.d.av_comb += round_bit.eq(mult_sig[0])
             resp = rounding_module.rounding_request(
                 m,
                 sign=final_sign,
-                sig=final_sig >> 1,
-                exp=final_exp,
+                sig=mult_sig >> 1,
+                exp=mult_exp,
                 round_bit=round_bit,
                 sticky_bit=sticky_bit,
                 rounding_mode=rounding_mode,
