@@ -53,7 +53,7 @@ class FPUMulModule(Elaboratable):
     | 2. Significand multiplication - This is essentialy fixed-point multiplication with
     | two bits for integer part and 2*n - 2 bits for fractional part.
     | We deal with with subnormal number by extending exponents range and turning subnormal
-    | numbers into normalised numbers.  
+    | numbers into normalised numbers.
 
     Parameters
     ----------
@@ -79,14 +79,16 @@ class FPUMulModule(Elaboratable):
             i=self.method_layouts.mul_in_layout,
             o=self.method_layouts.mul_out_layout,
         )
-        self.mul_params = {"isa":{"xlen":self.fpu_params.sig_width}}
+        self.mul_params = {"isa": {"xlen": self.fpu_params.sig_width}}
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.rounding_module = rounding_module = FPURounding(fpu_params=self.fpu_params)
         m.submodules.exception_module = exception_module = FPUErrorModule(fpu_params=self.fpu_params)
-        m.submodules.multiplier = multiplier = FastRecursiveMul(self.fpu_params.sig_width,self.fpu_params.sig_width//2)
+        m.submodules.multiplier = multiplier = FastRecursiveMul(
+            self.fpu_params.sig_width, self.fpu_params.sig_width // 2
+        )
 
         rounding_response = Signal(from_method_layout(rounding_module.method_layouts.rounding_out_layout))
         exception_response = Signal(from_method_layout(exception_module.method_layouts.error_out_layout))
@@ -113,7 +115,6 @@ class FPUMulModule(Elaboratable):
 
             # One of the ways to deal with subnormal values is to normalise them,
             # record additional shifts in exponent and adjust for this during normalization
-
             op_1_norm_shift = Signal(range(0, self.fpu_params.sig_width + 1))
             op_2_norm_shift = Signal(range(0, self.fpu_params.sig_width + 1))
             m.d.av_comb += op_1_norm_shift.eq(count_leading_zeros(op_1.sig))
@@ -142,23 +143,30 @@ class FPUMulModule(Elaboratable):
                 m.d.av_comb += shifted_out_bit.eq(sig_product[0])
 
             post_multiplication_exp = Signal(signed(self.fpu_params.exp_width + 1))
-            m.d.av_comb += post_multiplication_exp.eq(pre_op_norm_exp - (op_1_norm_shift + op_2_norm_shift) + sig_product[-1])
-            
+            m.d.av_comb += post_multiplication_exp.eq(
+                pre_op_norm_exp - (op_1_norm_shift + op_2_norm_shift) + sig_product[-1]
+            )
+
             sticky_bit = Signal()
             round_bit = Signal()
             mult_exp = Signal(self.fpu_params.exp_width)
             mult_sig = Signal(self.fpu_params.sig_width + 1)
-            #One additional bit for round bit
+            # One additional bit for round bit
             normalised_ext_sig = Signal(self.fpu_params.sig_width + 1)
-            #TODO comment about shift
+            # The entire number consists of 2*(sig_width - 1) bits for fractional size
+            # and 2 bits for integer part so to turn this number into floating point number
+            # (1 bit for integer part and sig_width - 1 bits for fractional part)
+            # we have to shift number right by sig_width - 1 bits but because we
+            # want to keep one aditional bit for round bit we shift by sig_width - 2
             m.d.av_comb += normalised_ext_sig.eq(fixed_sig_product_norm >> (self.fpu_params.sig_width - 2))
 
             # TODO move RS bits computation outside if/else
+            any_shifted_out = Signal()
             with m.If(post_multiplication_exp >= min_real_exp):
                 m.d.av_comb += mult_exp.eq(post_multiplication_exp + bias)
                 m.d.av_comb += mult_sig.eq(normalised_ext_sig)
-                shifted_out_bits = fixed_sig_product_norm.bit_select(0, self.fpu_params.sig_width - 2).any()
-                m.d.av_comb += sticky_bit.eq(shifted_out_bits | shifted_out_bit)
+                lost_bits_or_red = fixed_sig_product_norm.bit_select(0, self.fpu_params.sig_width - 2).any()
+                m.d.av_comb += any_shifted_out.eq(lost_bits_or_red)
                 with m.If(mult_sig[-1] == 0):
                     # TODO find example that would result in this case being true
                     # highest possible normal value and subnormal ?
@@ -169,7 +177,6 @@ class FPUMulModule(Elaboratable):
                 shift_needed = Signal(unsigned(self.fpu_params.exp_width))
                 m.d.av_comb += shift_needed.eq(min_real_exp - post_multiplication_exp)
                 m.d.av_comb += mult_sig.eq(normalised_ext_sig >> shift_needed)
-                any_shifted_out = Signal()
                 with m.If(shift_needed > (self.fpu_params.sig_width)):
                     m.d.av_comb += any_shifted_out.eq(fixed_sig_product_norm.any())
                 with m.Else():
@@ -182,7 +189,7 @@ class FPUMulModule(Elaboratable):
                         shift_needed, 2 * self.fpu_params.sig_width - 2
                     )
                     m.d.av_comb += any_shifted_out.eq(shifted_out.any())
-                m.d.av_comb += sticky_bit.eq(any_shifted_out | shifted_out_bit)
+            m.d.av_comb += sticky_bit.eq(any_shifted_out | shifted_out_bit)
             m.d.av_comb += round_bit.eq(mult_sig[0])
             resp = rounding_module.rounding_request(
                 m,
@@ -209,7 +216,7 @@ class FPUMulModule(Elaboratable):
             exc_sign = Signal()
             inexact = Signal()
             invalid_operation = Signal()
-            #TODO DUPLICATE CODE HERE AND BELOW
+            # TODO DUPLICATE CODE HERE AND BELOW
             m.d.av_comb += exc_sig.eq(rounding_response["sig"])
             m.d.av_comb += exc_exp.eq(rounding_response["exp"])
             with m.If(is_nan | is_inf | is_zero):

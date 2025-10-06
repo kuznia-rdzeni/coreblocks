@@ -1,12 +1,14 @@
 from coreblocks.func_blocks.fu.fpu.fpu_mul import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes
+from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
 from test.func_blocks.fu.fpu.fpu_test_common import FPUTester, FenvRm, fenv_rm_to_fpu_rm
 from transactron.testing import *
 from amaranth import *
 import random
 import struct
 import ctypes
-libm = ctypes.CDLL('libm.so.6')
+
+libm = ctypes.CDLL("libm.so.6")
+
 
 class TestMul(TestCaseWithSimulator):
     def test_manual(self):
@@ -43,7 +45,6 @@ class TestMul(TestCaseWithSimulator):
                     assert result["sign"] == resp["sign"]
                     assert result["exp"] == resp["exp"]
                     assert result["sig"] == resp["sig"]
-
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.mul_request)
