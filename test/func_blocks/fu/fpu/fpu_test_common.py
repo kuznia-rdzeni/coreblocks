@@ -56,11 +56,13 @@ class ToFloatConverter:
             "is_zero": ((exp == 0) & (sig == 0)),
         }
 
+
 class FenvRm(Enum):
     FE_TONEAREST = 0x0000
     FE_DOWNWARD = 0x400
     FE_UPWARD = 0x800
-    FE_TOWARDZERO = 0xc00
+    FE_TOWARDZERO = 0xC00
+
 
 def fenv_rm_to_fpu_rm(fenv_rm):
     match fenv_rm:
