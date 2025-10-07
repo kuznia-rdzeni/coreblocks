@@ -20,6 +20,7 @@ class TestMul(TestCaseWithSimulator):
             seed = 42
             random.seed(seed)
             test_runs = 20
+            old_rm = libm.fegetround()
             for fenv_rm in FenvRm:
                 print(fenv_rm)
                 libm.fesetround(fenv_rm.value)
@@ -45,6 +46,7 @@ class TestMul(TestCaseWithSimulator):
                     assert result["sign"] == resp["sign"]
                     assert result["exp"] == resp["exp"]
                     assert result["sig"] == resp["sig"]
+            libm.fesetround(old_rm)
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.mul_request)
