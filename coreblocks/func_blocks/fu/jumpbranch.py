@@ -144,10 +144,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_misaligned,
             self.perf_mispredictions,
         ]
-        
+
         # Rollback does a lot of operations, break combinational path here (future todo: add as parameter to UnifierKey?)
         rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
-        m.submodules += rollback_unifiers.values() # FIXME
+        m.submodules += rollback_unifiers.values()  # FIXME
         m.submodules.rollback_fifo = rollback_fifo = BasicFifo(rollback_trigger_handlers.layout_in, depth=2)
         m.submodules.rollbakc_connect = ConnectTrans(rollback_fifo.read, rollback_trigger_handlers)
 
@@ -203,13 +203,15 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             # now that free RF is on bitmask we can copy that too -> maintain only referenced in RRAT mask.
             # instructions are still in the core, but we can invalidate them to no do any RP related actions. OK -> dont do it for now. But we can copy RAT yay.
             # lets say no exceptions for now!
-            
+
             exception = Signal()
-            
+
             with m.If(~instr_tag_active):
-                pass # already inactive instructions should be ignored and not trigger any extra actions
+                pass  # already inactive instructions should be ignored and not trigger any extra actions
             with m.Elif(~is_auipc & instr.taken & jmp_addr_misaligned):
-                self.perf_misaligned.incr(m) # NOTE: perfs like that (outside precommit) are invalid in speculative OoO + it triggers on core flush :(
+                self.perf_misaligned.incr(
+                    m
+                )  # NOTE: perfs like that (outside precommit) are invalid in speculative OoO + it triggers on core flush :(
 
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
@@ -230,12 +232,19 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
                 self.exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result, mtval=0
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    pc=jump_result,
+                    tag=instr.tag,
+                    mtval=0,
                 )
             with m.Elif(misprediction):
                 # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                rollback_fifo.write(m, tag=instr.tag, pc=jump_result) # trigger rollback and mispredicted path invalidation
+                rollback_fifo.write(
+                    m, tag=instr.tag, pc=jump_result
+                )  # trigger rollback and mispredicted path invalidation
 
             with m.If(~is_auipc):
                 self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)

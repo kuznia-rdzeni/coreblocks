@@ -118,10 +118,11 @@ class RollbackKey(UnifierKey, unifier=MethodProduct):
 
     pass
 
+
 @dataclass(frozen=True)
 class ActiveTagsKey(SimpleKey[Method]):
     """
-    Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path (and should 
+    Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path (and should
     side-effects be executed).
     """
 

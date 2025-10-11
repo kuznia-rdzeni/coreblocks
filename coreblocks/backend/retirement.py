@@ -115,8 +115,11 @@ class Retirement(Elaboratable):
 
             m.d.comb += instr_active.eq(self.checkpoint_get_active_tags(m).active_tags[instr_tag])
             m.d.comb += retire_valid.eq(
-                ~instr_active | (
-                ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id)))
+                ~instr_active
+                | (
+                    ~rob_entry.exception
+                    | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
+                )
             )
 
         core_flushing = Signal()
@@ -128,13 +131,13 @@ class Retirement(Elaboratable):
                     self.rob_retire(m)
 
                     with m.If(rob_entry.rob_data.tag_increment):
-                        m.d.sync += retirement_last_tag.eq(retirement_last_tag+1)
+                        m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
 
                     commit = Signal()
-                     
+
                     with m.If(rob_entry.exception & instr_active):
                         self.perf_trap_latency.start(m)
 
@@ -187,7 +190,7 @@ class Retirement(Elaboratable):
                                 retire_instr(rob_entry)
                             with m.Else():
                                 retire_inactive_instr(rob_entry)
-                        with cond(): # (Blocking if branch is not ready) , will not trigger on inactive instructions
+                        with cond():  # (Blocking if branch is not ready) , will not trigger on inactive instructions
                             flush_instr(rob_entry)
 
                             m.d.comb += core_flushing.eq(1)
@@ -238,16 +241,15 @@ class Retirement(Elaboratable):
 
                     m.next = "NORMAL"
 
-
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
-        
+
         _precommit = Method(i=self.layouts.internal_precommit_in)
 
         # NOTE: Alternatively this could be done automagically bt returning new method on new key get
         def precommit(m: TModule, *, rob_id: Value, tag: Value):
-            # Disable executing any side effects when core is flushing or instruction was 
+            # Disable executing any side effects when core is flushing or instruction was
             # on a final wrong speculation path.
 
             side_fx = Signal()
@@ -263,18 +265,19 @@ class Retirement(Elaboratable):
             return ret
 
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), precommit)
-                
+
         # The `rob_id` argument is only used in argument validation, it is not needed in the method body.
         # A dummy combiner is provided.
         rob_peek_id_val = Signal(self.gen_params.rob_entries_bits)
+
         @def_method(
             m,
             _precommit,
             validate_arguments=lambda rob_id: rob_id == rob_peek_id_val,
             nonexclusive=True,
-            combiner=lambda m, args, runs: 0
+            combiner=lambda m, args, runs: 0,
         )
         def _(rob_id):
             m.d.top_comb += rob_peek_id_val.eq(self.rob_peek(m).rob_id)
-            
+
         return m

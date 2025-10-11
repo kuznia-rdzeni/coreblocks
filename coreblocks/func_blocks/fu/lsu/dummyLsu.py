@@ -95,10 +95,10 @@ class LSUDummy(FuncUnit, Elaboratable):
         do_issue = ~flush & want_issue
         with Transaction().body(m, request=do_issue):
             arg = requests.read(m)
-            
+
             # Refactor after adding Forwarder.peek? or just separate and leave comment?
-            m.d.av_comb += request_rob_id.eq(arg.rob_id) 
-            m.d.av_comb += request_tag.eq(arg.tag) 
+            m.d.av_comb += request_rob_id.eq(arg.rob_id)
+            m.d.av_comb += request_tag.eq(arg.tag)
 
             addr = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
@@ -137,7 +137,9 @@ class LSUDummy(FuncUnit, Elaboratable):
                     m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"])
+                self.report(
+                    m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], tag=arg["tag"], mtval=res["addr"]
+                )
 
             self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
 

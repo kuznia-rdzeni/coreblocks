@@ -88,7 +88,7 @@ class StallController(Elaboratable):
                 with branch(~stalled_exception):
                     log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
                     self.redirect_frontend(m, pc=pc)
-        
+
         redirect_frontend = Signal()
         redirect_frontend_pc = Signal(self.gen_params.isa.xlen)
 
@@ -115,7 +115,6 @@ class StallController(Elaboratable):
             m.d.sync += stalled_exception.eq(1)
             # maybe move tracking to ECR itself?
 
-
         @def_method(m, self.rollback_handler)
         def _(tag: Signal, pc: Signal):
             # rollback invalidates prefix of instructions, therefore always clears unsafe state
@@ -123,13 +122,13 @@ class StallController(Elaboratable):
             log.info(m, stalled_unsafe, "Resuming from unsafe state because of an rollback new_pc=0x{:x}", pc)
             # Check if it is safe to redirect a running fetch?
             # AHHH -> it is flushed / cleared on a rollback.
-            # Can we move this logic here? 
-            
+            # Can we move this logic here?
+
             # Hmm, we have a rollback tagger already installed, this is all not that bad!
 
             # it seems to be? check if blocking to update th PC may be necessary. - no -> clear.
             # resume exn will not confilct.
-            
+
             m.d.comb += redirect_frontend.eq(1)
             m.d.comb += redirect_frontend_pc.eq(pc)
 
@@ -137,6 +136,5 @@ class StallController(Elaboratable):
             # remove confilct between rollbacks and resume_from_exception. (resume_from_exception happens only
             # on empty core).
             self.redirect_frontend(m, pc=redirect_frontend_pc)
-
 
         return m

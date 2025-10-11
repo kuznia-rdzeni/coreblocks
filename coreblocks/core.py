@@ -115,7 +115,7 @@ class Core(Component):
         m.submodules.get_instr = get_instr = MethodProduct(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
-        
+
         m.submodules.retirement = retirement = Retirement(self.gen_params)
         retirement.rob_peek.proxy(m, rob.peek)
         retirement.rob_retire.proxy(m, rob.retire)
@@ -132,7 +132,6 @@ class Core(Component):
         retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
         retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
         retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
-
 
         m.submodules.scheduler = Scheduler(
             get_instr=get_instr.method,

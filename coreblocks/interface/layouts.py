@@ -709,6 +709,7 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            fields.tag,
             self.mtval,
         )
 

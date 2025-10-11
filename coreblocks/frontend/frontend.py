@@ -120,7 +120,7 @@ class CoreFrontend(Elaboratable):
         self.stall = Method()
 
         self.rollback_tagger = RollbackTagger(self.gen_params)
-        
+
         self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
         DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
 
@@ -171,9 +171,9 @@ class CoreFrontend(Elaboratable):
         def _():
             flush_frontend()
             self.stall_ctrl.stall_exception(m)
-        
+
         @def_method(m, self.rollback)
         def _(tag, pc):
-            flush_frontend() # check if the methods are exclusive (or ok to confilct)
+            flush_frontend()  # check if the methods are exclusive (or ok to confilct)
 
         return m
