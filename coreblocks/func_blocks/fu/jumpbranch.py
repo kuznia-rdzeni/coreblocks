@@ -222,6 +222,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     rob_id=instr.rob_id,
                     cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED,
                     pc=instr.pc,
+                    tag=instr.tag,
                     mtval=instr.jmp_addr,
                 )
 

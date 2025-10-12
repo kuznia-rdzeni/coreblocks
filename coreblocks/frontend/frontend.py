@@ -75,10 +75,6 @@ class CoreFrontend(Elaboratable):
     ----------
     consume_instr: Method
         Consume a single decoded instruction.
-    resume_from_exception: Method
-        Resume the frontend from the given PC after an exception.
-    stall: Method
-        Stall and flush the frontend.
     """
 
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
@@ -116,8 +112,9 @@ class CoreFrontend(Elaboratable):
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
 
         self.consume_instr = self.output_pipe.read
-        self.resume_from_exception = self.stall_ctrl.resume_from_exception
-        self.stall = Method()
+
+        self.resume_from_core_flush = self.stall_ctrl.resume_from_core_flush
+        self.get_exception_information = self.stall_ctrl.get_exception_information
 
         self.rollback_tagger = RollbackTagger(self.gen_params)
 
@@ -148,6 +145,7 @@ class CoreFrontend(Elaboratable):
 
         m.submodules.stall_ctrl = self.stall_ctrl
         self.stall_ctrl.redirect_frontend.proxy(m, self.fetch.redirect)
+        self.stall_ctrl.fetch_flush.proxy(m, self.fetch.flush)
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):
@@ -162,18 +160,12 @@ class CoreFrontend(Elaboratable):
         def _(arg):
             return {"valid": 0, "cfi_target": 0}
 
-        def flush_frontend():
-            self.fetch.flush(m)
+        def flush_frontend():  # Fetch is flushed from stall controller
             self.instr_buffer.clear(m)
             self.output_pipe.clean(m)
 
-        @def_method(m, self.stall)
-        def _():
-            flush_frontend()
-            self.stall_ctrl.stall_exception(m)
-
         @def_method(m, self.rollback)
         def _(tag, pc):
-            flush_frontend()  # check if the methods are exclusive (or ok to confilct)
+            flush_frontend()
 
         return m

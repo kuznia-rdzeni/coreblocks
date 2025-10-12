@@ -68,7 +68,7 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
         # TODO: abstract memories don't implement MemoryData, but standard lib.Memory used in tests
-        return sim.get(self.m.core.RRAT.entries.mem.data[reg_id])  # type: ignore
+        return sim.get(self.m.core.RRAT.entries[reg_id])  # type: ignore
 
     def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
         return sim.get(self.m.core.RF.entries.mem.data[(self.get_phys_reg_rrat(sim, reg_id))])  # type: ignore

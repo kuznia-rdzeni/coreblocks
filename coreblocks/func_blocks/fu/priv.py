@@ -162,7 +162,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 )
 
                 self.exception_report(
-                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr
+                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, tag=instr_tag, mtval=instr
                 )
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
@@ -174,7 +174,12 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 # would normally return to (mepc value is preserved)
                 m.d.av_comb += exception.eq(1)
                 self.exception_report(
-                    m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
+                    m,
+                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    pc=ret_pc,
+                    rob_id=instr_rob,
+                    tag=instr_tag,
+                    mtval=0,
                 )
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)

@@ -5,7 +5,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.interface.keys import ActiveTagsKey, ExceptionReportKey
-from transactron.core import TModule, def_method, Method
+from transactron.core import TModule, def_method, Method, Transaction
 from transactron.lib.connectors import ConnectTrans
 from transactron.lib.fifo import BasicFifo
 
@@ -20,7 +20,7 @@ class ExceptionInformationRegister(Elaboratable):
     If `exception` bit is set in the ROB, `Retirement` stage fetches exception details from this module.
     """
 
-    def __init__(self, gen_params: GenParams, rob_get_indices: Method, fetch_stall_exception: Method):
+    def __init__(self, gen_params: GenParams, rob_get_indices: Method):
         self.gen_params = gen_params
 
         self.cause = Signal(ExceptionCause)
@@ -60,29 +60,29 @@ class ExceptionInformationRegister(Elaboratable):
         self.clear = Method()
 
         self.rob_get_indices = rob_get_indices
-        self.fetch_stall_exception = fetch_stall_exception
 
     def elaborate(self, platform):
         m = TModule()
 
-        active_tags_m = self.dm.get_dependency(ActiveTagsKey())(m)
-        active_tags = Signal.like(active_tags_method.layout_out)
+        active_tags_m = self.dm.get_dependency(ActiveTagsKey())
+        active_tags = Signal(active_tags_m.layout_out)
         with Transaction().body(m):
             m.d.comb += active_tags.eq(active_tags_m(m))
 
-        with m.If(~active_tags[self.tag]):
+        with m.If(~active_tags.active_tags[self.tag]):
             # we can safely invalidate all exceptions (the entry) in case of rollback, because rollback invalidates
             # suffix of (youngest) instructions. If the current entry was in that suffix, it means that no older
             # instructions (priority on rob_id selection), including all that remain valid, have raised any exception.
+            # Tag can be invalidated only as an effect of rollback.
             m.d.sync += self.valid.eq(0)
 
         @def_method(m, self.report)
         def _(cause, rob_id, pc, tag, mtval):
             should_write = Signal()
 
-            with m.If(~active_tags[tag]):
+            with m.If(~active_tags.active_tags[tag]):
                 # ignore inactive instructions
-                m.d.comn += should_write.eq(0)
+                m.d.comb += should_write.eq(0)
             with m.If(self.valid & (self.rob_id == rob_id)):
                 # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
                 # in Retirement.
@@ -103,9 +103,6 @@ class ExceptionInformationRegister(Elaboratable):
                 m.d.sync += self.mtval.eq(mtval)
 
             m.d.sync += self.valid.eq(1)
-
-            # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
-            self.fetch_stall_exception(m)
 
         @def_method(m, self.get, nonexclusive=True)
         def _():

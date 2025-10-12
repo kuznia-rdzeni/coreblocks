@@ -209,19 +209,17 @@ class CheckpointRAT(Elaboratable):
             checkpoint = create_checkpoint_pipe.read(m).checkpoint
             storage.write(m, addr=checkpoint, data=self.frat)
 
-        # Block until last FRAT overwrite from Rollback is finished.
-        # Retirement restores entries on hard-flushes that were not covered by checkpoints one-by-one, don't overwrite.
+        # Block until last FRAT overwrite from Rollback is finished. TODO: not needed? cancel rollback?
+        # Retirement restores entries on hard-flushes that were not covered by checkpoints, don't overwrite.
         @def_method(m, self.flush_restore, ready=last_rollback_finished)
-        def _(rl_dst: Value, rp_dst: Value):
-            with m.If(rl_dst != 0):  # Duplicated, because otherwise causes comb loop in rename condition
-                m.d.sync += self.frat[rl_dst].eq(rp_dst)
+        def _(entries: Value):
+            m.d.sync += self.frat.eq(entries)
 
         self.flush_restore.add_conflict(self.rename, Priority.RIGHT)
-        # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
-        # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
+        self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
         # -------------------------------------------
-        # Instructon tagging and stalling before RAT
+        # Instruction tagging and stalling before RAT
         # -------------------------------------------
 
         last_issued_tag = Signal(self.gen_params.tag_bits)

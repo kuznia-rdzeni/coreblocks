@@ -1,7 +1,5 @@
-from functools import reduce
-import operator
 from amaranth import *
-from amaranth_types import ModuleLike
+from amaranth.lib.data import View
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionRegisterLayouts,
@@ -29,20 +27,22 @@ class Retirement(Elaboratable):
     def __init__(
         self,
         gen_params: GenParams,
+        rrat_entries: View,
     ):
         self.gen_params = gen_params
+        self.rrat_entries = rrat_entries
+
         self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
         self.rob_retire = Method()
         self.r_rat_commit = Method(
             i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
         )
-        self.r_rat_peek = Method(i=gen_params.get(RATLayouts).rrat_peek_in, o=gen_params.get(RATLayouts).rrat_peek_out)
         self.free_rf_put = Method(i=[("ident", range(gen_params.phys_regs))])
         self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
-        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
+        self.fetch_resume_from_core_flush = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
         self.trap_entry = Method()
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
@@ -89,17 +89,13 @@ class Retirement(Elaboratable):
             self.perf_instr_ret.incr(m)
 
         def flush_instr(rob_entry):
-            # get original rp_dst mapped to instruction rl_dst in R-RAT
-            rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
-
-            # free the "new" instruction rp_dst - result is flushed
+            # we will copy full R-RAT mapping to C-RAT (F-RAT) in single cycle after last instruction is flushed
+            # FUTURE-TODO: restore in single cycle with bitmask from RAT
             free_phys_reg(rob_entry.rob_data.rp_dst)
-
-            # restore original rl_dst->rp_dst mapping in F-RAT
-            self.c_rat_restore(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
         def retire_inactive_instr(rob_entry):
             # F-RAT entry was already rolled back
+            # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
         retirement_last_tag = Signal(self.gen_params.tag_bits)
@@ -208,8 +204,6 @@ class Retirement(Elaboratable):
 
                     core_empty = self.instr_decrement(m)
 
-                    # shit instr active does not apply here
-                    # FIXME: JUST ASSERT NO EXCEPTIONS FOR NOW
                     flush_instr(rob_entry)
 
                     with m.If(core_empty):
@@ -219,8 +213,12 @@ class Retirement(Elaboratable):
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
-                    # Resume core operation
-                    self.perf_trap_latency.stop(m)
+                    # NOTE: FRAT state was previously restored instruction-by-instruction before introduction
+                    # of checkpointing. Restoring RRAT -> [FRAT (inside CRAT)] in a single cycle on a core flush
+                    # is simpler in hardware and as a concept :), but increases routing congestions.
+                    # We may want to look into synthesis trade-offs later. See commit diff for changes in RRAT
+                    # and restore logic.
+                    self.c_rat_restore(m, entries=self.rrat_entries)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     mtvec_offset = Signal(self.gen_params.isa.xlen)
@@ -234,10 +232,12 @@ class Retirement(Elaboratable):
 
                     # (mtvec_base stores base[MXLEN-1:2])
                     m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
-                    self.fetch_continue(m, pc=handler_pc)
+                    self.fetch_resume_from_core_flush(m, pc=handler_pc)
 
-                    # Release pending trap state - allow accepting new reports
+                    # Release pending trap state and the fetch lock
                     self.exception_cause_clear(m)
+
+                    self.perf_trap_latency.stop(m)
 
                     m.next = "NORMAL"
 

@@ -69,9 +69,7 @@ class Core(Component):
         self.connections.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
 
         self.exception_information_register = ExceptionInformationRegister(
-            self.gen_params,
-            rob_get_indices=self.ROB.get_indices,
-            fetch_stall_exception=self.frontend.stall,
+            self.gen_params, rob_get_indices=self.ROB.get_indices
         )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
@@ -97,6 +95,7 @@ class Core(Component):
         m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
 
         m.submodules.frontend = self.frontend
+        self.frontend.get_exception_information.proxy(m, self.exception_information_register.get)
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
         m.submodules.CRAT = crat = self.CRAT
@@ -116,17 +115,16 @@ class Core(Component):
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
 
-        m.submodules.retirement = retirement = Retirement(self.gen_params)
+        m.submodules.retirement = retirement = Retirement(self.gen_params, rrat_entries=rrat.entries)
         retirement.rob_peek.proxy(m, rob.peek)
         retirement.rob_retire.proxy(m, rob.retire)
         retirement.r_rat_commit.proxy(m, rrat.commit)
-        retirement.r_rat_peek.proxy(m, rrat.peek)
         retirement.free_rf_put.proxy(m, rf_allocator.free[0])
         retirement.rf_free.proxy(m, rf.free[0])
         retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
         retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
         retirement.c_rat_restore.proxy(m, crat.flush_restore)
-        retirement.fetch_continue.proxy(m, self.frontend.resume_from_exception)
+        retirement.fetch_resume_from_core_flush.proxy(m, self.frontend.resume_from_core_flush)
         retirement.instr_decrement.proxy(m, core_counter.decrement)
         retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
         retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)

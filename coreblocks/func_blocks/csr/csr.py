@@ -244,6 +244,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                     rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
                     pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                    tag=instr.tag,
                     mtval=0,
                 )
 
