@@ -15,12 +15,15 @@ from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
+from transactron.lib.logging import HardwareLogger
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 from coreblocks.arch.isa_consts import TrapVectorMode
+
+log = HardwareLogger("backend.retirement")
 
 
 class Retirement(Elaboratable):
@@ -72,6 +75,8 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
 
         def free_phys_reg(rp_dst: Value):
+            log.debug(m, True, "freeing rp{}", rp_dst)
+
             # mark reg in Register File as free
             self.rf_free(m, rp_dst)
             # put to Free RF list
@@ -85,6 +90,15 @@ class Retirement(Elaboratable):
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(rat_out.old_rp_dst)
 
+            log.debug(
+                m,
+                True,
+                "retiring instruction rl{} -> rp{}, freeing rp{}",
+                rob_entry.rob_data.rl_dst,
+                rob_entry.rob_data.rp_dst,
+                rat_out.old_rp_dst,
+            )
+
             self.instret_csr.increment(m)
             self.perf_instr_ret.incr(m)
 
@@ -93,10 +107,14 @@ class Retirement(Elaboratable):
             # FUTURE-TODO: restore in single cycle with bitmask from RAT
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
+            log.debug(m, True, "hard flushing instruction rp{}", rob_entry.rob_data.rp_dst)
+
         def retire_inactive_instr(rob_entry):
             # F-RAT entry was already rolled back
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(rob_entry.rob_data.rp_dst)
+
+            log.debug(m, True, "retiring rolled-back instruction, freeing rp{}", rob_entry.rob_data.rp_dst)
 
         retirement_last_tag = Signal(self.gen_params.tag_bits)
 
@@ -200,6 +218,7 @@ class Retirement(Elaboratable):
                     self.rob_retire(m)
 
                     with m.If(rob_entry.rob_data.tag_increment):
+                        m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
@@ -219,6 +238,8 @@ class Retirement(Elaboratable):
                     # We may want to look into synthesis trade-offs later. See commit diff for changes in RRAT
                     # and restore logic.
                     self.c_rat_restore(m, entries=self.rrat_entries)
+
+                    log.debug(m, True, "crat restored, resuming core")
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     mtvec_offset = Signal(self.gen_params.isa.xlen)

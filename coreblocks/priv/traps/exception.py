@@ -83,7 +83,7 @@ class ExceptionInformationRegister(Elaboratable):
             with m.If(~active_tags.active_tags[tag]):
                 # ignore inactive instructions
                 m.d.comb += should_write.eq(0)
-            with m.If(self.valid & (self.rob_id == rob_id)):
+            with m.Elif(self.valid & (self.rob_id == rob_id)):
                 # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
                 # in Retirement.
                 m.d.comb += should_write.eq(0)

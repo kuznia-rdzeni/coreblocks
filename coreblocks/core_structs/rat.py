@@ -12,7 +12,7 @@ class RRAT(Elaboratable):
         self.gen_params = gen_params
 
         storage_layout = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
-        self.entries = Signal(storage_layout, init=[rl for rl in range(gen_params.isa.reg_cnt)])
+        self.entries = Signal(storage_layout, init=[0 for _ in range(gen_params.isa.reg_cnt)])
 
         layouts = gen_params.get(RATLayouts)
         self.commit = Method(i=layouts.rrat_commit_in, o=layouts.rrat_commit_out)

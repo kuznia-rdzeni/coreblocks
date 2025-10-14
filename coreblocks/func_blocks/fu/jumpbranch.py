@@ -20,6 +20,7 @@ from coreblocks.interface.keys import (
     ExceptionReportKey,
     PredictedJumpTargetKey,
     RollbackKey,
+    UnsafeInstructionResolvedKey,
 )
 from transactron.utils import OneHotSwitch
 from transactron.utils.transactron_helpers import make_layout
@@ -145,11 +146,16 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_mispredictions,
         ]
 
-        # Rollback does a lot of operations, break combinational path here (future todo: add as parameter to UnifierKey?)
+        # Rollback does a lot of operations, break combinational path here (future TODO: add as parameter to UnifierKey?)
         rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
-        m.submodules += rollback_unifiers.values()  # FIXME
+        m.submodules += rollback_unifiers.values()
         m.submodules.rollback_fifo = rollback_fifo = BasicFifo(rollback_trigger_handlers.layout_in, depth=2)
-        m.submodules.rollbakc_connect = ConnectTrans(rollback_fifo.read, rollback_trigger_handlers)
+        m.submodules.rollback_connect = ConnectTrans(rollback_fifo.read, rollback_trigger_handlers)
+
+        unsafe_resolved = self.dm.get_dependency(UnsafeInstructionResolvedKey())
+        # workaround against Transactron bug calling methods under Ifs with 0 args again; wrrrrrrrrrrrrrrrrr :/
+        m.submodules.unsafe_resolved_fwd = unsafe_resolved_fwd = Forwarder(unsafe_resolved.layout_in)
+        m.submodules.unsafe_resolved_connect = ConnectTrans(unsafe_resolved_fwd.read, unsafe_resolved)
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
 
@@ -177,8 +183,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
             is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
+            is_jalr = instr.type == JumpBranchFn.Fn.JALR
 
-            predicted_addr_correctly = (instr.type != JumpBranchFn.Fn.JALR) | (
+            predicted_addr_correctly = (~is_jalr) | (
                 target_prediction.valid & (target_prediction.cfi_target == instr.jmp_addr)
             )
 
@@ -196,13 +203,6 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             get_active_tags = self.dm.get_dependency(ActiveTagsKey())
             instr_tag_active = get_active_tags(m).active_tags[instr.tag]
-            # ok, do we want to trigger rollback on core flushing?
-            # how this works in relation to hard-flushes?
-            # I think so - don't touch the CRAT, wait for rollback, restore entry by entry from RRAT on active insns. (or just copy RRAT at once huh?).
-            # why we are doing it slowly now????
-            # now that free RF is on bitmask we can copy that too -> maintain only referenced in RRAT mask.
-            # instructions are still in the core, but we can invalidate them to no do any RP related actions. OK -> dont do it for now. But we can copy RAT yay.
-            # lets say no exceptions for now!
 
             exception = Signal()
 
@@ -240,6 +240,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     tag=instr.tag,
                     mtval=0,
                 )
+            with m.Elif(is_jalr):
+                # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
+                # Resolve only with redirection and resume of frontend.
+                unsafe_resolved_fwd.write(m, pc=jump_result)
             with m.Elif(misprediction):
                 # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
@@ -252,9 +256,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 log.debug(
                     m,
                     True,
-                    "branch resolved from 0x{:08x} to 0x{:08x}; misprediction: {}",
+                    "branch resolved from 0x{:08x} to 0x{:08x}; tag: 0x{:x} misprediction: {}",
                     instr.pc,
                     jump_result,
+                    instr.tag,
                     misprediction,
                 )
 

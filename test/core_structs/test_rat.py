@@ -7,6 +7,7 @@ from coreblocks.params.configurations import test_core_config
 from collections import deque
 from random import Random
 
+
 class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
     def gen_input(self):
         for _ in range(self.test_steps):
