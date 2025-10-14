@@ -125,7 +125,8 @@ class Retirement(Elaboratable):
             rob_entry = self.rob_peek(m)
             ecr_entry = self.exception_cause_get(m)
 
-            instr_tag = retirement_last_tag + rob_entry.rob_data.tag_increment
+            instr_tag = Signal(self.gen_params.tag_bits)  # wraps around! (signal needed)
+            m.d.comb += instr_tag.eq(retirement_last_tag + rob_entry.rob_data.tag_increment)
 
             m.d.comb += instr_active.eq(self.checkpoint_get_active_tags(m).active_tags[instr_tag])
             m.d.comb += retire_valid.eq(

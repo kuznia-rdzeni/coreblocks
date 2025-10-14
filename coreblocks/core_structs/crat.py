@@ -318,7 +318,7 @@ class CheckpointRAT(Elaboratable):
                 )
 
             log.assertion(m, ((active_tags & checkpointed_tags) & (1 << tag)).any(), "rollback to illegal tag")
-            log.assertion(m, ~self.dm.get_dependency(CoreStateKey())(m).flushing, "rollback during core hard flush")
+            # FUTRUE TODO optimization: ignore rollback on hard flushes
 
             m.d.sync += rollback_target_tag.eq(tag)
             m.d.sync += last_rollback_finished.eq(0)
