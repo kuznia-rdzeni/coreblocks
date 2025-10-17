@@ -252,6 +252,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exe_side_fx & ~exception & ~interrupt):
                 # CSR instructions are never compressed, PC+4 is always next instruction
+                # exe_side_fx already checks if instruction tag is active
                 resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {

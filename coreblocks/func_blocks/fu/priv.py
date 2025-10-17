@@ -7,7 +7,7 @@ from coreblocks.arch.isa_consts import Funct12, Funct3, Opcode, PrivilegeLevel
 
 
 from transactron import *
-from transactron.lib import logging
+from transactron.lib import ConnectTrans, Forwarder, logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
@@ -17,6 +17,7 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
 from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     MretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
@@ -184,7 +185,9 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                resume_core(m, pc=ret_pc)
+                get_active_tags = self.dm.get_dependency(ActiveTagsKey())
+                with m.If(get_active_tags(m).active_tags[instr_tag]):
+                    resume_core(m, pc=ret_pc)
 
             self.push_result(
                 m,

@@ -243,7 +243,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             with m.Elif(is_jalr):
                 # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
                 # Resolve only with redirection and resume of frontend.
-                unsafe_resolved_fwd.write(m, pc=jump_result)
+                with m.If(instr_tag_active):
+                    unsafe_resolved_fwd.write(m, pc=jump_result)
             with m.Elif(misprediction):
                 # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.

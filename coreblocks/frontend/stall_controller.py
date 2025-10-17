@@ -60,9 +60,10 @@ class StallController(Elaboratable):
 
         self.redirect_frontend = Method(i=layouts.redirect)
 
-        DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
+        self.dm = DependencyContext.get()
+        self.dm.add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
         self.rollback_handler = Method(i=gen_params.get(RATLayouts).rollback_in)
-        DependencyContext.get().add_dependency(RollbackKey(), self.rollback_handler)
+        self.dm.add_dependency(RollbackKey(), self.rollback_handler)
 
         self.get_exception_information = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.fetch_flush = Method()
@@ -107,7 +108,11 @@ class StallController(Elaboratable):
 
         @def_method(m, self._resume_from_unsafe, nonexclusive=True, combiner=resume_combiner)
         def _(pc):
+            # Instructions must verify tag is active when queuing resume, inactive instructions
+            # were unstalled already at rollback (don't do double rollback).
+            # Resuming on instructions that will be later invalidated is fine.
             log.assertion(m, stalled_unsafe)
+
             m.d.sync += stalled_unsafe.eq(0)
 
             with condition(m, nonblocking=True) as branch:
@@ -139,7 +144,6 @@ class StallController(Elaboratable):
 
             m.d.sync += stalled_unsafe.eq(0)
             log.info(m, stalled_unsafe, "Resuming from unsafe state because of rollback")
-            # TODO: Can we move this (legacy ???) logic here?
             # Hmm, we have a rollback tagger already installed, this is all not that bad!
 
             log.info(m, stalled_unsafe, "Rollback: redirecting frontend to pc=0x{:x}", pc)
