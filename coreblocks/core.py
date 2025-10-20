@@ -67,8 +67,6 @@ class Core(Component):
         self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
         self.ROB = ReorderBuffer(gen_params=self.gen_params)
 
-        self.retirement = Retirement(self.gen_params)
-
         self.exception_information_register = ExceptionInformationRegister(
             self.gen_params, rob_get_indices=self.ROB.get_indices
         )
@@ -96,7 +94,7 @@ class Core(Component):
         m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
 
         m.submodules.frontend = self.frontend
-        self.frontend.get_exception_information.proxy(m, self.exception_information_register.get)
+        self.frontend.get_exception_information.provide(self.exception_information_register.get)
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
         m.submodules.CRAT = crat = self.CRAT
@@ -115,22 +113,6 @@ class Core(Component):
         m.submodules.get_instr = get_instr = MethodProduct.create(
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
-
-        m.submodules.retirement = retirement = Retirement(self.gen_params, rrat_entries=rrat.entries)
-        retirement.rob_peek.proxy(m, rob.peek)
-        retirement.rob_retire.proxy(m, rob.retire)
-        retirement.r_rat_commit.proxy(m, rrat.commit)
-        retirement.free_rf_put.proxy(m, rf_allocator.free[0])
-        retirement.rf_free.proxy(m, rf.free[0])
-        retirement.exception_cause_get.proxy(m, self.exception_information_register.get)
-        retirement.exception_cause_clear.proxy(m, self.exception_information_register.clear)
-        retirement.c_rat_restore.proxy(m, crat.flush_restore)
-        retirement.fetch_resume_from_core_flush.proxy(m, self.frontend.resume_from_core_flush)
-        retirement.instr_decrement.proxy(m, core_counter.decrement)
-        retirement.trap_entry.proxy(m, self.interrupt_controller.entry)
-        retirement.async_interrupt_cause.proxy(m, self.interrupt_controller.interrupt_cause)
-        retirement.checkpoint_get_active_tags.proxy(m, crat.get_active_tags)
-        retirement.checkpoint_tag_free.proxy(m, crat.free_tag)
 
         m.submodules.scheduler = Scheduler(
             get_instr=get_instr.method,
@@ -155,17 +137,16 @@ class Core(Component):
         announcement.rs_update.provide(self.func_blocks_unifier.update)
         announcement.rf_write_val.provide(self.RF.write[0])
 
-        m.submodules.retirement = retirement = self.retirement
+        m.submodules.retirement = retirement = Retirement(self.gen_params, rrat_entries=rrat.entries)
         retirement.rob_peek.provide(rob.peek)
         retirement.rob_retire.provide(rob.retire)
         retirement.r_rat_commit.provide(rrat.commit)
-        retirement.r_rat_peek.provide(rrat.peek)
         retirement.free_rf_put.provide(rf_allocator.free[0])
         retirement.rf_free.provide(rf.free[0])
         retirement.exception_cause_get.provide(self.exception_information_register.get)
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)
-        retirement.fetch_continue.provide(self.frontend.resume_from_exception)
+        retirement.fetch_resume_from_core_flush.provide(self.frontend.resume_from_core_flush)
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)

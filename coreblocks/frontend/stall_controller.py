@@ -95,7 +95,7 @@ class StallController(Elaboratable):
 
         m.d.sync += prev_stalled_exception.eq(stalled_exception)
 
-        with Transaction().body(m, request=~prev_stalled_exception & stalled_exception):
+        with Transaction().body(m, ready=~prev_stalled_exception & stalled_exception):
             self.fetch_flush(m)  # not required for corectness, but removes more unneccessary instructions
 
         @def_method(m, self.stall_guard, ready=~(stalled_unsafe | stalled_exception), nonexclusive=True)
@@ -153,7 +153,7 @@ class StallController(Elaboratable):
             m.d.comb += redirect_frontend.eq(1)
             m.d.comb += redirect_frontend_pc.eq(pc)
 
-        with Transaction().body(m, request=redirect_frontend):
+        with Transaction().body(m, ready=redirect_frontend):
             # decouple confilct between rollbacks and resume_from_exception. (resume_from_exception happens only
             # on empty core).
             self.redirect_frontend(m, pc=redirect_frontend_pc)

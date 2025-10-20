@@ -89,7 +89,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         flush_icache = self.dm.get_dependency(FlushICacheKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
         m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
-        m.submodules.resume_conn = ConnectTrans(resume_core_fwd.read, resume_core)
+        m.submodules.resume_conn = ConnectTrans.create(resume_core_fwd.read, resume_core)
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):

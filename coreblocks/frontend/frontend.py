@@ -144,8 +144,8 @@ class CoreFrontend(Elaboratable):
         m.submodules.output_pipe = self.output_pipe
 
         m.submodules.stall_ctrl = self.stall_ctrl
-        self.stall_ctrl.redirect_frontend.provide(m, self.fetch.redirect)
-        self.stall_ctrl.fetch_flush.provide(m, self.fetch.flush)
+        self.stall_ctrl.redirect_frontend.provide(self.fetch.redirect)
+        self.stall_ctrl.fetch_flush.provide(self.fetch.flush)
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):

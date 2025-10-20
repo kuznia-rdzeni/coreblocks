@@ -211,7 +211,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
             resume_core = self.dependency_manager.get_dependency(UnsafeInstructionResolvedKey())
             m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
-            m.submodules.resume_conn = ConnectTrans(resume_core_fwd.read, resume_core)
+            m.submodules.resume_conn = ConnectTrans.create(resume_core_fwd.read, resume_core)
 
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)

@@ -152,12 +152,12 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
         m.submodules += rollback_unifiers.values()
         m.submodules.rollback_fifo = rollback_fifo = BasicFifo(rollback_trigger_handlers.layout_in, depth=2)
-        m.submodules.rollback_connect = ConnectTrans(rollback_fifo.read, rollback_trigger_handlers)
+        m.submodules.rollback_connect = ConnectTrans.create(rollback_fifo.read, rollback_trigger_handlers)
 
         unsafe_resolved = self.dm.get_dependency(UnsafeInstructionResolvedKey())
         # workaround against Transactron bug calling methods under Ifs with 0 args again; wrrrrrrrrrrrrrrrrr :/
         m.submodules.unsafe_resolved_fwd = unsafe_resolved_fwd = Forwarder(unsafe_resolved.layout_in)
-        m.submodules.unsafe_resolved_connect = ConnectTrans(unsafe_resolved_fwd.read, unsafe_resolved)
+        m.submodules.unsafe_resolved_connect = ConnectTrans.create(unsafe_resolved_fwd.read, unsafe_resolved)
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
 
