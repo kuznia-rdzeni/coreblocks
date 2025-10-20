@@ -102,7 +102,7 @@ class PipelinedMul(Elaboratable):
                 chunk_i2 = self.i2[b * self.dsp_width : (b + 1) * self.dsp_width]
                 run_on_step = i // self.dsp_number
                 dsp_idx = i % self.dsp_number
-                with Transaction().body(m, request=(self.step == run_on_step)):
+                with Transaction().body(m, ready=(self.step == run_on_step)):
                     res = self.dsp_units[dsp_idx].compute(m, i1=chunk_i1, i2=chunk_i2)
                     m.d.sync += self.values_array[0][a][b].eq(res)
 

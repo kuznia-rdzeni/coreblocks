@@ -72,9 +72,9 @@ class InternalInterruptController(Component):
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
 
         mie_writeable = (
-            # (1 << InterruptCauseNumber.MSI) TODO: CLINT
-            # (1 << InterruptCauseNumber.MTI) TODO: CLINT
-            (1 << InterruptCauseNumber.MEI)
+            (1 << InterruptCauseNumber.MSI)
+            | (1 << InterruptCauseNumber.MTI)
+            | (1 << InterruptCauseNumber.MEI)
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
         self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
@@ -111,7 +111,7 @@ class InternalInterruptController(Component):
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data),
             ]
-        log.error(m, ~assign_trans.grant, "assert transaction running failed")
+        log.error(m, ~assign_trans.run, "assert transaction running failed")
 
         interrupt_pending = (mie & mip).any()
         m.d.comb += self.interrupt_insert.eq(interrupt_pending & interrupt_enable)
@@ -140,7 +140,7 @@ class InternalInterruptController(Component):
             mip_value |= level_report_interrupt & ~self.edge_reported_mask
 
             self.mip.write(m, {"data": mip_value})
-        log.error(m, ~mip_trans.grant, "assert transaction running failed")
+        log.error(m, ~mip_trans.run, "assert transaction running failed")
 
         @def_method(m, self.mret)
         def _():

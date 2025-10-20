@@ -132,7 +132,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         exe_side_fx = Signal()
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
-        with Transaction().body(m, request=(ready_to_process & ~done)):
+        with Transaction().body(m, ready=(ready_to_process & ~done)):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
             info = precommit(m, rob_id=instr.rob_id, tag=instr.tag)
             m.d.top_comb += exe_side_fx.eq(info.side_fx)

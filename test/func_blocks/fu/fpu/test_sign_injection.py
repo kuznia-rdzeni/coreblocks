@@ -14,7 +14,7 @@ class TestSI(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = TModule()
             m.submodules.si = si = self.si_module = SIModule(fpu_params=self.params)
-            m.submodules.si_request = self.si_request_adapter = TestbenchIO(AdapterTrans(si.si_request))
+            m.submodules.si_request = self.si_request_adapter = TestbenchIO(AdapterTrans.create(si.si_request))
             return m
 
     def test_manual(self):

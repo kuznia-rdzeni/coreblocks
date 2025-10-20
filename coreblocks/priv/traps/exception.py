@@ -39,7 +39,7 @@ class ExceptionInformationRegister(Elaboratable):
         # Break long combinational paths from single-cycle FUs
         def call_report():
             report_fifo = BasicFifo(self.layouts.report, 2)
-            report_connector = ConnectTrans(report_fifo.read, self.report)
+            report_connector = ConnectTrans.create(report_fifo.read, self.report)
             self.clears.append(report_fifo.clear)
             added = False
 

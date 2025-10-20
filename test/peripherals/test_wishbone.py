@@ -100,8 +100,8 @@ class TestWishboneMaster(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = Module()
             m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-            m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans(wbm.request))
-            m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans(wbm.result))
+            m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans.create(wbm.request))
+            m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans.create(wbm.result))
             return m
 
     def test_manual(self):
@@ -322,8 +322,8 @@ class WishboneMemorySlaveCircuit(Elaboratable):
 
         m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params, **self.mem_args)
         m.submodules.mem_master = self.mem_master = WishboneMaster(self.wb_params)
-        m.submodules.request = self.request = TestbenchIO(AdapterTrans(self.mem_master.request))
-        m.submodules.result = self.result = TestbenchIO(AdapterTrans(self.mem_master.result))
+        m.submodules.request = self.request = TestbenchIO(AdapterTrans.create(self.mem_master.request))
+        m.submodules.result = self.result = TestbenchIO(AdapterTrans.create(self.mem_master.result))
 
         connect(m, self.mem_master.wb_master, self.mem_slave.bus)
 

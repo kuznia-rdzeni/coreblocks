@@ -4,7 +4,7 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from typing import Self
-from transactron.utils._typing import type_self_kwargs_as
+from transactron.utils.typing import type_self_kwargs_as
 from amaranth_types.memory import AbstractMemoryConstructor
 from amaranth.lib.memory import Memory
 
@@ -32,6 +32,7 @@ __all__ = [
     "CoreConfiguration",
     "basic_core_config",
     "tiny_core_config",
+    "small_linux_config",
     "full_core_config",
     "test_core_config",
 ]
@@ -107,6 +108,8 @@ class _CoreConfigurationDataClass:
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
         Enable User Mode.
+    pmp_register_count: int
+        Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -159,6 +162,8 @@ class _CoreConfigurationDataClass:
 
     user_mode: bool = True
 
+    pmp_register_count: int = 0
+
     allow_partial_extensions: bool = False
 
     extra_verification: bool = True
@@ -197,6 +202,31 @@ tiny_core_config = CoreConfiguration(
     user_mode=False,
 )
 
+# Basic core config with minimal additions required for Linux
+small_linux_config = CoreConfiguration(
+    func_units_config=(
+        RSBlockComponent(
+            [
+                ALUComponent(),
+                ShiftUnitComponent(),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+                PrivilegedUnitComponent(),
+            ],
+            rs_entries=4,
+        ),
+        RSBlockComponent(
+            [
+                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                DivComponent(),
+            ],
+            rs_entries=2,
+        ),
+        RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
+        CSRBlockComponent(),
+    )
+)
+
 # Core configuration with all supported components
 full_core_config = CoreConfiguration(
     func_units_config=(
@@ -225,6 +255,7 @@ full_core_config = CoreConfiguration(
     compressed=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
+    pmp_register_count=16,
 )
 
 # Core configuration used in internal testbenches

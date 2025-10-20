@@ -102,7 +102,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 instr_fn.eq(decoder.decode_fn),
             ]
 
-        with Transaction().body(m, request=instr_valid & ~finished):
+        with Transaction().body(m, ready=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
             info = precommit(m, rob_id=instr_rob, tag=instr_tag)
             m.d.sync += finished.eq(1)
@@ -130,7 +130,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
 
-        with Transaction().body(m, request=instr_valid & finished):
+        with Transaction().body(m, ready=instr_valid & finished):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 

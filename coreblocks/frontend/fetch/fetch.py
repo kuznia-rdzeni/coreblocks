@@ -91,7 +91,7 @@ class FetchUnit(Elaboratable):
         # blocks, which can have holes in them.
         m.submodules.aligner = aligner = StableSelectingNetwork(fetch_width, self.layouts.raw_instr)
         m.submodules.serializer = serializer = WideFifo(
-            self.layouts.raw_instr, depth=2, read_width=1, write_width=fetch_width
+            self.layouts.raw_instr, depth=2 * fetch_width, read_width=1, write_width=fetch_width
         )
 
         with Transaction(name="cont").body(m):

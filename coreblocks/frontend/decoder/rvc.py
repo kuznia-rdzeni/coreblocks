@@ -1,7 +1,7 @@
 from amaranth import *
+from amaranth_types import ValueLike
 
 from transactron import TModule
-from transactron.utils import ValueLike
 
 from coreblocks.params import *
 from coreblocks.arch import *

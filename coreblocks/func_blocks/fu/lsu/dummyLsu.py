@@ -93,7 +93,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         want_issue = request_side_fx | can_reorder
 
         do_issue = ~flush & want_issue
-        with Transaction().body(m, request=do_issue):
+        with Transaction().body(m, ready=do_issue):
             arg = requests.read(m)
 
             # Refactor after adding Forwarder.peek? or just separate and leave comment?
@@ -120,7 +120,7 @@ class LSUDummy(FuncUnit, Elaboratable):
                 issued.write(m, arg)
 
         # Handles flushed instructions as a no-op.
-        with Transaction().body(m, request=flush):
+        with Transaction().body(m, ready=flush):
             arg = requests.read(m)
             results_noop.write(m, data=0, exception=0, cause=0, addr=0)
             issued_noop.write(m, arg)
