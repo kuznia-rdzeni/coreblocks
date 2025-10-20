@@ -12,7 +12,7 @@ from transactron.utils import DependencyContext, assign, cyclic_mask, mod_incr, 
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
-from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey, RollbackKey
+from coreblocks.interface.keys import ActiveTagsKey, RollbackKey
 
 log = logging.HardwareLogger("core_structs.crat")
 
@@ -364,8 +364,11 @@ class CheckpointRAT(Elaboratable):
             m.d.comb += active_tags_reset_mask_1.eq(1 << freed_tag)
             m.d.sync += tags_tail.eq(freed_tag + 1)
 
+            # prevent double-free on a just-rolled back tag (it can be retired cycle later)
+            current_checkpointed_tags = checkpointed_tags & ~checkpointed_tags_reset_mask_0
+
             # deallocate physical checkpoints (but not tags) associated with freed tag
-            with m.If(((checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
+            with m.If(((current_checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
                 m.d.comb += checkpoints_next_tail_comb.eq(mod_incr(checkpoints_tail, self.gen_params.checkpoint_count))
                 m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
                 with m.If(~checkpoints_full_overwrite):

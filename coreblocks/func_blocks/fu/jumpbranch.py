@@ -147,6 +147,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         ]
 
         # Rollback does a lot of operations, break combinational path here (future TODO: add as parameter to UnifierKey?)
+        # NOTE: This is critical to happen at most one cycle after instruction result is pushed. Otherwise, next instruction
+        # waiting on `precommit` could execute its side effects before its tag is invalidated
         rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
         m.submodules += rollback_unifiers.values()
         m.submodules.rollback_fifo = rollback_fifo = BasicFifo(rollback_trigger_handlers.layout_in, depth=2)

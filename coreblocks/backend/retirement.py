@@ -139,7 +139,7 @@ class Retirement(Elaboratable):
 
         core_flushing = Signal()
 
-        with m.FSM("NORMAL") as fsm:
+        with m.FSM("NORMAL"):
             with m.State("NORMAL"):
                 with Transaction().body(m, request=retire_valid) as retire_transaction:
                     rob_entry = self.rob_peek(m)
@@ -263,6 +263,8 @@ class Retirement(Elaboratable):
 
                     m.next = "NORMAL"
 
+                m.d.comb += core_flushing.eq(1)
+
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
@@ -276,7 +278,7 @@ class Retirement(Elaboratable):
 
             side_fx = Signal()
             instr_active = self.checkpoint_get_active_tags(m).active_tags[tag]
-            m.d.av_comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH") & instr_active)
+            m.d.av_comb += side_fx.eq(~core_flushing & instr_active)
 
             # separate function is used to avoid post-combiner speculation loop on argument dependent part
             # Call internal method to block until rob_id is on precommit position

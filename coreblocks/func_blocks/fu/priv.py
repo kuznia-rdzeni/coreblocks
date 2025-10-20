@@ -88,6 +88,8 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
+        m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
+        m.submodules.resume_conn = ConnectTrans(resume_core_fwd.read, resume_core)
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
@@ -187,7 +189,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 # Unstall the fetch
                 get_active_tags = self.dm.get_dependency(ActiveTagsKey())
                 with m.If(get_active_tags(m).active_tags[instr_tag]):
-                    resume_core(m, pc=ret_pc)
+                    resume_core_fwd.write(m, pc=ret_pc)
 
             self.push_result(
                 m,

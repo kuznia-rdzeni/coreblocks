@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from transactron import Method, Transaction, def_method, TModule
+from transactron import Method, def_method, TModule
 from coreblocks.interface.layouts import RATLayouts
 from coreblocks.params import GenParams
 

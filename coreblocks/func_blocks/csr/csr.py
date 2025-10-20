@@ -3,6 +3,7 @@ from amaranth.lib.data import StructLayout
 from dataclasses import dataclass
 
 from transactron import Method, def_method, Transaction, TModule
+from transactron.lib import ConnectTrans, Forwarder
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
@@ -209,6 +210,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
             resume_core = self.dependency_manager.get_dependency(UnsafeInstructionResolvedKey())
+            m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
+            m.submodules.resume_conn = ConnectTrans(resume_core_fwd.read, resume_core)
 
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)
@@ -253,7 +256,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             with m.If(exe_side_fx & ~exception & ~interrupt):
                 # CSR instructions are never compressed, PC+4 is always next instruction
                 # exe_side_fx already checks if instruction tag is active
-                resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
+                resume_core_fwd.write(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,

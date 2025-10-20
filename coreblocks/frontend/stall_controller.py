@@ -15,7 +15,7 @@ from transactron import *
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import RollbackKey, UnsafeInstructionResolvedKey
+from coreblocks.interface.keys import CoreStateKey, RollbackKey, UnsafeInstructionResolvedKey
 
 log = logging.HardwareLogger("frontend.stall_ctrl")
 
@@ -73,10 +73,13 @@ class StallController(Elaboratable):
 
         stalled_unsafe = Signal()
 
+        get_core_state = self.dm.get_dependency(CoreStateKey())
+
         stalled_exception = Signal()
         prev_stalled_exception = Signal()
         with Transaction().body(m):
-            m.d.comb += stalled_exception.eq(self.get_exception_information(m).valid)
+            m.d.comb += stalled_exception.eq(self.get_exception_information(m).valid | get_core_state(m).flushing)
+
             log.info(
                 m,
                 stalled_exception & ~prev_stalled_exception,
