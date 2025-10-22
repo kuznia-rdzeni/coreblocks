@@ -15,7 +15,13 @@ from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
+from coreblocks.interface.keys import (
+    ActiveTagsKey,
+    CoreStateKey,
+    ExceptionReportKey,
+    CommonBusDataKey,
+    InstructionPrecommitKey,
+)
 
 __all__ = ["LSUDummy", "LSUComponent"]
 
@@ -53,12 +59,15 @@ class LSUDummy(FuncUnit, Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-        flush = Signal()  # exception handling, requests are not issued
+        core_flush = Signal()  # exception handling, requests are not issued
 
+        get_active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())
+        active_tags = Signal(get_active_tags.layout_out)
         with Transaction().body(m):
             core_state = self.dependency_manager.get_dependency(CoreStateKey())
             state = core_state(m)
-            m.d.comb += flush.eq(state.flushing)
+            m.d.comb += core_flush.eq(state.flushing)
+            m.d.comb += active_tags.eq(get_active_tags(m))
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
@@ -92,7 +101,9 @@ class LSUDummy(FuncUnit, Elaboratable):
         can_reorder = is_load & ~pmas["mmio"]
         want_issue = request_side_fx | can_reorder
 
-        do_issue = ~flush & want_issue
+        flush_instruction = core_flush | ~active_tags.active_tags[request_tag]
+
+        do_issue = ~flush_instruction & want_issue
         with Transaction().body(m, ready=do_issue):
             arg = requests.read(m)
 
@@ -120,7 +131,7 @@ class LSUDummy(FuncUnit, Elaboratable):
                 issued.write(m, arg)
 
         # Handles flushed instructions as a no-op.
-        with Transaction().body(m, ready=flush):
+        with Transaction().body(m, ready=flush_instruction):
             arg = requests.read(m)
             results_noop.write(m, data=0, exception=0, cause=0, addr=0)
             issued_noop.write(m, arg)
