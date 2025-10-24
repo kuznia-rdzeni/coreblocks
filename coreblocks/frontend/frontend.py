@@ -13,7 +13,13 @@ from coreblocks.frontend.stall_controller import StallController
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey, PredictedJumpTargetKey, RollbackKey
+from coreblocks.interface.keys import (
+    ActiveTagsKey,
+    BranchVerifyKey,
+    FlushICacheKey,
+    PredictedJumpTargetKey,
+    RollbackKey,
+)
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
@@ -60,10 +66,16 @@ class RollbackTagger(Elaboratable):
 
             self.push_instr(m, out)
 
+        get_active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
+        active_tags = Signal(get_active_tags.layout_out)
+        with Transaction().body(m):
+            m.d.av_comb += active_tags.eq(get_active_tags(m))
+
         @def_method(m, self.rollback)
         def _(tag: Value, pc: Value):
-            m.d.sync += rollback_tag.eq(tag)
-            m.d.sync += rollback_tag_v.eq(1)
+            with m.If(active_tags.active_tags[tag]):
+                m.d.sync += rollback_tag.eq(tag)
+                m.d.sync += rollback_tag_v.eq(1)
 
         return m
 
@@ -164,8 +176,11 @@ class CoreFrontend(Elaboratable):
             self.instr_buffer.clear(m)
             self.output_pipe.clean(m)
 
+        active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
+
         @def_method(m, self.rollback)
         def _(tag, pc):
-            flush_frontend()
+            with m.If(active_tags(m).active_tags[tag]):
+                flush_frontend()
 
         return m

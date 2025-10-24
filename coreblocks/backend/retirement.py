@@ -75,8 +75,6 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
 
         def free_phys_reg(rp_dst: Value):
-            log.debug(m, True, "freeing rp{}", rp_dst)
-
             # mark reg in Register File as free
             self.rf_free(m, rp_dst)
             # put to Free RF list

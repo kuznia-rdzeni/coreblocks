@@ -146,12 +146,13 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_mispredictions,
         ]
 
-        # Rollback does a lot of operations, break combinational path here (future TODO: add as parameter to UnifierKey?)
-        # NOTE: This is critical to happen at most one cycle after instruction result is pushed. Otherwise, next instruction
-        # waiting on `precommit` could execute its side effects before its tag is invalidated
+        # NOTE: This is critical to happen without any delay. Otherwise precommit, or other (inactive)
+        # rollback in triggered in next cycle will fail tag check. If this turns out to be on critical path,
+        # then precommit without modifications will work fine with one cycle here more, and for next rollbacks
+        # jumps could be held in this unit itself for needed cycles.
         rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
         m.submodules += rollback_unifiers.values()
-        m.submodules.rollback_fifo = rollback_fifo = BasicFifo(rollback_trigger_handlers.layout_in, depth=2)
+        m.submodules.rollback_fifo = rollback_fifo = Forwarder(rollback_trigger_handlers.layout_in)
         m.submodules.rollback_connect = ConnectTrans.create(rollback_fifo.read, rollback_trigger_handlers)
 
         unsafe_resolved = self.dm.get_dependency(UnsafeInstructionResolvedKey())

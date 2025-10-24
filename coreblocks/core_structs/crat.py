@@ -304,28 +304,35 @@ class CheckpointRAT(Elaboratable):
 
         @def_method(m, self.rollback)
         def _(tag: Value, pc: Value):
-            tag_map.read_req(m, addr=tag)
-            m.d.sync += rollback_tag_s1.eq(tag)
+            with m.If(active_tags & (1 << tag)):
+                tag_map.read_req(m, addr=tag)
+                m.d.sync += rollback_tag_s1.eq(tag)
 
-            # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
-            with m.If((tag + 1 == tags_tail)):
-                log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
+                # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
+                with m.If((tag + 1 == tags_tail)):
+                    log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
+                with m.Else():
+                    invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag + 1, tags_tail - 1)
+                    m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
+                    log.debug(
+                        m,
+                        True,
+                        "rollback to 0x{:x}. invalidate tags from 0x{:x} to 0x{:x}",
+                        tag,
+                        tag + 1,
+                        tags_tail - 1,
+                    )
+
+                log.assertion(m, (checkpointed_tags & (1 << tag)).any(), "rollback to illegal tag")
+
+                m.d.sync += rollback_target_tag.eq(tag)
+                m.d.sync += last_rollback_finished.eq(0)
+                m.d.sync += rollback_just_started.eq(1)
+
+                m.d.sync += frat_lock.eq(1)
+                m.d.sync += frat_unlock_tag.eq(1 << self.gen_params.tag_bits)  # lock to non-existent tag
             with m.Else():
-                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag + 1, tags_tail - 1)
-                m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
-                log.debug(
-                    m, True, "rollback to 0x{:x}. invalidate tags from 0x{:x} to 0x{:x}", tag, tag + 1, tags_tail - 1
-                )
-
-            log.assertion(m, ((active_tags & checkpointed_tags) & (1 << tag)).any(), "rollback to illegal tag")
-            # FUTRUE TODO optimization: ignore rollback on hard flushes
-
-            m.d.sync += rollback_target_tag.eq(tag)
-            m.d.sync += last_rollback_finished.eq(0)
-            m.d.sync += rollback_just_started.eq(1)
-
-            m.d.sync += frat_lock.eq(1)
-            m.d.sync += frat_unlock_tag.eq(1 << self.gen_params.tag_bits)  # lock to non-existent tag
+                log.debug(m, True, "ignored rollback to inactive tag 0x{:x}", tag)
 
         checkpointed_tags_reset_mask_0 = Signal.like(checkpointed_tags)
         with Transaction().body(m):
