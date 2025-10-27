@@ -163,7 +163,6 @@ class ExceptionCause(IntEnum, shape=5):
     LOAD_PAGE_FAULT = 13
     STORE_PAGE_FAULT = 15
     _COREBLOCKS_ASYNC_INTERRUPT = 24
-    _COREBLOCKS_MISPREDICTION = 25
 
 
 @unique
