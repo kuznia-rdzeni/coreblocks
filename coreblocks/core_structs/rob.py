@@ -44,8 +44,8 @@ class ReorderBuffer(Elaboratable):
 
         m.submodules += [self.perf_rob_wait_time, self.perf_rob_size]
 
-        start_idx = Signal(self.params.rob_entries_bits)
-        end_idx = Signal(self.params.rob_entries_bits)
+        start_idx = Value.cast(self.data.read_idx)
+        end_idx = Value.cast(self.data.write_idx)
 
         m.submodules.data = self.data
 
@@ -61,14 +61,12 @@ class ReorderBuffer(Elaboratable):
         def _():
             self.perf_rob_wait_time.stop(m)
             self.data.read(m, count=1)
-            m.d.sync += start_idx.eq(start_idx + 1)
             m.d.sync += self.done[start_idx].eq(0)
 
         @def_method(m, self.put)
         def _(arg):
             self.perf_rob_wait_time.start(m)
             self.data.write(m, count=1, data=[arg])
-            m.d.sync += end_idx.eq(end_idx + 1)
             return end_idx
 
         # TODO: There is a potential race condition when ROB is flushed.
