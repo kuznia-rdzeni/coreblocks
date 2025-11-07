@@ -105,14 +105,14 @@ class TestRetirement(TestCaseWithSimulator):
             # test we don't care to make sure that the randomly generated inputs are correct in this way.
 
     @def_method_mock(lambda self: self.retc.mock_rob_retire, enable=lambda self: bool(self.submit_q))
-    def retire_process(self):
+    def retire_process(self, count):
         @MethodMock.effect
         def eff():
             self.submit_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
-        return self.submit_q[0]
+        return {"count": 1, "entries": [self.submit_q[0]]}
 
     async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
