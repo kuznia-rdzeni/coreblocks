@@ -96,7 +96,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
                     m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
 
-            self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, mtval=mtval)
+            self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, tag=arg.tag, mtval=mtval)
 
             self.push_result(m, result=0, exception=1, rob_id=arg.rob_id, rp_dst=arg.rp_dst)
 

@@ -14,10 +14,13 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
     BranchVerifyKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
+    RollbackKey,
+    UnsafeInstructionResolvedKey,
 )
 from transactron.utils import OneHotSwitch
 from transactron.utils.transactron_helpers import make_layout
@@ -143,6 +146,20 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_mispredictions,
         ]
 
+        # NOTE: This is critical to happen without any delay. Otherwise precommit, or other (inactive)
+        # rollback in triggered in next cycle will fail tag check. If this turns out to be on critical path,
+        # then precommit without modifications will work fine with one cycle here more, and for next rollbacks
+        # jumps could be held in this unit itself for needed cycles.
+        rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
+        m.submodules += rollback_unifiers.values()
+        m.submodules.rollback_fifo = rollback_fifo = Forwarder(rollback_trigger_handlers.layout_in)
+        m.submodules.rollback_connect = ConnectTrans.create(rollback_fifo.read, rollback_trigger_handlers)
+
+        unsafe_resolved = self.dm.get_dependency(UnsafeInstructionResolvedKey())
+        # workaround against Transactron bug calling methods under Ifs with 0 args again; wrrrrrrrrrrrrrrrrr :/
+        m.submodules.unsafe_resolved_fwd = unsafe_resolved_fwd = Forwarder(unsafe_resolved.layout_in)
+        m.submodules.unsafe_resolved_connect = ConnectTrans.create(unsafe_resolved_fwd.read, unsafe_resolved)
+
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
@@ -169,8 +186,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
             is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
+            is_jalr = instr.type == JumpBranchFn.Fn.JALR
 
-            predicted_addr_correctly = (instr.type != JumpBranchFn.Fn.JALR) | (
+            predicted_addr_correctly = (~is_jalr) | (
                 target_prediction.valid & (target_prediction.cfi_target == instr.jmp_addr)
             )
 
@@ -186,10 +204,18 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
             async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
 
+            get_active_tags = self.dm.get_dependency(ActiveTagsKey())
+            instr_tag_active = get_active_tags(m).active_tags[instr.tag]
+
             exception = Signal()
 
-            with m.If(~is_auipc & instr.taken & jmp_addr_misaligned):
-                self.perf_misaligned.incr(m)
+            with m.If(~instr_tag_active):
+                pass  # already inactive instructions should be ignored and not trigger any extra actions
+            with m.Elif(~is_auipc & instr.taken & jmp_addr_misaligned):
+                self.perf_misaligned.incr(
+                    m
+                )  # NOTE: perfs like that (outside precommit) are invalid in speculative OoO + it triggers on core flush :(
+
                 # Spec: "[...] if the target address is not four-byte aligned. This exception is reported on the branch
                 # or jump instruction, not on the target instruction. No instruction-address-misaligned exception is
                 # generated for a conditional branch that is not taken."
@@ -199,6 +225,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                     rob_id=instr.rob_id,
                     cause=ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED,
                     pc=instr.pc,
+                    tag=instr.tag,
                     mtval=instr.jmp_addr,
                 )
 
@@ -209,24 +236,34 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 # and exception would be lost.
                 m.d.comb += exception.eq(1)
                 self.exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=jump_result, mtval=0
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    pc=jump_result,
+                    tag=instr.tag,
+                    mtval=0,
                 )
+            with m.Elif(is_jalr):
+                # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
+                # Resolve only with redirection and resume of frontend.
+                with m.If(instr_tag_active):
+                    unsafe_resolved_fwd.write(m, pc=jump_result)
             with m.Elif(misprediction):
-                # Async interrupts can have priority, because `jump_result` is handled in the same way.
+                # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                m.d.comb += exception.eq(1)
-                self.exception_report(
-                    m, rob_id=instr.rob_id, cause=ExceptionCause._COREBLOCKS_MISPREDICTION, pc=jump_result, mtval=0
-                )
+                rollback_fifo.write(
+                    m, tag=instr.tag, pc=jump_result
+                )  # trigger rollback and mispredicted path invalidation
 
             with m.If(~is_auipc):
                 self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
                 log.debug(
                     m,
                     True,
-                    "branch resolved from 0x{:08x} to 0x{:08x}; misprediction: {}",
+                    "branch resolved from 0x{:08x} to 0x{:08x}; tag: 0x{:x} misprediction: {}",
                     instr.pc,
                     jump_result,
+                    instr.tag,
                     misprediction,
                 )
 

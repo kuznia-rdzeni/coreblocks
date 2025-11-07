@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionRegisterLayouts,
@@ -14,6 +15,7 @@ from transactron.core import Method, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
+from transactron.lib.logging import HardwareLogger
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
@@ -21,25 +23,29 @@ from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, Instruction
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 from coreblocks.arch.isa_consts import TrapVectorMode
 
+log = HardwareLogger("backend.retirement")
+
 
 class Retirement(Elaboratable):
     def __init__(
         self,
         gen_params: GenParams,
+        rrat_entries: View,
     ):
         self.gen_params = gen_params
+        self.rrat_entries = rrat_entries
+
         self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
         self.rob_retire = Method()
         self.r_rat_commit = Method(
             i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
         )
-        self.r_rat_peek = Method(i=gen_params.get(RATLayouts).rrat_peek_in, o=gen_params.get(RATLayouts).rrat_peek_out)
         self.free_rf_put = Method(i=[("ident", range(gen_params.phys_regs))])
         self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
-        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
+        self.fetch_resume_from_core_flush = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
         self.trap_entry = Method()
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
@@ -55,13 +61,10 @@ class Retirement(Elaboratable):
             max_latency=2 * 2**gen_params.rob_entries_bits,
         )
 
-        layouts = self.gen_params.get(RetirementLayouts)
+        self.layouts = self.gen_params.get(RetirementLayouts)
         self.dependency_manager = DependencyContext.get()
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
-
-        self.precommit = Method(i=layouts.precommit_in, o=layouts.precommit_out)
-        self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
         m = TModule()
@@ -70,8 +73,6 @@ class Retirement(Elaboratable):
 
         m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
-
-        side_fx = Signal(init=1)
 
         def free_phys_reg(rp_dst: Value):
             # mark reg in Register File as free
@@ -87,46 +88,70 @@ class Retirement(Elaboratable):
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(rat_out.old_rp_dst)
 
+            log.debug(
+                m,
+                True,
+                "retiring instruction rl{} -> rp{}, freeing rp{}",
+                rob_entry.rob_data.rl_dst,
+                rob_entry.rob_data.rp_dst,
+                rat_out.old_rp_dst,
+            )
+
             self.instret_csr.increment(m)
             self.perf_instr_ret.incr(m)
 
         def flush_instr(rob_entry):
-            # get original rp_dst mapped to instruction rl_dst in R-RAT
-            rat_out = self.r_rat_peek(m, rl_dst=rob_entry.rob_data.rl_dst)
+            # we will copy full R-RAT mapping to C-RAT (F-RAT) in single cycle after last instruction is flushed
+            # FUTURE-TODO: restore in single cycle with bitmask from RAT
+            free_phys_reg(rob_entry.rob_data.rp_dst)
 
+            log.debug(m, True, "hard flushing instruction rp{}", rob_entry.rob_data.rp_dst)
+
+        def retire_inactive_instr(rob_entry):
+            # F-RAT entry was already rolled back
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(rob_entry.rob_data.rp_dst)
 
-            # restore original rl_dst->rp_dst mapping in F-RAT
-            self.c_rat_restore(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
+            log.debug(m, True, "retiring rolled-back instruction, freeing rp{}", rob_entry.rob_data.rp_dst)
+
+        retirement_last_tag = Signal(self.gen_params.tag_bits)
 
         retire_valid = Signal()
+        instr_active = Signal()
         with Transaction().body(m) as validate_transaction:
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
             rob_entry = self.rob_peek(m)
             ecr_entry = self.exception_cause_get(m)
+
+            instr_tag = Signal(self.gen_params.tag_bits)  # wraps around! (signal needed)
+            m.d.comb += instr_tag.eq(retirement_last_tag + rob_entry.rob_data.tag_increment)
+
+            m.d.comb += instr_active.eq(self.checkpoint_get_active_tags(m).active_tags[instr_tag])
             m.d.comb += retire_valid.eq(
-                ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
+                ~instr_active
+                | (
+                    ~rob_entry.exception
+                    | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
+                )
             )
 
-        continue_pc_override = Signal()
-        continue_pc = Signal(self.gen_params.isa.xlen)
         core_flushing = Signal()
 
-        with m.FSM("NORMAL") as fsm:
+        with m.FSM("NORMAL"):
             with m.State("NORMAL"):
                 with Transaction().body(m, ready=retire_valid) as retire_transaction:
                     rob_entry = self.rob_peek(m)
                     self.rob_retire(m)
 
                     with m.If(rob_entry.rob_data.tag_increment):
+                        m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
 
                     commit = Signal()
 
-                    with m.If(rob_entry.exception):
+                    with m.If(rob_entry.exception & instr_active):
                         self.perf_trap_latency.start(m)
 
                         cause_register = self.exception_cause_get(m)
@@ -146,14 +171,6 @@ class Retirement(Elaboratable):
                             m.d.av_comb += cause_entry.eq(
                                 (1 << (self.gen_params.isa.xlen - 1)) | self.async_interrupt_cause(m).cause
                             )
-                        with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
-                            # Branch misprediction - commit jump, flush core and continue from correct pc.
-                            m.d.av_comb += commit.eq(1)
-                            # Do not modify trap related CSRs
-                            m.d.av_comb += arch_trap.eq(0)
-
-                            m.d.sync += continue_pc_override.eq(1)
-                            m.d.sync += continue_pc.eq(cause_register.pc)
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
@@ -176,15 +193,17 @@ class Retirement(Elaboratable):
                             m.next = "TRAP_FLUSH"
 
                     with m.Else():
-                        # Normally retire all non-trap instructions
+                        # Retire non-trap instructions
                         m.d.av_comb += commit.eq(1)
 
-                    # Condition is used to avoid FRAT locking during normal operation
+                    # Condition is used to avoid FRAT locking during non-flush operation
                     with condition(m) as cond:
                         with cond(commit):
-                            retire_instr(rob_entry)
-                        with cond():
-                            # Not using default condition, because we want to block if branch is not ready
+                            with m.If(instr_active):
+                                retire_instr(rob_entry)
+                            with m.Else():
+                                retire_inactive_instr(rob_entry)
+                        with cond():  # (Blocking if branch is not ready) , will not trigger on inactive instructions
                             flush_instr(rob_entry)
 
                             m.d.comb += core_flushing.eq(1)
@@ -198,6 +217,7 @@ class Retirement(Elaboratable):
                     self.rob_retire(m)
 
                     with m.If(rob_entry.rob_data.tag_increment):
+                        m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m)
@@ -211,8 +231,14 @@ class Retirement(Elaboratable):
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
-                    # Resume core operation
-                    self.perf_trap_latency.stop(m)
+                    # NOTE: FRAT state was previously restored instruction-by-instruction before introduction
+                    # of checkpointing. Restoring RRAT -> [FRAT (inside CRAT)] in a single cycle on a core flush
+                    # is simpler in hardware and as a concept :), but increases routing congestions.
+                    # We may want to look into synthesis trade-offs later. See commit diff for changes in RRAT
+                    # and restore logic.
+                    self.c_rat_restore(m, entries=self.rrat_entries)
+
+                    log.debug(m, True, "crat restored, resuming core")
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     mtvec_offset = Signal(self.gen_params.isa.xlen)
@@ -226,37 +252,54 @@ class Retirement(Elaboratable):
 
                     # (mtvec_base stores base[MXLEN-1:2])
                     m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
+                    self.fetch_resume_from_core_flush(m, pc=handler_pc)
 
-                    resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
-                    m.d.sync += continue_pc_override.eq(0)
-
-                    self.fetch_continue(m, pc=resume_pc)
-
-                    # Release pending trap state - allow accepting new reports
+                    # Release pending trap state and the fetch lock
                     self.exception_cause_clear(m)
+
+                    self.perf_trap_latency.stop(m)
 
                     m.next = "NORMAL"
 
-        # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+                m.d.comb += core_flushing.eq(1)
 
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
 
-        rob_id_val = Signal(self.gen_params.rob_entries_bits)
+        _precommit = Method(i=self.layouts.internal_precommit_in)
 
-        # The argument is only used in argument validation, it is not needed in the method body.
+        # NOTE: Alternatively this could be done automagically bt returning new method on new key get
+        def precommit(m: TModule, *, rob_id: Value, tag: Value):
+            # Disable executing any side effects when core is flushing or instruction was
+            # on a final wrong speculation path.
+
+            side_fx = Signal()
+            instr_active = self.checkpoint_get_active_tags(m).active_tags[tag]
+            m.d.av_comb += side_fx.eq(~core_flushing & instr_active)
+
+            # separate function is used to avoid post-combiner speculation loop on argument dependent part
+            # Call internal method to block until rob_id is on precommit position
+            _precommit(m, rob_id=rob_id)
+
+            ret = Signal(self.layouts.precommit_out)
+            m.d.av_comb += ret.side_fx.eq(side_fx)
+            return ret
+
+        self.dependency_manager.add_dependency(InstructionPrecommitKey(), precommit)
+
+        # The `rob_id` argument is only used in argument validation, it is not needed in the method body.
         # A dummy combiner is provided.
+        rob_peek_id_val = Signal(self.gen_params.rob_entries_bits)
+
         @def_method(
             m,
-            self.precommit,
-            validate_arguments=lambda rob_id: rob_id == rob_id_val,
+            _precommit,
+            validate_arguments=lambda rob_id: rob_id == rob_peek_id_val,
             nonexclusive=True,
             combiner=lambda m, args, runs: 0,
         )
         def _(rob_id):
-            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
-            return {"side_fx": side_fx}
+            m.d.top_comb += rob_peek_id_val.eq(self.rob_peek(m).rob_id)
 
         return m

@@ -13,7 +13,13 @@ from coreblocks.frontend.stall_controller import StallController
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import BranchVerifyKey, FlushICacheKey, PredictedJumpTargetKey, RollbackKey
+from coreblocks.interface.keys import (
+    ActiveTagsKey,
+    BranchVerifyKey,
+    FlushICacheKey,
+    PredictedJumpTargetKey,
+    RollbackKey,
+)
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
@@ -60,10 +66,16 @@ class RollbackTagger(Elaboratable):
 
             self.push_instr(m, out)
 
+        get_active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
+        active_tags = Signal(get_active_tags.layout_out)
+        with Transaction().body(m):
+            m.d.av_comb += active_tags.eq(get_active_tags(m))
+
         @def_method(m, self.rollback)
-        def _(tag: Value):
-            m.d.sync += rollback_tag.eq(tag)
-            m.d.sync += rollback_tag_v.eq(1)
+        def _(tag: Value, pc: Value):
+            with m.If(active_tags.active_tags[tag]):
+                m.d.sync += rollback_tag.eq(tag)
+                m.d.sync += rollback_tag_v.eq(1)
 
         return m
 
@@ -75,10 +87,6 @@ class CoreFrontend(Elaboratable):
     ----------
     consume_instr: Method
         Consume a single decoded instruction.
-    resume_from_exception: Method
-        Resume the frontend from the given PC after an exception.
-    stall: Method
-        Stall and flush the frontend.
     """
 
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
@@ -116,10 +124,14 @@ class CoreFrontend(Elaboratable):
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
 
         self.consume_instr = self.output_pipe.read
-        self.resume_from_exception = self.stall_ctrl.resume_from_exception
-        self.stall = Method()
+
+        self.resume_from_core_flush = self.stall_ctrl.resume_from_core_flush
+        self.get_exception_information = self.stall_ctrl.get_exception_information
 
         self.rollback_tagger = RollbackTagger(self.gen_params)
+
+        self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
+        DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
 
     def elaborate(self, platform):
         m = TModule()
@@ -145,6 +157,7 @@ class CoreFrontend(Elaboratable):
 
         m.submodules.stall_ctrl = self.stall_ctrl
         self.stall_ctrl.redirect_frontend.provide(self.fetch.redirect)
+        self.stall_ctrl.fetch_flush.provide(self.fetch.flush)
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):
@@ -159,14 +172,15 @@ class CoreFrontend(Elaboratable):
         def _(arg):
             return {"valid": 0, "cfi_target": 0}
 
-        def flush_frontend():
-            self.fetch.flush(m)
+        def flush_frontend():  # Fetch is flushed from stall controller
             self.instr_buffer.clear(m)
             self.output_pipe.clear(m)
 
-        @def_method(m, self.stall)
-        def _():
-            flush_frontend()
-            self.stall_ctrl.stall_exception(m)
+        active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
+
+        @def_method(m, self.rollback)
+        def _(tag, pc):
+            with m.If(active_tags(m).active_tags[tag]):
+                flush_frontend()
 
         return m

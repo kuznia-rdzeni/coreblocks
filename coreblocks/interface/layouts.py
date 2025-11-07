@@ -25,6 +25,7 @@ __all__ = [
     "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
+    "ExceptionRegisterLayouts",
 ]
 
 
@@ -302,16 +303,21 @@ class RATLayouts:
         self.rrat_peek_in = make_layout(fields.rl_dst)
         self.rrat_peek_out = self.rrat_commit_out
 
-        self.rollback_in = make_layout(fields.tag)
+        self.rat_data_layout: LayoutListField = (
+            "entries",
+            ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt),
+        )
+
+        self.rollback_in = make_layout(fields.tag, fields.pc)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
 
         self.crat_rename_in = extend_layout(self.frat_rename_in, fields.tag, fields.commit_checkpoint)
         self.crat_rename_out = self.frat_rename_out
 
-        self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
+        self.crat_tag_in = make_layout(fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
         self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
 
-        self.crat_flush_restore = make_layout(fields.rl_dst, fields.rp_dst)
+        self.crat_flush_restore = make_layout(self.rat_data_layout)
 
 
 class ROBLayouts:
@@ -414,8 +420,8 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit_in = make_layout(fields.rob_id)
-
+        self.precommit_in = make_layout(fields.rob_id, fields.tag)
+        self.internal_precommit_in = make_layout(fields.rob_id)
         self.precommit_out = make_layout(fields.side_fx)
 
         self.flushing = ("flushing", 1)
@@ -709,6 +715,7 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            fields.tag,
             self.mtval,
         )
 

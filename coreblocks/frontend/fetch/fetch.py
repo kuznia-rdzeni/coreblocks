@@ -381,7 +381,7 @@ class FetchUnit(Elaboratable):
         with m.If(flush_now):
             m.d.sync += flushing_counter.eq(req_counter.count_next)
 
-        @def_method(m, self.flush)
+        @def_method(m, self.flush, nonexclusive=True)
         def _():
             flush()
             serializer.clear(m)

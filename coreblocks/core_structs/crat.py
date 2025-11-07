@@ -12,7 +12,7 @@ from transactron.utils import DependencyContext, assign, cyclic_mask, mod_incr, 
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
-from coreblocks.interface.keys import CoreStateKey, RollbackKey
+from coreblocks.interface.keys import ActiveTagsKey, RollbackKey
 
 log = logging.HardwareLogger("core_structs.crat")
 
@@ -81,6 +81,7 @@ class CheckpointRAT(Elaboratable):
 
         self.free_tag = Method()
         self.get_active_tags = Method(o=layouts.get_active_tags_out)
+        self.dm.add_dependency(ActiveTagsKey(), self.get_active_tags)
 
     def elaborate(self, platform):
         m = TModule()
@@ -208,19 +209,17 @@ class CheckpointRAT(Elaboratable):
             checkpoint = create_checkpoint_pipe.read(m).checkpoint
             storage.write(m, addr=checkpoint, data=self.frat)
 
-        # Block until last FRAT overwrite from Rollback is finished.
-        # Retirement restores entries on hard-flushes that were not covered by checkpoints one-by-one, don't overwrite.
+        # Block until last FRAT overwrite from Rollback is finished. TODO: not needed? cancel rollback?
+        # Retirement restores entries on hard-flushes that were not covered by checkpoints, don't overwrite.
         @def_method(m, self.flush_restore, ready=last_rollback_finished)
-        def _(rl_dst: Value, rp_dst: Value):
-            with m.If(rl_dst != 0):  # Duplicated, because otherwise causes comb loop in rename condition
-                m.d.sync += self.frat[rl_dst].eq(rp_dst)
+        def _(entries: Value):
+            m.d.sync += self.frat.eq(entries)
 
         self.flush_restore.add_conflict(self.rename, Priority.RIGHT)
-        # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
-        # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
+        self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
         # -------------------------------------------
-        # Instructon tagging and stalling before RAT
+        # Instruction tagging and stalling before RAT
         # -------------------------------------------
 
         last_issued_tag = Signal(self.gen_params.tag_bits)
@@ -304,29 +303,36 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_0 = Signal.like(active_tags, init=0)
 
         @def_method(m, self.rollback)
-        def _(tag: Value):
-            tag_map.read_req(m, addr=tag)
-            m.d.sync += rollback_tag_s1.eq(tag)
+        def _(tag: Value, pc: Value):
+            with m.If(active_tags & (1 << tag)):
+                tag_map.read_req(m, addr=tag)
+                m.d.sync += rollback_tag_s1.eq(tag)
 
-            # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
-            with m.If((tag + 1 == tags_tail)):
-                log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
+                # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
+                with m.If((tag + 1 == tags_tail)):
+                    log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
+                with m.Else():
+                    invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag + 1, tags_tail - 1)
+                    m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
+                    log.debug(
+                        m,
+                        True,
+                        "rollback to 0x{:x}. invalidate tags from 0x{:x} to 0x{:x}",
+                        tag,
+                        tag + 1,
+                        tags_tail - 1,
+                    )
+
+                log.assertion(m, (checkpointed_tags & (1 << tag)).any(), "rollback to illegal tag")
+
+                m.d.sync += rollback_target_tag.eq(tag)
+                m.d.sync += last_rollback_finished.eq(0)
+                m.d.sync += rollback_just_started.eq(1)
+
+                m.d.sync += frat_lock.eq(1)
+                m.d.sync += frat_unlock_tag.eq(1 << self.gen_params.tag_bits)  # lock to non-existent tag
             with m.Else():
-                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag + 1, tags_tail - 1)
-                m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
-                log.debug(
-                    m, True, "rollback to 0x{:x}. invalidate tags from 0x{:x} to 0x{:x}", tag, tag + 1, tags_tail - 1
-                )
-
-            log.assertion(m, ((active_tags & checkpointed_tags) & (1 << tag)).any(), "rollback to illegal tag")
-            log.assertion(m, ~self.dm.get_dependency(CoreStateKey())(m).flushing, "rollback during core hard flush")
-
-            m.d.sync += rollback_target_tag.eq(tag)
-            m.d.sync += last_rollback_finished.eq(0)
-            m.d.sync += rollback_just_started.eq(1)
-
-            m.d.sync += frat_lock.eq(1)
-            m.d.sync += frat_unlock_tag.eq(1 << self.gen_params.tag_bits)  # lock to non-existent tag
+                log.debug(m, True, "ignored rollback to inactive tag 0x{:x}", tag)
 
         checkpointed_tags_reset_mask_0 = Signal.like(checkpointed_tags)
         with Transaction().body(m):
@@ -365,8 +371,11 @@ class CheckpointRAT(Elaboratable):
             m.d.comb += active_tags_reset_mask_1.eq(1 << freed_tag)
             m.d.sync += tags_tail.eq(freed_tag + 1)
 
+            # prevent double-free on a just-rolled back tag (it can be retired cycle later)
+            current_checkpointed_tags = checkpointed_tags & ~checkpointed_tags_reset_mask_0
+
             # deallocate physical checkpoints (but not tags) associated with freed tag
-            with m.If(((checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
+            with m.If(((current_checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
                 m.d.comb += checkpoints_next_tail_comb.eq(mod_incr(checkpoints_tail, self.gen_params.checkpoint_count))
                 m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
                 with m.If(~checkpoints_full_overwrite):
