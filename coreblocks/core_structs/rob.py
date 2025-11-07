@@ -15,10 +15,10 @@ class ReorderBuffer(Elaboratable):
     def __init__(self, gen_params: GenParams, mark_done_ports: int) -> None:
         self.params = gen_params
         layouts = gen_params.get(ROBLayouts)
-        self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
+        self.put = Method(i=layouts.put_layout, o=layouts.id_layout)
         self.mark_done = Methods(mark_done_ports, i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout)
-        self.retire = Method()
+        self.retire = Method(i=layouts.retire_layout)
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.data = WideFifo(
@@ -26,7 +26,7 @@ class ReorderBuffer(Elaboratable):
         )
         self.get_indices = Method(o=layouts.get_indices)
 
-        self.perf_rob_wait_time = FIFOLatencyMeasurer(
+        self.perf_rob_wait_time = WideFIFOLatencyMeasurer(
             "backend.rob.wait_time",
             description="Distribution of time instructions spend in ROB",
             slots_number=(2**gen_params.rob_entries_bits + 1),
@@ -51,22 +51,29 @@ class ReorderBuffer(Elaboratable):
 
         @def_method(m, self.peek, nonexclusive=True)
         def _():
-            return {
-                "rob_data": self.data.peek(m).data[0],
-                "rob_id": start_idx,
-                "exception": self.exception[start_idx],
-            }
+            peek_ret = self.data.peek(m)
+            entries = []
+            for i in range(self.params.retirement_superscalarity):
+                rob_id = (start_idx + i)[: len(start_idx)]
+                entries.append(
+                    {
+                        "rob_data": peek_ret.data[i],
+                        "rob_id": rob_id,
+                        "exception": self.exception[rob_id],
+                    }
+                )
+            return {"count": peek_ret.count, "entries": entries}
 
         @def_method(m, self.retire, ready=self.done[start_idx])
-        def _():
-            self.perf_rob_wait_time.stop(m)
-            self.data.read(m, count=1)
+        def _(count: int):
+            self.perf_rob_wait_time.stop(m, count=count)
+            self.data.read(m, count=count)
             m.d.sync += self.done[start_idx].eq(0)
 
         @def_method(m, self.put)
-        def _(arg):
-            self.perf_rob_wait_time.start(m)
-            self.data.write(m, count=1, data=[arg])
+        def _(count: int, entries):
+            self.perf_rob_wait_time.start(m, count=count)
+            self.data.write(m, count=count, data=entries)
             return end_idx
 
         # TODO: There is a potential race condition when ROB is flushed.

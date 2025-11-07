@@ -202,9 +202,14 @@ class ROBAllocation(Elaboratable):
 
             rob_id = self.rob_put(
                 m,
-                rl_dst=instr.regs_l.rl_dst,
-                rp_dst=instr.regs_p.rp_dst,
-                tag_increment=instr.tag_increment,
+                count=1,
+                entries=[
+                    {
+                        "rl_dst": instr.regs_l.rl_dst,
+                        "rp_dst": instr.regs_p.rp_dst,
+                        "tag_increment": instr.tag_increment,
+                    }
+                ],
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)

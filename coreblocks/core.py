@@ -136,7 +136,7 @@ class Core(Component):
 
         m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
         announcement.get_result.provide(self.func_blocks_unifier.get_result)
-        announcement.rob_mark_done.provide(self.ROB.mark_done)
+        announcement.rob_mark_done.provide(self.ROB.mark_done[0])
         announcement.rs_update.provide(self.func_blocks_unifier.update)
         announcement.rf_write_val.provide(self.RF.write[0])
 

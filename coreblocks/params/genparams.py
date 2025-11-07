@@ -69,6 +69,9 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
 
+        self.frontend_superscalarity = cfg.frontend_superscalarity
+        self.retirement_superscalarity = cfg.retirement_superscalarity
+
         self.checkpoint_count = cfg.checkpoint_count
         self.tag_bits = cfg.tag_bits
         assert cfg.checkpoint_count < 2**cfg.tag_bits
