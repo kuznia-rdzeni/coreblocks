@@ -1,3 +1,4 @@
+import pytest
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.core_structs.rob import ReorderBuffer
@@ -10,6 +11,7 @@ from random import Random
 from transactron.testing.functions import data_const_to_dict
 
 
+@pytest.mark.parametrize("mark_done_ports", [1, 4])
 class TestReorderBuffer(TestCaseWithSimulator):
     async def gen_input(self, sim: TestbenchContext):
         for _ in range(self.test_steps):
@@ -24,16 +26,19 @@ class TestReorderBuffer(TestCaseWithSimulator):
             self.to_execute_list.append((rob_id, phys_reg))
             self.retire_queue.put((regs, rob_id))
 
-    async def do_updates(self, sim: TestbenchContext):
-        while True:
-            await self.random_wait_geom(sim, 0.5)  # to slow down execution
-            if len(self.to_execute_list) == 0:
-                await sim.tick()
-            else:
-                idx = self.rand.randint(0, len(self.to_execute_list) - 1)
-                rob_id, executed = self.to_execute_list.pop(idx)
-                self.executed_list.append(executed)
-                await self.m.mark_done.call(sim, rob_id=rob_id, exception=0)
+    def tb_do_updates(self, k: int):
+        async def do_updates(sim: TestbenchContext):
+            while True:
+                await self.random_wait_geom(sim, 0.5)  # to slow down execution
+                if len(self.to_execute_list) == 0:
+                    await sim.tick()
+                else:
+                    idx = self.rand.randint(0, len(self.to_execute_list) - 1)
+                    rob_id, executed = self.to_execute_list.pop(idx)
+                    self.executed_list.append(executed)
+                    await self.m.mark_done[k].call(sim, rob_id=rob_id, exception=0)
+
+        return do_updates
 
     async def do_retire(self, sim: TestbenchContext):
         cnt = 0
@@ -57,13 +62,13 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 if self.test_steps == cnt:
                     break
 
-    def test_single(self):
+    def test_single(self, mark_done_ports: int):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(
             test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6)
         )  # smaller size means better coverage
-        m = SimpleTestCircuit(ReorderBuffer(self.gen_params))
+        m = SimpleTestCircuit(ReorderBuffer(self.gen_params, mark_done_ports=mark_done_ports))
         self.m = m
 
         self.regs_left_queue = Queue()
@@ -77,7 +82,8 @@ class TestReorderBuffer(TestCaseWithSimulator):
 
         with self.run_simulation(m) as sim:
             sim.add_testbench(self.gen_input)
-            sim.add_testbench(self.do_updates, background=True)
+            for k in range(mark_done_ports):
+                sim.add_testbench(self.tb_do_updates(k), background=True)
             sim.add_testbench(self.do_retire)
 
 
@@ -114,7 +120,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
 
         self.gen_params = GenParams(test_core_config)
         self.test_steps = 2**self.gen_params.rob_entries_bits
-        m = SimpleTestCircuit(ReorderBuffer(self.gen_params))
+        m = SimpleTestCircuit(ReorderBuffer(self.gen_params, mark_done_ports=1))
         self.m = m
         self.to_execute_list = []
 

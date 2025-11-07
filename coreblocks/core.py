@@ -65,7 +65,7 @@ class Core(Component):
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
-        self.ROB = ReorderBuffer(gen_params=self.gen_params)
+        self.ROB = ReorderBuffer(gen_params=self.gen_params, mark_done_ports=1)
 
         self.retirement = Retirement(self.gen_params)
 

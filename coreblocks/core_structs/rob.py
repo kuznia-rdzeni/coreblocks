@@ -1,5 +1,5 @@
 from amaranth import *
-from transactron import Method, Transaction, def_method, TModule
+from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib.fifo import WideFifo
 from transactron.lib import logging
 from transactron.lib.metrics import *
@@ -12,11 +12,11 @@ log = logging.HardwareLogger("core_structs.rob")
 
 
 class ReorderBuffer(Elaboratable):
-    def __init__(self, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams, mark_done_ports: int) -> None:
         self.params = gen_params
         layouts = gen_params.get(ROBLayouts)
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
-        self.mark_done = Method(i=layouts.mark_done_layout)
+        self.mark_done = Methods(mark_done_ports, i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout)
         self.retire = Method()
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
@@ -72,8 +72,8 @@ class ReorderBuffer(Elaboratable):
         # TODO: There is a potential race condition when ROB is flushed.
         # If functional units aren't flushed, finished obsolete instructions
         # could mark fields in ROB as done when they shouldn't.
-        @def_method(m, self.mark_done)
-        def _(rob_id: Value, exception):
+        @def_methods(m, self.mark_done)
+        def _(k: int, rob_id: Value, exception):
             log.assertion(m, ~self.done[rob_id], "mark_done called on already done ROB entry {}", rob_id)
             m.d.sync += self.done[rob_id].eq(1)
             m.d.sync += self.exception[rob_id].eq(exception)
