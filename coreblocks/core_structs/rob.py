@@ -31,6 +31,8 @@ class ReorderBuffer(Elaboratable):
             description="Distribution of time instructions spend in ROB",
             slots_number=(2**gen_params.rob_entries_bits + 1),
             max_latency=1000,
+            max_start_count=gen_params.frontend_superscalarity,
+            max_stop_count=gen_params.retirement_superscalarity
         )
         self.perf_rob_size = HwExpHistogram(
             "backend.rob.size",
