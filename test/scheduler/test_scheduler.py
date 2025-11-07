@@ -307,6 +307,7 @@ class TestScheduler(TestCaseWithSimulator):
     def test_randomized(self):
         async def instr_input_process(sim: TestbenchContext):
             self.m.rob_retire.enable(sim)
+            self.m.rob_retire.set_inputs(sim, {"count": 1})
 
             # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
