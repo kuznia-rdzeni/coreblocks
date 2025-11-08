@@ -140,7 +140,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
 
                 _, active_tags, peek_res, rob_idxs = (
                     await CallTrigger(sim)
-                    .call(dut.rob_retire)
+                    .call(dut.rob_retire, count=1)
                     .call(dut.get_active_tags)
                     .call(dut.rob_peek)
                     .call(dut.rob_get_indices)
