@@ -367,6 +367,8 @@ class ROBLayouts:
             self.put_count, ("entries", ArrayLayout(self.data_layout, gen_params.frontend_superscalarity))
         )
 
+        self.put_out_layout = make_layout(("entries", ArrayLayout(self.id_layout, gen_params.frontend_superscalarity)))
+
         self.get_indices = make_layout(self.start, self.end)
 
 

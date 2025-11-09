@@ -15,7 +15,7 @@ class ReorderBuffer(Elaboratable):
     def __init__(self, gen_params: GenParams, mark_done_ports: int) -> None:
         self.params = gen_params
         layouts = gen_params.get(ROBLayouts)
-        self.put = Method(i=layouts.put_layout, o=layouts.id_layout)
+        self.put = Method(i=layouts.put_layout, o=layouts.put_out_layout)
         self.mark_done = Methods(mark_done_ports, i=layouts.mark_done_layout)
         self.peek = Method(o=layouts.peek_layout)
         self.retire = Method(i=layouts.retire_layout)
@@ -76,7 +76,11 @@ class ReorderBuffer(Elaboratable):
         def _(count: int, entries):
             self.perf_rob_wait_time.start(m, count=count)
             self.data.write(m, count=count, data=entries)
-            return end_idx
+            entries = []
+            for i in range(self.params.frontend_superscalarity):
+                rob_id = (end_idx + i)[: len(end_idx)]
+                entries.append({"rob_id": rob_id})
+            return {"entries": entries}
 
         # TODO: There is a potential race condition when ROB is flushed.
         # If functional units aren't flushed, finished obsolete instructions

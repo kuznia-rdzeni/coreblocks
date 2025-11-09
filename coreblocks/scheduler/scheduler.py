@@ -200,7 +200,7 @@ class ROBAllocation(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            rob_id = self.rob_put(
+            rob_ids = self.rob_put(
                 m,
                 count=1,
                 entries=[
@@ -213,7 +213,7 @@ class ROBAllocation(Elaboratable):
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
+            m.d.comb += data_out.rob_id.eq(rob_ids.entries[0].rob_id)
 
             self.push_instr(m, data_out)
 
