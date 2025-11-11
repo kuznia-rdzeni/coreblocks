@@ -22,7 +22,10 @@ class ReorderBuffer(Elaboratable):
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.data = WideFifo(
-            shape=layouts.data_layout, depth=2**self.params.rob_entries_bits, read_width=1, write_width=1
+            shape=layouts.data_layout,
+            depth=2**self.params.rob_entries_bits,
+            read_width=self.params.retirement_superscalarity,
+            write_width=self.params.frontend_superscalarity,
         )
         self.get_indices = Method(o=layouts.get_indices)
 
