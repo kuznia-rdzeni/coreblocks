@@ -1,3 +1,5 @@
+from functools import reduce
+import operator
 from amaranth import *
 from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib.fifo import WideFifo
@@ -52,6 +54,8 @@ class ReorderBuffer(Elaboratable):
         start_idx = Value.cast(self.data.read_idx)
         end_idx = Value.cast(self.data.write_idx)
 
+        start_idx_plus = [(start_idx + i)[: len(start_idx)] for i in range(self.params.retirement_superscalarity)]
+
         m.submodules.data = self.data
 
         @def_method(m, self.peek, nonexclusive=True)
@@ -59,21 +63,33 @@ class ReorderBuffer(Elaboratable):
             peek_ret = self.data.peek(m)
             entries = []
             for i in range(self.params.retirement_superscalarity):
-                rob_id = (start_idx + i)[: len(start_idx)]
                 entries.append(
                     {
                         "rob_data": peek_ret.data[i],
-                        "rob_id": rob_id,
-                        "exception": self.exception[rob_id],
+                        "rob_id": start_idx_plus[i],
+                        "exception": self.exception[start_idx_plus[i]],
                     }
                 )
             return {"count": peek_ret.count, "entries": entries}
 
-        @def_method(m, self.retire, ready=self.done[start_idx])
+        with Transaction().body(m):
+            peek_ret = self.data.peek(m)
+
+        retire_ready = reduce(
+            operator.and_,
+            [
+                self.done[start_idx_plus[i]] | (i >= peek_ret.count)
+                for i in range(self.params.retirement_superscalarity)
+            ],
+        )
+
+        @def_method(m, self.retire, ready=retire_ready)
         def _(count: int):
             self.perf_rob_wait_time.stop(m, count=count)
             self.data.read(m, count=count)
-            m.d.sync += self.done[start_idx].eq(0)
+            for i in range(self.params.retirement_superscalarity):
+                with m.If(i < count):
+                    m.d.sync += self.done[start_idx_plus[i]].eq(0)
 
         @def_method(m, self.put)
         def _(count: int, entries):
