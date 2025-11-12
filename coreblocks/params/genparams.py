@@ -69,6 +69,12 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
 
+        self.frontend_superscalarity = cfg.frontend_superscalarity
+        self.retirement_superscalarity = cfg.retirement_superscalarity
+        max_superscalarity = max(self.frontend_superscalarity, self.retirement_superscalarity)
+        if max_superscalarity & (max_superscalarity - 1) != 0:
+            raise ValueError("Maximum of frontend and retirement superscalarity must be a power of 2")
+
         self.checkpoint_count = cfg.checkpoint_count
         self.tag_bits = cfg.tag_bits
         assert cfg.checkpoint_count < 2**cfg.tag_bits
