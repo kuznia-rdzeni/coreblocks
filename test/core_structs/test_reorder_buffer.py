@@ -102,7 +102,11 @@ class TestFullDoneCase(TestCaseWithSimulator):
         for _ in range(self.test_steps):
             log_reg = self.rand.randrange(self.log_regs)
             phys_reg = self.rand.randrange(self.phys_regs)
-            rob_id = (await self.m.put.call(sim, rl_dst=log_reg, rp_dst=phys_reg)).rob_id
+            rob_id = (
+                (await self.m.put.call(sim, count=1, entries=[{"rl_dst": log_reg, "rp_dst": phys_reg}]))
+                .entries[0]
+                .rob_id
+            )
             self.to_execute_list.append(rob_id)
 
     async def do_single_update(self, sim: TestbenchContext):
@@ -110,17 +114,17 @@ class TestFullDoneCase(TestCaseWithSimulator):
             await sim.tick()
 
         rob_id = self.to_execute_list.pop(0)
-        await self.m.mark_done.call(sim, rob_id=rob_id)
+        await self.m.mark_done[0].call(sim, rob_id=rob_id)
 
     async def do_retire(self, sim: TestbenchContext):
         for i in range(self.test_steps - 1):
             await self.do_single_update(sim)
 
-        await self.m.retire.call(sim)
+        await self.m.retire.call(sim, count=1)
         await self.do_single_update(sim)
 
         for i in range(self.test_steps - 1):
-            await self.m.retire.call(sim)
+            await self.m.retire.call(sim, count=1)
 
         res = await self.m.retire.call_try(sim)
         assert res is None  # since we have read all elements
