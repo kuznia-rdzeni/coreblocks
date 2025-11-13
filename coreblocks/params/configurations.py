@@ -145,6 +145,10 @@ class _CoreConfigurationDataClass:
     rob_entries_bits: int = 7
     start_pc: int = 0
 
+    frontend_superscalarity: int = 1
+    announcement_superscalarity: int = 1
+    retirement_superscalarity: int = 1
+
     checkpoint_count: int = 16
     tag_bits: int = 5
 
@@ -256,6 +260,7 @@ full_core_config = CoreConfiguration(
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
     pmp_register_count=16,
+    announcement_superscalarity=2,
 )
 
 # Core configuration used in internal testbenches

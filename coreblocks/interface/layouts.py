@@ -338,7 +338,21 @@ class ROBLayouts:
         self.end: LayoutListField = ("end", gen_params.rob_entries_bits)
         """Index of the entry following the last (the latest) entry in the reorder buffer."""
 
+        self.put_count: LayoutListField = ("count", range(gen_params.frontend_superscalarity + 1))
+        """Number of ROB entries to put into ROB."""
+
+        self.retire_count: LayoutListField = ("count", range(gen_params.retirement_superscalarity + 1))
+        """Number of ROB entries to retire."""
+
+        self.peek_data = make_layout(
+            self.rob_data,
+            fields.rob_id,
+            fields.exception,
+        )
+
         self.id_layout = make_layout(fields.rob_id)
+
+        self.retire_layout = make_layout(self.retire_count)
 
         self.mark_done_layout = make_layout(
             fields.rob_id,
@@ -346,10 +360,14 @@ class ROBLayouts:
         )
 
         self.peek_layout = make_layout(
-            self.rob_data,
-            fields.rob_id,
-            fields.exception,
+            self.retire_count, ("entries", ArrayLayout(self.peek_data, gen_params.retirement_superscalarity))
         )
+
+        self.put_layout = make_layout(
+            self.put_count, ("entries", ArrayLayout(self.data_layout, gen_params.frontend_superscalarity))
+        )
+
+        self.put_out_layout = make_layout(("entries", ArrayLayout(self.id_layout, gen_params.frontend_superscalarity)))
 
         self.get_indices = make_layout(self.start, self.end)
 

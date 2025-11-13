@@ -138,16 +138,16 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
             for _ in range(instr_cnt):
                 await self.random_wait_geom(sim, 0.4)
 
-                _, active_tags, entry, rob_idxs = (
+                _, active_tags, peek_res, rob_idxs = (
                     await CallTrigger(sim)
-                    .call(dut.rob_retire)
+                    .call(dut.rob_retire, count=1)
                     .call(dut.get_active_tags)
                     .call(dut.rob_peek)
                     .call(dut.rob_get_indices)
                     .until_all_done()
                 )
                 active_tags = active_tags["active_tags"]
-                entry = entry["rob_data"]
+                entry = peek_res.entries[0]["rob_data"]
                 rob_id = rob_idxs["start"]
 
                 current_tag += entry["tag_increment"]

@@ -8,7 +8,7 @@ from coreblocks.interface.keys import CoreStateKey, RollbackKey
 from coreblocks.interface.layouts import RetirementLayouts
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
-from transactron.core import Method
+from transactron.core import Method, Methods
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.testing.functions import MethodData, data_const_to_dict
 from transactron.testing.method_mock import MethodMock
@@ -43,7 +43,7 @@ class SchedulerTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
         m.submodules.crat = self.crat = crat = CheckpointRAT(gen_params=self.gen_params)
-        m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
+        m.submodules.rob = self.rob = ReorderBuffer(self.gen_params, 1)
         m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
 
         # mocked RSFuncBlock
@@ -52,7 +52,7 @@ class SchedulerTestCircuit(Elaboratable):
                 self.select = select
                 self.insert = insert
 
-            update: Method
+            update: Methods
             get_result: Method
 
             def elaborate(self, platform):
@@ -84,7 +84,7 @@ class SchedulerTestCircuit(Elaboratable):
         # mocked input and output
         m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans.create(self.rf.write[0]))
         m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans.create(self.rf.free[0]))
-        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans.create(self.rob.mark_done))
+        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans.create(self.rob.mark_done[0]))
         m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans.create(self.rob.retire))
         m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans.create(self.rob.peek))
         m.submodules.rob_get_indices = self.rob_get_indices = TestbenchIO(AdapterTrans.create(self.rob.get_indices))
@@ -307,6 +307,7 @@ class TestScheduler(TestCaseWithSimulator):
     def test_randomized(self):
         async def instr_input_process(sim: TestbenchContext):
             self.m.rob_retire.enable(sim)
+            self.m.rob_retire.set_inputs(sim, {"count": 1})
 
             # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
