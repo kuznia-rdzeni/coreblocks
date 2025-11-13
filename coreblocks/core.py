@@ -6,8 +6,8 @@ from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
-from transactron.core import TModule
-from transactron.lib import ConnectTrans, MethodProduct
+from transactron.core import TModule, Method
+from transactron.lib import CrossbarConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     CSRInstancesKey,
@@ -64,8 +64,15 @@ class Core(Component):
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
-        self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
-        self.ROB = ReorderBuffer(gen_params=self.gen_params, mark_done_ports=1)
+        self.RF = RegisterFile(
+            gen_params=self.gen_params,
+            read_ports=2,
+            write_ports=self.gen_params.announcement_superscalarity,
+            free_ports=1,
+        )
+        self.ROB = ReorderBuffer(
+            gen_params=self.gen_params, mark_done_ports=self.gen_params.announcement_superscalarity
+        )
 
         self.retirement = Retirement(self.gen_params)
 
@@ -134,14 +141,16 @@ class Core(Component):
 
         m.submodules.exception_information_register = self.exception_information_register
 
-        m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
+        announce_result: list[Method] = []
+        for i in range(self.gen_params.announcement_superscalarity):
+            m.submodules[f"announcement_{i}"] = announcement = ResultAnnouncement(gen_params=self.gen_params)
+            announcement.rob_mark_done.provide(self.ROB.mark_done[i])
+            announcement.rs_update.provide(self.func_blocks_unifier.update[i])
+            announcement.rf_write_val.provide(self.RF.write[i])
+            announce_result.append(announcement.push_result)
 
-        announcement.rob_mark_done.provide(self.ROB.mark_done[0])
-        announcement.rs_update.provide(self.func_blocks_unifier.update)
-        announcement.rf_write_val.provide(self.RF.write[0])
-
-        m.submodules.announcement_connector = ConnectTrans.create(
-            self.func_blocks_unifier.get_result, announcement.push_result
+        m.submodules.announcement_connector = CrossbarConnectTrans.create(
+            self.func_blocks_unifier.get_result, announce_result
         )
 
         m.submodules.retirement = retirement = self.retirement

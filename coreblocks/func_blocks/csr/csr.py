@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import StructLayout
 from dataclasses import dataclass
 
-from transactron import Method, def_method, Transaction, TModule
+from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
@@ -76,7 +76,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.select = Method(o=self.csr_layouts.rs.select_out)
         self.insert = Method(i=self.csr_layouts.rs.insert_in)
-        self.update = Method(i=self.csr_layouts.rs.update_in)
+        self.update = Methods(gen_params.announcement_superscalarity, i=self.csr_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.push_result)
 
         self.regfile: dict[int, tuple[Method, Method]] = {}
@@ -195,8 +195,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += instr.valid.eq(1)
 
-        @def_method(m, self.update)
-        def _(reg_id, reg_val):
+        @def_methods(m, self.update)
+        def _(k: int, reg_id, reg_val):
             with m.If(reg_id == instr.rp_s1):
                 m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.rp_s1.eq(0)
