@@ -8,7 +8,7 @@ from coreblocks.interface.keys import CoreStateKey, RollbackKey
 from coreblocks.interface.layouts import RetirementLayouts
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 
-from transactron.core import Method
+from transactron.core import Method, Methods
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.testing.functions import MethodData, data_const_to_dict
 from transactron.testing.method_mock import MethodMock
@@ -52,7 +52,7 @@ class SchedulerTestCircuit(Elaboratable):
                 self.select = select
                 self.insert = insert
 
-            update: Method
+            update: Methods
             get_result: Method
 
             def elaborate(self, platform):
