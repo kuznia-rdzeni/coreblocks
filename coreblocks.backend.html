@@ -97,15 +97,10 @@ its results to ROB, RF and RS. ROB marks the instruction as completed.
 The RF stores the result value of the instruction. The value
 is also sent to RS in case if there is an instruction which waits for
 this value.</p>
-<p>Method <cite>get_result</cite> gets already serialized instruction results, so in
-case in which we have more than one FU, then their outputs should be connected by
-<cite>ManyToOneConnectTrans</cite> to a FIFO.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>get_result</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to get results of next ready instruction,
-which should be announced in core. This method assumes that results
-from different FUs are already serialized.</p>
+<dt><strong>push_result</strong><span class="classifier">Method, provided</span></dt><dd><p>Should be called to perform result announcement.</p>
 </dd>
 <dt><strong>rob_mark_done</strong><span class="classifier">Method, required</span></dt><dd><p>Method which is invoked to mark that instruction ended.</p>
 </dd>
@@ -131,9 +126,24 @@ fetch unit.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.backend.announcement.ResultAnnouncement.debug_signals">
-<span class="sig-name descname"><span class="pre">debug_signals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.backend.announcement.ResultAnnouncement.debug_signals" title="Permalink to this definition"></a></dt>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.backend.announcement.ResultAnnouncement.push_result">
+<span class="sig-name descname"><span class="pre">push_result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.backend.announcement.ResultAnnouncement.push_result" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.backend.announcement.ResultAnnouncement.rf_write_val">
+<span class="sig-name descname"><span class="pre">rf_write_val</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.backend.announcement.ResultAnnouncement.rf_write_val" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.backend.announcement.ResultAnnouncement.rob_mark_done">
+<span class="sig-name descname"><span class="pre">rob_mark_done</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.backend.announcement.ResultAnnouncement.rob_mark_done" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.backend.announcement.ResultAnnouncement.rs_update">
+<span class="sig-name descname"><span class="pre">rs_update</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.backend.announcement.ResultAnnouncement.rs_update" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -170,7 +180,7 @@ fetch unit.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 10:36 2025-11-07.
+      <span class="lastupdated">Last updated on 20:39 2025-11-21.
       </span></p>
   </div>
 
