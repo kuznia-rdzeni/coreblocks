@@ -14,7 +14,41 @@ log = logging.HardwareLogger("core_structs.rob")
 
 
 class ReorderBuffer(Elaboratable):
+    """Reorder buffer.
+
+    The reorder buffer (ROB) is a data structure responsible for preserving
+    the original instruction order for the purpose of correctly freeing
+    allocated registers and exception handling. The ROB is essentially
+    a FIFO queue: the instructions are added to it in order by the scheduler
+    (a part of the frontend) and removed in order by the retirement module
+    (a part of the backend). Additionally, the ROB remembers which
+    instructions finished execution: this information is updated by the
+    announcement module.
+
+    Attributes
+    ----------
+    put : Method
+        Inserts instructions into the ROB. Used by the scheduler.
+    mark_done : Methods
+        Marks instruction as completed. Used by the announcement module.
+    retire : Method
+        Removes instructions from the ROB. Used by the retirement module.
+    peek : Method
+        Returns the front of the ROB without removing instructions.
+    get_indices : Method
+        Returns the `rob_id` of the oldest instruction in the ROB and the
+        first `rob_id` after the newest instruction in the ROB.
+    """
+
     def __init__(self, gen_params: GenParams, mark_done_ports: int) -> None:
+        """
+        Parameters
+        ----------
+        gen_params : GenParams
+            Core generator parameters for the selected core configuration.
+        mark_done_ports : int
+            The number of `mark_done` methods (announcement ports).
+        """
         self.params = gen_params
         layouts = gen_params.get(ROBLayouts)
         self.put = Method(i=layouts.put_layout, o=layouts.put_out_layout)
