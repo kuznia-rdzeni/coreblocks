@@ -7,7 +7,7 @@ from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
 from transactron.core import TModule
-from transactron.lib import MethodProduct
+from transactron.lib import ConnectTrans, MethodProduct
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     CSRInstancesKey,
@@ -135,10 +135,14 @@ class Core(Component):
         m.submodules.exception_information_register = self.exception_information_register
 
         m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
-        announcement.get_result.provide(self.func_blocks_unifier.get_result)
+
         announcement.rob_mark_done.provide(self.ROB.mark_done[0])
         announcement.rs_update.provide(self.func_blocks_unifier.update)
         announcement.rf_write_val.provide(self.RF.write[0])
+
+        m.submodules.announcement_connector = ConnectTrans.create(
+            self.func_blocks_unifier.get_result, announcement.push_result
+        )
 
         m.submodules.retirement = retirement = self.retirement
         retirement.rob_peek.provide(rob.peek)
