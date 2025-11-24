@@ -187,10 +187,46 @@ Invalidates tags, frees checkpoints, initiates FRAT restore and Scheduler flushi
 <dt class="sig sig-object py" id="coreblocks.core_structs.rob.ReorderBuffer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.core_structs.rob.</span></span><span class="sig-name descname"><span class="pre">ReorderBuffer</span></span><a class="headerlink" href="#coreblocks.core_structs.rob.ReorderBuffer" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Reorder buffer.</p>
+<p>The reorder buffer (ROB) is a data structure responsible for preserving
+the original instruction order for the purpose of correctly freeing
+allocated registers and exception handling. The ROB is essentially
+a FIFO queue: the instructions are added to it in order by the scheduler
+(a part of the frontend) and removed in order by the retirement module
+(a part of the backend). Additionally, the ROB remembers which
+instructions finished execution: this information is updated by the
+announcement module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>put</strong><span class="classifier">Method</span></dt><dd><p>Inserts instructions into the ROB. Used by the scheduler.</p>
+</dd>
+<dt><strong>mark_done</strong><span class="classifier">Methods</span></dt><dd><p>Marks instruction as completed. Used by the announcement module.</p>
+</dd>
+<dt><strong>retire</strong><span class="classifier">Method</span></dt><dd><p>Removes instructions from the ROB. Used by the retirement module.</p>
+</dd>
+<dt><strong>peek</strong><span class="classifier">Method</span></dt><dd><p>Returns the front of the ROB without removing instructions.</p>
+</dd>
+<dt><strong>get_indices</strong><span class="classifier">Method</span></dt><dd><p>Returns the <cite>rob_id</cite> of the oldest instruction in the ROB and the
+first <cite>rob_id</cite> after the newest instruction in the ROB.</p>
+</dd>
+</dl>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.core_structs.rob.ReorderBuffer.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.core_structs.rob.ReorderBuffer.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mark_done_ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.core_structs.rob.ReorderBuffer.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gen_params</strong><span class="classifier">GenParams</span></dt><dd><p>Core generator parameters for the selected core configuration.</p>
+</dd>
+<dt><strong>mark_done_ports</strong><span class="classifier">int</span></dt><dd><p>The number of <cite>mark_done</cite> methods (announcement ports).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -212,7 +248,7 @@ Invalidates tags, frees checkpoints, initiates FRAT restore and Scheduler flushi
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 20:39 2025-11-21.
+      <span class="lastupdated">Last updated on 14:58 2025-11-24.
       </span></p>
   </div>
 
