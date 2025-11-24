@@ -54,13 +54,17 @@ class ReorderBuffer(Elaboratable):
         start_idx = Value.cast(self.data.read_idx)
         end_idx = Value.cast(self.data.write_idx)
 
-        start_idx_plus = [(start_idx + i)[: len(start_idx)] for i in range(self.params.retirement_superscalarity)]
+        start_idx_plus = [Signal.like(start_idx) for _ in range(self.params.retirement_superscalarity)]
+        for i in range(len(start_idx_plus)):
+            m.d.comb += start_idx_plus[i].eq(start_idx + i)
 
         m.submodules.data = self.data
 
+        with Transaction().body(m):
+            peek_ret = self.data.peek(m)
+
         @def_method(m, self.peek, nonexclusive=True)
         def _():
-            peek_ret = self.data.peek(m)
             entries = []
             for i in range(self.params.retirement_superscalarity):
                 entries.append(
@@ -72,19 +76,13 @@ class ReorderBuffer(Elaboratable):
                 )
             return {"count": peek_ret.count, "entries": entries}
 
-        with Transaction().body(m):
-            peek_ret = self.data.peek(m)
-
-        retire_ready = reduce(
-            operator.and_,
-            [
-                self.done[start_idx_plus[i]] | (i >= peek_ret.count)
-                for i in range(self.params.retirement_superscalarity)
-            ],
-        )
-
-        @def_method(m, self.retire, ready=retire_ready)
+        @def_method(m, self.retire, ready=self.done[start_idx])
         def _(count: int):
+            retire_ok = reduce(
+                operator.and_,
+                [self.done[start_idx_plus[i]] | (i >= count) for i in range(self.params.retirement_superscalarity)],
+            )
+            log.assertion(m, (count <= peek_ret.count) & retire_ok, "retire called with invalid count {}", count)
             self.perf_rob_wait_time.stop(m, count=count)
             self.data.read(m, count=count)
             for i in range(self.params.retirement_superscalarity):

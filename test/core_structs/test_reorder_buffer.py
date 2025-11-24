@@ -41,27 +41,31 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 else:
                     idx = self.rand.randint(0, len(self.to_execute_list) - 1)
                     rob_id, executed = self.to_execute_list.pop(idx)
-                    self.executed_list.append(executed)
                     await self.m.mark_done[k].call(sim, rob_id=rob_id, exception=0)
+                    self.executed_set.add(executed)
 
         return do_updates
 
     async def do_retire(self, sim: TestbenchContext):
         self.m.peek.call_init(sim)
         while self.retire_queue or not self.finished:
-            if not self.retire_queue:
+            await sim.delay(1e-12)  # ensure executed_set is updated
+            if not self.retire_queue or self.retire_queue[0][0]["rp_dst"] not in self.executed_set:
                 res = await self.m.retire.call_try(sim)
                 assert res is None  # transaction should not be ready if there is nothing to retire
             else:
                 results = self.m.peek.get_call_result(sim)
                 count = randrange(1, results.count + 1)
+                count = (
+                    [self.retire_queue[i][0]["rp_dst"] in self.executed_set for i in range(count)] + [False]
+                ).index(False)
                 regs, rob_id_exp = zip(*(self.retire_queue.popleft() for _ in range(count)))
                 await self.m.retire.call(sim, count=count)
                 for k in range(count):
                     phys_reg = results.entries[k].rob_data.rp_dst
                     assert rob_id_exp[k] == results.entries[k].rob_id
-                    assert phys_reg in self.executed_list
-                    self.executed_list.remove(phys_reg)
+                    assert phys_reg in self.executed_set
+                    self.executed_set.remove(phys_reg)
 
                     assert data_const_to_dict(results.entries[k].rob_data) == regs[k]
                     self.regs_left_queue.append(phys_reg)
@@ -82,7 +86,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
 
         self.regs_left_queue = deque()
         self.to_execute_list = []
-        self.executed_list = []
+        self.executed_set = set()
         self.retire_queue = deque()
         for i in range(2**self.gen_params.phys_regs_bits):
             self.regs_left_queue.append(i)
