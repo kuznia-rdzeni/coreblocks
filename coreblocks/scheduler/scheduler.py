@@ -200,15 +200,20 @@ class ROBAllocation(Elaboratable):
         with Transaction().body(m):
             instr = self.get_instr(m)
 
-            rob_id = self.rob_put(
+            rob_ids = self.rob_put(
                 m,
-                rl_dst=instr.regs_l.rl_dst,
-                rp_dst=instr.regs_p.rp_dst,
-                tag_increment=instr.tag_increment,
+                count=1,
+                entries=[
+                    {
+                        "rl_dst": instr.regs_l.rl_dst,
+                        "rp_dst": instr.regs_p.rp_dst,
+                        "tag_increment": instr.tag_increment,
+                    }
+                ],
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
+            m.d.comb += data_out.rob_id.eq(rob_ids.entries[0].rob_id)
 
             self.push_instr(m, data_out)
 

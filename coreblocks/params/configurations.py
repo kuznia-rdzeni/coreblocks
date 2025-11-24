@@ -145,6 +145,9 @@ class _CoreConfigurationDataClass:
     rob_entries_bits: int = 7
     start_pc: int = 0
 
+    frontend_superscalarity: int = 1
+    retirement_superscalarity: int = 1
+
     checkpoint_count: int = 16
     tag_bits: int = 5
 

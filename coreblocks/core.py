@@ -65,7 +65,7 @@ class Core(Component):
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
-        self.ROB = ReorderBuffer(gen_params=self.gen_params)
+        self.ROB = ReorderBuffer(gen_params=self.gen_params, mark_done_ports=1)
 
         self.retirement = Retirement(self.gen_params)
 
@@ -135,7 +135,8 @@ class Core(Component):
         m.submodules.exception_information_register = self.exception_information_register
 
         m.submodules.announcement = announcement = ResultAnnouncement(gen_params=self.gen_params)
-        announcement.rob_mark_done.provide(self.ROB.mark_done)
+
+        announcement.rob_mark_done.provide(self.ROB.mark_done[0])
         announcement.rs_update.provide(self.func_blocks_unifier.update)
         announcement.rf_write_val.provide(self.RF.write[0])
 
