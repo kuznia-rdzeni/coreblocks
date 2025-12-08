@@ -70,6 +70,7 @@ class GenParams(DependentCache):
         self.start_pc = cfg.start_pc
 
         self.frontend_superscalarity = cfg.frontend_superscalarity
+        self.announcement_superscalarity = cfg.announcement_superscalarity
         self.retirement_superscalarity = cfg.retirement_superscalarity
         max_superscalarity = max(self.frontend_superscalarity, self.retirement_superscalarity)
         if max_superscalarity & (max_superscalarity - 1) != 0:

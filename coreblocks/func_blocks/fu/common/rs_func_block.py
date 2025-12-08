@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from coreblocks.params import *
 from .rs import RS, RSBase
 from coreblocks.scheduler.wakeup_select import WakeupSelect
-from transactron import Method, TModule
+from transactron import Method, Methods, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import FIFO, Collector, Connect
 from coreblocks.arch import OpType
@@ -24,8 +24,8 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         RS insert method.
     select: Method
         RS select method.
-    update: Method
-        RS update method.
+    update: Methods
+        RS update methods.
     get_result: Method
         Method used for getting single result out of one of the FUs. It uses
         layout described by `FuncUnitLayouts`.
@@ -63,7 +63,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 
         self.insert = Method(i=self.rs_layouts.rs.insert_in)
         self.select = Method(o=self.rs_layouts.rs.select_out)
-        self.update = Method(i=self.rs_layouts.rs.update_in)
+        self.update = Methods(gen_params.announcement_superscalarity, i=self.rs_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.push_result)
 
     def elaborate(self, platform):
@@ -73,6 +73,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             gen_params=self.gen_params,
             rs_entries=self.rs_entries,
             rs_number=self.rs_number,
+            rs_ways=self.gen_params.announcement_superscalarity,
             ready_for=(optypes for _, optypes, _ in self.func_units),
         )
 
@@ -100,7 +101,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 
         self.insert.provide(self.rs.insert)
         self.select.provide(self.rs.select)
-        self.update.provide(self.rs.update[0])
+        self.update.provide(self.rs.update)
         self.get_result.provide(collector.method)
 
         return m

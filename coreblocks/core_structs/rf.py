@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
+from amaranth.lib import memory
 from transactron import Methods, Transaction, def_methods, TModule
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.interface.layouts import RFLayouts
@@ -21,7 +22,7 @@ class RegisterFile(Elaboratable):
         layouts = gen_params.get(RFLayouts)
         self.read_layout = layouts.rf_read_out
         self.entries = MemoryBank(
-            memory_type=gen_params.multiport_memory_type,
+            memory_type=gen_params.multiport_memory_type if write_ports > 1 else memory.Memory,
             shape=gen_params.isa.xlen,
             depth=2**gen_params.phys_regs_bits,
             read_ports=read_ports,
