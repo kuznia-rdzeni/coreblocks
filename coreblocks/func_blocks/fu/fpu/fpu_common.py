@@ -17,6 +17,12 @@ class Errors(enum.IntFlag):
     INVALID_OPERATION = enum.auto()
 
 
+class ComparisionTypes(enum.IntFlag):
+    EQ = enum.auto()
+    LT = enum.auto()
+    LE = enum.auto()
+
+
 class FPUParams:
     """FPU parameters
 
