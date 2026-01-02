@@ -24,17 +24,21 @@ class FPUCompMethodLayout:
             ("operation", ComparisionTypes),
         ]
         """
-        | Input layout for addition/subtraction
+        | Input layout for comparision
         | op_1 - layout containing data of the first operand
         | op_2 - layout containing data of the second operand
-        | rounding_mode - selected rounding mode
-        | operation - selected operation; 1 - subtraction, 0 - addition
+        | operation - selected operation, valuse come from
           :py:enum:`ComparisionTypes <coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes>`
         """
-        self.comp_out_layout = [("result", 1)("errors", Errors)]
+        self.comp_out_layout = [("result", 1),("errors", Errors),]
+        """
+        | Output layout for comparision
+        | result - 1 if True or 0 otherwise
+        | errors - Exceptions, in this case only possible exception is invalid operation
+        """
 
 
-class CompModule(Elaboratable):
+class FPUCompModule(Elaboratable):
     """Comparision module
     Module responsible for performing comparisions operations.
 
@@ -71,8 +75,8 @@ class CompModule(Elaboratable):
             ordered = Signal()
             m.d.av_comb += ordered.eq(~(op_1.is_nan | op_2.is_nan))
 
-            op_1_sig_nan = op_1.is_nan & (~op_1.sig[-2])
-            op_2_sig_nan = op_2.is_nan & (~op_2.sig[-2])
+            op_1_sig_nan = (op_1.is_nan & (~op_1.sig[-2]))
+            op_2_sig_nan = (op_2.is_nan & (~op_2.sig[-2]))
             any_nan_signaling = Signal()
             m.d.av_comb += any_nan_signaling.eq(op_1_sig_nan | op_2_sig_nan)
 
@@ -87,9 +91,9 @@ class CompModule(Elaboratable):
 
             eq_exp = Signal()
             m.d.av_comb += eq_exp.eq(op_1.exp == op_2.exp)
-            lt_exp = op_1.exp < op_2.exp
-            lt_sig = op_1.sig < op_2.sig
-            eq_sig = op_1.sig == op_2.sig
+            lt_exp = (op_1.exp < op_2.exp)
+            lt_sig = (op_1.sig < op_2.sig)
+            eq_sig = (op_1.sig == op_2.sig)
 
             eq_mag = Signal()
             lt_mag = Signal()
@@ -103,23 +107,22 @@ class CompModule(Elaboratable):
             lt_sign_pos = (~op_2.sign) & lt_mag
             m.d.av_comb += lt.eq((~both_zero) & (lt_by_sign | lt_sign_neg | lt_sign_pos))
 
-            eq = Signal()
-            m.d.av_comb += eq.eq(both_zero | (same_sign & eq_mag))
+            equal = Signal()
+            m.d.av_comb += equal.eq(both_zero | (same_sign & eq_mag))
 
             result = Signal()
 
             with m.Switch(operation):
                 with m.Case(ComparisionTypes.EQ):
-                    m.d.av_comb += result.eq(ordered & eq)
+                    m.d.av_comb += result.eq(ordered & equal)
                 with m.Case(ComparisionTypes.LT):
                     m.d.av_comb += result.eq(ordered & lt)
                 with m.Case(ComparisionTypes.LE):
-                    m.d.av_comb += result.eq(ordered & (eq | lt))
+                    m.d.av_comb += result.eq(ordered & (equal | lt))
 
             invalid = Signal(Errors)
             with m.If(any_nan_signaling | (signaling_op & (~ordered))):
                 m.d.av_comb += invalid.eq(Errors.INVALID_OPERATION)
-
             return {
                 "result": result,
                 "errors": invalid,
