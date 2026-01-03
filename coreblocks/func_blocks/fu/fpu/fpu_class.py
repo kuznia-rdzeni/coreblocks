@@ -1,10 +1,12 @@
 from amaranth import *
+from amaranth.lib import enum
 from transactron import TModule, Method, def_method
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     FPUParams,
     create_data_input_layout,
     Errors,
 )
+
 
 class FPUClasses(enum.IntFlag):
     NEG_INF = enum.auto()
@@ -36,9 +38,12 @@ class FPUClassMethodLayout:
         | Input layout for classification
         | op_1 - layout containing data of the only operand
         """
-        self.class_out_layout = [("result", 10),("errors", Errors),]
+        self.class_out_layout = [
+            ("result", 10),
+            ("errors", Errors),
+        ]
         """
-        | Output layout for classification 
+        | Output layout for classification
         | result - Class of operand
         | errors - Exceptions, in case of classification it is always 0 (empty mask)
         """
@@ -90,28 +95,28 @@ class FPUClassModule(Elaboratable):
 
             result = Signal(10)
             with m.If(neg_sign):
-                with m.ElIf(op.is_inf):
+                with m.If(op.is_inf):
                     m.d.av_comb += result.eq(FPUClasses.NEG_INF)
-                with m.ElIf(op_norm):
+                with m.Elif(op_norm):
                     m.d.av_comb += result.eq(FPUClasses.NEG_NORM)
-                with m.ElIf(op_sub):
+                with m.Elif(op_sub):
                     m.d.av_comb += result.eq(FPUClasses.NEG_SUB)
-                with m.ElIf(op.is_zero):
+                with m.Elif(op.is_zero):
                     m.d.av_comb += result.eq(FPUClasses.NEG_ZERO)
             with m.Elif(pos_sign):
                 with m.If(op.is_inf):
                     m.d.av_comb += result.eq(FPUClasses.POS_INF)
-                with m.ElIf(op_norm):
+                with m.Elif(op_norm):
                     m.d.av_comb += result.eq(FPUClasses.POS_NORM)
-                with m.ElIf(op_sub):
+                with m.Elif(op_sub):
                     m.d.av_comb += result.eq(FPUClasses.POS_SUB)
-                with m.ElIf(op.is_zero):
+                with m.Elif(op.is_zero):
                     m.d.av_comb += result.eq(FPUClasses.POS_ZERO)
             with m.If(op.is_nan & (~op_sig_nan)):
                 m.d.av_comb += result.eq(FPUClasses.QUIET_NAN)
             with m.Elif(op.is_nan & op_sig_nan):
                 m.d.av_comb += result.eq(FPUClasses.SIG_NAN)
-                
+
             return {
                 "result": result,
                 "errors": 0,
