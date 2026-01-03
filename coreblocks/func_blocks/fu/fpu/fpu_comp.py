@@ -27,8 +27,8 @@ class FPUCompMethodLayout:
         | Input layout for comparision
         | op_1 - layout containing data of the first operand
         | op_2 - layout containing data of the second operand
-        | operation - selected operation, valuse come from
-          :py:enum:`ComparisionTypes <coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes>`
+        | operation - selected operation, values come from
+          :class:`ComparisionTypes <coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes>`
         """
         self.comp_out_layout = [("result", 1),("errors", Errors),]
         """
