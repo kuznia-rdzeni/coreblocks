@@ -91,15 +91,15 @@ class IntConversionValues:
         self,
         *,
         int_width: int = 32,
-        sig_width: int = 32,
+        sig_width: int = 24,
         bias: int = 127,
     ):
         self.int_width = int_width
         self.ext_width = sig_width if sig_width >= int_width else int_width
-        self.exp_base_value = int_width + bias
+        self.exp_base_value = int_width + bias - 1
         self.shift_width = int(math.log2(int_width))
         self.exact = sig_width >= int_width
-        self.round_bit_index = int_width - sig_width - 1
+        self.round_bit_index = self.ext_width - 1 - sig_width
         self.msb_sticky_index = self.round_bit_index
         self.ext_to_dst_shift = int_width - sig_width
 
