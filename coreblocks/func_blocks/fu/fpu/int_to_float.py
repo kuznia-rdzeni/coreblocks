@@ -7,7 +7,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
     Errors,
     RoundingModes,
     IntConversionValues,
-    create_output_layout,
+    create_data_output_layout,
 )
 
 from coreblocks.func_blocks.fu.fpu.fpu_rounding_module import FPURounding
@@ -36,10 +36,10 @@ class IntToFloatMethodLayout:
         | signed - bit indicating if op is signed or unsigned
         | rounding_mode - selected rounding mode
         """
-        self.itf_out_layout = create_output_layout(fpu_params)
+        self.itf_out_layout = create_data_output_layout(fpu_params)
         """
         | Output layout for int to float conversion created using
-            :meth:`create_output_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout>`
+            :meth:`create_data_output_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_data_output_layout>`
         """
 
 
