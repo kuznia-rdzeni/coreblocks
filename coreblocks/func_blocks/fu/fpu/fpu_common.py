@@ -75,7 +75,8 @@ def create_data_input_layout(params: FPUParams):
             "is_zero": 1,
         }
     )
-    
+
+
 class IntConversionValues:
     """Various values for conversion from int to float
 
