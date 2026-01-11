@@ -1,13 +1,10 @@
 from coreblocks.func_blocks.fu.fpu.int_to_float import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, IntConversionValues, RoundingModes
-from test.func_blocks.fu.fpu.test_add_sub import ToFloatConverter
+from test.func_blocks.fu.fpu.fpu_test_common import ToFloatConverter
 from transactron.testing import *
 from amaranth import *
 import struct
-import ctypes
 import random
-
-libm = ctypes.CDLL("libm.so.6")
 
 
 class TestComp(TestCaseWithSimulator):
@@ -49,7 +46,7 @@ class TestComp(TestCaseWithSimulator):
             for i in range(test_runs):
 
                 input_dict = {}
-                op = random.randint(-(2**(63)), 2 ** (64) - 1)
+                op = random.randint(-(2 ** (63)), 2 ** (64) - 1)
                 expected_value = float(op)
                 fl = struct.unpack("f", struct.pack("f", expected_value))[0]
                 hex_r = hex(struct.unpack("<I", struct.pack("<f", fl))[0])
@@ -57,7 +54,7 @@ class TestComp(TestCaseWithSimulator):
                 expected_resp = converter.from_hex(hex_r)
 
                 input_dict["op"] = op
-                input_dict["signed"] = 0 if op >=0 else 1
+                input_dict["signed"] = 0 if op >= 0 else 1
                 input_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
 
                 resp = await itf.itf_request.call(sim, input_dict)

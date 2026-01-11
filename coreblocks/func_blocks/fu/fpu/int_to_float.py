@@ -14,7 +14,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_rounding_module import FPURounding
 
 
 class IntToFloatMethodLayout:
-    """FPU comparision module method layout
+    """FPU integer to float conversion module method layout
 
     Parameters
     ----------
@@ -32,13 +32,13 @@ class IntToFloatMethodLayout:
         ]
         """
         | Input layout for int to float conversion
-        | op - layout containing data of the first integer
+        | op - layout containing data of the integer
         | signed - bit indicating if op is signed or unsigned
         | rounding_mode - selected rounding mode
         """
         self.itf_out_layout = create_output_layout(fpu_params)
         """
-        | Output layout for comparision created using
+        | Output layout for int to float conversion created using
             :meth:`create_output_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout>`
         """
 
@@ -56,7 +56,7 @@ class IntToFloatModule(Elaboratable):
 
     Attributes
     ----------
-    comp_request: Method
+    itf_request: Method
         Transactional method for initiating conversion.
         Takes 'itf_in_layout' as argument
         Returns result as 'itf_out_layout'
