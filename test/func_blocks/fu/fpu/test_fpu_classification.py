@@ -1,5 +1,5 @@
 from coreblocks.func_blocks.fu.fpu.fpu_class import *
-from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
+from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, FPUClasses
 from transactron.testing import *
 from amaranth import *
 

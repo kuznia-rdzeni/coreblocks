@@ -17,6 +17,19 @@ class Errors(enum.IntFlag):
     INVALID_OPERATION = enum.auto()
 
 
+class FPUClasses(enum.IntFlag):
+    NEG_INF = enum.auto()
+    NEG_NORM = enum.auto()
+    NEG_SUB = enum.auto()
+    NEG_ZERO = enum.auto()
+    POS_ZERO = enum.auto()
+    POS_SUB = enum.auto()
+    POS_NORM = enum.auto()
+    POS_INF = enum.auto()
+    SIG_NAN = enum.auto()
+    QUIET_NAN = enum.auto()
+
+
 class FPUParams:
     """FPU parameters
 

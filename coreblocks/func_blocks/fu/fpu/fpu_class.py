@@ -1,24 +1,11 @@
 from amaranth import *
-from amaranth.lib import enum
 from transactron import TModule, Method, def_method
 from coreblocks.func_blocks.fu.fpu.fpu_common import (
     FPUParams,
+    FPUClasses,
     create_data_input_layout,
     Errors,
 )
-
-
-class FPUClasses(enum.IntFlag):
-    NEG_INF = enum.auto()
-    NEG_NORM = enum.auto()
-    NEG_SUB = enum.auto()
-    NEG_ZERO = enum.auto()
-    POS_ZERO = enum.auto()
-    POS_SUB = enum.auto()
-    POS_NORM = enum.auto()
-    POS_INF = enum.auto()
-    SIG_NAN = enum.auto()
-    QUIET_NAN = enum.auto()
 
 
 class FPUClassMethodLayout:
@@ -36,7 +23,7 @@ class FPUClassMethodLayout:
         ]
         """
         | Input layout for classification
-        | op_1 - layout containing data of the only operand
+        | op - layout containing data of the only operand
         """
         self.class_out_layout = [
             ("result", 10),
@@ -80,7 +67,7 @@ class FPUClassModule(Elaboratable):
 
         @def_method(m, self.class_request)
         def _(op):
-            common_case = Signal()
+            normal_case = Signal()
             neg_sign = Signal()
             pos_sign = Signal()
             op_norm = Signal()
@@ -88,9 +75,9 @@ class FPUClassModule(Elaboratable):
             op_sig_nan = Signal()
             m.d.av_comb += neg_sign.eq(op.sign)
             m.d.av_comb += pos_sign.eq(~op.sign)
-            m.d.av_comb += common_case.eq((~op.is_inf) & (~op.is_zero) & (~op.is_nan))
-            m.d.av_comb += op_norm.eq(common_case & (op.exp > 0))
-            m.d.av_comb += op_sub.eq(common_case & (op.exp == 0))
+            m.d.av_comb += normal_case.eq((~op.is_inf) & (~op.is_zero) & (~op.is_nan))
+            m.d.av_comb += op_norm.eq(normal_case & (op.exp > 0))
+            m.d.av_comb += op_sub.eq(normal_case & (op.exp == 0))
             m.d.av_comb += op_sig_nan.eq(op.is_nan & (~op.sig[-2]))
 
             result = Signal(10)
