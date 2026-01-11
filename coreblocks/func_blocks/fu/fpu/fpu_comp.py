@@ -30,17 +30,20 @@ class FPUCompMethodLayout:
         | operation - selected operation, values come from
           :class:`ComparisionTypes <coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes>`
         """
-        self.comp_out_layout = [("result", 1),("errors", Errors),]
+        self.comp_out_layout = [
+            ("result", 1),
+            ("errors", Errors),
+        ]
         """
         | Output layout for comparision
-        | result - 1 if True or 0 otherwise
-        | errors - Exceptions, in this case only possible exception is invalid operation
+        | result - 1 if true or 0 otherwise
+        | errors - Exceptions, in this case the only possible exception is invalid operation
         """
 
 
 class FPUCompModule(Elaboratable):
     """Comparision module
-    Module responsible for performing comparisions operations.
+    Module responsible for performing LT, EQ and LE  operations.
 
     Parameters
     ----------
@@ -75,8 +78,8 @@ class FPUCompModule(Elaboratable):
             ordered = Signal()
             m.d.av_comb += ordered.eq(~(op_1.is_nan | op_2.is_nan))
 
-            op_1_sig_nan = (op_1.is_nan & (~op_1.sig[-2]))
-            op_2_sig_nan = (op_2.is_nan & (~op_2.sig[-2]))
+            op_1_sig_nan = op_1.is_nan & (~op_1.sig[-2])
+            op_2_sig_nan = op_2.is_nan & (~op_2.sig[-2])
             any_nan_signaling = Signal()
             m.d.av_comb += any_nan_signaling.eq(op_1_sig_nan | op_2_sig_nan)
 
@@ -91,9 +94,9 @@ class FPUCompModule(Elaboratable):
 
             eq_exp = Signal()
             m.d.av_comb += eq_exp.eq(op_1.exp == op_2.exp)
-            lt_exp = (op_1.exp < op_2.exp)
-            lt_sig = (op_1.sig < op_2.sig)
-            eq_sig = (op_1.sig == op_2.sig)
+            lt_exp = op_1.exp < op_2.exp
+            lt_sig = op_1.sig < op_2.sig
+            eq_sig = op_1.sig == op_2.sig
 
             eq_mag = Signal()
             lt_mag = Signal()
