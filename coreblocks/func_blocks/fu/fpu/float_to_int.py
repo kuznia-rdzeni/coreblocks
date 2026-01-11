@@ -174,7 +174,7 @@ class FloatToIntModule(Elaboratable):
             # Assumptions: magnitude < 1
             # In this case we can only get out of bound if we require unsigned number,
             # sign is negative and we need to increase number due to rounding
-            mag_bellow_one_out_of_bond = (~signed) & op.sign & round_up
+            mag_bellow_one_out_of_bound = (~signed) & op.sign & round_up
 
             # Mux when magnitude greater than one and output is signed
             cases_mgeo_osig = Mux(op.sign, sig_neg_out_of_bound, sig_pos_out_of_bound)
@@ -182,7 +182,7 @@ class FloatToIntModule(Elaboratable):
             cases_mgeo = Mux(signed, cases_mgeo_osig, (op.sign | un_pos_out_of_bound))
             out_of_bounds = Signal()
             m.d.av_comb += out_of_bounds.eq(
-                Mux(mag_ge_one, (unbiased_exp > max_shift) | cases_mgeo, mag_bellow_one_out_of_bond)
+                Mux(mag_ge_one, (unbiased_exp > max_shift) | cases_mgeo, mag_bellow_one_out_of_bound)
             )
 
             final_sign = Signal()
