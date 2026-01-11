@@ -1,11 +1,19 @@
 from coreblocks.func_blocks.fu.fpu.float_to_int import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes, Errors
-from test.func_blocks.fu.fpu.test_add_sub import ToFloatConverter
+from test.func_blocks.fu.fpu.fpu_test_common import ToFloatConverter
 from transactron.testing import *
 from amaranth import *
 import struct
 import random
 import ctypes
+
+# Few notes for later.
+# 1. Due to the precision of float some conditions for out of bound numbers
+# are impossible to fulfill/test due to lack of precision (both for 32 and 64 bit integers).
+# Add more tests later when more precise versions of floating point numbers are available
+# 2. Due to the fact that we are not using rounding module but separatly
+# compute if rounding is needed, it may be worth to test all rounding modes or
+# modify rounding module to return one bit of information signifying if rounding occured
 
 
 class TestFTI(TestCaseWithSimulator):

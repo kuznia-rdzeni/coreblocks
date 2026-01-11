@@ -5,7 +5,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
     FPUParams,
     Errors,
     RoundingModes,
-    create_data_layout,
+    create_data_input_layout,
 )
 
 
@@ -22,14 +22,14 @@ class FloatToIntMethodLayout:
 
     def __init__(self, *, fpu_params: FPUParams, int_width: int):
         self.fti_in_layout = [
-            ("op", create_data_layout(fpu_params)),
+            ("op", create_data_input_layout(fpu_params)),
             ("signed", 1),
             ("rounding_mode", RoundingModes),
         ]
         """
         | Input layout for float to int conversion
         | op - layout containing data of the float
-            :meth:`create_data_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_data_layout>`
+            :meth:`create_data_input_layout <coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout>`
         | signed - bit indicating if result is signed or unsigned
         | rounding_mode - selected rounding mode
         """
@@ -44,6 +44,7 @@ class FloatToIntMethodLayout:
 class FloatToIntModule(Elaboratable):
     """Module for float to int conversion
     Module responsible for performing conversion from float to int.
+    This module doesn't extend 32 bit number when XLEN > 32
 
     Parameters
     ----------
@@ -197,19 +198,16 @@ class FloatToIntModule(Elaboratable):
             errors = Signal(Errors)
             m.d.av_comb += errors.eq(Mux(invalid_exc, Errors.INVALID_OPERATION, Mux(inexact_exc, Errors.INEXACT, 0)))
 
-            with m.If(invalid_exc):
-                with m.If(final_sign):
-                    with m.If(signed):
-                        m.d.av_comb += final_integer.eq(2 ** (self.int_width - 1))
-                    with m.Else():
-                        m.d.av_comb += final_integer.eq(0)
-                with m.Else():
-                    with m.If(signed):
-                        m.d.av_comb += final_integer.eq(2 ** (self.int_width - 1) - 1)
-                    with m.Else():
-                        m.d.av_comb += final_integer.eq(2 ** (self.int_width) - 1)
-            with m.Else():
-                m.d.av_comb += final_integer.eq(integer)
+            smallest_us_value = 0
+            biggest_us_value = 2 ** (self.int_width) - 1
+            smallest_s_value = 2 ** (self.int_width - 1)
+            biggest_s_value = 2 ** (self.int_width - 1) - 1
+
+            mux_pos = Mux(signed, biggest_s_value, biggest_us_value)
+            mux_neg = Mux(signed, smallest_s_value, smallest_us_value)
+            mux_invalid_exc = Mux(final_sign, mux_neg, mux_pos)
+
+            m.d.av_comb += final_integer.eq(Mux(invalid_exc, mux_invalid_exc, integer))
 
             return {"result": final_integer, "errors": errors}
 
