@@ -2,6 +2,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_mul import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
 from test.func_blocks.fu.fpu.fpu_test_common import FPUTester, FenvRm, fenv_rm_to_fpu_rm
 from transactron.testing import *
+from test.func_blocks.fu.fpu.mul_test_cases import *
 from amaranth import *
 import random
 import struct
@@ -22,7 +23,6 @@ class TestMul(TestCaseWithSimulator):
             test_runs = 20
             old_rm = libm.fegetround()
             for fenv_rm in FenvRm:
-                print(fenv_rm)
                 libm.fesetround(fenv_rm.value)
                 fpu_rm = fenv_rm_to_fpu_rm(fenv_rm)
                 for i in range(test_runs):
@@ -50,6 +50,48 @@ class TestMul(TestCaseWithSimulator):
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.mul_request)
+            await tester.run_test_set(
+                rna_cases_mul,
+                rna_cases_mul_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY},
+                sim,
+                m.mul_request,
+            )
+            await tester.run_test_set(
+                rne_cases_mul,
+                rne_cases_mul_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_EVEN},
+                sim,
+                m.mul_request,
+            )
+            await tester.run_test_set(
+                rpi_cases_mul,
+                rpi_cases_mul_resp,
+                {"rounding_mode": RoundingModes.ROUND_UP},
+                sim,
+                m.mul_request,
+            )
+            await tester.run_test_set(
+                rni_cases_mul,
+                rni_cases_mul_resp,
+                {"rounding_mode": RoundingModes.ROUND_DOWN},
+                sim,
+                m.mul_request,
+            )
+            await tester.run_test_set(
+                rz_cases_mul,
+                rz_cases_mul_resp,
+                {"rounding_mode": RoundingModes.ROUND_ZERO},
+                sim,
+                m.mul_request,
+            )
+            await tester.run_test_set(
+                edge_cases_mul,
+                edge_cases_mul_resp,
+                {"rounding_mode": RoundingModes.ROUND_NEAREST_AWAY},
+                sim,
+                m.mul_request,
+            )
 
         with self.run_simulation(m) as sim:
             sim.add_testbench(test_process)

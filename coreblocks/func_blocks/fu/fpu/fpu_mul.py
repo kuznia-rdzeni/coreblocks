@@ -94,7 +94,8 @@ class FPUMulModule(Elaboratable):
         exception_response = Signal(from_method_layout(exception_module.method_layouts.error_out_layout))
 
         bias = self.common_values.bias
-        min_real_exp = 1 - (2 ** (bias - 1))
+        min_real_exp = Const(1 - bias)
+        max_real_exp = Const(self.common_values.max_exp - bias)
 
         @def_method(m, self.mul_request)
         def _(op_1, op_2, rounding_mode):
@@ -160,16 +161,19 @@ class FPUMulModule(Elaboratable):
             # want to keep one aditional bit for round bit we shift by sig_width - 2
             m.d.av_comb += normalised_ext_sig.eq(fixed_sig_product_norm >> (self.fpu_params.sig_width - 2))
 
-            # TODO move RS bits computation outside if/else
             any_shifted_out = Signal()
             with m.If(post_multiplication_exp >= min_real_exp):
-                m.d.av_comb += mult_exp.eq(post_multiplication_exp + bias)
+                m.d.av_comb += mult_exp.eq(
+                    Mux(
+                        post_multiplication_exp >= max_real_exp,
+                        self.common_values.max_exp,
+                        post_multiplication_exp + bias,
+                    )
+                )
                 m.d.av_comb += mult_sig.eq(normalised_ext_sig)
                 lost_bits_or_red = fixed_sig_product_norm.bit_select(0, self.fpu_params.sig_width - 2).any()
                 m.d.av_comb += any_shifted_out.eq(lost_bits_or_red)
                 with m.If(mult_sig[-1] == 0):
-                    # TODO find example that would result in this case being true
-                    # highest possible normal value and subnormal ?
                     m.d.av_comb += mult_exp.eq(0)
             with m.Elif(post_multiplication_exp < min_real_exp):
                 # In this case value always will be subnormal
@@ -216,18 +220,14 @@ class FPUMulModule(Elaboratable):
             exc_sign = Signal()
             inexact = Signal()
             invalid_operation = Signal()
-            # TODO DUPLICATE CODE HERE AND BELOW
-            m.d.av_comb += exc_sig.eq(rounding_response["sig"])
-            m.d.av_comb += exc_exp.eq(rounding_response["exp"])
             with m.If(is_nan | is_inf | is_zero):
                 m.d.av_comb += inexact.eq(0)
                 with m.If(is_nan):
                     is_any_snan = ((~op_1.sig[-2]) & op_1.is_nan) | ((~op_2.sig[-2]) & op_2.is_nan)
-                    with m.If(is_any_snan | bad_inf):
-                        m.d.av_comb += invalid_operation.eq(1)
-                        m.d.av_comb += exc_sign.eq(0)
-                        m.d.av_comb += exc_exp.eq(self.common_values.max_exp)
-                        m.d.av_comb += exc_sig.eq(self.common_values.canonical_nan_sig)
+                    m.d.av_comb += exc_sign.eq(0)
+                    m.d.av_comb += exc_exp.eq(self.common_values.max_exp)
+                    m.d.av_comb += exc_sig.eq(self.common_values.canonical_nan_sig)
+                    m.d.av_comb += invalid_operation.eq(is_any_snan | bad_inf)
                 with m.Elif(is_inf & ~(bad_inf)):
                     m.d.av_comb += exc_sign.eq(Mux(op_1.is_inf, op_1.sign, op_2.sign))
                     m.d.av_comb += (exc_exp.eq(Mux(op_1.is_inf, op_1.exp, op_2.exp)),)
