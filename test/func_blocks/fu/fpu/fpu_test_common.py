@@ -1,6 +1,7 @@
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUCommonValues, FPUParams, RoundingModes
 from transactron.testing import *
 from enum import Enum
+import struct
 
 
 class FPUTester:
@@ -27,6 +28,10 @@ class FPUTester:
             assert resp["errors"] == int(result[num][1], 16)
 
 
+def python_to_float(p_float):
+    return struct.unpack("f", struct.pack("f", p_float))[0]
+
+
 class ToFloatConverter:
     def __init__(self, params: FPUParams):
         self.params = params
@@ -40,6 +45,10 @@ class ToFloatConverter:
         self.sig_mask = (2 ** (self.params.sig_width - 1)) - 1
         self.implicit_one = 1 << (self.params.sig_width - 1)
         self.cv = FPUCommonValues(self.params)
+
+    def from_float(self, fl):
+        fl_hex = hex(struct.unpack("<I", struct.pack("<f", fl))[0])
+        return self.from_hex(fl_hex)
 
     def from_hex(self, hex_float):
         number = int(hex_float, 16)
