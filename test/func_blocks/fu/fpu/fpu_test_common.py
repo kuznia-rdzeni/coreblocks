@@ -1,7 +1,20 @@
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUCommonValues, FPUParams, RoundingModes
 from transactron.testing import *
 from enum import Enum
+from contextlib import contextmanager
 import struct
+import ctypes
+
+libm = ctypes.CDLL("libm.so.6")
+
+
+@contextmanager
+def python_float_tester():
+    old_rm = libm.fegetround()
+    try:
+        yield old_rm
+    finally:
+        libm.fesetround(old_rm)
 
 
 class FPUTester:

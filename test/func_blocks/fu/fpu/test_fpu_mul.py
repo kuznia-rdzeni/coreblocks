@@ -1,6 +1,12 @@
 from coreblocks.func_blocks.fu.fpu.fpu_mul import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams
-from test.func_blocks.fu.fpu.fpu_test_common import FPUTester, FenvRm, fenv_rm_to_fpu_rm, python_to_float
+from test.func_blocks.fu.fpu.fpu_test_common import (
+    FPUTester,
+    FenvRm,
+    fenv_rm_to_fpu_rm,
+    python_to_float,
+    python_float_tester,
+)
 from transactron.testing import *
 from test.func_blocks.fu.fpu.mul_test_cases import *
 from amaranth import *
@@ -18,32 +24,30 @@ class TestMul(TestCaseWithSimulator):
         m = SimpleTestCircuit(FPUMulModule(fpu_params=params))
 
         async def python_float_test(sim: TestbenchContext, request_adapter: TestbenchIO):
-            seed = 42
-            random.seed(seed)
             test_runs = 20
-            old_rm = libm.fegetround()
-            for fenv_rm in FenvRm:
-                libm.fesetround(fenv_rm.value)
-                fpu_rm = fenv_rm_to_fpu_rm(fenv_rm)
-                for i in range(test_runs):
+            seed = 42
+            with python_float_tester():
+                random.seed(seed)
+                for fenv_rm in FenvRm:
+                    libm.fesetround(fenv_rm.value)
+                    fpu_rm = fenv_rm_to_fpu_rm(fenv_rm)
+                    for i in range(test_runs):
+                        input_dict = {}
 
-                    input_dict = {}
+                        float_1 = python_to_float(random.uniform(0, 3.4028235 * (10**3)))
+                        float_2 = python_to_float(random.uniform(0, 3.4028235 * (10**3)))
+                        result = float_1 * float_2
 
-                    float_1 = python_to_float(random.uniform(0, 3.4028235 * (10**3)))
-                    float_2 = python_to_float(random.uniform(0, 3.4028235 * (10**3)))
-                    result = float_1 * float_2
+                        input_dict["op_1"] = converter.from_float(float_1)
+                        input_dict["op_2"] = converter.from_float(float_2)
+                        input_dict["rounding_mode"] = fpu_rm
 
-                    input_dict["op_1"] = converter.from_float(float_1)
-                    input_dict["op_2"] = converter.from_float(float_2)
-                    input_dict["rounding_mode"] = fpu_rm
+                        result = converter.from_float(result)
+                        resp = await request_adapter.call(sim, input_dict)
 
-                    result = converter.from_float(result)
-                    resp = await request_adapter.call(sim, input_dict)
-
-                    assert result["sign"] == resp["sign"]
-                    assert result["exp"] == resp["exp"]
-                    assert result["sig"] == resp["sig"]
-            libm.fesetround(old_rm)
+                        assert result["sign"] == resp["sign"]
+                        assert result["exp"] == resp["exp"]
+                        assert result["sig"] == resp["sig"]
 
         async def test_process(sim: TestbenchContext):
             await python_float_test(sim, m.mul_request)
