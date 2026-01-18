@@ -14,9 +14,9 @@ class FloatToIntMethodLayout:
 
     Parameters
     ----------
-    fpu_params; FPUParams
+    fpu_params: FPUParams
         FPU parameters
-    int_width; int
+    int_width: int
         Width of result
     """
 
@@ -50,7 +50,7 @@ class FloatToIntModule(Elaboratable):
     ----------
     fpu_params: FPUParams
         FPU module parameters
-    int_width; int
+    int_width: int
         Width of the result
 
     Attributes

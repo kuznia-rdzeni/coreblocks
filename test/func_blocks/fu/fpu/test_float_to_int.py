@@ -6,6 +6,7 @@ from amaranth import *
 import struct
 import random
 import ctypes
+from dataclasses import dataclass
 
 # Few notes for later.
 # 1. Due to the precision of float some conditions for out of bound numbers
@@ -15,88 +16,97 @@ import ctypes
 # compute if rounding is needed, it may be worth to test all rounding modes or
 # modify rounding module to return one bit of information signifying if rounding occured
 
+converter = ToFloatConverter(FPUParams(sig_width=24, exp_width=8))
+
+
+@dataclass
+class TCase:
+    op: dict[str, int]
+    signed: int
+    result: int
+    errors: int
+
+
+max_un_int = (2**64) - 1
+min_sig_int = 2**63
+max_sig_int = (2**63) - 1
+
+test_cases = [
+    # Test 1: Zero
+    TCase(
+        converter.from_hex("00000000"),
+        1,
+        0,
+        0,
+    ),
+    # Test 2: NaN
+    TCase(
+        converter.from_hex("FFC00000"),
+        0,
+        max_un_int,
+        Errors.INVALID_OPERATION,
+    ),
+    # Test 3: -Inf
+    TCase(
+        converter.from_hex("FF800000"),
+        1,
+        min_sig_int,
+        Errors.INVALID_OPERATION,
+    ),
+    # Test 4: +Inf
+    TCase(
+        converter.from_hex("7F800000"),
+        1,
+        max_sig_int,
+        Errors.INVALID_OPERATION,
+    ),
+    # Test 4: Rounding
+    TCase(
+        converter.from_hex("3FFFFFFF"),
+        1,
+        2,
+        Errors.INEXACT,
+    ),
+    # Test 5: Out of bound negative
+    TCase(
+        converter.from_hex("DF000001"),
+        1,
+        min_sig_int,
+        Errors.INVALID_OPERATION,
+    ),
+    # Test 6: Out of bound positive
+    TCase(
+        converter.from_hex("5F000000"),
+        1,
+        max_sig_int,
+        Errors.INVALID_OPERATION,
+    ),
+    # Test 7: Mag less than one, out of bound
+    TCase(
+        converter.from_hex("bf7fffff"),
+        0,
+        0,
+        Errors.INVALID_OPERATION,
+    ),
+]
+
 
 class TestFTI(TestCaseWithSimulator):
 
     def test_manual(self):
         params = FPUParams(sig_width=24, exp_width=8)
-        converter = ToFloatConverter(params)
         fti = SimpleTestCircuit(FloatToIntModule(fpu_params=params, int_width=64))
 
         async def fti_ec_test(sim: TestbenchContext):
-            max_exp = (2**8) - 1
-            max_un_int = (2**64) - 1
-            min_sig_int = 2**63
-            max_sig_int = (2**63) - 1
-            bias = 127
-            test_cases = [
-                # Test 1: Zero
-                {
-                    "input": {"sign": 0, "exp": 0, "sig": 0, "is_inf": 0, "is_nan": 0, "is_zero": 1},
-                    "signed": 1,
-                    "result": 0,
-                    "errors": 0,
-                },
-                # Test 2: NaN
-                {
-                    "input": {"sign": 1, "exp": max_exp, "sig": 2**20, "is_inf": 0, "is_nan": 1, "is_zero": 0},
-                    "signed": 0,
-                    "result": max_un_int,
-                    "errors": Errors.INVALID_OPERATION,
-                },
-                # Test 3: -Inf
-                {
-                    "input": {"sign": 1, "exp": max_exp, "sig": 2**23, "is_inf": 1, "is_nan": 0, "is_zero": 0},
-                    "signed": 1,
-                    "result": min_sig_int,
-                    "errors": Errors.INVALID_OPERATION,
-                },
-                # Test 4: +Inf
-                {
-                    "input": {"sign": 0, "exp": max_exp, "sig": 2**23, "is_inf": 1, "is_nan": 0, "is_zero": 0},
-                    "signed": 1,
-                    "result": max_sig_int,
-                    "errors": Errors.INVALID_OPERATION,
-                },
-                # Test 4: Rounding
-                {
-                    "input": {"sign": 0, "exp": bias, "sig": (2**24) - 1, "is_inf": 0, "is_nan": 0, "is_zero": 0},
-                    "signed": 1,
-                    "result": 2,
-                    "errors": Errors.INEXACT,
-                },
-                # Test 5: Out of bound negative
-                {
-                    "input": {"sign": 1, "exp": bias + 63, "sig": (2**23) | 1, "is_inf": 0, "is_nan": 0, "is_zero": 0},
-                    "signed": 1,
-                    "result": min_sig_int,
-                    "errors": Errors.INVALID_OPERATION,
-                },
-                # Test 6: Out of positive negative
-                {
-                    "input": {"sign": 0, "exp": bias + 63, "sig": (2**23), "is_inf": 0, "is_nan": 0, "is_zero": 0},
-                    "signed": 1,
-                    "result": max_sig_int,
-                    "errors": Errors.INVALID_OPERATION,
-                },
-                # Test 7: Mag less than one, out of bound
-                {
-                    "input": {"sign": 1, "exp": bias - 1, "sig": (2**24) - 1, "is_inf": 0, "is_nan": 0, "is_zero": 0},
-                    "signed": 0,
-                    "result": 0,
-                    "errors": Errors.INVALID_OPERATION,
-                },
-            ]
-
             input_dict = {}
             for tc in test_cases:
-                input_dict["op"] = tc["input"]
-                input_dict["signed"] = tc["signed"]
+                input_dict["op"] = tc.op
+                input_dict["signed"] = tc.signed
                 input_dict["rounding_mode"] = RoundingModes.ROUND_NEAREST_EVEN
 
                 resp = await fti.fti_request.call(sim, input_dict)
-                assert tc["result"] == resp["result"]
-                assert tc["errors"] == resp["errors"]
+                assert tc.result == resp["result"]
+                assert tc.errors == resp["errors"]
 
         async def fti_python_test(sim: TestbenchContext):
             seed = 42
