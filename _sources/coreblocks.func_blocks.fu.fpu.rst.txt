@@ -44,6 +44,14 @@ coreblocks.func\_blocks.fu.fpu.fpu\_error\_module module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.fpu.fpu\_mul module
+----------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_mul
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.fpu.fpu\_rounding\_module module
 -----------------------------------------------------------
 

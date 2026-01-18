@@ -519,6 +519,89 @@ Returns final number and errors as ‘error_out_layout’</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_mul">
+<span id="coreblocks-func-blocks-fu-fpu-fpu-mul-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_mul module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_mul" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_mul.</span></span><span class="sig-name descname"><span class="pre">FPUMulMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>FPU multiplication module method layout</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout.mul_in_layout">
+<span class="sig-name descname"><span class="pre">mul_in_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout.mul_in_layout" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Input layout for multiplication</div>
+<div class="line">op_1 - layout containing data of the first operand</div>
+<div class="line">op_2 - layout containing data of the second operand</div>
+<div class="line">rounding_mode - selected rounding mode</div>
+<div class="line">op_1 and op_2 are created using
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_data_input_layout</span></code></a></div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout.mul_out_layout">
+<span class="sig-name descname"><span class="pre">mul_out_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulMethodLayout.mul_out_layout" title="Permalink to this definition"></a></dt>
+<dd><p>Output layout for multiplication. Created using
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_output_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_output_layout</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_mul.</span></span><span class="sig-name descname"><span class="pre">FPUMulModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<div class="line-block">
+<div class="line">FPU multiplication top module</div>
+<div class="line">The floating point multiplication consists of two parts:</div>
+<div class="line">1. Exponent calcuation - turning both exponents from biased form into un-biased form</div>
+<div class="line">and then adding them together and turing result back into biased form</div>
+<div class="line">2. Significand multiplication - This is essentialy fixed-point multiplication with</div>
+<div class="line">two bits for integer part and 2*n - 2 bits for fractional part.</div>
+<div class="line">We deal with with subnormal number by extending exponents range and turning subnormal</div>
+<div class="line">numbers into normalised numbers.</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU rounding module parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>mul_request: Method</strong></dt><dd><p>Transactional method for initiating multiplication.
+Takes
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">mul_in_layout</span></code>
+as argument.
+Returns result as
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">mul_out_layout</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_mul.FPUMulModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_rounding_module">
 <span id="coreblocks-func-blocks-fu-fpu-fpu-rounding-module-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_rounding_module module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_rounding_module" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -739,8 +822,8 @@ Returns shift amount as ‘predict_out_layout’</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright Kuźnia Rdzeni, 2025.
-      <span class="lastupdated">Last updated on 15:01 2025-12-08.
+    <p>&#169; Copyright Kuźnia Rdzeni, 2026.
+      <span class="lastupdated">Last updated on 09:36 2026-01-18.
       </span></p>
   </div>
 
