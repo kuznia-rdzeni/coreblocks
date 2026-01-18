@@ -26,7 +26,7 @@ class FPUClassMethodLayout:
         | op - layout containing data of the only operand
         """
         self.class_out_layout = [
-            ("result", 10),
+            ("result", FPUClasses),
             ("errors", Errors),
         ]
         """
@@ -80,8 +80,14 @@ class FPUClassModule(Elaboratable):
             m.d.av_comb += op_sub.eq(normal_case & (op.exp == 0))
             m.d.av_comb += op_sig_nan.eq(op.is_nan & (~op.sig[-2]))
 
-            result = Signal(10)
-            with m.If(neg_sign):
+            result = Signal(FPUClasses)
+
+            with m.If(op.is_nan):
+                with m.If(~op_sig_nan):
+                    m.d.av_comb += result.eq(FPUClasses.QUIET_NAN)
+                with m.Elif(op_sig_nan):
+                    m.d.av_comb += result.eq(FPUClasses.SIG_NAN)
+            with m.Elif(neg_sign):
                 with m.If(op.is_inf):
                     m.d.av_comb += result.eq(FPUClasses.NEG_INF)
                 with m.Elif(op_norm):
@@ -99,10 +105,6 @@ class FPUClassModule(Elaboratable):
                     m.d.av_comb += result.eq(FPUClasses.POS_SUB)
                 with m.Elif(op.is_zero):
                     m.d.av_comb += result.eq(FPUClasses.POS_ZERO)
-            with m.If(op.is_nan & (~op_sig_nan)):
-                m.d.av_comb += result.eq(FPUClasses.QUIET_NAN)
-            with m.Elif(op.is_nan & op_sig_nan):
-                m.d.av_comb += result.eq(FPUClasses.SIG_NAN)
 
             return {
                 "result": result,
