@@ -33,15 +33,15 @@ class FetchUnit(Elaboratable):
 
     Attributes
     ----------
-    redirect : Method
-        Redirects the fetch unit to the specified PC
-    flush : Method
+    fetch_request : Method, provided
+        Requests a fetch of the instruction block at the given PC.
+    fetch_writeback : Method, required
+        Invoked to write back the status of the requested fetch block.
+    flush : Method, provided
         Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled.
     """
 
-    def __init__(
-        self, gen_params: GenParams, icache: CacheInterface, cont: Method, stall_lock: Method, stall_unsafe: Method
-    ) -> None:
+    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method, stall_unsafe: Method) -> None:
         """
         Parameters
         ----------
@@ -53,20 +53,19 @@ class FetchUnit(Elaboratable):
         cont : Method
             Method which should be invoked to send fetched instruction to the next step.
             It has layout as described by `FetchLayout`.
-        stall_lock : Method
-            Method whose readiness determines if the fetch unit is stalled
         stall_unsafe : Method
             Method that is called when an unsafe instruction is fetched
         """
         self.gen_params = gen_params
         self.icache = icache
         self.cont = cont
-        self.stall_lock = stall_lock
         self.stall_unsafe = stall_unsafe
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
-        self.redirect = Method(i=self.layouts.redirect)
+        self.fetch_request = Method(i=self.layouts.fetch_request)
+        self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
+
         self.flush = Method()
 
         self.perf_fetch_utilization = TaggedCounter(
@@ -74,14 +73,11 @@ class FetchUnit(Elaboratable):
             "Number of valid instructions in fetch blocks",
             tags=range(self.gen_params.fetch_width + 1),
         )
-        self.perf_fetch_redirects = HwCounter(
-            "frontend.fetch.fetch_redirects", "How many times the fetch unit redirected itself"
-        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_fetch_utilization, self.perf_fetch_redirects]
+        m.submodules += [self.perf_fetch_utilization]
 
         fetch_width = self.gen_params.fetch_width
         fields = self.gen_params.get(CommonLayoutFields)
@@ -99,7 +95,7 @@ class FetchUnit(Elaboratable):
             log.info(m, True, "Sending an instr to the backend pc=0x{:x} instr=0x{:x}", raw_instr.pc, raw_instr.instr)
             self.cont(m, raw_instr)
 
-        m.submodules.cache_requests = cache_requests = BasicFifo(layout=[("addr", self.gen_params.isa.xlen)], depth=2)
+        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -112,21 +108,17 @@ class FetchUnit(Elaboratable):
         def flush():
             m.d.comb += flush_now.eq(1)
 
-        current_pc = Signal(self.gen_params.isa.xlen, init=self.gen_params.start_pc)
-
         #
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
         #
-        with Transaction(name="Fetch_Stage0").body(m):
-            self.stall_lock(m)
+        @def_method(m, self.fetch_request)
+        def _(pc):
+            log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
-            self.icache.issue_req(m, addr=current_pc)
-            cache_requests.write(m, addr=current_pc)
-
-            # Assume we fallthrough to the next fetch block.
-            m.d.sync += current_pc.eq(params.pc_from_fb(params.fb_addr(current_pc) + 1, 0))
+            self.icache.issue_req(m, addr=pc)
+            fetch_requests.write(m, pc=pc)
 
         #
         # State passed between stage 1 and stage 2
@@ -161,13 +153,13 @@ class FetchUnit(Elaboratable):
         prev_half_addr = Signal(make_layout(fields.fb_addr).size)
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
-            target = cache_requests.read(m)
+            fetch_request = fetch_requests.read(m)
             cache_resp = self.icache.accept_res(m)
 
             # The address of the fetch block.
-            fetch_block_addr = params.fb_addr(target.addr)
+            fetch_block_addr = params.fb_addr(fetch_request.pc)
             # The index (in instructions) of the first instruction that we should process.
-            fetch_block_offset = params.fb_instr_idx(target.addr)
+            fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -359,16 +351,15 @@ class FetchUnit(Elaboratable):
                     with m.If(access_fault | unsafe_stall):
                         # TODO: Raise different code for page fault when supported
                         # could be passed in 3rd bit of access_fault
-                        flush()
                         self.stall_unsafe(m)
-                    with m.Elif(redirect):
-                        self.perf_fetch_redirects.incr(m)
-                        new_pc = Signal.like(current_pc)
-                        m.d.av_comb += new_pc.eq(predcheck_res.redirect_target)
 
-                        log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
+                    with m.If(access_fault | unsafe_stall | redirect):
+                        self.fetch_writeback(
+                            m,
+                            redirect=redirect,
+                            redirect_target=predcheck_res.redirect_target,
+                        )
                         flush()
-                        m.d.sync += current_pc.eq(new_pc)
 
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
@@ -385,10 +376,6 @@ class FetchUnit(Elaboratable):
         def _():
             flush()
             serializer.clear(m)
-
-        @def_method(m, self.redirect)
-        def _(pc):
-            m.d.sync += current_pc.eq(pc)
 
         return m
 
