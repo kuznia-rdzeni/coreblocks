@@ -4,7 +4,6 @@ from test.func_blocks.fu.fpu.fpu_test_common import ToFloatConverter
 from transactron.testing import *
 from amaranth import *
 from dataclasses import dataclass
-from typing import TypedDict
 
 
 class TValues:
@@ -22,14 +21,14 @@ class TValues:
 
 @dataclass
 class TCase:
-    lhs: TypedDict
-    rhs: TypedDict
+    lhs: dict[str, int]
+    rhs: dict[str, int]
     lhs_sign: int
     rhs_sign: int
-    lt_result: bool
-    eq_result: bool
-    invalid: bool
-    eq_invalid: bool
+    lt_result: int
+    eq_result: int
+    invalid: int
+    eq_invalid: int
 
 
 tv = TValues()
