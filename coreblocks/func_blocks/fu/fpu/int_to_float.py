@@ -108,7 +108,7 @@ class IntToFloatModule(Elaboratable):
             ur_norm_sig = Signal(self.conv_params.sig_width)
             ur_exp = Signal(self.conv_params.exp_width)
             shifted_ext_sig = norm_ext_sig >> self.int_values.ext_to_dst_shift
-            m.d.av_comb += ur_norm_sig.eq(Mux(is_zero, 0, Mux(self.int_values.exact, norm_ext_sig, shifted_ext_sig)))
+            m.d.av_comb += ur_norm_sig.eq(Mux(is_zero, 0, norm_ext_sig if self.int_values.exact else shifted_ext_sig))
             m.d.av_comb += ur_exp.eq(Mux(is_zero, 0, self.int_values.exp_base_value - n_shift))
 
             resp = rounding_module.rounding_request(
