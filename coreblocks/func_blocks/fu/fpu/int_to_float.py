@@ -18,9 +18,9 @@ class IntToFloatMethodLayout:
 
     Parameters
     ----------
-    fpu_params; FPUParams
+    fpu_params: FPUParams
         FPU parameters
-    int_values; IntConversionValues
+    int_values: IntConversionValues
         Values for int to float conversion
     """
 
@@ -51,7 +51,7 @@ class IntToFloatModule(Elaboratable):
     ----------
     fpu_params: FPUParams
         FPU module parameters
-    int_values; IntConversionValues
+    int_values: IntConversionValues
         Values for int to float conversion
 
     Attributes
@@ -97,10 +97,12 @@ class IntToFloatModule(Elaboratable):
             round_bit = Signal()
             sticky_bit = Signal()
             m.d.av_comb += round_bit.eq(
-                Mux(is_zero, 0, Mux(self.int_values.exact, 0, norm_ext_sig[self.int_values.round_bit_index]))
+                Mux(is_zero, 0, 0 if self.int_values.exact else norm_ext_sig[self.int_values.round_bit_index])
             )
             m.d.av_comb += sticky_bit.eq(
-                Mux(is_zero, 0, Mux(self.int_values.exact, 0, norm_ext_sig[0 : self.int_values.msb_sticky_index].any()))
+                Mux(
+                    is_zero, 0, 0 if self.int_values.exact else norm_ext_sig[0 : self.int_values.msb_sticky_index].any()
+                )
             )
 
             ur_norm_sig = Signal(self.conv_params.sig_width)

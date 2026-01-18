@@ -84,6 +84,8 @@ class IntConversionValues:
     ----------
     int_width: int
         Width of int
+    sig_width: int
+        Width of significand
     bias: int
         Value of bias used for calculating base exponent value
     """
