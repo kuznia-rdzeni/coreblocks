@@ -22,7 +22,7 @@ class ComparisionTypes(enum.IntFlag):
     LT = enum.auto()
     LE = enum.auto()
 
-    
+
 class FPUClasses(enum.IntFlag, shape=10):
     NEG_INF = enum.auto()
     NEG_NORM = enum.auto()
