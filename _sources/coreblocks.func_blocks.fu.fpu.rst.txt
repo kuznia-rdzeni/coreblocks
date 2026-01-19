@@ -44,6 +44,14 @@ coreblocks.func\_blocks.fu.fpu.fpu\_common module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.fpu.fpu\_comp module
+-----------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_comp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.fpu.fpu\_error\_module module
 --------------------------------------------------------
 
