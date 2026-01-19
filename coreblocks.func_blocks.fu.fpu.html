@@ -324,6 +324,77 @@ Returns result as
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_class">
+<span id="coreblocks-func-blocks-fu-fpu-fpu-class-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_class module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_class" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_class.</span></span><span class="sig-name descname"><span class="pre">FPUClassMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>FPU classification module method layout</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params; FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout.class_in_layout">
+<span class="sig-name descname"><span class="pre">class_in_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout.class_in_layout" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Input layout for classification</div>
+<div class="line">op - layout containing data of the only operand</div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout.class_out_layout">
+<span class="sig-name descname"><span class="pre">class_out_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout.class_out_layout" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Output layout for classification</div>
+<div class="line">result - Class of operand</div>
+<div class="line">errors - Exceptions, in case of classification it is always 0 (empty mask)</div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_class.</span></span><span class="sig-name descname"><span class="pre">FPUClassModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Classification module
+Module responsible for performing classification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU format parameters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>class_request: Method</strong></dt><dd><p>Transactional method for initiating classification.
+Takes ‘class_in_layout’ as argument
+Returns result as ‘class_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_common">
 <span id="coreblocks-func-blocks-fu-fpu-fpu-common-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_common module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_common" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -358,6 +429,67 @@ Returns result as
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.Errors.__new__">
 <span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.__new__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_common.</span></span><span class="sig-name descname"><span class="pre">FPUClasses</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.IntFlag" title="(in Amaranth language &amp; toolchain v0.6.0.dev117)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntFlag</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_INF">
+<span class="sig-name descname"><span class="pre">NEG_INF</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_INF" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_NORM">
+<span class="sig-name descname"><span class="pre">NEG_NORM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_NORM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_SUB">
+<span class="sig-name descname"><span class="pre">NEG_SUB</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_SUB" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_ZERO">
+<span class="sig-name descname"><span class="pre">NEG_ZERO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_ZERO" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_INF">
+<span class="sig-name descname"><span class="pre">POS_INF</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">128</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_INF" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_NORM">
+<span class="sig-name descname"><span class="pre">POS_NORM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">64</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_NORM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_SUB">
+<span class="sig-name descname"><span class="pre">POS_SUB</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">32</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_SUB" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_ZERO">
+<span class="sig-name descname"><span class="pre">POS_ZERO</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_ZERO" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.QUIET_NAN">
+<span class="sig-name descname"><span class="pre">QUIET_NAN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">512</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.QUIET_NAN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.SIG_NAN">
+<span class="sig-name descname"><span class="pre">SIG_NAN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.SIG_NAN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.__new__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -823,7 +955,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 09:36 2026-01-18.
+      <span class="lastupdated">Last updated on 09:49 2026-01-19.
       </span></p>
   </div>
 
