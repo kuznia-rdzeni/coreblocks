@@ -17,6 +17,12 @@ class Errors(enum.IntFlag):
     INVALID_OPERATION = enum.auto()
 
 
+class ComparisionTypes(enum.IntFlag):
+    EQ = enum.auto()
+    LT = enum.auto()
+    LE = enum.auto()
+
+
 class FPUClasses(enum.IntFlag, shape=10):
     NEG_INF = enum.auto()
     NEG_NORM = enum.auto()
