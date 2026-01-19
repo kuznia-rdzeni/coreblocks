@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768730065965,
+  "lastUpdate": 1768817248789,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -18773,6 +18773,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a39f36c2c5ee10d1325c9659be22cbe6a657e9fd"
         },
         "date": 1768730058263,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4326852307194698,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544267249521034,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.361995288445735,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.65379591959286,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3616733534688726,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30167911045598744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33209785025945143,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.438383409196722,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4db30888d5d40709a5e629bfa4340e43d896dbfb",
+          "message": "Floating point classify instruction (#853)",
+          "timestamp": "2026-01-19T10:48:35+01:00",
+          "tree_id": "f10ecfec7d68bec0fcc17d57fcc9499a82e7b845",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4db30888d5d40709a5e629bfa4340e43d896dbfb"
+        },
+        "date": 1768817242917,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
