@@ -24,8 +24,7 @@ class TestRegisterFile(TestCaseWithSimulator):
         async def tb(sim: TestbenchContext):
             await sim.delay(1e-9)
             while True:
-                # TODO: currently RF requires response to happen a cycle after request
-                # await self.random_wait_geom(sim, 0.95)
+                await self.random_wait_geom(sim, 0.95)
                 while not self.read_queues[k]:
                     await sim.tick()
                     await sim.delay(1e-9)
