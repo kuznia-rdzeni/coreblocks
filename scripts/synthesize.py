@@ -8,6 +8,7 @@ import argparse
 from amaranth.build import Platform
 from amaranth.build.res import PortGroup
 from amaranth import *
+from amaranth.lib import memory
 from amaranth.lib.wiring import Component, Flow, Out, connect, flipped
 from amaranth_types import AbstractInterface
 
@@ -29,6 +30,7 @@ from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from transactron import TransactronContextElaboratable
 from transactron.lib import Adapter, AdapterTrans
+from transactron.utils.amaranth_ext.memory import MultiportXORMemory, MultiportXORILVTMemory, MultiportOneHotILVTMemory
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
 from constants.ecp5_platforms import (
     ResourceBuilder,
@@ -146,6 +148,14 @@ core_units = {
 }
 
 
+memory_types = {
+    "plain": memory.Memory,
+    "xor": MultiportXORMemory,
+    "xor-ilvt": MultiportXORILVTMemory,
+    "onehot-ilvt": MultiportOneHotILVTMemory,
+}
+
+
 def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
     with DependencyContext(DependencyManager()):
         gen_params = GenParams(core_config)
@@ -177,7 +187,11 @@ def main():
         "-u",
         "--unit",
         default="core",
-        help="Select core unit." + f"Available units: {', '.join(core_units.keys())}. Default: %(default)s",
+        help="Select core unit. " + f"Available units: {', '.join(core_units.keys())}. Default: %(default)s",
+    )
+
+    parser.add_argument(
+        "-m", "--memory", default="xor-ilvt", choices=memory_types.keys(), help="Select superscalar memory type."
     )
 
     parser.add_argument(
@@ -206,6 +220,8 @@ def main():
     config = str_to_coreconfig[args.config]
     if args.strip_debug:
         config = config.replace(debug_signals=False)
+
+    config = config.replace(multiport_memory_type=memory_types[args.memory])
 
     synthesize(config, args.platform, core_units[args.unit])
 

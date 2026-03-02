@@ -36,7 +36,7 @@ class Retirement(Elaboratable):
         self.rrat_entries = rrat_entries
 
         self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
-        self.rob_retire = Method()
+        self.rob_retire = Method(i=gen_params.get(ROBLayouts).retire_layout)
         self.r_rat_commit = Method(
             i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
         )
@@ -120,7 +120,8 @@ class Retirement(Elaboratable):
         instr_active = Signal()
         with Transaction().body(m) as validate_transaction:
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
-            rob_entry = self.rob_peek(m)
+            rob_entries = self.rob_peek(m)
+            rob_entry = rob_entries.entries[0]
             ecr_entry = self.exception_cause_get(m)
 
             instr_tag = Signal(self.gen_params.tag_bits)  # wraps around! (signal needed)
@@ -140,8 +141,9 @@ class Retirement(Elaboratable):
         with m.FSM("NORMAL"):
             with m.State("NORMAL"):
                 with Transaction().body(m, ready=retire_valid) as retire_transaction:
-                    rob_entry = self.rob_peek(m)
-                    self.rob_retire(m)
+                    rob_entries = self.rob_peek(m)
+                    rob_entry = rob_entries.entries[0]
+                    self.rob_retire(m, count=1)
 
                     with m.If(rob_entry.rob_data.tag_increment):
                         m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
@@ -213,8 +215,9 @@ class Retirement(Elaboratable):
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
                     # Flush entire core
-                    rob_entry = self.rob_peek(m)
-                    self.rob_retire(m)
+                    rob_entries = self.rob_peek(m)
+                    rob_entry = rob_entries.entries[0]
+                    self.rob_retire(m, count=1)
 
                     with m.If(rob_entry.rob_data.tag_increment):
                         m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
@@ -300,6 +303,6 @@ class Retirement(Elaboratable):
             combiner=lambda m, args, runs: 0,
         )
         def _(rob_id):
-            m.d.top_comb += rob_peek_id_val.eq(self.rob_peek(m).rob_id)
+            m.d.top_comb += rob_peek_id_val.eq(self.rob_peek(m).entries[0].rob_id)
 
         return m

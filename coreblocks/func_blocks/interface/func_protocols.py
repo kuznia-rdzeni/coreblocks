@@ -1,5 +1,5 @@
 from typing import Protocol
-from transactron import Method, Provided, Required
+from transactron import Method, Methods, Provided, Required
 from amaranth_types import HasElaborate
 
 
@@ -14,5 +14,5 @@ class FuncUnit(HasElaborate, Protocol):
 class FuncBlock(HasElaborate, Protocol):
     insert: Method
     select: Method
-    update: Method
+    update: Methods
     get_result: Method

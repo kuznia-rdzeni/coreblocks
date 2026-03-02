@@ -30,13 +30,22 @@ The core currently supports the full unprivileged RV32I instruction set and a nu
  * C - compressed instructions,
  * B - bit manipulation, comprising of Zba, Zbb and Zbs, extension Zbc is implemented too.
 
-Machine mode is fully implemented. Support for supervisor mode is currently missing.
+Machine and user modes are fully implemented. Support for supervisor mode is currently missing.
 
 Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
+
+## Community
+
+We have an community IRC channel - [#coreforge at libera.chat](https://web.libera.chat/#coreforge).
+You are welcome to join and ask questions, discuss development, or share feedback about [Coreforge projects](https://github.com/kuznia-rdzeni) :)
+
+Coreblocks is maintained under the [Coreforge Foundation](https://kuznia-rdzeni.org)
+and is **looking for new contributors!** - Want to get involved? We will be happy to help you.
 
 ## Documentation
 
 The [documentation for our project](https://kuznia-rdzeni.github.io/coreblocks/) is automatically generated using [Sphinx](https://www.sphinx-doc.org/).
+*It is currently a bit outdated.*
 
 Resource usage and maximum clock frequency is [automatically measured and recorded](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
 
@@ -44,9 +53,8 @@ Resource usage and maximum clock frequency is [automatically measured and record
 
 Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documentation.
 
-External contributors are welcome to submit pull requests for simple contributions directly.
-For larger changes, please discuss your plans with us through the [issues page](https://github.com/kuznia-rdzeni/coreblocks/issues) or the [discussions page](https://github.com/kuznia-rdzeni/coreblocks/discussions) first.
-This way, you can ensure that the contribution fits the project and will be merged sooner.
+For larger changes, please discuss your plans with us first, so you can ensure that the contribution fits the project and will be merged sooner.
+You are welcome to submit pull requests for simple contributions directly.
 
 ## License
 

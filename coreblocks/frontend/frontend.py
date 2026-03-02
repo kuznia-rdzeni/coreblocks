@@ -174,7 +174,7 @@ class CoreFrontend(Elaboratable):
 
         def flush_frontend():  # Fetch is flushed from stall controller
             self.instr_buffer.clear(m)
-            self.output_pipe.clean(m)
+            self.output_pipe.clear(m)
 
         active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
 
