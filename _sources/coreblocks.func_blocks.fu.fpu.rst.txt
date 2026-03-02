@@ -20,6 +20,14 @@ coreblocks.func\_blocks.fu.fpu.far\_path module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.fpu.float\_to\_int module
+----------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.float_to_int
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.fpu.fpu\_add\_sub module
 ---------------------------------------------------
 

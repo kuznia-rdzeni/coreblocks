@@ -221,6 +221,85 @@ Returns result as ‘far_path_out_layout’.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-coreblocks.func_blocks.fu.fpu.float_to_int">
+<span id="coreblocks-func-blocks-fu-fpu-float-to-int-module"></span><h2>coreblocks.func_blocks.fu.fpu.float_to_int module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.float_to_int" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.float_to_int.</span></span><span class="sig-name descname"><span class="pre">FloatToIntMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>FPU float to int conversion module method layout</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU parameters</p>
+</dd>
+<dt><strong>int_width: int</strong></dt><dd><p>Width of result</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.fti_in_layout">
+<span class="sig-name descname"><span class="pre">fti_in_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.fti_in_layout" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Input layout for float to int conversion</div>
+<div class="line">op - layout containing data of the float
+<a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout" title="coreblocks.func_blocks.fu.fpu.fpu_common.create_data_input_layout"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_data_input_layout</span></code></a></div>
+<div class="line">signed - bit indicating if result is signed or unsigned</div>
+<div class="line">rounding_mode - selected rounding mode</div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.fti_out_layout">
+<span class="sig-name descname"><span class="pre">fti_out_layout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.fti_out_layout" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Output layout for comparision created using</div>
+<div class="line">result - result of the conversion</div>
+<div class="line">errors - exceptions</div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntModule">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.float_to_int.</span></span><span class="sig-name descname"><span class="pre">FloatToIntModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntModule" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module for float to int conversion
+Module responsible for performing conversion from float to int.
+This module doesn’t extend 32 bit number when XLEN &gt; 32</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>fpu_params: FPUParams</strong></dt><dd><p>FPU module parameters</p>
+</dd>
+<dt><strong>int_width: int</strong></dt><dd><p>Width of the result</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>fti_request: Method</strong></dt><dd><p>Transactional method for initiating conversion.
+Takes ‘fti_in_layout’ as argument
+Returns result as ‘fti_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpu_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams" title="coreblocks.func_blocks.fu.fpu.fpu_common.FPUParams"><span class="pre">FPUParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">int_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntModule.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.func_blocks.fu.fpu.fpu_add_sub">
 <span id="coreblocks-func-blocks-fu-fpu-fpu-add-sub-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_add_sub module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_add_sub" title="Permalink to this heading"></a></h2>
 <dl class="py class">
@@ -1160,7 +1239,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:03 2026-03-02.
+      <span class="lastupdated">Last updated on 14:06 2026-03-02.
       </span></p>
   </div>
 
