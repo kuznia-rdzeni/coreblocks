@@ -65,9 +65,9 @@ class InstructionTagger(Elaboratable):
     `Scheduler` driver of `CheckpointRAT` `tag` stage. See `CheckpointRAT.tag` for description.
     """
 
-    get_free_reg: Required[Method]
     get_instr: Required[Method]
     push_instr: Required[Method]
+    crat_tag: Required[Method]
 
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
@@ -109,33 +109,28 @@ class Renaming(Elaboratable):
     the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
+    get_instr: Required[Method]
+    push_instr: Required[Method]
+    rename: Required[Method]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with an allocated physical register. Uses `SchedulerLayouts.renaming_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.renaming_out`.
-        rename: Method
-            Method used for renaming the source register in F-RAT. Uses
-            `RATLayouts.rename_input_layout` and `RATLayouts.rename_output_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.renaming_in
-        self.output_layout = layouts.renaming_out
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rename = rename
+        self.get_instr = Method(o=layouts.renaming_in)
+        self.push_instr = Method(i=layouts.renaming_out)
+        self.rename = Method(i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instr.layout_in)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -164,35 +159,28 @@ class ROBAllocation(Elaboratable):
     Module performing "ReOrder Buffer entry allocation" step of scheduling process.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
+    get_instr: Required[Method]
+    push_instr: Required[Method]
+    rob_put: Required[Method]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with physical register IDs present for all used registers.
-            Uses `SchedulerLayouts.rob_allocate_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step.
-            Uses `SchedulerLayouts.rob_allocate_out`.
-        rob_put: Method
-            Method used for getting a free entry in the ROB. Uses `ROBLayouts.data_layout`
-            and `ROBLayouts.id_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rob_allocate_in
-        self.output_layout = layouts.rob_allocate_out
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rob_put = rob_put
+        self.get_instr = Method(o=layouts.rob_allocate_in)
+        self.push_instr = Method(i=layouts.rob_allocate_out)
+        self.rob_put = Method(i=gen_params.get(ROBLayouts).put_layout, o=gen_params.get(ROBLayouts).put_out_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instr.layout_in)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -493,20 +481,16 @@ class Scheduler(Elaboratable):
         instr_tag.crat_tag.provide(self.crat_tag)
 
         m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
-        m.submodules.renaming = Renaming(
-            get_instr=instr_tag_buf.read,
-            push_instr=rename_out_buf.write,
-            rename=self.crat_rename,
-            gen_params=self.gen_params,
-        )
+        m.submodules.renaming = renaming = Renaming(gen_params=self.gen_params)
+        renaming.get_instr.provide(instr_tag_buf.read)
+        renaming.push_instr.provide(rename_out_buf.write)
+        renaming.rename.provide(self.crat_rename)
 
         m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
-        m.submodules.rob_alloc = ROBAllocation(
-            get_instr=rename_out_buf.read,
-            push_instr=rob_alloc_out_buf.write,
-            rob_put=self.rob_put,
-            gen_params=self.gen_params,
-        )
+        m.submodules.rob_alloc = rob_alloc = ROBAllocation(gen_params=self.gen_params)
+        rob_alloc.get_instr.provide(rename_out_buf.read)
+        rob_alloc.push_instr.provide(rob_alloc_out_buf.write)
+        rob_alloc.rob_put.provide(self.rob_put)
 
         m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
         m.submodules.rs_selector = RSSelection(
