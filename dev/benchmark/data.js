@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772460837725,
+  "lastUpdate": 1772461319550,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -18965,6 +18965,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/02fed972e3970a9060d3da8e45ae6b3224892af5"
         },
         "date": 1772460827988,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4326852307194698,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544267249521034,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.361995288445735,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.65379591959286,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3616733534688726,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30167911045598744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33209785025945143,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.438383409196722,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e27a983a0504a2535115cf2b7e2676938e9412fe",
+          "message": "FPU Integer to float conversion (#854)",
+          "timestamp": "2026-03-02T15:02:31+01:00",
+          "tree_id": "dba29d96e61fb8a334309b53d542152747ac05c2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e27a983a0504a2535115cf2b7e2676938e9412fe"
+        },
+        "date": 1772461312500,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
