@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1768819669029,
+  "lastUpdate": 1772460834441,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -18901,6 +18901,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f6def2d37f6e4707c1789180c344981fb7fc3f90"
         },
         "date": 1768819658883,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4326852307194698,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544267249521034,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.361995288445735,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.65379591959286,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3616733534688726,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30167911045598744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33209785025945143,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.438383409196722,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02fed972e3970a9060d3da8e45ae6b3224892af5",
+          "message": "Fix rf bug (#856)",
+          "timestamp": "2026-03-02T14:54:43+01:00",
+          "tree_id": "a0f72ed828754bb20e78622cfc4c39727211b5d2",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/02fed972e3970a9060d3da8e45ae6b3224892af5"
+        },
+        "date": 1772460827988,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
