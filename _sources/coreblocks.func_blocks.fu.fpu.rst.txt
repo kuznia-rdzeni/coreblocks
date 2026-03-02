@@ -84,6 +84,14 @@ coreblocks.func\_blocks.fu.fpu.fpu\_sign\_injection module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.fpu.int\_to\_float module
+----------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.int_to_float
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.fpu.lza module
 -----------------------------------------
 
