@@ -257,7 +257,7 @@ class SchedulerLayouts:
 
         self.rs_insert_in = self.rs_select_out
 
-        self.free_rf_layout = make_layout(fields.reg_id)
+        self.free_rf_layout = make_layout(("ident", gen_params.phys_regs_bits))
 
 
 class RFLayouts:

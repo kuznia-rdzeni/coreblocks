@@ -99,20 +99,17 @@ class SchedulerTestCircuit(Elaboratable):
         dm.add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         # main scheduler
-        m.submodules.scheduler = self.scheduler = Scheduler(
-            get_instr=instr_fifo.read,
-            get_free_reg=free_rf_fifo.read,
-            crat_rename=crat.rename,
-            crat_tag=crat.tag,
-            crat_active_tags=crat.get_active_tags,
-            rob_put=self.rob.put,
-            rf_read_req1=self.rf.read_req[0],
-            rf_read_req2=self.rf.read_req[1],
-            rf_read_resp1=self.rf.read_resp[0],
-            rf_read_resp2=self.rf.read_resp[1],
-            reservation_stations=rs_blocks,
-            gen_params=self.gen_params,
-        )
+        m.submodules.scheduler = self.scheduler = Scheduler(gen_params=self.gen_params, reservation_stations=rs_blocks)
+        self.scheduler.get_instr.provide(instr_fifo.read)
+        self.scheduler.get_free_reg.provide(free_rf_fifo.read)
+        self.scheduler.crat_rename.provide(crat.rename)
+        self.scheduler.crat_tag.provide(crat.tag)
+        self.scheduler.crat_active_tags.provide(crat.get_active_tags)
+        self.scheduler.rob_put.provide(self.rob.put)
+        self.scheduler.rf_read_req1.provide(self.rf.read_req[0])
+        self.scheduler.rf_read_req2.provide(self.rf.read_req[1])
+        self.scheduler.rf_read_resp1.provide(self.rf.read_resp[0])
+        self.scheduler.rf_read_resp2.provide(self.rf.read_resp[1])
 
         rollback, rollback_unifiers = dm.get_dependency(RollbackKey())
         m.submodules.rollback_unifiers = ModuleConnector(**rollback_unifiers)
@@ -167,7 +164,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_phys_reg(i)
 
     def free_phys_reg(self, reg_id):
-        self.free_regs_queue.append({"reg_id": reg_id})
+        self.free_regs_queue.append({"ident": reg_id})
         self.expected_phys_reg_queue.append(reg_id)
 
     async def queue_gather(self, sim: TestbenchContext, queues: Iterable[deque]):

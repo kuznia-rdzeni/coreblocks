@@ -125,7 +125,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
         async def free_rf_process(sim):
             free_rp_inp = 1
             while True:
-                await dut.free_rf_inp.call(sim, {"reg_id": free_rp_inp})
+                await dut.free_rf_inp.call(sim, {"ident": free_rp_inp})
                 free_rp_inp += 1
                 if free_rp_inp == gen_params.phys_regs:
                     free_rp_inp = 1

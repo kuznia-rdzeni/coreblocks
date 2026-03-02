@@ -8,7 +8,7 @@ from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.interface.layouts import DecodeLayouts, RATLayouts, RFLayouts, ROBLayouts, SchedulerLayouts
+from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.arch.optypes import OpType
 from coreblocks.interface.keys import CoreStateKey
@@ -39,7 +39,7 @@ class RegAllocation(Elaboratable):
 
         self.get_instr = Method(o=layouts.reg_alloc_in)
         self.push_instr = Method(i=layouts.reg_alloc_out)
-        self.get_free_reg = Method(o=[("ident", gen_params.phys_regs_bits)])
+        self.get_free_reg = Method(o=layouts.free_rf_layout)
 
     def elaborate(self, platform):
         m = TModule()
@@ -421,7 +421,7 @@ class Scheduler(Elaboratable):
     get_instr: Required[Method]
     """
     Method providing decoded instructions to be scheduled for execution. It has layout as described
-    by `SchedulerLayouts.scheduler_in`. 
+    by `SchedulerLayouts.scheduler_in`.
     """
 
     get_free_reg: Required[Method]
@@ -451,12 +451,7 @@ class Scheduler(Elaboratable):
     rf_read_resp2: Required[Method]
     """Gets requested value of second source register and information if it is valid."""
 
-    def __init__(
-        self,
-        *,
-        gen_params: GenParams,
-        reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]]
-    ):
+    def __init__(self, *, gen_params: GenParams, reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]]):
         """
         Parameters
         ----------
@@ -468,8 +463,10 @@ class Scheduler(Elaboratable):
         self.gen_params = gen_params
         self.layouts = self.gen_params.get(SchedulerLayouts)
         self.get_instr = Method(o=self.layouts.scheduler_in)
-        self.get_free_reg = Method(o=[("ident", gen_params.phys_regs_bits)])
-        self.crat_rename = Method(i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out)
+        self.get_free_reg = Method(o=self.layouts.free_rf_layout)
+        self.crat_rename = Method(
+            i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out
+        )
         self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
         self.crat_tag = Method(i=gen_params.get(RATLayouts).crat_tag_in, o=gen_params.get(RATLayouts).crat_tag_out)
         self.rob_put = Method(i=gen_params.get(ROBLayouts).put_layout, o=gen_params.get(ROBLayouts).put_out_layout)
