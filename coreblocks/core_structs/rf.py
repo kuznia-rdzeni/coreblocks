@@ -27,7 +27,7 @@ class RegisterFile(Elaboratable):
             depth=2**gen_params.phys_regs_bits,
             read_ports=read_ports,
             write_ports=write_ports,
-            transparent=True,
+            read_on_resp=True,
         )
         self.valids = Array(Signal(init=k == 0) for k in range(2**gen_params.phys_regs_bits))
 
