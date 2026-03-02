@@ -73,7 +73,7 @@ class TestCoreBase(TestCaseWithSimulator):
 
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
         # TODO: abstract memories don't implement MemoryData, but standard lib.Memory used in tests
-        return sim.get(self.m.core.RRAT.entries.mem.data[reg_id])  # type: ignore
+        return sim.get(self.m.core.RRAT.entries[reg_id])  # type: ignore
 
     def get_arch_reg_val(self, sim: TestbenchContext, reg_id):
         return sim.get(self.m.core.RF.entries.mem.data[(self.get_phys_reg_rrat(sim, reg_id))])  # type: ignore
@@ -143,7 +143,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, basic_core_config),
+        ("fibonacci", "fibonacci.asm", 600, {2: 2971215073}, basic_core_config),
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, basic_core_config),
         ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, tiny_core_config),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),

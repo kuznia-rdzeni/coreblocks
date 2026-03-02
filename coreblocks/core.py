@@ -74,12 +74,8 @@ class Core(Component):
             gen_params=self.gen_params, mark_done_ports=self.gen_params.announcement_superscalarity
         )
 
-        self.retirement = Retirement(self.gen_params)
-
         self.exception_information_register = ExceptionInformationRegister(
-            self.gen_params,
-            rob_get_indices=self.ROB.get_indices,
-            fetch_stall_exception=self.frontend.stall,
+            self.gen_params, rob_get_indices=self.ROB.get_indices
         )
 
         self.func_blocks_unifier = FuncBlocksUnifier(
@@ -105,6 +101,7 @@ class Core(Component):
         m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
 
         m.submodules.frontend = self.frontend
+        self.frontend.get_exception_information.provide(self.exception_information_register.get)
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
         m.submodules.CRAT = crat = self.CRAT
@@ -153,17 +150,16 @@ class Core(Component):
             self.func_blocks_unifier.get_result, announce_result
         )
 
-        m.submodules.retirement = retirement = self.retirement
+        m.submodules.retirement = retirement = Retirement(self.gen_params, rrat_entries=rrat.entries)
         retirement.rob_peek.provide(rob.peek)
         retirement.rob_retire.provide(rob.retire)
         retirement.r_rat_commit.provide(rrat.commit)
-        retirement.r_rat_peek.provide(rrat.peek)
         retirement.free_rf_put.provide(rf_allocator.free[0])
         retirement.rf_free.provide(rf.free[0])
         retirement.exception_cause_get.provide(self.exception_information_register.get)
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)
-        retirement.fetch_continue.provide(self.frontend.resume_from_exception)
+        retirement.fetch_resume_from_core_flush.provide(self.frontend.resume_from_core_flush)
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)

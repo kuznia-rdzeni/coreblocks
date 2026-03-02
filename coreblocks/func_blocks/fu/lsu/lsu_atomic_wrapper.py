@@ -44,7 +44,19 @@ class LSUAtomicWrapper(FuncUnit, Elaboratable):
 
         atomic_in_progress = Signal()
         atomic_op = Signal(
-            layout_subset(self.fu_layouts.issue, fields=set(["rob_id", "s1_val", "s2_val", "rp_dst", "exec_fn"]))
+            layout_subset(
+                self.fu_layouts.issue,
+                fields=set(
+                    [
+                        "rob_id",
+                        "s1_val",
+                        "s2_val",
+                        "rp_dst",
+                        "exec_fn",
+                        "tag",
+                    ]
+                ),
+            )
         )
 
         def atomic_op_res(v1: Value, v2: Value):
