@@ -214,49 +214,32 @@ class RSSelection(Elaboratable):
     methods to be available at the same time.
     """
 
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        push_instr: Method,
-        rs_select: Sequence[tuple[Method, set[OpType]]],
-        rf_read_req1: Method,
-        rf_read_req2: Method,
-        gen_params: GenParams
-    ):
+    get_instr: Required[Method]
+    push_instr: Required[Method]
+    rf_read_req1: Required[Method]
+    rf_read_req2: Required[Method]
+
+    def __init__(self, *, rs_select: Sequence[tuple[Method, set[OpType]]], gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with entry in ROB. Uses `SchedulerLayouts.rs_select_in`.
-        push_instr: Method
-            Method used for pushing instruction with selected RS to next step.
-            Uses `SchedulerLayouts.rs_select_out`.
         rs_select: Sequence[tuple[Method, set[OpType]]]
             Sequence of pairs, each representing a single RS. The components are:
 
             - A method used for allocating an entry in the RS. Uses `RSLayouts.select_out`.
             - A set of `OpType`\\s that can be handled by this RS.
-        rf_read_req1: Method
-            Method used for requesting value of first source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out`.
-        rf_read_req2: Method
-            Method used for requesting value of second source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
 
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rs_select_in
-        self.output_layout = layouts.rs_select_out
 
-        self.get_instr = get_instr
+        self.get_instr = Method(o=layouts.rs_select_in)
+        self.push_instr = Method(i=layouts.rs_select_out)
+        self.rf_read_req1 = Method(i=gen_params.get(RFLayouts).rf_read_in)
+        self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
         self.rs_select = rs_select
-        self.push_instr = push_instr
-        self.rf_read_req1 = rf_read_req1
-        self.rf_read_req2 = rf_read_req2
 
     def decode_optype_set(self, optypes: set[OpType]) -> int:
         res = 0x0
@@ -270,7 +253,7 @@ class RSSelection(Elaboratable):
         lookup = Signal(OpType)  # lookup of currently processed optype
         m.d.comb += lookup.eq(self.get_instr.data_out.exec_fn.op_type)
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instr.layout_in)
 
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation
@@ -299,40 +282,30 @@ class RSInsertion(Elaboratable):
     a single instruction to the RS.
     """
 
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        rs_insert: Sequence[Method],
-        rf_read_resp1: Method,
-        rf_read_resp2: Method,
-        crat_active_tags: Method,
-        gen_params: GenParams
-    ):
+    get_instr: Required[Method]
+    rf_read_resp1: Required[Method]
+    rf_read_resp2: Required[Method]
+    crat_active_tags: Required[Method]
+
+    def __init__(self, *, rs_insert: Sequence[Method], gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with reserved entry in ROB. Uses `SchedulerLayouts.rs_insert_in`.
         rs_insert: Sequence[Method]
             Sequence of methods used for pushing an instruction into the RS. Ordering of this list
             determines the ID of a specific RS. They use `RSLayouts.insert_in`
-        rf_read_resp1: Method
-            Method used for getting value of first source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        rf_read_resp2: Method
-            Method used for getting value of second source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
 
-        self.get_instr = get_instr
+        layouts = gen_params.get(SchedulerLayouts)
+
+        self.get_instr = Method(o=layouts.rs_insert_in)
+        self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
         self.rs_insert = rs_insert
-        self.rf_read_resp1 = rf_read_resp1
-        self.rf_read_resp2 = rf_read_resp2
-        self.crat_active_tags = crat_active_tags
 
     def elaborate(self, platform):
         m = TModule()
@@ -493,22 +466,22 @@ class Scheduler(Elaboratable):
         rob_alloc.rob_put.provide(self.rob_put)
 
         m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
-        m.submodules.rs_selector = RSSelection(
+        m.submodules.rs_selector = rs_selector = RSSelection(
             gen_params=self.gen_params,
-            get_instr=rob_alloc_out_buf.read,
             rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
-            push_instr=rs_select_out_buf.write,
-            rf_read_req1=self.rf_read_req1,
-            rf_read_req2=self.rf_read_req2,
         )
+        rs_selector.get_instr.provide(rob_alloc_out_buf.read)
+        rs_selector.push_instr.provide(rs_select_out_buf.write)
+        rs_selector.rf_read_req1.provide(self.rf_read_req1)
+        rs_selector.rf_read_req2.provide(self.rf_read_req2)
 
-        m.submodules.rs_insertion = RSInsertion(
-            get_instr=rs_select_out_buf.read,
+        m.submodules.rs_insertion = rs_insertion = RSInsertion(
             rs_insert=[rs.insert for rs, _ in self.rs],
-            rf_read_resp1=self.rf_read_resp1,
-            rf_read_resp2=self.rf_read_resp2,
-            crat_active_tags=self.crat_active_tags,
             gen_params=self.gen_params,
         )
+        rs_insertion.get_instr.provide(rs_select_out_buf.read)
+        rs_insertion.rf_read_resp1.provide(self.rf_read_resp1)
+        rs_insertion.rf_read_resp2.provide(self.rf_read_resp2)
+        rs_insertion.crat_active_tags.provide(self.crat_active_tags)
 
         return m
