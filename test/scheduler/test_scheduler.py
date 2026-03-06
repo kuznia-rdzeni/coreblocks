@@ -45,9 +45,8 @@ class MockedBlockComponent(BlockComponentParams):
 
 
 class SchedulerTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, rs: list[set[OpType]]):
+    def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
-        self.rs = rs
 
     def elaborate(self, platform):
         m = Module()
@@ -68,7 +67,7 @@ class SchedulerTestCircuit(Elaboratable):
         self.rs_insert: list[TestbenchIO] = []
 
         # mocked RS
-        for i, rs in enumerate(self.rs):
+        for i in range(len(self.gen_params.func_units_config)):
             select_test = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
             insert_test = TestbenchIO(Adapter(i=rs_layouts.rs.insert_in))
 
@@ -149,7 +148,7 @@ class TestScheduler(TestCaseWithSimulator):
         self.expected_rs_entry_queue = [deque() for _ in self.optype_sets]
         self.current_RAT = [0] * self.gen_params.isa.reg_cnt
         self.allocated_instr_count = 0
-        self.m = SchedulerTestCircuit(self.gen_params, self.optype_sets)
+        self.m = SchedulerTestCircuit(self.gen_params)
 
         random.seed(42)
 
