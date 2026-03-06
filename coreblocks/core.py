@@ -124,20 +124,20 @@ class Core(Component):
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
 
-        m.submodules.scheduler = Scheduler(
-            get_instr=get_instr.method,
-            get_free_reg=rf_allocator.alloc[0],
-            crat_rename=crat.rename,
-            crat_tag=crat.tag,
-            crat_active_tags=crat.get_active_tags,
-            rob_put=rob.put,
-            rf_read_req1=rf.read_req[0],
-            rf_read_req2=rf.read_req[1],
-            rf_read_resp1=rf.read_resp[0],
-            rf_read_resp2=rf.read_resp[1],
-            reservation_stations=self.func_blocks_unifier.rs_blocks,
-            gen_params=self.gen_params,
-        )
+        m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
+        scheduler.get_instr.provide(get_instr.method)
+        scheduler.get_free_reg.provide(rf_allocator.alloc[0])
+        scheduler.crat_rename.provide(crat.rename)
+        scheduler.crat_tag.provide(crat.tag)
+        scheduler.crat_active_tags.provide(crat.get_active_tags)
+        scheduler.rob_put.provide(rob.put)
+        scheduler.rf_read_req1.provide(rf.read_req[0])
+        scheduler.rf_read_req2.provide(rf.read_req[1])
+        scheduler.rf_read_resp1.provide(rf.read_resp[0])
+        scheduler.rf_read_resp2.provide(rf.read_resp[1])
+        for i, block in enumerate(self.func_blocks_unifier.rs_blocks):
+            scheduler.rs_select[i].provide(block.select)
+            scheduler.rs_insert[i].provide(block.insert)
 
         m.submodules.exception_information_register = self.exception_information_register
 
