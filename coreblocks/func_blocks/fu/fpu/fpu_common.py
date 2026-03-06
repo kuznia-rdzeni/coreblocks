@@ -1,4 +1,5 @@
 from amaranth.lib import enum, data
+import math
 
 
 class RoundingModes(enum.Enum):
@@ -83,6 +84,49 @@ def create_data_input_layout(params: FPUParams):
     fpu_params; FPUParams
         FPU parameters
     """
+    return data.StructLayout(
+        {
+            "sign": 1,
+            "sig": params.sig_width,
+            "exp": params.exp_width,
+            "is_inf": 1,
+            "is_nan": 1,
+            "is_zero": 1,
+        }
+    )
+
+
+class IntConversionValues:
+    """Various values for conversion from int to float
+
+    Parameters
+    ----------
+    int_width: int
+        Width of int
+    sig_width: int
+        Width of significand
+    bias: int
+        Value of bias used for calculating base exponent value
+    """
+
+    def __init__(
+        self,
+        *,
+        int_width: int = 32,
+        sig_width: int = 24,
+        bias: int = 127,
+    ):
+        self.int_width = int_width
+        self.ext_width = sig_width if sig_width >= int_width else int_width
+        self.exp_base_value = int_width + bias - 1
+        self.shift_width = int(math.log2(int_width))
+        self.exact = sig_width >= int_width
+        self.round_bit_index = self.ext_width - 1 - sig_width
+        self.msb_sticky_index = self.round_bit_index
+        self.ext_to_dst_shift = int_width - sig_width
+
+
+def create_data_layout(params: FPUParams):
     return data.StructLayout(
         {
             "sign": 1,
