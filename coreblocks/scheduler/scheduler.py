@@ -12,7 +12,6 @@ from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, Sche
 from coreblocks.params import GenParams
 from coreblocks.arch.optypes import OpType
 from coreblocks.interface.keys import CoreStateKey
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 
 __all__ = ["Scheduler"]
 
@@ -218,16 +217,12 @@ class RSSelection(Elaboratable):
     push_instr: Required[Method]
     rf_read_req1: Required[Method]
     rf_read_req2: Required[Method]
+    rs_select: Required[Sequence[Method]]
 
-    def __init__(self, *, rs_select: Sequence[tuple[Method, set[OpType]]], gen_params: GenParams):
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        rs_select: Sequence[tuple[Method, set[OpType]]]
-            Sequence of pairs, each representing a single RS. The components are:
-
-            - A method used for allocating an entry in the RS. Uses `RSLayouts.select_out`.
-            - A set of `OpType`\\s that can be handled by this RS.
         gen_params: GenParams
             Core generation parameters.
         """
@@ -239,7 +234,7 @@ class RSSelection(Elaboratable):
         self.push_instr = Method(i=layouts.rs_select_out)
         self.rf_read_req1 = Method(i=gen_params.get(RFLayouts).rf_read_in)
         self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
-        self.rs_select = rs_select
+        self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
 
     def decode_optype_set(self, optypes: set[OpType]) -> int:
         res = 0x0
@@ -255,9 +250,9 @@ class RSSelection(Elaboratable):
 
         data_out = Signal(self.push_instr.layout_in)
 
-        for i, (alloc, optypes) in enumerate(self.rs_select):
+        for i, (alloc, block_params) in enumerate(zip(self.rs_select, self.gen_params.func_units_config)):
             # checks if RS can perform this kind of operation
-            optype_matches = Cat(lookup == op for op in optypes).any()
+            optype_matches = Cat(lookup == op for op in block_params.get_optypes()).any()
             with Transaction().body(m, ready=optype_matches):
                 instr = self.get_instr(m)
                 allocated_field = alloc(m)
@@ -286,14 +281,12 @@ class RSInsertion(Elaboratable):
     rf_read_resp1: Required[Method]
     rf_read_resp2: Required[Method]
     crat_active_tags: Required[Method]
+    rs_insert: Required[Sequence[Method]]
 
-    def __init__(self, *, rs_insert: Sequence[Method], gen_params: GenParams):
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        rs_insert: Sequence[Method]
-            Sequence of methods used for pushing an instruction into the RS. Ordering of this list
-            determines the ID of a specific RS. They use `RSLayouts.insert_in`
         gen_params: GenParams
             Core generation parameters.
         """
@@ -305,7 +298,7 @@ class RSInsertion(Elaboratable):
         self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
         self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
         self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
-        self.rs_insert = rs_insert
+        self.rs_insert = [Method(i=conf.get_layouts(gen_params).insert_in) for conf in gen_params.func_units_config]
 
     def elaborate(self, platform):
         m = TModule()
@@ -412,14 +405,18 @@ class Scheduler(Elaboratable):
     rf_read_resp2: Required[Method]
     """Gets requested value of second source register and information if it is valid."""
 
-    def __init__(self, *, gen_params: GenParams, reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]]):
+    rs_select: Required[Sequence[Method]]
+    """Selects RS slot."""
+
+    rs_insert: Required[Sequence[Method]]
+    """Inserts instruction into RS slot."""
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
         gen_params: GenParams
             Core generation parameters.
-        reservation_stations: Sequence[FuncBlock]
-            Sequence of units with RS interfaces to which instructions should be inserted.
         """
         self.gen_params = gen_params
         self.layouts = self.gen_params.get(SchedulerLayouts)
@@ -435,7 +432,8 @@ class Scheduler(Elaboratable):
         self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
         self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
         self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
-        self.rs = reservation_stations
+        self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
+        self.rs_insert = [Method(i=conf.get_layouts(gen_params).insert_in) for conf in gen_params.func_units_config]
 
     def elaborate(self, platform):
         m = TModule()
@@ -466,22 +464,20 @@ class Scheduler(Elaboratable):
         rob_alloc.rob_put.provide(self.rob_put)
 
         m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
-        m.submodules.rs_selector = rs_selector = RSSelection(
-            gen_params=self.gen_params,
-            rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
-        )
+        m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
         rs_selector.get_instr.provide(rob_alloc_out_buf.read)
         rs_selector.push_instr.provide(rs_select_out_buf.write)
         rs_selector.rf_read_req1.provide(self.rf_read_req1)
         rs_selector.rf_read_req2.provide(self.rf_read_req2)
+        for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
+            rs_select.provide(rs_select_impl)
 
-        m.submodules.rs_insertion = rs_insertion = RSInsertion(
-            rs_insert=[rs.insert for rs, _ in self.rs],
-            gen_params=self.gen_params,
-        )
+        m.submodules.rs_insertion = rs_insertion = RSInsertion(gen_params=self.gen_params)
         rs_insertion.get_instr.provide(rs_select_out_buf.read)
         rs_insertion.rf_read_resp1.provide(self.rf_read_resp1)
         rs_insertion.rf_read_resp2.provide(self.rf_read_resp2)
         rs_insertion.crat_active_tags.provide(self.crat_active_tags)
+        for rs_insert, rs_insert_impl in zip(rs_insertion.rs_insert, self.rs_insert):
+            rs_insert.provide(rs_insert_impl)
 
         return m

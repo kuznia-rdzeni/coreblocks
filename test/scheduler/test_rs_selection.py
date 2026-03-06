@@ -13,6 +13,7 @@ from transactron.lib import FIFO, Adapter, AdapterTrans
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 from transactron.testing.method_mock import MethodMock, def_method_mock
+from .test_scheduler import MockedBlockComponent
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
@@ -42,21 +43,25 @@ class RSSelector(Elaboratable):
         m.submodules.rf_read_req2 = self.rf_read_req2 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
 
         # rs selector
-        m.submodules.selector = self.selector = RSSelection(
-            gen_params=self.gen_params,
-            get_instr=instr_fifo.read,
-            rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
-            push_instr=out_fifo.write,
-            rf_read_req1=self.rf_read_req1.adapter.iface,
-            rf_read_req2=self.rf_read_req2.adapter.iface,
-        )
+        m.submodules.selector = self.selector = RSSelection(gen_params=self.gen_params)
+        self.selector.get_instr.provide(instr_fifo.read)
+        self.selector.push_instr.provide(out_fifo.write)
+        self.selector.rf_read_req1.provide(self.rf_read_req1.adapter.iface)
+        self.selector.rf_read_req2.provide(self.rf_read_req2.adapter.iface)
+        self.selector.rs_select[0].provide(self.rs1_alloc.adapter.iface)
+        self.selector.rs_select[1].provide(self.rs2_alloc.adapter.iface)
 
         return m
 
 
 class TestRSSelect(TestCaseWithSimulator):
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                func_units_config=(MockedBlockComponent(_rs1_optypes, 4), MockedBlockComponent(_rs2_optypes, 4)),
+                allow_partial_extensions=True,
+            )
+        )
         self.m = RSSelector(self.gen_params)
         self.expected_out: deque[dict] = deque()
         self.instr_in: deque[dict] = deque()

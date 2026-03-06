@@ -124,10 +124,7 @@ class Core(Component):
             [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
         )
 
-        m.submodules.scheduler = scheduler = Scheduler(
-            gen_params=self.gen_params,
-            reservation_stations=self.func_blocks_unifier.rs_blocks,
-        )
+        m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
         scheduler.get_instr.provide(get_instr.method)
         scheduler.get_free_reg.provide(rf_allocator.alloc[0])
         scheduler.crat_rename.provide(crat.rename)
@@ -138,6 +135,9 @@ class Core(Component):
         scheduler.rf_read_req2.provide(rf.read_req[1])
         scheduler.rf_read_resp1.provide(rf.read_resp[0])
         scheduler.rf_read_resp2.provide(rf.read_resp[1])
+        for i, block in enumerate(self.func_blocks_unifier.rs_blocks):
+            scheduler.rs_select[i].provide(block.select)
+            scheduler.rs_insert[i].provide(block.insert)
 
         m.submodules.exception_information_register = self.exception_information_register
 
