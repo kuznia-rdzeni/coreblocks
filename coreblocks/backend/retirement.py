@@ -19,11 +19,7 @@ from transactron.lib.metrics import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
-from coreblocks.interface.keys import (
-    CoreStateKey,
-    CSRInstancesKey,
-    InstructionPrecommitKey,
-)
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey, FTQCommitEntry
 from coreblocks.priv.csr.csr_instances import CSRAddress, counteren_access_filter
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
@@ -110,6 +106,8 @@ class Retirement(Elaboratable):
         s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
         m.submodules.instret_csr = self.instret_csr
         m.submodules.instret_shadow = self.instret_shadow
+
+        ftq_commit = self.dependency_manager.get_dependency(FTQCommitEntry())
 
         def free_phys_reg(i: int, rp_dst: Value):
             # mark reg in Register File as free
@@ -255,11 +253,17 @@ class Retirement(Elaboratable):
                         + Mux(exception, no_trap_count + commit_trapping, retire_count),
                     )
 
+                    last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
                     for i in range(self.gen_params.retirement_superscalarity):
                         with m.If(i - commit_trapping < no_trap_count):
                             retire_instr(i, rob_entries.entries[i])
+                            m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
                         with m.Elif(i < retire_count):
                             flush_instr(i, rob_entries.entries[i])
+
+                    # Commit the FTQ entry for the last retired instruction this cycle.
+                    with m.If(no_trap_count.bool() | commit_trapping):
+                        ftq_commit(m, ftq_ptr=last_commit_ftq_ptr)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction(name="Retirement_FLUSH").body(m):
