@@ -15,7 +15,7 @@ from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
 from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
-    BranchVerifyKey,
+    BranchResolveKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
 )
@@ -115,12 +115,9 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.push_result = Method(i=layouts.push_result)
 
-        self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
-
         self.jb_fn = jb_fn
 
         self.dm = DependencyContext.get()
-        self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.jumpbranch.instr",
@@ -144,10 +141,10 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         ]
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
+        resolve_branch = self.dm.get_dependency(BranchResolveKey())
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
         m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
-        m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         fields = self.gen_params.get(CommonLayoutFields)
         instr_fifo_layout = make_layout(
@@ -220,7 +217,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 )
 
             with m.If(~is_auipc):
-                self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
+                resolve_branch(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
                 log.debug(
                     m,
                     True,

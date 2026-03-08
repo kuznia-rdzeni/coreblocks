@@ -17,7 +17,7 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey, FTQCommitEntry
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
 from coreblocks.arch.isa_consts import TrapVectorMode
 
@@ -71,6 +71,8 @@ class Retirement(Elaboratable):
         m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
         m.submodules.instret_csr = self.instret_csr
 
+        ftq_commit = self.dependency_manager.get_dependency(FTQCommitEntry())
+
         side_fx = Signal(init=1)
 
         def free_phys_reg(rp_dst: Value):
@@ -86,6 +88,7 @@ class Retirement(Elaboratable):
 
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(rat_out.old_rp_dst)
+            ftq_commit(m, ftq_ptr=rob_entry.rob_data.ftq_ptr)
 
             self.instret_csr.increment(m)
             self.perf_instr_ret.incr(m)

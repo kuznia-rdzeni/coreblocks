@@ -67,7 +67,9 @@ class TestReorderBuffer(TestCaseWithSimulator):
                     assert phys_reg in self.executed_set
                     self.executed_set.remove(phys_reg)
 
-                    assert data_const_to_dict(results.entries[k].rob_data) == regs[k]
+                    rob_data = data_const_to_dict(results.entries[k].rob_data)
+                    for reg_key in regs[k].keys():
+                        assert rob_data[reg_key] == regs[k][reg_key]
                     self.regs_left_queue.append(phys_reg)
 
     def test_single(self, mark_done_ports: int, frontend_superscalarity: int, retirement_superscalarity: int):

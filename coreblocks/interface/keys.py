@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 __all__ = [
     "CommonBusDataKey",
     "InstructionPrecommitKey",
-    "BranchVerifyKey",
+    "BranchResolveKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
@@ -40,7 +40,7 @@ class InstructionPrecommitKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
+class BranchResolveKey(SimpleKey[Method]):
     pass
 
 
@@ -105,6 +105,11 @@ class CSRListKey(ListKey["CSRRegister"]):
 
 @dataclass(frozen=True)
 class FlushICacheKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class FTQCommitEntry(SimpleKey[Method]):
     pass
 
 

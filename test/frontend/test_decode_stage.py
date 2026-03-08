@@ -77,7 +77,9 @@ class TestDecode(TestCaseWithSimulator):
                 data["csr"] = decoded.csr
             if data["imm"] is None:
                 data["imm"] = decoded.imm
-            assert data_const_to_dict(decoded) == data
+            decoded_data = data_const_to_dict(decoded)
+            for key in data.keys():
+                assert decoded_data[key] == data[key]
 
     def test(self):
         with self.run_simulation(self.m) as sim:

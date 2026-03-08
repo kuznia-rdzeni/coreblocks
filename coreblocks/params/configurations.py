@@ -98,6 +98,8 @@ class _CoreConfigurationDataClass:
         Log of the cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
+    ftq_size_log: int
+        Log of the number of entries in the Fetch Target Queue
     instr_buffer_size: int
         Size of the instruction buffer.
     interrupt_custom_count: int
@@ -158,6 +160,8 @@ class _CoreConfigurationDataClass:
     icache_line_bytes_log: int = 5
 
     fetch_block_bytes_log: int = 2
+
+    ftq_size_log: int = 4
 
     instr_buffer_size: int = 4
 

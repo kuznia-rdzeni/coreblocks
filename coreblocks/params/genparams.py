@@ -69,6 +69,9 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
 
+        self.ftq_size_log = cfg.ftq_size_log
+        self.ftq_size = 2**cfg.ftq_size_log
+
         self.frontend_superscalarity = cfg.frontend_superscalarity
         self.announcement_superscalarity = cfg.announcement_superscalarity
         self.retirement_superscalarity = cfg.retirement_superscalarity
