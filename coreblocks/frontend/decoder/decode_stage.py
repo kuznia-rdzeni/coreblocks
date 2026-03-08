@@ -31,7 +31,7 @@ class Decode(Elaboratable):
         m = TModule()
 
         @def_method(m, self.decode)
-        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type):
+        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type, ftq_ptr):
             m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
             m.d.top_comb += instr_decoder.instr.eq(instr)
 
@@ -93,6 +93,7 @@ class Decode(Elaboratable):
                 ),
                 "csr": instr_decoder.csr,
                 "pc": pc,
+                "ftq_ptr": ftq_ptr,
             }
 
         return m

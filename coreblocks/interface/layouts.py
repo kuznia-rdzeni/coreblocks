@@ -3,6 +3,7 @@ from amaranth.lib.data import ArrayLayout
 from amaranth.lib.enum import IntFlag, IntEnum, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
+from coreblocks.interface.views import CircularBufferPointer
 from transactron.utils import LayoutList, LayoutListField, layout_subset
 from transactron.utils.transactron_helpers import make_layout, extend_layout
 
@@ -26,7 +27,19 @@ __all__ = [
     "ICacheLayouts",
     "JumpBranchLayouts",
     "PrivUnitLayouts",
+    "FetchTargetQueueLayouts",
+    "BranchPredictionLayouts",
 ]
+
+
+class FTQPtrLayout(CircularBufferPointer.Layout):
+    def __init__(self, gp: GenParams):
+        super().__init__(size_log=gp.ftq_size_log)
+
+
+class FTQPtr(CircularBufferPointer):
+    def __init__(self, target=None, *, gp: GenParams, **kwargs):
+        super().__init__(layout=FTQPtrLayout(gp), target=target, **kwargs)
 
 
 class CommonLayoutFields:
@@ -71,6 +84,9 @@ class CommonLayoutFields:
 
         self.rob_id: LayoutListField = ("rob_id", gen_params.rob_entries_bits)
         """Reorder buffer entry identifier."""
+
+        self.ftq_ptr: LayoutListField = ("ftq_ptr", FTQPtrLayout(gen_params))
+        """A pointer into the Fetch Target Queue"""
 
         self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
         """Address of a fetch block"""
@@ -250,6 +266,7 @@ class SchedulerLayouts:
             fields.rollback_tag,
             fields.rollback_tag_v,
             fields.commit_checkpoint,
+            fields.ftq_ptr,
         )
 
         self.reg_alloc_in = self.scheduler_in = make_layout(
@@ -267,6 +284,7 @@ class SchedulerLayouts:
             fields.rollback_tag,
             fields.rollback_tag_v,
             fields.commit_checkpoint,
+            fields.ftq_ptr,
         )
 
         self.reg_alloc_out = self.instr_tag_in = make_layout(
@@ -284,6 +302,7 @@ class SchedulerLayouts:
             fields.tag,
             fields.tag_increment,
             fields.commit_checkpoint,
+            fields.ftq_ptr,
         )
 
         self.renaming_in = self.instr_tag_out = make_layout(
@@ -300,6 +319,7 @@ class SchedulerLayouts:
             fields.pc,
             fields.tag,
             fields.tag_increment,
+            fields.ftq_ptr,
         )
 
         self.renaming_out = self.rob_allocate_in = make_layout(
@@ -410,6 +430,7 @@ class ROBLayouts:
             fields.rl_dst,
             fields.rp_dst,
             fields.tag_increment,
+            fields.ftq_ptr,
         )
 
         self.rob_data: LayoutListField = ("rob_data", self.data_layout)
@@ -613,6 +634,25 @@ class ICacheLayouts:
         )
 
 
+class BranchPredictionLayouts:
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.request = make_layout(fields.pc, fields.ftq_ptr)
+        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr)
+
+
+class FetchTargetQueueLayouts:
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.branch_resolve = make_layout(
+            ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
+        )
+
+        self.commit = make_layout(fields.ftq_ptr)
+
+
 class FetchLayouts:
     """Layouts used in the fetcher."""
 
@@ -641,6 +681,7 @@ class FetchLayouts:
             fields.rvc,
             fields.predicted_taken,
             fields.cfi_type,
+            fields.ftq_ptr,
         )
 
         self.fetch_result = make_layout(
@@ -648,8 +689,8 @@ class FetchLayouts:
             ("data", ArrayLayout(self.raw_instr, gen_params.frontend_superscalarity)),
         )
 
-        self.fetch_request = make_layout(fields.pc)
-        self.fetch_writeback = make_layout(("redirect", 1), ("redirect_target", gen_params.isa.xlen))
+        self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
+        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), ("redirect_target", gen_params.isa.xlen))
         self.redirect = make_layout(fields.pc)
         self.resume = make_layout(fields.pc)
 
@@ -687,6 +728,7 @@ class DecodeLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.ftq_ptr,
         )
 
         self.decode_result = make_layout(
@@ -704,6 +746,7 @@ class DecodeLayouts:
             fields.rollback_tag,
             fields.rollback_tag_v,
             fields.commit_checkpoint,
+            fields.ftq_ptr,
         )
 
         self.tagged_decode_result = make_layout(
@@ -771,11 +814,6 @@ class JumpBranchLayouts:
 
         self.predicted_jump_target_req = make_layout()
         self.predicted_jump_target_resp = make_layout(fields.cfi_target, ("valid", 1))
-
-        self.verify_branch = make_layout(
-            ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
-        )
-        """ Hint for Branch Predictor about branch result """
 
         self.funct7_info = make_layout(
             fields.rvc,

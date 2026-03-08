@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 __all__ = [
     "CommonBusDataKey",
     "InstructionPrecommitKey",
-    "BranchVerifyKey",
+    "BranchResolveKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
@@ -46,7 +46,7 @@ class InstructionPrecommitKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
+class BranchResolveKey(SimpleKey[Method]):
     pass
 
 
@@ -132,6 +132,9 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
 class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
     """Used to provide a component that can be used as a backing device for the L1 TLB."""
 
+
+@dataclass(frozen=True)
+class FTQCommitEntry(SimpleKey[Method]):
     pass
 
 
