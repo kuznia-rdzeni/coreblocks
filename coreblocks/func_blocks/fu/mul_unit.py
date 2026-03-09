@@ -98,7 +98,7 @@ class MulUnit(FuncUnit, Elaboratable):
         self,
         gen_params: GenParams,
         mul_type: MulType,
-        dsp_width: int = 32,
+        dsp_width: int = 18,
         dsp_number: int = 7,
         mul_fn=MulFn(),
     ):
@@ -224,7 +224,7 @@ class MulComponent(FunctionalComponentParams):
     mul_unit_type: MulType
     _: KW_ONLY
     result_fifo: bool = False  # last step is registered
-    dsp_width: int = 32
+    dsp_width: int = 18
     dsp_number: int = 7
     decoder_manager: MulFn = MulFn()
 
