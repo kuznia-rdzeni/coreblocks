@@ -94,7 +94,14 @@ class MulUnit(FuncUnit, Elaboratable):
         Method called for pushing result of requested computation.
     """
 
-    def __init__(self, gen_params: GenParams, mul_type: MulType, dsp_width: int = 32, dsp_number: int = 7, mul_fn=MulFn()):
+    def __init__(
+        self,
+        gen_params: GenParams,
+        mul_type: MulType,
+        dsp_width: int = 32,
+        dsp_number: int = 7,
+        mul_fn=MulFn(),
+    ):
         """
         Parameters
         ----------
@@ -134,7 +141,9 @@ class MulUnit(FuncUnit, Elaboratable):
             case MulType.SEQUENCE_MUL:
                 m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen_params, self.dsp_width)
             case MulType.PIPELINED_MUL:
-                m.submodules.multiplier = multiplier = PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number)
+                m.submodules.multiplier = multiplier = PipelinedUnsignedMul(
+                    self.gen_params, self.dsp_width, self.dsp_number
+                )
             case MulType.RECURSIVE_MUL:
                 m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen_params, self.dsp_width)
 
