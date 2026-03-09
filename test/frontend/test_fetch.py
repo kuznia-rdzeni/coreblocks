@@ -73,20 +73,16 @@ class TestFetchUnit(TestCaseWithSimulator):
         )
 
         self.icache = MockedICache(self.gen_params)
-        self.fifo = SimpleTestCircuit(
-            BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2), exclude={"write"}
-        )
+        fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
+        self.fifo = SimpleTestCircuit(fifo, exclude={"write"})
         self.fetch_resume_mock = TestbenchIO(Adapter())
 
-        self.fetch_writeback = TestbenchIO(Adapter(i=self.gen_params.get(FetchLayouts).fetch_writeback))
-
         fetch_unit = FetchUnit(self.gen_params, self.icache)
-        fetch_unit.cont.provide(self.fifo._dut.write)
-        fetch_unit.fetch_writeback.provide(self.fetch_writeback.adapter.iface)
+        fetch_unit.cont.provide(fifo.write)
 
         self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(self.icache, self.fifo, self.fetch, self.fetch_writeback)
+        self.m = ModuleConnector(self.icache, self.fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -195,7 +191,7 @@ class TestFetchUnit(TestCaseWithSimulator):
     def stall_lock_unsafe(self):
         pass
 
-    @def_method_mock(lambda self: self.fetch_writeback)
+    @def_method_mock(lambda self: self.fetch.fetch_writeback)
     def fetch_writeback_mock(self, redirect, redirect_target):
         @MethodMock.effect
         def eff():

@@ -35,7 +35,7 @@ class FetchUnit(Elaboratable):
     fetch_request: Provided[Method]
     """Requests a fetch of the instruction block at the given PC."""
 
-    fetch_writeback: Provided[Method]
+    fetch_writeback: Required[Method]
     """Invoked to write back the status of the requested fetch block."""
 
     flush: Provided[Method]
