@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
     from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+    from coreblocks.interface.layouts import RSInterfaceLayouts
 
 
 __all__ = [
@@ -29,6 +30,10 @@ class BlockComponentParams(ABC):
 
     @abstractmethod
     def get_optypes(self) -> set["OpType"]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_layouts(self, gen_params: "GenParams") -> "RSInterfaceLayouts":
         raise NotImplementedError()
 
     @abstractmethod

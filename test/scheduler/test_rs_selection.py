@@ -1,63 +1,29 @@
 from collections import deque
 import random
 
-from amaranth import *
-
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import RFLayouts, RSLayouts, SchedulerLayouts
 from coreblocks.arch import Funct3, Funct7
 from coreblocks.arch import OpType
 from coreblocks.params.configurations import test_core_config
 from coreblocks.scheduler.scheduler import RSSelection
-from transactron.lib import FIFO, Adapter, AdapterTrans
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 from transactron.testing.method_mock import MethodMock, def_method_mock
+from .test_scheduler import MockedBlockComponent
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
 
 
-class RSSelector(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
-
-        rs_layouts = self.gen_params.get(RSLayouts, rs_entries=self.gen_params.max_rs_entries)
-        rf_layouts = self.gen_params.get(RFLayouts)
-        scheduler_layouts = self.gen_params.get(SchedulerLayouts)
-
-        # data structures
-        m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
-        m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
-
-        # mocked input and output
-        m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans.create(instr_fifo.write))
-        m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans.create(out_fifo.read))
-        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
-        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
-        m.submodules.rf_read_req1 = self.rf_read_req1 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
-        m.submodules.rf_read_req2 = self.rf_read_req2 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
-
-        # rs selector
-        m.submodules.selector = self.selector = RSSelection(
-            gen_params=self.gen_params,
-            get_instr=instr_fifo.read,
-            rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
-            push_instr=out_fifo.write,
-            rf_read_req1=self.rf_read_req1.adapter.iface,
-            rf_read_req2=self.rf_read_req2.adapter.iface,
-        )
-
-        return m
-
-
 class TestRSSelect(TestCaseWithSimulator):
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config)
-        self.m = RSSelector(self.gen_params)
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                func_units_config=(MockedBlockComponent(_rs1_optypes, 4), MockedBlockComponent(_rs2_optypes, 4)),
+                allow_partial_extensions=True,
+            )
+        )
+        self.m = SimpleTestCircuit(RSSelection(gen_params=self.gen_params))
         self.expected_out: deque[dict] = deque()
         self.instr_in: deque[dict] = deque()
         random.seed(1789)
@@ -98,7 +64,7 @@ class TestRSSelect(TestCaseWithSimulator):
                 }
 
                 self.instr_in.append(instr)
-                await self.m.instr_in.call(sim, instr)
+                await self.m.get_instr.call(sim, instr)
                 await self.random_wait(sim, random_wait)
 
         return process
@@ -131,7 +97,7 @@ class TestRSSelect(TestCaseWithSimulator):
     def create_output_process(self, instr_count: int, random_wait: int = 0):
         async def process(sim: TestbenchContext):
             for _ in range(instr_count):
-                result = await self.m.instr_out.call(sim)
+                result = await self.m.push_instr.call(sim)
                 outputs = self.expected_out.popleft()
 
                 await self.random_wait(sim, random_wait)
@@ -146,8 +112,8 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs1(self):
@@ -158,7 +124,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs2(self):
@@ -169,7 +135,7 @@ class TestRSSelect(TestCaseWithSimulator):
 
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_delays(self):
@@ -181,9 +147,11 @@ class TestRSSelect(TestCaseWithSimulator):
         with self.run_simulation(self.m, max_cycles=5000) as sim:
             sim.add_testbench(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
             self.add_mock(
-                sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes, enable_prob=0.1)
+                sim,
+                self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes, enable_prob=0.1),
             )
             self.add_mock(
-                sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes, enable_prob=0.1)
+                sim,
+                self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes, enable_prob=0.1),
             )
             sim.add_testbench(self.create_output_process(300, random_wait=12))
