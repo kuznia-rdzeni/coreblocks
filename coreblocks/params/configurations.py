@@ -44,7 +44,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     ),
     RSBlockComponent(
         [
-            MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+            MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
             DivComponent(),
         ],
         rs_entries=2,
@@ -221,7 +221,7 @@ small_linux_config = CoreConfiguration(
         ),
         RSBlockComponent(
             [
-                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
             rs_entries=2,
@@ -248,7 +248,7 @@ full_core_config = CoreConfiguration(
         ),
         RSBlockComponent(
             [
-                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
             rs_entries=2,
