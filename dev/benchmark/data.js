@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772461470999,
+  "lastUpdate": 1773051057057,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19093,6 +19093,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/48e0169046e6b915515e16b915de8bc01914e07a"
         },
         "date": 1772461459584,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4326852307194698,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544267249521034,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.361995288445735,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.65379591959286,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3616733534688726,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30167911045598744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33209785025945143,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.438383409196722,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "af15042cf97ba20b6a747ee316a519cb894eabdb",
+          "message": "Decouple the program counter from the fetch unit (#865)",
+          "timestamp": "2026-03-09T10:51:53+01:00",
+          "tree_id": "1dee293c3455ed89db7e08a11e271bc6ea5be48d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/af15042cf97ba20b6a747ee316a519cb894eabdb"
+        },
+        "date": 1773051050651,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
