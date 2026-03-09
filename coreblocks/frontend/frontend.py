@@ -30,6 +30,10 @@ class RollbackTagger(Elaboratable):
     Requires `get_instr` and `push_instr` methods
     """
 
+    get_instr: Required[Method]
+    push_instr: Required[Method]
+    rollback: Provided[Method]
+
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
 
@@ -75,6 +79,10 @@ class FetchAddressUnit(Elaboratable):
     It selects the next fetch PC based on reset, backend redirects, IFU redirects, and branch prediction results.
     """
 
+    read: Provided[Method]
+    ifu_redirect: Provided[Method]
+    beckend_redirect: Provided[Method]
+
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
@@ -109,17 +117,16 @@ class FetchAddressUnit(Elaboratable):
 
 
 class CoreFrontend(Elaboratable):
-    """Frontend of the core.
+    """Frontend of the core."""
 
-    Attributes
-    ----------
-    consume_instr: Method
-        Consume a single decoded instruction.
-    resume_from_exception: Method
-        Resume the frontend from the given PC after an exception.
-    stall: Method
-        Stall and flush the frontend.
-    """
+    consume_instr: Provided[Method]
+    """Consume a single decoded instruction."""
+
+    resume_from_exception: Provided[Method]
+    """Resume the frontend from the given PC after an exception."""
+
+    stall: Provided[Method]
+    """Stall and flush the frontend."""
 
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
         self.gen_params = gen_params
@@ -141,12 +148,9 @@ class CoreFrontend(Elaboratable):
         self.fetch_address_unit = FetchAddressUnit(self.gen_params)
         self.fetch_writeback = Method(i=gen_params.get(FetchLayouts).fetch_writeback)
 
-        self.fetch = FetchUnit(
-            self.gen_params,
-            self.icache,
-            self.instr_buffer.write,
-            self.stall_ctrl.stall_unsafe,
-        )
+        self.fetch = FetchUnit(self.gen_params, self.icache)
+        self.fetch.cont.provide(self.instr_buffer.write)
+        self.fetch.stall_unsafe.provide(self.stall_ctrl.stall_unsafe)
 
         self.output_pipe = Pipe(self.gen_params.get(SchedulerLayouts).scheduler_in)
         self.decode_buff = Connect(self.gen_params.get(DecodeLayouts).decoded_instr)

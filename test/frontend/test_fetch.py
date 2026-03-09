@@ -8,7 +8,7 @@ import random
 from amaranth import Elaboratable, Module
 
 from transactron.core import Method
-from transactron.lib import AdapterTrans, Adapter, BasicFifo
+from transactron.lib import Adapter, BasicFifo
 from transactron.testing.method_mock import MethodMock
 from transactron.utils import ModuleConnector
 from transactron.testing import (
@@ -73,23 +73,20 @@ class TestFetchUnit(TestCaseWithSimulator):
         )
 
         self.icache = MockedICache(self.gen_params)
-        fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
-        self.io_out = TestbenchIO(AdapterTrans.create(fifo.read))
-        self.clear_fifo = TestbenchIO(AdapterTrans.create(fifo.clear))
+        self.fifo = SimpleTestCircuit(
+            BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2), exclude={"write"}
+        )
         self.fetch_resume_mock = TestbenchIO(Adapter())
-
-        self.mock_stall_unsafe = TestbenchIO(Adapter())
 
         self.fetch_writeback = TestbenchIO(Adapter(i=self.gen_params.get(FetchLayouts).fetch_writeback))
 
-        fetch_unit = FetchUnit(self.gen_params, self.icache, fifo.write, self.mock_stall_unsafe.adapter.iface)
+        fetch_unit = FetchUnit(self.gen_params, self.icache)
+        fetch_unit.cont.provide(self.fifo._dut.write)
         fetch_unit.fetch_writeback.provide(self.fetch_writeback.adapter.iface)
 
-        self.fetch = SimpleTestCircuit(fetch_unit)
+        self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(
-            self.icache, fifo, self.io_out, self.clear_fifo, self.fetch, self.fetch_writeback, self.mock_stall_unsafe
-        )
+        self.m = ModuleConnector(self.icache, self.fifo, self.fetch, self.fetch_writeback)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -194,7 +191,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         if self.output_q:
             return self.output_q[0]
 
-    @def_method_mock(lambda self: self.mock_stall_unsafe)
+    @def_method_mock(lambda self: self.fetch.stall_unsafe)
     def stall_lock_unsafe(self):
         pass
 
@@ -215,7 +212,7 @@ class TestFetchUnit(TestCaseWithSimulator):
             if not instr["rvc"]:
                 access_fault |= instr["pc"] + 2 in self.memerr
 
-            v = await self.io_out.call(sim)
+            v = await self.fifo.read.call(sim)
 
             assert v["pc"] == instr["pc"]
             assert v["access_fault"] == access_fault
@@ -231,7 +228,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                 await self.random_wait(sim, 5)
 
                 # Empty the pipeline
-                await self.clear_fifo.call_try(sim)
+                await self.fifo.clear.call_try(sim)
                 await sim.tick()
 
                 resume_pc = instr["next_pc"]
