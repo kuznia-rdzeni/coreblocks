@@ -7,6 +7,7 @@ from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.arch.optypes import OpType
 from coreblocks.params.genparams import GenParams
+from coreblocks.frontend import FrontendParams
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
 from coreblocks.frontend.fetch.fetch import FetchUnit
 from coreblocks.frontend.stall_controller import StallController
@@ -68,6 +69,45 @@ class RollbackTagger(Elaboratable):
         return m
 
 
+class FetchAddressUnit(Elaboratable):
+    """
+    This module owns the speculative fetch program counter and arbitrates all frontend redirects.
+    It selects the next fetch PC based on reset, backend redirects, IFU redirects, and branch prediction results.
+    """
+
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+
+        layouts = self.gen_params.get(FetchLayouts)
+
+        self.read = Method(o=layouts.fetch_request)
+        self.ifu_redirect = Method(i=layouts.redirect)
+        self.backend_redirect = Method(i=layouts.redirect)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        front_params = self.gen_params.get(FrontendParams)
+
+        next_fetch_pc = Signal(self.gen_params.isa.xlen, init=self.gen_params.start_pc)
+
+        @def_method(m, self.read)
+        def _():
+            # No branch prediction yet - just fallthrough to the next fetch block.
+            m.d.sync += next_fetch_pc.eq(front_params.pc_from_fb(front_params.fb_addr(next_fetch_pc) + 1, 0))
+            return next_fetch_pc
+
+        @def_method(m, self.ifu_redirect)
+        def _(pc):
+            m.d.sync += next_fetch_pc.eq(pc)
+
+        @def_method(m, self.backend_redirect)
+        def _(pc):
+            m.d.sync += next_fetch_pc.eq(pc)
+
+        return m
+
+
 class CoreFrontend(Elaboratable):
     """Frontend of the core.
 
@@ -98,11 +138,13 @@ class CoreFrontend(Elaboratable):
 
         self.stall_ctrl = StallController(self.gen_params)
 
+        self.fetch_address_unit = FetchAddressUnit(self.gen_params)
+        self.fetch_writeback = Method(i=gen_params.get(FetchLayouts).fetch_writeback)
+
         self.fetch = FetchUnit(
             self.gen_params,
             self.icache,
             self.instr_buffer.write,
-            self.stall_ctrl.stall_guard,
             self.stall_ctrl.stall_unsafe,
         )
 
@@ -128,6 +170,7 @@ class CoreFrontend(Elaboratable):
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
+        m.submodules.fetch_address_unit = self.fetch_address_unit
         m.submodules.fetch = self.fetch
         m.submodules.instr_buffer = self.instr_buffer
 
@@ -144,7 +187,8 @@ class CoreFrontend(Elaboratable):
         m.submodules.output_pipe = self.output_pipe
 
         m.submodules.stall_ctrl = self.stall_ctrl
-        self.stall_ctrl.redirect_frontend.provide(self.fetch.redirect)
+        self.stall_ctrl.redirect_frontend.provide(self.fetch_address_unit.backend_redirect)
+        self.fetch.fetch_writeback.provide(self.fetch_writeback)
 
         # TODO: Remove when Branch Predictor implemented
         with Transaction(name="DiscardBranchVerify").body(m):
@@ -158,6 +202,15 @@ class CoreFrontend(Elaboratable):
         @def_method(m, self.target_pred_resp)
         def _(arg):
             return {"valid": 0, "cfi_target": 0}
+
+        @def_method(m, self.fetch_writeback)
+        def _(redirect, redirect_target):
+            with m.If(redirect):
+                self.fetch_address_unit.ifu_redirect(m, pc=redirect_target)
+
+        with Transaction(name="FetchRequest").body(m):
+            self.stall_ctrl.stall_guard(m)
+            self.fetch.fetch_request(m, self.fetch_address_unit.read(m))
 
         def flush_frontend():
             self.fetch.flush(m)
