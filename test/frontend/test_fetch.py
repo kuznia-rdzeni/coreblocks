@@ -78,21 +78,17 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.clear_fifo = TestbenchIO(AdapterTrans.create(fifo.clear))
         self.fetch_resume_mock = TestbenchIO(Adapter())
 
-        self.mock_stall_lock = TestbenchIO(Adapter())
         self.mock_stall_unsafe = TestbenchIO(Adapter())
 
-        self.fetch = SimpleTestCircuit(
-            FetchUnit(
-                self.gen_params,
-                self.icache,
-                fifo.write,
-                self.mock_stall_lock.adapter.iface,
-                self.mock_stall_unsafe.adapter.iface,
-            )
-        )
+        self.fetch_writeback = TestbenchIO(Adapter(i=self.gen_params.get(FetchLayouts).fetch_writeback))
+
+        fetch_unit = FetchUnit(self.gen_params, self.icache, fifo.write, self.mock_stall_unsafe.adapter.iface)
+        fetch_unit.fetch_writeback.provide(self.fetch_writeback.adapter.iface)
+
+        self.fetch = SimpleTestCircuit(fetch_unit)
 
         self.m = ModuleConnector(
-            self.icache, fifo, self.io_out, self.clear_fifo, self.fetch, self.mock_stall_lock, self.mock_stall_unsafe
+            self.icache, fifo, self.io_out, self.clear_fifo, self.fetch, self.fetch_writeback, self.mock_stall_unsafe
         )
 
         self.instr_queue = deque()
@@ -101,6 +97,10 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.input_q = deque()
         self.output_q = deque()
         self.stalled = False
+
+        self.next_fetch_request = self.pc
+        self.last_redirect = None
+        self.backend_redirect = deque()
 
         random.seed(41)
 
@@ -194,13 +194,18 @@ class TestFetchUnit(TestCaseWithSimulator):
         if self.output_q:
             return self.output_q[0]
 
-    @def_method_mock(lambda self: self.mock_stall_lock, enable=lambda self: not self.stalled)
-    def stall_lock_mock(self):
-        pass
-
     @def_method_mock(lambda self: self.mock_stall_unsafe)
     def stall_lock_unsafe(self):
         pass
+
+    @def_method_mock(lambda self: self.fetch_writeback)
+    def fetch_writeback_mock(self, redirect, redirect_target):
+        @MethodMock.effect
+        def eff():
+            if redirect:
+                self.last_redirect = redirect_target
+            else:
+                self.stalled = True
 
     async def fetch_out_check(self, sim: TestbenchContext):
         while self.instr_queue:
@@ -235,16 +240,38 @@ class TestFetchUnit(TestCaseWithSimulator):
                     resume_pc = (
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
                     ) + self.gen_params.fetch_block_bytes
+                self.backend_redirect.append(resume_pc)
 
-                # Resume the fetch unit
-                while await self.fetch.redirect.call_try(sim, pc=resume_pc) is None:
-                    pass
+    async def requester(self, sim: ProcessContext):
+        while True:
+            ret = None
+            if self.stalled:
+                await sim.tick()
+            else:
+                ret = await self.fetch.fetch_request.call_try(sim, pc=self.next_fetch_request)
+
+            await sim.delay(0)
+            if self.stalled:
+                while not self.backend_redirect:
+                    await self.tick(sim)
 
                 self.stalled = False
+                self.next_fetch_request = self.backend_redirect[0]
+                self.backend_redirect.popleft()
+
+            elif self.last_redirect is not None:
+                self.next_fetch_request = self.last_redirect
+            elif ret is not None:
+                self.next_fetch_request = (
+                    1 + (self.next_fetch_request // self.gen_params.fetch_block_bytes)
+                ) * self.gen_params.fetch_block_bytes
+
+            self.last_redirect = None
 
     def run_sim(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.cache_process)
+            sim.add_process(self.requester)
             sim.add_testbench(self.fetch_out_check)
 
     def test_simple_no_jumps(self):
@@ -426,6 +453,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.cache_process)
             sim.add_testbench(self.fetch_out_check)
+            sim.add_process(self.requester)
 
 
 @dataclass(frozen=True)
