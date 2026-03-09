@@ -8,7 +8,7 @@ from transactron import Method, Methods, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import FIFO, Collector, Connect
 from coreblocks.arch import OpType
-from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import RSInterfaceLayouts, RSLayouts, FuncUnitLayouts
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -127,6 +127,9 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return optypes_supported(self.func_units)
+
+    def get_layouts(self, gen_params: GenParams) -> RSInterfaceLayouts:
+        return gen_params.get(RSLayouts, rs_entries=self.rs_entries).rs
 
     def get_rs_entry_count(self) -> int:
         return self.rs_entries

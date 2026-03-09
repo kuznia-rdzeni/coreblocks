@@ -12,7 +12,7 @@ from coreblocks.arch.isa_consts import Opcode
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
     UnsafeInstructionResolvedKey,
@@ -263,6 +263,9 @@ class CSRBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return {OpType.CSR_REG, OpType.CSR_IMM}
+
+    def get_layouts(self, gen_params: GenParams) -> RSInterfaceLayouts:
+        return gen_params.get(CSRUnitLayouts).rs
 
     def get_rs_entry_count(self) -> int:
         return 1
