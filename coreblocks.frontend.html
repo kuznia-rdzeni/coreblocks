@@ -135,6 +135,19 @@
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.frontend.</span></span><span class="sig-name descname"><span class="pre">FetchAddressUnit</span></span><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>This module owns the speculative fetch program counter and arbitrates all frontend redirects.
+It selects the next fetch PC based on reset, backend redirects, IFU redirects, and branch prediction results.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.RollbackTagger">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.frontend.</span></span><span class="sig-name descname"><span class="pre">RollbackTagger</span></span><a class="headerlink" href="#coreblocks.frontend.frontend.RollbackTagger" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
@@ -236,7 +249,7 @@ ready.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:06 2026-03-02.
+      <span class="lastupdated">Last updated on 09:52 2026-03-09.
       </span></p>
   </div>
 
