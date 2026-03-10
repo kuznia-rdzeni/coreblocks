@@ -37,7 +37,7 @@ class QSFMethodLayout:
         q - one digit of quotient
         """
         self.qsf_in_layout = [
-            ("residual", qsf_params.residual_width),
+            ("residual", signed(qsf_params.residual_width)),
             ("divisor", qsf_params.divisor_width),
         ]
         self.qsf_out_layout = [("q", qsf_params.q_bits), ("sign", 1)]
@@ -104,8 +104,10 @@ class QSFModule(Elaboratable):
                             m.d.av_comb += q.eq(Const(self.digits[j][1]))
                             m.d.av_comb += sign.eq(Const(self.digits[j][0]))
                     with m.Else():
-                        m.d.av_comb += q.eq(Const(digits[len(self.bounds[i])][1]))
-                        m.d.av_comb += sign.eq(Const(digits[len(self.bounds[i])][0]))
+                        m.d.av_comb += q.eq(Const(self.digits[len(self.bounds[i])][1]))
+                        m.d.av_comb += sign.eq(
+                            Const(self.digits[len(self.bounds[i])][0])
+                        )
             return {"q": q, "sign": sign}
 
         return m
