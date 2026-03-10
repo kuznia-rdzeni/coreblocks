@@ -257,7 +257,7 @@ class SchedulerLayouts:
 
         self.rs_insert_in = self.rs_select_out
 
-        self.free_rf_layout = make_layout(fields.reg_id)
+        self.free_rf_layout = make_layout(("ident", gen_params.phys_regs_bits))
 
 
 class RFLayouts:
@@ -541,6 +541,8 @@ class FetchLayouts:
             fields.predicted_taken,
         )
 
+        self.fetch_request = make_layout(fields.pc)
+        self.fetch_writeback = make_layout(("redirect", 1), ("redirect_target", gen_params.isa.xlen))
         self.redirect = make_layout(fields.pc)
         self.resume = make_layout(fields.pc)
 
