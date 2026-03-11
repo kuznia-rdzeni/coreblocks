@@ -139,6 +139,7 @@ core_units = {
     "alu_full": unit_fu(ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True)),
     "mul_shift": unit_fu(MulComponent(MulType.SHIFT_MUL)),
     "mul_sequence": unit_fu(MulComponent(MulType.SEQUENCE_MUL)),
+    "mul_pipelined": unit_fu(MulComponent(MulType.PIPELINED_MUL)),
     "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
     "div": unit_fu(DivComponent()),
     "shift_basic": unit_fu(ShiftUnitComponent(zbb_enable=False)),
