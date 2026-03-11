@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1773240904089,
+  "lastUpdate": 1773240905648,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -54654,6 +54654,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 7689,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "93407779+dawidpawliczek4@users.noreply.github.com",
+            "name": "Dawid Pawliczek",
+            "username": "dawidpawliczek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bb73df88e0a10f10b6fac233f6c1263306760995",
+          "message": "Make PipelinedMul available as a configuration (#866)",
+          "timestamp": "2026-03-11T15:34:04+01:00",
+          "tree_id": "1131028b0ea8eb8aa22ece694ca0d68aa052df95",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bb73df88e0a10f10b6fac233f6c1263306760995"
+        },
+        "date": 1773240905141,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.49,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 33076,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1894,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2176,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 7817,
             "unit": "LUT"
           }
         ]
