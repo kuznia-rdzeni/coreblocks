@@ -45,9 +45,9 @@ class DecodeStage(Elaboratable):
         m = TModule()
 
         m.submodules.perf_illegal_instr = self.perf_illegal_instr
-        m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
 
         def perform_decode(i: int, raw: MethodStruct):
+            m.submodules[f"instr_decoder{i}"] = instr_decoder = InstrDecoder(self.gen_params)
             m.d.top_comb += instr_decoder.instr.eq(raw.instr)
 
             # Jump-branch unit requires some information from the fetch unit (for example

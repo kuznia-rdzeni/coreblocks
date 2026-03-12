@@ -178,13 +178,15 @@ class CoreFrontend(Elaboratable):
         m.submodules.fetch = self.fetch
         m.submodules.instr_buffer = self.instr_buffer
 
-        m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
+        # TODO: remove after more scheduler superscalarity
         m.submodules.temporary_serializer = temporary_serializer = WideFifo(
             self.gen_params.get(DecodeLayouts).decoded_instr,
             2 * self.gen_params.frontend_superscalarity,
-            read_width=self.gen_params.frontend_superscalarity,
-            write_width=1,
+            read_width=1,
+            write_width=self.gen_params.frontend_superscalarity,
         )
+
+        m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
         decode.get_raw.provide(self.instr_buffer.read)
         decode.push_decoded.provide(temporary_serializer.write)
 
