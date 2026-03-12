@@ -115,22 +115,28 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.frontend.</span></span><span class="sig-name descname"><span class="pre">CoreFrontend</span></span><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Frontend of the core.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>consume_instr: Method</strong></dt><dd><p>Consume a single decoded instruction.</p>
-</dd>
-<dt><strong>resume_from_exception: Method</strong></dt><dd><p>Resume the frontend from the given PC after an exception.</p>
-</dd>
-<dt><strong>stall: Method</strong></dt><dd><p>Stall and flush the frontend.</p>
-</dd>
-</dl>
-</dd>
-</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">instr_bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><span class="pre">BusMasterInterface</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.consume_instr">
+<span class="sig-name descname"><span class="pre">consume_instr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.consume_instr" title="Permalink to this definition"></a></dt>
+<dd><p>Consume a single decoded instruction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.resume_from_exception">
+<span class="sig-name descname"><span class="pre">resume_from_exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.resume_from_exception" title="Permalink to this definition"></a></dt>
+<dd><p>Resume the frontend from the given PC after an exception.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.CoreFrontend.stall">
+<span class="sig-name descname"><span class="pre">stall</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.stall" title="Permalink to this definition"></a></dt>
+<dd><p>Stall and flush the frontend.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -143,6 +149,21 @@ It selects the next fetch PC based on reset, backend redirects, IFU redirects, a
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.beckend_redirect">
+<span class="sig-name descname"><span class="pre">beckend_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.beckend_redirect" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.ifu_redirect">
+<span class="sig-name descname"><span class="pre">ifu_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.ifu_redirect" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.read">
+<span class="sig-name descname"><span class="pre">read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.read" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -160,6 +181,21 @@ but this is needed to differentiate from instructions that left <cite>Frontend</
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.frontend.RollbackTagger.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.frontend.frontend.RollbackTagger.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.RollbackTagger.get_instr">
+<span class="sig-name descname"><span class="pre">get_instr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.RollbackTagger.get_instr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.RollbackTagger.push_instr">
+<span class="sig-name descname"><span class="pre">push_instr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.RollbackTagger.push_instr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.frontend.RollbackTagger.rollback">
+<span class="sig-name descname"><span class="pre">rollback</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.RollbackTagger.rollback" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -206,28 +242,41 @@ but this is needed to differentiate from instructions that left <cite>Frontend</
 <p>The stall controller is responsible for managing all stall/unstall signals
 that may be triggered in the core and based on them deciding if and where
 the frontend should be resumed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>stall_unsafe</strong><span class="classifier">Method</span></dt><dd><p>Signals that the frontend should be stalled because an unsafe (i.e. causing
-difficult to handle side effects) instruction was just fetched.</p>
-</dd>
-<dt><strong>stall_exception</strong><span class="classifier">Method</span></dt><dd><p>Signals that the frontend should be stalled because of an exception.</p>
-</dd>
-<dt><strong>stall_guard</strong><span class="classifier">Method</span></dt><dd><p>A non-exclusive method whose readiness denotes if the frontend is currently stalled.</p>
-</dd>
-<dt><strong>resume_from_exception: Method</strong></dt><dd><p>Signals that the backend handled the exception and the frontend can be resumed.</p>
-</dd>
-<dt><strong>redirect_frontend</strong><span class="classifier">Method (bodyless)</span></dt><dd><p>A method that will be called when the frontend needs to be redirected. Should be always
-ready.</p>
-</dd>
-</dl>
-</dd>
-</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.redirect_frontend">
+<span class="sig-name descname"><span class="pre">redirect_frontend</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.redirect_frontend" title="Permalink to this definition"></a></dt>
+<dd><p>A method that will be called when the frontend needs to be redirected. Should be always ready.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.resume_from_exception">
+<span class="sig-name descname"><span class="pre">resume_from_exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.resume_from_exception" title="Permalink to this definition"></a></dt>
+<dd><p>Signals that the backend handled the exception and the frontend can be resumed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.stall_exception">
+<span class="sig-name descname"><span class="pre">stall_exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.stall_exception" title="Permalink to this definition"></a></dt>
+<dd><p>Signals that the frontend should be stalled because of an exception.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.stall_guard">
+<span class="sig-name descname"><span class="pre">stall_guard</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.stall_guard" title="Permalink to this definition"></a></dt>
+<dd><p>A non-exclusive method whose readiness denotes if the frontend is currently stalled.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.stall_unsafe">
+<span class="sig-name descname"><span class="pre">stall_unsafe</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.stall_unsafe" title="Permalink to this definition"></a></dt>
+<dd><p>Signals that the frontend should be stalled because an unsafe (i.e. causing
+difficult to handle side effects) instruction was just fetched.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -249,7 +298,7 @@ ready.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:34 2026-03-11.
+      <span class="lastupdated">Last updated on 12:29 2026-03-12.
       </span></p>
   </div>
 

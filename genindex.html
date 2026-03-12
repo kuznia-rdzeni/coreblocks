@@ -544,6 +544,8 @@
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbs.ZbsFunction.Fn.BCLR">(coreblocks.func_blocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.FetchAddressUnit.beckend_redirect">beckend_redirect (coreblocks.frontend.frontend.FetchAddressUnit attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.BEQ">BEQ (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.BEXT">BEXT (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -566,10 +568,10 @@
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbs.ZbsFunction.Fn.BINV">(coreblocks.func_blocks.fu.zbs.ZbsFunction.Fn attribute)</a>
 </li>
       </ul></li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.BIT_MANIPULATION">BIT_MANIPULATION (coreblocks.arch.optypes.OpType attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.BIT_MANIPULATION">BIT_MANIPULATION (coreblocks.arch.optypes.OpType attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.BIT_ROTATION">BIT_ROTATION (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams">BlockComponentParams (class in coreblocks.params.fu_params)</a>
@@ -673,6 +675,10 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.COMPARE">COMPARE (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes">ComparisionTypes (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.consume_instr">consume_instr (coreblocks.frontend.frontend.CoreFrontend attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.cont">cont (coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
 </li>
       <li><a href="coreblocks.html#coreblocks.core.Core">Core (class in coreblocks.core)</a>
 </li>
@@ -1005,6 +1011,8 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.fpu_sign_injection">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.fpu.int_to_float
 
@@ -1012,8 +1020,6 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.int_to_float">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.fpu.lza
 
@@ -1575,6 +1581,10 @@
       </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.FenceTarget">FenceTarget (class in coreblocks.arch.isa_consts)</a>
 </li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_request">fetch_request (coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_writeback">fetch_writeback (coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
+</li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.FetchAddressUnit">FetchAddressUnit (class in coreblocks.frontend.frontend)</a>
 </li>
       <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit">FetchUnit (class in coreblocks.frontend.fetch.fetch)</a>
@@ -1586,7 +1596,11 @@
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntModule">FloatToIntModule (class in coreblocks.func_blocks.fu.fpu.float_to_int)</a>
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.flush">flush (coreblocks.cache.iface.CacheInterface attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.flush">(coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.FP">FP (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout">FPUAddSubMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_add_sub)</a>
@@ -1599,12 +1613,12 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule">FPUClassModule (class in coreblocks.func_blocks.fu.fpu.fpu_class)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues">FPUCommonValues (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_comp.FPUCompMethodLayout">FPUCompMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_comp)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_comp.FPUCompModule">FPUCompModule (class in coreblocks.func_blocks.fu.fpu.fpu_comp)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_error_module.FPUErrorMethodLayout">FPUErrorMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_error_module)</a>
@@ -1687,8 +1701,12 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.get_input">get_input() (in module coreblocks.func_blocks.fu.div_unit)</a>
 </li>
-      <li><a href="coreblocks.scheduler.html#coreblocks.scheduler.scheduler.Scheduler.get_instr">get_instr (coreblocks.scheduler.scheduler.Scheduler attribute)</a>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.RollbackTagger.get_instr">get_instr (coreblocks.frontend.frontend.RollbackTagger attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.scheduler.html#coreblocks.scheduler.scheduler.Scheduler.get_instr">(coreblocks.scheduler.scheduler.Scheduler attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.DivFn.get_instructions">get_instructions() (coreblocks.func_blocks.fu.div_unit.DivFn method)</a>
 
       <ul>
@@ -1952,6 +1970,8 @@
       <li><a href="coreblocks.cache.html#coreblocks.cache.icache.ICacheBypass">ICacheBypass (class in coreblocks.cache.icache)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.icache_params.ICacheParameters">ICacheParameters (class in coreblocks.params.icache_params)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.FetchAddressUnit.ifu_redirect">ifu_redirect (coreblocks.frontend.frontend.FetchAddressUnit attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.IllegalInstr.illegal">illegal (coreblocks.params.instr.IllegalInstr attribute)</a>
 </li>
@@ -3042,6 +3062,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel">PrivilegeLevel (class in coreblocks.arch.isa_consts)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.RollbackTagger.push_instr">push_instr (coreblocks.frontend.frontend.RollbackTagger attribute)</a>
+</li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.announcement.ResultAnnouncement.push_result">push_result (coreblocks.backend.announcement.ResultAnnouncement attribute)</a>
 
       <ul>
@@ -3084,6 +3106,8 @@
       </ul></li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.instr_description.Encoding.rd_zero">rd_zero (coreblocks.frontend.decoder.instr_description.Encoding attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.FetchAddressUnit.read">read (coreblocks.frontend.frontend.FetchAddressUnit attribute)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteInterface.read_address">read_address (coreblocks.peripherals.axi_lite.AXILiteInterface attribute)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteInterface.read_data">read_data (coreblocks.peripherals.axi_lite.AXILiteInterface attribute)</a>
@@ -3095,6 +3119,8 @@
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulType.RECURSIVE_MUL">RECURSIVE_MUL (coreblocks.func_blocks.fu.mul_unit.MulType attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.unsigned_multiplication.html#coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive.RecursiveUnsignedMul">RecursiveUnsignedMul (class in coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.redirect_frontend">redirect_frontend (coreblocks.frontend.stall_controller.StallController attribute)</a>
 </li>
       <li><a href="coreblocks.core_structs.html#coreblocks.core_structs.rf.RegisterFile">RegisterFile (class in coreblocks.core_structs.rf)</a>
 </li>
@@ -3146,10 +3172,16 @@
 </li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.announcement.ResultAnnouncement">ResultAnnouncement (class in coreblocks.backend.announcement)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.RET">RET (coreblocks.arch.optypes.CfiType attribute)</a>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.resume_from_exception">resume_from_exception (coreblocks.frontend.frontend.CoreFrontend attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.resume_from_exception">(coreblocks.frontend.stall_controller.StallController attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.RET">RET (coreblocks.arch.optypes.CfiType attribute)</a>
+</li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.retirement.Retirement">Retirement (class in coreblocks.backend.retirement)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.REV8">REV8 (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -3184,6 +3216,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.ROL">(coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.RollbackTagger.rollback">rollback (coreblocks.frontend.frontend.RollbackTagger attribute)</a>
+</li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.RollbackTagger">RollbackTagger (class in coreblocks.frontend.frontend)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.ROR">ROR (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -3354,8 +3388,6 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.unsigned_multiplication.html#coreblocks.func_blocks.fu.unsigned_multiplication.shift.ShiftUnsignedMul">ShiftUnsignedMul (class in coreblocks.func_blocks.fu.unsigned_multiplication.shift)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.exception.should_update_priority">should_update_priority() (in module coreblocks.priv.traps.exception)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SIE">SIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3364,6 +3396,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SIE">(coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.SIG_NAN">SIG_NAN (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout">SIMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_sign_injection)</a>
@@ -3424,6 +3458,18 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SSTATUS">SSTATUS (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.stall">stall (coreblocks.frontend.frontend.CoreFrontend attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.stall_exception">stall_exception (coreblocks.frontend.stall_controller.StallController attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.stall_guard">stall_guard (coreblocks.frontend.stall_controller.StallController attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.stall_unsafe">stall_unsafe (coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.stall_unsafe">(coreblocks.frontend.stall_controller.StallController attribute)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController">StallController (class in coreblocks.frontend.stall_controller)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion.start">start (coreblocks.func_blocks.fu.lsu.pma.PMARegion attribute)</a>
@@ -3833,7 +3879,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:34 2026-03-11.
+      <span class="lastupdated">Last updated on 12:29 2026-03-12.
       </span></p>
   </div>
 
