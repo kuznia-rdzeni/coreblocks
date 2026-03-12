@@ -3,6 +3,7 @@ from amaranth import *
 from coreblocks.arch import *
 from transactron.lib.metrics import *
 from transactron import Method, Transaction, TModule
+from transactron.utils import MethodStruct
 from coreblocks.interface.layouts import DecodeLayouts, FetchLayouts, JumpBranchLayouts
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
@@ -35,10 +36,10 @@ class DecodeStage(Elaboratable):
             fetch unit.
         """
         self.gen_params = gen_params
-        self.get_raw = Method(o=gen_params.get(FetchLayouts).raw_instr)
-        self.push_decoded = Method(i=gen_params.get(DecodeLayouts).decoded_instr)
+        self.get_raw = Method(o=gen_params.get(FetchLayouts).fetch_result)
+        self.push_decoded = Method(i=gen_params.get(DecodeLayouts).decode_result)
 
-        self.perf_illegal_instr = HwCounter("frontend.decode.illegal_instr")
+        self.perf_illegal_instr = HwCounter("frontend.decode.illegal_instr", ways=gen_params.frontend_superscalarity)
 
     def elaborate(self, platform):
         m = TModule()
@@ -46,9 +47,7 @@ class DecodeStage(Elaboratable):
         m.submodules.perf_illegal_instr = self.perf_illegal_instr
         m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
 
-        with Transaction().body(m):
-            raw = self.get_raw(m)
-
+        def perform_decode(i: int, raw: MethodStruct):
             m.d.top_comb += instr_decoder.instr.eq(raw.instr)
 
             # Jump-branch unit requires some information from the fetch unit (for example
@@ -72,42 +71,49 @@ class DecodeStage(Elaboratable):
             with m.If(raw.access_fault.any()):
                 m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
             with m.Elif(instr_decoder.illegal):
-                self.perf_illegal_instr.incr(m)
+                self.perf_illegal_instr.incr[i](m)
                 m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
 
+            return {
+                "exec_fn": {
+                    "op_type": Mux(~exception_override, instr_decoder.optype, OpType.EXCEPTION),
+                    # imm muxing in FUs depend on unused functs set to 0
+                    # todo: this is a bit awkward and needs a refactor in the future
+                    "funct3": Mux(
+                        ~exception_override, Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0), exception_funct
+                    ),
+                    "funct7": Mux(
+                        ~exception_override,
+                        Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, jb_funct7, 0)),
+                        0,
+                    ),
+                },
+                "regs_l": {
+                    # read/writes to phys reg 0 make no effect
+                    "rl_dst": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd, 0),
+                    "rl_s1": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
+                    "rl_s2": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
+                },
+                "imm": Mux(
+                    ~exception_override,
+                    instr_decoder.imm,
+                    Mux(
+                        raw.access_fault.any(),
+                        raw.access_fault,  # pass access fault details to FU
+                        raw.instr,  # illegal instruction -  pass raw instruction bits for `mtval`
+                    ),
+                ),
+                "csr": instr_decoder.csr,
+                "pc": raw.pc,
+            }
+
+        with Transaction().body(m):
+            instrs = self.get_raw(m)
             self.push_decoded(
                 m,
                 {
-                    "exec_fn": {
-                        "op_type": Mux(~exception_override, instr_decoder.optype, OpType.EXCEPTION),
-                        # imm muxing in FUs depend on unused functs set to 0
-                        # todo: this is a bit awkward and needs a refactor in the future
-                        "funct3": Mux(
-                            ~exception_override, Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0), exception_funct
-                        ),
-                        "funct7": Mux(
-                            ~exception_override,
-                            Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, jb_funct7, 0)),
-                            0,
-                        ),
-                    },
-                    "regs_l": {
-                        # read/writes to phys reg 0 make no effect
-                        "rl_dst": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd, 0),
-                        "rl_s1": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
-                        "rl_s2": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
-                    },
-                    "imm": Mux(
-                        ~exception_override,
-                        instr_decoder.imm,
-                        Mux(
-                            raw.access_fault.any(),
-                            raw.access_fault,  # pass access fault details to FU
-                            raw.instr,  # illegal instruction -  pass raw instruction bits for `mtval`
-                        ),
-                    ),
-                    "csr": instr_decoder.csr,
-                    "pc": raw.pc,
+                    "count": instrs.count,
+                    "data": [perform_decode(i, instrs.data[i]) for i in range(self.gen_params.frontend_superscalarity)],
                 },
             )
 

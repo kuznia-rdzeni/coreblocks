@@ -541,6 +541,11 @@ class FetchLayouts:
             fields.predicted_taken,
         )
 
+        self.fetch_result = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.raw_instr, gen_params.frontend_superscalarity)),
+        )
+
         self.fetch_request = make_layout(fields.pc)
         self.fetch_writeback = make_layout(("redirect", 1), ("redirect_target", gen_params.isa.xlen))
         self.redirect = make_layout(fields.pc)
@@ -580,6 +585,11 @@ class DecodeLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+        )
+
+        self.decode_result = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.decoded_instr, gen_params.frontend_superscalarity)),
         )
 
 

@@ -1,7 +1,7 @@
 from amaranth import *
 
 from transactron.core import *
-from transactron.lib import BasicFifo, Connect, Pipe
+from transactron.lib import BasicFifo, Connect, Pipe, WideFifo
 from transactron.utils import assign
 from transactron.utils.dependencies import DependencyContext
 
@@ -132,7 +132,7 @@ class CoreFrontend(Elaboratable):
         self.gen_params = gen_params
         self.connections = DependencyContext.get()
 
-        self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, self.gen_params.instr_buffer_size)
+        self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, self.gen_params.instr_buffer_size)
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
@@ -179,10 +179,20 @@ class CoreFrontend(Elaboratable):
         m.submodules.instr_buffer = self.instr_buffer
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
+        m.submodules.temporary_serializer = temporary_serializer = WideFifo(
+            self.gen_params.get(DecodeLayouts).decoded_instr,
+            2 * self.gen_params.frontend_superscalarity,
+            read_width=self.gen_params.frontend_superscalarity,
+            write_width=1,
+        )
         decode.get_raw.provide(self.instr_buffer.read)
-        decode.push_decoded.provide(self.decode_buff.write)
+        decode.push_decoded.provide(temporary_serializer.write)
 
         m.submodules.decode_buff = self.decode_buff
+
+        with Transaction(name="TemporarySerializerOut").body(m):
+            res = temporary_serializer.read(m, count=1)
+            self.decode_buff.write(m, res.data[0])
 
         m.submodules.rollback_tagger = rollback_tagger = self.rollback_tagger
         rollback_tagger.get_instr.provide(self.decode_buff.read)

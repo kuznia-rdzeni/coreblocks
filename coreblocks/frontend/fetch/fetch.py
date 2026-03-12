@@ -1,3 +1,4 @@
+from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
@@ -59,11 +60,11 @@ class FetchUnit(Elaboratable):
         """
         self.gen_params = gen_params
         self.icache = icache
-        self.cont = Method(i=gen_params.get(FetchLayouts).raw_instr)
         self.stall_unsafe = Method()
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
+        self.cont = Method(i=self.layouts.fetch_result)
         self.fetch_request = Method(i=self.layouts.fetch_request)
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
 
@@ -87,14 +88,25 @@ class FetchUnit(Elaboratable):
         # Serializer creates a continuous instruction stream from fetch
         # blocks, which can have holes in them.
         m.submodules.aligner = aligner = StableSelectingNetwork(fetch_width, self.layouts.raw_instr)
+        serializer_depth = 2 * lcm(self.gen_params.frontend_superscalarity, fetch_width)
         m.submodules.serializer = serializer = WideFifo(
-            self.layouts.raw_instr, depth=2 * fetch_width, read_width=1, write_width=fetch_width
+            self.layouts.raw_instr,
+            depth=serializer_depth,
+            read_width=self.gen_params.frontend_superscalarity,
+            write_width=fetch_width,
         )
 
         with Transaction(name="cont").body(m):
-            raw_instr = serializer.read(m, count=1).data[0]
-            log.info(m, True, "Sending an instr to the backend pc=0x{:x} instr=0x{:x}", raw_instr.pc, raw_instr.instr)
-            self.cont(m, raw_instr)
+            result = serializer.read(m, count=self.gen_params.frontend_superscalarity)
+            for i in range(self.gen_params.frontend_superscalarity):
+                log.info(
+                    m,
+                    i < result.count,
+                    "Sending an instr to the backend pc=0x{:x} instr=0x{:x}",
+                    result.data[i].pc,
+                    result.data[i].instr,
+                )
+            self.cont(m, result)
 
         m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
 
