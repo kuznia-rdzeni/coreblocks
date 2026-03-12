@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1773240905648,
+  "lastUpdate": 1773319700506,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19285,6 +19285,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bb73df88e0a10f10b6fac233f6c1263306760995"
         },
         "date": 1773240895373,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.433532300467931,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544267249521034,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3644662630831391,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.65379591959286,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3616733534688726,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30167911045598744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.33209785025945143,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.438383409196722,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "da43ca7a0e946ad1811293916b70ecbb371f4350",
+          "message": "Refactor frontend to use provide (#867)",
+          "timestamp": "2026-03-12T13:29:04+01:00",
+          "tree_id": "3bc014085e041e096e94d7f95ab6d3e496171a05",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/da43ca7a0e946ad1811293916b70ecbb371f4350"
+        },
+        "date": 1773319693315,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
