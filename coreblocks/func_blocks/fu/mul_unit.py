@@ -7,6 +7,7 @@ from amaranth import *
 from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
+from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
 from coreblocks.interface.layouts import FuncUnitLayouts
@@ -74,8 +75,10 @@ class MulType(IntEnum):
     SHIFT_MUL = 0
     #: Uses single DSP unit for multiplication, which makes balance between performance and cost.
     SEQUENCE_MUL = 1
+    #: Uses multiple DSP units with pipelining, balancing throughput and resource usage.
+    PIPELINED_MUL = 2
     #: Fastest way of multiplying using only one cycle, but costly in terms of resources.
-    RECURSIVE_MUL = 2
+    RECURSIVE_MUL = 3
 
 
 class MulUnit(FuncUnit, Elaboratable):
@@ -91,7 +94,14 @@ class MulUnit(FuncUnit, Elaboratable):
         Method called for pushing result of requested computation.
     """
 
-    def __init__(self, gen_params: GenParams, mul_type: MulType, dsp_width: int = 32, mul_fn=MulFn()):
+    def __init__(
+        self,
+        gen_params: GenParams,
+        mul_type: MulType,
+        dsp_width: int = 18,
+        dsp_number: int = 7,
+        mul_fn=MulFn(),
+    ):
         """
         Parameters
         ----------
@@ -101,6 +111,7 @@ class MulUnit(FuncUnit, Elaboratable):
         self.gen_params = gen_params
         self.mul_type = mul_type
         self.dsp_width = dsp_width
+        self.dsp_number = dsp_number
 
         layouts = gen_params.get(FuncUnitLayouts)
 
@@ -129,6 +140,10 @@ class MulUnit(FuncUnit, Elaboratable):
                 m.submodules.multiplier = multiplier = ShiftUnsignedMul(self.gen_params)
             case MulType.SEQUENCE_MUL:
                 m.submodules.multiplier = multiplier = SequentialUnsignedMul(self.gen_params, self.dsp_width)
+            case MulType.PIPELINED_MUL:
+                m.submodules.multiplier = multiplier = PipelinedUnsignedMul(
+                    self.gen_params, self.dsp_width, self.dsp_number
+                )
             case MulType.RECURSIVE_MUL:
                 m.submodules.multiplier = multiplier = RecursiveUnsignedMul(self.gen_params, self.dsp_width)
 
@@ -209,8 +224,9 @@ class MulComponent(FunctionalComponentParams):
     mul_unit_type: MulType
     _: KW_ONLY
     result_fifo: bool = False  # last step is registered
-    dsp_width: int = 32
+    dsp_width: int = 18
+    dsp_number: int = 7
     decoder_manager: MulFn = MulFn()
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        return MulUnit(gen_params, self.mul_unit_type, self.dsp_width, self.decoder_manager)
+        return MulUnit(gen_params, self.mul_unit_type, self.dsp_width, self.dsp_number, self.decoder_manager)

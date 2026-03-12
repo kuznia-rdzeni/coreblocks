@@ -16,6 +16,10 @@ from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
             MulComponent(MulType.RECURSIVE_MUL, dsp_width=8),
         ),
         (
+            "pipelined_multiplier",
+            MulComponent(MulType.PIPELINED_MUL, dsp_width=8, dsp_number=4),
+        ),
+        (
             "sequential_multiplier",
             MulComponent(MulType.SEQUENCE_MUL, dsp_width=8),
         ),
