@@ -30,18 +30,24 @@ class FetchUnit(Elaboratable):
 
     The unit also deals with expanding compressed instructions and managing instructions that aren't aligned to
     4-byte boundaries.
-
-    Attributes
-    ----------
-    fetch_request : Method, provided
-        Requests a fetch of the instruction block at the given PC.
-    fetch_writeback : Method, required
-        Invoked to write back the status of the requested fetch block.
-    flush : Method, provided
-        Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled.
     """
 
-    def __init__(self, gen_params: GenParams, icache: CacheInterface, cont: Method, stall_unsafe: Method) -> None:
+    fetch_request: Provided[Method]
+    """Requests a fetch of the instruction block at the given PC."""
+
+    fetch_writeback: Required[Method]
+    """Invoked to write back the status of the requested fetch block."""
+
+    flush: Provided[Method]
+    """Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled."""
+
+    cont: Required[Method]
+    """Should be invoked to send fetched instruction to the next step."""
+
+    stall_unsafe: Required[Method]
+    """Called when an unsafe instruction is fetched."""
+
+    def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
         ----------
@@ -50,16 +56,11 @@ class FetchUnit(Elaboratable):
             fetch unit.
         icache : CacheInterface
             Instruction Cache
-        cont : Method
-            Method which should be invoked to send fetched instruction to the next step.
-            It has layout as described by `FetchLayout`.
-        stall_unsafe : Method
-            Method that is called when an unsafe instruction is fetched
         """
         self.gen_params = gen_params
         self.icache = icache
-        self.cont = cont
-        self.stall_unsafe = stall_unsafe
+        self.cont = Method(i=gen_params.get(FetchLayouts).raw_instr)
+        self.stall_unsafe = Method()
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
