@@ -6,10 +6,10 @@ from coreblocks.params import *
 from coreblocks.func_blocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
 from transactron import Method, def_method, TModule, Transaction
 
-from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, FetchTargetQueueLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.arch import Funct3, OpType, ExceptionCause
-from coreblocks.interface.keys import PredictedJumpTargetKey
+from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey
 
 from transactron.utils import signed_to_int, DependencyContext
 from transactron.lib import BasicFifo
@@ -23,17 +23,22 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         self.auipc_test = auipc_test
         layouts = gen_params.get(JumpBranchLayouts)
 
+        branch_resolve_layout = gen_params.get(FetchTargetQueueLayouts).branch_resolve
+
         self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
         self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
 
+        self.fifo_branch_resolved = BasicFifo(branch_resolve_layout, 2)
+
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
+        DependencyContext.get().add_dependency(BranchResolveKey(), self.fifo_branch_resolved.write)
 
         self.jb = JumpBranchFuncUnit(gen_params)
         self.issue = self.jb.issue
         self.push_result = Method(
             i=StructLayout(
                 gen_params.get(FuncUnitLayouts).push_result.members
-                | (gen_params.get(JumpBranchLayouts).verify_branch.members if not auipc_test else {})
+                | (branch_resolve_layout.members if not auipc_test else {})
             )
         )
 
@@ -42,6 +47,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
 
         m.submodules.jb_unit = self.jb
         m.submodules.res_fifo = res_fifo = BasicFifo(self.gp.get(FuncUnitLayouts).push_result, 2)
+        m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         self.jb.push_result.provide(res_fifo.write)
 
@@ -62,7 +68,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
                 "exception": res.exception,
             }
             if not self.auipc_test:
-                verify = self.jb.fifo_branch_resolved.read(m)
+                verify = self.fifo_branch_resolved.read(m)
                 ret = ret | {
                     "next_pc": verify.next_pc,
                     "from_pc": verify.from_pc,

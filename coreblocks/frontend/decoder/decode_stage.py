@@ -108,6 +108,7 @@ class DecodeStage(Elaboratable):
                     ),
                     "csr": instr_decoder.csr,
                     "pc": raw.pc,
+                    "ftq_ptr": raw.ftq_ptr,
                 },
             )
 

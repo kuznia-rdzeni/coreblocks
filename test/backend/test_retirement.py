@@ -5,6 +5,8 @@ from transactron.lib import FIFO, Adapter
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+from coreblocks.interface.layouts import *
+from coreblocks.interface.keys import FTQCommitEntry
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -26,6 +28,11 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
+        m.submodules.ftq_commit = self.ftq_commit = TestbenchIO(
+            Adapter(i=self.gen_params.get(FetchTargetQueueLayouts).commit)
+        )
+        DependencyContext.get().add_dependency(FTQCommitEntry(), self.ftq_commit.adapter.iface)
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
@@ -178,6 +185,10 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_checkpoint_tag_free)
     def mock_checkpoint_tag_free(self):
+        pass
+
+    @def_method_mock(lambda self: self.retc.ftq_commit)
+    def ftq_commit(self, ftq_ptr):
         pass
 
     def test_rand(self):

@@ -192,7 +192,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.fetch.fetch_writeback)
-    def fetch_writeback_mock(self, redirect, redirect_target):
+    def fetch_writeback_mock(self, ftq_ptr, redirect, redirect_target):
         @MethodMock.effect
         def eff():
             if redirect:

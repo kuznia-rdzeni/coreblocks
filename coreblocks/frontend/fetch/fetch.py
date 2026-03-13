@@ -96,7 +96,7 @@ class FetchUnit(Elaboratable):
             log.info(m, True, "Sending an instr to the backend pc=0x{:x} instr=0x{:x}", raw_instr.pc, raw_instr.instr)
             self.cont(m, raw_instr)
 
-        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
+        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc, fields.ftq_ptr), depth=2)
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -115,11 +115,11 @@ class FetchUnit(Elaboratable):
         # - send a request to the instruction cache
         #
         @def_method(m, self.fetch_request)
-        def _(pc):
+        def _(pc, ftq_ptr):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
             self.icache.issue_req(m, addr=pc)
-            fetch_requests.write(m, pc=pc)
+            fetch_requests.write(m, pc=pc, ftq_ptr=ftq_ptr)
 
         #
         # State passed between stage 1 and stage 2
@@ -127,6 +127,7 @@ class FetchUnit(Elaboratable):
         m.submodules.s1_s2_pipe = s1_s2_pipe = Pipe(
             [
                 fields.fb_addr,
+                fields.ftq_ptr,
                 ("instr_valid", fetch_width),
                 ("access_fault", 1),
                 ("rvc", fetch_width),
@@ -225,6 +226,7 @@ class FetchUnit(Elaboratable):
             s1_s2_pipe.write(
                 m,
                 fb_addr=fetch_block_addr,
+                ftq_ptr=fetch_request.ftq_ptr,
                 instr_valid=valid_instr_mask,
                 access_fault=cache_resp.error,
                 rvc=is_rvc,
@@ -256,6 +258,7 @@ class FetchUnit(Elaboratable):
             req_counter.release(m)
             s1_data = s1_s2_pipe.read(m)
 
+            ftq_ptr = s1_data.ftq_ptr
             instrs = s1_data.instrs
             fetch_block_addr = s1_data.fb_addr
             instr_valid = s1_data.instr_valid
@@ -335,6 +338,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].access_fault.eq(
                         Mux(s1_data.access_fault, FetchLayouts.AccessFaultFlag.ACCESS_FAULT, 0)
                     ),
+                    raw_instrs[i].ftq_ptr.eq(ftq_ptr),
                 ]
 
             if Extension.C in self.gen_params.isa.extensions:
@@ -357,6 +361,7 @@ class FetchUnit(Elaboratable):
                     with m.If(access_fault | unsafe_stall | redirect):
                         self.fetch_writeback(
                             m,
+                            ftq_ptr=ftq_ptr,
                             redirect=redirect,
                             redirect_target=predcheck_res.redirect_target,
                         )
