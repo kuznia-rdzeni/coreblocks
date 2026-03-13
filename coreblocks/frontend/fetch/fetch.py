@@ -1,9 +1,10 @@
+from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import popcount, assign, StableSelectingNetwork
+from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -59,11 +60,11 @@ class FetchUnit(Elaboratable):
         """
         self.gen_params = gen_params
         self.icache = icache
-        self.cont = Method(i=gen_params.get(FetchLayouts).raw_instr)
         self.stall_unsafe = Method()
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
+        self.cont = Method(i=self.layouts.fetch_result)
         self.fetch_request = Method(i=self.layouts.fetch_request)
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
 
@@ -87,14 +88,30 @@ class FetchUnit(Elaboratable):
         # Serializer creates a continuous instruction stream from fetch
         # blocks, which can have holes in them.
         m.submodules.aligner = aligner = StableSelectingNetwork(fetch_width, self.layouts.raw_instr)
+        serializer_depth = 2 * lcm(self.gen_params.frontend_superscalarity, fetch_width)
         m.submodules.serializer = serializer = WideFifo(
-            self.layouts.raw_instr, depth=2 * fetch_width, read_width=1, write_width=fetch_width
+            self.layouts.raw_instr,
+            depth=serializer_depth,
+            read_width=self.gen_params.frontend_superscalarity,
+            write_width=fetch_width,
         )
 
         with Transaction(name="cont").body(m):
-            raw_instr = serializer.read(m, count=1).data[0]
-            log.info(m, True, "Sending an instr to the backend pc=0x{:x} instr=0x{:x}", raw_instr.pc, raw_instr.instr)
-            self.cont(m, raw_instr)
+            count = Signal(range(self.gen_params.frontend_superscalarity + 1))
+            result = serializer.read(m, count=count)
+            # we want only one branch insn in scheduling group, and only at the beginning (for simplicity)
+            # some insts in result.data might not be valid, but this is still correct
+            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in result.data][1:]
+            m.d.comb += count.eq(count_trailing_zeros(Cat(which_is_branch)))
+            for i in range(self.gen_params.frontend_superscalarity):
+                log.info(
+                    m,
+                    i < result.count,
+                    "Sending an instr to the backend pc=0x{:x} instr=0x{:x}",
+                    result.data[i].pc,
+                    result.data[i].instr,
+                )
+            self.cont(m, result)
 
         m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
 
@@ -335,6 +352,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].access_fault.eq(
                         Mux(s1_data.access_fault, FetchLayouts.AccessFaultFlag.ACCESS_FAULT, 0)
                     ),
+                    raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                 ]
 
             if Extension.C in self.gen_params.isa.extensions:

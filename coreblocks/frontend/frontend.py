@@ -1,7 +1,7 @@
 from amaranth import *
 
 from transactron.core import *
-from transactron.lib import BasicFifo, Connect, Pipe
+from transactron.lib import BasicFifo, Connect, WideFifo
 from transactron.utils import assign
 from transactron.utils.dependencies import DependencyContext
 
@@ -37,8 +37,8 @@ class RollbackTagger(Elaboratable):
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
 
-        self.get_instr = Method(o=gen_params.get(DecodeLayouts).decoded_instr)
-        self.push_instr = Method(i=gen_params.get(SchedulerLayouts).scheduler_in)
+        self.get_instr = Method(o=gen_params.get(DecodeLayouts).decode_result)
+        self.push_instr = Method(i=gen_params.get(DecodeLayouts).tagged_decode_result)
 
         self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
         DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
@@ -50,16 +50,18 @@ class RollbackTagger(Elaboratable):
         rollback_tag_v = Signal()
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
+            instrs = self.get_instr(m)
 
-            is_branch = instr.exec_fn.op_type == OpType.BRANCH
+            is_branch = instrs.data[0].exec_fn.op_type == OpType.BRANCH
             # no need to make checkpoint at JALR, we currently stall the fetch on it
 
-            out = Signal(self.gen_params.get(SchedulerLayouts).scheduler_in)
-            m.d.av_comb += assign(out, instr)
-            m.d.av_comb += out.rollback_tag.eq(rollback_tag)
-            m.d.av_comb += out.rollback_tag_v.eq(rollback_tag_v)
-            m.d.av_comb += out.commit_checkpoint.eq(is_branch)
+            out = Signal(self.gen_params.get(DecodeLayouts).tagged_decode_result)
+            m.d.av_comb += assign(out, instrs)
+            # TODO: as branch is always the first insn, these should be per group
+            for i in range(self.gen_params.frontend_superscalarity):
+                m.d.av_comb += out.data[i].rollback_tag.eq(rollback_tag)
+                m.d.av_comb += out.data[i].rollback_tag_v.eq(rollback_tag_v)
+            m.d.av_comb += out.data[0].commit_checkpoint.eq(is_branch)
 
             m.d.sync += rollback_tag_v.eq(0)
 
@@ -132,7 +134,7 @@ class CoreFrontend(Elaboratable):
         self.gen_params = gen_params
         self.connections = DependencyContext.get()
 
-        self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, self.gen_params.instr_buffer_size)
+        self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, self.gen_params.instr_buffer_size)
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
@@ -152,8 +154,14 @@ class CoreFrontend(Elaboratable):
         self.fetch.cont.provide(self.instr_buffer.write)
         self.fetch.stall_unsafe.provide(self.stall_ctrl.stall_unsafe)
 
-        self.output_pipe = Pipe(self.gen_params.get(SchedulerLayouts).scheduler_in)
-        self.decode_buff = Connect(self.gen_params.get(DecodeLayouts).decoded_instr)
+        # TODO: change back to Pipe after Scheduler made superscalar
+        self.output_pipe = WideFifo(
+            self.gen_params.get(SchedulerLayouts).scheduler_in,
+            2 * gen_params.frontend_superscalarity,
+            read_width=1,
+            write_width=gen_params.frontend_superscalarity,
+        )
+        self.decode_buff = Connect(self.gen_params.get(DecodeLayouts).decode_result)
 
         # TODO: move and implement these methods
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
@@ -161,7 +169,7 @@ class CoreFrontend(Elaboratable):
         self.target_pred_resp = Method(o=jb_layouts.predicted_jump_target_resp)
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
 
-        self.consume_instr = self.output_pipe.read
+        self.consume_instr = Method(o=self.gen_params.get(SchedulerLayouts).scheduler_in)
         self.resume_from_exception = self.stall_ctrl.resume_from_exception
         self.stall = Method()
 
@@ -198,6 +206,10 @@ class CoreFrontend(Elaboratable):
         with Transaction(name="DiscardBranchVerify").body(m):
             read = self.connections.get_dependency(BranchVerifyKey())
             read(m)  # Consume to not block JB Unit
+
+        @def_method(m, self.consume_instr)
+        def _():
+            return self.output_pipe.read(m, count=1).data[0]
 
         @def_method(m, self.target_pred_req)
         def _():
