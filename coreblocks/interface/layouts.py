@@ -593,6 +593,23 @@ class DecodeLayouts:
             ("data", ArrayLayout(self.decoded_instr, gen_params.frontend_superscalarity)),
         )
 
+        # TODO: move tag fields to tagged_decode_result
+        self.tagged_decoded_instr = make_layout(
+            fields.exec_fn,
+            fields.regs_l,
+            fields.imm,
+            fields.csr,
+            fields.pc,
+            fields.rollback_tag,
+            fields.rollback_tag_v,
+            fields.commit_checkpoint,
+        )
+
+        self.tagged_decode_result = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.tagged_decoded_instr, gen_params.frontend_superscalarity)),
+        )
+
 
 class FuncUnitLayouts:
     """Layouts used in functional units."""
