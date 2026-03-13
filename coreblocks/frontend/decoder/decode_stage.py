@@ -2,13 +2,98 @@ from amaranth import *
 
 from coreblocks.arch import *
 from transactron.lib.metrics import *
-from transactron import Method, Transaction, TModule
-from transactron.utils import MethodStruct
+from transactron import Method, Provided, Required, Transaction, TModule, def_method
 from coreblocks.interface.layouts import DecodeLayouts, FetchLayouts, JumpBranchLayouts
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
 from .instr_decoder import InstrDecoder
 from coreblocks.params import *
+
+
+class Decode(Elaboratable):
+    """
+    Simple decode unit. This is a transactional interface which instantiates a
+    submodule `InstrDecoder`. This `InstrDecoder` makes actual decoding in
+    a combinatorial manner.
+    """
+
+    decode: Provided[Method]
+    """Receives a raw instruction and returns a decoded one."""
+
+    illegal: Required[Method]
+    """Called when received instruction is illegal."""
+
+    def __init__(self, gen_params: GenParams) -> None:
+        self.gen_params = gen_params
+        self.decode = Method(i=gen_params.get(FetchLayouts).raw_instr, o=gen_params.get(DecodeLayouts).decoded_instr)
+        self.illegal = Method()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        @def_method(m, self.decode)
+        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type):
+            m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
+            m.d.top_comb += instr_decoder.instr.eq(instr)
+
+            # Jump-branch unit requires some information from the fetch unit (for example
+            # if the instruction was decoded from a compressed instruction). To avoid adding
+            # a new signal to the pipeline, we pack it in funct7 - it is not used in jb
+            # unit anyway. This is a temporary hack will be removed soon (TODO(jurb)).
+            is_jb_unit_instr = (
+                (instr_decoder.optype == OpType.JAL)
+                | (instr_decoder.optype == OpType.JALR)
+                | (instr_decoder.optype == OpType.BRANCH)
+            )
+            jb_funct7 = Signal(from_method_layout(self.gen_params.get(JumpBranchLayouts).funct7_info))
+            m.d.av_comb += [
+                jb_funct7.rvc.eq(rvc),
+                jb_funct7.predicted_taken.eq(predicted_taken),
+            ]
+
+            exception_override = Signal()
+            m.d.comb += exception_override.eq(instr_decoder.illegal | access_fault.any())
+            exception_funct = Signal(Funct3)
+            with m.If(access_fault.any()):
+                m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
+            with m.Elif(instr_decoder.illegal):
+                self.illegal(m)
+                m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
+
+            return {
+                "exec_fn": {
+                    "op_type": Mux(~exception_override, instr_decoder.optype, OpType.EXCEPTION),
+                    # imm muxing in FUs depend on unused functs set to 0
+                    # todo: this is a bit awkward and needs a refactor in the future
+                    "funct3": Mux(
+                        ~exception_override, Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0), exception_funct
+                    ),
+                    "funct7": Mux(
+                        ~exception_override,
+                        Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, jb_funct7, 0)),
+                        0,
+                    ),
+                },
+                "regs_l": {
+                    # read/writes to phys reg 0 make no effect
+                    "rl_dst": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd, 0),
+                    "rl_s1": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
+                    "rl_s2": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
+                },
+                "imm": Mux(
+                    ~exception_override,
+                    instr_decoder.imm,
+                    Mux(
+                        access_fault.any(),
+                        access_fault,  # pass access fault details to FU
+                        instr,  # illegal instruction -  pass raw instruction bits for `mtval`
+                    ),
+                ),
+                "csr": instr_decoder.csr,
+                "pc": pc,
+            }
+
+        return m
 
 
 class DecodeStage(Elaboratable):
@@ -46,66 +131,10 @@ class DecodeStage(Elaboratable):
 
         m.submodules.perf_illegal_instr = self.perf_illegal_instr
 
-        def perform_decode(i: int, raw: MethodStruct):
-            m.submodules[f"instr_decoder{i}"] = instr_decoder = InstrDecoder(self.gen_params)
-            m.d.top_comb += instr_decoder.instr.eq(raw.instr)
-
-            # Jump-branch unit requires some information from the fetch unit (for example
-            # if the instruction was decoded from a compressed instruction). To avoid adding
-            # a new signal to the pipeline, we pack it in funct7 - it is not used in jb
-            # unit anyway. This is a temporary hack will be removed soon (TODO(jurb)).
-            is_jb_unit_instr = (
-                (instr_decoder.optype == OpType.JAL)
-                | (instr_decoder.optype == OpType.JALR)
-                | (instr_decoder.optype == OpType.BRANCH)
-            )
-            jb_funct7 = Signal(from_method_layout(self.gen_params.get(JumpBranchLayouts).funct7_info))
-            m.d.av_comb += [
-                jb_funct7.rvc.eq(raw.rvc),
-                jb_funct7.predicted_taken.eq(raw.predicted_taken),
-            ]
-
-            exception_override = Signal()
-            m.d.comb += exception_override.eq(instr_decoder.illegal | raw.access_fault.any())
-            exception_funct = Signal(Funct3)
-            with m.If(raw.access_fault.any()):
-                m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
-            with m.Elif(instr_decoder.illegal):
-                self.perf_illegal_instr.incr[i](m)
-                m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
-
-            return {
-                "exec_fn": {
-                    "op_type": Mux(~exception_override, instr_decoder.optype, OpType.EXCEPTION),
-                    # imm muxing in FUs depend on unused functs set to 0
-                    # todo: this is a bit awkward and needs a refactor in the future
-                    "funct3": Mux(
-                        ~exception_override, Mux(instr_decoder.funct3_v, instr_decoder.funct3, 0), exception_funct
-                    ),
-                    "funct7": Mux(
-                        ~exception_override,
-                        Mux(instr_decoder.funct7_v, instr_decoder.funct7, Mux(is_jb_unit_instr, jb_funct7, 0)),
-                        0,
-                    ),
-                },
-                "regs_l": {
-                    # read/writes to phys reg 0 make no effect
-                    "rl_dst": Mux(instr_decoder.rd_v & (~exception_override), instr_decoder.rd, 0),
-                    "rl_s1": Mux(instr_decoder.rs1_v & (~exception_override), instr_decoder.rs1, 0),
-                    "rl_s2": Mux(instr_decoder.rs2_v & (~exception_override), instr_decoder.rs2, 0),
-                },
-                "imm": Mux(
-                    ~exception_override,
-                    instr_decoder.imm,
-                    Mux(
-                        raw.access_fault.any(),
-                        raw.access_fault,  # pass access fault details to FU
-                        raw.instr,  # illegal instruction -  pass raw instruction bits for `mtval`
-                    ),
-                ),
-                "csr": instr_decoder.csr,
-                "pc": raw.pc,
-            }
+        decoders = [Decode(self.gen_params) for _ in range(self.gen_params.frontend_superscalarity)]
+        for i, decoder in enumerate(decoders):
+            m.submodules[f"decoder{i}"] = decoder
+            decoder.illegal.provide(self.perf_illegal_instr.incr[i])
 
         with Transaction().body(m):
             instrs = self.get_raw(m)
@@ -113,7 +142,7 @@ class DecodeStage(Elaboratable):
                 m,
                 {
                     "count": instrs.count,
-                    "data": [perform_decode(i, instrs.data[i]) for i in range(self.gen_params.frontend_superscalarity)],
+                    "data": [decoder.decode(m, instrs.data[i]) for i, decoder in enumerate(decoders)],
                 },
             )
 
