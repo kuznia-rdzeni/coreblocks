@@ -539,6 +539,7 @@ class FetchLayouts:
             self.access_fault,
             fields.rvc,
             fields.predicted_taken,
+            fields.cfi_type,
         )
 
         self.fetch_result = make_layout(

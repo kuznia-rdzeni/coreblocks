@@ -4,7 +4,7 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import popcount, assign, StableSelectingNetwork
+from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -97,7 +97,12 @@ class FetchUnit(Elaboratable):
         )
 
         with Transaction(name="cont").body(m):
-            result = serializer.read(m, count=self.gen_params.frontend_superscalarity)
+            count = Signal(range(self.gen_params.frontend_superscalarity + 1))
+            result = serializer.read(m, count=count)
+            # we want only one branch insn in scheduling group, and only at the beginning (for simplicity)
+            # some insts in result.data might not be valid, but this is still correct
+            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in result.data][1:]
+            m.d.comb += count.eq(count_trailing_zeros(Cat(which_is_branch)))
             for i in range(self.gen_params.frontend_superscalarity):
                 log.info(
                     m,
@@ -347,6 +352,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].access_fault.eq(
                         Mux(s1_data.access_fault, FetchLayouts.AccessFaultFlag.ACCESS_FAULT, 0)
                     ),
+                    raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                 ]
 
             if Extension.C in self.gen_params.isa.extensions:
