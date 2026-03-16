@@ -7,6 +7,7 @@ from transactron.utils import DependencyContext
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 
+from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.params import *
 from coreblocks.arch import OpType
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
@@ -14,6 +15,7 @@ from coreblocks.frontend.decoder import *
 from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
+from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
 
@@ -66,6 +68,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         is_load = Signal()
 
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
@@ -98,20 +101,35 @@ class LSUDummy(FuncUnit, Elaboratable):
             addr = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
             m.d.av_comb += pma_checker.addr.eq(addr)
+            m.d.av_comb += pmp_checker.addr.eq(addr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
 
-            res = requester.issue(
-                m,
-                addr=addr,
-                data=arg.s2_val,
-                funct3=arg.exec_fn.funct3,
-                store=~is_load,
-            )
+            exception = Signal()
+            cause = Signal(ExceptionCause)
 
-            with m.If(res["exception"]):
+            with m.If(is_load & ~pmp_checker.result.r):
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
+            with m.Elif(~is_load & ~pmp_checker.result.w):
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
+
+            with m.If(~exception):
+                res = requester.issue(
+                    m,
+                    addr=addr,
+                    data=arg.s2_val,
+                    funct3=arg.exec_fn.funct3,
+                    store=~is_load,
+                )
+                with m.If(res["exception"]):
+                    m.d.av_comb += exception.eq(1)
+                    m.d.av_comb += cause.eq(res["cause"])
+
+            with m.If(exception):
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"], addr=addr)
+                results_noop.write(m, data=0, exception=1, cause=cause, addr=addr)
             with m.Else():
                 issued.write(m, arg)
 
