@@ -5,7 +5,6 @@ from transactron.testing import (
     SimpleTestCircuit,
     TestbenchContext,
     data_const_to_dict,
-    def_method_mock,
 )
 
 from coreblocks.frontend.decoder.decode_stage import Decode

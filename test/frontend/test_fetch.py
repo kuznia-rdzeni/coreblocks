@@ -48,32 +48,25 @@ class MockedICache(Elaboratable, CacheInterface):
         return m
 
 
-@parameterized_class(
-    ("name", "fetch_block_log", "with_rvc"),
-    [
-        ("block4B", 2, False),
-        ("block4B_rvc", 2, True),
-        ("block8B", 3, False),
-        ("block8B_rvc", 3, True),
-        ("block16B", 4, False),
-        ("block16B_rvc", 4, True),
-    ],
-)
+@pytest.mark.parametrize("fetch_block_log", [2, 3, 4])
+@pytest.mark.parametrize("with_rvc", [False, True])
+@pytest.mark.parametrize("superscalarity", [1, 2])
 class TestFetchUnit(TestCaseWithSimulator):
-    fetch_block_log: int
-    with_rvc: bool
-
     @pytest.fixture(autouse=True)
-    def setup(self, fixture_initialize_testing_env):
+    def setup(self, fixture_initialize_testing_env, fetch_block_log: int, with_rvc: bool, superscalarity: int):
+        self.with_rvc = with_rvc
         self.pc = 0
         self.gen_params = GenParams(
             test_core_config.replace(
-                start_pc=self.pc, compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log
+                start_pc=self.pc,
+                compressed=with_rvc,
+                fetch_block_bytes_log=fetch_block_log,
+                frontend_superscalarity=superscalarity,
             )
         )
 
         self.icache = MockedICache(self.gen_params)
-        fifo = BasicFifo(self.gen_params.get(FetchLayouts).raw_instr, depth=2)
+        fifo = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, depth=2)
         self.fifo = SimpleTestCircuit(fifo, exclude={"write"})
         self.fetch_resume_mock = TestbenchIO(Adapter())
 
@@ -201,14 +194,10 @@ class TestFetchUnit(TestCaseWithSimulator):
                 self.stalled = True
 
     async def fetch_out_check(self, sim: TestbenchContext):
-        while self.instr_queue:
-            instr = self.instr_queue.popleft()
-
+        async def check_instr(instr, v):
             access_fault = instr["pc"] in self.memerr
             if not instr["rvc"]:
                 access_fault |= instr["pc"] + 2 in self.memerr
-
-            v = await self.fifo.read.call(sim)
 
             assert v["pc"] == instr["pc"]
             assert v["access_fault"] == access_fault
@@ -234,6 +223,20 @@ class TestFetchUnit(TestCaseWithSimulator):
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
                     ) + self.gen_params.fetch_block_bytes
                 self.backend_redirect.append(resume_pc)
+
+                return True
+
+        while self.instr_queue:
+            v = await self.fifo.read.call(sim)
+
+            for k in range(v.count):
+                instr = self.instr_queue.popleft()
+                # if fault happened, throw away rest of insns
+                if await check_instr(instr, v.data[k]):
+                    break
+                # test ended, garbage insns ahead
+                if not self.instr_queue:
+                    break
 
     async def requester(self, sim: ProcessContext):
         while True:
