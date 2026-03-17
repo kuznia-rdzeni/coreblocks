@@ -50,7 +50,7 @@ class TestDecode(TestCaseWithSimulator):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config.replace(start_pc=24))
 
-        self.decode = Decode(self.gen_params)
+        self.decode = Decode(self.gen_params, lambda m: ())
 
         self.m = SimpleTestCircuit(self.decode)
 
@@ -63,10 +63,6 @@ class TestDecode(TestCaseWithSimulator):
             if data["imm"] is None:
                 data["imm"] = decoded.imm
             assert data_const_to_dict(decoded) == data
-
-    @def_method_mock(lambda self: self.m.illegal)
-    def illegal_mock(self):
-        pass  # TODO: implement
 
     def test(self):
         with self.run_simulation(self.m) as sim:

@@ -1,8 +1,10 @@
+from collections.abc import Callable
+from typing import Any
 from amaranth import *
 
 from coreblocks.arch import *
 from transactron.lib.metrics import *
-from transactron import Method, Provided, Required, Transaction, TModule, def_method
+from transactron import Method, Provided, Transaction, TModule, def_method
 from coreblocks.interface.layouts import DecodeLayouts, FetchLayouts, JumpBranchLayouts
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
@@ -20,13 +22,10 @@ class Decode(Elaboratable):
     decode: Provided[Method]
     """Receives a raw instruction and returns a decoded one."""
 
-    illegal: Required[Method]
-    """Called when received instruction is illegal."""
-
-    def __init__(self, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams, illegal: Callable[[TModule], Any]) -> None:
         self.gen_params = gen_params
         self.decode = Method(i=gen_params.get(FetchLayouts).raw_instr, o=gen_params.get(DecodeLayouts).decoded_instr)
-        self.illegal = Method()
+        self.illegal = illegal
 
     def elaborate(self, platform):
         m = TModule()
@@ -131,10 +130,12 @@ class DecodeStage(Elaboratable):
 
         m.submodules.perf_illegal_instr = self.perf_illegal_instr
 
-        decoders = [Decode(self.gen_params) for _ in range(self.gen_params.frontend_superscalarity)]
+        decoders = [
+            Decode(self.gen_params, self.perf_illegal_instr.incr[i])
+            for i in range(self.gen_params.frontend_superscalarity)
+        ]
         for i, decoder in enumerate(decoders):
             m.submodules[f"decoder{i}"] = decoder
-            decoder.illegal.provide(self.perf_illegal_instr.incr[i])
 
         with Transaction().body(m):
             instrs = self.get_raw(m)
