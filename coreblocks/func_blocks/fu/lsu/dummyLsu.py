@@ -114,17 +114,17 @@ class LSUDummy(FuncUnit, Elaboratable):
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
 
-            exception = Signal()
-            cause = Signal(ExceptionCause)
+            pmp_fault = Signal()
+            pmp_cause = Signal(ExceptionCause)
 
             with m.If(is_load & ~pmp_checker.result.r):
-                m.d.av_comb += exception.eq(1)
-                m.d.av_comb += cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
+                m.d.av_comb += pmp_fault.eq(1)
+                m.d.av_comb += pmp_cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
             with m.Elif(~is_load & ~pmp_checker.result.w):
-                m.d.av_comb += exception.eq(1)
-                m.d.av_comb += cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
+                m.d.av_comb += pmp_fault.eq(1)
+                m.d.av_comb += pmp_cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
 
-            with m.If(~exception):
+            with m.If(~pmp_fault):
                 res = requester.issue(
                     m,
                     addr=addr,
@@ -133,14 +133,13 @@ class LSUDummy(FuncUnit, Elaboratable):
                     store=~is_load,
                 )
                 with m.If(res["exception"]):
-                    m.d.av_comb += exception.eq(1)
-                    m.d.av_comb += cause.eq(res["cause"])
-
-            with m.If(exception):
-                issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=1, cause=cause, addr=addr)
+                    issued_noop.write(m, arg)
+                    results_noop.write(m, data=0, exception=1, cause=res["cause"], addr=addr)
+                with m.Else():
+                    issued.write(m, arg)
             with m.Else():
-                issued.write(m, arg)
+                issued_noop.write(m, arg)
+                results_noop.write(m, data=0, exception=1, cause=pmp_cause, addr=addr)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, ready=flush):
