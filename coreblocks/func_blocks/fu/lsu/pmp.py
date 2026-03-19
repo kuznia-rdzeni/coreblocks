@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
-from coreblocks.arch.isa_consts import PrivilegeLevel
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
 from coreblocks.params import *
 from transactron.core import TModule
 
@@ -61,14 +61,14 @@ class PMPChecker(Elaboratable):
             l_bit = cfg_val[7]
 
             with m.Switch(a_bits):
-                with m.Case(0):  # OFF
+                with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
-                with m.Case(1):  # TOR
+                with m.Case(PMPAFlagEncoding.TOR):
                     lower = self.pmpaddrx[i - 1].value if i > 0 else 0
                     m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
-                with m.Case(2):  # NA4
+                with m.Case(PMPAFlagEncoding.NA4):
                     m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
-                with m.Case(3):  # NAPOT
+                with m.Case(PMPAFlagEncoding.NAPOT):
                     napot_mask = addr_val ^ (addr_val + 1)
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
