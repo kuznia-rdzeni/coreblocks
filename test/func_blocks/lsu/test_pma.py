@@ -6,7 +6,8 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
@@ -71,6 +72,9 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
