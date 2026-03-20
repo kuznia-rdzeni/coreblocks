@@ -193,7 +193,8 @@ class ROBAllocation(Elaboratable):
                         "rp_dst": instr.regs_p.rp_dst,
                         "tag_increment": instr.tag_increment,
                     }
-                ],
+                ]
+                * self.gen_params.frontend_superscalarity,  # TODO: actual superscalarity
             )
 
             m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)

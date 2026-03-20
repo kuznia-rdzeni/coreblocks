@@ -260,6 +260,7 @@ full_core_config = CoreConfiguration(
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
     pmp_register_count=16,
+    frontend_superscalarity=2,
     announcement_superscalarity=2,
 )
 
