@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 
-from amaranth import *
 from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
 from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
-from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
+from coreblocks.func_blocks.fu.lsu.pmp import PMPCfgLayout, PMPChecker
+from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 
 def make_cfg(*, r=0, w=0, x=0, a=0, lock=0) -> int:
-    return (lock << 7) | (a << 3) | (x << 2) | (w << 1) | r
+    cfg = PMPCfgLayout().const({"R": r, "W": w, "X": x, "A": a, "L": lock})
+    return cfg.as_value().value
 
 
 @dataclass
@@ -23,38 +24,27 @@ class PMPEntry:
 @dataclass
 class PMPCheck:
     addr: int
-    r: int
-    w: int
-    x: int
-
-
-class PMPTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.csr = MachineModeCSRRegisters(gen_params)
-        self.pmp = PMPChecker(gen_params, self.csr.pmpaddrx, self.csr.pmpxcfg, self.csr.priv_mode)
-
-    def elaborate(self, platform):
-        m = Module()
-        m.submodules.csr = self.csr
-        m.submodules.pmp = self.pmp
-        return m
+    r: bool
+    w: bool
+    x: bool
 
 
 class TestPMPDirect(TestCaseWithSimulator):
     def run_pmp_test(self, entries: list[PMPEntry], checks: list[PMPCheck], priv_mode=PrivilegeLevel.USER):
         gen_params = GenParams(test_core_config.replace(pmp_register_count=16))
-        test_module = PMPTestCircuit(gen_params)
+        csr = MachineModeCSRRegisters(gen_params)
+        pmp = PMPChecker(gen_params, csr.pmpaddrx, csr.pmpxcfg, csr.priv_mode)
+        test_module = ModuleConnector(csr=csr, pmp=pmp)
 
         async def process(sim: TestbenchContext):
-            csr = test_module.csr
             sim.set(csr.priv_mode.value, priv_mode)
             for i, entry in enumerate(entries):
                 sim.set(csr.pmpaddrx[i].value, entry.addr)
                 sim.set(csr.pmpxcfg[i].value, entry.cfg)
 
             for c in checks:
-                sim.set(test_module.pmp.addr, c.addr)
-                result = sim.get(test_module.pmp.result)
+                sim.set(pmp.addr, c.addr)
+                result = sim.get(pmp.result)
                 assert result.r == c.r, f"addr=0x{c.addr:08x}: expected r={c.r}, got {result.r}"
                 assert result.w == c.w, f"addr=0x{c.addr:08x}: expected w={c.w}, got {result.w}"
                 assert result.x == c.x, f"addr=0x{c.addr:08x}: expected x={c.x}, got {result.x}"

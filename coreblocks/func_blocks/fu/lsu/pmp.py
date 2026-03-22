@@ -2,13 +2,19 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
+from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.params import *
 from transactron.core import TModule
 
 
 class PMPLayout(data.StructLayout):
     def __init__(self):
-        super().__init__({"r": unsigned(1), "w": unsigned(1), "x": unsigned(1)})
+        super().__init__({"r": 1, "w": 1, "x": 1})
+
+
+class PMPCfgLayout(data.StructLayout):
+    def __init__(self):
+        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
 
 
 class PMPChecker(Elaboratable):
@@ -29,7 +35,9 @@ class PMPChecker(Elaboratable):
         and privilege mode. Bits are set to 0 if access is denied.
     """
 
-    def __init__(self, gen_params: GenParams, pmpaddrx: list, pmpxcfg: list, priv_mode) -> None:
+    def __init__(
+        self, gen_params: GenParams, pmpaddrx: list[CSRRegister], pmpxcfg: list[CSRRegister], priv_mode: CSRRegister
+    ) -> None:
         self.gen_params = gen_params
         self.pmpaddrx = pmpaddrx
         self.pmpxcfg = pmpxcfg
@@ -52,15 +60,12 @@ class PMPChecker(Elaboratable):
             m.d.comb += self.result.x.eq(0)
 
         for i in reversed(range(self.gen_params.pmp_register_count)):
-            cfg_val = self.pmpxcfg[i].value
+            cfg_val = data.View(PMPCfgLayout(), self.pmpxcfg[i].value)
             addr_val = self.pmpaddrx[i].value
 
             entry_match = Signal(name=f"match_{i}")
 
-            a_bits = cfg_val[3:5]
-            l_bit = cfg_val[7]
-
-            with m.Switch(a_bits):
+            with m.Switch(cfg_val.A):
                 with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
@@ -72,9 +77,9 @@ class PMPChecker(Elaboratable):
                     napot_mask = addr_val ^ (addr_val + 1)
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
-            with m.If(entry_match & ((priv_mode != PrivilegeLevel.MACHINE) | l_bit)):
-                m.d.comb += self.result.r.eq(cfg_val[0])
-                m.d.comb += self.result.w.eq(cfg_val[1])
-                m.d.comb += self.result.x.eq(cfg_val[2])
+            with m.If(entry_match & ((priv_mode != PrivilegeLevel.MACHINE) | cfg_val.L)):
+                m.d.comb += self.result.r.eq(cfg_val.R)
+                m.d.comb += self.result.w.eq(cfg_val.W)
+                m.d.comb += self.result.x.eq(cfg_val.X)
 
         return m
