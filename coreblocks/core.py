@@ -60,7 +60,9 @@ class Core(Component):
 
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
-        self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
+        self.rf_allocator = PriorityEncoderAllocator(
+            gen_params.phys_regs, gen_params.frontend_superscalarity, init=2**gen_params.phys_regs - 2
+        )
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -126,7 +128,7 @@ class Core(Component):
 
         m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
         scheduler.get_instr.provide(get_instr.method)
-        scheduler.get_free_reg.provide(rf_allocator.alloc[0])
+        scheduler.get_free_reg.provide(rf_allocator.alloc)
         scheduler.crat_rename.provide(crat.rename)
         scheduler.crat_tag.provide(crat.tag)
         scheduler.crat_active_tags.provide(crat.get_active_tags)

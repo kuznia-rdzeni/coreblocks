@@ -97,7 +97,7 @@ class SchedulerTestCircuit(Elaboratable):
         # main scheduler
         m.submodules.scheduler = self.scheduler = Scheduler(gen_params=self.gen_params)
         self.scheduler.get_instr.provide(instr_fifo.read)
-        self.scheduler.get_free_reg.provide(free_rf_fifo.read)
+        self.scheduler.get_free_reg[0].provide(free_rf_fifo.read)
         self.scheduler.crat_rename.provide(crat.rename)
         self.scheduler.crat_tag.provide(crat.tag)
         self.scheduler.crat_active_tags.provide(crat.get_active_tags)
