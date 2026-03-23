@@ -40,7 +40,10 @@ class Retirement(Elaboratable):
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
         self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
-        self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
+        self.instr_decrement = Method(
+            i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
+            o=gen_params.get(CoreInstructionCounterLayouts).decrement,
+        )
         self.trap_entry = Method()
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
         self.checkpoint_tag_free = Method()
@@ -124,7 +127,7 @@ class Retirement(Elaboratable):
                     with m.If(rob_entry.rob_data.tag_increment):
                         self.checkpoint_tag_free(m)
 
-                    core_empty = self.instr_decrement(m)
+                    core_empty = self.instr_decrement(m, count=1)
 
                     commit = Signal()
 
@@ -203,7 +206,7 @@ class Retirement(Elaboratable):
                     with m.If(rob_entry.rob_data.tag_increment):
                         self.checkpoint_tag_free(m)
 
-                    core_empty = self.instr_decrement(m)
+                    core_empty = self.instr_decrement(m, count=1)
 
                     flush_instr(rob_entry)
 

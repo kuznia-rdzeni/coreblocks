@@ -6,8 +6,8 @@ from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
-from transactron.core import TModule, Method
-from transactron.lib import CrossbarConnectTrans, MethodProduct
+from transactron.core import TModule, Method, def_method
+from transactron.lib import CrossbarConnectTrans
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     CSRInstancesKey,
@@ -121,13 +121,16 @@ class Core(Component):
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
-        drop_second_ret_value = (self.gen_params.get(SchedulerLayouts).scheduler_in, lambda _, rets: rets[0])
-        m.submodules.get_instr = get_instr = MethodProduct.create(
-            [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
-        )
+        get_instr = Method.like(self.frontend.consume_instr)
+
+        @def_method(m, get_instr)
+        def _():
+            ret = self.frontend.consume_instr(m)
+            core_counter.increment(m, ret.count)
+            return ret
 
         m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
-        scheduler.get_instr.provide(get_instr.method)
+        scheduler.get_instr.provide(get_instr)
         scheduler.get_free_reg.provide(rf_allocator.alloc)
         scheduler.crat_rename.provide(crat.rename)
         scheduler.crat_tag.provide(crat.tag)
