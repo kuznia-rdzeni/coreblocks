@@ -6,7 +6,7 @@ from amaranth import *
 class TestOTFC(TestCaseWithSimulator):
 
     def test_manual(self):
-        params = OTFCParams(digit_width=2, result_width=12)
+        params = OTFCParams(result_width=12)
         otfc = SimpleTestCircuit(
             OTFCModule(
                 otfc_params=params,
