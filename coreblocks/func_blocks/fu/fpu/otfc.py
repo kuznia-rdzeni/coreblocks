@@ -42,6 +42,9 @@ class OTFCMethodLayout:
             ("sign", 1),
             ("q", otfc_params.digit_width),
         ]
+        self.otfc_result_in_layout = [
+            ("shift", range(0, otfc_params.digit_width + otfc_params.result_width + 1))
+        ]
         self.otfc_out_layout = [
             ("result", otfc_params.digit_width + otfc_params.result_width)
         ]
@@ -81,7 +84,10 @@ class OTFCModule(Elaboratable):
             o=[],
         )
         self.otfc_reset = Method(i=[], o=[])
-        self.otfc_result = Method(i=[], o=self.method_layouts.otfc_out_layout)
+        self.otfc_result = Method(
+            i=self.method_layouts.otfc_result_in_layout,
+            o=self.method_layouts.otfc_out_layout,
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -94,8 +100,8 @@ class OTFCModule(Elaboratable):
         state = Signal(1)
 
         @def_method(m, self.otfc_result)
-        def _(arg):
-            return {"result": a_register}
+        def _(shift):
+            return {"result": a_register << shift}
 
         @def_method(m, self.otfc_reset)
         def _(arg):
