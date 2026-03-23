@@ -20,6 +20,7 @@ class TestOTFC(TestCaseWithSimulator):
                 [(1, 2), (1, 2), (0, 0), (0, 1), (0, 1), (0, 1)],
                 [(0, 0), (0, 0), (0, 0), (0, 0), (1, 1), (0, 1)],
                 [(0, 2), (0, 0), (0, 0), (0, 0), (0, 1), (0, 0)],
+                [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],
             ]
             results = [
                 1002,
@@ -27,14 +28,21 @@ class TestOTFC(TestCaseWithSimulator):
                 1557 + (3 << 12),
                 4093 + (3 << 12),
                 (1 << 11) + (1 << 2),
+                0,
             ]
             for i, tc in enumerate(test_cases):
                 await otfc.otfc_reset.call(sim)
                 for digit in tc:
                     input_dict = {"sign": digit[0], "q": digit[1]}
                     await otfc.otfc_add_digit.call(sim, input_dict)
-                resp = await otfc.otfc_result.call(sim)
+                resp = await otfc.otfc_result.call(sim, {"shift": 0})
                 assert resp["result"] == results[i]
+            zero_termination_case = [(1, 2), (0, 1), (0, 2)]
+            for digit in zero_termination_case:
+                input_dict = {"sign": digit[0], "q": digit[1]}
+                await otfc.otfc_add_digit.call(sim, input_dict)
+            resp = await otfc.otfc_result.call(sim, {"shift": 2 * 3})
+            assert resp["result"] == 14720
 
         async def test_process(sim: TestbenchContext):
             await otfc_test(sim)
