@@ -3,12 +3,10 @@ from transactron import TModule, Method, def_method
 
 
 class OTFCParams:
-    """On the fly conversion function parameters
+    """On-the-fly conversion function parameters
 
     Parameters
     ----------
-    digit_width: int
-        Number of bits of one quotient digit
     result_width: int
         Number of bits of result
     """
@@ -16,15 +14,13 @@ class OTFCParams:
     def __init__(
         self,
         *,
-        digit_width: int,
         result_width: int,
     ):
-        self.digit_width = digit_width
         self.result_width = result_width
 
 
 class OTFCMethodLayout:
-    """Quotient selection function module layouts for methods
+    """On-the-fly conversion function module layouts for methods
 
     Parameters
     ----------
@@ -36,23 +32,22 @@ class OTFCMethodLayout:
         """
         sign - sign of quotient
         q - bits of one quotient digit
+        shift - last shift before returning result, mostly needed in case of zero remainder termination
         result - result of conversion
         """
-        self.otfc_in_layout = [
+        self.otfc_add_digit_in_layout = [
             ("sign", 1),
-            ("q", otfc_params.digit_width),
+            ("q", 2),
         ]
         self.otfc_result_in_layout = [
-            ("shift", range(0, otfc_params.digit_width + otfc_params.result_width + 1))
+            ("shift", range(0, 2 + otfc_params.result_width + 1))
         ]
-        self.otfc_out_layout = [
-            ("result", otfc_params.digit_width + otfc_params.result_width)
-        ]
+        self.otfc_result_out_layout = [("result", 2 + otfc_params.result_width)]
 
 
 class OTFCModule(Elaboratable):
     """Module for on-the-fly conversion
-    TODO
+    This module performs on-the-fly-conversion for SRT radix 4 with redundant set where a = 2
 
     Parameters
     ----------
@@ -62,13 +57,14 @@ class OTFCModule(Elaboratable):
     Attributes
     ----------
     otfc_add_digit: Method
-        Transactional method for adding one digit to result.
-        Takes 'otf_in_layout' as argument
+        Transactional method for adding one digit to result
+        Takes 'otfc_add_digit_in_layout' as argument
     otfc_reset: Method
         Transactional method for reseting state of OTFC
     otfc_result
         Transactinal method for returning result
-        Returns result as 'otfc_out_layout'
+        Takes 'otfc_result_in_layout as argument'
+        Returns result as 'otfc_result_out_layout'
     """
 
     def __init__(
@@ -80,23 +76,19 @@ class OTFCModule(Elaboratable):
         self.otfc_params = otfc_params
         self.method_layouts = OTFCMethodLayout(otfc_params=self.otfc_params)
         self.otfc_add_digit = Method(
-            i=self.method_layouts.otfc_in_layout,
+            i=self.method_layouts.otfc_add_digit_in_layout,
             o=[],
         )
         self.otfc_reset = Method(i=[], o=[])
         self.otfc_result = Method(
             i=self.method_layouts.otfc_result_in_layout,
-            o=self.method_layouts.otfc_out_layout,
+            o=self.method_layouts.otfc_result_out_layout,
         )
 
     def elaborate(self, platform):
         m = TModule()
-        a_register = Signal(
-            self.otfc_params.digit_width + self.otfc_params.result_width
-        )
-        b_register = Signal(
-            self.otfc_params.digit_width + self.otfc_params.result_width
-        )
+        a_register = Signal(2 + self.otfc_params.result_width)
+        b_register = Signal(2 + self.otfc_params.result_width)
         state = Signal(1)
 
         @def_method(m, self.otfc_result)
