@@ -42,7 +42,9 @@ class OTFCMethodLayout:
             ("sign", 1),
             ("q", otfc_params.digit_width),
         ]
-        self.otfc_out_layout = [("result", otfc_params.result_width)]
+        self.otfc_out_layout = [
+            ("result", otfc_params.digit_width + otfc_params.result_width)
+        ]
 
 
 class OTFCModule(Elaboratable):
@@ -83,8 +85,12 @@ class OTFCModule(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-        a_register = Signal(self.otfc_params.result_width)
-        b_register = Signal(self.otfc_params.result_width)
+        a_register = Signal(
+            self.otfc_params.digit_width + self.otfc_params.result_width
+        )
+        b_register = Signal(
+            self.otfc_params.digit_width + self.otfc_params.result_width
+        )
         state = Signal(1)
 
         @def_method(m, self.otfc_result)
@@ -94,19 +100,8 @@ class OTFCModule(Elaboratable):
         @def_method(m, self.otfc_reset)
         def _(arg):
             m.d.sync += a_register.eq(0)
-            m.d.sync += b_register.eq(0)
+            m.d.sync += b_register.eq(3)
 
-        # q = 001'1'1
-        # A = 0000
-        # B = 1111
-        # q = -1 = (1, 01)
-        # A' = 1111|11
-        # B' = 1111|10
-        # A'' = 1111|10|11
-        # B'' = 1111|10|10
-        # A''' = 1111|10|11|01
-        # B''' = 1111|10|11|00
-        # (-1) << 4 + (-1) << 2 + 1 = -16 + -4 + 1 = -19
         @def_method(m, self.otfc_add_digit)
         def _(sign, q):
             a1 = q[1] | sign
