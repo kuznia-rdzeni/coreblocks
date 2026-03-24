@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 
-from transactron.testing import TestCaseWithSimulator, TestbenchContext
-
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
+from coreblocks.func_blocks.fu.lsu.pmp import PMPCfgLayout, PMPChecker
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
 from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
-from coreblocks.func_blocks.fu.lsu.pmp import PMPCfgLayout, PMPChecker
+from transactron.testing import TestbenchContext, TestCaseWithSimulator
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 
@@ -24,13 +23,18 @@ class PMPEntry:
 @dataclass
 class PMPCheck:
     addr: int
-    r: bool
-    w: bool
-    x: bool
+    r: int
+    w: int
+    x: int
 
 
 class TestPMPDirect(TestCaseWithSimulator):
-    def run_pmp_test(self, entries: list[PMPEntry], checks: list[PMPCheck], priv_mode=PrivilegeLevel.USER):
+    def run_pmp_test(
+        self,
+        entries: list[PMPEntry],
+        checks: list[PMPCheck],
+        priv_mode=PrivilegeLevel.USER,
+    ):
         gen_params = GenParams(test_core_config.replace(pmp_register_count=16))
         csr = MachineModeCSRRegisters(gen_params)
         pmp = PMPChecker(gen_params, csr.pmpaddrx, csr.pmpxcfg, csr.priv_mode)
@@ -53,7 +57,11 @@ class TestPMPDirect(TestCaseWithSimulator):
             sim.add_testbench(process)
 
     def test_mmode_no_entries(self):
-        self.run_pmp_test([], [PMPCheck(0x1000, 1, 1, 1), PMPCheck(0xDEAD, 1, 1, 1)], priv_mode=PrivilegeLevel.MACHINE)
+        self.run_pmp_test(
+            [],
+            [PMPCheck(0x1000, 1, 1, 1), PMPCheck(0xDEAD, 1, 1, 1)],
+            priv_mode=PrivilegeLevel.MACHINE,
+        )
 
     def test_umode_no_entries(self):
         self.run_pmp_test([], [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0xDEAD, 0, 0, 0)])
