@@ -346,19 +346,22 @@ class TestScheduler(TestCaseWithSimulator):
 
                 await self.m.instr_inp.call(
                     sim,
-                    {
-                        "exec_fn": {
-                            "op_type": op_type,
-                            "funct3": funct3,
-                            "funct7": funct7,
-                        },
-                        "regs_l": {
-                            "rl_s1": rl_s1,
-                            "rl_s2": rl_s2,
-                            "rl_dst": rl_dst,
-                        },
-                        "imm": immediate,
-                    },
+                    count=1,
+                    data=[
+                        {
+                            "exec_fn": {
+                                "op_type": op_type,
+                                "funct3": funct3,
+                                "funct7": funct7,
+                            },
+                            "regs_l": {
+                                "rl_s1": rl_s1,
+                                "rl_s2": rl_s2,
+                                "rl_dst": rl_dst,
+                            },
+                            "imm": immediate,
+                        }
+                    ],
                 )
             # Terminate other processes
             self.expected_rename_queue.append(None)
