@@ -1,10 +1,12 @@
 from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
-from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
-from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.params import *
 from transactron.core import TModule
+from transactron.utils import PriorityEncoder
+
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
+from coreblocks.params import *
+from coreblocks.priv.csr.csr_register import CSRRegister
 
 
 class PMPLayout(data.StructLayout):
@@ -36,7 +38,11 @@ class PMPChecker(Elaboratable):
     """
 
     def __init__(
-        self, gen_params: GenParams, pmpaddrx: list[CSRRegister], pmpxcfg: list[CSRRegister], priv_mode: CSRRegister
+        self,
+        gen_params: GenParams,
+        pmpaddrx: list[CSRRegister],
+        pmpxcfg: list[CSRRegister],
+        priv_mode: CSRRegister,
     ) -> None:
         self.gen_params = gen_params
         self.pmpaddrx = pmpaddrx
@@ -59,9 +65,15 @@ class PMPChecker(Elaboratable):
             m.d.comb += self.result.w.eq(0)
             m.d.comb += self.result.x.eq(0)
 
-        for i in reversed(range(self.gen_params.pmp_register_count)):
+        n = self.gen_params.pmp_register_count
+
+        matches = Signal(n)
+        cfgs: Array[data.View[PMPCfgLayout]] = Array([])
+
+        for i in range(n):
             cfg_val = data.View(PMPCfgLayout(), self.pmpxcfg[i].value)
             addr_val = self.pmpaddrx[i].value
+            cfgs.append(cfg_val)
 
             entry_match = Signal(name=f"match_{i}")
 
@@ -77,9 +89,17 @@ class PMPChecker(Elaboratable):
                     napot_mask = addr_val ^ (addr_val + 1)
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
-            with m.If(entry_match & ((priv_mode != PrivilegeLevel.MACHINE) | cfg_val.L)):
-                m.d.comb += self.result.r.eq(cfg_val.R)
-                m.d.comb += self.result.w.eq(cfg_val.W)
-                m.d.comb += self.result.x.eq(cfg_val.X)
+            m.d.comb += matches[i].eq(entry_match)
+
+        m.submodules.prio_encoder = prio_encoder = PriorityEncoder(n)
+        m.d.comb += prio_encoder.i.eq(matches)
+
+        idx = prio_encoder.o
+        match = ~prio_encoder.n
+
+        with m.If(match & ((priv_mode != PrivilegeLevel.MACHINE) | cfgs[idx].L)):
+            m.d.comb += self.result.r.eq(cfgs[idx].R)
+            m.d.comb += self.result.w.eq(cfgs[idx].W)
+            m.d.comb += self.result.x.eq(cfgs[idx].X)
 
         return m
