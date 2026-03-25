@@ -60,15 +60,13 @@ class PMPChecker(Elaboratable):
             m.d.comb += self.result.r.eq(1)
             m.d.comb += self.result.w.eq(1)
             m.d.comb += self.result.x.eq(1)
-        with m.Else():
-            m.d.comb += self.result.r.eq(0)
-            m.d.comb += self.result.w.eq(0)
-            m.d.comb += self.result.x.eq(0)
 
         n = self.gen_params.pmp_register_count
+        if n == 0:
+            return m
 
         matches = Signal(n)
-        cfgs: Array[data.View[PMPCfgLayout]] = Array([])
+        cfgs = []
 
         for i in range(n):
             cfg_val = data.View(PMPCfgLayout(), self.pmpxcfg[i].value)
@@ -90,6 +88,8 @@ class PMPChecker(Elaboratable):
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
             m.d.comb += matches[i].eq(entry_match)
+
+        cfgs = Array(cfgs)
 
         m.submodules.prio_encoder = prio_encoder = PriorityEncoder(n)
         m.d.comb += prio_encoder.i.eq(matches)

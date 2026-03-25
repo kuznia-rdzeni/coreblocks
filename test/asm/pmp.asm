@@ -31,5 +31,5 @@ trap_handler:
 fail:
     j fail
 
-  pass:
-      j pass
+pass:
+    j pass
