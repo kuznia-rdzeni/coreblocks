@@ -23,9 +23,9 @@ class PMPEntry:
 @dataclass
 class PMPCheck:
     addr: int
-    r: int
-    w: int
-    x: int
+    r: int  # expected read permission (0 = denied, 1 = allowed)
+    w: int  # expected write permission (0 = denied, 1 = allowed)
+    x: int  # expected execute permission (0 = denied, 1 = allowed)
 
 
 class TestPMPDirect(TestCaseWithSimulator):
