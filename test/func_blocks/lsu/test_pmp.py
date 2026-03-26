@@ -37,7 +37,7 @@ class TestPMPDirect(TestCaseWithSimulator):
     ):
         gen_params = GenParams(test_core_config.replace(pmp_register_count=16))
         csr = MachineModeCSRRegisters(gen_params)
-        pmp = PMPChecker(gen_params, csr.pmpaddrx, csr.pmpxcfg, csr.priv_mode)
+        pmp = PMPChecker(gen_params, csr)
         test_module = ModuleConnector(csr=csr, pmp=pmp)
 
         async def process(sim: TestbenchContext):

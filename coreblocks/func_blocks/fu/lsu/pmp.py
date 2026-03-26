@@ -6,7 +6,7 @@ from transactron.utils import PriorityEncoder
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
 from coreblocks.params import *
-from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 
 
 class PMPLayout(data.StructLayout):
@@ -37,17 +37,9 @@ class PMPChecker(Elaboratable):
         and privilege mode. Bits are set to 0 if access is denied.
     """
 
-    def __init__(
-        self,
-        gen_params: GenParams,
-        pmpaddrx: list[CSRRegister],
-        pmpxcfg: list[CSRRegister],
-        priv_mode: CSRRegister,
-    ) -> None:
+    def __init__(self, gen_params: GenParams, csr: MachineModeCSRRegisters) -> None:
         self.gen_params = gen_params
-        self.pmpaddrx = pmpaddrx
-        self.pmpxcfg = pmpxcfg
-        self.priv_mode = priv_mode
+        self.csr = csr
         self.addr = Signal(gen_params.isa.xlen)
 
         self.result = Signal(PMPLayout())
@@ -55,7 +47,7 @@ class PMPChecker(Elaboratable):
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
-        priv_mode = self.priv_mode.value
+        priv_mode = self.csr.priv_mode.value
         with m.If(priv_mode == PrivilegeLevel.MACHINE):
             m.d.comb += self.result.r.eq(1)
             m.d.comb += self.result.w.eq(1)
@@ -69,8 +61,8 @@ class PMPChecker(Elaboratable):
         cfgs = []
 
         for i in range(n):
-            cfg_val = data.View(PMPCfgLayout(), self.pmpxcfg[i].value)
-            addr_val = self.pmpaddrx[i].value
+            cfg_val = data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value)
+            addr_val = self.csr.pmpaddrx[i].value
             cfgs.append(cfg_val)
 
             entry_match = Signal(name=f"match_{i}")
@@ -79,7 +71,7 @@ class PMPChecker(Elaboratable):
                 with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
-                    lower = self.pmpaddrx[i - 1].value if i > 0 else 0
+                    lower = self.csr.pmpaddrx[i - 1].value if i > 0 else 0
                     m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
                 with m.Case(PMPAFlagEncoding.NA4):
                     m.d.comb += entry_match.eq(self.addr[2:] == addr_val)

@@ -75,9 +75,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         csr = self.dependency_manager.get_dependency(CSRInstancesKey())
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(
-            self.gen_params, csr.m_mode.pmpaddrx, csr.m_mode.pmpxcfg, csr.m_mode.priv_mode
-        )
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
