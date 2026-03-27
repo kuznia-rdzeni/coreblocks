@@ -10,6 +10,8 @@ fi
 TEMP_DIR="temp_$GITHUB_SHA"
 REPO=$GITHUB_REPOSITORY
 HTML_DIR="$BUILD_DIR/html/"
+BENCHMARK_INDEX_FILEPATH="$DOCS_DIR/benchmark_index.html"
+BENCHMARK_INDEX_TARGET_FILEPATH="$HTML_DIR/dev/benchmark/index.html"
 
 # Disable Safe Repository checks
 git config --global --add safe.directory "/github/workspace"
@@ -27,6 +29,7 @@ echo $message
 # Copy HTML files
 echo "Copying files to gh-pages"
 rsync -av $HTML_DIR $TEMP_DIR --exclude .git
+cp "$BENCHMARK_INDEX_FILEPATH" "$BENCHMARK_INDEX_TARGET_FILEPATH"
 
 # Set up credentials for Github Pages
 cd $TEMP_DIR

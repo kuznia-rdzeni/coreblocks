@@ -196,7 +196,7 @@ def main():
         results[name] = result
 
         ipc = result.instr / result.cycles
-        ipcs.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc})
+        ipcs.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc, "cycles": result.cycles})
 
     print(build_result_table(results, "simple_outline"))
 
