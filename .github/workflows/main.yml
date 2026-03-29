@@ -360,3 +360,8 @@ jobs:
 
       - name: Check types
         run: ./scripts/lint.sh check_types
+
+      - name: Check line endings
+        run: |
+          git add --renormalize .
+          git diff --cached --exit-code
