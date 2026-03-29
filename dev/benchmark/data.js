@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774028384448,
+  "lastUpdate": 1774806640070,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19413,6 +19413,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ca25d7fd1af8bcbc4d9ddfabbaec6afbd829e90b"
         },
         "date": 1774028373633,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.42871765356076535,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544192447280725,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.355120220892033,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6535015981152744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3579326190246042,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29899324596133897,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32836354535378454,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4363125953185382,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "114292478+frogrammer9@users.noreply.github.com",
+            "name": "Oskar Meler",
+            "username": "frogrammer9"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "82293b826cbda94c2d87ee28bd9077d653166563",
+          "message": "Fix CRLF (#761) (#874)",
+          "timestamp": "2026-03-29T19:29:12+02:00",
+          "tree_id": "58b667edfc7eb6666598aa45f4aa86bae8840b25",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/82293b826cbda94c2d87ee28bd9077d653166563"
+        },
+        "date": 1774806633967,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
