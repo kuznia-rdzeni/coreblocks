@@ -787,4 +787,4 @@ class CoreInstructionCounterLayouts:
     def __init__(self, gen_params: GenParams):
         self.increment_in = [("count", range(gen_params.frontend_superscalarity + 1))]
         self.decrement_in = [("count", range(gen_params.retirement_superscalarity + 1))]
-        self.decrement = [("empty", 1)]
+        self.decrement_out = [("empty", 1)]

@@ -42,7 +42,7 @@ class Retirement(Elaboratable):
         self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.instr_decrement = Method(
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
-            o=gen_params.get(CoreInstructionCounterLayouts).decrement,
+            o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
         )
         self.trap_entry = Method()
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)

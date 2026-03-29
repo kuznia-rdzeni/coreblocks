@@ -22,8 +22,8 @@ class RegAllocation(Elaboratable):
     the instruction result). A part of the scheduling process.
     """
 
-    get_instr: Required[Method]
-    push_instr: Required[Method]
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
     get_free_reg: Required[Methods]
 
     def __init__(self, *, gen_params: GenParams):
@@ -36,24 +36,24 @@ class RegAllocation(Elaboratable):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.reg_alloc_in)
-        self.push_instr = Method(i=layouts.reg_alloc_out)
+        self.get_instrs = Method(o=layouts.reg_alloc_in)
+        self.push_instrs = Method(i=layouts.reg_alloc_out)
         self.get_free_reg = Methods(gen_params.frontend_superscalarity, o=layouts.free_rf_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.push_instr.layout_in)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instrs = self.get_instr(m)
+            instrs = self.get_instrs(m)
             m.d.av_comb += assign(data_out, instrs)
 
             for i in range(self.gen_params.frontend_superscalarity):
                 with m.If((i < instrs.count) & (instrs.data[i].regs_l.rl_dst != 0)):
                     m.d.av_comb += data_out.data[i].regs_p.rp_dst.eq(self.get_free_reg[i](m).ident)
 
-            self.push_instr(m, data_out)
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -447,8 +447,8 @@ class Scheduler(Elaboratable):
             self.gen_params.frontend_superscalarity,
         )
         m.submodules.reg_alloc = reg_alloc = RegAllocation(gen_params=self.gen_params)
-        reg_alloc.get_instr.provide(self.get_instr)
-        reg_alloc.push_instr.provide(alloc_rename_buf.write)
+        reg_alloc.get_instrs.provide(self.get_instr)
+        reg_alloc.push_instrs.provide(alloc_rename_buf.write)
         reg_alloc.get_free_reg.provide(self.get_free_reg)
 
         m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)

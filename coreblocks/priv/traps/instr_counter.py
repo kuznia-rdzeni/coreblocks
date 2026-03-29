@@ -24,7 +24,7 @@ class CoreInstructionCounter(Elaboratable):
 
         layouts = gen_params.get(CoreInstructionCounterLayouts)
         self.increment = Method(i=layouts.increment_in)
-        self.decrement = Method(i=layouts.decrement_in, o=layouts.decrement)
+        self.decrement = Method(i=layouts.decrement_in, o=layouts.decrement_out)
 
     def elaborate(self, platform) -> TModule:
         m = TModule()
