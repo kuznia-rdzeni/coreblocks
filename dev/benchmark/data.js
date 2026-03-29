@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1774806641363,
+  "lastUpdate": 1774806642875,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -55125,6 +55125,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 34768,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1932,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2616,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 7716,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "114292478+frogrammer9@users.noreply.github.com",
+            "name": "Oskar Meler",
+            "username": "frogrammer9"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "82293b826cbda94c2d87ee28bd9077d653166563",
+          "message": "Fix CRLF (#761) (#874)",
+          "timestamp": "2026-03-29T19:29:12+02:00",
+          "tree_id": "58b667edfc7eb6666598aa45f4aa86bae8840b25",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/82293b826cbda94c2d87ee28bd9077d653166563"
+        },
+        "date": 1774806642534,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 33726,
             "unit": "LUT4"
           },
           {
