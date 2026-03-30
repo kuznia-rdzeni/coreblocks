@@ -39,9 +39,7 @@ class OTFCMethodLayout:
             ("sign", 1),
             ("q", 2),
         ]
-        self.otfc_result_in_layout = [
-            ("shift", range(0, 2 + otfc_params.result_width + 1))
-        ]
+        self.otfc_result_in_layout = [("shift", range(0, 2 + otfc_params.result_width + 1))]
         self.otfc_result_out_layout = [("result", 2 + otfc_params.result_width)]
 
 
@@ -89,7 +87,6 @@ class OTFCModule(Elaboratable):
         m = TModule()
         a_register = Signal(2 + self.otfc_params.result_width)
         b_register = Signal(2 + self.otfc_params.result_width)
-        state = Signal(1)
 
         @def_method(m, self.otfc_result)
         def _(shift):

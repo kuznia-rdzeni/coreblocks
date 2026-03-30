@@ -7,18 +7,11 @@ from amaranth import *
 class TestQSF(TestCaseWithSimulator):
 
     def test_manual(self):
-        intervals = Radix4A2Red.INTERVALS
-        bounds = Radix4A2Red.BOUNDS
-        digits = Radix4A2Red.DIGITS
+        intervals = R4A2RED.intervals
+        bounds = R4A2RED.bounds
+        digits = R4A2RED.digits
         params = QSFParams(residual_width=7, divisor_width=4, q_bits=2)
-        qsf = SimpleTestCircuit(
-            QSFModule(
-                qsf_params=params,
-                intervals=intervals,
-                bounds=bounds,
-                digits=digits,
-            )
-        )
+        qsf = SimpleTestCircuit(QSFModule(qsf_params=params, qsf_table=R4A2RED))
 
         async def qsf_test(sim, intervals, bounds, digits):
             test_offset = 2
@@ -27,9 +20,7 @@ class TestQSF(TestCaseWithSimulator):
                 divisor_bits = intervals[i]
                 for j in range(0, len(bounds[i])):
                     residual_bits_upper_bound = bounds[i][j]
-                    for residual_bits in range(
-                        residual_bits_lower_bound, residual_bits_upper_bound
-                    ):
+                    for residual_bits in range(residual_bits_lower_bound, residual_bits_upper_bound):
                         input_dict = {
                             "residual": residual_bits,
                             "divisor": divisor_bits,
