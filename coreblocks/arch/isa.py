@@ -85,6 +85,8 @@ class Extension(enum.IntFlag):
     ZBB = auto()
     #: Carry-less multiplication operations
     ZBC = auto()
+    #: Crossbar permutation operations
+    ZBKX = auto()
     #: Single bit operations
     ZBS = auto()
     #: Total store ordering

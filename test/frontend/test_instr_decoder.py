@@ -180,6 +180,17 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x0E005033, Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
     ]
 
+    DECODER_TESTS_ZBKX = [
+        # XPERM4
+        InstrTest(
+            0x28002033, Opcode.OP, Funct3.XPERM4, Funct7.XPERM, rd=0, rs1=0, rs2=0, op=OpType.CROSSBAR_PERMUTATION
+        ),
+        # XPERM8
+        InstrTest(
+            0x28004033, Opcode.OP, Funct3.XPERM8, Funct7.XPERM, rd=0, rs1=0, rs2=0, op=OpType.CROSSBAR_PERMUTATION
+        ),
+    ]
+
     DECODER_TESTS_A = [
         InstrTest(0x0821A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP),
         InstrTest(
@@ -195,6 +206,7 @@ class TestDecoder(TestCaseWithSimulator):
                 | Extension.XINTMACHINEMODE
                 | Extension.XINTSUPERVISOR
                 | Extension.ZBB
+                | Extension.ZBKX
                 | Extension.ZICOND
             )
         )
@@ -286,6 +298,9 @@ class TestDecoder(TestCaseWithSimulator):
 
     def test_zicond(self):
         self.do_test(self.DECODER_TESTS_ZICOND)
+
+    def test_zbkx(self):
+        self.do_test(self.DECODER_TESTS_ZBKX)
 
     def test_a(self):
         self.do_test(self.DECODER_TESTS_A)
