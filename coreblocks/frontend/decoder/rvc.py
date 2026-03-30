@@ -6,7 +6,6 @@ from transactron import TModule
 from coreblocks.params import *
 from coreblocks.arch import *
 
-
 # An instruction or an instruction with the valid signal
 DecodedInstr = ValueLike | tuple[ValueLike, ValueLike]
 
@@ -58,9 +57,35 @@ class InstrDecompress(Elaboratable):
             ITypeInstr(opcode=Opcode.OP_IMM, rd=rd, funct3=Funct3.ADD, rs1=Registers.SP, imm=addi4spn_imm),
             addi4spn_imm.any(),
         )
-        reserved = (IllegalInstr(), 0)
 
-        if self.gen_params.isa.extensions & Extension.D:
+        zcb_uimm2 = Cat(self.instr_in[6], self.instr_in[5], C(0, 10))
+        zcb_uimm1 = Cat(C(0, 1), self.instr_in[5], C(0, 10))
+
+        lbu = ITypeInstr(opcode=Opcode.LOAD, rd=rd, funct3=Funct3.BU, rs1=rs1, imm=zcb_uimm2)
+        lhu = ITypeInstr(opcode=Opcode.LOAD, rd=rd, funct3=Funct3.HU, rs1=rs1, imm=zcb_uimm1)
+        lh = ITypeInstr(opcode=Opcode.LOAD, rd=rd, funct3=Funct3.H, rs1=rs1, imm=zcb_uimm1)
+
+        sb = STypeInstr(opcode=Opcode.STORE, imm=zcb_uimm2, funct3=Funct3.B, rs1=rs1, rs2=rs2)
+        sh = (STypeInstr(opcode=Opcode.STORE, imm=zcb_uimm1, funct3=Funct3.H, rs1=rs1, rs2=rs2), ~self.instr_in[6])
+
+        if self.gen_params.isa.extensions & Extension.ZCB:
+            zcb_q0 = self.instr_mux(
+                self.instr_in[10:13],
+                [
+                    lbu,
+                    self.instr_mux(self.instr_in[6], [lhu, lh]),
+                    sb,
+                    sh,
+                    (IllegalInstr(), 0),
+                    (IllegalInstr(), 0),
+                    (IllegalInstr(), 0),
+                    (IllegalInstr(), 0),
+                ],
+            )
+        else:
+            zcb_q0 = (IllegalInstr(), 0)
+
+        if self.gen_params.isa.extensions & Extension.ZCD:
             fld = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd, funct3=Funct3.D, rs1=rs1, imm=lsd_imm)
             fsd = STypeInstr(opcode=Opcode.STORE_FP, imm=lsd_imm, funct3=Funct3.D, rs1=rs1, rs2=rs2)
         else:
@@ -70,7 +95,7 @@ class InstrDecompress(Elaboratable):
         lw = ITypeInstr(opcode=Opcode.LOAD, rd=rd, funct3=Funct3.W, rs1=rs1, imm=lsw_imm)
         sw = STypeInstr(opcode=Opcode.STORE, imm=lsw_imm, funct3=Funct3.W, rs1=rs1, rs2=rs2)
 
-        if self.gen_params.isa.extensions & Extension.F and self.gen_params.isa.xlen == 32:
+        if self.gen_params.isa.extensions & Extension.ZCF:
             flw = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd, funct3=Funct3.W, rs1=rs1, imm=lsw_imm)
             fsw = STypeInstr(opcode=Opcode.STORE_FP, imm=lsw_imm, funct3=Funct3.W, rs1=rs1, rs2=rs2)
         else:
@@ -89,7 +114,7 @@ class InstrDecompress(Elaboratable):
             fld,
             lw,
             flw if self.gen_params.isa.xlen == 32 else ld,
-            reserved,
+            zcb_q0,
             fsd,
             sw,
             fsw if self.gen_params.isa.xlen == 32 else sd,
@@ -177,6 +202,58 @@ class InstrDecompress(Elaboratable):
         and_ = RTypeInstr(opcode=Opcode.OP, rd=rd_rs1, funct3=Funct3.AND, rs1=rd_rs1, rs2=rs2, funct7=Funct7.AND)
         rtype = self.instr_mux(self.instr_in[5:7], [sub, xor, or_, and_])
 
+        zcb_enabled = bool(self.gen_params.isa.extensions & Extension.ZCB)
+        zbb_enabled = bool(self.gen_params.isa.extensions & Extension.ZBB)
+        mul_enabled = bool(self.gen_params.isa.extensions & (Extension.M | Extension.ZMMUL))
+
+        zext_b = (
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.AND, rs1=rd_rs1, imm=C(0xFF, 12)),
+            zcb_enabled,
+        )
+        sext_b = (
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.SEXTB, rs1=rd_rs1, imm=Funct12.SEXTB),
+            zcb_enabled & zbb_enabled,
+        )
+        zext_h = (
+            RTypeInstr(
+                opcode=Opcode.OP,
+                rd=rd_rs1,
+                funct3=Funct3.ZEXTH,
+                rs1=rd_rs1,
+                rs2=Registers.ZERO,
+                funct7=Funct7.ZEXTH,
+            ),
+            zcb_enabled & zbb_enabled,
+        )
+        sext_h = (
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.SEXTH, rs1=rd_rs1, imm=Funct12.SEXTH),
+            zcb_enabled & zbb_enabled,
+        )
+        not_ = (
+            ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.XOR, rs1=rd_rs1, imm=C(-1, 12)),
+            zcb_enabled,
+        )
+
+        mul = (
+            RTypeInstr(opcode=Opcode.OP, rd=rd_rs1, funct3=Funct3.MUL, rs1=rd_rs1, rs2=rs2, funct7=Funct7.MULDIV),
+            zcb_enabled & mul_enabled,
+        )
+
+        zcb_unary = self.instr_mux(
+            self.instr_in[2:5],
+            [
+                zext_b,
+                sext_b,
+                zext_h,
+                sext_h,
+                (IllegalInstr(), 0),
+                not_,
+                (IllegalInstr(), 0),
+                (IllegalInstr(), 0),
+            ],
+        )
+        zcb_group = self.instr_mux(self.instr_in[5:7], [(IllegalInstr(), 0), (IllegalInstr(), 0), mul, zcb_unary])
+
         if self.gen_params.isa.xlen != 32:
             subw = (
                 RTypeInstr(opcode=Opcode.OP32, rd=rd_rs1, funct3=Funct3.SUB, rs1=rd_rs1, rs2=rs2, funct7=Funct3.SUB),
@@ -187,10 +264,10 @@ class InstrDecompress(Elaboratable):
                 ~self.instr_in[6],
             )
             w = self.instr_mux(self.instr_in[5], [subw, addw])
-
-            rtype = self.instr_mux(self.instr_in[12], [rtype, w])
+            rtype_hi = self.instr_mux(self.instr_in[6], [w, zcb_group])
+            rtype = self.instr_mux(self.instr_in[12], [rtype, rtype_hi])
         else:
-            rtype = (rtype[0], rtype[1] & ~self.instr_in[12])
+            rtype = self.instr_mux(self.instr_in[12], [rtype, zcb_group])
 
         return [
             addi,
@@ -227,7 +304,7 @@ class InstrDecompress(Elaboratable):
 
         if (
             self.gen_params.isa.xlen == 32 or self.gen_params.isa.xlen == 64
-        ) and self.gen_params.isa.extensions & Extension.D:
+        ) and self.gen_params.isa.extensions & Extension.ZCD:
             fldsp = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd_rs1, funct3=Funct3.D, rs1=Registers.SP, imm=ldsp_imm)
             fsdsp = STypeInstr(opcode=Opcode.STORE_FP, imm=sdsp_imm, funct3=Funct3.D, rs1=Registers.SP, rs2=rs2)
         else:
@@ -240,7 +317,7 @@ class InstrDecompress(Elaboratable):
         )
         swsp = STypeInstr(opcode=Opcode.STORE, imm=swsp_imm, funct3=Funct3.W, rs1=Registers.SP, rs2=rs2)
 
-        if self.gen_params.isa.extensions & Extension.F:
+        if self.gen_params.isa.extensions & Extension.ZCF:
             flwsp = ITypeInstr(opcode=Opcode.LOAD_FP, rd=rd_rs1, funct3=Funct3.W, rs1=Registers.SP, imm=lwsp_imm)
             fswsp = STypeInstr(opcode=Opcode.STORE_FP, imm=swsp_imm, funct3=Funct3.W, rs1=Registers.SP, rs2=rs2)
         else:

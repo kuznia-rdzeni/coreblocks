@@ -297,3 +297,120 @@ class TestInstrDecompress(TestCaseWithSimulator):
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(process)
+
+
+ZCB_BASE_TESTS = [
+    # c.lbu x13, 3(x11)
+    (0x81F4, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X13, funct3=Funct3.BU, rs1=Registers.X11, imm=3)),
+    # c.lhu x13, 2(x11)
+    (0x85B4, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X13, funct3=Funct3.HU, rs1=Registers.X11, imm=2)),
+    # c.lh x13, 2(x11)
+    (0x85F4, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X13, funct3=Funct3.H, rs1=Registers.X11, imm=2)),
+    # c.sb x13, 3(x11)
+    (0x89F4, STypeInstr(opcode=Opcode.STORE, imm=3, funct3=Funct3.B, rs1=Registers.X11, rs2=Registers.X13)),
+    # c.sh x13, 2(x11)
+    (0x8DB4, STypeInstr(opcode=Opcode.STORE, imm=2, funct3=Funct3.H, rs1=Registers.X11, rs2=Registers.X13)),
+    # c.zext.b x13
+    (0x9EE1, ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.AND, rs1=Registers.X13, imm=0xFF)),
+    # c.not x13
+    (0x9EF5, ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.XOR, rs1=Registers.X13, imm=-1)),
+    # c.zext.w x13 (left illegal until add.uw is supported)
+    (0x9EF1, IllegalInstr()),
+]
+
+ZCB_ZBB_TESTS = [
+    # c.sext.b x13
+    (
+        0x9EE5,
+        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.SEXTB, rs1=Registers.X13, imm=Funct12.SEXTB),
+    ),
+    # c.zext.h x13
+    (
+        0x9EE9,
+        RTypeInstr(
+            opcode=Opcode.OP,
+            rd=Registers.X13,
+            funct3=Funct3.ZEXTH,
+            rs1=Registers.X13,
+            rs2=Registers.ZERO,
+            funct7=Funct7.ZEXTH,
+        ),
+    ),
+    # c.sext.h x13
+    (
+        0x9EED,
+        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.SEXTH, rs1=Registers.X13, imm=Funct12.SEXTH),
+    ),
+]
+
+ZCB_M_TESTS = [
+    # c.mul x13, x11
+    (
+        0x9ECD,
+        RTypeInstr(
+            opcode=Opcode.OP,
+            rd=Registers.X13,
+            funct3=Funct3.MUL,
+            rs1=Registers.X13,
+            rs2=Registers.X11,
+            funct7=Funct7.MULDIV,
+        ),
+    ),
+]
+
+
+@parameterized_class(
+    ("name", "isa_xlen"),
+    [("rv32ic_zcb", 32), ("rv64ic_zcb", 64)],
+)
+class TestInstrDecompressZcb(TestCaseWithSimulator):
+    isa_xlen: int
+
+    def _run_cases(self, test_cases: list[tuple[int, ValueLike]], implied_extensions: Extension):
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                compressed=True,
+                xlen=self.isa_xlen,
+                fetch_block_bytes_log=3,
+                _implied_extensions=implied_extensions,
+            )
+        )
+        self.m = InstrDecompress(self.gen_params)
+
+        async def process(sim: TestbenchContext):
+            illegal = Const.cast(IllegalInstr()).value
+
+            for instr_in, instr_out in test_cases:
+                sim.set(self.m.instr_in, instr_in)
+                expected = Const.cast(instr_out).value
+
+                if expected == illegal:
+                    expected = instr_in
+
+                assert sim.get(self.m.instr_out) == expected
+                await sim.tick()
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_zcb_enabled(self):
+        self._run_cases(
+            ZCB_BASE_TESTS + ZCB_ZBB_TESTS + ZCB_M_TESTS,
+            Extension.I | Extension.ZCB | Extension.ZBB | Extension.M,
+        )
+
+    def test_zcb_missing(self):
+        illegal_cases: list[tuple[int, ValueLike]] = [
+            (instr, IllegalInstr()) for instr, _ in (ZCB_BASE_TESTS + ZCB_ZBB_TESTS + ZCB_M_TESTS)
+        ]
+        self._run_cases(illegal_cases, Extension.I)
+
+    def test_zcb_dependency_gates_zbb_missing(self):
+        # Without ZBB, only base Zcb instructions remain legal.
+        zbb_missing_cases = ZCB_BASE_TESTS + [(instr, IllegalInstr()) for instr, _ in ZCB_ZBB_TESTS]
+        self._run_cases(zbb_missing_cases, Extension.I | Extension.ZCB)
+
+    def test_zcb_dependency_gates_mul_missing(self):
+        # Without M/Zmmul, c.mul must stay illegal.
+        mul_missing_cases: list[tuple[int, ValueLike]] = ZCB_BASE_TESTS + ZCB_ZBB_TESTS + [(0x9ECD, IllegalInstr())]
+        self._run_cases(mul_missing_cases, Extension.I | Extension.ZCB | Extension.ZBB)

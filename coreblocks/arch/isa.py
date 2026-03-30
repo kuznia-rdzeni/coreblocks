@@ -81,6 +81,14 @@ class Extension(enum.IntFlag):
     ZHINX = auto()
     #: Extended shift operations
     ZBA = auto()
+    #: Compressed integer instructions (16-bit, formerly part of C)
+    ZCA = auto()
+    #: Compressed single-precision floating-point instructions (formerly part of C if F enabled)
+    ZCF = auto()
+    #: Compressed floating-point double instructions (formerly part of C if D enabled)
+    ZCD = auto()
+    #: Compressed simple code-size reduction instructions
+    ZCB = auto()
     #: Basic bit manipulation operations
     ZBB = auto()
     #: Carry-less multiplication operations
@@ -107,6 +115,9 @@ _extension_requirements = {
     Extension.ZFINX: Extension.F,
     Extension.ZDINX: Extension.D,
     Extension.ZHINX: Extension.ZFH,
+    Extension.ZCF: Extension.F | Extension.ZCA,
+    Extension.ZCD: Extension.D | Extension.ZCA,
+    Extension.ZCB: Extension.ZCA,
 }
 
 # Extensions which implicitly imply another extensions (can be joined using | operator)
@@ -115,6 +126,7 @@ extension_implications = {
     Extension.M: Extension.ZMMUL,
     Extension.A: Extension.ZAAMO | Extension.ZALRSC,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBS,
+    Extension.C: Extension.ZCA,  # conditinally implies also ZCF and ZCD (handled separately)
 }
 
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
@@ -200,6 +212,34 @@ class ISA:
         for ext, imply in extension_implications.items():
             if ext in self.extensions:
                 self.extensions |= imply
+
+        # C in ISA string expands to Zc* extensions based on F and D presence
+        if self.extensions & Extension.C:
+            if self.extensions & Extension.F and self.xlen == 32:
+                self.extensions |= Extension.ZCF
+            if self.extensions & Extension.D:
+                self.extensions |= Extension.ZCD
+        else:
+            # Determine whether C extension is set based on the presence of Zc* extensions
+            c_is_set = False
+            if self.extensions & Extension.ZCA:
+                if not self.extensions & Extension.F:
+                    # Zca without F
+                    c_is_set = True
+                elif self.extensions & Extension.D:
+                    if self.xlen == 32:
+                        # Zca + Zcf + Zcd + F + D on RV32
+                        c_is_set = self.extensions & Extension.ZCF and self.extensions & Extension.ZCD
+                    elif self.xlen == 64:
+                        # Zca + Zcd + D on RV64
+                        c_is_set = self.extensions & Extension.ZCD
+                elif self.xlen == 32:
+                    # Zca + Zcf + F (but not D) on RV32
+                    c_is_set = self.extensions & Extension.ZCF
+            # otherwise C is not set
+
+            if c_is_set:
+                self.extensions |= Extension.C
 
         for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
