@@ -78,7 +78,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
-        m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
+        m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
         m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
@@ -149,7 +149,9 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
             with m.If(res["exception"]):
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=1, cause=res["cause"], addr=addr)
+                results_noop.write(
+                    m, data=0, exception=1, cause=res["cause"], addr=addr
+                )
             with m.Else():
                 issued.write(m, arg)
 
@@ -197,7 +199,9 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
 
         with Transaction().body(m):
-            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
+            precommit = self.dependency_manager.get_dependency(
+                InstructionPrecommitKey()
+            )
             precommit(m, request_rob_id)
             m.d.comb += rob_id_match.eq(1)
 
