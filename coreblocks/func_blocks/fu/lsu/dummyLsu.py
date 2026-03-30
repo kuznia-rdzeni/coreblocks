@@ -1,29 +1,29 @@
 from dataclasses import dataclass
+
 from amaranth import *
-
-from transactron import Method, def_method, Transaction, TModule
+from transactron import Method, TModule, Transaction, def_method
 from transactron.lib.connectors import FIFO, Forwarder
-from transactron.utils import DependencyContext
-from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
+from transactron.lib.simultaneous import condition
+from transactron.utils import DependencyContext
 
-from coreblocks.arch.isa_consts import ExceptionCause
-from coreblocks.params import *
 from coreblocks.arch import OpType
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.frontend.decoder import *
-from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
-from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
-    CoreStateKey,
-    ExceptionReportKey,
     CommonBusDataKey,
-    InstructionPrecommitKey,
+    CoreStateKey,
     CSRInstancesKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
 )
+from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts
+from coreblocks.params import *
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 __all__ = ["LSUDummy", "LSUComponent"]
 
@@ -86,11 +86,40 @@ class LSUDummy(FuncUnit, Elaboratable):
         @def_method(m, self.issue)
         def _(arg):
             self.log.debug(
-                m, 1, "issue rob_id={} funct3={} op_type={}", arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type
+                m,
+                1,
+                "issue rob_id={} funct3={} op_type={}",
+                arg.rob_id,
+                arg.exec_fn.funct3,
+                arg.exec_fn.op_type,
             )
             is_fence = arg.exec_fn.op_type == OpType.FENCE
             with m.If(~is_fence):
-                requests.write(m, arg)
+                addr = Signal(self.gen_params.isa.xlen)
+                m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
+                m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
+                m.d.av_comb += pmp_checker.addr.eq(addr)
+
+                with m.If(is_load & ~pmp_checker.result.r):
+                    issued_noop.write(m, arg)
+                    results_noop.write(
+                        m,
+                        data=0,
+                        exception=1,
+                        cause=ExceptionCause.LOAD_ACCESS_FAULT,
+                        addr=addr,
+                    )
+                with m.Elif(~is_load & ~pmp_checker.result.w):
+                    issued_noop.write(m, arg)
+                    results_noop.write(
+                        m,
+                        data=0,
+                        exception=1,
+                        cause=ExceptionCause.STORE_ACCESS_FAULT,
+                        addr=addr,
+                    )
+                with m.Else():
+                    requests.write(m, arg)
             with m.Else():
                 results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
@@ -108,36 +137,21 @@ class LSUDummy(FuncUnit, Elaboratable):
             addr = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
             m.d.av_comb += pma_checker.addr.eq(addr)
-            m.d.av_comb += pmp_checker.addr.eq(addr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
 
-            pmp_fault = Signal()
-            pmp_cause = Signal(ExceptionCause)
-
-            with m.If(is_load & ~pmp_checker.result.r):
-                m.d.av_comb += pmp_fault.eq(1)
-                m.d.av_comb += pmp_cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
-            with m.Elif(~is_load & ~pmp_checker.result.w):
-                m.d.av_comb += pmp_fault.eq(1)
-                m.d.av_comb += pmp_cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
-
-            with m.If(~pmp_fault):
-                res = requester.issue(
-                    m,
-                    addr=addr,
-                    data=arg.s2_val,
-                    funct3=arg.exec_fn.funct3,
-                    store=~is_load,
-                )
-                with m.If(res["exception"]):
-                    issued_noop.write(m, arg)
-                    results_noop.write(m, data=0, exception=1, cause=res["cause"], addr=addr)
-                with m.Else():
-                    issued.write(m, arg)
-            with m.Else():
+            res = requester.issue(
+                m,
+                addr=addr,
+                data=arg.s2_val,
+                funct3=arg.exec_fn.funct3,
+                store=~is_load,
+            )
+            with m.If(res["exception"]):
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=1, cause=pmp_cause, addr=addr)
+                results_noop.write(m, data=0, exception=1, cause=res["cause"], addr=addr)
+            with m.Else():
+                issued.write(m, arg)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, ready=flush):
@@ -157,9 +171,22 @@ class LSUDummy(FuncUnit, Elaboratable):
                     m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"])
+                self.report(
+                    m,
+                    rob_id=arg["rob_id"],
+                    cause=res["cause"],
+                    pc=arg["pc"],
+                    mtval=res["addr"],
+                )
 
-            self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
+            self.log.debug(
+                m,
+                1,
+                "accept rob_id={} result=0x{:08x} exception={}",
+                arg.rob_id,
+                res.data,
+                res.exception,
+            )
 
             self.push_result(
                 m,
