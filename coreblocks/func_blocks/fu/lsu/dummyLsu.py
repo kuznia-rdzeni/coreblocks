@@ -149,9 +149,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
             with m.If(res["exception"]):
                 issued_noop.write(m, arg)
-                results_noop.write(
-                    m, data=0, exception=1, cause=res["cause"], addr=addr
-                )
+                results_noop.write(m, data=0, exception=1, cause=res["cause"], addr=addr)
             with m.Else():
                 issued.write(m, arg)
 
@@ -199,9 +197,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
 
         with Transaction().body(m):
-            precommit = self.dependency_manager.get_dependency(
-                InstructionPrecommitKey()
-            )
+            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
             precommit(m, request_rob_id)
             m.d.comb += rob_id_match.eq(1)
 
