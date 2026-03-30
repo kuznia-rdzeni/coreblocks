@@ -1,5 +1,6 @@
 from amaranth import *
 from transactron import TModule, Method, def_method
+from coreblocks.func_blocks.fu.fpu.qsf_tables import QSFTable
 
 
 class QSFParams:
@@ -68,20 +69,13 @@ class QSFModule(Elaboratable):
         Returns result as 'qsf_out_layout'
     """
 
-    def __init__(
-        self,
-        *,
-        qsf_params: QSFParams,
-        intervals: list[int],
-        bounds: list[int],
-        digits: list[tuple[int, int]]
-    ):
+    def __init__(self, *, qsf_params: QSFParams, qsf_table: QSFTable):
 
         self.qsf_params = qsf_params
         self.method_layouts = QSFMethodLayout(qsf_params=self.qsf_params)
-        self.intervals = intervals
-        self.bounds = bounds
-        self.digits = digits
+        self.intervals = qsf_table.intervals
+        self.bounds = qsf_table.bounds
+        self.digits = qsf_table.digits
         self.qsf_request = Method(
             i=self.method_layouts.qsf_in_layout,
             o=self.method_layouts.qsf_out_layout,
@@ -105,9 +99,7 @@ class QSFModule(Elaboratable):
                             m.d.av_comb += sign.eq(Const(self.digits[j][0]))
                     with m.Else():
                         m.d.av_comb += q.eq(Const(self.digits[len(self.bounds[i])][1]))
-                        m.d.av_comb += sign.eq(
-                            Const(self.digits[len(self.bounds[i])][0])
-                        )
+                        m.d.av_comb += sign.eq(Const(self.digits[len(self.bounds[i])][0]))
             return {"q": q, "sign": sign}
 
         return m
