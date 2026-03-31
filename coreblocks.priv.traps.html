@@ -120,21 +120,24 @@ If <cite>exception</cite> bit is set in the ROB, <cite>Retirement</cite> stage f
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Counts instructions currently processed in core.
 Used in exception handling, to wait for core flush to finish.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>increment</strong><span class="classifier">Method</span></dt><dd><p>Increments the counter. Should be called when new instruction leaves fetch stage.</p>
-</dd>
-<dt><strong>decrement</strong><span class="classifier">Method</span></dt><dd><p>Decrements the counter, and returns if the counter will be equal to zero after that cycle (it was the
-last instruction in core and no new instruction is fetched). Should be called when instruction is retired.</p>
-</dd>
-</dl>
-</dd>
-</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.traps.instr_counter.CoreInstructionCounter.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.traps.instr_counter.CoreInstructionCounter.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.traps.instr_counter.CoreInstructionCounter.decrement">
+<span class="sig-name descname"><span class="pre">decrement</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.priv.traps.instr_counter.CoreInstructionCounter.decrement" title="Permalink to this definition"></a></dt>
+<dd><p>Decrements the counter. Should be called when instruction is retired.
+Returns a boolean saying if the counter will be equal to zero after that cycle (it was the
+last instruction in core and no new instruction is fetched).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.traps.instr_counter.CoreInstructionCounter.increment">
+<span class="sig-name descname"><span class="pre">increment</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.priv.traps.instr_counter.CoreInstructionCounter.increment" title="Permalink to this definition"></a></dt>
+<dd><p>Increments the counter. Should be called when new instruction leaves fetch stage.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -204,7 +207,7 @@ See <cite>interrupt_custom_count</cite> and <cite>interrupt_custom_edge_trig_mas
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 17:29 2026-03-29.
+      <span class="lastupdated">Last updated on 15:59 2026-03-31.
       </span></p>
   </div>
 
