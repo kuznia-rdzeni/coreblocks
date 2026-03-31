@@ -126,7 +126,7 @@ extension_implications = {
     Extension.M: Extension.ZMMUL,
     Extension.A: Extension.ZAAMO | Extension.ZALRSC,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBS,
-    Extension.C: Extension.ZCA,  # conditinally implies also ZCF and ZCD (handled separately)
+    Extension.C: Extension.ZCA,  # conditionally implies also ZCF and ZCD (handled separately)
 }
 
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
