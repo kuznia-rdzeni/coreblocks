@@ -300,6 +300,8 @@ class RATLayouts:
         """Bitmask, when bit is set when corresponding tag is on the current speculation/execution
         path and reset when instruction was already rolled back (is not included in current FRAT)"""
 
+        self.active_rename_layout = make_layout(("valid", 1), fields.rl_dst, fields.rp_dst)
+
         self.frat_rename_in = make_layout(
             fields.rl_s1,
             fields.rl_s2,

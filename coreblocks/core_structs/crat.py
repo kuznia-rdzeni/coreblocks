@@ -72,7 +72,7 @@ class CheckpointRAT(Elaboratable):
 
         layouts = gen_params.get(RATLayouts)
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
-        self.rename = Method(i=layouts.crat_rename_in, o=layouts.crat_rename_out)
+        self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
         self.flush_restore = Method(i=layouts.crat_flush_restore)
 
         self.rollback = Method(i=layouts.rollback_in)
@@ -167,8 +167,15 @@ class CheckpointRAT(Elaboratable):
 
         create_checkpoint_pipe = Pipe([("checkpoint", range(self.gen_params.checkpoint_count))])
 
-        @def_method(m, self.rename)
-        def _(rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value, tag: Value, commit_checkpoint: Value):
+        active_renames = Signal(
+            ArrayLayout(self.gen_params.get(RATLayouts).active_rename_layout, self.gen_params.frontend_superscalarity)
+        )
+
+        def frat_get(k: int, rl: Value):
+            return self.frat[rl]
+
+        @def_methods(m, self.rename)
+        def _(k: int, rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value, tag: Value, commit_checkpoint: Value):
             # don't overwrite freshly restored FRAT with flushed inactive instructions
             tag_valid = Signal()
             m.d.av_comb += tag_valid.eq(~frat_lock | (tag == frat_unlock_tag))
@@ -187,7 +194,9 @@ class CheckpointRAT(Elaboratable):
                     # could be shared with multiple tags (useful for branch chains)
 
             with m.If(tag_valid & (rl_dst != 0)):
-                m.d.sync += self.frat[rl_dst].eq(rp_dst)
+                m.d.comb += active_renames[k].valid.eq(1)
+                m.d.comb += active_renames[k].rl_dst.eq(rl_dst)
+                m.d.comb += active_renames[k].rp_dst.eq(rp_dst)
                 log.debug(m, True, "frat write for rl {} -> rp {}", rl_dst, rp_dst)
 
             log.debug(
@@ -195,9 +204,9 @@ class CheckpointRAT(Elaboratable):
                 True,
                 "frat rename r_s1: {} -> {} r_s2 {} -> {} tag 0x{:x} [{}] ({})",
                 rl_s1,
-                self.frat[rl_s1],
+                frat_get(k, rl_s1),
                 rl_s2,
-                self.frat[rl_s2],
+                frat_get(k, rl_s2),
                 tag,
                 frat_unlock_tag,
                 tag_valid,
@@ -213,9 +222,16 @@ class CheckpointRAT(Elaboratable):
         @def_method(m, self.flush_restore, ready=last_rollback_finished)
         def _(rl_dst: Value, rp_dst: Value):
             with m.If(rl_dst != 0):  # Duplicated, because otherwise causes comb loop in rename condition
-                m.d.sync += self.frat[rl_dst].eq(rp_dst)
+                m.d.comb += active_renames[0].valid.eq(1)
+                m.d.comb += active_renames[0].rl_dst.eq(rl_dst)
+                m.d.comb += active_renames[0].rp_dst.eq(rp_dst)
 
-        self.flush_restore.add_conflict(self.rename, Priority.RIGHT)
+        for k in range(len(active_renames)):
+            with m.If(active_renames[k].valid):
+                m.d.sync += self.frat[active_renames[k].rl_dst].eq(active_renames[k].rp_dst)
+
+        for rename in self.rename:
+            self.flush_restore.add_conflict(rename, Priority.RIGHT)
         # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
         # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
