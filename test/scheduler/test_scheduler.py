@@ -97,7 +97,7 @@ class SchedulerTestCircuit(Elaboratable):
         # main scheduler
         m.submodules.scheduler = self.scheduler = Scheduler(gen_params=self.gen_params)
         self.scheduler.get_instr.provide(instr_fifo.read)
-        self.scheduler.get_free_reg.provide(free_rf_fifo.read)
+        self.scheduler.get_free_reg[0].provide(free_rf_fifo.read)
         self.scheduler.crat_rename.provide(crat.rename)
         self.scheduler.crat_tag.provide(crat.tag)
         self.scheduler.crat_active_tags.provide(crat.get_active_tags)
@@ -346,19 +346,22 @@ class TestScheduler(TestCaseWithSimulator):
 
                 await self.m.instr_inp.call(
                     sim,
-                    {
-                        "exec_fn": {
-                            "op_type": op_type,
-                            "funct3": funct3,
-                            "funct7": funct7,
-                        },
-                        "regs_l": {
-                            "rl_s1": rl_s1,
-                            "rl_s2": rl_s2,
-                            "rl_dst": rl_dst,
-                        },
-                        "imm": immediate,
-                    },
+                    count=1,
+                    data=[
+                        {
+                            "exec_fn": {
+                                "op_type": op_type,
+                                "funct3": funct3,
+                                "funct7": funct7,
+                            },
+                            "regs_l": {
+                                "rl_s1": rl_s1,
+                                "rl_s2": rl_s2,
+                                "rl_dst": rl_dst,
+                            },
+                            "imm": immediate,
+                        }
+                    ],
                 )
             # Terminate other processes
             self.expected_rename_queue.append(None)

@@ -115,7 +115,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
             nonlocal end
             for _ in range(instr_cnt):
                 data = get_instr()
-                await dut.instr_inp.call(sim, data)
+                await dut.instr_inp.call(sim, count=1, data=[data])
                 await self.random_wait_geom(sim, 0.5)
             end = True
 

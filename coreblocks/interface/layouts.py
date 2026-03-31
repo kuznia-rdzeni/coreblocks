@@ -183,7 +183,7 @@ class SchedulerLayouts:
         )
         """Logical register number for the destination operand, before ROB allocation."""
 
-        self.reg_alloc_in = self.scheduler_in = make_layout(
+        self.reg_alloc_in_data = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
@@ -194,7 +194,12 @@ class SchedulerLayouts:
             fields.commit_checkpoint,
         )
 
-        self.instr_tag_in = self.reg_alloc_out = make_layout(
+        self.reg_alloc_in = self.scheduler_in = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.reg_alloc_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.instr_tag_in_data = make_layout(
             fields.exec_fn,
             fields.regs_l,
             self.regs_p_alloc_out,
@@ -205,6 +210,13 @@ class SchedulerLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
         )
+
+        self.reg_alloc_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.instr_tag_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.instr_tag_in = self.instr_tag_in_data
 
         self.renaming_in = self.instr_tag_out = make_layout(
             fields.exec_fn,
@@ -773,4 +785,6 @@ class InternalInterruptControllerLayouts:
 
 class CoreInstructionCounterLayouts:
     def __init__(self, gen_params: GenParams):
-        self.decrement = [("empty", 1)]
+        self.increment_in = [("count", range(gen_params.frontend_superscalarity + 1))]
+        self.decrement_in = [("count", range(gen_params.retirement_superscalarity + 1))]
+        self.decrement_out = [("empty", 1)]
