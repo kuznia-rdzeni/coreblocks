@@ -241,6 +241,9 @@ class ISA:
             if c_is_set:
                 self.extensions |= Extension.C
 
+        if self.extensions & Extension.ZCF and self.xlen != 32:
+            raise RuntimeError("ISA extension Zcf is only relevant to RV32")
+
         for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:
                 for req in Extension:
