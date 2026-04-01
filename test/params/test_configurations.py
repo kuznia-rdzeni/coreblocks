@@ -48,6 +48,7 @@ class TestConfigurationsISAString(TestCase):
             xlen = int(test.partial_str[2:4])
             partial, full = extensions_supported(
                 test.core_config.func_units_config,
+                xlen,
                 test.core_config.embedded,
                 test.core_config.compressed,
             )

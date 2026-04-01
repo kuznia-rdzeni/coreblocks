@@ -72,7 +72,7 @@ expected_mtval:
 .word i_out_of_range
 .word i_partial_out_of_range + 2
 .word 0x43
-.word 0x8000
+.word 0x4002
 .word 0x123020f3
 .word 0x12345073
 .word 0x80000231
