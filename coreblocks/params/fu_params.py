@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 
 from coreblocks.arch.isa import (
     Extension,
-    extension_implications_for,
-    extensions_with_implications,
+    extension_implications,
     get_c_extension_expansion,
 )
 from coreblocks.arch.optypes import OpType, optypes_required_by_extensions
@@ -72,11 +71,11 @@ def optypes_supported(
 
 
 def _remove_implications(extensions: Extension):
-    implied = Extension(0)
+    implied_extensions = Extension(0)
     for ext in Extension:
-        if ext in extensions and ext in extensions_with_implications:
-            implied |= extension_implications_for(ext)
-    return extensions & ~implied
+        if ext in extensions and ext in extension_implications:
+            implied_extensions |= extension_implications[ext]
+    return extensions & ~implied_extensions
 
 
 def extensions_supported(

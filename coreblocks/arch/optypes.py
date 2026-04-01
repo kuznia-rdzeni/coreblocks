@@ -1,8 +1,9 @@
 from amaranth import *
-from amaranth.lib.enum import IntEnum, auto, unique
+from amaranth.lib.enum import unique, IntEnum, auto
+
 from amaranth_types import ValueLike
 
-from .isa import Extension, extensions_with_implications, extension_implications_for, extension_only_implies
+from .isa import Extension, extension_implications, extension_only_implies
 
 __all__ = [
     "OpType",
@@ -182,10 +183,8 @@ def optypes_required_by_extensions(
         for ext in Extension:
             if ext in extensions:
                 # check if extensions has implications, but skip if we don't have defined any optypes for it yet
-                if ext in extensions_with_implications and (
-                    ext in optypes_by_extensions or ext in extension_only_implies
-                ):
-                    implied_extensions |= extension_implications_for(ext)
+                if ext in extension_implications and (ext in optypes_by_extensions or ext in extension_only_implies):
+                    implied_extensions |= extension_implications[ext]
         extensions |= implied_extensions
 
     for ext in Extension:
