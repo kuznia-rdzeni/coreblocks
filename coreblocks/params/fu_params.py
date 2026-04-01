@@ -1,20 +1,17 @@
-from abc import ABC, abstractmethod
-from collections.abc import Collection, Iterable
+from abc import abstractmethod, ABC
 from dataclasses import KW_ONLY, dataclass, field
+from collections.abc import Collection, Iterable
+
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
+from coreblocks.arch.isa import Extension, extension_implications, get_c_extension_expansion
+from coreblocks.arch.optypes import optypes_required_by_extensions, OpType
+
 from typing import TYPE_CHECKING
 
-from coreblocks.arch.isa import (
-    Extension,
-    extension_implications,
-    get_c_extension_expansion,
-)
-from coreblocks.arch.optypes import OpType, optypes_required_by_extensions
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
-
 if TYPE_CHECKING:
+    from coreblocks.params.genparams import GenParams
     from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
     from coreblocks.interface.layouts import RSInterfaceLayouts
-    from coreblocks.params.genparams import GenParams
 
 
 __all__ = [

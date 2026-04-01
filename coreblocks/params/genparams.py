@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from amaranth.utils import ceil_log2, exact_log2
 
 from coreblocks.arch.isa import ISA, gen_isa_string
+from .icache_params import ICacheParameters
+from .fu_params import extensions_supported
+from ..peripherals.wishbone import WishboneParameters
 from transactron.utils import DependentCache
 
-from ..peripherals.wishbone import WishboneParameters
-from .fu_params import extensions_supported
-from .icache_params import ICacheParameters
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .configurations import CoreConfiguration
