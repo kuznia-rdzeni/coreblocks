@@ -2,7 +2,6 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
 from transactron.core import TModule
-from transactron.utils import PriorityEncoder
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
 from coreblocks.params import *
@@ -57,13 +56,9 @@ class PMPChecker(Elaboratable):
         if n == 0:
             return m
 
-        matches = Signal(n)
-        cfgs = []
-
-        for i in range(n):
+        for i in reversed(range(n)):
             cfg_val = data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value)
             addr_val = self.csr.pmpaddrx[i].value
-            cfgs.append(cfg_val)
 
             entry_match = Signal(name=f"match_{i}")
 
@@ -79,19 +74,9 @@ class PMPChecker(Elaboratable):
                     napot_mask = addr_val ^ (addr_val + 1)
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
-            m.d.comb += matches[i].eq(entry_match)
-
-        cfgs = Array(cfgs)
-
-        m.submodules.prio_encoder = prio_encoder = PriorityEncoder(n)
-        m.d.comb += prio_encoder.i.eq(matches)
-
-        idx = prio_encoder.o
-        match = ~prio_encoder.n
-
-        with m.If(match & ((priv_mode != PrivilegeLevel.MACHINE) | cfgs[idx].L)):
-            m.d.comb += self.result.r.eq(cfgs[idx].R)
-            m.d.comb += self.result.w.eq(cfgs[idx].W)
-            m.d.comb += self.result.x.eq(cfgs[idx].X)
+            with m.If(entry_match & ((priv_mode != PrivilegeLevel.MACHINE) | cfg_val.L)):
+                m.d.comb += self.result.r.eq(cfg_val.R)
+                m.d.comb += self.result.w.eq(cfg_val.W)
+                m.d.comb += self.result.x.eq(cfg_val.X)
 
         return m
