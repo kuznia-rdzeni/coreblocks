@@ -56,9 +56,15 @@ class PMPChecker(Elaboratable):
         if n == 0:
             return m
 
-        for i in reversed(range(n)):
+        entry_matches = []
+        cfgs = []
+        addr_vals = []
+
+        for i in range(n):
             cfg_val = data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value)
             addr_val = self.csr.pmpaddrx[i].value
+            cfgs.append(cfg_val)
+            addr_vals.append(addr_val)
 
             entry_match = Signal(name=f"match_{i}")
 
@@ -66,7 +72,7 @@ class PMPChecker(Elaboratable):
                 with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
-                    lower = self.csr.pmpaddrx[i - 1].value if i > 0 else 0
+                    lower = addr_vals[i - 1] if i > 0 else 0
                     m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
                 with m.Case(PMPAFlagEncoding.NA4):
                     m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
@@ -74,9 +80,24 @@ class PMPChecker(Elaboratable):
                     napot_mask = addr_val ^ (addr_val + 1)
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
-            with m.If(entry_match & ((priv_mode != PrivilegeLevel.MACHINE) | cfg_val.L)):
-                m.d.comb += self.result.r.eq(cfg_val.R)
-                m.d.comb += self.result.w.eq(cfg_val.W)
-                m.d.comb += self.result.x.eq(cfg_val.X)
+            entry_matches.append(entry_match)
+
+        matches = Cat(entry_matches)
+        one_hot = matches & (~matches + 1)
+
+        r_bits = Cat(cfg.R for cfg in cfgs)
+        w_bits = Cat(cfg.W for cfg in cfgs)
+        x_bits = Cat(cfg.X for cfg in cfgs)
+        l_bits = Cat(cfg.L for cfg in cfgs)
+
+        selected_r = (one_hot & r_bits).any()
+        selected_w = (one_hot & w_bits).any()
+        selected_x = (one_hot & x_bits).any()
+        selected_l = (one_hot & l_bits).any()
+
+        with m.If(matches.any() & ((priv_mode != PrivilegeLevel.MACHINE) | selected_l)):
+            m.d.comb += self.result.r.eq(selected_r)
+            m.d.comb += self.result.w.eq(selected_w)
+            m.d.comb += self.result.x.eq(selected_x)
 
         return m
