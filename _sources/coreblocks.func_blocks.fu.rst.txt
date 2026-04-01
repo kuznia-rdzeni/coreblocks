@@ -78,6 +78,14 @@ coreblocks.func\_blocks.fu.zbc module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.func\_blocks.fu.zbkx module
+--------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.zbkx
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.func\_blocks.fu.zbs module
 -------------------------------------
 
