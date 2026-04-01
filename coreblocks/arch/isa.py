@@ -1,7 +1,7 @@
 from itertools import takewhile
 
-import enum
 from amaranth.lib.enum import unique, auto
+import enum
 
 __all__ = [
     "Extension",
