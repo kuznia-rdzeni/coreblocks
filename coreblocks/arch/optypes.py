@@ -46,6 +46,7 @@ class OpType(IntEnum):
     UNARY_BIT_MANIPULATION_3 = auto()
     UNARY_BIT_MANIPULATION_4 = auto()
     UNARY_BIT_MANIPULATION_5 = auto()
+    CROSSBAR_PERMUTATION = auto()
     CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
@@ -153,6 +154,9 @@ optypes_by_extensions = {
     ],
     Extension.ZBC: [
         OpType.CLMUL,
+    ],
+    Extension.ZBKX: [
+        OpType.CROSSBAR_PERMUTATION,
     ],
     Extension.ZICOND: [
         OpType.CZERO,
