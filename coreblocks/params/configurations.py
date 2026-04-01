@@ -19,6 +19,7 @@ from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
 from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.func_blocks.fu.div_unit import DivComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
+from coreblocks.func_blocks.fu.zbkx import ZbkxComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
@@ -239,6 +240,7 @@ full_core_config = CoreConfiguration(
                 ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
                 ZbcComponent(),
+                ZbkxComponent(),
                 ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),

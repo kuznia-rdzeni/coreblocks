@@ -196,6 +196,10 @@ instructions_by_optype = {
         Encoding(Opcode.OP, Funct3.CLMULH, Funct7.CLMUL),
         Encoding(Opcode.OP, Funct3.CLMULR, Funct7.CLMUL),
     ],
+    OpType.CROSSBAR_PERMUTATION: [
+        Encoding(Opcode.OP, Funct3.XPERM4, Funct7.XPERM),
+        Encoding(Opcode.OP, Funct3.XPERM8, Funct7.XPERM),
+    ],
     OpType.SRET: [
         Encoding(Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.SRET, rd_zero=True, rs1_zero=True),  # sret
     ],
