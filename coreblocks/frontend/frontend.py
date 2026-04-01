@@ -1,7 +1,7 @@
 from amaranth import *
 
 from transactron.core import *
-from transactron.lib import BasicFifo, Connect, WideFifo
+from transactron.lib import BasicFifo, Connect, Pipe
 from transactron.utils import assign
 from transactron.utils.dependencies import DependencyContext
 
@@ -155,12 +155,7 @@ class CoreFrontend(Elaboratable):
         self.fetch.stall_unsafe.provide(self.stall_ctrl.stall_unsafe)
 
         # TODO: change back to Pipe after Scheduler made superscalar
-        self.output_pipe = WideFifo(
-            self.gen_params.get(SchedulerLayouts).scheduler_in,
-            2 * gen_params.frontend_superscalarity,
-            read_width=1,
-            write_width=gen_params.frontend_superscalarity,
-        )
+        self.output_pipe = Pipe(self.gen_params.get(SchedulerLayouts).scheduler_in)
         self.decode_buff = Connect(self.gen_params.get(DecodeLayouts).decode_result)
 
         # TODO: move and implement these methods
@@ -195,6 +190,7 @@ class CoreFrontend(Elaboratable):
         m.submodules.rollback_tagger = rollback_tagger = self.rollback_tagger
         rollback_tagger.get_instr.provide(self.decode_buff.read)
         rollback_tagger.push_instr.provide(self.output_pipe.write)
+        self.consume_instr.provide(self.output_pipe.read)
 
         m.submodules.output_pipe = self.output_pipe
 
@@ -206,10 +202,6 @@ class CoreFrontend(Elaboratable):
         with Transaction(name="DiscardBranchVerify").body(m):
             read = self.connections.get_dependency(BranchVerifyKey())
             read(m)  # Consume to not block JB Unit
-
-        @def_method(m, self.consume_instr)
-        def _():
-            return self.output_pipe.read(m, count=1).data[0]
 
         @def_method(m, self.target_pred_req)
         def _():
