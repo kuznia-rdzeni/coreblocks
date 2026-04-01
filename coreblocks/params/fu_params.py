@@ -3,7 +3,12 @@ from collections.abc import Collection, Iterable
 from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING
 
-from coreblocks.arch.isa import Extension, extension_implications_for, extensions_with_implications
+from coreblocks.arch.isa import (
+    Extension,
+    extension_implications_for,
+    extensions_with_implications,
+    get_c_extension_expansion,
+)
 from coreblocks.arch.optypes import OpType, optypes_required_by_extensions
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
 
@@ -118,17 +123,10 @@ def extensions_supported(
             extensions_full ^= Extension.I
 
     if compressed:
-        extensions_partial |= Extension.C | Extension.ZCB | Extension.ZCA
-        extensions_full |= Extension.C | Extension.ZCB | Extension.ZCA
+        partial_c = get_c_extension_expansion(extensions_partial, xlen)
+        full_c = get_c_extension_expansion(extensions_full, xlen)
 
-        if xlen == 32 and Extension.F in extensions_partial:
-            extensions_partial |= Extension.ZCF
-        if xlen == 32 and Extension.F in extensions_full:
-            extensions_full |= Extension.ZCF
-
-        if Extension.D in extensions_partial:
-            extensions_partial |= Extension.ZCD
-        if Extension.D in extensions_full:
-            extensions_full |= Extension.ZCD
+        extensions_partial |= Extension.C | Extension.ZCB | partial_c
+        extensions_full |= Extension.C | Extension.ZCB | full_c
 
     return (extensions_partial, extensions_full)

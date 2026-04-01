@@ -140,6 +140,15 @@ def extension_implications_for(extension: Extension) -> Extension:
     return implied
 
 
+def get_c_extension_expansion(extensions: Extension, xlen: int) -> Extension:
+    c_alias_mask = Extension.ZCA
+    if Extension.F in extensions and xlen == 32:
+        c_alias_mask |= Extension.ZCF
+    if Extension.D in extensions:
+        c_alias_mask |= Extension.ZCD
+    return c_alias_mask
+
+
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
 extension_only_implies = {
     Extension.A,
@@ -224,33 +233,13 @@ class ISA:
             if ext in self.extensions:
                 self.extensions |= _extension_implications[ext]
 
-        # C in ISA string expands to Zc* extensions based on F and D presence
-        if self.extensions & Extension.C:
-            if self.extensions & Extension.F and self.xlen == 32:
-                self.extensions |= Extension.ZCF
-            if self.extensions & Extension.D:
-                self.extensions |= Extension.ZCD
-        else:
-            # Determine whether C extension is set based on the presence of Zc* extensions
-            c_is_set = False
-            if self.extensions & Extension.ZCA:
-                if not self.extensions & Extension.F:
-                    # Zca without F
-                    c_is_set = True
-                elif self.extensions & Extension.D:
-                    if self.xlen == 32:
-                        # Zca + Zcf + Zcd + F + D on RV32
-                        c_is_set = self.extensions & Extension.ZCF and self.extensions & Extension.ZCD
-                    elif self.xlen == 64:
-                        # Zca + Zcd + D on RV64
-                        c_is_set = self.extensions & Extension.ZCD
-                elif self.xlen == 32:
-                    # Zca + Zcf + F (but not D) on RV32
-                    c_is_set = self.extensions & Extension.ZCF
-            # otherwise C is not set
+        c_alias_mask = get_c_extension_expansion(self.extensions, self.xlen)
 
-            if c_is_set:
-                self.extensions |= Extension.C
+        if self.extensions & Extension.C:
+            self.extensions |= c_alias_mask
+
+        if c_alias_mask in self.extensions:
+            self.extensions |= Extension.C
 
         if self.extensions & Extension.ZCF and self.xlen != 32:
             raise RuntimeError("ISA extension Zcf is only relevant to RV32")
