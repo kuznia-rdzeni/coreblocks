@@ -1,18 +1,16 @@
-from abc import abstractmethod, ABC
-from dataclasses import KW_ONLY, dataclass, field
+from abc import ABC, abstractmethod
 from collections.abc import Collection, Iterable
-
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
-from coreblocks.arch.isa import Extension, extension_implications
-from coreblocks.arch.optypes import optypes_required_by_extensions, OpType
-
+from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING
 
+from coreblocks.arch.isa import Extension, extension_implications_for, extensions_with_implications
+from coreblocks.arch.optypes import OpType, optypes_required_by_extensions
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
 
 if TYPE_CHECKING:
-    from coreblocks.params.genparams import GenParams
     from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
     from coreblocks.interface.layouts import RSInterfaceLayouts
+    from coreblocks.params.genparams import GenParams
 
 
 __all__ = [
@@ -62,20 +60,25 @@ class FunctionalComponentParams(ABC):
         return self.decoder_manager.get_op_types()
 
 
-def optypes_supported(components: Iterable[BlockComponentParams | FunctionalComponentParams]) -> set["OpType"]:
+def optypes_supported(
+    components: Iterable[BlockComponentParams | FunctionalComponentParams],
+) -> set["OpType"]:
     return {optype for component in components for optype in component.get_optypes()}
 
 
 def _remove_implications(extensions: Extension):
-    implied_extensions = Extension(0)
+    implied = Extension(0)
     for ext in Extension:
-        if ext in extensions and ext in extension_implications:
-            implied_extensions |= extension_implications[ext]
-    return extensions & ~implied_extensions
+        if ext in extensions and ext in extensions_with_implications:
+            implied |= extension_implications_for(ext)
+    return extensions & ~implied
 
 
 def extensions_supported(
-    fu_config: Collection[BlockComponentParams], embedded: bool = False, compressed: bool = False
+    fu_config: Collection[BlockComponentParams],
+    xlen: int,
+    embedded: bool = False,
+    compressed: bool = False,
 ) -> tuple[Extension, Extension]:
     optypes = optypes_supported(fu_config)
 
@@ -115,7 +118,17 @@ def extensions_supported(
             extensions_full ^= Extension.I
 
     if compressed:
-        extensions_partial |= Extension.C
-        extensions_full |= Extension.C
+        extensions_partial |= Extension.C | Extension.ZCB | Extension.ZCA
+        extensions_full |= Extension.C | Extension.ZCB | Extension.ZCA
+
+        if xlen == 32 and Extension.F in extensions_partial:
+            extensions_partial |= Extension.ZCF
+        if xlen == 32 and Extension.F in extensions_full:
+            extensions_full |= Extension.ZCF
+
+        if Extension.D in extensions_partial:
+            extensions_partial |= Extension.ZCD
+        if Extension.D in extensions_full:
+            extensions_full |= Extension.ZCD
 
     return (extensions_partial, extensions_full)

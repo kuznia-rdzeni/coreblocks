@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from amaranth.utils import ceil_log2, exact_log2
 
 from coreblocks.arch.isa import ISA, gen_isa_string
-from .icache_params import ICacheParameters
-from .fu_params import extensions_supported
-from ..peripherals.wishbone import WishboneParameters
 from transactron.utils import DependentCache
 
-from typing import TYPE_CHECKING
+from ..peripherals.wishbone import WishboneParameters
+from .fu_params import extensions_supported
+from .icache_params import ICacheParameters
 
 if TYPE_CHECKING:
     from .configurations import CoreConfiguration
@@ -22,7 +23,7 @@ class GenParams(DependentCache):
 
         self.func_units_config = cfg.func_units_config
 
-        ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
+        ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.xlen, cfg.embedded, cfg.compressed)
         extensions = ext_partial if cfg.allow_partial_extensions else ext_full
         if not cfg.allow_partial_extensions and ext_partial != ext_full:
             raise RuntimeError(f"Extensions {ext_partial & ~ext_full!r} are only partially supported")

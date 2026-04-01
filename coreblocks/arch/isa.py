@@ -1,7 +1,7 @@
+import enum
 from itertools import takewhile
 
-from amaranth.lib.enum import unique, auto
-import enum
+from amaranth.lib.enum import auto, unique
 
 __all__ = [
     "Extension",
@@ -121,13 +121,22 @@ _extension_requirements = {
 }
 
 # Extensions which implicitly imply another extensions (can be joined using | operator)
-extension_implications = {
+_extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.A: Extension.ZAAMO | Extension.ZALRSC,
     Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBS,
     Extension.C: Extension.ZCA,  # conditionally implies also ZCF and ZCD (handled separately)
 }
+
+extensions_with_implications = set(_extension_implications.keys())
+
+
+def extension_implications_for(extension: Extension) -> Extension:
+    assert extension != Extension.C, "C extension implications are conditional and cannot be returned by this function"
+    implied = _extension_implications[extension]
+    return implied
+
 
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
 extension_only_implies = {
@@ -209,9 +218,9 @@ class ISA:
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
 
-        for ext, imply in extension_implications.items():
+        for ext in extensions_with_implications:
             if ext in self.extensions:
-                self.extensions |= imply
+                self.extensions |= _extension_implications[ext]
 
         # C in ISA string expands to Zc* extensions based on F and D presence
         if self.extensions & Extension.C:

@@ -202,17 +202,13 @@ class InstrDecompress(Elaboratable):
         and_ = RTypeInstr(opcode=Opcode.OP, rd=rd_rs1, funct3=Funct3.AND, rs1=rd_rs1, rs2=rs2, funct7=Funct7.AND)
         rtype = self.instr_mux(self.instr_in[5:7], [sub, xor, or_, and_])
 
-        zcb_enabled = bool(self.gen_params.isa.extensions & Extension.ZCB)
-        zbb_enabled = bool(self.gen_params.isa.extensions & Extension.ZBB)
-        mul_enabled = bool(self.gen_params.isa.extensions & (Extension.M | Extension.ZMMUL))
-
         zext_b = (
             ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.AND, rs1=rd_rs1, imm=C(0xFF, 12)),
-            zcb_enabled,
+            1,
         )
         sext_b = (
             ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.SEXTB, rs1=rd_rs1, imm=Funct12.SEXTB),
-            zcb_enabled & zbb_enabled,
+            Extension.ZBB in self.gen_params.isa.extensions,
         )
         zext_h = (
             RTypeInstr(
@@ -223,36 +219,40 @@ class InstrDecompress(Elaboratable):
                 rs2=Registers.ZERO,
                 funct7=Funct7.ZEXTH,
             ),
-            zcb_enabled & zbb_enabled,
+            Extension.ZBB in self.gen_params.isa.extensions,
         )
         sext_h = (
             ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.SEXTH, rs1=rd_rs1, imm=Funct12.SEXTH),
-            zcb_enabled & zbb_enabled,
+            Extension.ZBB in self.gen_params.isa.extensions,
         )
+        zext_w = (IllegalInstr(), 0)  # FIXME: Update when ADD.UW is implemented for RV64+
         not_ = (
             ITypeInstr(opcode=Opcode.OP_IMM, rd=rd_rs1, funct3=Funct3.XOR, rs1=rd_rs1, imm=C(-1, 12)),
-            zcb_enabled,
+            1,
         )
 
         mul = (
             RTypeInstr(opcode=Opcode.OP, rd=rd_rs1, funct3=Funct3.MUL, rs1=rd_rs1, rs2=rs2, funct7=Funct7.MULDIV),
-            zcb_enabled & mul_enabled,
+            Extension.ZMMUL in self.gen_params.isa.extensions or Extension.M in self.gen_params.isa.extensions,
         )
 
-        zcb_unary = self.instr_mux(
-            self.instr_in[2:5],
-            [
-                zext_b,
-                sext_b,
-                zext_h,
-                sext_h,
-                (IllegalInstr(), 0),
-                not_,
-                (IllegalInstr(), 0),
-                (IllegalInstr(), 0),
-            ],
-        )
-        zcb_group = self.instr_mux(self.instr_in[5:7], [(IllegalInstr(), 0), (IllegalInstr(), 0), mul, zcb_unary])
+        if Extension.ZCB in self.gen_params.isa.extensions:
+            zcb_unary = self.instr_mux(
+                self.instr_in[2:5],
+                [
+                    zext_b,
+                    sext_b,
+                    zext_h,
+                    sext_h,
+                    zext_w,
+                    not_,
+                    (IllegalInstr(), 0),
+                    (IllegalInstr(), 0),
+                ],
+            )
+            zcb_group = self.instr_mux(self.instr_in[5:7], [(IllegalInstr(), 0), (IllegalInstr(), 0), mul, zcb_unary])
+        else:
+            zcb_group = (IllegalInstr(), 0)
 
         if self.gen_params.isa.xlen != 32:
             subw = (
