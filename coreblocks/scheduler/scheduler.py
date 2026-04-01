@@ -2,8 +2,8 @@ from collections.abc import Sequence
 
 from amaranth import *
 
-from transactron import Method, Required, Transaction, TModule
-from transactron.lib import FIFO
+from transactron import Method, Methods, Required, Transaction, TModule, def_method
+from transactron.lib import FIFO, WideFifo
 from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
@@ -22,9 +22,9 @@ class RegAllocation(Elaboratable):
     the instruction result). A part of the scheduling process.
     """
 
-    get_instr: Required[Method]
-    push_instr: Required[Method]
-    get_free_reg: Required[Method]
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
+    get_free_reg: Required[Methods]
 
     def __init__(self, *, gen_params: GenParams):
         """
@@ -36,25 +36,24 @@ class RegAllocation(Elaboratable):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.reg_alloc_in)
-        self.push_instr = Method(i=layouts.reg_alloc_out)
-        self.get_free_reg = Method(o=layouts.free_rf_layout)
+        self.get_instrs = Method(o=layouts.reg_alloc_in)
+        self.push_instrs = Method(i=layouts.reg_alloc_out)
+        self.get_free_reg = Methods(gen_params.frontend_superscalarity, o=layouts.free_rf_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        free_reg = Signal(self.gen_params.phys_regs_bits)
-        data_out = Signal(self.push_instr.layout_in)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            with m.If(instr.regs_l.rl_dst != 0):
-                reg_id = self.get_free_reg(m)
-                m.d.comb += free_reg.eq(reg_id)
+            instrs = self.get_instrs(m)
+            m.d.av_comb += assign(data_out, instrs)
 
-            m.d.comb += assign(data_out, instr)
-            m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
-            self.push_instr(m, data_out)
+            for i in range(self.gen_params.frontend_superscalarity):
+                with m.If((i < instrs.count) & (instrs.data[i].regs_l.rl_dst != 0)):
+                    m.d.av_comb += data_out.data[i].regs_p.rp_dst.eq(self.get_free_reg[i](m).ident)
+
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -379,7 +378,7 @@ class Scheduler(Elaboratable):
     by `SchedulerLayouts.scheduler_in`.
     """
 
-    get_free_reg: Required[Method]
+    get_free_reg: Required[Methods]
     """Provides the ID of a currently free physical register."""
 
     crat_rename: Required[Method]
@@ -422,7 +421,7 @@ class Scheduler(Elaboratable):
         self.gen_params = gen_params
         self.layouts = self.gen_params.get(SchedulerLayouts)
         self.get_instr = Method(o=self.layouts.scheduler_in)
-        self.get_free_reg = Method(o=self.layouts.free_rf_layout)
+        self.get_free_reg = Methods(gen_params.frontend_superscalarity, o=self.layouts.free_rf_layout)
         self.crat_rename = Method(
             i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out
         )
@@ -440,15 +439,26 @@ class Scheduler(Elaboratable):
         m = TModule()
 
         # This could be ideally changed to Connect, but unfortunately causes comb loop
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
+        # TODO: convert back to normal FIFO
+        m.submodules.alloc_rename_buf = alloc_rename_buf = WideFifo(
+            self.layouts.instr_tag_in_data,
+            2 * self.gen_params.frontend_superscalarity,
+            1,
+            self.gen_params.frontend_superscalarity,
+        )
         m.submodules.reg_alloc = reg_alloc = RegAllocation(gen_params=self.gen_params)
-        reg_alloc.get_instr.provide(self.get_instr)
-        reg_alloc.push_instr.provide(alloc_rename_buf.write)
+        reg_alloc.get_instrs.provide(self.get_instr)
+        reg_alloc.push_instrs.provide(alloc_rename_buf.write)
         reg_alloc.get_free_reg.provide(self.get_free_reg)
 
         m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)
         m.submodules.instr_tag = instr_tag = InstructionTagger(gen_params=self.gen_params)
-        instr_tag.get_instr.provide(alloc_rename_buf.read)
+
+        # instr_tag.get_instr.provide(alloc_rename_buf.read)
+        @def_method(m, instr_tag.get_instr)
+        def _():
+            return alloc_rename_buf.read(m, count=1).data[0]
+
         instr_tag.push_instr.provide(instr_tag_buf.write)
         instr_tag.crat_tag.provide(self.crat_tag)
 
