@@ -52,17 +52,18 @@ class RollbackTagger(Elaboratable):
         with Transaction().body(m):
             instrs = self.get_instr(m)
 
-            # fetcher guarantees that if branch is present, it's the last insn
-            is_branch = instrs.data[(instrs.count - 1).as_unsigned()].exec_fn.op_type == OpType.BRANCH
-            # no need to make checkpoint at JALR, we currently stall the fetch on it
-
             out = Signal(self.gen_params.get(DecodeLayouts).tagged_decode_result)
             m.d.av_comb += assign(out, instrs)
             # TODO: as branch is always the first insn, these should be per group
             for i in range(self.gen_params.frontend_superscalarity):
+                # fetcher guarantees that if branch is present, it's the last insn
+                # but computing this for each insn is simpler
+                is_branch = instrs.data[i].exec_fn.op_type == OpType.BRANCH
+                # no need to make checkpoint at JALR, we currently stall the fetch on it
+
                 m.d.av_comb += out.data[i].rollback_tag.eq(rollback_tag)
                 m.d.av_comb += out.data[i].rollback_tag_v.eq(rollback_tag_v)
-            m.d.av_comb += out.data[(instrs.count - 1).as_unsigned()].commit_checkpoint.eq(is_branch)
+                m.d.av_comb += out.data[i].commit_checkpoint.eq(is_branch)
 
             m.d.sync += rollback_tag_v.eq(0)
 
