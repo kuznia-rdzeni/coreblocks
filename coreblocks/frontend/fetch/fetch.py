@@ -99,9 +99,9 @@ class FetchUnit(Elaboratable):
         with Transaction(name="cont").body(m):
             peek_result = serializer.peek(m)
             count = Signal(range(self.gen_params.frontend_superscalarity + 1))
-            # we want only one branch insn in scheduling group, and only at the beginning (for simplicity)
+            # we want at most one branch insn in scheduling group, and only at the end (for simplicity)
             # some insts in peek_result.data might not be valid, but this is still correct
-            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in peek_result.data][1:]
+            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in peek_result.data][:-1]
             m.d.comb += count.eq(count_trailing_zeros(Cat(which_is_branch)))
             result = serializer.read(m, count=count)
             for i in range(self.gen_params.frontend_superscalarity):
