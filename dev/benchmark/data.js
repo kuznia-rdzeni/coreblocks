@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775051794949,
+  "lastUpdate": 1775158154698,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19645,6 +19645,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.42871920006365544,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "75fbef42c36ff88e8632e19cbb9189c84a2f6810",
+          "message": "Superscalar rename prep (#880)",
+          "timestamp": "2026-04-02T21:09:47+02:00",
+          "tree_id": "4cfaae371c7e704166f100012536dce69daeb9c6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/75fbef42c36ff88e8632e19cbb9189c84a2f6810"
+        },
+        "date": 1775158147513,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4201212633953751,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544117647058824,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3511545717854011,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6522292612062123,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35626110124333926,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.29541246979823654,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32365949498687246,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.42631828811562605,
             "unit": "Instructions Per Cycle"
           }
         ]
