@@ -9,6 +9,7 @@ from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
 from transactron.lib.storage import MemoryBank
 from transactron.utils import DependencyContext, assign, cyclic_mask, mod_incr, popcount
+from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
@@ -72,6 +73,7 @@ class CheckpointRAT(Elaboratable):
 
         layouts = gen_params.get(RATLayouts)
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
+        self.commit_checkpoint = Method(i=layouts.crat_commit_checkpoint_in)
         self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
         self.flush_restore = Method(i=layouts.crat_flush_restore)
 
@@ -166,24 +168,19 @@ class CheckpointRAT(Elaboratable):
         # --------------------------------------
 
         create_checkpoint_pipe = Pipe([("checkpoint", range(self.gen_params.checkpoint_count))])
+        tag_valid = Signal()
+        group_tag = Signal(self.gen_params.tag_bits)
 
-        active_renames = Signal(
-            ArrayLayout(self.gen_params.get(RATLayouts).active_rename_layout, self.gen_params.frontend_superscalarity)
-        )
-
-        def frat_get(k: int, rl: Value):
-            return self.frat[rl]
-
-        @def_methods(m, self.rename)
-        def _(k: int, rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value, tag: Value, commit_checkpoint: Value):
+        @def_method(m, self.commit_checkpoint)
+        def _(tag: Value):
+            m.d.av_comb += group_tag.eq(tag)
             # don't overwrite freshly restored FRAT with flushed inactive instructions
-            tag_valid = Signal()
             m.d.av_comb += tag_valid.eq(~frat_lock | (tag == frat_unlock_tag))
             with m.If(tag_valid):
                 m.d.sync += frat_lock.eq(0)
 
             with condition(m, nonblocking=True) as cond:
-                with cond(commit_checkpoint & tag_valid):
+                with cond(tag_valid):
                     checkpoint_id = make_new_checkpoint(from_tag=tag).checkpoint
                     log.debug(m, True, "checkpoint created t 0x{:x} -> c 0x{:x}", tag, checkpoint_id)
                     # Checkpoints have to save frat state after instruction (ex. JALR writes rd), write to storage is
@@ -192,6 +189,24 @@ class CheckpointRAT(Elaboratable):
                     create_checkpoint_pipe.write(m, checkpoint=checkpoint_id)
                     # Future optimization: If no change happened in FRAT, then checkpoint
                     # could be shared with multiple tags (useful for branch chains)
+
+        active_renames = Signal(
+            ArrayLayout(self.gen_params.get(RATLayouts).active_rename_layout, self.gen_params.frontend_superscalarity)
+        )
+
+        def frat_get(k: int, rl: Value):
+            return OneHotMux.create(
+                m,
+                [
+                    (active_renames[i].active & (active_renames[i].rl_dst == rl), active_renames[i].rp_dst)
+                    for i in range(k)
+                ],
+                self.frat[rl],
+            )
+
+        @def_methods(m, self.rename)
+        def _(k: int, rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
+            log.assertion(m, self.commit_checkpoint.run, "commit_checkpoint must run simultaneously with rename")
 
             with m.If(tag_valid & (rl_dst != 0)):
                 m.d.comb += active_renames[k].valid.eq(1)
@@ -207,7 +222,7 @@ class CheckpointRAT(Elaboratable):
                 frat_get(k, rl_s1),
                 rl_s2,
                 frat_get(k, rl_s2),
-                tag,
+                group_tag,
                 frat_unlock_tag,
                 tag_valid,
             )

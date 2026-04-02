@@ -4,7 +4,6 @@ from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule, def_method
 from transactron.lib import FIFO, WideFifo
-from transactron.lib.connectors import Connect
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -109,7 +108,8 @@ class Renaming(Elaboratable):
 
     get_instr: Required[Method]
     push_instr: Required[Method]
-    rename: Required[Method]
+    crat_commit_checkpoint: Required[Method]
+    rename: Required[Methods]
 
     def __init__(self, *, gen_params: GenParams):
         """
@@ -123,7 +123,12 @@ class Renaming(Elaboratable):
 
         self.get_instr = Method(o=layouts.renaming_in)
         self.push_instr = Method(i=layouts.renaming_out)
-        self.rename = Method(i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out)
+        self.crat_commit_checkpoint = Method(i=gen_params.get(RATLayouts).crat_commit_checkpoint_in)
+        self.rename = Methods(
+            gen_params.frontend_superscalarity,
+            i=gen_params.get(RATLayouts).crat_rename_in,
+            o=gen_params.get(RATLayouts).crat_rename_out,
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -381,7 +386,10 @@ class Scheduler(Elaboratable):
     get_free_reg: Required[Methods]
     """Provides the ID of a currently free physical register."""
 
-    crat_rename: Required[Method]
+    crat_commit_checkpoint: Required[Method]
+    """Handles tags and checkpoints in C-RAT while renaming.."""
+
+    crat_rename: Required[Methods]
     """Renames the source register in C-RAT."""
 
     crat_tag: Required[Method]
@@ -422,8 +430,11 @@ class Scheduler(Elaboratable):
         self.layouts = self.gen_params.get(SchedulerLayouts)
         self.get_instr = Method(o=self.layouts.scheduler_in)
         self.get_free_reg = Methods(gen_params.frontend_superscalarity, o=self.layouts.free_rf_layout)
-        self.crat_rename = Method(
-            i=gen_params.get(RATLayouts).crat_rename_in, o=gen_params.get(RATLayouts).crat_rename_out
+        self.crat_commit_checkpoint = Method(i=gen_params.get(RATLayouts).crat_commit_checkpoint_in)
+        self.crat_rename = Methods(
+            gen_params.frontend_superscalarity,
+            i=gen_params.get(RATLayouts).crat_rename_in,
+            o=gen_params.get(RATLayouts).crat_rename_out,
         )
         self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
         self.crat_tag = Method(i=gen_params.get(RATLayouts).crat_tag_in, o=gen_params.get(RATLayouts).crat_tag_out)
@@ -439,13 +450,7 @@ class Scheduler(Elaboratable):
         m = TModule()
 
         # This could be ideally changed to Connect, but unfortunately causes comb loop
-        # TODO: convert back to normal FIFO
-        m.submodules.alloc_rename_buf = alloc_rename_buf = WideFifo(
-            self.layouts.instr_tag_in_data,
-            2 * self.gen_params.frontend_superscalarity,
-            1,
-            self.gen_params.frontend_superscalarity,
-        )
+        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
         m.submodules.reg_alloc = reg_alloc = RegAllocation(gen_params=self.gen_params)
         reg_alloc.get_instrs.provide(self.get_instr)
         reg_alloc.push_instrs.provide(alloc_rename_buf.write)
@@ -453,16 +458,18 @@ class Scheduler(Elaboratable):
 
         m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)
         m.submodules.instr_tag = instr_tag = InstructionTagger(gen_params=self.gen_params)
-
-        # instr_tag.get_instr.provide(alloc_rename_buf.read)
-        @def_method(m, instr_tag.get_instr)
-        def _():
-            return alloc_rename_buf.read(m, count=1).data[0]
-
+        instr_tag.get_instr.provide(alloc_rename_buf.read)
         instr_tag.push_instr.provide(instr_tag_buf.write)
         instr_tag.crat_tag.provide(self.crat_tag)
 
-        m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
+        # m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
+        # TODO: convert back to Connect
+        m.submodules.rename_out_buf = rename_out_buf = WideFifo(
+            self.layouts.rob_allocate_in_data,
+            2 * self.gen_params.frontend_superscalarity,
+            1,
+            self.gen_params.frontend_superscalarity,
+        )
         m.submodules.renaming = renaming = Renaming(gen_params=self.gen_params)
         renaming.get_instr.provide(instr_tag_buf.read)
         renaming.push_instr.provide(rename_out_buf.write)
@@ -470,7 +477,12 @@ class Scheduler(Elaboratable):
 
         m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
         m.submodules.rob_alloc = rob_alloc = ROBAllocation(gen_params=self.gen_params)
-        rob_alloc.get_instr.provide(rename_out_buf.read)
+
+        # rob_alloc.get_instr.provide(rename_out_buf.read)
+        @def_method(m, rob_alloc.get_instr)
+        def _():
+            return alloc_rename_buf.read(m, count=1).data[0]
+
         rob_alloc.push_instr.provide(rob_alloc_out_buf.write)
         rob_alloc.rob_put.provide(self.rob_put)
 
