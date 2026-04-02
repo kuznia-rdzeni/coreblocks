@@ -8,6 +8,7 @@ from coreblocks.arch.optypes import optypes_required_by_extensions, OpType
 
 from typing import TYPE_CHECKING
 
+
 if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
     from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
@@ -61,9 +62,7 @@ class FunctionalComponentParams(ABC):
         return self.decoder_manager.get_op_types()
 
 
-def optypes_supported(
-    components: Iterable[BlockComponentParams | FunctionalComponentParams],
-) -> set["OpType"]:
+def optypes_supported(components: Iterable[BlockComponentParams | FunctionalComponentParams]) -> set["OpType"]:
     return {optype for component in components for optype in component.get_optypes()}
 
 
