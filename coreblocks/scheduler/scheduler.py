@@ -62,39 +62,42 @@ class InstructionTagger(Elaboratable):
     `Scheduler` driver of `CheckpointRAT` `tag` stage. See `CheckpointRAT.tag` for description.
     """
 
-    get_instr: Required[Method]
-    push_instr: Required[Method]
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
     crat_tag: Required[Method]
 
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.instr_tag_in)
-        self.push_instr = Method(i=layouts.instr_tag_out)
+        self.get_instrs = Method(o=layouts.instr_tag_in)
+        self.push_instrs = Method(i=layouts.instr_tag_out)
         self.crat_tag = Method(i=gen_params.get(RATLayouts).crat_tag_in, o=gen_params.get(RATLayouts).crat_tag_out)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.push_instr.layout_in)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
+            instrs = self.get_instrs(m)
+
+            last_instr = Signal.like(instrs.data[0])
+            m.d.av_comb += last_instr.eq(instrs.data[(instrs.count - 1).as_unsigned()])
 
             tag_out = self.crat_tag(
                 m,
-                rollback_tag=instr.rollback_tag,
-                rollback_tag_v=instr.rollback_tag_v,
-                commit_checkpoint=instr.commit_checkpoint,
+                rollback_tag=last_instr.rollback_tag,
+                rollback_tag_v=last_instr.rollback_tag_v,
+                commit_checkpoint=last_instr.commit_checkpoint,
             )
 
-            m.d.av_comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.av_comb += data_out.tag.eq(tag_out.tag)
-            m.d.av_comb += data_out.tag_increment.eq(tag_out.tag_increment)
-            m.d.av_comb += data_out.commit_checkpoint.eq(tag_out.commit_checkpoint)
+            m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
+            m.d.av_comb += data_out.data[last_instr].tag.eq(tag_out.tag)
+            m.d.av_comb += data_out.data[last_instr].tag_increment.eq(tag_out.tag_increment)
+            m.d.av_comb += data_out.data[last_instr].commit_checkpoint.eq(tag_out.commit_checkpoint)
 
-            self.push_instr(m, data_out)
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -106,8 +109,8 @@ class Renaming(Elaboratable):
     the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
-    get_instr: Required[Method]
-    push_instr: Required[Method]
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
     crat_commit_checkpoint: Required[Method]
     rename: Required[Methods]
 
@@ -121,8 +124,8 @@ class Renaming(Elaboratable):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.renaming_in)
-        self.push_instr = Method(i=layouts.renaming_out)
+        self.get_instrs = Method(o=layouts.renaming_in)
+        self.push_instrs = Method(i=layouts.renaming_out)
         self.crat_commit_checkpoint = Method(i=gen_params.get(RATLayouts).crat_commit_checkpoint_in)
         self.rename = Methods(
             gen_params.frontend_superscalarity,
@@ -133,26 +136,37 @@ class Renaming(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.push_instr.layout_in)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            renamed_regs = self.rename(
-                m,
-                rl_s1=instr.regs_l.rl_s1,
-                rl_s2=instr.regs_l.rl_s2,
-                rl_dst=instr.regs_l.rl_dst,
-                rp_dst=instr.regs_p.rp_dst,
-                tag=instr.tag,
-                commit_checkpoint=instr.commit_checkpoint,
-            )
+            instrs = self.get_instrs(m)
 
-            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
-            m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
-            m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
-            m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
-            m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
-            self.push_instr(m, data_out)
+            m.d.av_comb += data_out.count.eq(instrs.count)
+
+            last_instr = Signal.like(instrs.data[0])
+            m.d.av_comb += last_instr.eq(instrs.data[(instrs.count - 1).as_unsigned()])
+            self.crat_commit_checkpoint(m, tag=last_instr.tag, commit_checkpoint=last_instr.commit_checkpoint)
+
+            for i in range(self.gen_params.frontend_superscalarity):
+                instr = instrs.data[i]
+                instr_out = data_out.data[i]
+
+                with m.If(i < instrs.count):
+                    renamed_regs = self.rename[i](
+                        m,
+                        rl_s1=instr.regs_l.rl_s1,
+                        rl_s2=instr.regs_l.rl_s2,
+                        rl_dst=instr.regs_l.rl_dst,
+                        rp_dst=instr.regs_p.rp_dst,
+                    )
+
+                m.d.av_comb += assign(instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
+                m.d.av_comb += assign(instr_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
+                m.d.av_comb += instr_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
+                m.d.av_comb += instr_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
+                m.d.av_comb += instr_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
+
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -458,8 +472,8 @@ class Scheduler(Elaboratable):
 
         m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)
         m.submodules.instr_tag = instr_tag = InstructionTagger(gen_params=self.gen_params)
-        instr_tag.get_instr.provide(alloc_rename_buf.read)
-        instr_tag.push_instr.provide(instr_tag_buf.write)
+        instr_tag.get_instrs.provide(alloc_rename_buf.read)
+        instr_tag.push_instrs.provide(instr_tag_buf.write)
         instr_tag.crat_tag.provide(self.crat_tag)
 
         # m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
@@ -471,8 +485,9 @@ class Scheduler(Elaboratable):
             self.gen_params.frontend_superscalarity,
         )
         m.submodules.renaming = renaming = Renaming(gen_params=self.gen_params)
-        renaming.get_instr.provide(instr_tag_buf.read)
-        renaming.push_instr.provide(rename_out_buf.write)
+        renaming.get_instrs.provide(instr_tag_buf.read)
+        renaming.push_instrs.provide(rename_out_buf.write)
+        renaming.crat_commit_checkpoint.provide(self.crat_commit_checkpoint)
         renaming.rename.provide(self.crat_rename)
 
         m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
@@ -481,7 +496,7 @@ class Scheduler(Elaboratable):
         # rob_alloc.get_instr.provide(rename_out_buf.read)
         @def_method(m, rob_alloc.get_instr)
         def _():
-            return alloc_rename_buf.read(m, count=1).data[0]
+            return rename_out_buf.read(m, count=1).data[0]
 
         rob_alloc.push_instr.provide(rob_alloc_out_buf.write)
         rob_alloc.rob_put.provide(self.rob_put)

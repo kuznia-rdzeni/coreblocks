@@ -172,7 +172,7 @@ class CheckpointRAT(Elaboratable):
         group_tag = Signal(self.gen_params.tag_bits)
 
         @def_method(m, self.commit_checkpoint)
-        def _(tag: Value):
+        def _(tag: Value, commit_checkpoint: Value):
             m.d.av_comb += group_tag.eq(tag)
             # don't overwrite freshly restored FRAT with flushed inactive instructions
             m.d.av_comb += tag_valid.eq(~frat_lock | (tag == frat_unlock_tag))
@@ -180,7 +180,7 @@ class CheckpointRAT(Elaboratable):
                 m.d.sync += frat_lock.eq(0)
 
             with condition(m, nonblocking=True) as cond:
-                with cond(tag_valid):
+                with cond(commit_checkpoint & tag_valid):
                     checkpoint_id = make_new_checkpoint(from_tag=tag).checkpoint
                     log.debug(m, True, "checkpoint created t 0x{:x} -> c 0x{:x}", tag, checkpoint_id)
                     # Checkpoints have to save frat state after instruction (ex. JALR writes rd), write to storage is
@@ -198,7 +198,7 @@ class CheckpointRAT(Elaboratable):
             return OneHotMux.create(
                 m,
                 [
-                    (active_renames[i].active & (active_renames[i].rl_dst == rl), active_renames[i].rp_dst)
+                    (active_renames[i].valid & (active_renames[i].rl_dst == rl), active_renames[i].rp_dst)
                     for i in range(k)
                 ],
                 self.frat[rl],
