@@ -9,7 +9,6 @@ from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
 from transactron.lib.storage import MemoryBank
 from transactron.utils import DependencyContext, assign, cyclic_mask, mod_incr, popcount
-from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RATLayouts
@@ -195,14 +194,12 @@ class CheckpointRAT(Elaboratable):
         )
 
         def frat_get(k: int, rl: Value):
-            return OneHotMux.create(
-                m,
-                [
-                    (active_renames[i].valid & (active_renames[i].rl_dst == rl), active_renames[i].rp_dst)
-                    for i in range(k)
-                ],
-                self.frat[rl],
-            )
+            rp = Signal(self.gen_params.phys_regs_bits)
+            m.d.av_comb += rp.eq(self.frat[rl])
+            for i in range(k):
+                with m.If(active_renames[i].valid & (active_renames[i].rl_dst == rl)):
+                    m.d.av_comb += rp.eq(active_renames[i].rp_dst)
+            return rp
 
         @def_methods(m, self.rename)
         def _(k: int, rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
@@ -212,21 +209,26 @@ class CheckpointRAT(Elaboratable):
                 m.d.comb += active_renames[k].valid.eq(1)
                 m.d.comb += active_renames[k].rl_dst.eq(rl_dst)
                 m.d.comb += active_renames[k].rp_dst.eq(rp_dst)
-                log.debug(m, True, "frat write for rl {} -> rp {}", rl_dst, rp_dst)
+                log.debug(m, True, "frat write {} for rl {} -> rp {}", k, rl_dst, rp_dst)
 
+            rp_s1 = Signal(self.gen_params.phys_regs_bits)
+            rp_s2 = Signal(self.gen_params.phys_regs_bits)
+            m.d.av_comb += rp_s1.eq(frat_get(k, rl_s1))
+            m.d.av_comb += rp_s2.eq(frat_get(k, rl_s2))
             log.debug(
                 m,
                 True,
-                "frat rename r_s1: {} -> {} r_s2 {} -> {} tag 0x{:x} [{}] ({})",
+                "frat rename {} r_s1: {} -> {} r_s2 {} -> {} tag 0x{:x} [{}] ({})",
+                k,
                 rl_s1,
-                frat_get(k, rl_s1),
+                rp_s1,
                 rl_s2,
-                frat_get(k, rl_s2),
+                rp_s2,
                 group_tag,
                 frat_unlock_tag,
                 tag_valid,
             )
-            return {"rp_s1": self.frat[rl_s1], "rp_s2": self.frat[rl_s2]}
+            return {"rp_s1": rp_s1, "rp_s2": rp_s2}
 
         with Transaction().body(m):
             checkpoint = create_checkpoint_pipe.read(m).checkpoint
