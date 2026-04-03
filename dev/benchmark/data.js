@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775158158776,
+  "lastUpdate": 1775228647145,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19709,6 +19709,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "ud",
             "value": 0.42631828811562605,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "93407779+dawidpawliczek4@users.noreply.github.com",
+            "name": "Dawid Pawliczek",
+            "username": "dawidpawliczek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9dbb2642cef8bc38514229cf68f4333984e46c3b",
+          "message": "Implement Physical Memory Protection (#870)",
+          "timestamp": "2026-04-03T16:41:08+02:00",
+          "tree_id": "1c3531a3f5e29fd32bec29ace24f7c62a3cfe89a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9dbb2642cef8bc38514229cf68f4333984e46c3b"
+        },
+        "date": 1775228639351,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4197795723370327,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543968052669923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3485496877822982,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6349970109210737,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35790600673610956,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.28801970202221067,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32097859327217126,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.42057424360036255,
             "unit": "Instructions Per Cycle"
           }
         ]
