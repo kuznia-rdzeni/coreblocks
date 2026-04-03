@@ -82,20 +82,20 @@ class InstructionTagger(Elaboratable):
         with Transaction().body(m):
             instrs = self.get_instrs(m)
 
-            last_instr = Signal.like(instrs.data[0])
-            m.d.av_comb += last_instr.eq(instrs.data[(instrs.count - 1).as_unsigned()])
+            idx = Signal(range(self.gen_params.frontend_superscalarity))
+            idx.eq(instrs.count - 1)
 
             tag_out = self.crat_tag(
                 m,
-                rollback_tag=last_instr.rollback_tag,
-                rollback_tag_v=last_instr.rollback_tag_v,
-                commit_checkpoint=last_instr.commit_checkpoint,
+                rollback_tag=instrs.data[idx].rollback_tag,
+                rollback_tag_v=instrs.data[idx].rollback_tag_v,
+                commit_checkpoint=instrs.data[idx].commit_checkpoint,
             )
 
             m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
-            m.d.av_comb += data_out.data[last_instr].tag.eq(tag_out.tag)
-            m.d.av_comb += data_out.data[last_instr].tag_increment.eq(tag_out.tag_increment)
-            m.d.av_comb += data_out.data[last_instr].commit_checkpoint.eq(tag_out.commit_checkpoint)
+            m.d.av_comb += data_out.data[idx].tag.eq(tag_out.tag)
+            m.d.av_comb += data_out.data[idx].tag_increment.eq(tag_out.tag_increment)
+            m.d.av_comb += data_out.data[idx].commit_checkpoint.eq(tag_out.commit_checkpoint)
 
             self.push_instrs(m, data_out)
 
@@ -143,9 +143,12 @@ class Renaming(Elaboratable):
 
             m.d.av_comb += data_out.count.eq(instrs.count)
 
-            last_instr = Signal.like(instrs.data[0])
-            m.d.av_comb += last_instr.eq(instrs.data[(instrs.count - 1).as_unsigned()])
-            self.crat_commit_checkpoint(m, tag=last_instr.tag, commit_checkpoint=last_instr.commit_checkpoint)
+            idx = Signal(range(self.gen_params.frontend_superscalarity))
+            idx.eq(instrs.count - 1)
+
+            self.crat_commit_checkpoint(
+                m, tag=instrs.data[idx].tag, commit_checkpoint=instrs.data[idx].commit_checkpoint
+            )
 
             for i in range(self.gen_params.frontend_superscalarity):
                 instr = instrs.data[i]
