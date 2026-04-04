@@ -1,26 +1,30 @@
-from amaranth import *
-from amaranth.lib.data import StructLayout
 from dataclasses import dataclass
 
-from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
-from transactron.utils import assign
+from amaranth import *
+from amaranth.lib.data import StructLayout
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
+from coreblocks.arch import ExceptionCause, Funct3, OpType, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
+from coreblocks.interface.keys import (
+    AsyncInterruptInsertSignalKey,
+    CSRInstancesKey,
+    CSRListKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
+    UnsafeInstructionResolvedKey,
+)
+from coreblocks.interface.layouts import (
+    CSRUnitLayouts,
+    FuncUnitLayouts,
+    RSInterfaceLayouts,
+)
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
-from coreblocks.interface.keys import (
-    CSRListKey,
-    UnsafeInstructionResolvedKey,
-    CSRInstancesKey,
-    InstructionPrecommitKey,
-    ExceptionReportKey,
-    AsyncInterruptInsertSignalKey,
-)
+from transactron import Method, Methods, TModule, Transaction, def_method, def_methods
+from transactron.utils import assign
 
 
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
@@ -135,45 +139,50 @@ class CSRUnit(FuncBlock, Elaboratable):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
             info = precommit(m, instr.rob_id)
             m.d.top_comb += exe_side_fx.eq(info.side_fx)
+            current_priv_mode = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
+
             with m.Switch(instr.csr):
                 for csr_number, methods in self.regfile.items():
                     read, write = methods
                     priv_level_required, read_only = csr_access_privilege(csr_number)
 
                     with m.Case(csr_number):
-                        priv_valid = Signal()
-                        current_priv_mode = (
-                            self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
-                        )
-                        m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
+                        # This transaction is here to separate the methods called during execution
+                        # to allow shadow registers to work properly, as otherwise _fu_* methods
+                        # of shadow would be called in the same transaction as the original register
+                        # leading to original register methods being called twice in the same transaction.
+                        # This can be removed once transactron#10 will be resolved
+                        with Transaction().body(m):
+                            priv_valid = Signal()
+                            m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
-                        with m.If(priv_valid):
-                            read_val = Signal(self.gen_params.isa.xlen)
-                            with m.If(should_read_csr & ~done):
-                                with m.If(exe_side_fx):
-                                    m.d.comb += read_val.eq(read(m))
-                                m.d.sync += current_result.eq(read_val)
-
-                            if read_only:
-                                with m.If(should_write_csr):
-                                    # Write to read only
-                                    m.d.sync += exception.eq(1)
-                            else:
-                                with m.If(should_write_csr & ~done):
-                                    write_val = Signal(self.gen_params.isa.xlen)
-                                    with m.Switch(instr.exec_fn.funct3):
-                                        with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
-                                            m.d.comb += write_val.eq(instr.s1_val)
-                                        with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
-                                            m.d.comb += write_val.eq(read_val | instr.s1_val)
-                                        with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
-                                            m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+                            with m.If(priv_valid):
+                                read_val = Signal(self.gen_params.isa.xlen)
+                                with m.If(should_read_csr & ~done):
                                     with m.If(exe_side_fx):
-                                        write(m, write_val)
+                                        m.d.comb += read_val.eq(read(m))
+                                    m.d.sync += current_result.eq(read_val)
 
-                        with m.Else():
-                            # Missing privilege
-                            m.d.sync += exception.eq(1)
+                                if read_only:
+                                    with m.If(should_write_csr):
+                                        # Write to read only
+                                        m.d.sync += exception.eq(1)
+                                else:
+                                    with m.If(should_write_csr & ~done):
+                                        write_val = Signal(self.gen_params.isa.xlen)
+                                        with m.Switch(instr.exec_fn.funct3):
+                                            with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
+                                                m.d.comb += write_val.eq(instr.s1_val)
+                                            with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
+                                                m.d.comb += write_val.eq(read_val | instr.s1_val)
+                                            with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
+                                                m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+                                        with m.If(exe_side_fx):
+                                            write(m, write_val)
+
+                            with m.Else():
+                                # Missing privilege
+                                m.d.sync += exception.eq(1)
 
                 with m.Default():
                     # Invalid CSR number
@@ -225,7 +234,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                     )
                 )  # rl_s1 or imm
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
-                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
+                self.report(
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause.ILLEGAL_INSTRUCTION,
+                    pc=instr.pc,
+                    mtval=mtval,
+                )
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
