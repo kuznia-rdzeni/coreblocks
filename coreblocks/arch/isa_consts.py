@@ -196,9 +196,18 @@ class XlenEncoding(IntEnum, shape=2):
     W128 = 3
 
 
-@unique
 class PMPAFlagEncoding(IntEnum, shape=2):
     OFF = 0
     TOR = 1
     NA4 = 2
     NAPOT = 3
+
+
+@unique
+class SatpModeEncoding(IntEnum):
+    BARE = 0
+    SV32 = 1
+    SV39 = 8
+    SV48 = 9
+    SV57 = 10
+    SV64 = 11
