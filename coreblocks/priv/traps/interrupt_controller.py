@@ -2,8 +2,10 @@ from amaranth import *
 from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
+from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
@@ -71,14 +73,43 @@ class InternalInterruptController(Component):
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
 
+        smode_interrupts = (
+            (1 << InterruptCauseNumber.SSI)
+            | (1 << InterruptCauseNumber.STI)
+            | (1 << InterruptCauseNumber.SEI)
+            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+        )
+
+        smode_delegable_exceptions = 0
+        for cause in ExceptionCause:
+            if cause in [ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, ExceptionCause._COREBLOCKS_MISPREDICTION]:
+                continue
+            if cause in [ExceptionCause.ENVIRONMENT_CALL_FROM_M, ExceptionCause.ENVIRONMENT_CALL_FROM_S]:
+                continue
+            if cause.value < gen_params.isa.xlen:
+                smode_delegable_exceptions |= 1 << cause.value
+
         mie_writeable = (
             (1 << InterruptCauseNumber.MSI)
             | (1 << InterruptCauseNumber.MTI)
             | (1 << InterruptCauseNumber.MEI)
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
+        if gen_params.supervisor_mode:
+            mie_writeable |= smode_interrupts
+
         self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
         self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
+
+        self.sie = self.sip = None
+        self.midelege = self.medeleg = None
+        if gen_params.supervisor_mode:
+            self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=smode_interrupts)
+            self.sip = ShadowCSR(CSRAddress.SIP, gen_params, self.mip, mask=smode_interrupts)
+
+            # FIXME: implement logic for delegation and S-mode interrupts
+            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~smode_interrupts)
+            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~smode_delegable_exceptions)
 
         self.interrupt_insert = Signal()
         self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
@@ -99,6 +130,9 @@ class InternalInterruptController(Component):
         interrupt_cause = Signal(self.gen_params.isa.xlen)
 
         m.submodules += [self.mie, self.mip]
+
+        if self.gen_params.supervisor_mode:
+            m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg]
 
         priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
 
