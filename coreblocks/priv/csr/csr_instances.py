@@ -1,14 +1,23 @@
-from amaranth import *
-from coreblocks.arch import CSRAddress
-from coreblocks.arch.csr_address import MstatusFieldOffsets
-from coreblocks.arch.isa import Extension
-from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
-from coreblocks.socks.clint import ClintMtimeKey
-from coreblocks.params.genparams import GenParams
-from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.priv.csr.aliased import AliasedCSR
 from typing import Optional
-from transactron.core import Method, Transaction, def_method, TModule
+
+from amaranth import *
+from transactron.core import Method, TModule, Transaction, def_method
+
+from coreblocks.arch import CSRAddress
+from coreblocks.arch.csr_address import (
+    MenvcfgFieldOffsets,
+    MstatusFieldOffsets,
+    senvcfg_field_subset,
+    sstatus_field_subset,
+)
+from coreblocks.arch.isa import Extension
+from coreblocks.arch.isa_consts import PrivilegeLevel, TrapVectorMode, XlenEncoding
+from coreblocks.params.genparams import GenParams
+from coreblocks.params.vmem_params import VirtualMemoryScheme
+from coreblocks.priv.csr.aliased import AliasedCSR
+from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.shadow import ShadowCSR
+from coreblocks.socks.clint import ClintMtimeKey
 from transactron.utils import DependencyContext
 
 PMPXCFG_WIDTH = 8
@@ -24,7 +33,14 @@ class DoubleCounterCSR(Elaboratable):
         Increments the counter by 1. At overflow, counter value is set to 0.
     """
 
-    def __init__(self, gen_params: GenParams, low_addr: CSRAddress, high_addr: Optional[CSRAddress] = None):
+    def __init__(
+        self,
+        gen_params: GenParams,
+        low_addr: CSRAddress,
+        high_addr: Optional[CSRAddress] = None,
+        shadow_low_addr: Optional[CSRAddress] = None,
+        shadow_high_addr: Optional[CSRAddress] = None,
+    ):
         """
         Parameters
         ----------
@@ -44,6 +60,15 @@ class DoubleCounterCSR(Elaboratable):
         self.register_low = CSRRegister(low_addr, gen_params)
         self.register_high = CSRRegister(high_addr, gen_params) if high_addr is not None else None
 
+        self.shadow_low = self.shadow_high = None
+        if shadow_low_addr is not None:
+            self.shadow_low = ShadowCSR(shadow_low_addr, gen_params, self.register_low, write_mask=0)
+        if shadow_high_addr is not None:
+            if not self.register_high:
+                raise ValueError("shadow_high_addr provided but high_addr is None")
+
+            self.shadow_high = ShadowCSR(shadow_high_addr, gen_params, self.register_high, write_mask=0)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -60,6 +85,12 @@ class DoubleCounterCSR(Elaboratable):
                 with m.If(register_read == (1 << self.gen_params.isa.xlen) - 1):
                     self.register_high.write(m, data=self.register_high.read(m).data + 1)
 
+        if self.shadow_low is not None:
+            m.submodules.shadow_low = self.shadow_low
+
+        if self.shadow_high is not None:
+            m.submodules.shadow_high = self.shadow_high
+
         return m
 
 
@@ -73,8 +104,14 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mconfigptr = CSRRegister(CSRAddress.MCONFIGPTR, gen_params, init=0)
 
         self.mstatus = AliasedCSR(CSRAddress.MSTATUS, gen_params)
+        self.mstatush = None
         if gen_params.isa.xlen == 32:
             self.mstatush = AliasedCSR(CSRAddress.MSTATUSH, gen_params)
+
+        self.menvcfg = AliasedCSR(CSRAddress.MENVCFG, gen_params)
+        self.menvcfgh = None
+        if gen_params.isa.xlen == 32:
+            self.menvcfgh = AliasedCSR(CSRAddress.MENVCFGH, gen_params)
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
 
@@ -86,13 +123,19 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mtval = CSRRegister(CSRAddress.MTVAL, gen_params)
 
         self.misa = CSRRegister(
-            CSRAddress.MISA, gen_params, init=self._misa_value(gen_params), ro_bits=(1 << gen_params.isa.xlen) - 1
+            CSRAddress.MISA,
+            gen_params,
+            init=self._misa_value(gen_params),
+            ro_bits=(1 << gen_params.isa.xlen) - 1,
         )
 
-        self.mcycle = DoubleCounterCSR(gen_params, CSRAddress.MCYCLE, CSRAddress.MCYCLEH)
-        self.cycle = DoubleCounterCSR(
-            gen_params, CSRAddress.CYCLE, CSRAddress.CYCLEH
-        )  # FIXME: this should be a R/O shadow of mcycle
+        self.mcycle = DoubleCounterCSR(
+            gen_params,
+            CSRAddress.MCYCLE,
+            CSRAddress.MCYCLEH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.CYCLE,
+            CSRAddress.CYCLEH if gen_params.isa.xlen == 32 else None,
+        )
 
         self.pmpxcfg = []
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
@@ -128,20 +171,42 @@ class MachineModeCSRRegisters(Elaboratable):
             self.priv_mode_public.add_field(0, self.priv_mode)
 
         self._mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
+        self._menvcfg_fields_implementation(gen_params, self.menvcfg, self.menvcfgh)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
+
+        # TODO: add mcounteren CSR
+        # TODO: add mhpm{counter,event} CSRs
 
     def elaborate(self, platform):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, CSRRegister) or isinstance(value, DoubleCounterCSR):
+            if isinstance(value, (CSRRegister, DoubleCounterCSR)):
                 m.submodules[name] = value
 
         with Transaction().body(m):
             self.mcycle.increment(m)
-            self.cycle.increment(m)
 
         return m
+
+    def _menvcfg_fields_implementation(
+        self, gen_params: GenParams, menvcfg: AliasedCSR, menvcfgh: Optional[AliasedCSR]
+    ):
+
+        fiom_ro = gen_params.supervisor_mode or gen_params.vmem_params.supported_schemes == VirtualMemoryScheme.BARE
+        self.menvcfg_fiom = CSRRegister(None, gen_params, width=1, ro_bits=1 if fiom_ro else 0)
+
+        menvcfg.add_field(MenvcfgFieldOffsets.FIOM, self.menvcfg_fiom)
+
+        for field in MenvcfgFieldOffsets:
+            if field == MenvcfgFieldOffsets.FIOM:
+                continue
+
+            if field.value < gen_params.isa.xlen:
+                menvcfg.add_read_only_field(field.value, field.field_length(), 0)
+            else:
+                assert menvcfgh is not None
+                menvcfgh.add_read_only_field(field.value - gen_params.isa.xlen, field.field_length(), 0)
 
     def _mtvec_fields_implementation(self, gen_params: GenParams, mtvec: AliasedCSR):
         def filter_legal_mode(m: TModule, v: Value):
@@ -152,16 +217,26 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mtvec_base = CSRRegister(None, gen_params, width=gen_params.isa.xlen - 2)
         mtvec.add_field(TrapVectorMode.as_shape().width, self.mtvec_base)
         self.mtvec_mode = CSRRegister(
-            None, gen_params, width=TrapVectorMode.as_shape().width, fu_write_filtermap=filter_legal_mode
+            None,
+            gen_params,
+            width=TrapVectorMode.as_shape().width,
+            fu_write_filtermap=filter_legal_mode,
         )
         mtvec.add_field(0, self.mtvec_mode)
 
-    def _mstatus_fields_implementation(self, gen_params: GenParams, mstatus: AliasedCSR, mstatush: AliasedCSR):
+    def _mstatus_fields_implementation(
+        self,
+        gen_params: GenParams,
+        mstatus: AliasedCSR,
+        mstatush: Optional[AliasedCSR],
+    ):
         def filter_legal_priv_mode(m: TModule, v: Value):
             legal = Signal(1)
             with m.Switch(v):
                 with m.Case(PrivilegeLevel.MACHINE):
                     m.d.av_comb += legal.eq(1)
+                with m.Case(PrivilegeLevel.SUPERVISOR):
+                    m.d.av_comb += legal.eq(gen_params.supervisor_mode)
                 with m.Case(PrivilegeLevel.USER):
                     m.d.av_comb += legal.eq(gen_params.user_mode)
                 with m.Default():
@@ -189,13 +264,20 @@ class MachineModeCSRRegisters(Elaboratable):
         if gen_params.isa.xlen == 64:
             # Registers only exist in RV64
             mstatus.add_read_only_field(
-                MstatusFieldOffsets.UXL, XlenEncoding.as_shape().width, XlenEncoding.W64 if gen_params.user_mode else 0
+                MstatusFieldOffsets.UXL,
+                XlenEncoding.as_shape().width,
+                XlenEncoding.W64 if gen_params.user_mode else 0,
             )
-            mstatus.add_read_only_field(MstatusFieldOffsets.SXL, XlenEncoding.as_shape().width, 0)
+            mstatus.add_read_only_field(
+                MstatusFieldOffsets.SXL,
+                XlenEncoding.as_shape().width,
+                XlenEncoding.W64 if gen_params.supervisor_mode else 0,
+            )
 
         # Little-endianness
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
         if gen_params.isa.xlen == 32:
+            assert mstatush
             mstatush.add_read_only_field(MstatusFieldOffsets.SBE - mstatus.width, 1, 0)
             mstatush.add_read_only_field(MstatusFieldOffsets.MBE - mstatus.width, 1, 0)
         elif gen_params.isa.xlen == 64:
@@ -205,14 +287,22 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mstatus_mprv = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.MPRV, self.mstatus_mprv)
 
-        # Supervisor mode not supported - read only 0 supervisor bits
-        mstatus.add_read_only_field(MstatusFieldOffsets.SUM, 1, 0)
-        mstatus.add_read_only_field(MstatusFieldOffsets.MXR, 1, 0)
+        # Shared mstatus/sstatus fields
+        self.mstatus_sum = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.SUM, self.mstatus_sum)
+        self.mstatus_mxr = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.MXR, self.mstatus_mxr)
         mstatus.add_read_only_field(MstatusFieldOffsets.TVM, 1, 0)
         mstatus.add_read_only_field(MstatusFieldOffsets.TSR, 1, 0)
-        mstatus.add_read_only_field(MstatusFieldOffsets.SPP, 1, 0)
-        mstatus.add_read_only_field(MstatusFieldOffsets.SPIE, 1, 0)
-        mstatus.add_read_only_field(MstatusFieldOffsets.SIE, 1, 0)
+
+        self.mstatus_spp = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.SPP, self.mstatus_spp)
+
+        self.mstatus_spie = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.SPIE, self.mstatus_spie)
+
+        self.mstatus_sie = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.SIE, self.mstatus_sie)
 
         self.mstatus_tw = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.TW, self.mstatus_tw)
@@ -220,8 +310,16 @@ class MachineModeCSRRegisters(Elaboratable):
         # Extension Context Status bits
         # future todo: implement actual state modification tracking of F and V registers and CSRs
         # State = 3 is DIRTY. Implementation is allowed to always set dirty for VS and FS, regardless of CSR updates
-        mstatus.add_read_only_field(MstatusFieldOffsets.VS, 2, 3 if Extension.V in gen_params.isa.extensions else 0)
-        mstatus.add_read_only_field(MstatusFieldOffsets.FS, 2, 3 if Extension.F in gen_params.isa.extensions else 0)
+        mstatus.add_read_only_field(
+            MstatusFieldOffsets.VS,
+            2,
+            3 if Extension.V in gen_params.isa.extensions else 0,
+        )
+        mstatus.add_read_only_field(
+            MstatusFieldOffsets.FS,
+            2,
+            3 if Extension.F in gen_params.isa.extensions else 0,
+        )
         mstatus.add_read_only_field(MstatusFieldOffsets.XS, 2, 0)
         # SD field - set to one when one of the states is dirty
         mstatus.add_read_only_field(
@@ -250,14 +348,122 @@ class MachineModeCSRRegisters(Elaboratable):
             if extension in gen_params.isa.extensions:
                 misa_value |= 1 << bit
 
+        if gen_params.supervisor_mode:
+            misa_value |= 1 << 18
+
         if gen_params.user_mode:
             misa_value |= 1 << 20
-        # 7 - Hypervisor, 18 - Supervisor, 23 - Custom Extensions
+        # 7 - Hypervisor, 23 - Custom Extensions
 
-        xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
+        xml_field_mapping = {
+            32: XlenEncoding.W32,
+            64: XlenEncoding.W64,
+            128: XlenEncoding.W128,
+        }
         misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
 
         return misa_value
+
+
+class SupervisorModeCSRRegisters(Elaboratable):
+    def __init__(self, gen_params: GenParams, m_mode: MachineModeCSRRegisters):
+        self.sscratch = CSRRegister(CSRAddress.SSCRATCH, gen_params)
+        self.sstatus = ShadowCSR(
+            CSRAddress.SSTATUS,
+            gen_params,
+            m_mode.mstatus,
+            mask=self._sstatus_mask(gen_params),
+        )
+        self.senvcfg = AliasedCSR(CSRAddress.SENVCFG, gen_params)
+        self.scause = CSRRegister(CSRAddress.SCAUSE, gen_params)
+        self.stvec = AliasedCSR(CSRAddress.STVEC, gen_params)
+
+        sepc_ro_bits = 0b1 if Extension.C in gen_params.isa.extensions else 0b11
+        self.sepc = CSRRegister(CSRAddress.SEPC, gen_params, ro_bits=sepc_ro_bits)
+        self.stval = CSRRegister(CSRAddress.STVAL, gen_params)
+
+        # SATP cannot be implemented as an AliasedCSR because of the MODE-invalid-no-write behavior
+        satp_layout = gen_params.vmem_params.satp_layout
+
+        def satp_write_filter(m: TModule, v: Value):
+            satp_v = satp_layout(v)
+
+            legal = Signal()
+            with m.Switch(satp_v.mode):
+                for mode in gen_params.vmem_params.supported_schemes:
+                    with m.Case(mode.get_encoding()):
+                        m.d.av_comb += legal.eq(1)
+                with m.Default():
+                    m.d.av_comb += legal.eq(0)
+
+            return (legal, v)
+
+        # only allow writing to ASID bits that are implemented
+        satp_ro = satp_layout.const(
+            {
+                "mode": 0,
+                "asid": -(1 << gen_params.vmem_params.asidlen),
+                "ppn": 0,
+            }
+        ).as_bits()
+
+        self.satp = CSRRegister(
+            CSRAddress.SATP,
+            gen_params,
+            fu_write_filtermap=satp_write_filter,
+            ro_bits=satp_ro,
+        )
+        satp_v = gen_params.vmem_params.satp_layout(self.satp.value)
+        self.satp_mode = satp_v.mode
+        self.satp_asid = satp_v.asid
+        self.satp_ppn = satp_v.ppn
+
+    def _senvcfg_fields_implementation(self, gen_params: GenParams, senvcfg: AliasedCSR):
+        fiom_ro = gen_params.vmem_params.supported_schemes == VirtualMemoryScheme.BARE
+        self.senvcfg_fiom = CSRRegister(None, gen_params, width=1, ro_bits=1 if fiom_ro else 0)
+        senvcfg.add_field(MenvcfgFieldOffsets.FIOM, self.senvcfg_fiom)
+
+        for field in senvcfg_field_subset:
+            if field == MenvcfgFieldOffsets.FIOM:
+                continue
+
+            field_offset = field.value % gen_params.isa.xlen
+            senvcfg.add_read_only_field(field_offset, field.field_length(), 0)
+
+    def _stvec_fields_implementation(self, gen_params: GenParams, stvec: AliasedCSR):
+        def filter_legal_mode(m: TModule, v: Value):
+            legal = Signal(1)
+            m.d.av_comb += legal.eq((v == TrapVectorMode.DIRECT) | (v == TrapVectorMode.VECTORED))
+            return (legal, v)
+
+        self.stvec_base = CSRRegister(None, gen_params, width=gen_params.isa.xlen - 2)
+        stvec.add_field(TrapVectorMode.as_shape().width, self.stvec_base)
+        self.stvec_mode = CSRRegister(
+            None,
+            gen_params,
+            width=TrapVectorMode.as_shape().width,
+            fu_write_filtermap=filter_legal_mode,
+        )
+        stvec.add_field(0, self.stvec_mode)
+
+    def _sstatus_mask(self, gen_params):
+        mask = 0
+        for field in sstatus_field_subset:
+            if gen_params.isa.xlen == 32 and field == MstatusFieldOffsets.UXL:
+                continue  # UXL field does not exist in RV32
+
+            field_offset = field.value % gen_params.isa.xlen
+            mask |= ((1 << field.field_length()) - 1) << field_offset
+        return mask
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        for name, value in vars(self).items():
+            if isinstance(value, (CSRRegister, DoubleCounterCSR)):
+                m.submodules[name] = value
+
+        return m
 
 
 class CSRInstances(Elaboratable):
@@ -265,17 +471,22 @@ class CSRInstances(Elaboratable):
         self.gen_params = gen_params
 
         self.m_mode = MachineModeCSRRegisters(gen_params)
+        if gen_params.supervisor_mode:
+            self.s_mode = SupervisorModeCSRRegisters(gen_params, self.m_mode)
 
         if gen_params._generate_test_hardware:
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
 
         self.time = CSRRegister(CSRAddress.TIME, self.gen_params)
-        self.timeh = CSRRegister(CSRAddress.TIMEH, self.gen_params)
+        if gen_params.isa.xlen == 32:
+            self.timeh = CSRRegister(CSRAddress.TIMEH, self.gen_params)
 
     def elaborate(self, platform):
         m = TModule()
 
         m.submodules.m_mode = self.m_mode
+        if self.gen_params.supervisor_mode:
+            m.submodules.s_mode = self.s_mode
 
         if self.gen_params._generate_test_hardware:
             m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
@@ -290,9 +501,11 @@ class CSRInstances(Elaboratable):
         with Transaction().body(m):
             if clint_mtime is not None:
                 self.time.write(m, data=time_source[: self.time.width])
-                self.timeh.write(m, data=time_source[self.time.width :])
+                if self.gen_params.isa.xlen == 32:
+                    self.timeh.write(m, data=time_source[self.time.width :])
 
         m.submodules.time = self.time
-        m.submodules.timeh = self.timeh
+        if self.gen_params.isa.xlen == 32:
+            m.submodules.timeh = self.timeh
 
         return m
