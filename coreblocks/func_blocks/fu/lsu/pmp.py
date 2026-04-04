@@ -40,6 +40,7 @@ class PMPChecker(Elaboratable):
         self.gen_params = gen_params
         self.csr = csr
         self.addr = Signal(gen_params.isa.xlen)
+        self.pmp_grain = gen_params.pmp_grain
 
         self.result = Signal(PMPLayout())
 
@@ -75,7 +76,10 @@ class PMPChecker(Elaboratable):
                     lower = addr_vals[i - 1] if i > 0 else 0
                     m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
                 with m.Case(PMPAFlagEncoding.NA4):
-                    m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
+                    if self.pmp_grain == 0:
+                        m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
+                    else:
+                        m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
                     napot_mask = addr_val ^ (addr_val + 1)
                     m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
