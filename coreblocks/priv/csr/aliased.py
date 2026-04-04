@@ -1,16 +1,16 @@
-from amaranth import *
-
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
-from coreblocks.interface.layouts import CSRRegisterLayouts
-from coreblocks.params.genparams import GenParams
-from coreblocks.priv.csr.csr_register import CSRRegister
-from coreblocks.func_blocks.csr.csr import CSRListKey
+from amaranth import *
 from transactron.core.method import Method
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
 from transactron.utils.dependencies import DependencyContext
+
+from coreblocks.func_blocks.csr.csr import CSRListKey
+from coreblocks.interface.layouts import CSRRegisterLayouts
+from coreblocks.params.genparams import GenParams
+from coreblocks.priv.csr.csr_register import CSRRegister
 
 
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
@@ -19,7 +19,12 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
     implementation soon.
     """
 
-    def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
+    def __init__(
+        self,
+        csr_number: Optional[int],
+        gen_params: GenParams,
+        width: Optional[int] = None,
+    ):
         self.gen_params = gen_params
         self.csr_number = csr_number
         self.width = width if width is not None else gen_params.isa.xlen
@@ -31,6 +36,10 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
 
         self._fu_read = Method(o=csr_layouts._fu_read)
         self._fu_write = Method(i=csr_layouts._fu_write)
+
+        self.read = Method(o=csr_layouts.read)
+        self.read_comb = Method(o=csr_layouts.read)
+        self.write = Method(i=csr_layouts.write)
 
         self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
 
@@ -65,11 +74,40 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         @def_method(m, self._fu_read)
         def _() -> Value:
             for start, csr in self.fields:
-                m.d.av_comb += self.value[start : start + csr.width].eq(csr._fu_read(m)["data"])
+                m.d.av_comb += self.value[start : start + csr.width].eq(csr._fu_read(m).data)
 
             for start, width, value in self.ro_values:
                 m.d.av_comb += self.value[start : start + width].eq(value)
 
             return self.value
+
+        @def_method(m, self.write)
+        def _(data: Value):
+            for start, csr in self.fields:
+                csr.write(m, data[start : start + csr.width])
+
+        def read_def(fn):
+            value2 = Signal.like(self.value)
+            any_read = 0
+            any_written = 0
+
+            for start, csr in self.fields:
+                result = fn(m, csr)
+                m.d.av_comb += value2[start : start + csr.width].eq(result.data)
+                any_read |= result.read
+                any_written |= result.written
+
+            for start, width, value in self.ro_values:
+                m.d.av_comb += value2[start : start + width].eq(value)
+
+            return {"data": value2, "read": any_read, "written": any_written}
+
+        @def_method(m, self.read, nonexclusive=True)
+        def _():
+            return read_def(lambda m, csr: csr.read(m))
+
+        @def_method(m, self.read_comb, nonexclusive=True)
+        def _():
+            return read_def(lambda m, csr: csr.read_comb(m))
 
         return m
