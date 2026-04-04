@@ -1,6 +1,6 @@
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = ["CSRAddress", "MstatusFieldOffsets"]
+__all__ = ["CSRAddress", "MstatusFieldOffsets", "MenvcfgFieldOffsets", "sstatus_field_subset", "senvcfg_field_subset"]
 
 
 @unique
@@ -458,8 +458,76 @@ class MstatusFieldOffsets(IntEnum):
     TVM = 20  # Trap Virtual Memory
     TW = 21  # Timeout Wait
     TSR = 22  # Trap SRET
+    SPELP = 23  # Supervisor Previous Expected Landing Pad
+    SDT = 24  # Supervisor Double Trap
     UXL = 32  # User XLEN
     SXL = 34  # Supervisor XLEN
     SBE = 36  # Supervisor Endianness Control
     MBE = 37  # Machine Endianness Control
+    GVA = 38  # Guest Virtual Address
+    MPV = 39  # Mass Page Valid
+    MPELP = 40  # Machine Previous Expected Landing Pad
+    MDT = 41  # Machine Disable Trap
     SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus
+
+    def field_length(self) -> int:
+        if self in [
+            MstatusFieldOffsets.VS,
+            MstatusFieldOffsets.FS,
+            MstatusFieldOffsets.XS,
+            MstatusFieldOffsets.UXL,
+            MstatusFieldOffsets.SXL,
+        ]:
+            return 2
+
+        return 1
+
+
+@unique
+class MenvcfgFieldOffsets(IntEnum):
+    FIOM = 0  # Fence of I/O implies Memory
+    LPE = 2  # Landing Pad Enable
+    SSE = 3  # Supervisor Shadow Stack Enable
+    CBIE = 4  # Cache Block Invalidate instruction Enable
+    CBCFE = 6  # Cache Block Clean and Flush instruction Enable
+    CBZE = 7  # Cache Block Zero instruction Enable
+    PMM = 32  # Pointer Masking for Machine mode
+    DTE = 59  # Double Trap Enable
+    CDE = 60  # Counter Delegation Enable
+    ADUE = 61  # Accessed Dirty Update Enable
+    PBMTE = 62  # Page-Based Memory Types Enable
+    STCE = 63  # STimeCmp Enable
+
+    def field_length(self) -> int:
+        if self in [
+            MenvcfgFieldOffsets.PMM,
+            MenvcfgFieldOffsets.CBIE,
+        ]:
+            return 2
+
+        return 1
+
+
+sstatus_field_subset = {
+    MstatusFieldOffsets.SIE,
+    MstatusFieldOffsets.SPIE,
+    MstatusFieldOffsets.UBE,
+    MstatusFieldOffsets.SPP,
+    MstatusFieldOffsets.VS,
+    MstatusFieldOffsets.FS,
+    MstatusFieldOffsets.XS,
+    MstatusFieldOffsets.SUM,
+    MstatusFieldOffsets.MXR,
+    MstatusFieldOffsets.SPELP,
+    MstatusFieldOffsets.SDT,
+    MstatusFieldOffsets.SD,
+}
+
+senvcfg_field_subset = {
+    MenvcfgFieldOffsets.FIOM,
+    MenvcfgFieldOffsets.LPE,
+    MenvcfgFieldOffsets.SSE,
+    MenvcfgFieldOffsets.CBIE,
+    MenvcfgFieldOffsets.CBCFE,
+    MenvcfgFieldOffsets.CBZE,
+}
