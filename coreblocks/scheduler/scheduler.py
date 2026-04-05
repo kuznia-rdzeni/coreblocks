@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule, def_method
-from transactron.lib import FIFO, WideFifo
+from transactron.lib import FIFO, Connect, WideFifo
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -179,8 +179,8 @@ class ROBAllocation(Elaboratable):
     Module performing "ReOrder Buffer entry allocation" step of scheduling process.
     """
 
-    get_instr: Required[Method]
-    push_instr: Required[Method]
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
     rob_put: Required[Method]
 
     def __init__(self, *, gen_params: GenParams):
@@ -193,35 +193,36 @@ class ROBAllocation(Elaboratable):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.rob_allocate_in)
-        self.push_instr = Method(i=layouts.rob_allocate_out)
+        self.get_instrs = Method(o=layouts.rob_allocate_in)
+        self.push_instrs = Method(i=layouts.rob_allocate_out)
         self.rob_put = Method(i=gen_params.get(ROBLayouts).put_layout, o=gen_params.get(ROBLayouts).put_out_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.push_instr.layout_in)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
+            instrs = self.get_instrs(m)
 
             rob_ids = self.rob_put(
                 m,
-                count=1,
+                count=instrs.count,
                 entries=[
                     {
                         "rl_dst": instr.regs_l.rl_dst,
                         "rp_dst": instr.regs_p.rp_dst,
                         "tag_increment": instr.tag_increment,
                     }
-                ]
-                * self.gen_params.frontend_superscalarity,  # TODO: actual superscalarity
+                    for instr in instrs.data
+                ],
             )
 
-            m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.comb += data_out.rob_id.eq(rob_ids.entries[0].rob_id)
+            m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
+            for i in range(self.gen_params.frontend_superscalarity):
+                m.d.av_comb += data_out.data[i].rob_id.eq(rob_ids.entries[i].rob_id)
 
-            self.push_instr(m, data_out)
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -479,34 +480,34 @@ class Scheduler(Elaboratable):
         instr_tag.push_instrs.provide(instr_tag_buf.write)
         instr_tag.crat_tag.provide(self.crat_tag)
 
-        # m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
-        # TODO: convert back to Connect
-        m.submodules.rename_out_buf = rename_out_buf = WideFifo(
-            self.layouts.rob_allocate_in_data,
-            2 * self.gen_params.frontend_superscalarity,
-            1,
-            self.gen_params.frontend_superscalarity,
-        )
+        m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
         m.submodules.renaming = renaming = Renaming(gen_params=self.gen_params)
         renaming.get_instrs.provide(instr_tag_buf.read)
         renaming.push_instrs.provide(rename_out_buf.write)
         renaming.crat_commit_checkpoint.provide(self.crat_commit_checkpoint)
         renaming.rename.provide(self.crat_rename)
 
-        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
+        # m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
+        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = WideFifo(
+            self.layouts.rs_select_in_data,
+            2 * self.gen_params.frontend_superscalarity,
+            1,
+            self.gen_params.frontend_superscalarity,
+        )
         m.submodules.rob_alloc = rob_alloc = ROBAllocation(gen_params=self.gen_params)
 
-        # rob_alloc.get_instr.provide(rename_out_buf.read)
-        @def_method(m, rob_alloc.get_instr)
-        def _():
-            return rename_out_buf.read(m, count=1).data[0]
-
-        rob_alloc.push_instr.provide(rob_alloc_out_buf.write)
+        rob_alloc.get_instrs.provide(rename_out_buf.read)
+        rob_alloc.push_instrs.provide(rob_alloc_out_buf.write)
         rob_alloc.rob_put.provide(self.rob_put)
 
         m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
         m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
-        rs_selector.get_instr.provide(rob_alloc_out_buf.read)
+
+        # rs_selector.get_instr.provide(rob_alloc_out_buf.read)
+        @def_method(m, rs_selector.get_instr)
+        def _():
+            return rob_alloc_out_buf.read(m, count=1).data[0]
+
         rs_selector.push_instr.provide(rs_select_out_buf.write)
         rs_selector.rf_read_req1.provide(self.rf_read_req1)
         rs_selector.rf_read_req2.provide(self.rf_read_req2)

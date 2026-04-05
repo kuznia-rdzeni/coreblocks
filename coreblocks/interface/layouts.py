@@ -244,14 +244,12 @@ class SchedulerLayouts:
             fields.tag_increment,
         )
 
-        self.renaming_out = make_layout(
+        self.renaming_out = self.rob_allocate_in = make_layout(
             ("count", range(gen_params.frontend_superscalarity + 1)),
             ("data", ArrayLayout(self.rob_allocate_in_data, gen_params.frontend_superscalarity)),
         )
 
-        self.rob_allocate_in = self.rob_allocate_in_data
-
-        self.rob_allocate_out = make_layout(
+        self.rs_select_in_data = make_layout(
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
@@ -261,7 +259,12 @@ class SchedulerLayouts:
             fields.tag,
         )
 
-        self.rs_select_in = self.rob_allocate_out
+        self.rob_allocate_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.rs_select_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.rs_select_in = self.rs_select_in_data
 
         self.rs_select_out = make_layout(
             fields.exec_fn,
