@@ -1,16 +1,16 @@
-from enum import Enum
-from typing import Optional
-
 from amaranth import *
+
+from typing import Optional
+from enum import Enum
+
+from coreblocks.interface.layouts import CSRRegisterLayouts
+from coreblocks.params.genparams import GenParams
+from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.func_blocks.csr.csr import CSRListKey
 from transactron.core.method import Method
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
 from transactron.utils.dependencies import DependencyContext
-
-from coreblocks.func_blocks.csr.csr import CSRListKey
-from coreblocks.interface.layouts import CSRRegisterLayouts
-from coreblocks.params.genparams import GenParams
-from coreblocks.priv.csr.csr_register import CSRRegister
 
 
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
