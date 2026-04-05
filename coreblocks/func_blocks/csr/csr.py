@@ -1,30 +1,26 @@
-from dataclasses import dataclass
-
 from amaranth import *
 from amaranth.lib.data import StructLayout
+from dataclasses import dataclass
+
+from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
+from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.arch import ExceptionCause, Funct3, OpType, PrivilegeLevel
+from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.keys import (
-    AsyncInterruptInsertSignalKey,
-    CSRInstancesKey,
-    CSRListKey,
-    ExceptionReportKey,
-    InstructionPrecommitKey,
-    UnsafeInstructionResolvedKey,
-)
-from coreblocks.interface.layouts import (
-    CSRUnitLayouts,
-    FuncUnitLayouts,
-    RSInterfaceLayouts,
-)
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
-from transactron import Method, Methods, TModule, Transaction, def_method, def_methods
-from transactron.utils import assign
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
+from coreblocks.interface.keys import (
+    CSRListKey,
+    UnsafeInstructionResolvedKey,
+    CSRInstancesKey,
+    InstructionPrecommitKey,
+    ExceptionReportKey,
+    AsyncInterruptInsertSignalKey,
+)
 
 
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
@@ -147,11 +143,9 @@ class CSRUnit(FuncBlock, Elaboratable):
                     priv_level_required, read_only = csr_access_privilege(csr_number)
 
                     with m.Case(csr_number):
-                        # This transaction is here to separate the methods called during execution
-                        # to allow shadow registers to work properly, as otherwise _fu_* methods
-                        # of shadow would be called in the same transaction as the original register
-                        # leading to original register methods being called twice in the same transaction.
-                        # This can be removed once transactron#10 will be resolved
+                        # Separate method calls so shadow registers work properly.
+                        # Otherwise _fu_* methods would be called twice in the same transaction.
+                        # This can be removed once transactron#10 will be resolved.
                         with Transaction().body(m):
                             priv_valid = Signal()
                             m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
@@ -234,13 +228,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                     )
                 )  # rl_s1 or imm
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
-                self.report(
-                    m,
-                    rob_id=instr.rob_id,
-                    cause=ExceptionCause.ILLEGAL_INSTRUCTION,
-                    pc=instr.pc,
-                    mtval=mtval,
-                )
+                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."

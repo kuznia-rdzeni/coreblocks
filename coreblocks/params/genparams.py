@@ -30,6 +30,7 @@ class GenParams(DependentCache):
 
         extensions |= cfg._implied_extensions
         self.isa_str = gen_isa_string(extensions, cfg.xlen)
+
         self.isa = ISA(self.isa_str)
 
         self.pma = cfg.pma
