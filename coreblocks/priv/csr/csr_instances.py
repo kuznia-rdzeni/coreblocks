@@ -114,6 +114,12 @@ class MachineModeCSRRegisters(Elaboratable):
             self.menvcfgh = AliasedCSR(CSRAddress.MENVCFGH, gen_params)
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
+        # CY/TM/IR bits are writable, unsupported HPM bits are read-only zero.
+        self.mcounteren = CSRRegister(
+            CSRAddress.MCOUNTEREN,
+            gen_params,
+            ro_bits=((1 << gen_params.isa.xlen) - 1) & ~0b111,
+        )
 
         self.mtvec = AliasedCSR(CSRAddress.MTVEC, gen_params)
 
@@ -174,7 +180,6 @@ class MachineModeCSRRegisters(Elaboratable):
         self._menvcfg_fields_implementation(gen_params, self.menvcfg, self.menvcfgh)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
-        # TODO: add mcounteren CSR
         # TODO: add mhpm{counter,event} CSRs
 
     def elaborate(self, platform):
@@ -417,6 +422,13 @@ class SupervisorModeCSRRegisters(Elaboratable):
         self.satp_mode = satp_v.mode
         self.satp_asid = satp_v.asid
         self.satp_ppn = satp_v.ppn
+
+        # CY/TM/IR bits are writable, unsupported HPM bits are read-only zero.
+        self.scounteren = CSRRegister(
+            CSRAddress.SCOUNTEREN,
+            gen_params,
+            ro_bits=((1 << gen_params.isa.xlen) - 1) & ~0b111,
+        )
 
     def _senvcfg_fields_implementation(self, gen_params: GenParams, senvcfg: AliasedCSR):
         fiom_ro = gen_params.vmem_params.supported_schemes == VirtualMemoryScheme.BARE
