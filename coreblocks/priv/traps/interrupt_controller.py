@@ -84,7 +84,7 @@ class InternalInterruptController(Component):
         for cause in ExceptionCause:
             if cause in [ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, ExceptionCause._COREBLOCKS_MISPREDICTION]:
                 continue
-            if cause in [ExceptionCause.ENVIRONMENT_CALL_FROM_M, ExceptionCause.ENVIRONMENT_CALL_FROM_S]:
+            if cause in [ExceptionCause.ENVIRONMENT_CALL_FROM_M]:
                 continue
             if cause.value < gen_params.isa.xlen:
                 smode_delegable_exceptions |= 1 << cause.value
@@ -101,15 +101,20 @@ class InternalInterruptController(Component):
         self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
         self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
 
-        self.sie = self.sip = None
-        self.midelege = self.medeleg = None
         if gen_params.supervisor_mode:
-            self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=smode_interrupts)
-            self.sip = ShadowCSR(CSRAddress.SIP, gen_params, self.mip, mask=smode_interrupts)
-
-            # FIXME: implement logic for delegation and S-mode interrupts
+            # TODO: implement logic for delegation and S-mode interrupts
             self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~smode_interrupts)
-            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~smode_delegable_exceptions)
+
+            smode_delegable_low = smode_delegable_exceptions & ((1 << gen_params.isa.xlen) - 1)
+            smode_delegable_high = smode_delegable_exceptions >> gen_params.isa.xlen
+
+            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~smode_delegable_low)
+            self.medelegh = None
+            if gen_params.isa.xlen == 32:
+                self.medelegh = CSRRegister(CSRAddress.MEDELEGH, gen_params, ro_bits=~smode_delegable_high)
+
+            self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=self.mideleg.read)
+            self.sip = ShadowCSR(CSRAddress.SIP, gen_params, self.mip, mask=self.mideleg.read)
 
         self.interrupt_insert = Signal()
         self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
@@ -133,6 +138,8 @@ class InternalInterruptController(Component):
 
         if self.gen_params.supervisor_mode:
             m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg]
+            if self.medelegh:
+                m.submodules += [self.medelegh]
 
         priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
 
@@ -141,7 +148,7 @@ class InternalInterruptController(Component):
         mip = Signal(self.gen_params.isa.xlen)
         with Transaction().body(m) as assign_trans:
             m.d.comb += [
-                interrupt_enable.eq(self.mstatus_mie.read(m).data | (priv_mode.read(m).data == PrivilegeLevel.USER)),
+                interrupt_enable.eq(self.mstatus_mie.read(m).data | (priv_mode.read(m).data != PrivilegeLevel.MACHINE)),
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data),
             ]

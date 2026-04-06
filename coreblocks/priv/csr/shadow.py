@@ -1,15 +1,23 @@
 from typing import Optional
 
 from amaranth import *
+from amaranth import ValueLike
 from transactron.core.method import Method
+from transactron.core.transaction import Transaction
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
 from transactron.utils.dependencies import DependencyContext
+from transactron.lib import logging
 
 from coreblocks.func_blocks.csr.csr import CSRListKey
 from coreblocks.interface.layouts import CSRRegisterLayouts
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
+
+__all__ = ["ShadowCSR"]
+
+
+log = logging.HardwareLogger("priv.csr.shadow")
 
 
 class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
@@ -25,9 +33,9 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
         gen_params: GenParams,
         shadowed: CSRRegister,
         *,
-        mask: Optional[int] = None,
-        read_mask: Optional[int] = None,
-        write_mask: Optional[int] = None,
+        mask: Optional[ValueLike | Method] = None,
+        read_mask: Optional[ValueLike | Method] = None,
+        write_mask: Optional[ValueLike | Method] = None,
     ):
         if mask is not None:
             assert (
@@ -41,11 +49,8 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
         self.width = shadowed.width
 
         full_mask = (1 << self.width) - 1
-        self.read_mask: int = full_mask if read_mask is None else read_mask
-        self.write_mask: int = full_mask if write_mask is None else write_mask
-
-        if self.read_mask > full_mask or self.write_mask > full_mask:
-            raise ValueError("Masks cannot have bits outside of CSR width")
+        self.read_mask: ValueLike | Method = full_mask if read_mask is None else read_mask
+        self.write_mask: ValueLike | Method = full_mask if write_mask is None else write_mask
 
         csr_layouts = gen_params.get(CSRRegisterLayouts)
         self._fu_read = Method(o=csr_layouts._fu_read)
@@ -62,41 +67,59 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
     def elaborate(self, platform):
         m = TModule()
 
+        write_mask = Signal.like(self.value)
+        read_mask = Signal.like(self.value)
+
+        if isinstance(self.write_mask, Method):
+            with Transaction().body(m) as t:
+                m.d.top_comb += write_mask.eq(self.write_mask(m).data)
+            log.error(m, ~t.run, "assert transaction running failed")
+        else:
+            m.d.top_comb += write_mask.eq(self.write_mask)
+
+        if isinstance(self.read_mask, Method):
+            with Transaction().body(m) as t:
+                m.d.top_comb += read_mask.eq(self.read_mask(m).data)
+            log.error(m, ~t.run, "assert transaction running failed")
+        else:
+            m.d.top_comb += read_mask.eq(self.read_mask)
+
+        m.d.top_comb += self.value.eq(self.shadowed.value & read_mask)
+
         @def_method(m, self._fu_write)
         def _(data: Value):
             return self.shadowed._fu_write(
                 m,
-                data=(data & self.write_mask) | (self.shadowed.read(m).data & ~self.write_mask),
+                data=(data & write_mask) | (self.shadowed.read(m).data & ~write_mask),
             )
 
         @def_method(m, self._fu_read)
         def _() -> Value:
-            m.d.top_comb += self.value.eq(self.shadowed._fu_read(m).data & self.read_mask)
-            return self.value
+            return self.shadowed._fu_read(m).data & read_mask
 
         @def_method(m, self.write)
         def _(data: Value):
             self.shadowed.write(
                 m,
-                data=(data & self.write_mask) | (self.shadowed.read(m).data & ~self.write_mask),
+                data=(data & write_mask) | (self.shadowed.read(m).data & ~write_mask),
             )
 
         @def_method(m, self.read, nonexclusive=True)
         def _():
-            data = self.shadowed.read(m)
+            result = self.shadowed.read(m)
             return {
-                "data": data.data & self.read_mask,
-                "read": data.read,
-                "written": data.written,
+                "data": result.data & read_mask,
+                "read": result.read,
+                "written": result.written,
             }
 
         @def_method(m, self.read_comb, nonexclusive=True)
         def _():
-            data = self.shadowed.read_comb(m)
+            result = self.shadowed.read_comb(m)
             return {
-                "data": data.data & self.read_mask,
-                "read": data.read,
-                "written": data.written,
+                "data": result.data & read_mask,
+                "read": result.read,
+                "written": result.written,
             }
 
         return m
