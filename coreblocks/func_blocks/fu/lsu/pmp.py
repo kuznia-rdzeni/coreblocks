@@ -40,8 +40,6 @@ class PMPChecker(Elaboratable):
         self.gen_params = gen_params
         self.csr = csr
         self.addr = Signal(gen_params.isa.xlen)
-        self.pmp_grain = gen_params.pmp_grain
-
         self.result = Signal(PMPLayout())
 
     def elaborate(self, platform) -> HasElaborate:
@@ -53,6 +51,7 @@ class PMPChecker(Elaboratable):
             m.d.comb += self.result.w.eq(1)
             m.d.comb += self.result.x.eq(1)
 
+        grain = self.gen_params.pmp_grain
         n = self.gen_params.pmp_register_count
         if n == 0:
             return m
@@ -73,16 +72,24 @@ class PMPChecker(Elaboratable):
                 with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
-                    lower = addr_vals[i - 1] if i > 0 else 0
-                    m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
+                    lower = addr_vals[i - 1][grain:] if i > 0 else 0
+                    m.d.comb += entry_match.eq(
+                        (self.addr[2 + grain :] >= lower) & (self.addr[2 + grain :] < addr_val[grain:])
+                    )
                 with m.Case(PMPAFlagEncoding.NA4):
-                    if self.pmp_grain == 0:
+                    if grain == 0:
                         m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
                     else:
                         m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
-                    napot_mask = addr_val ^ (addr_val + 1)
-                    m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
+                    if grain >= 2:
+                        # Spec: bits [G-2:0] read as all ones in NAPOT mode
+                        forced_val = Signal.like(addr_val, name=f"napot_forced_{i}")
+                        m.d.comb += forced_val.eq(addr_val | ((1 << (grain - 1)) - 1))
+                    else:
+                        forced_val = addr_val
+                    napot_mask = forced_val ^ (forced_val + 1)
+                    m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (forced_val & ~napot_mask))
 
             entry_matches.append(entry_match)
 
