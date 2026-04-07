@@ -13,6 +13,7 @@ __all__ = [
     "PrivilegeLevel",
     "InterruptCauseNumber",
     "XlenEncoding",
+    "PMPAFlagEncoding",
 ]
 
 
