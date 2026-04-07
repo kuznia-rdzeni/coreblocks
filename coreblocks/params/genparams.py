@@ -125,7 +125,7 @@ class GenParams(DependentCache):
         self.pmp_grain = cfg.pmp_grain
         self.pmp_grain_bytes = 2 ** (cfg.pmp_grain + 2)
         if self.pmp_register_count >= 0 and self.icache_params.enable:
-            if self.pmp_grain_bytes <= self.icache_params.line_size_bytes:
+            if self.pmp_grain_bytes < self.icache_params.line_size_bytes:
                 raise ValueError("PMP grain must be >= cache line size")
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
