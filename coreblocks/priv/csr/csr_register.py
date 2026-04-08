@@ -119,10 +119,7 @@ class CSRRegister(Elaboratable):
         self.read = Method(o=csr_layouts.read)
         self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
-        self.access_valid = Method(
-            i=csr_layouts.access_valid_i,
-            o=csr_layouts.access_valid_o,
-        )
+        self.access_valid = Method(i=csr_layouts.access_valid_i, o=csr_layouts.access_valid_o)
 
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
         self._internal_fu_write = Method(i=csr_layouts._fu_write)

@@ -244,13 +244,13 @@ class MachineModeCSRRegisters(Elaboratable):
         self._menvcfg_fields_implementation(gen_params, self.menvcfg, self.menvcfgh)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
-        # TODO: add mhpm{counter,event} CSRs
+        # future todo: add mhpm{counter,event} CSRs
 
     def elaborate(self, platform):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegister, DoubleCounterCSR)):
+            if isinstance(value, CSRRegister) or isinstance(value, DoubleCounterCSR):
                 m.submodules[name] = value
 
         with Transaction().body(m):
@@ -419,11 +419,7 @@ class MachineModeCSRRegisters(Elaboratable):
             misa_value |= 1 << 20
         # 7 - Hypervisor, 23 - Custom Extensions
 
-        xml_field_mapping = {
-            32: XlenEncoding.W32,
-            64: XlenEncoding.W64,
-            128: XlenEncoding.W128,
-        }
+        xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
         misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
 
         return misa_value
