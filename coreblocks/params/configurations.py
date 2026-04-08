@@ -69,6 +69,8 @@ class _CoreConfigurationDataClass:
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
     compressed: bool
         Enables 16-bit Compressed Instructions extension.
+    zcb: bool
+        Enables the Zcb compressed code-size reduction extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
     marchid: int
@@ -135,6 +137,7 @@ class _CoreConfigurationDataClass:
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
     compressed: bool = False
+    zcb: bool = False
     embedded: bool = False
 
     marchid: int = 44
@@ -259,6 +262,7 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    zcb=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
     pmp_register_count=16,

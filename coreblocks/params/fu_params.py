@@ -3,7 +3,7 @@ from dataclasses import KW_ONLY, dataclass, field
 from collections.abc import Collection, Iterable
 
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock, FuncUnit
-from coreblocks.arch.isa import Extension, extension_implications, get_c_extension_expansion
+from coreblocks.arch.isa import Extension, extension_implications
 from coreblocks.arch.optypes import optypes_required_by_extensions, OpType
 
 from typing import TYPE_CHECKING
@@ -76,9 +76,9 @@ def _remove_implications(extensions: Extension):
 
 def extensions_supported(
     fu_config: Collection[BlockComponentParams],
-    xlen: int,
     embedded: bool = False,
     compressed: bool = False,
+    zcb: bool = False,
 ) -> tuple[Extension, Extension]:
     optypes = optypes_supported(fu_config)
 
@@ -118,10 +118,11 @@ def extensions_supported(
             extensions_full ^= Extension.I
 
     if compressed:
-        partial_c = get_c_extension_expansion(extensions_partial, xlen)
-        full_c = get_c_extension_expansion(extensions_full, xlen)
+        extensions_partial |= Extension.C
+        extensions_full |= Extension.C
 
-        extensions_partial |= Extension.C | Extension.ZCB | partial_c
-        extensions_full |= Extension.C | Extension.ZCB | full_c
+    if zcb:
+        extensions_partial |= Extension.ZCB
+        extensions_full |= Extension.ZCB
 
     return (extensions_partial, extensions_full)

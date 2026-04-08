@@ -30,9 +30,9 @@ class TestConfigurationsISAString(TestCase):
         ),
         ISAStrTest(
             full_core_config,
-            "rv32imacbzicond_zicsr_zifencei_zca_zcb_zbc_zbkx_xintmachinemode",
-            "rv32imacbzicond_zicsr_zifencei_zca_zcb_zbc_zbkx_xintmachinemode",
-            "rv32imacbzicond_zicsr_zifencei_zca_zcb_zbc_zbkx_xintmachinemode",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode",
         ),
         ISAStrTest(tiny_core_config, "rv32e", "rv32e", "rv32e"),
         ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
@@ -48,9 +48,9 @@ class TestConfigurationsISAString(TestCase):
             xlen = int(test.partial_str[2:4])
             partial, full = extensions_supported(
                 test.core_config.func_units_config,
-                xlen,
                 test.core_config.embedded,
                 test.core_config.compressed,
+                test.core_config.zcb,
             )
 
             partial = gen_isa_string(partial, xlen)
