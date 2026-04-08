@@ -1,21 +1,30 @@
 from dataclasses import dataclass
+
 from amaranth import *
-
-from transactron import Method, def_method, Transaction, TModule
-from transactron.lib.connectors import FIFO, Forwarder
-from transactron.utils import DependencyContext
-from transactron.lib.simultaneous import condition
+from transactron import Method, TModule, Transaction, def_method
+from transactron.lib.connectors import FIFO
 from transactron.lib.logging import HardwareLogger
+from transactron.lib.simultaneous import condition
+from transactron.utils import DependencyContext
+from transactron.utils.transactron_helpers import make_layout
 
-from coreblocks.params import *
 from coreblocks.arch import OpType
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.frontend.decoder import *
-from coreblocks.interface.layouts import LSULayouts, FuncUnitLayouts
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
-from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, CommonBusDataKey, InstructionPrecommitKey
+from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
+from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.interface.keys import (
+    CommonBusDataKey,
+    CoreStateKey,
+    CSRInstancesKey,
+    ExceptionReportKey,
+    InstructionPrecommitKey,
+)
+from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts
+from coreblocks.params import *
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 __all__ = ["LSUDummy", "LSUComponent"]
 
@@ -65,10 +74,16 @@ class LSUDummy(FuncUnit, Elaboratable):
         rob_id_match = Signal()
         is_load = Signal()
 
+        csr = self.dependency_manager.get_dependency(CSRInstancesKey())
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
-        m.submodules.requests = requests = Forwarder(self.fu_layouts.issue)
+        request_layout = make_layout(
+            ("data", self.fu_layouts.issue),
+            ("addr", self.gen_params.isa.xlen),
+        )
+        m.submodules.requests = requests = FIFO(request_layout, 2)
         m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
@@ -80,7 +95,9 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
             is_fence = arg.exec_fn.op_type == OpType.FENCE
             with m.If(~is_fence):
-                requests.write(m, arg)
+                addr = Signal(self.gen_params.isa.xlen)
+                m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
+                requests.write(m, data=arg, addr=addr)
             with m.Else():
                 results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
@@ -93,33 +110,47 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, ready=do_issue):
-            arg = requests.read(m)
+            req = requests.read(m)
+            arg = req.data
+            addr = req.addr
 
-            addr = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
             m.d.av_comb += pma_checker.addr.eq(addr)
+            m.d.av_comb += pmp_checker.addr.eq(addr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
 
-            res = requester.issue(
-                m,
-                addr=addr,
-                data=arg.s2_val,
-                funct3=arg.exec_fn.funct3,
-                store=~is_load,
-            )
+            pmp_exception = Signal()
+            pmp_cause = Signal(ExceptionCause)
 
-            with m.If(res["exception"]):
-                issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=res["exception"], cause=res["cause"], addr=addr)
+            with m.If(is_load & ~pmp_checker.result.r):
+                m.d.av_comb += pmp_exception.eq(1)
+                m.d.av_comb += pmp_cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
+            with m.Elif(~is_load & ~pmp_checker.result.w):
+                m.d.av_comb += pmp_exception.eq(1)
+                m.d.av_comb += pmp_cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
+
+            with m.If(~pmp_exception):
+                res = requester.issue(
+                    m,
+                    addr=addr,
+                    data=arg.s2_val,
+                    funct3=arg.exec_fn.funct3,
+                    store=~is_load,
+                )
+                with m.If(res["exception"]):
+                    issued_noop.write(m, arg)
+                    results_noop.write(m, data=0, exception=1, cause=res["cause"], addr=addr)
+                with m.Else():
+                    issued.write(m, arg)
             with m.Else():
-                issued.write(m, arg)
+                issued_noop.write(m, arg)
+                results_noop.write(m, data=0, exception=1, cause=pmp_cause, addr=addr)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, ready=flush):
-            arg = requests.read(m)
+            req = requests.read(m)
             results_noop.write(m, data=0, exception=0, cause=0, addr=0)
-            issued_noop.write(m, arg)
+            issued_noop.write(m, req.data)
 
         with Transaction().body(m):
             arg = Signal(self.fu_layouts.issue)
