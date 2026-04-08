@@ -144,7 +144,7 @@ class FetchUnit(Elaboratable):
             def _(pc):
                 log.info(m, True, "[IFU] request pc=0x{:x}", pc)
                 req_counter.acquire(m)
-                m.d.comb += pmp_checker.addr.eq(pc)
+                m.d.av_comb += pmp_checker.addr.eq(pc)
                 with condition(m) as branch:
                     with branch(pmp_checker.result.x):
                         self.icache.issue_req(m, addr=pc)
@@ -186,7 +186,7 @@ class FetchUnit(Elaboratable):
                     access_fault=1,
                     instr_valid=0,
                     rvc=0,
-                    instrs=C(0, ArrayLayout(self.gen_params.isa.ilen, fetch_width)),
+                    instrs=[C(0, self.gen_params.isa.ilen)] * fetch_width,
                     instr_block_cross=0,
                 )
 
