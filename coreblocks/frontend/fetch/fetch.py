@@ -11,7 +11,7 @@ from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
-from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
+from coreblocks.priv.pmp import PMPChecker
 from coreblocks.interface.keys import CSRInstancesKey
 
 from coreblocks.arch import *
