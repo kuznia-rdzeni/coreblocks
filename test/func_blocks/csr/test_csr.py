@@ -226,7 +226,6 @@ class TestCSRUnit(TestCaseWithSimulator):
     async def process_exception_test(self, sim: TestbenchContext):
         self.dut.fetch_resume.enable(sim)
         self.dut.exception_report.enable(sim)
-
         for csr in self.exception_csr_numbers:
             if csr == 0x7FE:
                 await self.dut.priv_io.call(sim, data=PrivilegeLevel.USER)

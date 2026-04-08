@@ -14,16 +14,7 @@ from transactron.utils.dependencies import DependencyContext
 
 
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
-    """
-    CSR helper that exposes a public CSR number composed from smaller CSR registers.
-    """
-
-    def __init__(
-        self,
-        csr_number: Optional[int],
-        gen_params: GenParams,
-        width: Optional[int] = None,
-    ):
+    def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
         self.gen_params = gen_params
         self.csr_number = csr_number
         self.width = width if width is not None else gen_params.isa.xlen
@@ -39,10 +30,7 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         self.read = Method(o=csr_layouts.read)
         self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
-        self.access_valid = Method(
-            i=csr_layouts.access_valid_i,
-            o=csr_layouts.access_valid_o,
-        )
+        self.access_valid = Method(i=csr_layouts.access_valid_i, o=csr_layouts.access_valid_o)
 
         self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
 
