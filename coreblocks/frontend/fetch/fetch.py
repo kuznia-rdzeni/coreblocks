@@ -186,7 +186,7 @@ class FetchUnit(Elaboratable):
                     access_fault=1,
                     instr_valid=0,
                     rvc=0,
-                    instrs=0,
+                    instrs=C(0, ArrayLayout(self.gen_params.isa.ilen, fetch_width)),
                     instr_block_cross=0,
                 )
 
