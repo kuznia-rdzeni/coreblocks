@@ -349,13 +349,15 @@ class MachineModeCSRRegisters(Elaboratable):
         mstatus.add_field(MstatusFieldOffsets.MPRV, self.mstatus_mprv)
 
         # Shared mstatus/sstatus fields
-        self.mstatus_sum = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        sum_ro = gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}
+        self.mstatus_sum = CSRRegister(None, gen_params, width=1, ro_bits=1 if sum_ro else 0)
         mstatus.add_field(MstatusFieldOffsets.SUM, self.mstatus_sum)
         self.mstatus_mxr = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.MXR, self.mstatus_mxr)
         self.mstatus_tvm = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.TVM, self.mstatus_tvm)
-        mstatus.add_read_only_field(MstatusFieldOffsets.TSR, 1, 0)
+        self.mstatus_tsr = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
+        mstatus.add_field(MstatusFieldOffsets.TSR, self.mstatus_tsr)
 
         self.mstatus_spp = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.SPP, self.mstatus_spp)
