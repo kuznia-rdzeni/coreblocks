@@ -34,7 +34,7 @@ def counteren_writable_mask(hpm_counters_count: int) -> int:
         CounterEnableFieldOffsets.CY,
         CounterEnableFieldOffsets.TM,
         CounterEnableFieldOffsets.IR,
-    ] + list(range(CounterEnableFieldOffsets.HPMCOUNTER3, CounterEnableFieldOffsets.HPMCOUNTER3 + hpm_counters_count))
+    ] + list(range(CounterEnableFieldOffsets.HPM3, CounterEnableFieldOffsets.HPM3 + hpm_counters_count))
 
     mask = 0
     for counter in counter_list:
