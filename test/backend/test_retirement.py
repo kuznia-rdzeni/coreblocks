@@ -1,4 +1,5 @@
 from coreblocks.backend.retirement import *
+from coreblocks.interface.keys import GetTrapTargetPrivKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
 from transactron.lib import FIFO, Adapter
@@ -26,6 +27,19 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
+        self.get_trap_target_priv = Method(
+            i=[
+                ("is_interrupt", 1),
+                ("cause_num", self.gen_params.isa.xlen - 1),
+            ],
+            o=[("data", PrivilegeLevel)],
+        )
+        DependencyContext.get().add_dependency(GetTrapTargetPrivKey(), self.get_trap_target_priv)
+
+        @def_method(m, self.get_trap_target_priv)
+        def _(is_interrupt, cause_num):
+            return {"data": PrivilegeLevel.MACHINE}
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
@@ -161,7 +175,7 @@ class TestRetirement(TestCaseWithSimulator):
         return {"empty": 0}
 
     @def_method_mock(lambda self: self.retc.mock_trap_entry)
-    def mock_trap_entry_process(self):
+    def mock_trap_entry_process(self, target_priv):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)

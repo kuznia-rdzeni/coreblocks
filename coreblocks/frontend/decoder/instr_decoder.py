@@ -328,6 +328,15 @@ class InstrDecoder(Elaboratable):
             )
             assert 32 - self.gen_params.isa.reg_cnt_log * 2 >= 5
 
+        # HACK: pass the logical register encoding of SFENCEVMA (same encoding as for CSR instructions for circuit size)
+        with m.If(self.optype == OpType.SFENCEVMA):
+            m.d.comb += self.imm[32 - 2 * self.gen_params.isa.reg_cnt_log : 32 - self.gen_params.isa.reg_cnt_log].eq(
+                self.rs1
+            )
+            m.d.comb += self.imm[
+                32 - 3 * self.gen_params.isa.reg_cnt_log : 32 - 2 * self.gen_params.isa.reg_cnt_log
+            ].eq(self.rs2)
+
         # Instruction simplification
 
         # lui rd, imm -> addi rd, x0, (imm << 12)

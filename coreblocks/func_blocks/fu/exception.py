@@ -76,6 +76,8 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     with m.Switch(priv_level):
                         with m.Case(PrivilegeLevel.MACHINE):
                             m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
+                        with m.Case(PrivilegeLevel.SUPERVISOR):
+                            m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_S)
                         with m.Case(PrivilegeLevel.USER):
                             m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_U)
                     m.d.av_comb += mtval.eq(0)  # by SPEC

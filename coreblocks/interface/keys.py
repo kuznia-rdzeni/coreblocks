@@ -21,7 +21,10 @@ __all__ = [
     "ExceptionReportKey",
     "CSRInstancesKey",
     "AsyncInterruptInsertSignalKey",
+    "WaitForInterruptResumeKey",
     "MretKey",
+    "SretKey",
+    "GetTrapTargetPrivKey",
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
@@ -88,6 +91,16 @@ class WaitForInterruptResumeKey(SimpleKey[Signal]):
 
 @dataclass(frozen=True)
 class MretKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class SretKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class GetTrapTargetPrivKey(SimpleKey[Method]):
     pass
 
 
