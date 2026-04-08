@@ -41,6 +41,7 @@ class GenParams(DependentCache):
 
         self.vmem_params = VirtualMemoryParams(
             xlen=cfg.xlen,
+            supervisor_mode=cfg.supervisor_mode,
             asidlen=cfg.asidlen,
             supported_schemes=cfg.supported_vm_schemes,
         )
@@ -105,6 +106,13 @@ class GenParams(DependentCache):
 
         self.user_mode = cfg.user_mode
         self.supervisor_mode = cfg.supervisor_mode
+        self.hpm_counters_count = cfg.hpm_counters_count
+
+        if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
+            raise ValueError("HPM counters count must be in range [0, 29]")
+
+        if self.supervisor_mode and not self.user_mode:
+            raise ValueError("Supervisor mode support requires user mode support")
 
         self.pmp_register_count = cfg.pmp_register_count
         if self.pmp_register_count not in [0, 16, 64]:

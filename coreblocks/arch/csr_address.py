@@ -1,6 +1,13 @@
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = ["CSRAddress", "MstatusFieldOffsets", "MenvcfgFieldOffsets", "sstatus_field_subset", "senvcfg_field_subset"]
+__all__ = [
+    "CSRAddress",
+    "MstatusFieldOffsets",
+    "MenvcfgFieldOffsets",
+    "CounterEnableFieldOffsets",
+    "sstatus_field_subset",
+    "senvcfg_field_subset",
+]
 
 
 @unique
@@ -473,6 +480,7 @@ class MstatusFieldOffsets(IntEnum):
     def field_length(self) -> int:
         if self in [
             MstatusFieldOffsets.VS,
+            MstatusFieldOffsets.MPP,
             MstatusFieldOffsets.FS,
             MstatusFieldOffsets.XS,
             MstatusFieldOffsets.UXL,
@@ -506,6 +514,42 @@ class MenvcfgFieldOffsets(IntEnum):
             return 2
 
         return 1
+
+
+@unique
+class CounterEnableFieldOffsets(IntEnum):
+    CY = 0  # Cycle counter enable
+    TM = 1  # Timer counter enable
+    IR = 2  # Instret counter enable
+    HPMCOUNTER3 = 3  # HPMCOUNTER3 enable
+    HPMCOUNTER4 = 4  # HPMCOUNTER4 enable
+    HPMCOUNTER5 = 5  # HPMCOUNTER5 enable
+    HPMCOUNTER6 = 6  # HPMCOUNTER6 enable
+    HPMCOUNTER7 = 7  # HPMCOUNTER7 enable
+    HPMCOUNTER8 = 8  # HPMCOUNTER8 enable
+    HPMCOUNTER9 = 9  # HPMCOUNTER9 enable
+    HPMCOUNTER10 = 10  # HPMCOUNTER10 enable
+    HPMCOUNTER11 = 11  # HPMCOUNTER11 enable
+    HPMCOUNTER12 = 12  # HPMCOUNTER12 enable
+    HPMCOUNTER13 = 13  # HPMCOUNTER13 enable
+    HPMCOUNTER14 = 14  # HPMCOUNTER14 enable
+    HPMCOUNTER15 = 15  # HPMCOUNTER15 enable
+    HPMCOUNTER16 = 16  # HPMCOUNTER16 enable
+    HPMCOUNTER17 = 17  # HPMCOUNTER17 enable
+    HPMCOUNTER18 = 18  # HPMCOUNTER18 enable
+    HPMCOUNTER19 = 19  # HPMCOUNTER19 enable
+    HPMCOUNTER20 = 20  # HPMCOUNTER20 enable
+    HPMCOUNTER21 = 21  # HPMCOUNTER21 enable
+    HPMCOUNTER22 = 22  # HPMCOUNTER22 enable
+    HPMCOUNTER23 = 23  # HPMCOUNTER23 enable
+    HPMCOUNTER24 = 24  # HPMCOUNTER24 enable
+    HPMCOUNTER25 = 25  # HPMCOUNTER25 enable
+    HPMCOUNTER26 = 26  # HPMCOUNTER26 enable
+    HPMCOUNTER27 = 27  # HPMCOUNTER27 enable
+    HPMCOUNTER28 = 28  # HPMCOUNTER28 enable
+    HPMCOUNTER29 = 29  # HPMCOUNTER29 enable
+    HPMCOUNTER30 = 30  # HPMCOUNTER30 enable
+    HPMCOUNTER31 = 31  # HPMCOUNTER31 enable
 
 
 sstatus_field_subset = {

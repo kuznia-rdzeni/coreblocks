@@ -2,7 +2,6 @@ from amaranth import *
 from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
-from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.shadow import ShadowCSR
@@ -80,15 +79,6 @@ class InternalInterruptController(Component):
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
 
-        smode_delegable_exceptions = 0
-        for cause in ExceptionCause:
-            if cause in [ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, ExceptionCause._COREBLOCKS_MISPREDICTION]:
-                continue
-            if cause in [ExceptionCause.ENVIRONMENT_CALL_FROM_M]:
-                continue
-            if cause.value < gen_params.isa.xlen:
-                smode_delegable_exceptions |= 1 << cause.value
-
         mie_writeable = (
             (1 << InterruptCauseNumber.MSI)
             | (1 << InterruptCauseNumber.MTI)
@@ -103,15 +93,12 @@ class InternalInterruptController(Component):
 
         if gen_params.supervisor_mode:
             # TODO: implement logic for delegation and S-mode interrupts
-            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~smode_interrupts)
+            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~0)
 
-            smode_delegable_low = smode_delegable_exceptions & ((1 << gen_params.isa.xlen) - 1)
-            smode_delegable_high = smode_delegable_exceptions >> gen_params.isa.xlen
-
-            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~smode_delegable_low)
+            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~0)
             self.medelegh = None
             if gen_params.isa.xlen == 32:
-                self.medelegh = CSRRegister(CSRAddress.MEDELEGH, gen_params, ro_bits=~smode_delegable_high)
+                self.medelegh = CSRRegister(CSRAddress.MEDELEGH, gen_params, ro_bits=~0)
 
             self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=self.mideleg.read)
             self.sip = ShadowCSR(CSRAddress.SIP, gen_params, self.mip, mask=self.mideleg.read)

@@ -27,7 +27,7 @@ from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
-from coreblocks.params.vmem_params import VirtualMemoryScheme
+from coreblocks.arch.isa_consts import SatpModeEncoding
 
 
 __all__ = [
@@ -114,8 +114,10 @@ class _CoreConfigurationDataClass:
         Enable Supervisor Mode.
     asidlen: int
         Number of writable ASID bits in SATP.
-    supported_vm_schemes: VirtualMemorySchemes
-        Bitmask of SATP MODE values accepted by this core.
+    supported_vm_schemes: set[SatpModeEncoding]
+        SATP MODE values accepted by this core.
+    hpm_counters_count: int
+        Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     allow_partial_extensions: bool
@@ -176,7 +178,8 @@ class _CoreConfigurationDataClass:
     supervisor_mode: bool = True
 
     asidlen: int = 0
-    supported_vm_schemes: VirtualMemoryScheme = VirtualMemoryScheme.BARE
+    supported_vm_schemes: set[SatpModeEncoding] = field(default_factory=lambda: {SatpModeEncoding.BARE})
+    hpm_counters_count: int = 0
 
     pmp_register_count: int = 0
 

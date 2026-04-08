@@ -15,8 +15,7 @@ from transactron.utils.dependencies import DependencyContext
 
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
     """
-    Temporary simple support for CSR aliasing for InternalInterruptController. Will be replaced with more complete
-    implementation soon.
+    CSR helper that exposes a public CSR number composed from smaller CSR registers.
     """
 
     def __init__(
@@ -40,6 +39,10 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         self.read = Method(o=csr_layouts.read)
         self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
+        self.access_valid = Method(
+            i=csr_layouts.access_valid_i,
+            o=csr_layouts.access_valid_o,
+        )
 
         self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
 
@@ -87,20 +90,20 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
                 csr.write(m, data[start : start + csr.width])
 
         def read_def(fn):
-            value2 = Signal.like(self.value)
+            read_data = Signal.like(self.value)
             any_read = 0
             any_written = 0
 
             for start, csr in self.fields:
                 result = fn(m, csr)
-                m.d.av_comb += value2[start : start + csr.width].eq(result.data)
+                m.d.av_comb += read_data[start : start + csr.width].eq(result.data)
                 any_read |= result.read
                 any_written |= result.written
 
             for start, width, value in self.ro_values:
-                m.d.av_comb += value2[start : start + width].eq(value)
+                m.d.av_comb += read_data[start : start + width].eq(value)
 
-            return {"data": value2, "read": any_read, "written": any_written}
+            return {"data": read_data, "read": any_read, "written": any_written}
 
         @def_method(m, self.read, nonexclusive=True)
         def _():
@@ -109,5 +112,13 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         @def_method(m, self.read_comb, nonexclusive=True)
         def _():
             return read_def(lambda m, csr: csr.read_comb(m))
+
+        @def_method(m, self.access_valid)
+        def _(priv_mode):
+            valid = 1
+            for _, csr in self.fields:
+                valid &= csr.access_valid(m, priv_mode).valid
+
+            return {"valid": valid}
 
         return m
