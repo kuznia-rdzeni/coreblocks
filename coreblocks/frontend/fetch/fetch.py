@@ -4,13 +4,15 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork
+from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, DependencyContext
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
+from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
+from coreblocks.interface.keys import CSRInstancesKey
 
 from coreblocks.arch import *
 from coreblocks.params import *
@@ -127,17 +129,36 @@ class FetchUnit(Elaboratable):
         def flush():
             m.d.comb += flush_now.eq(1)
 
+        if self.gen_params.pmp_register_count > 0:
+            csr = DependencyContext.get().get_dependency(CSRInstancesKey())
+            m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
+            m.submodules.pmp_fault_fifo = pmp_fault_fifo = BasicFifo(make_layout(fields.pc), depth=2)
+
         #
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
         #
-        @def_method(m, self.fetch_request)
-        def _(pc):
-            log.info(m, True, "[IFU] request pc=0x{:x}", pc)
-            req_counter.acquire(m)
-            self.icache.issue_req(m, addr=pc)
-            fetch_requests.write(m, pc=pc)
+        if self.gen_params.pmp_register_count > 0:
+            @def_method(m, self.fetch_request)
+            def _(pc):
+                log.info(m, True, "[IFU] request pc=0x{:x}", pc)
+                req_counter.acquire(m)
+                m.d.comb += pmp_checker.addr.eq(pc)
+                with condition(m) as branch:
+                    with branch(pmp_checker.result.x):
+                        self.icache.issue_req(m, addr=pc)
+                        fetch_requests.write(m, pc=pc)
+                    with branch():
+                        pmp_fault_fifo.write(m, pc=pc)
+        else:
+            @def_method(m, self.fetch_request)
+            def _(pc):
+                log.info(m, True, "[IFU] request pc=0x{:x}", pc)
+                req_counter.acquire(m)
+                self.icache.issue_req(m, addr=pc)
+                fetch_requests.write(m, pc=pc)
+
 
         #
         # State passed between stage 1 and stage 2
@@ -253,6 +274,24 @@ class FetchUnit(Elaboratable):
         # Make sure to clean the state
         with m.If(flush_now):
             m.d.sync += prev_half_v.eq(0)
+
+        #
+        # Fetch - stage 1: PMP Fault Handling path
+        # ================
+        # - runs either Fetch_Stage1 or PMP_Fault transaction
+        if self.gen_params.pmp_register_count > 0:
+            with Transaction(name="PMP_Fault").body(m):
+                fault = pmp_fault_fifo.read(m)
+                fb_addr = params.fb_addr(fault.pc)
+                s1_s2_pipe.write(
+                    m,
+                    fb_addr=fb_addr,
+                    access_fault=1,
+                    instr_valid=0,
+                    rvc=0,
+                    instrs=0,
+                    instr_block_cross=0,
+                )
 
         #
         # Fetch - stage 2
