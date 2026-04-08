@@ -133,33 +133,29 @@ class FetchUnit(Elaboratable):
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
+        # - check PMP execute permission (if PMP is enabled)
         #
-        pmp_fault_fifo: BasicFifo | None = None
+        m.submodules.pmp_fault_fifo = pmp_fault_fifo = BasicFifo(make_layout(fields.pc), depth=2)
+        pmp_addr = Signal(self.gen_params.isa.xlen)
+
         if self.gen_params.pmp_register_count > 0:
             csr = DependencyContext.get().get_dependency(CSRInstancesKey())
             m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
-            m.submodules.pmp_fault_fifo = pmp_fault_fifo = BasicFifo(make_layout(fields.pc), depth=2)
-
-            @def_method(m, self.fetch_request)
-            def _(pc):
-                log.info(m, True, "[IFU] request pc=0x{:x}", pc)
-                req_counter.acquire(m)
-                m.d.av_comb += pmp_checker.addr.eq(pc)
-                with condition(m) as branch:
-                    with branch(pmp_checker.result.x):
-                        self.icache.issue_req(m, addr=pc)
-                        fetch_requests.write(m, pc=pc)
-                    with branch(~pmp_checker.result.x):
-                        pmp_fault_fifo.write(m, pc=pc)
-
+            m.d.comb += pmp_checker.addr.eq(pmp_addr)
+            pmp_x = pmp_checker.result.x
         else:
+            pmp_x = C(1)
 
-            @def_method(m, self.fetch_request)
-            def _(pc):
-                log.info(m, True, "[IFU] request pc=0x{:x}", pc)
-                req_counter.acquire(m)
+        @def_method(m, self.fetch_request)
+        def _(pc):
+            log.info(m, True, "[IFU] request pc=0x{:x}", pc)
+            req_counter.acquire(m)
+            m.d.comb += pmp_addr.eq(pc)
+            with m.If(pmp_x):
                 self.icache.issue_req(m, addr=pc)
                 fetch_requests.write(m, pc=pc)
+            with m.Else():
+                pmp_fault_fifo.write(m, pc=pc)
 
         #
         # State passed between stage 1 and stage 2
@@ -174,21 +170,6 @@ class FetchUnit(Elaboratable):
                 ("instr_block_cross", 1),
             ]
         )
-
-        if self.gen_params.pmp_register_count > 0:
-            assert pmp_fault_fifo is not None
-            with Transaction(name="PMP_Fault").body(m):
-                fault = pmp_fault_fifo.read(m)
-                fb_addr = params.fb_addr(fault.pc)
-                s1_s2_pipe.write(
-                    m,
-                    fb_addr=fb_addr,
-                    access_fault=1,
-                    instr_valid=0,
-                    rvc=0,
-                    instrs=[C(0, self.gen_params.isa.ilen)] * fetch_width,
-                    instr_block_cross=0,
-                )
 
         #
         # Fetch - stage 1
@@ -285,6 +266,19 @@ class FetchUnit(Elaboratable):
                 rvc=is_rvc,
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
+            )
+
+        with Transaction(name="PMP_Fault").body(m):
+            fault = pmp_fault_fifo.read(m)
+            fb_addr = params.fb_addr(fault.pc)
+            s1_s2_pipe.write(
+                m,
+                fb_addr=fb_addr,
+                access_fault=1,
+                instr_valid=0,
+                rvc=0,
+                instrs=[C(0, self.gen_params.isa.ilen)] * fetch_width,
+                instr_block_cross=0,
             )
 
         # Make sure to clean the state
