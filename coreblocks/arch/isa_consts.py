@@ -165,6 +165,18 @@ class ExceptionCause(IntEnum, shape=5):
     _COREBLOCKS_ASYNC_INTERRUPT = 24
     _COREBLOCKS_MISPREDICTION = 25
 
+    @classmethod
+    def smode_delegable_mask(cls, xlen: int) -> int:
+        mask = 0
+        for cause in cls:
+            if cause.name.startswith("_"):
+                continue
+            if cause == cls.ENVIRONMENT_CALL_FROM_M:
+                continue
+            mask |= 1 << cause.value
+
+        return mask
+
 
 @unique
 class PrivilegeLevel(IntEnum, shape=2):
@@ -212,3 +224,13 @@ class SatpModeEncoding(IntEnum):
     SV48 = 9
     SV57 = 10
     SV64 = 11
+
+    @classmethod
+    def valid_modes(cls, xlen: int) -> frozenset["SatpModeEncoding"]:
+        match xlen:
+            case 32:
+                return frozenset({cls.BARE, cls.SV32})
+            case 64:
+                return frozenset({cls.BARE, cls.SV39, cls.SV48, cls.SV57, cls.SV64})
+            case _:
+                raise ValueError(f"Unsupported XLEN for SATP mode encoding: {xlen}")

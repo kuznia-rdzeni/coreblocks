@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 from amaranth import *
 from amaranth import ValueLike
@@ -24,7 +24,8 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
     """CSR shadow register.
 
     Exposes an instruction-visible CSR number that reads/writes another CSR.
-    Optional bit masks can restrict visible read bits and writable bits.
+    Optional bit masks can restrict visible read bits and writable bits for both instruction-visible access and
+    internal CSR logic.
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
         mask: Optional[ValueLike | Method] = None,
         read_mask: Optional[ValueLike | Method] = None,
         write_mask: Optional[ValueLike | Method] = None,
+        access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
     ):
         if mask is not None:
             assert (
@@ -51,6 +53,7 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
         full_mask = (1 << self.width) - 1
         self.read_mask: ValueLike | Method = full_mask if read_mask is None else read_mask
         self.write_mask: ValueLike | Method = full_mask if write_mask is None else write_mask
+        self.access_filter = access_filter if access_filter is not None else (lambda _, __: C(1))
 
         csr_layouts = gen_params.get(CSRRegisterLayouts)
         self._fu_read = Method(o=csr_layouts._fu_read)
@@ -60,6 +63,7 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
         self.read = Method(o=csr_layouts.read)
         self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
+        self.access_valid = Method(i=csr_layouts.access_valid_i, o=csr_layouts.access_valid_o)
 
         if csr_number is not None:
             DependencyContext.get().add_dependency(CSRListKey(), self)
@@ -72,19 +76,19 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
 
         if isinstance(self.write_mask, Method):
             with Transaction().body(m) as t:
-                m.d.top_comb += write_mask.eq(self.write_mask(m).data)
+                m.d.comb += write_mask.eq(self.write_mask(m).data)
             log.error(m, ~t.run, "assert transaction running failed")
         else:
-            m.d.top_comb += write_mask.eq(self.write_mask)
+            m.d.comb += write_mask.eq(self.write_mask)
 
         if isinstance(self.read_mask, Method):
             with Transaction().body(m) as t:
-                m.d.top_comb += read_mask.eq(self.read_mask(m).data)
+                m.d.comb += read_mask.eq(self.read_mask(m).data)
             log.error(m, ~t.run, "assert transaction running failed")
         else:
-            m.d.top_comb += read_mask.eq(self.read_mask)
+            m.d.comb += read_mask.eq(self.read_mask)
 
-        m.d.top_comb += self.value.eq(self.shadowed.value & read_mask)
+        m.d.comb += self.value.eq(self.shadowed.value & read_mask)
 
         @def_method(m, self._fu_write)
         def _(data: Value):
@@ -121,5 +125,9 @@ class ShadowCSR(CSRRegister):  # TODO: CSR register protocol
                 "read": result.read,
                 "written": result.written,
             }
+
+        @def_method(m, self.access_valid)
+        def _(priv_mode):
+            return {"valid": self.access_filter(m, priv_mode) & self.shadowed.access_valid(m, priv_mode).valid}
 
         return m

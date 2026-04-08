@@ -38,6 +38,8 @@ class CSRRegister(Elaboratable):
         Method connected automatically by `CSRUnit`. Reads register value.
     _fu_write: Method
         Method connected automatically by `CSRUnit`. Updates register value. Always ready.
+    access_valid: Method
+        Method connected automatically by `CSRUnit`. Returns whether CSR access is legal for current context.
 
     Examples
     --------
@@ -65,6 +67,7 @@ class CSRRegister(Elaboratable):
         fu_write_priority: bool = True,
         fu_write_filtermap: Optional[Callable[[TModule, Value], tuple[ValueLike, ValueLike]]] = None,
         fu_read_map: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        fu_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
         src_loc: int | SrcLoc = 0,
     ):
         """
@@ -94,6 +97,9 @@ class CSRRegister(Elaboratable):
             performed, second is modified input data.
         fu_read_map: function (TModule, Value) -> (ValueLike)
             Map on CSR reads from instructions. Maps value returned from CSR.
+        fu_access_filter: function (TModule, Value) -> ValueLike
+            Filter on CSR accesses from instructions.
+            Returned value indicates if access should be considered legal.
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -105,6 +111,7 @@ class CSRRegister(Elaboratable):
         self.fu_write_priority = fu_write_priority
         fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
         fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
+        self.fu_access_filter = fu_access_filter if fu_access_filter else (lambda _, __: C(1))
         self.src_loc = get_src_loc(src_loc)
 
         csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
@@ -112,6 +119,10 @@ class CSRRegister(Elaboratable):
         self.read = Method(o=csr_layouts.read)
         self.read_comb = Method(o=csr_layouts.read)
         self.write = Method(i=csr_layouts.write)
+        self.access_valid = Method(
+            i=csr_layouts.access_valid_i,
+            o=csr_layouts.access_valid_o,
+        )
 
         self._internal_fu_read = Method(o=csr_layouts._fu_read)
         self._internal_fu_write = Method(i=csr_layouts._fu_write)
@@ -178,6 +189,10 @@ class CSRRegister(Elaboratable):
                 "read": self._internal_fu_read.run,
                 "written": self._internal_fu_write.run,
             }
+
+        @def_method(m, self.access_valid)
+        def _(priv_mode):
+            return {"valid": self.fu_access_filter(m, priv_mode)}
 
         with m.If(fu_write_internal.active & write_internal.active):
             if self.fu_write_priority:

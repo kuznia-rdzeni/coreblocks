@@ -738,6 +738,9 @@ class CSRRegisterLayouts:
             ("read", 1),
             ("written", 1),
         )
+        self.access_valid_i = make_layout(("priv_mode", PrivilegeLevel))
+
+        self.access_valid_o = make_layout(("valid", 1))
 
         self.write = make_layout(self.data)
 
