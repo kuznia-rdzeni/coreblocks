@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
-from coreblocks.func_blocks.fu.lsu.pmp import PMPCfgLayout, PMPChecker
+from coreblocks.priv.pmp import PMPCfgLayout, PMPChecker
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
 from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
