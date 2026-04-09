@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775228649923,
+  "lastUpdate": 1775773131377,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19733,6 +19733,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9dbb2642cef8bc38514229cf68f4333984e46c3b"
         },
         "date": 1775228639351,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4197795723370327,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543968052669923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3485496877822982,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6349970109210737,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35790600673610956,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.28801970202221067,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32097859327217126,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.42057424360036255,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6d25e1d1119d0c4e6c4abc46237bfd1d20c996b",
+          "message": "use more modular Zc* extensions instead of C and implement Zcb (#877)",
+          "timestamp": "2026-04-09T23:56:48+02:00",
+          "tree_id": "51238e1d5f3497144e709957e09a76e616fb6aed",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d6d25e1d1119d0c4e6c4abc46237bfd1d20c996b"
+        },
+        "date": 1775773124483,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
