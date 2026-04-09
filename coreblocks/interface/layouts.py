@@ -143,9 +143,6 @@ class CommonLayoutFields:
         self.tag: LayoutListField = ("tag", gen_params.tag_bits)
         """Instruction tag. Identifies speculation path of the instruction."""
 
-        self.last_issued_tag: LayoutListField = ("last_issued_tag", gen_params.tag_bits)
-        """Tag issued before currently tagged instruction."""
-
         self.rollback_tag: LayoutListField = ("rollback_tag", gen_params.tag_bits)
         """Target tag of last rollback that happened before instruction.
         For tracking rollbacks in scheduler/CRAT only."""
@@ -339,9 +336,7 @@ class RATLayouts:
         self.crat_rename_out = self.frat_rename_out
 
         self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
-        self.crat_tag_out = make_layout(
-            fields.last_issued_tag, fields.tag, fields.tag_increment, fields.commit_checkpoint
-        )
+        self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
 
         self.crat_flush_restore = make_layout(fields.rl_dst, fields.rp_dst)
 

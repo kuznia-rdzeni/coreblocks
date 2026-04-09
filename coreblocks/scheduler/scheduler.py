@@ -95,10 +95,11 @@ class InstructionTagger(Elaboratable):
             m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
 
             for i in range(self.gen_params.frontend_superscalarity):
-                m.d.av_comb += data_out.data[i].tag.eq(tag_out.last_issued_tag)
+                m.d.av_comb += data_out.data[i].tag.eq(tag_out.tag)
 
-            m.d.av_comb += data_out.data[idx].tag.eq(tag_out.tag)
-            m.d.av_comb += data_out.data[idx].tag_increment.eq(tag_out.tag_increment)
+            # Jump insn always last in group - commit_checkpoint is set there
+            # Tag increment happens after jump or flush - first insn in group
+            m.d.av_comb += data_out.data[0].tag_increment.eq(tag_out.tag_increment)
             m.d.av_comb += data_out.data[idx].commit_checkpoint.eq(tag_out.commit_checkpoint)
 
             self.push_instrs(m, data_out)

@@ -326,7 +326,6 @@ class CheckpointRAT(Elaboratable):
             m.d.sync += last_issued_tag.eq(out_tag)
 
             return {
-                "last_issued_tag": last_issued_tag,
                 "tag": out_tag,
                 "tag_increment": tag_increment_allocate,
                 "commit_checkpoint": out_commit_checkpoint,
