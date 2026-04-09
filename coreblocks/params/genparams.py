@@ -111,6 +111,10 @@ class GenParams(DependentCache):
         if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
             raise ValueError("HPM counters count must be in range [0, 29]")
 
+        # TODO: remove when HPM counters are implemented
+        if self.hpm_counters_count > 0:
+            raise NotImplementedError("HPM counters are currently not implemented")
+
         if self.supervisor_mode and not self.user_mode:
             raise ValueError("Supervisor mode support requires user mode support")
 
