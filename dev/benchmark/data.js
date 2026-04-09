@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775773133399,
+  "lastUpdate": 1775773135358,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -55935,6 +55935,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 34498,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3002,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2680,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 7803,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d6d25e1d1119d0c4e6c4abc46237bfd1d20c996b",
+          "message": "use more modular Zc* extensions instead of C and implement Zcb (#877)",
+          "timestamp": "2026-04-09T23:56:48+02:00",
+          "tree_id": "51238e1d5f3497144e709957e09a76e616fb6aed",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d6d25e1d1119d0c4e6c4abc46237bfd1d20c996b"
+        },
+        "date": 1775773134852,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.87,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 37162,
             "unit": "LUT4"
           },
           {
