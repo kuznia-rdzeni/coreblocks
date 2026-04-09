@@ -68,7 +68,7 @@ class _CoreConfigurationDataClass:
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
     compressed: bool
-        Enables 16-bit Compressed Instructions extension.
+        Enables 16-bit Compressed instructions. Enables Zca, Zcf, and Zcd extensions as permitted by the ISA.
     zcb: bool
         Enables the Zcb compressed code-size reduction extension.
     embedded: bool
