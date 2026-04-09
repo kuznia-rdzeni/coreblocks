@@ -27,6 +27,7 @@ from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
 from coreblocks.func_blocks.csr.csr import CSRBlockComponent
+from coreblocks.arch.isa_consts import SatpModeEncoding
 
 
 __all__ = [
@@ -109,6 +110,14 @@ class _CoreConfigurationDataClass:
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
         Enable User Mode.
+    supervisor_mode: bool
+        Enable Supervisor Mode.
+    asidlen: int
+        Number of writable ASID bits in SATP.
+    supported_vm_schemes: set[SatpModeEncoding]
+        SATP MODE values accepted by this core.
+    hpm_counters_count: int
+        Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     allow_partial_extensions: bool
@@ -166,6 +175,11 @@ class _CoreConfigurationDataClass:
     interrupt_custom_edge_trig_mask: int = 0
 
     user_mode: bool = True
+    supervisor_mode: bool = True
+
+    asidlen: int = 0
+    supported_vm_schemes: set[SatpModeEncoding] = field(default_factory=lambda: {SatpModeEncoding.BARE})
+    hpm_counters_count: int = 0
 
     pmp_register_count: int = 0
 
@@ -205,6 +219,7 @@ tiny_core_config = CoreConfiguration(
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
     icache_enable=False,
     user_mode=False,
+    supervisor_mode=False,
 )
 
 # Basic core config with minimal additions required for Linux
@@ -216,7 +231,7 @@ small_linux_config = CoreConfiguration(
                 ShiftUnitComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
-                PrivilegedUnitComponent(),
+                PrivilegedUnitComponent(supervisor_enable=True),
             ],
             rs_entries=4,
         ),
@@ -244,7 +259,7 @@ full_core_config = CoreConfiguration(
                 ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
-                PrivilegedUnitComponent(),
+                PrivilegedUnitComponent(supervisor_enable=True),
             ],
             rs_entries=4,
         ),

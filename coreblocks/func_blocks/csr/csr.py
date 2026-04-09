@@ -6,6 +6,7 @@ from transactron import Method, Methods, def_method, def_methods, Transaction, T
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
+from transactron.lib.simultaneous import condition
 
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
@@ -79,7 +80,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.update = Methods(gen_params.announcement_superscalarity, i=self.csr_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.push_result)
 
-        self.regfile: dict[int, tuple[Method, Method]] = {}
+        self.regfile: dict[int, tuple[Method, Method, Method]] = {}
 
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
@@ -89,7 +90,7 @@ class CSRUnit(FuncBlock, Elaboratable):
             assert csr.csr_number is not None
             if csr.csr_number in self.regfile:
                 raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write)
+            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write, csr.access_valid)
 
     def elaborate(self, platform):
         self._create_regfile()
@@ -135,19 +136,21 @@ class CSRUnit(FuncBlock, Elaboratable):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
             info = precommit(m, instr.rob_id)
             m.d.top_comb += exe_side_fx.eq(info.side_fx)
-            with m.Switch(instr.csr):
+            csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
+            current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
+
+            with condition(m) as branch:
                 for csr_number, methods in self.regfile.items():
-                    read, write = methods
+                    read, write, access_valid = methods
                     priv_level_required, read_only = csr_access_privilege(csr_number)
 
-                    with m.Case(csr_number):
+                    with branch(instr.csr == csr_number):
                         priv_valid = Signal()
-                        current_priv_mode = (
-                            self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
-                        )
+                        csr_access_valid = access_valid(m, current_priv_mode).valid
+
                         m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
-                        with m.If(priv_valid):
+                        with m.If(priv_valid & csr_access_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
                                 with m.If(exe_side_fx):
@@ -175,7 +178,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                             # Missing privilege
                             m.d.sync += exception.eq(1)
 
-                with m.Default():
+                with branch():
                     # Invalid CSR number
                     m.d.sync += exception.eq(1)
 

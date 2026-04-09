@@ -16,9 +16,15 @@ from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.arch import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
-from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.arch import ExceptionCause, PrivilegeLevel
+from coreblocks.arch.csr_address import CounterEnableFieldOffsets
+from coreblocks.interface.keys import (
+    CoreStateKey,
+    CSRInstancesKey,
+    InstructionPrecommitKey,
+    GetTrapTargetPrivKey,
+)
+from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR, counteren_access_filter
 from coreblocks.arch.isa_consts import TrapVectorMode
 
 
@@ -44,12 +50,19 @@ class Retirement(Elaboratable):
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
         )
-        self.trap_entry = Method()
+        self.trap_entry = Method(i=[("target_priv", PrivilegeLevel)])
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
-        self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+        self.instret_csr = DoubleCounterCSR(
+            gen_params,
+            CSRAddress.MINSTRET,
+            CSRAddress.MINSTRETH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.INSTRET,
+            CSRAddress.INSTRETH if gen_params.isa.xlen == 32 else None,
+            shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.IR),
+        )
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",
@@ -71,7 +84,10 @@ class Retirement(Elaboratable):
 
         m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
-        m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
+        csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
+        m_csr = csr_instances.m_mode
+        s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
+        get_trap_target_priv = self.dependency_manager.get_optional_dependency(GetTrapTargetPrivKey())
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(init=1)
@@ -116,6 +132,7 @@ class Retirement(Elaboratable):
         continue_pc_override = Signal()
         continue_pc = Signal(self.gen_params.isa.xlen)
         core_flushing = Signal()
+        trap_target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -168,11 +185,35 @@ class Retirement(Elaboratable):
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
                         with m.If(arch_trap):
-                            # Register RISC-V architectural trap in CSRs
-                            m_csr.mcause.write(m, cause_entry)
-                            m_csr.mepc.write(m, cause_register.pc)
-                            m_csr.mtval.write(m, cause_register.mtval)
-                            self.trap_entry(m)
+                            # Register RISC-V architectural trap in CSRs.
+                            target_priv = Signal(PrivilegeLevel)
+                            m.d.av_comb += target_priv.eq(PrivilegeLevel.MACHINE)
+
+                            if self.gen_params.supervisor_mode:
+                                assert get_trap_target_priv is not None
+                                is_interrupt = cause_entry[-1]
+                                cause_num = cause_entry[: self.gen_params.isa.xlen - 1]
+                                m.d.av_comb += target_priv.eq(
+                                    get_trap_target_priv(m, is_interrupt=is_interrupt, cause_num=cause_num).data
+                                )
+
+                            if self.gen_params.supervisor_mode:
+                                with m.If(target_priv == PrivilegeLevel.SUPERVISOR):
+                                    assert s_csr is not None
+                                    s_csr.scause.write(m, cause_entry)
+                                    s_csr.sepc.write(m, cause_register.pc)
+                                    s_csr.stval.write(m, cause_register.mtval)
+                                with m.Else():
+                                    m_csr.mcause.write(m, cause_entry)
+                                    m_csr.mepc.write(m, cause_register.pc)
+                                    m_csr.mtval.write(m, cause_register.mtval)
+                            else:
+                                m_csr.mcause.write(m, cause_entry)
+                                m_csr.mepc.write(m, cause_register.pc)
+                                m_csr.mtval.write(m, cause_register.mtval)
+
+                            m.d.sync += trap_target_priv.eq(target_priv)
+                            self.trap_entry(m, target_priv=target_priv)
 
                         # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):
@@ -221,17 +262,39 @@ class Retirement(Elaboratable):
                     self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
-                    mtvec_offset = Signal(self.gen_params.isa.xlen)
-                    mtvec_base = m_csr.mtvec_base.read(m).data
-                    mtvec_mode = m_csr.mtvec_mode.read(m).data
-                    mcause = m_csr.mcause.read(m).data
+                    tvec_offset = Signal(self.gen_params.isa.xlen)
+                    tvec_base = Signal(self.gen_params.isa.xlen)
+                    tvec_mode = Signal(TrapVectorMode)
+                    tcause = Signal(self.gen_params.isa.xlen)
+
+                    if self.gen_params.supervisor_mode:
+                        assert s_csr is not None
+                        with m.If(trap_target_priv == PrivilegeLevel.SUPERVISOR):
+                            stvec = s_csr.stvec.read(m).data
+                            m.d.av_comb += [
+                                tvec_base.eq(stvec >> 2),
+                                tvec_mode.eq(stvec[: TrapVectorMode.as_shape().width]),
+                                tcause.eq(s_csr.scause.read(m).data),
+                            ]
+                        with m.Else():
+                            m.d.av_comb += [
+                                tvec_base.eq(m_csr.mtvec_base.read(m).data),
+                                tvec_mode.eq(m_csr.mtvec_mode.read(m).data),
+                                tcause.eq(m_csr.mcause.read(m).data),
+                            ]
+                    else:
+                        m.d.av_comb += [
+                            tvec_base.eq(m_csr.mtvec_base.read(m).data),
+                            tvec_mode.eq(m_csr.mtvec_mode.read(m).data),
+                            tcause.eq(m_csr.mcause.read(m).data),
+                        ]
 
                     # When mode is Vectored, interrupts set pc to base + 4 * cause_number
-                    with m.If(mcause[-1] & (mtvec_mode == TrapVectorMode.VECTORED)):
-                        m.d.av_comb += mtvec_offset.eq(mcause << 2)
+                    with m.If(tcause[-1] & (tvec_mode == TrapVectorMode.VECTORED)):
+                        m.d.av_comb += tvec_offset.eq(tcause << 2)
 
-                    # (mtvec_base stores base[MXLEN-1:2])
-                    m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
+                    # (xtvec_base stores base[MXLEN-1:2])
+                    m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
 
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
