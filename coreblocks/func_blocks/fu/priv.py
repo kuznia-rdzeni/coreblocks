@@ -146,7 +146,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
             illegal_wfi = (
                 (instr_fn == PrivilegedFn.Fn.WFI)
-                & (priv_data <= PrivilegeLevel.MACHINE)
+                & (priv_data < PrivilegeLevel.MACHINE)
                 & (csr.m_mode.mstatus_tw.read(m).data)
             )
 
