@@ -211,14 +211,12 @@ class SchedulerLayouts:
             fields.commit_checkpoint,
         )
 
-        self.reg_alloc_out = make_layout(
+        self.reg_alloc_out = self.instr_tag_in = make_layout(
             ("count", range(gen_params.frontend_superscalarity + 1)),
             ("data", ArrayLayout(self.instr_tag_in_data, gen_params.frontend_superscalarity)),
         )
 
-        self.instr_tag_in = self.instr_tag_in_data
-
-        self.renaming_in = self.instr_tag_out = make_layout(
+        self.renaming_in_data = make_layout(
             fields.exec_fn,
             fields.regs_l,
             self.regs_p_alloc_out,
@@ -230,7 +228,12 @@ class SchedulerLayouts:
             fields.commit_checkpoint,
         )
 
-        self.renaming_out = make_layout(
+        self.renaming_in = self.instr_tag_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.renaming_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.rob_allocate_in_data = make_layout(
             fields.exec_fn,
             self.regs_l_rob_in,
             fields.regs_p,
@@ -241,9 +244,12 @@ class SchedulerLayouts:
             fields.tag_increment,
         )
 
-        self.rob_allocate_in = self.renaming_out
+        self.renaming_out = self.rob_allocate_in = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.rob_allocate_in_data, gen_params.frontend_superscalarity)),
+        )
 
-        self.rob_allocate_out = make_layout(
+        self.rs_select_in_data = make_layout(
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
@@ -253,7 +259,12 @@ class SchedulerLayouts:
             fields.tag,
         )
 
-        self.rs_select_in = self.rob_allocate_out
+        self.rob_allocate_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.rs_select_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.rs_select_in = self.rs_select_in_data
 
         self.rs_select_out = make_layout(
             fields.exec_fn,
@@ -300,6 +311,8 @@ class RATLayouts:
         """Bitmask, when bit is set when corresponding tag is on the current speculation/execution
         path and reset when instruction was already rolled back (is not included in current FRAT)"""
 
+        self.active_rename_layout = make_layout(("valid", 1), fields.rl_dst, fields.rp_dst)
+
         self.frat_rename_in = make_layout(
             fields.rl_s1,
             fields.rl_s2,
@@ -317,7 +330,9 @@ class RATLayouts:
         self.rollback_in = make_layout(fields.tag)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
 
-        self.crat_rename_in = extend_layout(self.frat_rename_in, fields.tag, fields.commit_checkpoint)
+        self.crat_commit_checkpoint_in = make_layout(fields.tag, fields.commit_checkpoint)
+
+        self.crat_rename_in = self.frat_rename_in
         self.crat_rename_out = self.frat_rename_out
 
         self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)

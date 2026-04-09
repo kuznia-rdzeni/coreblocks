@@ -132,6 +132,7 @@ class Core(Component):
         m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
         scheduler.get_instr.provide(get_instr)
         scheduler.get_free_reg.provide(rf_allocator.alloc)
+        scheduler.crat_commit_checkpoint.provide(crat.commit_checkpoint)
         scheduler.crat_rename.provide(crat.rename)
         scheduler.crat_tag.provide(crat.tag)
         scheduler.crat_active_tags.provide(crat.get_active_tags)
