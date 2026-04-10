@@ -1,3 +1,4 @@
+from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag
 
 __all__ = [
@@ -13,6 +14,8 @@ __all__ = [
     "PrivilegeLevel",
     "InterruptCauseNumber",
     "XlenEncoding",
+    "PMPAFlagEncoding",
+    "PMPCfgLayout",
 ]
 
 
@@ -202,3 +205,8 @@ class PMPAFlagEncoding(IntEnum, shape=2):
     TOR = 1
     NA4 = 2
     NAPOT = 3
+
+
+class PMPCfgLayout(StructLayout):
+    def __init__(self):
+        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})

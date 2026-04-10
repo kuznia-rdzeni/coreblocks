@@ -3,7 +3,7 @@ from amaranth.lib import data
 from amaranth_types import HasElaborate
 from transactron.core import TModule
 
-from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
 from coreblocks.params import *
 from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 
@@ -11,11 +11,6 @@ from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 class PMPLayout(data.StructLayout):
     def __init__(self):
         super().__init__({"r": 1, "w": 1, "x": 1})
-
-
-class PMPCfgLayout(data.StructLayout):
-    def __init__(self):
-        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
 
 
 class PMPChecker(Elaboratable):
@@ -40,21 +35,25 @@ class PMPChecker(Elaboratable):
         self.gen_params = gen_params
         self.csr = csr
         self.addr = Signal(gen_params.isa.xlen)
-
         self.result = Signal(PMPLayout())
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
+
+        grain = self.gen_params.pmp_grain
+        n = self.gen_params.pmp_register_count
+
+        if n == 0:
+            m.d.comb += self.result.r.eq(1)
+            m.d.comb += self.result.w.eq(1)
+            m.d.comb += self.result.x.eq(1)
+            return m
 
         priv_mode = self.csr.priv_mode.value
         with m.If(priv_mode == PrivilegeLevel.MACHINE):
             m.d.comb += self.result.r.eq(1)
             m.d.comb += self.result.w.eq(1)
             m.d.comb += self.result.x.eq(1)
-
-        n = self.gen_params.pmp_register_count
-        if n == 0:
-            return m
 
         entry_matches = []
         cfgs = []
@@ -72,13 +71,24 @@ class PMPChecker(Elaboratable):
                 with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
-                    lower = addr_vals[i - 1] if i > 0 else 0
-                    m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
+                    lower = addr_vals[i - 1][grain:] if i > 0 else 0
+                    m.d.comb += entry_match.eq(
+                        (self.addr[2 + grain :] >= lower) & (self.addr[2 + grain :] < addr_val[grain:])
+                    )
                 with m.Case(PMPAFlagEncoding.NA4):
-                    m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
+                    if grain == 0:
+                        m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
+                    else:
+                        m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
-                    napot_mask = addr_val ^ (addr_val + 1)
-                    m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
+                    if grain >= 2:
+                        # Spec: bits [G-2:0] read as all ones in NAPOT mode
+                        forced_val = Signal.like(addr_val, name=f"napot_forced_{i}")
+                        m.d.comb += forced_val.eq(addr_val | ((1 << (grain - 1)) - 1))
+                    else:
+                        forced_val = addr_val
+                    napot_mask = forced_val ^ (forced_val + 1)
+                    m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (forced_val & ~napot_mask))
 
             entry_matches.append(entry_match)
 

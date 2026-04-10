@@ -102,6 +102,12 @@ class GenParams(DependentCache):
         if self.pmp_register_count not in [0, 16, 64]:
             raise ValueError("PMP register count must be 0, 16, or 64")
 
+        self.pmp_grain = cfg.pmp_grain
+        self.pmp_grain_bytes = 2 ** (cfg.pmp_grain + 2)
+        if self.pmp_register_count > 0 and self.icache_params.enable:
+            if self.pmp_grain_bytes < self.icache_params.line_size_bytes:
+                raise ValueError("PMP grain must be >= cache line size")
+
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
 
         self._generate_test_hardware = cfg._generate_test_hardware

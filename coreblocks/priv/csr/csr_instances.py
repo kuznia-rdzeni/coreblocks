@@ -2,7 +2,7 @@ from amaranth import *
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import MstatusFieldOffsets
 from coreblocks.arch.isa import Extension
-from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding
 from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister
@@ -112,7 +112,20 @@ class MachineModeCSRRegisters(Elaboratable):
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
-        for i in range(gen_params.pmp_register_count):
+
+        # Spec: Software may determine the PMP granularity by writing zero to pmp0cfg
+        if gen_params.pmp_register_count > 0:
+            grain_mask = (1 << gen_params.pmp_grain) - 1
+
+            def pmpaddr0_fu_read_map(m, value):
+                a_field = self.pmpxcfg[0].value[3:5]
+                return Mux(a_field == PMPAFlagEncoding.OFF, value & ~grain_mask, value)
+
+            reg0 = CSRRegister(CSRAddress.PMPADDR0, gen_params, fu_read_map=pmpaddr0_fu_read_map)
+            self.pmpaddrx.append(reg0)
+            setattr(self, "pmpaddr0", reg0)
+
+        for i in range(1, gen_params.pmp_register_count):
             reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
