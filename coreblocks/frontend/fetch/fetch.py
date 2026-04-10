@@ -135,23 +135,19 @@ class FetchUnit(Elaboratable):
         # - send a request to the instruction cache
         # - check PMP execute permission (if PMP is enabled)
         #
+        csr = DependencyContext.get().get_dependency(CSRInstancesKey())
         m.submodules.pmp_fault_fifo = pmp_fault_fifo = BasicFifo(make_layout(fields.pc), depth=2)
         pmp_addr = Signal(self.gen_params.isa.xlen)
 
-        if self.gen_params.pmp_register_count > 0:
-            csr = DependencyContext.get().get_dependency(CSRInstancesKey())
-            m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
-            m.d.comb += pmp_checker.addr.eq(pmp_addr)
-            pmp_x = pmp_checker.result.x
-        else:
-            pmp_x = C(1)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
+        m.d.comb += pmp_checker.addr.eq(pmp_addr)
 
         @def_method(m, self.fetch_request)
         def _(pc):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
             m.d.comb += pmp_addr.eq(pc)
-            with m.If(pmp_x):
+            with m.If(pmp_checker.result.x):
                 self.icache.issue_req(m, addr=pc)
                 fetch_requests.write(m, pc=pc)
             with m.Else():

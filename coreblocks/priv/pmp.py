@@ -45,16 +45,20 @@ class PMPChecker(Elaboratable):
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
+        grain = self.gen_params.pmp_grain
+        n = self.gen_params.pmp_register_count
+
+        if n == 0:
+            m.d.comb += self.result.r.eq(1)
+            m.d.comb += self.result.w.eq(1)
+            m.d.comb += self.result.x.eq(1)
+            return m
+
         priv_mode = self.csr.priv_mode.value
         with m.If(priv_mode == PrivilegeLevel.MACHINE):
             m.d.comb += self.result.r.eq(1)
             m.d.comb += self.result.w.eq(1)
             m.d.comb += self.result.x.eq(1)
-
-        grain = self.gen_params.pmp_grain
-        n = self.gen_params.pmp_register_count
-        if n == 0:
-            return m
 
         entry_matches = []
         cfgs = []
