@@ -227,9 +227,39 @@ class TestPMPDirect(TestCaseWithSimulator):
             GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain=0, icache_enable=True))
 
     @pytest.mark.parametrize("grain", [0, 2, 4])
-    def test_pmpaddrx_ro_bits(self, grain):
+    def test_pmpaddr_discovery(self, grain):
         gen_params = GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain=grain, icache_enable=False))
         csr = MachineModeCSRRegisters(gen_params)
-        expected_mask = (1 << grain) - 1
-        for i in range(16):
-            assert csr.pmpaddrx[i].ro_bits == expected_mask
+        pmpaddr0_read = TestbenchIO(AdapterTrans.create(csr.pmpaddrx[0]._fu_read))
+        pmpaddr1_read = TestbenchIO(AdapterTrans.create(csr.pmpaddrx[1]._fu_read))
+
+        test_module = ModuleConnector(
+            csr=csr,
+            pmpaddr0_read=pmpaddr0_read,
+            pmpaddr1_read=pmpaddr1_read,
+        )
+
+        all_ones = (1 << gen_params.isa.xlen) - 1
+        masked = all_ones & ~((1 << grain) - 1)
+        napot_cfg = make_cfg(r=1, w=1, x=1, a=PMPAFlagEncoding.NAPOT)
+
+        async def process(sim: TestbenchContext):
+            # pmp0cfg.A == 0: write all-ones, read back masked
+            sim.set(csr.pmpaddrx[0].value, all_ones)
+            sim.set(csr.pmpaddrx[1].value, all_ones)
+            await sim.tick()
+            result_off = (await pmpaddr0_read.call(sim))["data"]
+            assert result_off == masked, f"OFF, grain={grain}: expected 0x{masked:x}, got 0x{result_off:x}"
+
+            # pmp0cfg.A != 0: write all-ones, read back unchanged
+            sim.set(csr.pmpxcfg[0].value, napot_cfg)
+            await sim.tick()
+            result_napot = (await pmpaddr0_read.call(sim))["data"]
+            assert result_napot == all_ones, f"NAPOT, grain={grain}: expected 0x{all_ones:x}, got 0x{result_napot:x}"
+
+            # pmpaddr1: write all-ones, read back unchanged
+            result_other = (await pmpaddr1_read.call(sim))["data"]
+            assert result_other == all_ones, f"pmpaddr1, grain={grain}: expected 0x{all_ones:x}, got 0x{result_other:x}"
+
+        with self.run_simulation(test_module) as sim:
+            sim.add_testbench(process)

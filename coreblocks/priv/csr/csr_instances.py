@@ -129,9 +129,21 @@ class MachineModeCSRRegisters(Elaboratable):
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
-        pmpaddrx_ro_mask = (1 << gen_params.pmp_grain) - 1
-        for i in range(gen_params.pmp_register_count):
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, ro_bits=pmpaddrx_ro_mask)
+
+        # Spec: Software may determine the PMP granularity by writing zero to pmp0cfg
+        if gen_params.pmp_register_count > 0:
+            grain_mask = (1 << gen_params.pmp_grain) - 1
+
+            def pmpaddr0_fu_read_map(m, value):
+                a_field = self.pmpxcfg[0].value[3:5]
+                return Mux(a_field == PMPAFlagEncoding.OFF, value & ~grain_mask, value)
+
+            reg0 = CSRRegister(CSRAddress.PMPADDR0, gen_params, fu_read_map=pmpaddr0_fu_read_map)
+            self.pmpaddrx.append(reg0)
+            setattr(self, "pmpaddr0", reg0)
+
+        for i in range(1, gen_params.pmp_register_count):
+            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
