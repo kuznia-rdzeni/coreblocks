@@ -36,7 +36,7 @@ Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digita
 
 ## Community
 
-We have an community IRC channel - [#coreforge at libera.chat](https://web.libera.chat/#coreforge).
+We have an community IRC channel - [#coreforge at libera.chat](https://web.libera.chat/#coreforge) bridged with Matrix chat [#coreforge:fossi-chat.org](https://matrix.to/#/#coreforge:fossi-chat.org).
 You are welcome to join and ask questions, discuss development, or share feedback about [Coreforge projects](https://github.com/kuznia-rdzeni) :)
 
 Coreblocks is maintained under the [Coreforge Foundation](https://kuznia-rdzeni.org)
@@ -55,6 +55,15 @@ Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/
 
 For larger changes, please discuss your plans with us first, so you can ensure that the contribution fits the project and will be merged sooner.
 You are welcome to submit pull requests for simple contributions directly.
+
+## Acknowledgements
+
+Coreblocks project is financially supported by [NGI0 Commons Fund](https://nlnet.nl/commonsfund/) made possible by [NLNet](https://nlnet.nl) and European Commission.
+
+<div align="center">
+        <img src="docs/images/nlnet.svg" height="50px" />
+        <img src="docs/images/ngi0-commons.svg" width="40%" height="50px" />
+</div>
 
 ## License
 
