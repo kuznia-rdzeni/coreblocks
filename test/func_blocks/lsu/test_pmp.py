@@ -223,3 +223,11 @@ class TestPMPDirect(TestCaseWithSimulator):
     def test_pmp_grain_icache_validation_error(self):
         with pytest.raises(ValueError):
             GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain=0, icache_enable=True))
+
+    @pytest.mark.parametrize("grain", [0, 2, 4])
+    def test_pmpaddrx_ro_bits(self, grain):
+        gen_params = GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain=grain, icache_enable=False))
+        csr = MachineModeCSRRegisters(gen_params)
+        expected_mask = (1 << grain) - 1
+        for i in range(16):
+            assert csr.pmpaddrx[i].ro_bits == expected_mask

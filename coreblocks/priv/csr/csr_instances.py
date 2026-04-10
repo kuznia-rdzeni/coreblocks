@@ -112,8 +112,9 @@ class MachineModeCSRRegisters(Elaboratable):
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
+        pmpaddrx_ro_mask = (1 << gen_params.pmp_grain) - 1
         for i in range(gen_params.pmp_register_count):
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
+            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, ro_bits=pmpaddrx_ro_mask)
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
