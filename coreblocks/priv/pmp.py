@@ -3,7 +3,7 @@ from amaranth.lib import data
 from amaranth_types import HasElaborate
 from transactron.core import TModule
 
-from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
 from coreblocks.params import *
 from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 
@@ -11,11 +11,6 @@ from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 class PMPLayout(data.StructLayout):
     def __init__(self):
         super().__init__({"r": 1, "w": 1, "x": 1})
-
-
-class PMPCfgLayout(data.StructLayout):
-    def __init__(self):
-        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
 
 
 class PMPChecker(Elaboratable):
