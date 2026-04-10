@@ -65,6 +65,8 @@ Coreblocks project is financially supported by [NGI0 Commons Fund](https://nlnet
         <img src="docs/images/ngi0-commons.svg" width="40%" height="50px" />
 </div>
 
+Contact us at [Coreforge Foundation](https://kuznia-rdzeni.org) if you want to support development of Coreforge projects!
+
 ## License
 
 Copyright © 2022-2025, University of Wrocław.
