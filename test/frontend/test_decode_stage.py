@@ -1,16 +1,13 @@
 from typing import Optional
 import pytest
-from transactron.lib import Adapter
-from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.testing import (
     TestCaseWithSimulator,
-    TestbenchIO,
     SimpleTestCircuit,
     TestbenchContext,
     data_const_to_dict,
 )
 
-from coreblocks.frontend.decoder.decode_stage import DecodeStage
+from coreblocks.frontend.decoder.decode_stage import Decode
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
@@ -52,26 +49,13 @@ class TestDecode(TestCaseWithSimulator):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(test_core_config.replace(start_pc=24))
 
-        self.decode = DecodeStage(self.gen_params)
+        self.decode = Decode(self.gen_params, lambda m: ())
 
-        self.push_raw = TestbenchIO(Adapter.create(self.decode.get_raw))
-        self.get_decoded = TestbenchIO(Adapter.create(self.decode.push_decoded))
+        self.m = SimpleTestCircuit(self.decode)
 
-        self.m = SimpleTestCircuit(
-            ModuleConnector(
-                decode=self.decode,
-                push_raw=self.push_raw,
-                get_decoded=self.get_decoded,
-            )
-        )
-
-    async def decode_input_proc(self, sim: TestbenchContext):
-        for instr, access_fault, _ in tests:
-            await self.push_raw.call(sim, instr=instr, access_fault=access_fault)
-
-    async def decode_output_proc(self, sim: TestbenchContext):
-        for _, _, data in tests:
-            decoded = await self.get_decoded.call(sim)
+    async def decode_proc(self, sim: TestbenchContext):
+        for instr, access_fault, data in tests:
+            decoded = await self.m.decode.call(sim, instr=instr, access_fault=access_fault)
             data = dict(data)
             if data["csr"] is None:
                 data["csr"] = decoded.csr
@@ -81,5 +65,4 @@ class TestDecode(TestCaseWithSimulator):
 
     def test(self):
         with self.run_simulation(self.m) as sim:
-            sim.add_testbench(self.decode_input_proc)
-            sim.add_testbench(self.decode_output_proc)
+            sim.add_testbench(self.decode_proc)

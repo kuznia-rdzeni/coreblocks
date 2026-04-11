@@ -6,8 +6,8 @@ from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.traps.instr_counter import CoreInstructionCounter
 from coreblocks.func_blocks.interface.func_blocks_unifier import FuncBlocksUnifier
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS, InternalInterruptController
-from transactron.core import TModule, Method
-from transactron.lib import CrossbarConnectTrans, MethodProduct
+from transactron.core import TModule, Method, def_method
+from transactron.lib import CrossbarConnectTrans
 from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     CSRInstancesKey,
@@ -60,7 +60,9 @@ class Core(Component):
 
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
-        self.rf_allocator = PriorityEncoderAllocator(gen_params.phys_regs, init=2**gen_params.phys_regs - 2)
+        self.rf_allocator = PriorityEncoderAllocator(
+            gen_params.phys_regs, gen_params.frontend_superscalarity, init=2**gen_params.phys_regs - 2
+        )
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -119,25 +121,28 @@ class Core(Component):
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
-        drop_second_ret_value = (self.gen_params.get(SchedulerLayouts).scheduler_in, lambda _, rets: rets[0])
-        m.submodules.get_instr = get_instr = MethodProduct.create(
-            [self.frontend.consume_instr, core_counter.increment], combiner=drop_second_ret_value
-        )
+        get_instr = Method.like(self.frontend.consume_instr)
 
-        m.submodules.scheduler = Scheduler(
-            get_instr=get_instr.method,
-            get_free_reg=rf_allocator.alloc[0],
-            crat_rename=crat.rename,
-            crat_tag=crat.tag,
-            crat_active_tags=crat.get_active_tags,
-            rob_put=rob.put,
-            rf_read_req1=rf.read_req[0],
-            rf_read_req2=rf.read_req[1],
-            rf_read_resp1=rf.read_resp[0],
-            rf_read_resp2=rf.read_resp[1],
-            reservation_stations=self.func_blocks_unifier.rs_blocks,
-            gen_params=self.gen_params,
-        )
+        @def_method(m, get_instr)
+        def _():
+            ret = self.frontend.consume_instr(m)
+            core_counter.increment(m, ret.count)
+            return ret
+
+        m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
+        scheduler.get_instr.provide(get_instr)
+        scheduler.get_free_reg.provide(rf_allocator.alloc)
+        scheduler.crat_rename.provide(crat.rename)
+        scheduler.crat_tag.provide(crat.tag)
+        scheduler.crat_active_tags.provide(crat.get_active_tags)
+        scheduler.rob_put.provide(rob.put)
+        scheduler.rf_read_req1.provide(rf.read_req[0])
+        scheduler.rf_read_req2.provide(rf.read_req[1])
+        scheduler.rf_read_resp1.provide(rf.read_resp[0])
+        scheduler.rf_read_resp2.provide(rf.read_resp[1])
+        for i, block in enumerate(self.func_blocks_unifier.rs_blocks):
+            scheduler.rs_select[i].provide(block.select)
+            scheduler.rs_insert[i].provide(block.insert)
 
         m.submodules.exception_information_register = self.exception_information_register
 

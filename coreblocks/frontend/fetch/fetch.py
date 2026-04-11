@@ -1,9 +1,10 @@
+from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import popcount, assign, StableSelectingNetwork
+from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -30,18 +31,24 @@ class FetchUnit(Elaboratable):
 
     The unit also deals with expanding compressed instructions and managing instructions that aren't aligned to
     4-byte boundaries.
-
-    Attributes
-    ----------
-    redirect : Method
-        Redirects the fetch unit to the specified PC
-    flush : Method
-        Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled.
     """
 
-    def __init__(
-        self, gen_params: GenParams, icache: CacheInterface, cont: Method, stall_lock: Method, stall_unsafe: Method
-    ) -> None:
+    fetch_request: Provided[Method]
+    """Requests a fetch of the instruction block at the given PC."""
+
+    fetch_writeback: Required[Method]
+    """Invoked to write back the status of the requested fetch block."""
+
+    flush: Provided[Method]
+    """Flushes the fetch unit from the currently processed fetch blocks, so it can be redirected or/and stalled."""
+
+    cont: Required[Method]
+    """Should be invoked to send fetched instruction to the next step."""
+
+    stall_unsafe: Required[Method]
+    """Called when an unsafe instruction is fetched."""
+
+    def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
         ----------
@@ -50,23 +57,17 @@ class FetchUnit(Elaboratable):
             fetch unit.
         icache : CacheInterface
             Instruction Cache
-        cont : Method
-            Method which should be invoked to send fetched instruction to the next step.
-            It has layout as described by `FetchLayout`.
-        stall_lock : Method
-            Method whose readiness determines if the fetch unit is stalled
-        stall_unsafe : Method
-            Method that is called when an unsafe instruction is fetched
         """
         self.gen_params = gen_params
         self.icache = icache
-        self.cont = cont
-        self.stall_lock = stall_lock
-        self.stall_unsafe = stall_unsafe
+        self.stall_unsafe = Method()
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
-        self.redirect = Method(i=self.layouts.redirect)
+        self.cont = Method(i=self.layouts.fetch_result)
+        self.fetch_request = Method(i=self.layouts.fetch_request)
+        self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
+
         self.flush = Method()
 
         self.perf_fetch_utilization = TaggedCounter(
@@ -74,14 +75,11 @@ class FetchUnit(Elaboratable):
             "Number of valid instructions in fetch blocks",
             tags=range(self.gen_params.fetch_width + 1),
         )
-        self.perf_fetch_redirects = HwCounter(
-            "frontend.fetch.fetch_redirects", "How many times the fetch unit redirected itself"
-        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_fetch_utilization, self.perf_fetch_redirects]
+        m.submodules += [self.perf_fetch_utilization]
 
         fetch_width = self.gen_params.fetch_width
         fields = self.gen_params.get(CommonLayoutFields)
@@ -90,16 +88,33 @@ class FetchUnit(Elaboratable):
         # Serializer creates a continuous instruction stream from fetch
         # blocks, which can have holes in them.
         m.submodules.aligner = aligner = StableSelectingNetwork(fetch_width, self.layouts.raw_instr)
+        serializer_depth = 2 * lcm(self.gen_params.frontend_superscalarity, fetch_width)
         m.submodules.serializer = serializer = WideFifo(
-            self.layouts.raw_instr, depth=2 * fetch_width, read_width=1, write_width=fetch_width
+            self.layouts.raw_instr,
+            depth=serializer_depth,
+            read_width=self.gen_params.frontend_superscalarity,
+            write_width=fetch_width,
         )
 
         with Transaction(name="cont").body(m):
-            raw_instr = serializer.read(m, count=1).data[0]
-            log.info(m, True, "Sending an instr to the backend pc=0x{:x} instr=0x{:x}", raw_instr.pc, raw_instr.instr)
-            self.cont(m, raw_instr)
+            peek_result = serializer.peek(m)
+            count = Signal(range(self.gen_params.frontend_superscalarity + 1))
+            # we want at most one branch insn in scheduling group, and only at the end (for simplicity)
+            # some insts in peek_result.data might not be valid, but this is still correct
+            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in peek_result.data][:-1]
+            m.d.comb += count.eq(count_trailing_zeros(Cat(which_is_branch)))
+            result = serializer.read(m, count=count)
+            for i in range(self.gen_params.frontend_superscalarity):
+                log.info(
+                    m,
+                    i < result.count,
+                    "Sending an instr to the backend pc=0x{:x} instr=0x{:x}",
+                    result.data[i].pc,
+                    result.data[i].instr,
+                )
+            self.cont(m, result)
 
-        m.submodules.cache_requests = cache_requests = BasicFifo(layout=[("addr", self.gen_params.isa.xlen)], depth=2)
+        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -112,21 +127,17 @@ class FetchUnit(Elaboratable):
         def flush():
             m.d.comb += flush_now.eq(1)
 
-        current_pc = Signal(self.gen_params.isa.xlen, init=self.gen_params.start_pc)
-
         #
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
         #
-        with Transaction(name="Fetch_Stage0").body(m):
-            self.stall_lock(m)
+        @def_method(m, self.fetch_request)
+        def _(pc):
+            log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
-            self.icache.issue_req(m, addr=current_pc)
-            cache_requests.write(m, addr=current_pc)
-
-            # Assume we fallthrough to the next fetch block.
-            m.d.sync += current_pc.eq(params.pc_from_fb(params.fb_addr(current_pc) + 1, 0))
+            self.icache.issue_req(m, addr=pc)
+            fetch_requests.write(m, pc=pc)
 
         #
         # State passed between stage 1 and stage 2
@@ -161,13 +172,13 @@ class FetchUnit(Elaboratable):
         prev_half_addr = Signal(make_layout(fields.fb_addr).size)
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
-            target = cache_requests.read(m)
+            fetch_request = fetch_requests.read(m)
             cache_resp = self.icache.accept_res(m)
 
             # The address of the fetch block.
-            fetch_block_addr = params.fb_addr(target.addr)
+            fetch_block_addr = params.fb_addr(fetch_request.pc)
             # The index (in instructions) of the first instruction that we should process.
-            fetch_block_offset = params.fb_instr_idx(target.addr)
+            fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -181,7 +192,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
 
             for i in range(fetch_width):
-                if Extension.C in self.gen_params.isa.extensions:
+                if Extension.ZCA in self.gen_params.isa.extensions:
                     full_instr = Signal(self.gen_params.isa.ilen)
                     if i == 0:
                         # If we have a half of an instruction from the previous block - we need to use it now.
@@ -204,7 +215,7 @@ class FetchUnit(Elaboratable):
             # Mask denoting at which offsets an instruction starts
             instr_start = [Signal() for _ in range(fetch_width)]
             for i in range(fetch_width):
-                if Extension.C in self.gen_params.isa.extensions:
+                if Extension.ZCA in self.gen_params.isa.extensions:
                     if i == 0:
                         m.d.av_comb += instr_start[i].eq(fetch_block_offset == 0)
                     elif i == 1:
@@ -218,7 +229,7 @@ class FetchUnit(Elaboratable):
                 else:
                     m.d.av_comb += instr_start[i].eq(fetch_block_offset <= i)
 
-            if Extension.C in self.gen_params.isa.extensions:
+            if Extension.ZCA in self.gen_params.isa.extensions:
                 valid_instr_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
                 m.d.sync += prev_half_v.eq(
@@ -342,9 +353,10 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].access_fault.eq(
                         Mux(s1_data.access_fault, FetchLayouts.AccessFaultFlag.ACCESS_FAULT, 0)
                     ),
+                    raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                 ]
 
-            if Extension.C in self.gen_params.isa.extensions:
+            if Extension.ZCA in self.gen_params.isa.extensions:
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
                     with m.If(s1_data.access_fault):
@@ -359,16 +371,15 @@ class FetchUnit(Elaboratable):
                     with m.If(access_fault | unsafe_stall):
                         # TODO: Raise different code for page fault when supported
                         # could be passed in 3rd bit of access_fault
-                        flush()
                         self.stall_unsafe(m)
-                    with m.Elif(redirect):
-                        self.perf_fetch_redirects.incr(m)
-                        new_pc = Signal.like(current_pc)
-                        m.d.av_comb += new_pc.eq(predcheck_res.redirect_target)
 
-                        log.debug(m, True, "Fetch redirected itself to pc 0x{:x}. Flushing...", new_pc)
+                    with m.If(access_fault | unsafe_stall | redirect):
+                        self.fetch_writeback(
+                            m,
+                            redirect=redirect,
+                            redirect_target=predcheck_res.redirect_target,
+                        )
                         flush()
-                        m.d.sync += current_pc.eq(new_pc)
 
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
@@ -385,10 +396,6 @@ class FetchUnit(Elaboratable):
         def _():
             flush()
             serializer.clear(m)
-
-        @def_method(m, self.redirect)
-        def _(pc):
-            m.d.sync += current_pc.eq(pc)
 
         return m
 
@@ -551,7 +558,7 @@ class PredictionChecker(Elaboratable):
             # For a given instruction index, returns a CFI target based on the predecode info
             def get_decoded_target_for(idx: Value) -> Value:
                 base = params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
-                if Extension.C in self.gen_params.isa.extensions:
+                if Extension.ZCA in self.gen_params.isa.extensions:
                     return base - Mux(instr_block_cross & (idx == 0), 2, 0)
                 return base
 

@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from unittest import TestCase
 
-from coreblocks.params.genparams import GenParams
-from coreblocks.params.configurations import *
 from coreblocks.arch.isa import gen_isa_string
+from coreblocks.params.configurations import *
 from coreblocks.params.fu_params import extensions_supported
+from coreblocks.params.genparams import GenParams
 
 
 class TestConfigurationsISAString(TestCase):
@@ -30,9 +30,9 @@ class TestConfigurationsISAString(TestCase):
         ),
         ISAStrTest(
             full_core_config,
-            "rv32imacbzicond_zicsr_zifencei_zbc_xintmachinemode",
-            "rv32imacbzicond_zicsr_zifencei_zbc_xintmachinemode",
-            "rv32imacbzicond_zicsr_zifencei_zbc_xintmachinemode",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode",
         ),
         ISAStrTest(tiny_core_config, "rv32e", "rv32e", "rv32e"),
         ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
@@ -45,12 +45,16 @@ class TestConfigurationsISAString(TestCase):
 
     def test_isa_str_raw(self):
         for test in self.TEST_CASES:
+            xlen = int(test.partial_str[2:4])
             partial, full = extensions_supported(
-                test.core_config.func_units_config, test.core_config.embedded, test.core_config.compressed
+                test.core_config.func_units_config,
+                test.core_config.embedded,
+                test.core_config.compressed,
+                test.core_config.zcb,
             )
 
-            partial = gen_isa_string(partial, 32)
-            full = gen_isa_string(full, 32)
+            partial = gen_isa_string(partial, xlen)
+            full = gen_isa_string(full, xlen)
 
             assert partial == test.partial_str
             assert full == test.full_str

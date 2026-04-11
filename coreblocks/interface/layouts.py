@@ -183,7 +183,7 @@ class SchedulerLayouts:
         )
         """Logical register number for the destination operand, before ROB allocation."""
 
-        self.reg_alloc_in = self.scheduler_in = make_layout(
+        self.reg_alloc_in_data = make_layout(
             fields.exec_fn,
             fields.regs_l,
             fields.imm,
@@ -194,7 +194,12 @@ class SchedulerLayouts:
             fields.commit_checkpoint,
         )
 
-        self.instr_tag_in = self.reg_alloc_out = make_layout(
+        self.reg_alloc_in = self.scheduler_in = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.reg_alloc_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.instr_tag_in_data = make_layout(
             fields.exec_fn,
             fields.regs_l,
             self.regs_p_alloc_out,
@@ -205,6 +210,13 @@ class SchedulerLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
         )
+
+        self.reg_alloc_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.instr_tag_in_data, gen_params.frontend_superscalarity)),
+        )
+
+        self.instr_tag_in = self.instr_tag_in_data
 
         self.renaming_in = self.instr_tag_out = make_layout(
             fields.exec_fn,
@@ -257,7 +269,7 @@ class SchedulerLayouts:
 
         self.rs_insert_in = self.rs_select_out
 
-        self.free_rf_layout = make_layout(fields.reg_id)
+        self.free_rf_layout = make_layout(("ident", gen_params.phys_regs_bits))
 
 
 class RFLayouts:
@@ -539,8 +551,16 @@ class FetchLayouts:
             self.access_fault,
             fields.rvc,
             fields.predicted_taken,
+            fields.cfi_type,
         )
 
+        self.fetch_result = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.raw_instr, gen_params.frontend_superscalarity)),
+        )
+
+        self.fetch_request = make_layout(fields.pc)
+        self.fetch_writeback = make_layout(("redirect", 1), ("redirect_target", gen_params.isa.xlen))
         self.redirect = make_layout(fields.pc)
         self.resume = make_layout(fields.pc)
 
@@ -578,6 +598,28 @@ class DecodeLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+        )
+
+        self.decode_result = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.decoded_instr, gen_params.frontend_superscalarity)),
+        )
+
+        # TODO: move tag fields to tagged_decode_result
+        self.tagged_decoded_instr = make_layout(
+            fields.exec_fn,
+            fields.regs_l,
+            fields.imm,
+            fields.csr,
+            fields.pc,
+            fields.rollback_tag,
+            fields.rollback_tag_v,
+            fields.commit_checkpoint,
+        )
+
+        self.tagged_decode_result = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.tagged_decoded_instr, gen_params.frontend_superscalarity)),
         )
 
 
@@ -743,4 +785,6 @@ class InternalInterruptControllerLayouts:
 
 class CoreInstructionCounterLayouts:
     def __init__(self, gen_params: GenParams):
-        self.decrement = [("empty", 1)]
+        self.increment_in = [("count", range(gen_params.frontend_superscalarity + 1))]
+        self.decrement_in = [("count", range(gen_params.retirement_superscalarity + 1))]
+        self.decrement_out = [("empty", 1)]

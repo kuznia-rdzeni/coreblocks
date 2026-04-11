@@ -19,6 +19,7 @@ from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
 from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.func_blocks.fu.div_unit import DivComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
+from coreblocks.func_blocks.fu.zbkx import ZbkxComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
@@ -44,7 +45,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     ),
     RSBlockComponent(
         [
-            MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+            MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
             DivComponent(),
         ],
         rs_entries=2,
@@ -67,7 +68,9 @@ class _CoreConfigurationDataClass:
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
     compressed: bool
-        Enables 16-bit Compressed Instructions extension.
+        Enables 16-bit Compressed instructions. Enables Zca, Zcf, and Zcd extensions as permitted by the ISA.
+    zcb: bool
+        Enables the Zcb compressed code-size reduction extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
     marchid: int
@@ -134,6 +137,7 @@ class _CoreConfigurationDataClass:
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
     compressed: bool = False
+    zcb: bool = False
     embedded: bool = False
 
     marchid: int = 44
@@ -221,7 +225,7 @@ small_linux_config = CoreConfiguration(
         ),
         RSBlockComponent(
             [
-                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
             rs_entries=2,
@@ -239,6 +243,7 @@ full_core_config = CoreConfiguration(
                 ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
                 ZbcComponent(),
+                ZbkxComponent(),
                 ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
@@ -248,7 +253,7 @@ full_core_config = CoreConfiguration(
         ),
         RSBlockComponent(
             [
-                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
             rs_entries=2,
@@ -257,9 +262,11 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    zcb=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
     pmp_register_count=16,
+    frontend_superscalarity=2,
     announcement_superscalarity=2,
 )
 

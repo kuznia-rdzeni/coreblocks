@@ -51,9 +51,9 @@ class Funct3(IntEnum, shape=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
             = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001  # fmt: skip
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
+    W = SLT = CSRRS = MULHSU = SH1ADD = XPERM4 = CLMULR = _EBREAKPOINT = 0b010
     D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
-    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
+    BLT = BU = XOR = DIV = DIVW = SH2ADD = XPERM8 = MIN = XNOR = ZEXTH = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = CZEROEQZ = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = CZERONEZ = 0b111
@@ -69,7 +69,7 @@ class Funct7(IntEnum, shape=7):
     SFENCEVMA = 0b0001001
     SC = 0b0001100
     SH1ADD = SH2ADD = SH3ADD = AMOXOR = 0b0010000
-    BSET = ORCB = 0b0010100
+    BSET = ORCB = XPERM = 0b0010100
     SA = SUB = ANDN = ORN = XNOR = AMOOR = 0b0100000
     BCLR = BEXT = 0b0100100
     ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = AMOAND = 0b0110000
@@ -194,3 +194,11 @@ class XlenEncoding(IntEnum, shape=2):
     W32 = 1
     W64 = 2
     W128 = 3
+
+
+@unique
+class PMPAFlagEncoding(IntEnum, shape=2):
+    OFF = 0
+    TOR = 1
+    NA4 = 2
+    NAPOT = 3
