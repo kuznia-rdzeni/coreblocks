@@ -14,11 +14,6 @@ from transactron.utils.dependencies import DependencyContext
 
 
 class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
-    """
-    Temporary simple support for CSR aliasing for InternalInterruptController. Will be replaced with more complete
-    implementation soon.
-    """
-
     def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
         self.gen_params = gen_params
         self.csr_number = csr_number
@@ -31,6 +26,11 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
 
         self._fu_read = Method(o=csr_layouts._fu_read)
         self._fu_write = Method(i=csr_layouts._fu_write)
+
+        self.read = Method(o=csr_layouts.read)
+        self.read_comb = Method(o=csr_layouts.read)
+        self.write = Method(i=csr_layouts.write)
+        self.access_valid = Method(i=csr_layouts.access_valid_i, o=csr_layouts.access_valid_o)
 
         self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
 
@@ -65,11 +65,48 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         @def_method(m, self._fu_read)
         def _() -> Value:
             for start, csr in self.fields:
-                m.d.av_comb += self.value[start : start + csr.width].eq(csr._fu_read(m)["data"])
+                m.d.av_comb += self.value[start : start + csr.width].eq(csr._fu_read(m).data)
 
             for start, width, value in self.ro_values:
                 m.d.av_comb += self.value[start : start + width].eq(value)
 
             return self.value
+
+        @def_method(m, self.write)
+        def _(data: Value):
+            for start, csr in self.fields:
+                csr.write(m, data[start : start + csr.width])
+
+        def read_def(fn):
+            read_data = Signal.like(self.value)
+            any_read = 0
+            any_written = 0
+
+            for start, csr in self.fields:
+                result = fn(m, csr)
+                m.d.av_comb += read_data[start : start + csr.width].eq(result.data)
+                any_read |= result.read
+                any_written |= result.written
+
+            for start, width, value in self.ro_values:
+                m.d.av_comb += read_data[start : start + width].eq(value)
+
+            return {"data": read_data, "read": any_read, "written": any_written}
+
+        @def_method(m, self.read, nonexclusive=True)
+        def _():
+            return read_def(lambda m, csr: csr.read(m))
+
+        @def_method(m, self.read_comb, nonexclusive=True)
+        def _():
+            return read_def(lambda m, csr: csr.read_comb(m))
+
+        @def_method(m, self.access_valid)
+        def _(priv_mode):
+            valid = 1
+            for _, csr in self.fields:
+                valid &= csr.access_valid(m, priv_mode).valid
+
+            return {"valid": valid}
 
         return m

@@ -5,6 +5,7 @@ from amaranth.utils import ceil_log2, exact_log2
 from coreblocks.arch.isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
 from .fu_params import extensions_supported
+from .vmem_params import VirtualMemoryParams
 from ..peripherals.wishbone import WishboneParameters
 from transactron.utils import DependentCache
 
@@ -37,6 +38,13 @@ class GenParams(DependentCache):
         bytes_in_word = self.isa.xlen // 8
         bytes_in_word_log = exact_log2(bytes_in_word)
         self.wb_params = WishboneParameters(data_width=self.isa.xlen, addr_width=self.isa.xlen - bytes_in_word_log)
+
+        self.vmem_params = VirtualMemoryParams(
+            xlen=cfg.xlen,
+            supervisor_mode=cfg.supervisor_mode,
+            asidlen=cfg.asidlen,
+            supported_schemes=cfg.supported_vm_schemes,
+        )
 
         self.icache_params = ICacheParameters(
             addr_width=self.isa.xlen,
@@ -97,6 +105,18 @@ class GenParams(DependentCache):
         self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask
 
         self.user_mode = cfg.user_mode
+        self.supervisor_mode = cfg.supervisor_mode
+        self.hpm_counters_count = cfg.hpm_counters_count
+
+        if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
+            raise ValueError("HPM counters count must be in range [0, 29]")
+
+        # TODO: remove when HPM counters are implemented
+        if self.hpm_counters_count > 0:
+            raise NotImplementedError("HPM counters are currently not implemented")
+
+        if self.supervisor_mode and not self.user_mode:
+            raise ValueError("Supervisor mode support requires user mode support")
 
         self.pmp_register_count = cfg.pmp_register_count
         if self.pmp_register_count not in [0, 16, 64]:
