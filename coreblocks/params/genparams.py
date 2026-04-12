@@ -23,7 +23,7 @@ class GenParams(DependentCache):
 
         self.func_units_config = cfg.func_units_config
 
-        ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed)
+        ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed, cfg.zcb)
         extensions = ext_partial if cfg.allow_partial_extensions else ext_full
         if not cfg.allow_partial_extensions and ext_partial != ext_full:
             raise RuntimeError(f"Extensions {ext_partial & ~ext_full!r} are only partially supported")
@@ -88,7 +88,7 @@ class GenParams(DependentCache):
         self.tag_bits = cfg.tag_bits
         assert cfg.checkpoint_count < 2**cfg.tag_bits
 
-        self.min_instr_width_bytes = 2 if cfg.compressed else 4
+        self.min_instr_width_bytes = 2 if cfg.compressed or cfg.zcb else 4
         self.min_instr_width_bytes_log = exact_log2(self.min_instr_width_bytes)
 
         self.fetch_block_bytes_log = cfg.fetch_block_bytes_log
