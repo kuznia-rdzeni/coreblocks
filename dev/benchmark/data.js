@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775988808877,
+  "lastUpdate": 1775988810655,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -56097,6 +56097,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 37162,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3002,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2680,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 7803,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ae73995266fd47903f6c77453f4cd7d8780e493f",
+          "message": "README: add acknowledgements section and matrix channel (#887)",
+          "timestamp": "2026-04-12T11:53:30+02:00",
+          "tree_id": "7a438c61f5c2511795f9d9fb30e296afbf10f6a3",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ae73995266fd47903f6c77453f4cd7d8780e493f"
+        },
+        "date": 1775988810143,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.08,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 37933,
             "unit": "LUT4"
           },
           {
