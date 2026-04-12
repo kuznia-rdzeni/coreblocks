@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775773135358,
+  "lastUpdate": 1775988807102,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19797,6 +19797,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d6d25e1d1119d0c4e6c4abc46237bfd1d20c996b"
         },
         "date": 1775773124483,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4197795723370327,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543968052669923,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3485496877822982,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6349970109210737,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35790600673610956,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.28801970202221067,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32097859327217126,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.42057424360036255,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ae73995266fd47903f6c77453f4cd7d8780e493f",
+          "message": "README: add acknowledgements section and matrix channel (#887)",
+          "timestamp": "2026-04-12T11:53:30+02:00",
+          "tree_id": "7a438c61f5c2511795f9d9fb30e296afbf10f6a3",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ae73995266fd47903f6c77453f4cd7d8780e493f"
+        },
+        "date": 1775988799106,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
