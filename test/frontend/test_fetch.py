@@ -176,10 +176,10 @@ class TestFetchUnit(TestCaseWithSimulator):
     @def_method_mock(
         lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
-    def issue_req_mock(self, addr):
+    def issue_req_mock(self, paddr):
         @MethodMock.effect
         def eff():
-            self.input_q.append(addr)
+            self.input_q.append(paddr)
 
     @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
