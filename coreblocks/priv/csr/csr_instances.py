@@ -44,9 +44,7 @@ def counteren_writable_mask(hpm_counters_count: int) -> int:
 
 def counteren_access_filter(gen_params: GenParams, counteren_bit: int):
     def _filter(m: TModule, priv_mode: Value) -> ValueLike:
-        csr_instances = DependencyContext.get().get_optional_dependency(CSRInstancesKey())
-        if csr_instances is None:
-            return C(1)
+        csr_instances = DependencyContext.get().get_dependency(CSRInstancesKey())
 
         mcounteren = csr_instances.m_mode.mcounteren.read(m).data
         machine_disallowed = (priv_mode < PrivilegeLevel.MACHINE) & ~mcounteren[counteren_bit]
@@ -502,6 +500,9 @@ class SupervisorModeCSRRegisters(Elaboratable):
             gen_params,
             ro_bits=~counteren_writeable,
         )
+
+        self._senvcfg_fields_implementation(gen_params, self.senvcfg)
+        self._stvec_fields_implementation(gen_params, self.stvec)
 
     def _senvcfg_fields_implementation(self, gen_params: GenParams, senvcfg: AliasedCSR):
         fiom_ro = gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}
