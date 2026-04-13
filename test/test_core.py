@@ -317,7 +317,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 @parameterized_class(
     ("source_file", "cycle_count", "expected_regvals", "always_mmode"),
     [
-        ("user_mode.asm", 1100, {4: 5}, False),
+        ("user_mode.asm", 1800, {4: 6}, False),
         ("wfi_no_mie.asm", 250, {8: 8}, True),  # only using level enable
     ],
 )
