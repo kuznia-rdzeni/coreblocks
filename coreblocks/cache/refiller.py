@@ -26,7 +26,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
 
         m.submodules.resp_fwd = resp_fwd = Forwarder(self.layouts.accept_refill)
 
-        cache_line_address = Signal(self.params.word_width - self.params.offset_bits)
+        cache_line_address = Signal(self.params.addr_width - self.params.offset_bits)
 
         refill_active = Signal()
         flushing = Signal()
