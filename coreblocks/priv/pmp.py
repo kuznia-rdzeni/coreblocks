@@ -81,14 +81,11 @@ class PMPChecker(Elaboratable):
                     else:
                         m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
-                    if grain >= 2:
-                        # Spec: bits [G-2:0] read as all ones in NAPOT mode
-                        forced_val = Signal.like(addr_val, name=f"napot_forced_{i}")
-                        m.d.comb += forced_val.eq(addr_val | ((1 << (grain - 1)) - 1))
-                    else:
-                        forced_val = addr_val
-                    napot_mask = forced_val ^ (forced_val + 1)
-                    m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (forced_val & ~napot_mask))
+                    start_bit = max(0, grain - 1)
+                    napot_mask = addr_val[start_bit:] ^ (addr_val[start_bit:] + 1)
+                    m.d.comb += entry_match.eq(
+                        (self.addr[2 + start_bit :] & ~napot_mask) == (addr_val[start_bit:] & ~napot_mask)
+                    )
 
             entry_matches.append(entry_match)
 
