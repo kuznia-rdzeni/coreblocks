@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule, def_method
-from transactron.lib import Connect, Pipe, WideFifo
+from transactron.lib import Connect, Pipe
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -423,17 +423,11 @@ class Scheduler(Elaboratable):
     rob_put: Required[Method]
     """Gets a free entry in ROB."""
 
-    rf_read_req1: Required[Method]
-    """Requests value of first source register."""
+    rf_read_req: Required[Methods]
+    """Requests value of a source register."""
 
-    rf_read_req2: Required[Method]
-    """Requests value of second source register."""
-
-    rf_read_resp1: Required[Method]
-    """Gets requested value of first source register and information if it is valid."""
-
-    rf_read_resp2: Required[Method]
-    """Gets requested value of second source register and information if it is valid."""
+    rf_read_resp: Required[Methods]
+    """Gets requested value of a source register and information if it is valid."""
 
     rs_select: Required[Sequence[Method]]
     """Selects RS slot."""
@@ -461,10 +455,12 @@ class Scheduler(Elaboratable):
         self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
         self.crat_tag = Method(i=gen_params.get(RATLayouts).crat_tag_in, o=gen_params.get(RATLayouts).crat_tag_out)
         self.rob_put = Method(i=gen_params.get(ROBLayouts).put_layout, o=gen_params.get(ROBLayouts).put_out_layout)
-        self.rf_read_req1 = Method(i=gen_params.get(RFLayouts).rf_read_in)
-        self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
-        self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
-        self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.rf_read_req = Methods(2 * gen_params.frontend_superscalarity, i=gen_params.get(RFLayouts).rf_read_in)
+        self.rf_read_resp = Methods(
+            2 * gen_params.frontend_superscalarity,
+            i=gen_params.get(RFLayouts).rf_read_in,
+            o=gen_params.get(RFLayouts).rf_read_out,
+        )
         self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
         self.rs_insert = [Method(i=conf.get_layouts(gen_params).insert_in) for conf in gen_params.func_units_config]
 
@@ -491,39 +487,38 @@ class Scheduler(Elaboratable):
         renaming.crat_commit_checkpoint.provide(self.crat_commit_checkpoint)
         renaming.rename.provide(self.crat_rename)
 
-        # m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
-        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = WideFifo(
-            self.layouts.rs_select_in_data,
-            2 * self.gen_params.frontend_superscalarity,
-            1,
-            self.gen_params.frontend_superscalarity,
-        )
+        rob_alloc_out_bufs = [
+            Pipe(self.layouts.rs_select_in_data) for _ in range(self.gen_params.frontend_superscalarity)
+        ]
         m.submodules.rob_alloc = rob_alloc = ROBAllocation(gen_params=self.gen_params)
 
         rob_alloc.get_instrs.provide(rename_out_buf.read)
-        rob_alloc.push_instrs.provide(rob_alloc_out_buf.write)
         rob_alloc.rob_put.provide(self.rob_put)
 
-        m.submodules.rs_select_out_buf = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
-        m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
+        @def_method(m, rob_alloc.push_instrs)
+        def _(count, data):
+            for i in range(self.gen_params.frontend_superscalarity):
+                with m.If(i < count):
+                    rob_alloc_out_bufs[i].write(m, data[i])
 
-        # rs_selector.get_instr.provide(rob_alloc_out_buf.read)
-        @def_method(m, rs_selector.get_instr)
-        def _():
-            return rob_alloc_out_buf.read(m, count=1).data[0]
+        for i in range(self.gen_params.frontend_superscalarity):
+            m.submodules[f"rob_alloc_out_buf_{i}"] = rob_alloc_out_buf = rob_alloc_out_bufs[i]
+            m.submodules[f"rs_select_out_buf_{i}"] = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
+            m.submodules[f"rs_selector_{i}"] = rs_selector = RSSelection(gen_params=self.gen_params)
 
-        rs_selector.push_instr.provide(rs_select_out_buf.write)
-        rs_selector.rf_read_req1.provide(self.rf_read_req1)
-        rs_selector.rf_read_req2.provide(self.rf_read_req2)
-        for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
-            rs_select.provide(rs_select_impl)
+            rs_selector.get_instr.provide(rob_alloc_out_buf.read)
+            rs_selector.push_instr.provide(rs_select_out_buf.write)
+            rs_selector.rf_read_req1.provide(self.rf_read_req[2 * i])
+            rs_selector.rf_read_req2.provide(self.rf_read_req[2 * i + 1])
+            for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
+                rs_select.provide(rs_select_impl)
 
-        m.submodules.rs_insertion = rs_insertion = RSInsertion(gen_params=self.gen_params)
-        rs_insertion.get_instr.provide(rs_select_out_buf.read)
-        rs_insertion.rf_read_resp1.provide(self.rf_read_resp1)
-        rs_insertion.rf_read_resp2.provide(self.rf_read_resp2)
-        rs_insertion.crat_active_tags.provide(self.crat_active_tags)
-        for rs_insert, rs_insert_impl in zip(rs_insertion.rs_insert, self.rs_insert):
-            rs_insert.provide(rs_insert_impl)
+            m.submodules[f"rs_insertion_{i}"] = rs_insertion = RSInsertion(gen_params=self.gen_params)
+            rs_insertion.get_instr.provide(rs_select_out_buf.read)
+            rs_insertion.rf_read_resp1.provide(self.rf_read_resp[2 * i])
+            rs_insertion.rf_read_resp2.provide(self.rf_read_resp[2 * i + 1])
+            rs_insertion.crat_active_tags.provide(self.crat_active_tags)
+            for rs_insert, rs_insert_impl in zip(rs_insertion.rs_insert, self.rs_insert):
+                rs_insert.provide(rs_insert_impl)
 
         return m
