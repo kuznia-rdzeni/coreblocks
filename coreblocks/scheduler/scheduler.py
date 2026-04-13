@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule, def_method
-from transactron.lib import Connect, Pipe
+from transactron.lib import Connect, Pipe, condition
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -368,15 +368,16 @@ class RSInsertion(Elaboratable):
                 },
             }
 
-            for i, rs_insert in enumerate(self.rs_insert):
-                # connect only matching fields
-                arg = Signal.like(rs_insert.data_in)
-                m.d.comb += assign(arg, data, fields=AssignType.COMMON)
-                # this assignment truncates signal width from max rs_entry_bits to target RS specific width
-                m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
+            with condition(m) as branch:
+                for i, rs_insert in enumerate(self.rs_insert):
+                    # connect only matching fields
+                    arg = Signal.like(rs_insert.data_in)
+                    m.d.comb += assign(arg, data, fields=AssignType.COMMON)
+                    # this assignment truncates signal width from max rs_entry_bits to target RS specific width
+                    m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
 
-                with m.If(instr.rs_selected == i):
-                    rs_insert(m, arg)
+                    with branch(instr.rs_selected == i):
+                        rs_insert(m, arg)
 
         return m
 
