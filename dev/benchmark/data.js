@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776086772436,
+  "lastUpdate": 1776086774962,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -56269,6 +56269,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as ram: (ECP5)",
             "value": 2680,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 7803,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "590fc00efaece00f0547cdc74a82d7b43a93e4d7",
+          "message": "Superscalar rename and ROB allocation (#882)",
+          "timestamp": "2026-04-13T15:03:09+02:00",
+          "tree_id": "0d641d663a5881a1a3cf4c987fcfcb1b0d6a85f7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/590fc00efaece00f0547cdc74a82d7b43a93e4d7"
+        },
+        "date": 1776086774174,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.04,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 38496,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3012,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2920,
             "unit": "LUT"
           },
           {
