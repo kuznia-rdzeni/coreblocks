@@ -99,6 +99,7 @@ class SchedulerTestCircuit(Elaboratable):
         self.scheduler.get_instr.provide(instr_fifo.read)
         self.scheduler.get_free_reg[0].provide(free_rf_fifo.read)
         self.scheduler.crat_rename.provide(crat.rename)
+        self.scheduler.crat_commit_checkpoint.provide(crat.commit_checkpoint)
         self.scheduler.crat_tag.provide(crat.tag)
         self.scheduler.crat_active_tags.provide(crat.get_active_tags)
         self.scheduler.rob_put.provide(self.rob.put)
