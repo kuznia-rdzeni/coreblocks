@@ -77,7 +77,7 @@ class JumpBranch(Elaboratable):
         m.d.comb += self.jmp_addr.eq(self.in_pc + self.in_imm)
         m.d.comb += self.reg_res.eq(self.in_pc + 4)
 
-        if Extension.C in self.gen_params.isa.extensions:
+        if Extension.ZCA in self.gen_params.isa.extensions:
             with m.If(self.in_rvc):
                 m.d.comb += self.reg_res.eq(self.in_pc + 2)
 
@@ -181,7 +181,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
             self.perf_mispredictions.incr(m, enable_call=misprediction)
 
             jmp_addr_misaligned = (
-                instr.jmp_addr & (0b1 if Extension.C in self.gen_params.isa.extensions else 0b11)
+                instr.jmp_addr & (0b1 if Extension.ZCA in self.gen_params.isa.extensions else 0b11)
             ) != 0
 
             async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
