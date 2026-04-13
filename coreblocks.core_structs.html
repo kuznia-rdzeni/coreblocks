@@ -121,9 +121,11 @@ to be provided from previous stage.
 It manages allocating new tags, scheduler flushing, information for unlocking FRAT
 and stalling the pipeline in case FRAT is not yet restored.</p>
 </dd>
-<dt><strong>rename: Method</strong></dt><dd><p>Rename stage of CheckpointRAT. Works like FRAT rename.
-Renames source registers and updates destination register mapping on valid tagged instructions.
-It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.</p>
+<dt><strong>commit_checkpoint: Method</strong></dt><dd><p>Method responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
+Should be called in the same cycle as the rename methods.</p>
+</dd>
+<dt><strong>rename: Methods</strong></dt><dd><p>Rename stage of CheckpointRAT. Works like FRAT rename.
+Renames source registers and updates destination register mapping on valid tagged instructions.</p>
 </dd>
 <dt><strong>flush_restore: Method</strong></dt><dd><p>Subset of <cite>rename</cite>. Used for restoring RAT state from Retirement on hard flushes.
 Blocks until restores are safe to be made. <cite>rollback</cite> must not be called after first restore.</p>
@@ -248,7 +250,7 @@ first <cite>rob_id</cite> after the newest instruction in the ROB.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 09:54 2026-04-12.
+      <span class="lastupdated">Last updated on 13:03 2026-04-13.
       </span></p>
   </div>
 
