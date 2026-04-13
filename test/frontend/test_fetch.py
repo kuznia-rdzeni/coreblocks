@@ -11,6 +11,7 @@ from transactron.core import Method
 from transactron.lib import Adapter, BasicFifo
 from transactron.testing.method_mock import MethodMock
 from transactron.utils import ModuleConnector
+from transactron.utils.dependencies import DependencyContext
 from transactron.testing import (
     TestCaseWithSimulator,
     TestbenchIO,
@@ -26,6 +27,8 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
+from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -65,6 +68,9 @@ class TestFetchUnit(TestCaseWithSimulator):
             )
         )
 
+        self.csr = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr)
+
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, depth=2)
         self.fifo = SimpleTestCircuit(fifo, exclude={"write"})
@@ -75,7 +81,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(self.icache, self.fifo, self.fetch)
+        self.m = ModuleConnector(self.icache, self.fifo, self.fetch, self.csr)
 
         self.instr_queue = deque()
         self.mem = {}

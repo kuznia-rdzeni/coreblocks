@@ -54,7 +54,10 @@ class Decode(Elaboratable):
             m.d.comb += exception_override.eq(instr_decoder.illegal | access_fault.any())
             exception_funct = Signal(Funct3)
             with m.If(access_fault.any()):
-                m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
+                with m.If(access_fault & FetchLayouts.FaultFlag.PAGE_FAULT):
+                    m.d.comb += exception_funct.eq(Funct3._EINSTRPAGEFAULT)
+                with m.Else():
+                    m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
             with m.Elif(instr_decoder.illegal):
                 self.illegal(m)
                 m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)

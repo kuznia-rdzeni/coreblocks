@@ -6,6 +6,11 @@ from coreblocks.arch.isa_consts import SatpMode, SatpLayout
 class VirtualMemoryParameters:
     """Parameters for virtual memory support."""
 
+    @staticmethod
+    def max_physical_address_bits(xlen: int) -> int:
+        satp_layout = SatpLayout(xlen)
+        return satp_layout["ppn"].width + 12
+
     def __init__(
         self,
         *,

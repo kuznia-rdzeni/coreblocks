@@ -16,6 +16,7 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
 from coreblocks.frontend import FrontendParams
+from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
 
 log = logging.HardwareLogger("frontend.fetch")
 
@@ -79,6 +80,9 @@ class FetchUnit(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules.addr_translator = addr_translator = AddressTranslator(
+            self.gen_params, mode=AddressTranslatorMode.INSTRUCTION
+        )
         m.submodules += [self.perf_fetch_utilization]
 
         fetch_width = self.gen_params.fetch_width
@@ -114,7 +118,10 @@ class FetchUnit(Elaboratable):
                 )
             self.cont(m, result)
 
-        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
+        m.submodules.fetch_requests = fetch_requests = BasicFifo(
+            make_layout(fields.pc, ("access_fault", 1), ("page_fault", 1)),
+            depth=2,
+        )
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -136,8 +143,20 @@ class FetchUnit(Elaboratable):
         def _(pc):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
-            self.icache.issue_req(m, addr=pc)
-            fetch_requests.write(m, pc=pc)
+
+            addr_translator.request(m, addr=pc)
+
+        with Transaction().body(m):
+            translated = addr_translator.accept(m)
+            with m.If(~translated.page_fault & ~translated.access_fault):
+                self.icache.issue_req(m, addr=translated.paddr)
+
+            fetch_requests.write(
+                m,
+                pc=translated.addr,
+                access_fault=translated.access_fault,
+                page_fault=translated.page_fault,
+            )
 
         #
         # State passed between stage 1 and stage 2
@@ -146,7 +165,7 @@ class FetchUnit(Elaboratable):
             [
                 fields.fb_addr,
                 ("instr_valid", fetch_width),
-                ("access_fault", 1),
+                ("access_fault", FetchLayouts.FaultFlag),
                 ("rvc", fetch_width),
                 ("instrs", ArrayLayout(self.gen_params.isa.ilen, fetch_width)),
                 ("instr_block_cross", 1),
@@ -173,7 +192,20 @@ class FetchUnit(Elaboratable):
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             fetch_request = fetch_requests.read(m)
-            cache_resp = self.icache.accept_res(m)
+            cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
+            access_fault = Signal(FetchLayouts.FaultFlag)
+
+            with condition(m) as branch:
+                with branch(fetch_request.page_fault | fetch_request.access_fault):
+                    with m.If(fetch_request.page_fault):
+                        m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)
+                    with m.Else():
+                        m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.ACCESS_FAULT)
+                    m.d.av_comb += cache_resp.fetch_block.eq(0)
+                    m.d.av_comb += cache_resp.error.eq(0)
+                with branch():
+                    m.d.av_comb += cache_resp.eq(self.icache.accept_res(m))
+                    m.d.av_comb += access_fault.eq(Mux(cache_resp.error, FetchLayouts.FaultFlag.ACCESS_FAULT, 0))
 
             # The address of the fetch block.
             fetch_block_addr = params.fb_addr(fetch_request.pc)
@@ -233,7 +265,7 @@ class FetchUnit(Elaboratable):
                 instr_position_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
                 m.d.sync += prev_half_v.eq(
-                    (flushing_counter <= 1) & (cache_resp.error == 0) & ~is_rvc[-1] & instr_start[-1]
+                    (flushing_counter <= 1) & ~access_fault.any() & ~is_rvc[-1] & instr_start[-1]
                 )
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
                 m.d.sync += prev_half_addr.eq(fetch_block_addr)
@@ -246,8 +278,8 @@ class FetchUnit(Elaboratable):
             s1_s2_pipe.write(
                 m,
                 fb_addr=fetch_block_addr,
-                instr_valid=Mux(cache_resp.error, access_fault_instr_position, instr_position_mask),
-                access_fault=cache_resp.error,
+                instr_valid=Mux(access_fault.any(), access_fault_instr_position, instr_position_mask),
+                access_fault=access_fault,
                 rvc=is_rvc,
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
@@ -281,6 +313,8 @@ class FetchUnit(Elaboratable):
             fetch_block_addr = s1_data.fb_addr
             instr_valid = s1_data.instr_valid
             access_fault = s1_data.access_fault
+            fault_any = Signal()
+            m.d.av_comb += fault_any.eq(access_fault.any())
 
             # Predecode instructions
             predecoded_instr = [predecoders[i].predecode(m, instrs[i]) for i in range(fetch_width)]
@@ -304,7 +338,7 @@ class FetchUnit(Elaboratable):
             instr_unsafe = Signal(fetch_width)
             for i in range(fetch_width):
                 # If there was an access fault, mark every instruction as unsafe
-                m.d.av_comb += instr_unsafe[i].eq((predecoded_instr[i].unsafe | access_fault) & instr_valid[i])
+                m.d.av_comb += instr_unsafe[i].eq((predecoded_instr[i].unsafe | fault_any) & instr_valid[i])
 
             m.submodules.unsafe_prio_encoder = unsafe_prio_encoder = PriorityEncoder(fetch_width)
             m.d.av_comb += unsafe_prio_encoder.i.eq(instr_unsafe)
@@ -353,9 +387,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
                     raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.fb_instr_idx == i)),
-                    raw_instrs[i].access_fault.eq(
-                        Mux(s1_data.access_fault, FetchLayouts.AccessFaultFlag.ACCESS_FAULT, 0)
-                    ),
+                    raw_instrs[i].access_fault.eq(s1_data.access_fault),
                     raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                 ]
 
@@ -363,20 +395,18 @@ class FetchUnit(Elaboratable):
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
                     with m.If(s1_data.access_fault):
-                        # Mark that access fault happened only at second (current) half.
+                        # Mark that access/page fault happened only at second (current) half.
                         # If fault happened on the first half `instr_block_cross` would be false
                         m.d.av_comb += raw_instrs[0].access_fault.eq(
-                            FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF
+                            s1_data.access_fault | FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF
                         )
 
             with condition(m) as branch:
                 with branch(flushing_counter == 0):
-                    with m.If(access_fault | unsafe_stall):
-                        # TODO: Raise different code for page fault when supported
-                        # could be passed in 3rd bit of access_fault
+                    with m.If(fault_any | unsafe_stall):
                         self.stall_unsafe(m)
 
-                    with m.If(access_fault | unsafe_stall | redirect):
+                    with m.If(fault_any | unsafe_stall | redirect):
                         self.fetch_writeback(
                             m,
                             redirect=redirect,

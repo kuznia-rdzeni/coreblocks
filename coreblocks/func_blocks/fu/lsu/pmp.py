@@ -39,7 +39,7 @@ class PMPChecker(Elaboratable):
     def __init__(self, gen_params: GenParams, csr: MachineModeCSRRegisters) -> None:
         self.gen_params = gen_params
         self.csr = csr
-        self.addr = Signal(gen_params.isa.xlen)
+        self.addr = Signal(gen_params.phys_addr_bits)
 
         self.result = Signal(PMPLayout())
 

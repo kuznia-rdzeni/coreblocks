@@ -106,17 +106,23 @@ class LSURequester(Elaboratable):
         m = TModule()
 
         m.submodules.args_fifo = args_fifo = BasicFifo(
-            [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], self.depth
+            [
+                ("paddr", self.gen_params.phys_addr_bits),
+                ("addr", self.gen_params.isa.xlen),
+                ("funct3", Funct3),
+                ("store", 1),
+            ],
+            self.depth,
         )
 
         @def_method(m, self.issue)
-        def _(addr: Value, data: Value, funct3: Value, store: Value):
+        def _(paddr: Value, addr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
 
-            aligned = self.check_align(m, funct3, addr)
-            bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
-            bus_data = self.prepare_data_to_save(m, funct3, data, addr)
+            aligned = self.check_align(m, funct3, paddr)
+            bytes_mask = self.prepare_bytes_mask(m, funct3, paddr)
+            bus_data = self.prepare_data_to_save(m, funct3, data, paddr)
 
             self.log.debug(
                 m,
@@ -131,12 +137,12 @@ class LSURequester(Elaboratable):
 
             with condition(m, nonblocking=True) as branch:
                 with branch(aligned & store):
-                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
+                    self.bus.request_write(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
-                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
+                    self.bus.request_read(m, addr=paddr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
-                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
+                args_fifo.write(m, paddr=paddr, addr=addr, funct3=funct3, store=store)
             with m.Else():
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
@@ -163,7 +169,7 @@ class LSURequester(Elaboratable):
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(
-                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.addr)
+                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)
                     )
 
             with m.If(err):

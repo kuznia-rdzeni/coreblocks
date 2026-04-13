@@ -81,7 +81,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
         self.requests = deque()
         for _ in range(100):
             # Make the address aligned to the beginning of a cache line
-            addr = random.randrange(2**self.gen_params.isa.xlen) & ~(self.cp.line_size_bytes - 1)
+            addr = random.randrange(2**self.gen_params.phys_addr_bits) & ~(self.cp.line_size_bytes - 1)
             self.requests.append(addr)
 
             if random.random() < 0.21:
@@ -196,7 +196,7 @@ class TestICacheBypass(TestCaseWithSimulator):
         self.requests.append(4)
 
         for _ in range(100):
-            addr = random.randrange(0, 2**self.gen_params.isa.xlen, 4)
+            addr = random.randrange(0, 2**self.gen_params.phys_addr_bits, 4)
             self.requests.append(addr)
 
             if random.random() < 0.10:

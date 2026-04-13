@@ -52,7 +52,7 @@ class PMAChecker(Elaboratable):
         # poor man's interval list
         self.segments = gen_params.pma
         self.result = Signal(PMALayout())
-        self.addr = Signal(gen_params.isa.xlen)
+        self.addr = Signal(gen_params.phys_addr_bits)
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
