@@ -267,15 +267,21 @@ class FetchUnit(Elaboratable):
         with Transaction(name="PMP_Fault").body(m):
             fault = pmp_fault_fifo.read(m)
             fb_addr = params.fb_addr(fault.pc)
+
+            pmp_instr_block_cross = Signal()
+            m.d.av_comb += pmp_instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fb_addr))
+
             s1_s2_pipe.write(
                 m,
                 fb_addr=fb_addr,
                 access_fault=1,
-                instr_valid=0,
+                instr_valid=pmp_instr_block_cross,
                 rvc=0,
                 instrs=[C(0, self.gen_params.isa.ilen)] * fetch_width,
-                instr_block_cross=0,
+                instr_block_cross=pmp_instr_block_cross,
             )
+
+            m.d.sync += prev_half_v.eq(0)
 
         # Make sure to clean the state
         with m.If(flush_now):
