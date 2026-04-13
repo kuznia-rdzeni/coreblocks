@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule, def_method
-from transactron.lib import FIFO, Connect, WideFifo
+from transactron.lib import Connect, Pipe, WideFifo
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -472,13 +472,13 @@ class Scheduler(Elaboratable):
         m = TModule()
 
         # This could be ideally changed to Connect, but unfortunately causes comb loop
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
+        m.submodules.alloc_rename_buf = alloc_rename_buf = Pipe(self.layouts.reg_alloc_out)
         m.submodules.reg_alloc = reg_alloc = RegAllocation(gen_params=self.gen_params)
         reg_alloc.get_instrs.provide(self.get_instr)
         reg_alloc.push_instrs.provide(alloc_rename_buf.write)
         reg_alloc.get_free_reg.provide(self.get_free_reg)
 
-        m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)
+        m.submodules.instr_tag_buf = instr_tag_buf = Pipe(self.layouts.instr_tag_out)
         m.submodules.instr_tag = instr_tag = InstructionTagger(gen_params=self.gen_params)
         instr_tag.get_instrs.provide(alloc_rename_buf.read)
         instr_tag.push_instrs.provide(instr_tag_buf.write)
@@ -504,7 +504,7 @@ class Scheduler(Elaboratable):
         rob_alloc.push_instrs.provide(rob_alloc_out_buf.write)
         rob_alloc.rob_put.provide(self.rob_put)
 
-        m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
+        m.submodules.rs_select_out_buf = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
         m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
 
         # rs_selector.get_instr.provide(rob_alloc_out_buf.read)
