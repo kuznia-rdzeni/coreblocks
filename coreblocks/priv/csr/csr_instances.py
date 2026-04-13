@@ -20,6 +20,8 @@ from coreblocks.arch.isa_consts import (
     TrapVectorMode,
     XlenEncoding,
 )
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
+from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.aliased import AliasedCSR
 from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
@@ -27,6 +29,12 @@ from coreblocks.priv.csr.double_counter import DoubleCounterCSR
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.interface.keys import CSRInstancesKey
+from typing import Optional
+from amaranth.lib import data
+from transactron.core import Method, Transaction, def_method, TModule
+from transactron.utils import DependencyContext
+
+PMPXCFG_WIDTH = 8
 
 
 def counteren_writable_mask(hpm_counters_count: int) -> int:
@@ -117,14 +125,10 @@ class MachineModeCSRRegisters(Elaboratable):
 
         def filter_na4(_: TModule, v: Value):
             # When G >= 1, the NA4 mode is not selectable (changed to OFF)
-            to_off_mask = 0b11100111 # Clear A field bits
             if gen_params.pmp_grain >= 1:
-                a_field = v[3:5]
-                filtered_v = Mux(
-                    a_field == PMPAFlagEncoding.NA4,
-                    v & to_off_mask,
-                    v,
-                )
+                cfg = data.View(PMPCfgLayout(), v)
+                filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
+                filtered_v = Cat(cfg.R, cfg.W, cfg.X, filtered_a, cfg.reserved, cfg.L)
                 return C(1), filtered_v
             else:
                 return C(1), v
@@ -149,7 +153,8 @@ class MachineModeCSRRegisters(Elaboratable):
 
             def make_pmpaddr_fu_read_map(idx: int):
                 def pmpaddr_fu_read_map(_: TModule, value: Value):
-                    a_field = self.pmpxcfg[idx].value[3:5]
+                    cfg = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value)
+                    a_field = cfg.A
 
                     if gen_params.pmp_grain >= 2:
                         # When G >= 2 and pmpcfgi.A[1] is set, then bits pmpaddri[G-2:0] read as all ones.
