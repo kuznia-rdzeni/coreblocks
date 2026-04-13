@@ -29,7 +29,7 @@ class PMPChecker(Elaboratable):
 
     Attributes
     ----------
-    addr : Signal
+    paddr : Signal
         Memory address, for which PMP checks are requested.
     result : PMPLayout
         RWX permission bits for the given address based on current PMP configuration
@@ -39,7 +39,7 @@ class PMPChecker(Elaboratable):
     def __init__(self, gen_params: GenParams, csr: MachineModeCSRRegisters) -> None:
         self.gen_params = gen_params
         self.csr = csr
-        self.addr = Signal(gen_params.phys_addr_bits)
+        self.paddr = Signal(gen_params.phys_addr_bits)
 
         self.result = Signal(PMPLayout())
 
@@ -73,12 +73,12 @@ class PMPChecker(Elaboratable):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
                     lower = addr_vals[i - 1] if i > 0 else 0
-                    m.d.comb += entry_match.eq((self.addr[2:] >= lower) & (self.addr[2:] < addr_val))
+                    m.d.comb += entry_match.eq((self.paddr[2:] >= lower) & (self.paddr[2:] < addr_val))
                 with m.Case(PMPAFlagEncoding.NA4):
-                    m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
+                    m.d.comb += entry_match.eq(self.paddr[2:] == addr_val)
                 with m.Case(PMPAFlagEncoding.NAPOT):
                     napot_mask = addr_val ^ (addr_val + 1)
-                    m.d.comb += entry_match.eq((self.addr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
+                    m.d.comb += entry_match.eq((self.paddr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
 
             entry_matches.append(entry_match)
 

@@ -51,7 +51,7 @@ class TestPMPDirect(TestCaseWithSimulator):
                 sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
 
             for c in checks:
-                sim.set(pmp.addr, c.addr)
+                sim.set(pmp.paddr, c.addr)
                 result = sim.get(pmp.result)
                 assert result.r == c.r, f"addr=0x{c.addr:08x}: expected r={c.r}, got {result.r}"
                 assert result.w == c.w, f"addr=0x{c.addr:08x}: expected w={c.w}, got {result.w}"
