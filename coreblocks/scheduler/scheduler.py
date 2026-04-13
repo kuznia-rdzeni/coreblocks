@@ -83,7 +83,7 @@ class InstructionTagger(Elaboratable):
             instrs = self.get_instrs(m)
 
             idx = Signal(range(self.gen_params.frontend_superscalarity))
-            idx.eq(instrs.count - 1)
+            m.d.av_comb += idx.eq(instrs.count - 1)
 
             tag_out = self.crat_tag(
                 m,
@@ -149,11 +149,10 @@ class Renaming(Elaboratable):
             m.d.av_comb += data_out.count.eq(instrs.count)
 
             idx = Signal(range(self.gen_params.frontend_superscalarity))
-            idx.eq(instrs.count - 1)
+            m.d.av_comb += idx.eq(instrs.count - 1)
 
-            self.crat_commit_checkpoint(
-                m, tag=instrs.data[idx].tag, commit_checkpoint=instrs.data[idx].commit_checkpoint
-            )
+            # tag is the same for all instrs
+            self.crat_commit_checkpoint(m, tag=instrs.data[0].tag, commit_checkpoint=instrs.data[idx].commit_checkpoint)
 
             for i in range(self.gen_params.frontend_superscalarity):
                 instr = instrs.data[i]

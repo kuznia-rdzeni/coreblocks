@@ -49,10 +49,12 @@ class CheckpointRAT(Elaboratable):
         to be provided from previous stage.
         It manages allocating new tags, scheduler flushing, information for unlocking FRAT
         and stalling the pipeline in case FRAT is not yet restored.
-    rename: Method
+    commit_checkpoint: Method
+        Method responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
+        Should be called in the same cycle as the rename methods.
+    rename: Methods
         Rename stage of CheckpointRAT. Works like FRAT rename.
         Renames source registers and updates destination register mapping on valid tagged instructions.
-        It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
     flush_restore: Method
         Subset of `rename`. Used for restoring RAT state from Retirement on hard flushes.
         Blocks until restores are safe to be made. `rollback` must not be called after first restore.
