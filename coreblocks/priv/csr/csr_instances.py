@@ -114,6 +114,21 @@ class MachineModeCSRRegisters(Elaboratable):
         self.pmpxcfg = []
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
         pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
+
+        def filter_na4(_: TModule, v: Value):
+            # When G >= 1, the NA4 mode is not selectable (changed to OFF)
+            to_off_mask = 0b11100111 # Clear A field bits
+            if gen_params.pmp_grain >= 1:
+                a_field = v[3:5]
+                filtered_v = Mux(
+                    a_field == PMPAFlagEncoding.NA4,
+                    v & to_off_mask,
+                    v,
+                )
+                return C(1), filtered_v
+            else:
+                return C(1), v
+
         for i in range(0, pmpcfgx_cnt):
             # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
             pmpcfg_index = i * 2 if gen_params.isa.xlen == 64 else i
@@ -121,7 +136,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
             # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
             for j in range(pmpcfg_subregisters):
-                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH)
+                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter_na4)
                 pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
                 self.pmpxcfg.append(pmpcfg_sub)
                 setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
@@ -130,20 +145,31 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.pmpaddrx = []
 
-        # Spec: Software may determine the PMP granularity by writing zero to pmp0cfg
-        if gen_params.pmp_register_count > 0:
-            grain_mask = (1 << gen_params.pmp_grain) - 1
+        for i in range(gen_params.pmp_register_count):
 
-            def pmpaddr0_fu_read_map(m, value):
-                a_field = self.pmpxcfg[0].value[3:5]
-                return Mux(a_field == PMPAFlagEncoding.OFF, value & ~grain_mask, value)
+            def make_pmpaddr_fu_read_map(idx: int):
+                def pmpaddr_fu_read_map(_: TModule, value: Value):
+                    a_field = self.pmpxcfg[idx].value[3:5]
 
-            reg0 = CSRRegister(CSRAddress.PMPADDR0, gen_params, fu_read_map=pmpaddr0_fu_read_map)
-            self.pmpaddrx.append(reg0)
-            setattr(self, "pmpaddr0", reg0)
+                    if gen_params.pmp_grain >= 2:
+                        # When G >= 2 and pmpcfgi.A[1] is set, then bits pmpaddri[G-2:0] read as all ones.
+                        napot_mask = (1 << (gen_params.pmp_grain - 1)) - 1
+                        napot_value = value | napot_mask
+                    else:
+                        napot_value = value
 
-        for i in range(1, gen_params.pmp_register_count):
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
+                    if gen_params.pmp_grain >= 1:
+                        # When G >= 1 and pmpcfgi.A[1] is clear, then bits pmpaddri[G-1:0] read as all zeros.
+                        tor_mask = (1 << gen_params.pmp_grain) - 1
+                        tor_value = value & ~tor_mask
+                    else:
+                        tor_value = value
+
+                    return Mux(a_field[1], napot_value, tor_value)
+
+                return pmpaddr_fu_read_map
+
+            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, fu_read_map=make_pmpaddr_fu_read_map(i))
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
