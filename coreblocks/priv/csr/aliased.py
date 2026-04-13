@@ -44,7 +44,6 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
 
     def add_field(self, bit_position: int, csr: CSRRegister):
         assert not self.elaborated
-        assert csr.csr_number is None  # TODO: support for instruction accessible registers
         self.fields.append((bit_position, csr))
         # TODO: verify bounds
 
