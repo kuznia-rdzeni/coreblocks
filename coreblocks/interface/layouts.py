@@ -543,7 +543,7 @@ class ICacheLayouts:
         self.fetch_block: LayoutListField = ("fetch_block", gen_params.fetch_block_bytes * 8)
         """The block of data the fetch unit operates on."""
 
-        self.issue_req = make_layout(("addr", gen_params.phys_addr_bits))
+        self.issue_req = make_layout(fields.paddr)
 
         self.accept_res = make_layout(
             self.fetch_block,
@@ -551,11 +551,11 @@ class ICacheLayouts:
         )
 
         self.start_refill = make_layout(
-            ("addr", gen_params.phys_addr_bits),
+            fields.paddr,
         )
 
         self.accept_refill = make_layout(
-            ("addr", gen_params.phys_addr_bits),
+            fields.paddr,
             self.fetch_block,
             fields.error,
             self.last,

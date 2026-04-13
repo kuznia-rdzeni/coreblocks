@@ -120,8 +120,8 @@ class LSUDummy(FuncUnit, Elaboratable):
             paddr = translated_req.paddr
             addr = translated_req.addr
 
-            m.d.av_comb += pma_checker.addr.eq(paddr)
-            m.d.av_comb += pmp_checker.addr.eq(paddr)
+            m.d.av_comb += pma_checker.paddr.eq(paddr)
+            m.d.av_comb += pmp_checker.paddr.eq(paddr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
 

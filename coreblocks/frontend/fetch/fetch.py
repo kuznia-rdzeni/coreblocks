@@ -149,7 +149,7 @@ class FetchUnit(Elaboratable):
         with Transaction().body(m):
             translated = addr_translator.accept(m)
             with m.If(~translated.page_fault & ~translated.access_fault):
-                self.icache.issue_req(m, addr=translated.paddr)
+                self.icache.issue_req(m, paddr=translated.paddr)
 
             fetch_requests.write(
                 m,
