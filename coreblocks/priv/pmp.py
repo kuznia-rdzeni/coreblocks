@@ -2,10 +2,11 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
 from transactron.core import TModule
+from transactron.utils import DependencyContext
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
+from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import *
-from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 
 
 class PMPLayout(data.StructLayout):
@@ -31,9 +32,9 @@ class PMPChecker(Elaboratable):
         and privilege mode. Bits are set to 0 if access is denied.
     """
 
-    def __init__(self, gen_params: GenParams, csr: MachineModeCSRRegisters) -> None:
+    def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
-        self.csr = csr
+        self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
         self.addr = Signal(gen_params.isa.xlen)
         self.result = Signal(PMPLayout())
 

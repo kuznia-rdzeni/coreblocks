@@ -4,7 +4,7 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, logging, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, DependencyContext
+from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -12,7 +12,6 @@ from transactron import *
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 from coreblocks.priv.pmp import PMPChecker
-from coreblocks.interface.keys import CSRInstancesKey
 
 from coreblocks.arch import *
 from coreblocks.params import *
@@ -135,11 +134,10 @@ class FetchUnit(Elaboratable):
         # - send a request to the instruction cache
         # - check PMP execute permission (if PMP is enabled)
         #
-        csr = DependencyContext.get().get_dependency(CSRInstancesKey())
         m.submodules.pmp_fault_fifo = pmp_fault_fifo = BasicFifo(make_layout(fields.pc), depth=2)
         pmp_addr = Signal(self.gen_params.isa.xlen)
 
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
         m.d.comb += pmp_checker.addr.eq(pmp_addr)
 
         @def_method(m, self.fetch_request)
@@ -275,7 +273,7 @@ class FetchUnit(Elaboratable):
                 m,
                 fb_addr=fb_addr,
                 access_fault=1,
-                instr_valid=pmp_instr_block_cross,
+                instr_valid=Cat(pmp_instr_block_cross, C(0, fetch_width - 1)),
                 rvc=0,
                 instrs=[C(0, self.gen_params.isa.ilen)] * fetch_width,
                 instr_block_cross=pmp_instr_block_cross,

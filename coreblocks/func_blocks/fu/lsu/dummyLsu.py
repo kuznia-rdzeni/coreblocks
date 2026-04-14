@@ -17,7 +17,6 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
     CommonBusDataKey,
     CoreStateKey,
-    CSRInstancesKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
@@ -73,9 +72,8 @@ class LSUDummy(FuncUnit, Elaboratable):
         rob_id_match = Signal()
         is_load = Signal()
 
-        csr = self.dependency_manager.get_dependency(CSRInstancesKey())
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         request_layout = make_layout(

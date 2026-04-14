@@ -6,9 +6,11 @@ from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, Privilege
 from coreblocks.priv.pmp import PMPChecker
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances, MachineModeCSRRegisters
+from coreblocks.interface.keys import CSRInstancesKey
 from transactron.lib.adapters import AdapterTrans
 from transactron.testing import TestbenchContext, TestbenchIO, TestCaseWithSimulator
+from transactron.utils import DependencyContext
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 
 
@@ -32,6 +34,10 @@ class PMPCheck:
 
 
 class TestPMPDirect(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
+    def setup(self, fixture_initialize_testing_env):
+        pass
+
     def run_pmp_test(
         self,
         entries: list[PMPEntry],
@@ -43,9 +49,11 @@ class TestPMPDirect(TestCaseWithSimulator):
         gen_params = GenParams(
             test_core_config.replace(pmp_register_count=16, pmp_grain=pmp_grain, icache_enable=icache_enable)
         )
-        csr = MachineModeCSRRegisters(gen_params)
-        pmp = PMPChecker(gen_params, csr)
-        test_module = ModuleConnector(csr=csr, pmp=pmp)
+        csr_instances = CSRInstances(gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), csr_instances)
+        csr = csr_instances.m_mode
+        pmp = PMPChecker(gen_params)
+        test_module = ModuleConnector(csr_instances=csr_instances, pmp=pmp)
 
         async def process(sim: TestbenchContext):
             sim.set(csr.priv_mode.value, priv_mode)
