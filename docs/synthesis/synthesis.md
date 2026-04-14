@@ -33,7 +33,7 @@ The main properties collected in the synthesis step:
   - Number of RAM cells used
   - Number of DFF cells used
 
-The configuration of the docker container is described in the `AmaranthSynthECP5.Dockerfile`, which can be found in 
+The configuration of the docker container is described in the `AmaranthSynthECP5.Dockerfile`, which can be found in
 [our repo](https://github.com/orgs/kuznia-rdzeni/packages/container/package/amaranth-synth).
 
 ### Manual reproduction
@@ -48,7 +48,7 @@ apt install python3.11-venv
 python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
-pip3 install -r requirements-dev.txt
+pip3 install ".[dev]"
 PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config full
 ./scripts/parse_benchmark_info.py
 cat benchmark.json
@@ -116,14 +116,14 @@ python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
 cd coreblocks
-pip3 install -r requirements-dev.txt
+pip3 install ".[dev]"
 PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 ./scripts/run_benchmarks.py
 ```
 
 ## Regression tests
 
-Regression tests should ensure that Coreblocks is compliant with RISC-V specification requirements. Tests include 
+Regression tests should ensure that Coreblocks is compliant with RISC-V specification requirements. Tests include
 assembler programs that tests entire RISC-V instruction set. We execute these programs in a similar way to benchmarks.
 So, as a first step, we compile the programs to the binary format and then we run them on core simulated by Verilator
 and Cocotb.
@@ -156,7 +156,7 @@ python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
 cd coreblocks
-pip3 install -r requirements-dev.txt
+pip3 install ".[dev]"
 PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 ./scripts/run_tests.py -a regression
 ```
