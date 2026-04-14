@@ -102,11 +102,14 @@ class GenParams(DependentCache):
         if self.pmp_register_count not in [0, 16, 64]:
             raise ValueError("PMP register count must be 0, 16, or 64")
 
-        self.pmp_grain = cfg.pmp_grain
-        self.pmp_grain_bytes = 2 ** (cfg.pmp_grain + 2)
+        if cfg.pmp_grain_log < 2:
+            raise ValueError("pmp_grain_log must be >= 2 (minimum 4-byte granularity)")
+
+        self.pmp_grain = cfg.pmp_grain_log - 2  # G parameter from RISC-V spec
+        self.pmp_grain_bytes = 2**cfg.pmp_grain_log
         if self.pmp_register_count > 0 and self.icache_params.enable:
             if self.pmp_grain_bytes < self.icache_params.line_size_bytes:
-                raise ValueError("PMP grain must be >= cache line size")
+                raise ValueError("PMP grain size must be >= cache line size")
 
         self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
 
