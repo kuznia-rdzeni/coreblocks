@@ -173,7 +173,8 @@ class MachineModeCSRRegisters(Elaboratable):
                     else:
                         tor_value = value
 
-                    return Mux(a_field[1], napot_value, tor_value)
+                    is_napot_or_na4 = (a_field == PMPAFlagEncoding.NAPOT) | (a_field == PMPAFlagEncoding.NA4)
+                    return Mux(is_napot_or_na4, napot_value, tor_value)
 
                 return pmpaddr_fu_read_map
 
