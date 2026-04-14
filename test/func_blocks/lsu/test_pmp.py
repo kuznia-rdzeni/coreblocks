@@ -45,11 +45,11 @@ class TestPMPDirect(TestCaseWithSimulator):
         entries: list[PMPEntry],
         checks: list[PMPCheck],
         priv_mode=PrivilegeLevel.USER,
-        pmp_grain=0,
+        pmp_grain_log=2,
         icache_enable=False,
     ):
         gen_params = GenParams(
-            test_core_config.replace(pmp_register_count=16, pmp_grain=pmp_grain, icache_enable=icache_enable)
+            test_core_config.replace(pmp_register_count=16, pmp_grain_log=pmp_grain_log, icache_enable=icache_enable)
         )
         csr = CSRInstances(gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
@@ -72,21 +72,21 @@ class TestPMPDirect(TestCaseWithSimulator):
         with self.run_simulation(test_module) as sim:
             sim.add_testbench(process)
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_mmode_no_entries(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_mmode_no_entries(self, pmp_grain_log):
         self.run_pmp_test(
             [],
             [PMPCheck(0x1000, 1, 1, 1), PMPCheck(0xDEAD, 1, 1, 1)],
             priv_mode=PrivilegeLevel.MACHINE,
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_umode_no_entries(self, pmp_grain):
-        self.run_pmp_test([], [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0xDEAD, 0, 0, 0)], pmp_grain=pmp_grain)
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_umode_no_entries(self, pmp_grain_log):
+        self.run_pmp_test([], [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0xDEAD, 0, 0, 0)], pmp_grain_log=pmp_grain_log)
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_priority(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_priority(self, pmp_grain_log):
         self.run_pmp_test(
             [
                 PMPEntry(addr=0x2000 >> 2, cfg=make_cfg(r=1, a=PMPAFlagEncoding.TOR)),
@@ -96,29 +96,29 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x1000, 1, 0, 0),
                 PMPCheck(0x3000, 1, 1, 0),
             ],
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_locked_mmode(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_locked_mmode(self, pmp_grain_log):
         self.run_pmp_test(
             [PMPEntry(addr=0x2000 >> 2, cfg=make_cfg(lock=1, a=PMPAFlagEncoding.TOR))],
             [PMPCheck(0x1000, 0, 0, 0)],
             priv_mode=PrivilegeLevel.MACHINE,
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_unlocked_mmode(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_unlocked_mmode(self, pmp_grain_log):
         self.run_pmp_test(
             [PMPEntry(addr=0x2000 >> 2, cfg=make_cfg(a=PMPAFlagEncoding.TOR))],
             [PMPCheck(0x1000, 1, 1, 1)],
             priv_mode=PrivilegeLevel.MACHINE,
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_tor_basic(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_tor_basic(self, pmp_grain_log):
         # Lower bound is 0 when no previous entry
         # Range: [0x0, 0x2000)
         self.run_pmp_test(
@@ -130,11 +130,11 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x2000, 0, 0, 0),
                 PMPCheck(0x9000, 0, 0, 0),
             ],
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_tor_range(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_tor_range(self, pmp_grain_log):
         # Entry i-1 sets lower bound for Entry i (TOR)
         # Range: [0x1000, 0x2000)
         self.run_pmp_test(
@@ -149,15 +149,15 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x2000, 0, 0, 0),
                 PMPCheck(0x3000, 0, 0, 0),
             ],
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_tor_no_perms(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_tor_no_perms(self, pmp_grain_log):
         self.run_pmp_test(
             [PMPEntry(addr=0x2000 >> 2, cfg=make_cfg(a=PMPAFlagEncoding.TOR))],
             [PMPCheck(0x1000, 0, 0, 0)],
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
     def test_tor_smaller_than_grain(self):
@@ -173,7 +173,7 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x10C, 0, 0, 0),
                 PMPCheck(0x110, 0, 0, 0),
             ],
-            pmp_grain=4,
+            pmp_grain_log=6,
         )
 
     def test_na4(self):
@@ -189,17 +189,17 @@ class TestPMPDirect(TestCaseWithSimulator):
             ],
         )
 
-    @pytest.mark.parametrize("pmp_grain", [1, 2])
-    def test_na4_disabled_with_grain(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [3, 4])
+    def test_na4_disabled_with_grain(self, pmp_grain_log):
         # NA4 is treated as OFF when grain > 0
         self.run_pmp_test(
             [PMPEntry(addr=0x1000 >> 2, cfg=make_cfg(r=1, w=1, a=PMPAFlagEncoding.NA4))],
             [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0x1001, 0, 0, 0)],
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
-    @pytest.mark.parametrize("pmp_grain", [0, 1, 2])
-    def test_napot(self, pmp_grain):
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_napot(self, pmp_grain_log):
         # pmpaddr=0x43F -> 6 trailing ones (0x3F) -> 2^(6+3) = 512B
         # base = (0x43F & ~0x3F) << 2 = 0x1000
         # Range: [0x1000, 0x11FF]
@@ -212,7 +212,7 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x1200, 0, 0, 0),
                 PMPCheck(0x0FFF, 0, 0, 0),
             ],
-            pmp_grain=pmp_grain,
+            pmp_grain_log=pmp_grain_log,
         )
 
     def test_napot_expanded_by_grain(self):
@@ -227,16 +227,18 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x240, 0, 0, 0),
                 PMPCheck(0x1FC, 0, 0, 0),
             ],
-            pmp_grain=4,
+            pmp_grain_log=6,
         )
 
     def test_pmp_grain_icache_validation_error(self):
         with pytest.raises(ValueError):
-            GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain=0, icache_enable=True))
+            GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain_log=2, icache_enable=True))
 
     @pytest.mark.parametrize("grain", [0, 1, 2])
     def test_pmpaddr_discovery(self, grain):
-        gen_params = GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain=grain, icache_enable=False))
+        gen_params = GenParams(
+            test_core_config.replace(pmp_register_count=16, pmp_grain_log=grain + 2, icache_enable=False)
+        )
         csr = MachineModeCSRRegisters(gen_params)
         pmpaddr0_read = TestbenchIO(AdapterTrans.create(csr.pmpaddrx[0]._fu_read))
         pmpaddr1_read = TestbenchIO(AdapterTrans.create(csr.pmpaddrx[1]._fu_read))
