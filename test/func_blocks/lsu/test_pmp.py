@@ -345,11 +345,31 @@ class TestPMPDirect(TestCaseWithSimulator):
             result = (await pmpcfg0_read.call(sim))["data"]
             assert result == expected, f"WARL R=0,W=1: expected 0x{expected:x}, got 0x{result:x}"
 
+        async def test_l_bit_forced_zero(sim: TestbenchContext):
+            # L bit is not implemented: writes should be forced to 0
+            cfg_with_l = make_cfg(r=1, w=1, x=1, a=PMPAFlagEncoding.TOR, lock=1)
+            expected = make_cfg(r=1, w=1, x=1, a=PMPAFlagEncoding.TOR, lock=0)
+            await pmpcfg0_write.call(sim, data=cfg_with_l)
+            await sim.tick()
+            result = (await pmpcfg0_read.call(sim))["data"]
+            assert result == expected, f"L bit forced 0: expected 0x{expected:x}, got 0x{result:x}"
+
+        async def test_reserved_bits_forced_zero(sim: TestbenchContext):
+            # Bits 5-6 (reserved) should always read as 0
+            cfg_with_reserved = make_cfg(r=1, x=1, a=PMPAFlagEncoding.TOR) | (0b11 << 5)
+            expected = make_cfg(r=1, x=1, a=PMPAFlagEncoding.TOR)
+            await pmpcfg0_write.call(sim, data=cfg_with_reserved)
+            await sim.tick()
+            result = (await pmpcfg0_read.call(sim))["data"]
+            assert result == expected, f"Reserved bits forced 0: expected 0x{expected:x}, got 0x{result:x}"
+
         async def process(sim: TestbenchContext):
             await test_off_mode_masks_low_bits(sim)
             await test_napot_mode_forces_low_bits(sim)
             await test_na4_filtered_to_off(sim)
             await test_reserved_rw_combination(sim)
+            await test_l_bit_forced_zero(sim)
+            await test_reserved_bits_forced_zero(sim)
             await test_mode_switch_changes_readback(sim)
             await test_per_entry_cfg_independence(sim)
 
