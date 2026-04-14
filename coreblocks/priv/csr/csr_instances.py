@@ -111,7 +111,9 @@ class MachineModeCSRRegisters(Elaboratable):
             else:
                 filtered_a = cfg.A
 
-            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, cfg.reserved, cfg.L)
+            # L bit is not implemented: force to 0
+            # Bits 5-6 (reserved): force to 0
+            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), C(0))
             return C(1), filtered_v
 
         for i in range(0, pmpcfgx_cnt):
