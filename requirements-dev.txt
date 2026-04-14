@@ -12,7 +12,7 @@ pyright==1.1.393
 Sphinx==5.1.1
 sphinx-rtd-theme==1.0.0
 sphinxcontrib-mermaid==0.8.1
-cocotb==1.8.1
+cocotb==1.9.2
 cocotb-bus==0.2.1
 pytest==8.0.0
 pytest-xdist==3.5.0
