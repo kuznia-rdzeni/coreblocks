@@ -27,3 +27,5 @@ repos:
       language: script
       types: [python]
       args: ['verify']
+
+exclude: 'test/external/.*'
