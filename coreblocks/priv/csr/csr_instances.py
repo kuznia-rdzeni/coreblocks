@@ -138,16 +138,14 @@ class MachineModeCSRRegisters(Elaboratable):
                     a_field = cfg.A
 
                     if gen_params.pmp_grain >= 2:
-                        # When G >= 2 and pmpcfgi.A[1] is set, then bits pmpaddri[G-2:0] read as all ones.
-                        napot_mask = (1 << (gen_params.pmp_grain - 1)) - 1
-                        napot_value = value | napot_mask
+                        # When G >= 2 and pmpcfgi.A[1] is set (NAPOT/NA4), then bits pmpaddri[G-2:0] read as all ones.
+                        napot_value = Cat(C(1).replicate(gen_params.pmp_grain - 1), value[gen_params.pmp_grain - 1 :])
                     else:
                         napot_value = value
 
                     if gen_params.pmp_grain >= 1:
-                        # When G >= 1 and pmpcfgi.A[1] is clear, then bits pmpaddri[G-1:0] read as all zeros.
-                        tor_mask = (1 << gen_params.pmp_grain) - 1
-                        tor_value = value & ~tor_mask
+                        # When G >= 1 and pmpcfgi.A[1] is clear (OFF/TOR), then bits pmpaddri[G-1:0] read as all zeros.
+                        tor_value = Cat(C(0, gen_params.pmp_grain), value[gen_params.pmp_grain :])
                     else:
                         tor_value = value
 
