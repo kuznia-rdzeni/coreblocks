@@ -32,4 +32,5 @@ fail:
     j fail
 
 pass:
+    li x1, 1
     j pass
