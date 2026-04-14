@@ -99,15 +99,20 @@ class MachineModeCSRRegisters(Elaboratable):
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
         pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
 
-        def filter_na4(_: TModule, v: Value):
-            # When G >= 1, the NA4 mode is not selectable (changed to OFF)
+        def filter(_: TModule, v: Value):
+            cfg = data.View(PMPCfgLayout(), v)
+
+            # R=0, W=1 is a reserved combination (WARL): force W=0
+            filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
+
+            # When G >= 1, NA4 mode is not selectable: change to OFF
             if gen_params.pmp_grain >= 1:
-                cfg = data.View(PMPCfgLayout(), v)
                 filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
-                filtered_v = Cat(cfg.R, cfg.W, cfg.X, filtered_a, cfg.reserved, cfg.L)
-                return C(1), filtered_v
             else:
-                return C(1), v
+                filtered_a = cfg.A
+
+            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, cfg.reserved, cfg.L)
+            return C(1), filtered_v
 
         for i in range(0, pmpcfgx_cnt):
             # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
@@ -116,7 +121,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
             # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
             for j in range(pmpcfg_subregisters):
-                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter_na4)
+                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter)
                 pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
                 self.pmpxcfg.append(pmpcfg_sub)
                 setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)

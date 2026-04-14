@@ -335,10 +335,20 @@ class TestPMPDirect(TestCaseWithSimulator):
             expected1 = test_val | napot_mask
             assert result1 == expected1, f"entry 1 NAPOT, grain={grain}: expected 0x{expected1:x}, got 0x{result1:x}"
 
+        async def test_reserved_rw_combination(sim: TestbenchContext):
+            # R=0, W=1 is reserved (WARL): must be filtered to R=0, W=0
+            reserved_cfg = make_cfg(r=0, w=1, x=1, a=PMPAFlagEncoding.TOR)
+            expected = make_cfg(r=0, w=0, x=1, a=PMPAFlagEncoding.TOR)
+            await pmpcfg0_write.call(sim, data=reserved_cfg)
+            await sim.tick()
+            result = (await pmpcfg0_read.call(sim))["data"]
+            assert result == expected, f"WARL R=0,W=1: expected 0x{expected:x}, got 0x{result:x}"
+
         async def process(sim: TestbenchContext):
             await test_off_mode_masks_low_bits(sim)
             await test_napot_mode_forces_low_bits(sim)
             await test_na4_filtered_to_off(sim)
+            await test_reserved_rw_combination(sim)
             await test_mode_switch_changes_readback(sim)
             await test_per_entry_cfg_independence(sim)
 
