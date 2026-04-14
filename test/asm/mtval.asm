@@ -18,7 +18,7 @@ c3: # jump to 2-byte aligned, 4-byte long instruction, of which first two bytes 
 c4: # illegal 4-byte instruction ([0:2] = 0b11) mtval=raw instruction mcause=ILLEGAL_INSTRUCTION
 .word 0x43
 c5: # illegal compressed type ([0:2] != 0b11) instruction mtval=raw instruction mcause=ILLEGAL_INSTRUCTION
-.word 0x8000
+.word 0x4002
 c6: # access to missing csr mtval=raw instruction mcause=ILLEGAL_INSTRUCTION
     csrr x1, 0x123
 c7: # access to missing csr mtval=raw instruction mcause=ILLEGAL_INSTRUCTION
@@ -72,7 +72,7 @@ expected_mtval:
 .word i_out_of_range 
 .word i_partial_out_of_range + 2 
 .word 0x43 
-.word 0x8000 
+.word 0x4002 
 .word 0x123020f3 
 .word 0x12345073 
 .word 0x80000231

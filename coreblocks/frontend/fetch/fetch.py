@@ -99,9 +99,9 @@ class FetchUnit(Elaboratable):
         with Transaction(name="cont").body(m):
             peek_result = serializer.peek(m)
             count = Signal(range(self.gen_params.frontend_superscalarity + 1))
-            # we want only one branch insn in scheduling group, and only at the beginning (for simplicity)
+            # we want at most one branch insn in scheduling group, and only at the end (for simplicity)
             # some insts in peek_result.data might not be valid, but this is still correct
-            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in peek_result.data][1:]
+            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in peek_result.data][:-1]
             m.d.comb += count.eq(count_trailing_zeros(Cat(which_is_branch)))
             result = serializer.read(m, count=count)
             for i in range(self.gen_params.frontend_superscalarity):
@@ -192,7 +192,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
 
             for i in range(fetch_width):
-                if Extension.C in self.gen_params.isa.extensions:
+                if Extension.ZCA in self.gen_params.isa.extensions:
                     full_instr = Signal(self.gen_params.isa.ilen)
                     if i == 0:
                         # If we have a half of an instruction from the previous block - we need to use it now.
@@ -215,7 +215,7 @@ class FetchUnit(Elaboratable):
             # Mask denoting at which offsets an instruction starts
             instr_start = [Signal() for _ in range(fetch_width)]
             for i in range(fetch_width):
-                if Extension.C in self.gen_params.isa.extensions:
+                if Extension.ZCA in self.gen_params.isa.extensions:
                     if i == 0:
                         m.d.av_comb += instr_start[i].eq(fetch_block_offset == 0)
                     elif i == 1:
@@ -229,7 +229,7 @@ class FetchUnit(Elaboratable):
                 else:
                     m.d.av_comb += instr_start[i].eq(fetch_block_offset <= i)
 
-            if Extension.C in self.gen_params.isa.extensions:
+            if Extension.ZCA in self.gen_params.isa.extensions:
                 valid_instr_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
                 m.d.sync += prev_half_v.eq(
@@ -356,7 +356,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                 ]
 
-            if Extension.C in self.gen_params.isa.extensions:
+            if Extension.ZCA in self.gen_params.isa.extensions:
                 with m.If(s1_data.instr_block_cross):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
                     with m.If(s1_data.access_fault):
@@ -558,7 +558,7 @@ class PredictionChecker(Elaboratable):
             # For a given instruction index, returns a CFI target based on the predecode info
             def get_decoded_target_for(idx: Value) -> Value:
                 base = params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
-                if Extension.C in self.gen_params.isa.extensions:
+                if Extension.ZCA in self.gen_params.isa.extensions:
                     return base - Mux(instr_block_cross & (idx == 0), 2, 0)
                 return base
 
