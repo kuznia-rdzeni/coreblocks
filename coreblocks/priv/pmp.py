@@ -82,6 +82,10 @@ class PMPChecker(Elaboratable):
                     else:
                         m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
+                    # NAPOT region size is encoded by trailing ones in pmpaddr.
+                    # XOR with (pmpaddr + 1) extracts those trailing ones as a mask.
+                    # Bits below the mask define the region; bits above must match.
+                    # With grain > 0, lower bits are forced to 1 so we skip them.
                     start_bit = max(0, grain - 1)
                     napot_mask = addr_val[start_bit:] ^ (addr_val[start_bit:] + 1)
                     m.d.comb += entry_match.eq(
