@@ -28,7 +28,7 @@ class ClintPeriph(Component, SocksPeripheral):
         msip_offset=0x0000,
         mtimecmp_offset=0x4000,
         mtime_offset=0xBFF8,
-        addr_space_size: int = 0xC000,
+        addr_space_size: int = 0xC000
     ):
         super().__init__(
             {
