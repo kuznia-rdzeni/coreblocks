@@ -21,9 +21,15 @@ repos:
 
 - repo: local
   hooks:
-    - id: lint-python
-      name: lint-python
-      entry: scripts/lint.sh
-      language: script
-      types: [python]
-      args: ['verify']
+  - id: format-python
+    name: format-python
+    entry: scripts/lint.sh
+    language: script
+    types: [python]
+    args: ['format']
+  - id: lint-python
+    name: lint-python
+    entry: scripts/lint.sh
+    language: script
+    types: [python]
+    args: ['verify']
