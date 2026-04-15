@@ -1,12 +1,21 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=69", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "coreblocks"
-version = "0.0.0"
+dynamic = ["version"]
 description = "RISC-V out-of-order core for education and research purposes"
 requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
 dependencies = [
     "amaranth==0.5.8",
     "amaranth-stubs==0.1.2",
@@ -14,6 +23,12 @@ dependencies = [
     "dataclasses-json==0.6.3",
     "transactron==0.5.1",
 ]
+
+[project.urls]
+Homepage = "https://kuznia-rdzeni.org"
+Documentation = "https://kuznia-rdzeni.github.io/coreblocks/"
+Repository = "https://github.com/kuznia-rdzeni/coreblocks"
+Issues = "https://github.com/kuznia-rdzeni/coreblocks/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -42,3 +57,45 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["coreblocks*"]
+
+[tool.setuptools_scm]
+
+[tool.pyright]
+include = [
+    "coreblocks",
+    "test",
+    "constants",
+    "scripts",
+]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/external",
+]
+ignore = []
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportWildcardImportFromLibrary = false
+pythonVersion = "3.11"
+pythonPlatform = "Linux"
+
+[tool.pytest.ini_options]
+minversion = "7.2.2"
+testpaths = [
+    "tests",
+]
+norecursedirs = [
+    "*.egg",
+    ".*",
+    "build",
+    "dist",
+    "venv",
+    "__traces__",
+    "__pycache__",
+    "test/external",
+]
+filterwarnings = [
+    "ignore:cannot collect test class 'TestbenchContext':pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class 'TestbenchIO':pytest.PytestCollectionWarning",
+    "ignore:No files were found in testpaths:pytest.PytestConfigWarning:",
+]
