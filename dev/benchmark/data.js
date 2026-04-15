@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776099482457,
+  "lastUpdate": 1776244515617,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -19989,6 +19989,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fcbb7a7e35db4468ea80dc712b042fefc4251d1f"
         },
         "date": 1776099472147,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4111175920873552,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543893258502759,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3447129022791744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6348581591300038,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35711212332527187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2893045362123626,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.317895465559017,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4240201114875943,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2858c31e9a85a9c79b905d5c4ebd68bd7b05980a",
+          "message": "call scripts/lint.sh format in pre-commit (#894)",
+          "timestamp": "2026-04-15T10:52:34+02:00",
+          "tree_id": "aee91b395fa7174f0124d7be53fa1710b5781bb8",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2858c31e9a85a9c79b905d5c4ebd68bd7b05980a"
+        },
+        "date": 1776244508306,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
