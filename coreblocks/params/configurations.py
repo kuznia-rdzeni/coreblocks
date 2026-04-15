@@ -115,7 +115,7 @@ class _CoreConfigurationDataClass:
         Enable Supervisor Mode.
     asidlen: int
         Number of writable ASID bits in SATP.
-    supported_vm_schemes: Collection[SatpModeEncoding]
+    supported_vm_schemes: Collection[SatpMode]
         SATP MODE values accepted by this core.
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
