@@ -14,7 +14,7 @@ from coreblocks.arch.csr_address import (
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
     PrivilegeLevel,
-    SatpModeEncoding,
+    SatpMode,
     TrapVectorMode,
     XlenEncoding,
 )
@@ -263,7 +263,7 @@ class MachineModeCSRRegisters(Elaboratable):
         if menvcfg is None:
             return
 
-        fiom_ro = gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}
+        fiom_ro = gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
         self.menvcfg_fiom = CSRRegister(None, gen_params, width=1, ro_bits=1 if fiom_ro else 0)
         menvcfg.add_field(MenvcfgFieldOffsets.FIOM, self.menvcfg_fiom)
 
@@ -347,7 +347,7 @@ class MachineModeCSRRegisters(Elaboratable):
         mstatus.add_field(MstatusFieldOffsets.MPRV, self.mstatus_mprv)
 
         # Shared mstatus/sstatus fields
-        sum_ro = gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}
+        sum_ro = gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
         self.mstatus_sum = CSRRegister(None, gen_params, width=1, ro_bits=1 if sum_ro else 0)
         mstatus.add_field(MstatusFieldOffsets.SUM, self.mstatus_sum)
         self.mstatus_mxr = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.supervisor_mode else 1)
@@ -469,7 +469,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
 
             return (legal, v)
 
-        if gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}:
+        if gen_params.vmem_params.supported_schemes == {SatpMode.BARE}:
             satp_ro = ~0
         else:
             # only allow writing to ASID bits that are implemented
@@ -505,7 +505,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
         self._stvec_fields_implementation(gen_params, self.stvec)
 
     def _senvcfg_fields_implementation(self, gen_params: GenParams, senvcfg: AliasedCSR):
-        fiom_ro = gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}
+        fiom_ro = gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
         self.senvcfg_fiom = CSRRegister(None, gen_params, width=1, ro_bits=1 if fiom_ro else 0)
         senvcfg.add_field(MenvcfgFieldOffsets.FIOM, self.senvcfg_fiom)
 

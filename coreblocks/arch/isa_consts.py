@@ -1,3 +1,6 @@
+from collections.abc import Set
+from amaranth import Value
+from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag
 
 __all__ = [
@@ -217,7 +220,7 @@ class PMPAFlagEncoding(IntEnum, shape=2):
 
 
 @unique
-class SatpModeEncoding(IntEnum):
+class SatpMode(IntEnum, shape=4):
     BARE = 0
     SV32 = 1
     SV39 = 8
@@ -226,7 +229,7 @@ class SatpModeEncoding(IntEnum):
     SV64 = 11
 
     @classmethod
-    def valid_modes(cls, xlen: int) -> frozenset["SatpModeEncoding"]:
+    def valid_modes(cls, xlen: int) -> Set["SatpMode"]:
         match xlen:
             case 32:
                 return frozenset({cls.BARE, cls.SV32})
@@ -234,3 +237,30 @@ class SatpModeEncoding(IntEnum):
                 return frozenset({cls.BARE, cls.SV39, cls.SV48, cls.SV57, cls.SV64})
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP mode encoding: {xlen}")
+
+
+class SatpLayout(StructLayout):
+    ppn: Value
+    asid: Value
+    mode: Value
+
+    def __init__(self, xlen: int):
+        match xlen:
+            case 32:
+                super().__init__(
+                    {
+                        "ppn": 22,
+                        "asid": 9,
+                        "mode": 1,
+                    }
+                )
+            case 64:
+                super().__init__(
+                    {
+                        "ppn": 44,
+                        "asid": 16,
+                        "mode": 4,
+                    }
+                )
+            case _:
+                raise ValueError(f"Unsupported XLEN for SATP layout: {xlen}")
