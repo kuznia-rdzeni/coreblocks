@@ -4,8 +4,8 @@ from amaranth.utils import ceil_log2, exact_log2
 
 from coreblocks.arch.isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
+from .vmem_params import VirtualMemoryParameters
 from .fu_params import extensions_supported
-from .vmem_params import VirtualMemoryParams
 from ..peripherals.wishbone import WishboneParameters
 from transactron.utils import DependentCache
 
@@ -39,7 +39,7 @@ class GenParams(DependentCache):
         bytes_in_word_log = exact_log2(bytes_in_word)
         self.wb_params = WishboneParameters(data_width=self.isa.xlen, addr_width=self.isa.xlen - bytes_in_word_log)
 
-        self.vmem_params = VirtualMemoryParams(
+        self.vmem_params = VirtualMemoryParameters(
             xlen=cfg.xlen,
             supervisor_mode=cfg.supervisor_mode,
             asidlen=cfg.asidlen,

@@ -1,3 +1,4 @@
+from collections.abc import Set
 from amaranth.lib.enum import IntEnum, unique
 
 __all__ = [
@@ -552,26 +553,30 @@ class CounterEnableFieldOffsets(IntEnum):
     HPM31 = 31  # HPMCOUNTER31 enable
 
 
-sstatus_field_subset = {
-    MstatusFieldOffsets.SIE,
-    MstatusFieldOffsets.SPIE,
-    MstatusFieldOffsets.UBE,
-    MstatusFieldOffsets.SPP,
-    MstatusFieldOffsets.VS,
-    MstatusFieldOffsets.FS,
-    MstatusFieldOffsets.XS,
-    MstatusFieldOffsets.SUM,
-    MstatusFieldOffsets.MXR,
-    MstatusFieldOffsets.SPELP,
-    MstatusFieldOffsets.SDT,
-    MstatusFieldOffsets.SD,
-}
+sstatus_field_subset: Set[MstatusFieldOffsets] = frozenset(
+    {
+        MstatusFieldOffsets.SIE,
+        MstatusFieldOffsets.SPIE,
+        MstatusFieldOffsets.UBE,
+        MstatusFieldOffsets.SPP,
+        MstatusFieldOffsets.VS,
+        MstatusFieldOffsets.FS,
+        MstatusFieldOffsets.XS,
+        MstatusFieldOffsets.SUM,
+        MstatusFieldOffsets.MXR,
+        MstatusFieldOffsets.SPELP,
+        MstatusFieldOffsets.SDT,
+        MstatusFieldOffsets.SD,
+    }
+)
 
-senvcfg_field_subset = {
-    MenvcfgFieldOffsets.FIOM,
-    MenvcfgFieldOffsets.LPE,
-    MenvcfgFieldOffsets.SSE,
-    MenvcfgFieldOffsets.CBIE,
-    MenvcfgFieldOffsets.CBCFE,
-    MenvcfgFieldOffsets.CBZE,
-}
+senvcfg_field_subset: Set[MenvcfgFieldOffsets] = frozenset(
+    {
+        MenvcfgFieldOffsets.FIOM,
+        MenvcfgFieldOffsets.LPE,
+        MenvcfgFieldOffsets.SSE,
+        MenvcfgFieldOffsets.CBIE,
+        MenvcfgFieldOffsets.CBCFE,
+        MenvcfgFieldOffsets.CBZE,
+    }
+)
