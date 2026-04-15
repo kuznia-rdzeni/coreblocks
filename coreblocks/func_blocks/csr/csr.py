@@ -139,6 +139,8 @@ class CSRUnit(FuncBlock, Elaboratable):
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
+            # Use condition() as a workaround for kuznia-rdzeni/transactron#10, as _fu_(read|write) methods
+            # are called multiple times, as some CSRs are aliased call other CSR's _fu_* methods.
             with condition(m) as branch:
                 for csr_number, methods in self.regfile.items():
                     read, write, access_valid = methods
