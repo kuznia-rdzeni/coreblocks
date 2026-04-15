@@ -26,7 +26,7 @@ class ICacheParameters:
         num_of_ways,
         num_of_sets_bits,
         line_bytes_log,
-        enable=True,
+        enable=True
     ):
         self.addr_width = addr_width
         self.word_width = word_width
