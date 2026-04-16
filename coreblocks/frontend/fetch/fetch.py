@@ -115,7 +115,7 @@ class FetchUnit(Elaboratable):
                 )
             self.cont(m, result)
 
-        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
+        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc, ("pmp_fault", 1)), depth=2)
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -134,7 +134,6 @@ class FetchUnit(Elaboratable):
         # - send a request to the instruction cache
         # - check PMP execute permission (if PMP is enabled)
         #
-        m.submodules.pmp_fault_fifo = pmp_fault_fifo = BasicFifo(make_layout(fields.pc), depth=2)
         pmp_addr = Signal(self.gen_params.isa.xlen)
 
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
@@ -147,9 +146,9 @@ class FetchUnit(Elaboratable):
             m.d.comb += pmp_addr.eq(pc)
             with m.If(pmp_checker.result.x):
                 self.icache.issue_req(m, addr=pc)
-                fetch_requests.write(m, pc=pc)
+                fetch_requests.write(m, pc=pc, pmp_fault=0)
             with m.Else():
-                pmp_fault_fifo.write(m, pc=pc)
+                fetch_requests.write(m, pc=pc, pmp_fault=1)
 
         #
         # State passed between stage 1 and stage 2
@@ -185,12 +184,20 @@ class FetchUnit(Elaboratable):
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             fetch_request = fetch_requests.read(m)
-            cache_resp = self.icache.accept_res(m)
 
             # The address of the fetch block.
             fetch_block_addr = params.fb_addr(fetch_request.pc)
             # The index (in instructions) of the first instruction that we should process.
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
+
+            # Conditionally read from icache or mark PMP fault.
+            access_fault = Signal()
+            with condition(m) as branch:
+                with branch(~fetch_request.pmp_fault):
+                    cache_resp = self.icache.accept_res(m)
+                    m.d.comb += access_fault.eq(cache_resp.error)
+                with branch(fetch_request.pmp_fault):
+                    m.d.comb += access_fault.eq(1)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -245,7 +252,7 @@ class FetchUnit(Elaboratable):
                 valid_instr_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
                 m.d.sync += prev_half_v.eq(
-                    (flushing_counter <= 1) & (cache_resp.error == 0) & ~is_rvc[-1] & instr_start[-1]
+                    (flushing_counter <= 1) & (~access_fault) & ~is_rvc[-1] & instr_start[-1]
                 )
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
                 m.d.sync += prev_half_addr.eq(fetch_block_addr)
@@ -256,30 +263,11 @@ class FetchUnit(Elaboratable):
                 m,
                 fb_addr=fetch_block_addr,
                 instr_valid=valid_instr_mask,
-                access_fault=cache_resp.error,
+                access_fault=access_fault,
                 rvc=is_rvc,
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
             )
-
-        with Transaction(name="PMP_Fault").body(m):
-            fault = pmp_fault_fifo.read(m)
-            fb_addr = params.fb_addr(fault.pc)
-
-            pmp_instr_block_cross = Signal()
-            m.d.av_comb += pmp_instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fb_addr))
-
-            s1_s2_pipe.write(
-                m,
-                fb_addr=fb_addr,
-                access_fault=1,
-                instr_valid=Cat(pmp_instr_block_cross, C(0, fetch_width - 1)),
-                rvc=0,
-                instrs=[C(0, self.gen_params.isa.ilen)] * fetch_width,
-                instr_block_cross=pmp_instr_block_cross,
-            )
-
-            m.d.sync += prev_half_v.eq(0)
 
         # Make sure to clean the state
         with m.If(flush_now):
