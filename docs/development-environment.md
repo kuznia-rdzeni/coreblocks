@@ -53,7 +53,7 @@ The `run_tests.py` script has the following options:
 * `-v`, `--verbose` -- makes the test runner more verbose. It will, for example, print the names of all the tests being run.
 * `-j`, `--jobs` -- the number of concurrent testing jobs.
   By default, the number of jobs will be equal to the number of hardware threads available.
-* `-s`, `--no-capture` -- test stdout/stderr output will be visible for the currently running test.
+* `-s`, `--no-capture` -- test stdout/stderr output will be visible for the currently running test. 
   This is useful to see the output of passing tests, including prints and logs.
   The number of jobs is automatically reduced to 1 to avoid confusion.
 * `-a`, `--all` -- include the `riscv-tests` and `riscv-arch-test` test suites.
