@@ -138,7 +138,7 @@ apt<span class="w"> </span>install<span class="w"> </span>python3.11-venv
 python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
-pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements-dev.txt
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
 <span class="nv">PYTHONHASHSEED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>./scripts/synthesize.py<span class="w"> </span>--verbose<span class="w"> </span>--config<span class="w"> </span>full
 ./scripts/parse_benchmark_info.py
 cat<span class="w"> </span>benchmark.json
@@ -203,7 +203,7 @@ python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 <span class="nb">cd</span><span class="w"> </span>coreblocks
-pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements-dev.txt
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
 <span class="nv">PYTHONHASHSEED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>./scripts/gen_verilog.py<span class="w"> </span>--verbose<span class="w"> </span>--config<span class="w"> </span>full
 ./scripts/run_benchmarks.py
 </pre></div>
@@ -244,7 +244,7 @@ python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 <span class="nb">cd</span><span class="w"> </span>coreblocks
-pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements-dev.txt
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
 <span class="nv">PYTHONHASHSEED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>./scripts/gen_verilog.py<span class="w"> </span>--verbose<span class="w"> </span>--config<span class="w"> </span>full
 ./scripts/run_tests.py<span class="w"> </span>-a<span class="w"> </span>regression
 </pre></div>
@@ -265,7 +265,7 @@ pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 07:47 2026-04-16.
+      <span class="lastupdated">Last updated on 09:08 2026-04-16.
       </span></p>
   </div>
 
