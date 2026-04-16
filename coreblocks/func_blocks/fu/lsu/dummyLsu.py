@@ -10,15 +10,13 @@ from transactron.utils.transactron_helpers import make_layout
 
 from coreblocks.arch import OpType
 from coreblocks.arch.isa_consts import ExceptionCause
-from coreblocks.frontend.decoder import *
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
-from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
+from coreblocks.priv.pmp import PMPChecker
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
     CommonBusDataKey,
     CoreStateKey,
-    CSRInstancesKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
@@ -74,9 +72,8 @@ class LSUDummy(FuncUnit, Elaboratable):
         rob_id_match = Signal()
         is_load = Signal()
 
-        csr = self.dependency_manager.get_dependency(CSRInstancesKey())
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         request_layout = make_layout(

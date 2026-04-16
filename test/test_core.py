@@ -154,6 +154,8 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
         ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, basic_core_config),
+        ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, full_core_config),
+        ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):

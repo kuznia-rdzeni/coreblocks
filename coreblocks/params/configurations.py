@@ -113,6 +113,10 @@ class _CoreConfigurationDataClass:
         Enable User Mode.
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
+    pmp_grain_log: int
+        Log of the PMP grain size (in bytes).
+        Must be >= 2 if PMP registers are enabled.
+        When PMP and icache are both enabled, must be >= icache_line_bytes_log.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -171,6 +175,7 @@ class _CoreConfigurationDataClass:
     user_mode: bool = True
 
     pmp_register_count: int = 0
+    pmp_grain_log: int = 5
 
     allow_partial_extensions: bool = False
 
@@ -208,6 +213,7 @@ tiny_core_config = CoreConfiguration(
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
     icache_enable=False,
     user_mode=False,
+    pmp_grain_log=2,
 )
 
 # Basic core config with minimal additions required for Linux
