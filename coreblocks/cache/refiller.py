@@ -1,5 +1,5 @@
 from amaranth import *
-from coreblocks.cache.icache import CacheRefillerInterface
+from coreblocks.cache.iface import CacheRefillerInterface, DataCacheRefillerInterface
 from coreblocks.params import ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
@@ -105,3 +105,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
             return resp_fwd.read(m)
 
         return m
+
+
+class SimpleCommonBusDataCacheRefiller(Elaboratable, DataCacheRefillerInterface):
+    pass
