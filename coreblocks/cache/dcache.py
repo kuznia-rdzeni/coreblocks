@@ -132,25 +132,76 @@ class DCache(Elaboratable, CacheInterface):
 
 
         # ------------- FLUSH -------
-        flush_index = Signal(self.params.index_bits) # Index of cache line that is gonna be writen back
-        m.d.comb += flush_finish.eq(flush_index == self.params.num_of_sets - 1) # if is last, then next cycle we finish
+        # Iterates through all sets, checks dirty bits, starts writeback if needed, then invalidates.
+        # 2 cycles per set: cycle 1 = SRAM read (wait), cycle 2 = process tag_rd_data.
+        # TODO: optimize to 1 cycle per set
 
-        @def_method(m, self.flush)
+        flush_index = Signal(self.params.index_bits)
+        flush_data_valid = Signal()  # high when tag_rd_data is valid for current flush_index
+
+        # SRAM read latency: wait 1 cycle for data
+        with m.If(fsm.ongoing("FLUSH") & ~flush_data_valid):
+            m.d.sync += flush_data_valid.eq(1)
+
+        with m.If(~fsm.ongoing("FLUSH")):
+            m.d.sync += flush_data_valid.eq(0)
+
+        # Connect SRAM read address to flush_index during FLUSH
+        with m.If(fsm.ongoing("FLUSH")):
+            m.d.comb += self.mem.tag_rd_index.eq(flush_index)
+
+        @def_method(m, self.flush, ready=fsm.ongoing("LOOKUP"))
         def _():
             log.info(m, True, "Flushing the cache...")
             m.d.sync += flush_index.eq(0)
+            m.d.sync += flush_data_valid.eq(0)
             m.d.comb += flush_start.eq(1)
 
-        # TODO: Flush Transaction — iterate sets/ways, check dirty, start_writeback or invalidate
-        with Transaction(name="Flush").body(m, ready=fsm.ongoing("FLUSH")):
-            # tag_rd_data is ready from previous cycle (tag_rd_index was set to flush_index)
-            # TODO: check dirty per way, start_writeback if dirty, invalidate if clean, advance flush_index
-            pass
+        with Transaction(name="Flush").body(m, ready=fsm.ongoing("FLUSH") & flush_data_valid):
+            # tag_rd_data is valid for current flush_index
 
+            any_dirty = Signal()
+            dirty_way = Signal(range(self.params.num_of_ways))
 
-        # Connect tag_rd_index to flush_index when in FLUSH state, so SRAM reads tags
-        with m.If(fsm.ongoing("FLUSH")):
-            m.d.comb += self.mem.tag_rd_index.eq(flush_index)
+            for i in range(self.params.num_of_ways):
+                tag_data = self.mem.tag_rd_data[i]
+                with m.If(tag_data.valid & tag_data.dirty):
+                    m.d.comb += any_dirty.eq(1)
+                    m.d.comb += dirty_way.eq(i)
+
+            with m.If(any_dirty):
+                # Writeback the dirty way, then come back to re-check this set
+                wb_addr = Signal(self.addr_layout)
+                m.d.comb += [
+                    wb_addr.offset.eq(0),
+                    wb_addr.index.eq(flush_index),
+                    wb_addr.tag.eq(self.mem.tag_rd_data[dirty_way].tag),
+                ]
+                self.refiller.start_writeback(m, addr=wb_addr)
+                m.d.sync += [
+                    wb_way.eq(dirty_way),
+                    wb_index.eq(flush_index),
+                    wb_word_counter.eq(0),
+                    wb_triggered_by_flush.eq(1),
+                ]
+                m.next = "WRITEBACK"
+            with m.Else():
+                # No dirty ways — invalidate all ways at this set
+                m.d.comb += [
+                    self.mem.way_wr_en.eq(C(1).replicate(self.params.num_of_ways)),
+                    self.mem.tag_wr_index.eq(flush_index),
+                    self.mem.tag_wr_data.valid.eq(0),
+                    self.mem.tag_wr_data.dirty.eq(0),
+                    self.mem.tag_wr_data.tag.eq(0),
+                    self.mem.tag_wr_en.eq(1),
+                ]
+
+                with m.If(flush_index == self.params.num_of_sets - 1):
+                    m.d.comb += flush_finish.eq(1)
+                with m.Else():
+                    m.d.sync += flush_index.eq(flush_index + 1)
+                    m.d.sync += flush_data_valid.eq(0)
+
 
         # ------------------ WRITEBACK ---
 
@@ -172,10 +223,21 @@ class DCache(Elaboratable, CacheInterface):
         with Transaction(name="WritebackEnd").body(m, ready=fsm.ongoing("WRITEBACK")):
             result = self.refiller.accept_writeback(m)
             # TODO: handle error
-            with m.If(~wb_triggered_by_flush):
-                pass # todo: start refill
-            with m.Else():
+
+            # Invalidate the written-back way
+            m.d.comb += [
+                self.mem.way_wr_en.eq(1 << wb_way),
+                self.mem.tag_wr_index.eq(wb_index),
+                self.mem.tag_wr_data.valid.eq(0),
+                self.mem.tag_wr_data.dirty.eq(0),
+                self.mem.tag_wr_data.tag.eq(0),
+                self.mem.tag_wr_en.eq(1),
+            ]
+
+            with m.If(wb_triggered_by_flush):
                 m.next = "FLUSH"
+            with m.Else():
+                pass  # todo: start refill
             m.d.comb += writeback_finish.eq(1)
 
 
