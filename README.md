@@ -72,11 +72,3 @@ Contact us at [Coreforge Foundation](https://kuznia-rdzeni.org) if you want to s
 Copyright © 2022-2025, University of Wrocław.
 
 This project is [three-clause BSD](https://github.com/kuznia-rdzeni/coreblocks/blob/master/LICENSE) licensed.
-
-BAD PUSH WITH TRAILING NEWLINES
-
-
-
-
-
-
