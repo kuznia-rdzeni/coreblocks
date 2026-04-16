@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776326934424,
+  "lastUpdate": 1776331723600,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -20117,6 +20117,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/097ab0f9b1038569e4ae4deb9d7c00dc38778a85"
         },
         "date": 1776326924019,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4111175920873552,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543893258502759,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3447129022791744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6348581591300038,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35711212332527187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2893045362123626,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.317895465559017,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4240201114875943,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5a9d8f5165c0da5dbc9315b21c19704f9eba228e",
+          "message": "migrate to pyproject (#893)",
+          "timestamp": "2026-04-16T11:07:34+02:00",
+          "tree_id": "08707b42713531398e0df07ff5eee2a850b7c055",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5a9d8f5165c0da5dbc9315b21c19704f9eba228e"
+        },
+        "date": 1776331717312,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
