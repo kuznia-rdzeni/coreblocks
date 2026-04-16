@@ -32,4 +32,4 @@ repos:
     types: [python]
     args: ['check_types']
 
-exclude: 'test/external/.*'
+exclude: ^test/external/.*$|\.svg$
