@@ -48,7 +48,7 @@ apt install python3.11-venv
 python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
-pip3 install -r requirements-dev.txt
+pip3 install ".[dev]"
 PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config full
 ./scripts/parse_benchmark_info.py
 cat benchmark.json
@@ -116,7 +116,7 @@ python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
 cd coreblocks
-pip3 install -r requirements-dev.txt
+pip3 install ".[dev]"
 PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 ./scripts/run_benchmarks.py
 ```
@@ -156,7 +156,7 @@ python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
 cd coreblocks
-pip3 install -r requirements-dev.txt
+pip3 install ".[dev]"
 PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
 ./scripts/run_tests.py -a regression
 ```
