@@ -135,7 +135,10 @@ class MachineModeCSRRegisters(Elaboratable):
             else:
                 filtered_a = cfg.A
 
-            # L bit is not implemented: force to 0
+            # L bit is not implemented (write-locking not supported): force to 0.
+            # TODO: Implement L bit — when L=1, writes to pmpcfg and pmpaddr should be
+            # ignored. Additionally, if entry i is locked and A=TOR, writes to pmpaddr(i-1)
+            # must also be ignored.
             # Bits 5-6 (reserved): force to 0
             filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), C(0))
             return C(1), filtered_v

@@ -251,9 +251,7 @@ class FetchUnit(Elaboratable):
             if Extension.ZCA in self.gen_params.isa.extensions:
                 valid_instr_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
-                m.d.sync += prev_half_v.eq(
-                    (flushing_counter <= 1) & (~access_fault) & ~is_rvc[-1] & instr_start[-1]
-                )
+                m.d.sync += prev_half_v.eq((flushing_counter <= 1) & (~access_fault) & ~is_rvc[-1] & instr_start[-1])
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
                 m.d.sync += prev_half_addr.eq(fetch_block_addr)
             else:
