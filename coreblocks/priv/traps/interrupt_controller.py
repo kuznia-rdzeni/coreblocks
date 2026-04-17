@@ -281,22 +281,18 @@ class InternalInterruptController(Component):
         # this is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
         with Transaction().body(m):
             with m.If(self.entry.run):
-                if self.gen_params.supervisor_mode:
-                    with m.If(self.entry.data_in.target_priv == PrivilegeLevel.SUPERVISOR):
-                        self.mstatus_sie.write(m, {"data": 0})
-                        self.mstatus_spie.write(m, self.mstatus_sie.read(m).data)
-                        self.mstatus_spp.write(m, priv_mode.read(m).data != PrivilegeLevel.USER)
-                        priv_mode.write(m, PrivilegeLevel.SUPERVISOR)
-                    with m.Else():
+                with m.Switch(self.entry.data_in.target_priv):
+                    if self.gen_params.supervisor_mode:
+                        with m.Case(PrivilegeLevel.SUPERVISOR):
+                            self.mstatus_sie.write(m, {"data": 0})
+                            self.mstatus_spie.write(m, self.mstatus_sie.read(m).data)
+                            self.mstatus_spp.write(m, priv_mode.read(m).data != PrivilegeLevel.USER)
+                            priv_mode.write(m, PrivilegeLevel.SUPERVISOR)
+                    with m.Case(PrivilegeLevel.MACHINE):
                         self.mstatus_mie.write(m, {"data": 0})
                         self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
                         self.mstatus_mpp.write(m, priv_mode.read(m).data)
                         priv_mode.write(m, PrivilegeLevel.MACHINE)
-                else:
-                    self.mstatus_mie.write(m, {"data": 0})
-                    self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
-                    self.mstatus_mpp.write(m, priv_mode.read(m).data)
-                    priv_mode.write(m, PrivilegeLevel.MACHINE)
             with m.Elif(self.mret.run):
                 self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
                 self.mstatus_mpie.write(m, {"data": 1})
@@ -309,9 +305,9 @@ class InternalInterruptController(Component):
                 with m.Elif(self.sret.run):
                     self.mstatus_sie.write(m, self.mstatus_spie.read(m).data)
                     self.mstatus_spie.write(m, {"data": 1})
+                    self.mstatus_spp.write(m, 0)
                     spp = self.mstatus_spp.read(m).data
                     priv_mode.write(m, Mux(spp, PrivilegeLevel.SUPERVISOR, PrivilegeLevel.USER))
-                    self.mstatus_spp.write(m, 0)
 
         interrupt_priority = [
             InterruptCauseNumber.MEI,
