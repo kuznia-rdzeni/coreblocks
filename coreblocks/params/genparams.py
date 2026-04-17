@@ -38,7 +38,7 @@ class GenParams(DependentCache):
         bytes_in_word = self.isa.xlen // 8
         bytes_in_word_log = exact_log2(bytes_in_word)
 
-        max_phys_addr_bits = VirtualMemoryParams.max_physical_address_bits(cfg.xlen)
+        max_phys_addr_bits = VirtualMemoryParameters.max_physical_address_bits(cfg.xlen)
         self.phys_addr_bits = cfg.phys_addr_bits if cfg.phys_addr_bits is not None else max_phys_addr_bits
         if self.phys_addr_bits < bytes_in_word_log:
             raise ValueError(
