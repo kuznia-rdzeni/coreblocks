@@ -1,5 +1,6 @@
 from dataclasses import dataclass, KW_ONLY, field
 from amaranth import *
+from amaranth.lib import data
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
@@ -15,7 +16,7 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, PrivUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
     SretKey,
@@ -212,11 +213,9 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                         with m.Case(PrivilegedFn.Fn.SRET):
                             m.d.av_comb += instr[20:32].eq(Funct12.SRET)
                         with m.Case(PrivilegedFn.Fn.SFENCEVMA):
-                            rs_size = self.gen_params.isa.reg_cnt_log
-                            rs1_start = 32 - 2 * rs_size  # rs1 field
-                            rs2_start = 32 - 3 * rs_size  # rs2 field
-                            m.d.av_comb += instr[15:20].eq(instr_imm[rs1_start : rs1_start + rs_size])
-                            m.d.av_comb += instr[20:25].eq(instr_imm[rs2_start : rs2_start + rs_size])
+                            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
+                            m.d.av_comb += instr[15:20].eq(imm_view.rs1)
+                            m.d.av_comb += instr[20:25].eq(imm_view.rs2)
                             m.d.av_comb += instr[25:32].eq(Funct7.SFENCEVMA)
                     with m.Default():
                         m.d.av_comb += instr[20:32].eq(Funct12.MRET)

@@ -2,11 +2,13 @@ from functools import reduce
 from operator import or_
 
 from amaranth import *
+from amaranth.lib import data
 
 from coreblocks.params import *
 from coreblocks.arch import *
 from coreblocks.arch.optypes import optypes_by_extensions
 from .instr_description import instructions_by_optype, Encoding
+from coreblocks.interface.layouts import CSRUnitLayouts, PrivUnitLayouts
 
 __all__ = ["InstrDecoder"]
 
@@ -322,20 +324,15 @@ class InstrDecoder(Elaboratable):
 
         # HACK: pass logical registers in unused high bits of CSR instruction for `mtval` reconstruction
         with m.If((self.optype == OpType.CSR_REG) | (self.optype == OpType.CSR_IMM)):
-            m.d.comb += self.imm[32 - self.gen_params.isa.reg_cnt_log : 32].eq(self.rd)
-            m.d.comb += self.imm[32 - self.gen_params.isa.reg_cnt_log * 2 : 32 - self.gen_params.isa.reg_cnt_log].eq(
-                self.rs1
-            )
-            assert 32 - self.gen_params.isa.reg_cnt_log * 2 >= 5
+            imm_view = data.View(self.gen_params.get(CSRUnitLayouts).imm_layout, self.imm)
+            m.d.comb += imm_view.rd.eq(self.rd)
+            m.d.comb += imm_view.rs1.eq(self.rs1)
 
         # HACK: pass the logical register encoding of SFENCEVMA (same encoding as for CSR instructions for circuit size)
         with m.If(self.optype == OpType.SFENCEVMA):
-            m.d.comb += self.imm[32 - 2 * self.gen_params.isa.reg_cnt_log : 32 - self.gen_params.isa.reg_cnt_log].eq(
-                self.rs1
-            )
-            m.d.comb += self.imm[
-                32 - 3 * self.gen_params.isa.reg_cnt_log : 32 - 2 * self.gen_params.isa.reg_cnt_log
-            ].eq(self.rs2)
+            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, self.imm)
+            m.d.comb += imm_view.rs1.eq(self.rs1)
+            m.d.comb += imm_view.rs2.eq(self.rs2)
 
         # Instruction simplification
 

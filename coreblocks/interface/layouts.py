@@ -25,6 +25,7 @@ __all__ = [
     "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
+    "PrivUnitLayouts",
 ]
 
 
@@ -771,6 +772,14 @@ class CSRUnitLayouts:
 
         self.data_layout = self.rs.data_layout
 
+        self.imm_layout = make_layout(
+            ("imm", 5),
+            ("_1", gen_params.isa.xlen - 5 - 2 * gen_params.isa.reg_cnt_log),
+            ("rd", gen_params.isa.reg_cnt_log),
+            ("rs1", gen_params.isa.reg_cnt_log),
+        )
+        assert self.imm_layout.size == gen_params.isa.xlen
+
 
 class ExceptionRegisterLayouts:
     """Layouts used in the exception information register."""
@@ -809,3 +818,15 @@ class CoreInstructionCounterLayouts:
         self.increment_in = [("count", range(gen_params.frontend_superscalarity + 1))]
         self.decrement_in = [("count", range(gen_params.retirement_superscalarity + 1))]
         self.decrement_out = [("empty", 1)]
+
+
+class PrivUnitLayouts:
+    """Layouts used in the control and status functional unit."""
+
+    def __init__(self, gen_params: GenParams):
+        self.sfencevma_imm_layout = make_layout(
+            ("_1", gen_params.isa.xlen - 2 * gen_params.isa.reg_cnt_log),
+            ("rs1", gen_params.isa.reg_cnt_log),
+            ("rs2", gen_params.isa.reg_cnt_log),
+        )
+        assert self.sfencevma_imm_layout.size == gen_params.isa.xlen
