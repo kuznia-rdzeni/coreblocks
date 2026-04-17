@@ -3,7 +3,7 @@ from amaranth import *
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
-from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel, SatpModeEncoding
+from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel, SatpMode
 
 
 from transactron import *
@@ -157,7 +157,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                         sret(m)
 
                     # TODO: implement proper SFENCE.VMA, for BARE only - NO-OP is ok
-                    assert self.gen_params.vmem_params.supported_schemes == {SatpModeEncoding.BARE}
+                    assert self.gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
 
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
