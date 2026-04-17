@@ -84,7 +84,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     # With C extension access fault can be only on the second half of instruction, and mepc != mtval.
                     # This information is passed in imm field
                     m.d.av_comb += mtval.eq(
-                        arg.pc + ((arg.imm & FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF).any() << 1)
+                        arg.pc + ((arg.imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF).any() << 1)
                     )
                 with OneHotCase(ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION):
                     m.d.av_comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
@@ -94,7 +94,9 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     m.d.av_comb += mtval.eq(arg.pc)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_PAGE_FAULT):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
-                    m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
+                    m.d.av_comb += mtval.eq(
+                        arg.pc + ((arg.imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF).any() << 1)
+                    )
 
             self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, mtval=mtval)
 
