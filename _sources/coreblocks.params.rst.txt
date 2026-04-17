@@ -44,6 +44,14 @@ coreblocks.params.instr module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.params.vmem\_params module
+-------------------------------------
+
+.. automodule:: coreblocks.params.vmem_params
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

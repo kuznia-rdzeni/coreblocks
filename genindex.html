@@ -323,6 +323,8 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.instr.UTypeInstr.__init__">(coreblocks.params.instr.UTypeInstr method)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters.__init__">(coreblocks.params.vmem_params.VirtualMemoryParameters method)</a>
+</li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.__init__">(coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteParameters.__init__">(coreblocks.peripherals.axi_lite.AXILiteParameters method)</a>
@@ -357,7 +359,11 @@
 </li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters.__init__">(coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters method)</a>
 </li>
+        <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.SupervisorModeCSRRegisters.__init__">(coreblocks.priv.csr.csr_instances.SupervisorModeCSRRegisters method)</a>
+</li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_register.CSRRegister.__init__">(coreblocks.priv.csr.csr_register.CSRRegister method)</a>
+</li>
+        <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.shadow.ShadowCSR.__init__">(coreblocks.priv.csr.shadow.ShadowCSR method)</a>
 </li>
         <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.exception.ExceptionInformationRegister.__init__">(coreblocks.priv.traps.exception.ExceptionInformationRegister method)</a>
 </li>
@@ -372,9 +378,13 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.__new__">__new__() (coreblocks.arch.csr_address.CSRAddress method)</a>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.__new__">__new__() (coreblocks.arch.csr_address.CounterEnableFieldOffsets method)</a>
 
       <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.__new__">(coreblocks.arch.csr_address.CSRAddress method)</a>
+</li>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.__new__">(coreblocks.arch.csr_address.MenvcfgFieldOffsets method)</a>
+</li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.__new__">(coreblocks.arch.csr_address.MstatusFieldOffsets method)</a>
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.__new__">(coreblocks.arch.isa.Extension method)</a>
@@ -471,6 +481,8 @@
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.add_sub_out_layout">add_sub_out_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.arch.optypes.OpType attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.ADUE">ADUE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.aliased.AliasedCSR">AliasedCSR (class in coreblocks.priv.csr.aliased)</a>
 </li>
@@ -637,6 +649,14 @@
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface">CacheRefillerInterface (class in coreblocks.cache.iface)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.CALL">CALL (coreblocks.arch.optypes.CfiType attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CBCFE">CBCFE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CBIE">CBIE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CBZE">CBZE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.CDE">CDE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType">CfiType (class in coreblocks.arch.optypes)</a>
 </li>
@@ -1041,8 +1061,6 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.lza">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.jumpbranch
 
@@ -1050,6 +1068,8 @@
         <li><a href="coreblocks.func_blocks.fu.html#module-coreblocks.func_blocks.fu.jumpbranch">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.lsu
 
@@ -1240,6 +1260,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.params.vmem_params
+
+      <ul>
+        <li><a href="coreblocks.params.html#module-coreblocks.params.vmem_params">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.peripherals
 
       <ul>
@@ -1303,6 +1330,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.priv.csr.shadow
+
+      <ul>
+        <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.shadow">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.priv.traps
 
       <ul>
@@ -1360,6 +1394,12 @@
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend">CoreFrontend (class in coreblocks.frontend.frontend)</a>
 </li>
       <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.instr_counter.CoreInstructionCounter">CoreInstructionCounter (class in coreblocks.priv.traps.instr_counter)</a>
+</li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.counteren_access_filter">counteren_access_filter() (in module coreblocks.priv.csr.csr_instances)</a>
+</li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.counteren_writable_mask">counteren_writable_mask() (in module coreblocks.priv.csr.csr_instances)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets">CounterEnableFieldOffsets (class in coreblocks.arch.csr_address)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct12.CPOP">CPOP (coreblocks.arch.isa_consts.Funct12 attribute)</a>
 
@@ -1420,6 +1460,8 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.interrupt_controller.InternalInterruptController.custom_report">custom_report (coreblocks.priv.traps.interrupt_controller.InternalInterruptController attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.CY">CY (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.CYCLE">CYCLE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
@@ -1485,10 +1527,10 @@
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.icache.ICache.deserialize_addr">deserialize_addr() (coreblocks.cache.icache.ICache method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.FenceTarget.DEV_I">DEV_I (coreblocks.arch.isa_consts.FenceTarget attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.FenceTarget.DEV_O">DEV_O (coreblocks.arch.isa_consts.FenceTarget attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.DIV">DIV (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -1532,6 +1574,8 @@
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulComponent.dsp_width">dsp_width (coreblocks.func_blocks.fu.mul_unit.MulComponent attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.unsigned_multiplication.html#coreblocks.func_blocks.fu.unsigned_multiplication.common.DSPMulUnit">DSPMulUnit (class in coreblocks.func_blocks.fu.unsigned_multiplication.common)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.DTE">DTE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1633,6 +1677,14 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.FFLAGS">FFLAGS (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.field_length">field_length() (coreblocks.arch.csr_address.MenvcfgFieldOffsets method)</a>
+
+      <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.field_length">(coreblocks.arch.csr_address.MstatusFieldOffsets method)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.FIOM">FIOM (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout">FloatToIntMethodLayout (class in coreblocks.func_blocks.fu.fpu.float_to_int)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntModule">FloatToIntModule (class in coreblocks.func_blocks.fu.fpu.float_to_int)</a>
@@ -1653,10 +1705,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout">FPUClassMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_class)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule">FPUClassModule (class in coreblocks.func_blocks.fu.fpu.fpu_class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule">FPUClassModule (class in coreblocks.func_blocks.fu.fpu.fpu_class)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues">FPUCommonValues (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_comp.FPUCompMethodLayout">FPUCompMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_comp)</a>
@@ -1819,6 +1871,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.GP">GP (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.GVA">GVA (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1851,6 +1905,64 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HIP">HIP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM10">HPM10 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM11">HPM11 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM12">HPM12 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM13">HPM13 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM14">HPM14 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM15">HPM15 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM16">HPM16 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM17">HPM17 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM18">HPM18 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM19">HPM19 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM20">HPM20 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM21">HPM21 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM22">HPM22 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM23">HPM23 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM24">HPM24 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM25">HPM25 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM26">HPM26 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM27">HPM27 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM28">HPM28 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM29">HPM29 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM3">HPM3 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM30">HPM30 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM31">HPM31 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM4">HPM4 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM5">HPM5 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM6">HPM6 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM7">HPM7 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM8">HPM8 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.HPM9">HPM9 (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER10">HPMCOUNTER10 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER10H">HPMCOUNTER10H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -1881,6 +1993,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER17">HPMCOUNTER17 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER17H">HPMCOUNTER17H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER18">HPMCOUNTER18 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -1911,8 +2025,6 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER24H">HPMCOUNTER24H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER25">HPMCOUNTER25 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER25H">HPMCOUNTER25H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2057,10 +2169,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InstrType">InstrType (class in coreblocks.arch.isa_consts)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ACCESS_FAULT">INSTRUCTION_ACCESS_FAULT (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED">INSTRUCTION_ADDRESS_MISALIGNED (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_PAGE_FAULT">INSTRUCTION_PAGE_FAULT (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
@@ -2084,6 +2196,8 @@
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.Errors.INVALID_OPERATION">INVALID_OPERATION (coreblocks.func_blocks.fu.fpu.fpu_common.Errors attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.DivComponent.ipc">ipc (coreblocks.func_blocks.fu.div_unit.DivComponent attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.IR">IR (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_branch">is_branch() (coreblocks.arch.optypes.CfiType static method)</a>
 </li>
@@ -2175,10 +2289,12 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.LOGIC">LOGIC (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.LR">LR (coreblocks.arch.isa_consts.Funct7 attribute)</a>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.LPE">LPE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.LR">LR (coreblocks.arch.isa_consts.Funct7 attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.lsu">lsu (coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapper">LSUAtomicWrapper (class in coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper)</a>
@@ -2241,6 +2357,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MCYCLEH">MCYCLEH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MDT">MDT (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MEDELEG">MEDELEG (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MEDELEGH">MEDELEGH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2252,6 +2370,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.FenceTarget.MEM_W">MEM_W (coreblocks.arch.isa_consts.FenceTarget attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MENVCFG">MENVCFG (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets">MenvcfgFieldOffsets (class in coreblocks.arch.csr_address)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MENVCFGH">MENVCFGH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
@@ -2511,10 +2631,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MINSTRETH">MINSTRETH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MINU">MINU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MIP">MIP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MISA">MISA (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2689,6 +2809,8 @@
 </li>
         <li><a href="coreblocks.params.html#module-coreblocks.params.instr">coreblocks.params.instr</a>
 </li>
+        <li><a href="coreblocks.params.html#module-coreblocks.params.vmem_params">coreblocks.params.vmem_params</a>
+</li>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals">coreblocks.peripherals</a>
 </li>
         <li><a href="coreblocks.peripherals.html#module-coreblocks.peripherals.axi_lite">coreblocks.peripherals.axi_lite</a>
@@ -2707,6 +2829,8 @@
 </li>
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.csr_register">coreblocks.priv.csr.csr_register</a>
 </li>
+        <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.shadow">coreblocks.priv.csr.shadow</a>
+</li>
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps">coreblocks.priv.traps</a>
 </li>
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps.exception">coreblocks.priv.traps.exception</a>
@@ -2722,11 +2846,15 @@
         <li><a href="coreblocks.scheduler.html#module-coreblocks.scheduler.wakeup_select">coreblocks.scheduler.wakeup_select</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPELP">MPELP (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPIE">MPIE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPP">MPP (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPRV">MPRV (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MPV">MPV (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct12.MRET">MRET (coreblocks.arch.isa_consts.Funct12 attribute)</a>
 
@@ -2908,6 +3036,8 @@
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.params">params (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.PBMTE">PBMTE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend_params.FrontendParams.pc_from_fb">pc_from_fb() (coreblocks.frontend.frontend_params.FrontendParams method)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulType.PIPELINED_MUL">PIPELINED_MUL (coreblocks.func_blocks.fu.mul_unit.MulType attribute)</a>
@@ -2921,6 +3051,8 @@
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMALayout">PMALayout (class in coreblocks.func_blocks.fu.lsu.pma)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion">PMARegion (class in coreblocks.func_blocks.fu.lsu.pma)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.PMM">PMM (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR0">PMPADDR0 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
@@ -3012,10 +3144,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR49">PMPADDR49 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR5">PMPADDR5 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR5">PMPADDR5 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR50">PMPADDR50 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR51">PMPADDR51 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3382,6 +3514,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SD">SD (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SDT">SDT (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InterruptCauseNumber.SEI">SEI (coreblocks.arch.isa_consts.InterruptCauseNumber attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncBlock.select">select (coreblocks.func_blocks.interface.func_protocols.FuncBlock attribute)</a>
@@ -3436,6 +3570,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.SH3ADD">(coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.shadow.ShadowCSR">ShadowCSR (class in coreblocks.priv.csr.shadow)</a>
+</li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.RISCVInstr.shape">shape() (coreblocks.params.instr.RISCVInstr method)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.SHIFT">SHIFT (coreblocks.arch.optypes.OpType attribute)</a>
@@ -3456,10 +3592,10 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SIE">(coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.SIG_NAN">SIG_NAN (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout">SIMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_sign_injection)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIModule">SIModule (class in coreblocks.func_blocks.fu.fpu.fpu_sign_injection)</a>
@@ -3488,7 +3624,11 @@
       </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.SLTU">SLTU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.smode_delegable_mask">smode_delegable_mask() (coreblocks.arch.isa_consts.ExceptionCause class method)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.SP">SP (coreblocks.arch.isa_consts.Registers attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SPELP">SPELP (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SPIE">SPIE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
@@ -3503,6 +3643,8 @@
 </li>
       </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SSCRATCH">SSCRATCH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.SSE">SSE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InterruptCauseNumber.SSI">SSI (coreblocks.arch.isa_consts.InterruptCauseNumber attribute)</a>
 </li>
@@ -3540,6 +3682,8 @@
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.state_machine_request">state_machine_request() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.STCE">STCE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InterruptCauseNumber.STI">STI (coreblocks.arch.isa_consts.InterruptCauseNumber attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.STORE">STORE (coreblocks.arch.isa_consts.Opcode attribute)</a>
@@ -3571,6 +3715,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SUM">SUM (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel.SUPERVISOR">SUPERVISOR (coreblocks.arch.isa_consts.PrivilegeLevel attribute)</a>
+</li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.SupervisorModeCSRRegisters">SupervisorModeCSRRegisters (class in coreblocks.priv.csr.csr_instances)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SXL">SXL (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
@@ -3611,6 +3757,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TIME">TIME (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TIMEH">TIMEH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.TM">TM (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.TP">TP (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
@@ -3668,16 +3816,18 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.valid">valid() (coreblocks.arch.optypes.CfiType static method)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters">VirtualMemoryParameters (class in coreblocks.params.vmem_params)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.VS">VS (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSATP">VSATP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSCAUSE">VSCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSEPC">VSEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSEPC">VSEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSIE">VSIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSIP">VSIP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3973,7 +4123,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 09:08 2026-04-16.
+      <span class="lastupdated">Last updated on 08:31 2026-04-17.
       </span></p>
   </div>
 
