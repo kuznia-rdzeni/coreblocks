@@ -218,7 +218,6 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                             m.d.av_comb += instr[20:25].eq(imm_view.rs2)
                             m.d.av_comb += instr[25:32].eq(Funct7.SFENCEVMA)
                     with m.Default():
-                        m.d.av_comb += instr[20:32].eq(Funct12.MRET)
                         log.error(m, True, "missing Funct12 case")
 
                 self.exception_report(
