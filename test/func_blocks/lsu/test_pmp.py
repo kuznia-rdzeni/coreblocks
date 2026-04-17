@@ -2,11 +2,13 @@ from dataclasses import dataclass
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
 from coreblocks.func_blocks.fu.lsu.pmp import PMPCfgLayout, PMPChecker
+from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing import TestbenchContext, TestCaseWithSimulator
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
+from transactron.utils.dependencies import DependencyContext
 
 
 def make_cfg(*, r=0, w=0, x=0, a=0, lock=0) -> int:
@@ -36,15 +38,17 @@ class TestPMPDirect(TestCaseWithSimulator):
         priv_mode=PrivilegeLevel.USER,
     ):
         gen_params = GenParams(test_core_config.replace(pmp_register_count=16))
-        csr = MachineModeCSRRegisters(gen_params)
-        pmp = PMPChecker(gen_params, csr)
+        csr = CSRInstances(gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
+
+        pmp = PMPChecker(gen_params, csr.m_mode)
         test_module = ModuleConnector(csr=csr, pmp=pmp)
 
         async def process(sim: TestbenchContext):
-            sim.set(csr.priv_mode.value, priv_mode)
+            sim.set(csr.m_mode.priv_mode.value, priv_mode)
             for i, entry in enumerate(entries):
-                sim.set(csr.pmpaddrx[i].value, entry.addr)
-                sim.set(csr.pmpxcfg[i].value, entry.cfg)
+                sim.set(csr.m_mode.pmpaddrx[i].value, entry.addr)
+                sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
 
             for c in checks:
                 sim.set(pmp.addr, c.addr)
