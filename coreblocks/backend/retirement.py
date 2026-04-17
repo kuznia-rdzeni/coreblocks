@@ -17,8 +17,9 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
+from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
-from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR, counteren_access_filter
 from coreblocks.arch.isa_consts import TrapVectorMode
 
 
@@ -49,7 +50,14 @@ class Retirement(Elaboratable):
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
-        self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+        self.instret_csr = DoubleCounterCSR(
+            gen_params,
+            CSRAddress.MINSTRET,
+            CSRAddress.MINSTRETH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.INSTRET,
+            CSRAddress.INSTRETH if gen_params.isa.xlen == 32 else None,
+            shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.IR),
+        )
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",

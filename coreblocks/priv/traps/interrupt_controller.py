@@ -4,6 +4,7 @@ from amaranth.lib.wiring import Component, In
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.interface.layouts import InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
@@ -71,14 +72,36 @@ class InternalInterruptController(Component):
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
 
+        smode_interrupts = (
+            (1 << InterruptCauseNumber.SSI)
+            | (1 << InterruptCauseNumber.STI)
+            | (1 << InterruptCauseNumber.SEI)
+            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+        )
+
         mie_writeable = (
             (1 << InterruptCauseNumber.MSI)
             | (1 << InterruptCauseNumber.MTI)
             | (1 << InterruptCauseNumber.MEI)
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
+        if gen_params.supervisor_mode:
+            mie_writeable |= smode_interrupts
+
         self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
         self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
+
+        if gen_params.supervisor_mode:
+            # TODO: implement logic for delegation and S-mode interrupts
+            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~0)
+
+            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~0)
+            self.medelegh = None
+            if gen_params.isa.xlen == 32:
+                self.medelegh = CSRRegister(CSRAddress.MEDELEGH, gen_params, ro_bits=~0)
+
+            self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=self.mideleg.read)
+            self.sip = ShadowCSR(CSRAddress.SIP, gen_params, self.mip, mask=self.mideleg.read)
 
         self.interrupt_insert = Signal()
         self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
@@ -100,6 +123,11 @@ class InternalInterruptController(Component):
 
         m.submodules += [self.mie, self.mip]
 
+        if self.gen_params.supervisor_mode:
+            m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg]
+            if self.medelegh:
+                m.submodules += [self.medelegh]
+
         priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
 
         interrupt_enable = Signal()
@@ -107,7 +135,7 @@ class InternalInterruptController(Component):
         mip = Signal(self.gen_params.isa.xlen)
         with Transaction().body(m) as assign_trans:
             m.d.comb += [
-                interrupt_enable.eq(self.mstatus_mie.read(m).data | (priv_mode.read(m).data == PrivilegeLevel.USER)),
+                interrupt_enable.eq(self.mstatus_mie.read(m).data | (priv_mode.read(m).data != PrivilegeLevel.MACHINE)),
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data),
             ]
