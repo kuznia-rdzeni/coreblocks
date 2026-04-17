@@ -54,6 +54,9 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
             Adapter.create(self.retirement.async_interrupt_cause)
         )
+        m.submodules.mock_get_trap_target_priv = self.mock_get_trap_target_priv = TestbenchIO(
+            Adapter.create(self.retirement.get_trap_target_priv)
+        )
 
         m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
             Adapter.create(self.retirement.checkpoint_tag_free)
@@ -161,7 +164,7 @@ class TestRetirement(TestCaseWithSimulator):
         return {"empty": 0}
 
     @def_method_mock(lambda self: self.retc.mock_trap_entry)
-    def mock_trap_entry_process(self):
+    def mock_trap_entry_process(self, target_priv):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)
@@ -171,6 +174,10 @@ class TestRetirement(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
+
+    @def_method_mock(lambda self: self.retc.mock_get_trap_target_priv)
+    def mock_get_trap_target_priv_process(self, cause):
+        return {"data": PrivilegeLevel.MACHINE}
 
     @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
     def mock_checkpoint_get_active_tags(self):

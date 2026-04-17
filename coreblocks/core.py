@@ -172,6 +172,7 @@ class Core(Component):
         retirement.fetch_continue.provide(self.frontend.resume_from_exception)
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
+        retirement.get_trap_target_priv.provide(self.interrupt_controller.get_trap_target_priv)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)
         retirement.checkpoint_get_active_tags.provide(crat.get_active_tags)
         retirement.checkpoint_tag_free.provide(crat.free_tag)
