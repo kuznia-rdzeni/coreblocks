@@ -22,7 +22,6 @@ from coreblocks.interface.keys import (
     CoreStateKey,
     CSRInstancesKey,
     InstructionPrecommitKey,
-    GetTrapTargetPrivKey,
 )
 from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR, counteren_access_filter
 from coreblocks.arch.isa_consts import TrapVectorMode
@@ -51,7 +50,12 @@ class Retirement(Elaboratable):
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
         )
         self.trap_entry = Method(i=[("target_priv", PrivilegeLevel)])
-        self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
+        interrupt_controller_layouts = gen_params.get(InternalInterruptControllerLayouts)
+        self.get_trap_target_priv = Method(
+            i=interrupt_controller_layouts.get_trap_target_priv_i,
+            o=interrupt_controller_layouts.get_trap_target_priv_o,
+        )
+        self.async_interrupt_cause = Method(o=interrupt_controller_layouts.interrupt_cause)
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
@@ -87,7 +91,6 @@ class Retirement(Elaboratable):
         csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
         m_csr = csr_instances.m_mode
         s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
-        get_trap_target_priv = self.dependency_manager.get_optional_dependency(GetTrapTargetPrivKey())
         m.submodules.instret_csr = self.instret_csr
 
         side_fx = Signal(init=1)
@@ -186,31 +189,20 @@ class Retirement(Elaboratable):
 
                         with m.If(arch_trap):
                             # Register RISC-V architectural trap in CSRs.
-                            target_priv = Signal(PrivilegeLevel)
-                            m.d.av_comb += target_priv.eq(PrivilegeLevel.MACHINE)
+                            target_priv = self.get_trap_target_priv(m, cause=cause_entry).data
 
-                            if self.gen_params.supervisor_mode:
-                                assert get_trap_target_priv is not None
-                                is_interrupt = cause_entry[-1]
-                                cause_num = cause_entry[: self.gen_params.isa.xlen - 1]
-                                m.d.av_comb += target_priv.eq(
-                                    get_trap_target_priv(m, is_interrupt=is_interrupt, cause_num=cause_num).data
-                                )
+                            def set_trap_csrs(cause_reg, epc_reg, tval_reg):
+                                cause_reg.write(m, cause_entry)
+                                epc_reg.write(m, cause_register.pc)
+                                tval_reg.write(m, cause_register.mtval)
 
-                            if self.gen_params.supervisor_mode:
-                                with m.If(target_priv == PrivilegeLevel.SUPERVISOR):
-                                    assert s_csr is not None
-                                    s_csr.scause.write(m, cause_entry)
-                                    s_csr.sepc.write(m, cause_register.pc)
-                                    s_csr.stval.write(m, cause_register.mtval)
-                                with m.Else():
-                                    m_csr.mcause.write(m, cause_entry)
-                                    m_csr.mepc.write(m, cause_register.pc)
-                                    m_csr.mtval.write(m, cause_register.mtval)
-                            else:
-                                m_csr.mcause.write(m, cause_entry)
-                                m_csr.mepc.write(m, cause_register.pc)
-                                m_csr.mtval.write(m, cause_register.mtval)
+                            with m.Switch(target_priv):
+                                if self.gen_params.supervisor_mode:
+                                    with m.Case(PrivilegeLevel.SUPERVISOR):
+                                        assert s_csr is not None
+                                        set_trap_csrs(s_csr.scause, s_csr.sepc, s_csr.stval)
+                                with m.Case(PrivilegeLevel.MACHINE):
+                                    set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
 
                             m.d.sync += trap_target_priv.eq(target_priv)
                             self.trap_entry(m, target_priv=target_priv)
@@ -267,26 +259,20 @@ class Retirement(Elaboratable):
                     tvec_mode = Signal(TrapVectorMode)
                     tcause = Signal(self.gen_params.isa.xlen)
 
-                    if self.gen_params.supervisor_mode:
-                        assert s_csr is not None
-                        with m.If(trap_target_priv == PrivilegeLevel.SUPERVISOR):
-                            m.d.av_comb += [
-                                tvec_base.eq(s_csr.stvec_base.read(m).data),
-                                tvec_mode.eq(s_csr.stvec_mode.read(m).data),
-                                tcause.eq(s_csr.scause.read(m).data),
-                            ]
-                        with m.Else():
-                            m.d.av_comb += [
-                                tvec_base.eq(m_csr.mtvec_base.read(m).data),
-                                tvec_mode.eq(m_csr.mtvec_mode.read(m).data),
-                                tcause.eq(m_csr.mcause.read(m).data),
-                            ]
-                    else:
+                    def set_vals(reg_base, reg_mode, reg_cause):
                         m.d.av_comb += [
-                            tvec_base.eq(m_csr.mtvec_base.read(m).data),
-                            tvec_mode.eq(m_csr.mtvec_mode.read(m).data),
-                            tcause.eq(m_csr.mcause.read(m).data),
+                            tvec_base.eq(reg_base.read(m).data),
+                            tvec_mode.eq(reg_mode.read(m).data),
+                            tcause.eq(reg_cause.read(m).data),
                         ]
+
+                    with m.Switch(trap_target_priv):
+                        if self.gen_params.supervisor_mode:
+                            with m.Case(PrivilegeLevel.SUPERVISOR):
+                                assert s_csr is not None
+                                set_vals(s_csr.stvec_base, s_csr.stvec_mode, s_csr.scause)
+                        with m.Case(PrivilegeLevel.MACHINE):
+                            set_vals(m_csr.mtvec_base, m_csr.mtvec_mode, m_csr.mcause)
 
                     # When mode is Vectored, interrupts set pc to base + 4 * cause_number
                     with m.If(tcause[-1] & (tvec_mode == TrapVectorMode.VECTORED)):

@@ -24,7 +24,6 @@ __all__ = [
     "WaitForInterruptResumeKey",
     "MretKey",
     "SretKey",
-    "GetTrapTargetPrivKey",
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
@@ -96,11 +95,6 @@ class MretKey(SimpleKey[Method]):
 
 @dataclass(frozen=True)
 class SretKey(SimpleKey[Method]):
-    pass
-
-
-@dataclass(frozen=True)
-class GetTrapTargetPrivKey(SimpleKey[Method]):
     pass
 
 

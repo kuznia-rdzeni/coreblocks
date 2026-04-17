@@ -1,5 +1,4 @@
 from coreblocks.backend.retirement import *
-from coreblocks.interface.keys import GetTrapTargetPrivKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
 from transactron.lib import FIFO, Adapter
@@ -28,19 +27,6 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
-        self.get_trap_target_priv = Method(
-            i=[
-                ("is_interrupt", 1),
-                ("cause_num", self.gen_params.isa.xlen - 1),
-            ],
-            o=[("data", PrivilegeLevel)],
-        )
-        DependencyContext.get().add_dependency(GetTrapTargetPrivKey(), self.get_trap_target_priv)
-
-        @def_method(m, self.get_trap_target_priv)
-        def _(is_interrupt, cause_num):
-            return {"data": PrivilegeLevel.MACHINE}
-
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
         self.retirement.r_rat_commit.provide(self.rat.commit)
@@ -67,6 +53,9 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_trap_entry = self.mock_trap_entry = TestbenchIO(Adapter.create(self.retirement.trap_entry))
         m.submodules.mock_async_interrupt_cause = self.mock_async_interrupt_cause = TestbenchIO(
             Adapter.create(self.retirement.async_interrupt_cause)
+        )
+        m.submodules.mock_get_trap_target_priv = self.mock_get_trap_target_priv = TestbenchIO(
+            Adapter.create(self.retirement.get_trap_target_priv)
         )
 
         m.submodules.mock_checkpoint_tag_free = self.mock_checkpoint_tag_free = TestbenchIO(
@@ -185,6 +174,10 @@ class TestRetirement(TestCaseWithSimulator):
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
+
+    @def_method_mock(lambda self: self.retc.mock_get_trap_target_priv)
+    def mock_get_trap_target_priv_process(self, cause):
+        return {"data": PrivilegeLevel.MACHINE}
 
     @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
     def mock_checkpoint_get_active_tags(self):

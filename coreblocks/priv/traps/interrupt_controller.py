@@ -13,7 +13,6 @@ from coreblocks.interface.keys import (
     MretKey,
     SretKey,
     WaitForInterruptResumeKey,
-    GetTrapTargetPrivKey,
 )
 
 from transactron.core import Method, TModule, def_method
@@ -115,7 +114,8 @@ class InternalInterruptController(Component):
         self.wfi_resume = Signal()
         self.dm.add_dependency(WaitForInterruptResumeKey(), self.wfi_resume)
 
-        self.interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
+        internal_layouts = gen_params.get(InternalInterruptControllerLayouts)
+        self.interrupt_cause = Method(o=internal_layouts.interrupt_cause)
 
         self.mret = Method()
         self.dm.add_dependency(MretKey(), self.mret)
@@ -126,14 +126,10 @@ class InternalInterruptController(Component):
             self.sret = Method()
             self.dm.add_dependency(SretKey(), self.sret)
 
-            self.get_trap_target_priv = Method(
-                i=[
-                    ("is_interrupt", 1),
-                    ("cause_num", gen_params.isa.xlen - 1),
-                ],
-                o=[("data", PrivilegeLevel)],
-            )
-            self.dm.add_dependency(GetTrapTargetPrivKey(), self.get_trap_target_priv)
+        self.get_trap_target_priv = Method(
+            i=internal_layouts.get_trap_target_priv_i,
+            o=internal_layouts.get_trap_target_priv_o,
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -149,32 +145,37 @@ class InternalInterruptController(Component):
 
         priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
 
-        if self.gen_params.supervisor_mode:
+        @def_method(m, self.get_trap_target_priv)
+        def _(cause):
+            if not self.gen_params.supervisor_mode:
+                return {"data": PrivilegeLevel.MACHINE}
 
-            @def_method(m, self.get_trap_target_priv)
-            def _(is_interrupt, cause_num):
-                edeleg = Signal(64)
-                ideleg = self.mideleg.read(m).data
-                current_priv = priv_mode.read(m).data
+            cause_num = Signal(self.gen_params.isa.xlen - 1)
+            is_interrupt = Signal()
+            m.d.av_comb += Cat(cause_num, is_interrupt).eq(cause)
 
-                if self.medelegh:
-                    m.d.av_comb += edeleg.eq(Cat(self.medeleg.read(m).data, self.medelegh.read(m).data))
-                else:
-                    m.d.av_comb += edeleg.eq(self.medeleg.read(m).data)
+            edeleg = Signal(64)
+            ideleg = self.mideleg.read(m).data
+            current_priv = priv_mode.read(m).data
 
-                target_priv = Signal(PrivilegeLevel)
-                with m.If(is_interrupt):
-                    m.d.av_comb += target_priv.eq(
-                        Mux(ideleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
-                    )
-                with m.Elif(current_priv < PrivilegeLevel.MACHINE):
-                    m.d.av_comb += target_priv.eq(
-                        Mux(edeleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
-                    )
-                with m.Else():
-                    m.d.av_comb += target_priv.eq(PrivilegeLevel.MACHINE)
+            if self.medelegh:
+                m.d.av_comb += edeleg.eq(Cat(self.medeleg.read(m).data, self.medelegh.read(m).data))
+            else:
+                m.d.av_comb += edeleg.eq(self.medeleg.read(m).data)
 
-                return {"data": target_priv}
+            target_priv = Signal(PrivilegeLevel)
+            with m.If(is_interrupt):
+                m.d.av_comb += target_priv.eq(
+                    Mux(ideleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
+                )
+            with m.Elif(current_priv < PrivilegeLevel.MACHINE):
+                m.d.av_comb += target_priv.eq(
+                    Mux(edeleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
+                )
+            with m.Else():
+                m.d.av_comb += target_priv.eq(PrivilegeLevel.MACHINE)
+
+            return {"data": target_priv}
 
         interrupt_enable_m = Signal()
         interrupt_enable_s = Signal()
