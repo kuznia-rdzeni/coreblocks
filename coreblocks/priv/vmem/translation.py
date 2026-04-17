@@ -6,7 +6,7 @@ from transactron import Method, TModule, def_method
 from transactron.lib import Forwarder
 from transactron.utils import DependencyContext
 
-from coreblocks.arch.isa_consts import PrivilegeLevel, SatpModeEncoding
+from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
@@ -20,27 +20,27 @@ class AddressTranslatorMode(Enum):
     LSU = auto()
 
 
-def level_count(mode: SatpModeEncoding) -> int:
+def level_count(mode: SatpMode) -> int:
     match mode:
-        case SatpModeEncoding.BARE:
+        case SatpMode.BARE:
             return 0
-        case SatpModeEncoding.SV32:
+        case SatpMode.SV32:
             return 2
-        case SatpModeEncoding.SV39:
+        case SatpMode.SV39:
             return 3
-        case SatpModeEncoding.SV48:
+        case SatpMode.SV48:
             return 4
-        case SatpModeEncoding.SV57:
+        case SatpMode.SV57:
             return 5
         case _:
             raise ValueError(f"Unsupported SATP mode: {mode}")
 
 
-def page_table_entry_format(mode: SatpModeEncoding) -> StructLayout:
+def page_table_entry_format(mode: SatpMode) -> StructLayout:
     match mode:
-        case SatpModeEncoding.BARE:
+        case SatpMode.BARE:
             return StructLayout({})
-        case SatpModeEncoding.SV32:
+        case SatpMode.SV32:
             return StructLayout(
                 {
                     "V": 1,
@@ -55,7 +55,7 @@ def page_table_entry_format(mode: SatpModeEncoding) -> StructLayout:
                     "ppn": 22,
                 }
             )
-        case SatpModeEncoding.SV39 | SatpModeEncoding.SV48 | SatpModeEncoding.SV57:
+        case SatpMode.SV39 | SatpMode.SV48 | SatpMode.SV57:
             return StructLayout(
                 {
                     "V": 1,
@@ -77,7 +77,7 @@ def page_table_entry_format(mode: SatpModeEncoding) -> StructLayout:
             raise ValueError(f"Unsupported SATP mode: {mode}")
 
 
-def bits_per_level(mode: SatpModeEncoding) -> int:
+def bits_per_level(mode: SatpMode) -> int:
     num_entries = (1 << 12) // page_table_entry_format(mode).as_shape().width
     return num_entries.bit_length() - 1
 
@@ -123,7 +123,7 @@ class AddressTranslator(Elaboratable):
                 case AddressTranslatorMode.INSTRUCTION:
                     m.d.av_comb += effective_priv_mode.eq(priv_mode)
 
-            effective_satp_mode = Signal(SatpModeEncoding, init=SatpModeEncoding.BARE)
+            effective_satp_mode = Signal(SatpMode, init=SatpMode.BARE)
 
             if self.gen_params.supervisor_mode:
                 with m.If(effective_priv_mode < PrivilegeLevel.MACHINE):
@@ -140,7 +140,7 @@ class AddressTranslator(Elaboratable):
 
             vpn_invalid = Signal()
             with m.Switch(effective_satp_mode):
-                for mode in self.gen_params.vmem_params.supported_schemes - {SatpModeEncoding.BARE}:
+                for mode in self.gen_params.vmem_params.supported_schemes - {SatpMode.BARE}:
                     vpn_len = bits_per_level(mode) * level_count(mode)
 
                     with m.Case(mode):
@@ -149,7 +149,7 @@ class AddressTranslator(Elaboratable):
 
             ppn_invalid = Signal()
             with m.Switch(effective_satp_mode):
-                with m.Case(SatpModeEncoding.BARE):
+                with m.Case(SatpMode.BARE):
                     m.d.av_comb += ppn.eq(vpn)
                     m.d.av_comb += ppn_invalid.eq(vpn > max_ppn)
 
