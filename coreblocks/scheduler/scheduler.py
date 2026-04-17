@@ -2,12 +2,12 @@ from collections.abc import Sequence
 
 from amaranth import *
 
-from transactron import Method, Methods, Required, Transaction, TModule, def_method
-from transactron.lib import Connect, Pipe, condition
-from transactron.utils import assign, AssignType
+from transactron import Method, Methods, Required, Transaction, TModule
+from transactron.lib import Connect, Pipe, WideFifo
+from transactron.utils import OneHotSwitchDynamic, assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, SchedulerLayouts
+from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, RSFullDataLayout, SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.arch.optypes import OpType
 from coreblocks.interface.keys import CoreStateKey
@@ -240,10 +240,10 @@ class RSSelection(Elaboratable):
     methods to be available at the same time.
     """
 
-    get_instr: Required[Method]
-    push_instr: Required[Method]
-    rf_read_req1: Required[Method]
-    rf_read_req2: Required[Method]
+    get_instrs: Required[Method]
+    peek_instrs: Required[Method]
+    push_instrs: Required[Method]
+    rf_read_req: Required[Methods]
     rs_select: Required[Sequence[Method]]
 
     def __init__(self, *, gen_params: GenParams):
@@ -257,10 +257,9 @@ class RSSelection(Elaboratable):
 
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.rs_select_in)
-        self.push_instr = Method(i=layouts.rs_select_out)
-        self.rf_read_req1 = Method(i=gen_params.get(RFLayouts).rf_read_in)
-        self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
+        self.get_instrs = Method(i=[("count", range(gen_params.frontend_superscalarity + 1))], o=layouts.rs_select_in)
+        self.push_instrs = Method(i=layouts.rs_select_out)
+        self.rf_read_req = Methods(2 * gen_params.frontend_superscalarity, i=gen_params.get(RFLayouts).rf_read_in)
         self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
 
     def decode_optype_set(self, optypes: set[OpType]) -> int:
@@ -272,26 +271,42 @@ class RSSelection(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        lookup = Signal(OpType)  # lookup of currently processed optype
-        m.d.comb += lookup.eq(self.get_instr.data_out.exec_fn.op_type)
+        count = Signal(range(self.gen_params.frontend_superscalarity + 1))
+        data_out = Signal(self.push_instrs.layout_in)
 
-        data_out = Signal(self.push_instr.layout_in)
+        with Transaction().body(m):
+            instrs = self.get_instrs(m, count)
 
-        for i, (alloc, block_params) in enumerate(zip(self.rs_select, self.gen_params.func_units_config)):
-            # checks if RS can perform this kind of operation
-            optype_matches = Cat(lookup == op for op in block_params.get_optypes()).any()
-            with Transaction().body(m, ready=optype_matches):
-                instr = self.get_instr(m)
-                allocated_field = alloc(m)
+            prev_insert: Value = C(1)
 
-                m.d.comb += assign(data_out, instr)
-                m.d.comb += data_out.rs_entry_id.eq(allocated_field.rs_entry_id)
-                m.d.comb += data_out.rs_selected.eq(i)
+            for i in range(self.gen_params.frontend_superscalarity):
+                next_insert = Signal()
+                instr = instrs.data[i]
+                instr_out = data_out.data[i]
+                lookup = Signal(OpType)  # lookup of currently processed optype
+                m.d.comb += lookup.eq(instr.exec_fn.op_type)
 
-                self.push_instr(m, data_out)
+                for j, (alloc, block_params) in enumerate(zip(self.rs_select, self.gen_params.func_units_config)):
+                    # checks if RS can perform this kind of operation
+                    optype_matches = Cat(lookup == op for op in block_params.get_optypes()).any()
+                    with Transaction().body(m, ready=(i < instrs.count) & prev_insert & optype_matches):
+                        allocated_field = alloc(m)
 
-                self.rf_read_req1(m, instr.regs_p.rp_s1)
-                self.rf_read_req2(m, instr.regs_p.rp_s2)
+                        m.d.av_comb += assign(instr_out, instr)
+                        m.d.av_comb += instr_out.rs_entry_id.eq(allocated_field.rs_entry_id)
+                        m.d.av_comb += instr_out.rs_selected.eq(j)
+
+                        m.d.av_comb += next_insert.eq(1)
+
+                        self.rf_read_req[2 * i](m, instr.regs_p.rp_s1)
+                        self.rf_read_req[2 * i + 1](m, instr.regs_p.rp_s2)
+
+                with m.If(next_insert):
+                    m.d.av_comb += count.eq(i + 1)
+
+                prev_insert = next_insert
+
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -304,9 +319,8 @@ class RSInsertion(Elaboratable):
     a single instruction to the RS.
     """
 
-    get_instr: Required[Method]
-    rf_read_resp1: Required[Method]
-    rf_read_resp2: Required[Method]
+    get_instrs: Required[Method]
+    rf_read_resp: Required[Methods]
     crat_active_tags: Required[Method]
     rs_insert: Required[Sequence[Method]]
 
@@ -321,9 +335,12 @@ class RSInsertion(Elaboratable):
 
         layouts = gen_params.get(SchedulerLayouts)
 
-        self.get_instr = Method(o=layouts.rs_insert_in)
-        self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
-        self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.get_instrs = Method(o=layouts.rs_insert_in)
+        self.rf_read_resp = Methods(
+            2 * gen_params.frontend_superscalarity,
+            i=gen_params.get(RFLayouts).rf_read_in,
+            o=gen_params.get(RFLayouts).rf_read_out,
+        )
         self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
         self.rs_insert = [Method(i=conf.get_layouts(gen_params).insert_in) for conf in gen_params.func_units_config]
 
@@ -333,9 +350,7 @@ class RSInsertion(Elaboratable):
         # This transaction will not be stalled by single RS because insert methods do not use conditional calling,
         # therefore we can use single transaction here.
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            source1 = self.rf_read_resp1(m, reg_id=instr.regs_p.rp_s1)
-            source2 = self.rf_read_resp2(m, reg_id=instr.regs_p.rp_s2)
+            instrs = self.get_instrs(m)
 
             # when core is flushed, rp_dst are discarded.
             # source operands may never become ready, skip waiting for them in any in RSes/FBs.
@@ -345,39 +360,64 @@ class RSInsertion(Elaboratable):
             core_state = DependencyContext.get().get_dependency(CoreStateKey())
             flushing = core_state(m).flushing
 
-            tag_inactive = ~self.crat_active_tags(m).active_tags[instr.tag]
+            tag_inactive = ~self.crat_active_tags(m).active_tags[instrs.data[0].tag]
 
             skip_source_registers = flushing | tag_inactive
 
-            data = {
-                # when operand value is valid the convention is to set operand source to 0
-                "rs_data": {
-                    "rp_s1": Mux(source1.valid | skip_source_registers, 0, instr.regs_p.rp_s1),
-                    "rp_s2": Mux(source2.valid | skip_source_registers, 0, instr.regs_p.rp_s2),
-                    "rp_s1_reg": instr.regs_p.rp_s1,
-                    "rp_s2_reg": instr.regs_p.rp_s2,
-                    "rp_dst": instr.regs_p.rp_dst,
-                    "rob_id": instr.rob_id,
-                    "exec_fn": instr.exec_fn,
-                    "s1_val": Mux(source1.valid, source1.reg_val, 0),
-                    "s2_val": Mux(source2.valid, source2.reg_val, 0),
-                    "imm": instr.imm,
-                    "csr": instr.csr,
-                    "pc": instr.pc,
-                    "tag": instr.tag,
-                },
-            }
+            rs_entry_id: list[Value] = []
+            rs_selected: list[Value] = []
+            rs_datas = []
 
-            with condition(m) as branch:
-                for i, rs_insert in enumerate(self.rs_insert):
+            for i in range(self.gen_params.frontend_superscalarity):
+                instr = instrs.data[i]
+                with Transaction().body(m):
+                    source1 = self.rf_read_resp[2 * i](m, reg_id=instr.regs_p.rp_s1)
+                    source2 = self.rf_read_resp[2 * i + 1](m, reg_id=instr.regs_p.rp_s2)
+                # TODO: assert that if i < count, transaction runs
+
+                rs_data = Signal(self.gen_params.get(RSFullDataLayout).data_layout)
+                m.d.av_comb += assign(
+                    rs_data,
+                    {
+                        # when operand value is valid the convention is to set operand source to 0
+                        "rp_s1": Mux(source1.valid | skip_source_registers, 0, instr.regs_p.rp_s1),
+                        "rp_s2": Mux(source2.valid | skip_source_registers, 0, instr.regs_p.rp_s2),
+                        "rp_s1_reg": instr.regs_p.rp_s1,
+                        "rp_s2_reg": instr.regs_p.rp_s2,
+                        "rp_dst": instr.regs_p.rp_dst,
+                        "rob_id": instr.rob_id,
+                        "exec_fn": instr.exec_fn,
+                        "s1_val": Mux(source1.valid, source1.reg_val, 0),
+                        "s2_val": Mux(source2.valid, source2.reg_val, 0),
+                        "imm": instr.imm,
+                        "csr": instr.csr,
+                        "pc": instr.pc,
+                        "tag": instr.tag,
+                    },
+                )
+                rs_datas.append(rs_data)
+                rs_entry_id.append(instr.rs_entry_id)
+                rs_selected.append(instr.rs_selected)
+
+            for j, rs_insert in enumerate(self.rs_insert):
+                # because instrs come from RS selection, this is guaranteed one-hot or zero
+                matches = Signal(self.gen_params.frontend_superscalarity)
+                m.d.av_comb += matches.eq(
+                    Cat(
+                        (i < instrs.count) & (rs_selected[i] == j)
+                        for i in range(self.gen_params.frontend_superscalarity)
+                    )
+                )
+
+                arg = Signal.like(rs_insert.data_in)
+                for i in OneHotSwitchDynamic(m, matches):
                     # connect only matching fields
-                    arg = Signal.like(rs_insert.data_in)
-                    m.d.comb += assign(arg, data, fields=AssignType.COMMON)
+                    m.d.av_comb += assign(arg.rs_data, rs_datas[i], fields=AssignType.COMMON)
                     # this assignment truncates signal width from max rs_entry_bits to target RS specific width
-                    m.d.comb += arg.rs_entry_id.eq(instr.rs_entry_id)
+                    m.d.av_comb += arg.rs_entry_id.eq(rs_entry_id[i])
 
-                    with branch(instr.rs_selected == i):
-                        rs_insert(m, arg)
+                with m.If(matches.any()):
+                    rs_insert(m, arg)
 
         return m
 
@@ -488,38 +528,31 @@ class Scheduler(Elaboratable):
         renaming.crat_commit_checkpoint.provide(self.crat_commit_checkpoint)
         renaming.rename.provide(self.crat_rename)
 
-        rob_alloc_out_bufs = [
-            Pipe(self.layouts.rs_select_in_data) for _ in range(self.gen_params.frontend_superscalarity)
-        ]
+        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = WideFifo(
+            self.layouts.rs_select_in_data,
+            2 * self.gen_params.frontend_superscalarity,
+            self.gen_params.frontend_superscalarity,
+        )
         m.submodules.rob_alloc = rob_alloc = ROBAllocation(gen_params=self.gen_params)
 
         rob_alloc.get_instrs.provide(rename_out_buf.read)
+        rob_alloc.push_instrs.provide(rob_alloc_out_buf.write)
         rob_alloc.rob_put.provide(self.rob_put)
 
-        @def_method(m, rob_alloc.push_instrs)
-        def _(count, data):
-            for i in range(self.gen_params.frontend_superscalarity):
-                with m.If(i < count):
-                    rob_alloc_out_bufs[i].write(m, data[i])
+        m.submodules.rs_select_out_buf = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
+        m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
 
-        for i in range(self.gen_params.frontend_superscalarity):
-            m.submodules[f"rob_alloc_out_buf_{i}"] = rob_alloc_out_buf = rob_alloc_out_bufs[i]
-            m.submodules[f"rs_select_out_buf_{i}"] = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
-            m.submodules[f"rs_selector_{i}"] = rs_selector = RSSelection(gen_params=self.gen_params)
+        rs_selector.get_instrs.provide(rob_alloc_out_buf.read)
+        rs_selector.push_instrs.provide(rs_select_out_buf.write)
+        rs_selector.rf_read_req.provide(self.rf_read_req)
+        for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
+            rs_select.provide(rs_select_impl)
 
-            rs_selector.get_instr.provide(rob_alloc_out_buf.read)
-            rs_selector.push_instr.provide(rs_select_out_buf.write)
-            rs_selector.rf_read_req1.provide(self.rf_read_req[2 * i])
-            rs_selector.rf_read_req2.provide(self.rf_read_req[2 * i + 1])
-            for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
-                rs_select.provide(rs_select_impl)
-
-            m.submodules[f"rs_insertion_{i}"] = rs_insertion = RSInsertion(gen_params=self.gen_params)
-            rs_insertion.get_instr.provide(rs_select_out_buf.read)
-            rs_insertion.rf_read_resp1.provide(self.rf_read_resp[2 * i])
-            rs_insertion.rf_read_resp2.provide(self.rf_read_resp[2 * i + 1])
-            rs_insertion.crat_active_tags.provide(self.crat_active_tags)
-            for rs_insert, rs_insert_impl in zip(rs_insertion.rs_insert, self.rs_insert):
-                rs_insert.provide(rs_insert_impl)
+        m.submodules.rs_insertion = rs_insertion = RSInsertion(gen_params=self.gen_params)
+        rs_insertion.get_instrs.provide(rs_select_out_buf.read)
+        rs_insertion.rf_read_resp.provide(self.rf_read_resp)
+        rs_insertion.crat_active_tags.provide(self.crat_active_tags)
+        for rs_insert, rs_insert_impl in zip(rs_insertion.rs_insert, self.rs_insert):
+            rs_insert.provide(rs_insert_impl)
 
         return m
