@@ -259,6 +259,16 @@ full_core_config = CoreConfiguration(
                 ZbcComponent(),
                 ZbkxComponent(),
                 ZbsComponent(),
+            ],
+            rs_entries=4,
+        ),
+        RSBlockComponent(
+            [
+                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
+                ShiftUnitComponent(zbb_enable=True),
+                ZbcComponent(),
+                ZbkxComponent(),
+                ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
                 PrivilegedUnitComponent(),
