@@ -10,7 +10,7 @@ from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
-    from coreblocks.priv.csr.csr_register import CSRRegister  # noqa: F401
+    from coreblocks.func_blocks.csr.csr_unit import RegisteredCSRProtocol  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -97,8 +97,9 @@ class CoreStateKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class CSRListKey(ListKey["CSRRegister"]):
-    """DependencyManager key collecting CSR registers globally as a list."""
+class CSRListKey(ListKey[tuple[int, "RegisteredCSRProtocol"]]):
+    """DependencyManager key collecting CSR registers globally as a list.
+    Requires tuple of architectural CSR number to register and the register itself."""
 
     pass
 

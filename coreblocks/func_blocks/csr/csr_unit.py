@@ -1,8 +1,10 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from dataclasses import dataclass
 
-from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
+from dataclasses import dataclass
+from typing import Protocol
+
+from transactron import Method, Methods, def_method, def_methods, Transaction, TModule, Provided
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
@@ -22,6 +24,18 @@ from coreblocks.interface.keys import (
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
 )
+
+__all__ = [
+    "CSRUnit",
+    "CSRBlockComponent",
+    "RegisteredCSRProtocol",
+]
+
+
+class RegisteredCSRProtocol(Protocol):
+    _fu_read: Provided[Method]
+    _fu_write: Provided[Method]
+    _fu_access_valid: Provided[Method]
 
 
 def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
@@ -85,12 +99,11 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
     def _create_regfile(self):
-        # Fills `self.regfile` with `CSRRegister`s provided by `CSRListKey` dependency.
-        for csr in self.dependency_manager.get_dependency(CSRListKey()):
-            assert csr.csr_number is not None
-            if csr.csr_number in self.regfile:
-                raise RuntimeError(f"CSR number {csr.csr_number} already registered")
-            self.regfile[csr.csr_number] = (csr._fu_read, csr._fu_write, csr.access_valid)
+        # Fills `self.regfile` with CSR registers provided by `CSRListKey` dependency.
+        for csr_number, csr in self.dependency_manager.get_dependency(CSRListKey()):
+            if csr_number in self.regfile:
+                raise RuntimeError(f"CSR number {csr_number} already registered")
+            self.regfile[csr_number] = (csr._fu_read, csr._fu_write, csr._fu_access_valid)
 
     def elaborate(self, platform):
         self._create_regfile()
