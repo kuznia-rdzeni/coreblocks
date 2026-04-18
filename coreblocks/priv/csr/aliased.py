@@ -3,42 +3,29 @@ from amaranth import *
 from typing import Optional
 from enum import Enum
 
-from coreblocks.interface.layouts import CSRRegisterLayouts
 from coreblocks.params.genparams import GenParams
-from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
 from coreblocks.func_blocks.csr.csr import CSRListKey
-from transactron.core.method import Method
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
 from transactron.utils.dependencies import DependencyContext
 
 
-class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
+class AliasedCSR(CSRRegisterBase):
     def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
-        self.gen_params = gen_params
-        self.csr_number = csr_number
-        self.width = width if width is not None else gen_params.isa.xlen
+        if width is None:
+            width = gen_params.isa.xlen
 
-        self.fields: list[tuple[int, CSRRegister]] = []
+        super().__init__(gen_params, csr_number, width)
+
+        self.fields: list[tuple[int, CSRRegisterBase]] = []
         self.ro_values: list[tuple[int, int, int | Enum]] = []
-
-        csr_layouts = gen_params.get(CSRRegisterLayouts)
-
-        self._fu_read = Method(o=csr_layouts._fu_read)
-        self._fu_write = Method(i=csr_layouts._fu_write)
-
-        self.read = Method(o=csr_layouts.read)
-        self.read_comb = Method(o=csr_layouts.read)
-        self.write = Method(i=csr_layouts.write)
-        self.access_valid = Method(i=csr_layouts.access_valid_i, o=csr_layouts.access_valid_o)
-
-        self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
 
         self.elaborated = False
 
         # append to global CSR list
         if csr_number is not None:
-            DependencyContext.get().add_dependency(CSRListKey(), self)
+            DependencyContext.get().add_dependency(CSRListKey(), (csr_number, self))
 
         # TODO: WPRI defult mode
 
@@ -100,11 +87,11 @@ class AliasedCSR(CSRRegister):  # TODO: CSR interface protocol
         def _():
             return read_def(lambda m, csr: csr.read_comb(m))
 
-        @def_method(m, self.access_valid)
+        @def_method(m, self._fu_access_valid)
         def _(priv_mode):
             valid = 1
             for _, csr in self.fields:
-                valid &= csr.access_valid(m, priv_mode).valid
+                valid &= csr._fu_access_valid(m, priv_mode).valid
 
             return {"valid": valid}
 

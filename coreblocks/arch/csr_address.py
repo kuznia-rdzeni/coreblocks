@@ -448,6 +448,10 @@ class CSRAddress(IntEnum, shape=12):
     COREBLOCKS_TEST_PRIV_MODE = 0x8FF
 
 
+# Width of pmpXcfg subfields in pmpcfgX registers
+PMPXCFG_WIDTH = 8
+
+
 @unique
 class MstatusFieldOffsets(IntEnum):
     SIE = 1  # Supervisor Interrupt Enable

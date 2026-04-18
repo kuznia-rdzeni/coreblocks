@@ -3,8 +3,9 @@ from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import Enum
 from amaranth_types import ValueLike, SrcLoc
 
-from typing import Optional
+from abc import ABC, abstractmethod
 from collections.abc import Callable
+from typing import Optional
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import CSRListKey
@@ -16,7 +17,39 @@ from transactron.utils.dependencies import DependencyContext
 from transactron.utils.transactron_helpers import get_src_loc
 
 
-class CSRRegister(Elaboratable):
+class CSRRegisterBase(ABC, Elaboratable):
+    def __init__(self, gen_params: GenParams, csr_number: Optional[int], width: int):
+        self.gen_params = gen_params
+        self.csr_number = csr_number
+        self.width = width
+        self.public = csr_number is not None
+
+        self.csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
+        self.read = Method(o=self.csr_layouts.read)
+        self.read_comb = Method(o=self.csr_layouts.read)
+        self.write = Method(i=self.csr_layouts.write)
+
+        self._fu_read = Method(o=self.csr_layouts._fu_read)
+        self._fu_write = Method(i=self.csr_layouts._fu_write)
+        self._fu_access_valid = Method(i=self.csr_layouts.access_valid_i, o=self.csr_layouts.access_valid_o)
+
+        if self.width != gen_params.isa.xlen:
+            raise RuntimeError(f"Width of public CSR register is different than {gen_params.isa.xlen}")
+
+        self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
+
+        # append to global CSR list (accessible from CSRUnit)
+        if self.public:
+            assert csr_number is not None
+            dm = DependencyContext.get()
+            dm.add_dependency(CSRListKey(), (csr_number, self))
+
+    @abstractmethod
+    def elaborate(self, platform):
+        raise NotImplementedError
+
+
+class CSRRegister(CSRRegisterBase):
     """CSR Register
     Used to define a CSR register and specify its behaviour.
     `CSRRegisters` are automatically assigned to `CSRListKey` dependency key, to be accessed from `CSRUnits`.
@@ -105,50 +138,40 @@ class CSRRegister(Elaboratable):
             Alternatively, the source location to use instead of the default.
         """
         self.gen_params = gen_params
-        self.csr_number = csr_number
-        self.width = width if width is not None else gen_params.isa.xlen
+
+        if width is None:
+            width = gen_params.isa.xlen
+
+        super().__init__(gen_params, csr_number, width)
+
         self.ro_bits = ro_bits
-        self.fu_write_priority = fu_write_priority
         fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
         fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
         self.fu_access_filter = fu_access_filter if fu_access_filter else (lambda _, __: C(1))
+        self.fu_write_priority = fu_write_priority
         self.src_loc = get_src_loc(src_loc)
 
-        csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
+        self._internal_fu_read = Method(o=self.csr_layouts._fu_read)
+        self._internal_fu_write = Method(i=self.csr_layouts._fu_write)
 
-        self.read = Method(o=csr_layouts.read)
-        self.read_comb = Method(o=csr_layouts.read)
-        self.write = Method(i=csr_layouts.write)
-        self.access_valid = Method(i=csr_layouts.access_valid_i, o=csr_layouts.access_valid_o)
-
-        self._internal_fu_read = Method(o=csr_layouts._fu_read)
-        self._internal_fu_write = Method(i=csr_layouts._fu_write)
         self.fu_write_map = MethodMap.create(
             self._internal_fu_write,
-            i_transform=(csr_layouts._fu_write, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
+            i_transform=(self.csr_layouts._fu_write, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
         )
         self.fu_write_filter = MethodFilter.create(
             self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms["data"])[0]
         )
         self.fu_read_map = MethodMap.create(
             self._internal_fu_read,
-            o_transform=(csr_layouts._fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
+            o_transform=(self.csr_layouts._fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
         )
 
-        # Methods connected automatically by CSRUnit
-        self._fu_read = self.fu_read_map.method
-        self._fu_write = self.fu_write_filter.method
+        # Methods required to be connected automatically by CSRUnit
+        self._fu_read.provide(self.fu_read_map.method)
+        self._fu_write.provide(self.fu_write_filter.method)
 
         self.value = Signal(self.width, init=init)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
-
-        # append to global CSR list
-        if csr_number is not None:
-            dm = DependencyContext.get()
-            dm.add_dependency(CSRListKey(), self)
-
-        if csr_number and self.width != gen_params.isa.xlen:
-            raise RuntimeError(f"Width of public CSR register is different than {gen_params.isa.xlen}")
 
     def elaborate(self, platform):
         m = TModule()
@@ -187,7 +210,7 @@ class CSRRegister(Elaboratable):
                 "written": self._internal_fu_write.run,
             }
 
-        @def_method(m, self.access_valid)
+        @def_method(m, self._fu_access_valid)
         def _(priv_mode):
             return {"valid": self.fu_access_filter(m, priv_mode)}
 
