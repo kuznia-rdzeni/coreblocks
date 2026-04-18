@@ -258,6 +258,7 @@ class RSSelection(Elaboratable):
         layouts = gen_params.get(SchedulerLayouts)
 
         self.get_instrs = Method(i=[("count", range(gen_params.frontend_superscalarity + 1))], o=layouts.rs_select_in)
+        self.peek_instrs = Method(o=layouts.rs_select_in)
         self.push_instrs = Method(i=layouts.rs_select_out)
         self.rf_read_req = Methods(2 * gen_params.frontend_superscalarity, i=gen_params.get(RFLayouts).rf_read_in)
         self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
@@ -275,7 +276,8 @@ class RSSelection(Elaboratable):
         data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instrs = self.get_instrs(m, count)
+            instrs = self.peek_instrs(m)
+            m.d.av_comb += data_out.count.eq(instrs.count)
 
             prev_insert: Value = C(1)
 
@@ -284,7 +286,8 @@ class RSSelection(Elaboratable):
                 instr = instrs.data[i]
                 instr_out = data_out.data[i]
                 lookup = Signal(OpType)  # lookup of currently processed optype
-                m.d.comb += lookup.eq(instr.exec_fn.op_type)
+                m.d.av_comb += lookup.eq(instr.exec_fn.op_type)
+                m.d.av_comb += assign(instr_out, instr)
 
                 for j, (alloc, block_params) in enumerate(zip(self.rs_select, self.gen_params.func_units_config)):
                     # checks if RS can perform this kind of operation
@@ -292,11 +295,10 @@ class RSSelection(Elaboratable):
                     with Transaction().body(m, ready=(i < instrs.count) & prev_insert & optype_matches):
                         allocated_field = alloc(m)
 
-                        m.d.av_comb += assign(instr_out, instr)
-                        m.d.av_comb += instr_out.rs_entry_id.eq(allocated_field.rs_entry_id)
-                        m.d.av_comb += instr_out.rs_selected.eq(j)
+                        m.d.comb += instr_out.rs_entry_id.eq(allocated_field.rs_entry_id)
+                        m.d.comb += instr_out.rs_selected.eq(j)
 
-                        m.d.av_comb += next_insert.eq(1)
+                        m.d.comb += next_insert.eq(1)
 
                         self.rf_read_req[2 * i](m, instr.regs_p.rp_s1)
                         self.rf_read_req[2 * i + 1](m, instr.regs_p.rp_s2)
@@ -306,6 +308,7 @@ class RSSelection(Elaboratable):
 
                 prev_insert = next_insert
 
+            self.get_instrs(m, count=count)
             self.push_instrs(m, data_out)
 
         return m
@@ -543,6 +546,7 @@ class Scheduler(Elaboratable):
         m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
 
         rs_selector.get_instrs.provide(rob_alloc_out_buf.read)
+        rs_selector.peek_instrs.provide(rob_alloc_out_buf.peek)
         rs_selector.push_instrs.provide(rs_select_out_buf.write)
         rs_selector.rf_read_req.provide(self.rf_read_req)
         for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
