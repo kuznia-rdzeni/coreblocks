@@ -277,7 +277,7 @@ class RSSelection(Elaboratable):
 
         with Transaction().body(m):
             instrs = self.peek_instrs(m)
-            m.d.av_comb += data_out.count.eq(instrs.count)
+            m.d.av_comb += data_out.count.eq(count)
 
             prev_insert: Value = C(1)
 
