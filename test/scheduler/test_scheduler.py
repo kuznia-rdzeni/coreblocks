@@ -103,10 +103,8 @@ class SchedulerTestCircuit(Elaboratable):
         self.scheduler.crat_tag.provide(crat.tag)
         self.scheduler.crat_active_tags.provide(crat.get_active_tags)
         self.scheduler.rob_put.provide(self.rob.put)
-        self.scheduler.rf_read_req1.provide(self.rf.read_req[0])
-        self.scheduler.rf_read_req2.provide(self.rf.read_req[1])
-        self.scheduler.rf_read_resp1.provide(self.rf.read_resp[0])
-        self.scheduler.rf_read_resp2.provide(self.rf.read_resp[1])
+        self.scheduler.rf_read_req.provide(self.rf.read_req)
+        self.scheduler.rf_read_resp.provide(self.rf.read_resp)
         for i, (rs_select, rs_insert) in enumerate(zip(self.rs_alloc, self.rs_insert)):
             self.scheduler.rs_select[i].provide(rs_select.adapter.iface)
             self.scheduler.rs_insert[i].provide(rs_insert.adapter.iface)

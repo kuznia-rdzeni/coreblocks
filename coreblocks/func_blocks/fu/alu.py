@@ -244,16 +244,16 @@ class AluFuncUnit(FuncUnit, Elaboratable):
         self.issue = Method(i=layouts.issue)
         self.push_result = Method(i=layouts.push_result)
 
-        self.perf_instr = TaggedCounter(
-            "backend.fu.alu.instr",
-            "Counts of instructions executed by the jumpbranch unit",
-            tags=AluFn.Fn,
-        )
+    #        self.perf_instr = TaggedCounter(
+    #            "backend.fu.alu.instr",
+    #            "Counts of instructions executed by the jumpbranch unit",
+    #            tags=AluFn.Fn,
+    #        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_instr]
+        #        m.submodules += [self.perf_instr]
 
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
         m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
@@ -266,7 +266,7 @@ class AluFuncUnit(FuncUnit, Elaboratable):
             m.d.av_comb += alu.in1.eq(arg.s1_val)
             m.d.av_comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
-            self.perf_instr.incr(m, decoder.decode_fn)
+            #            self.perf_instr.incr(m, decoder.decode_fn)
 
             self.push_result(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 
