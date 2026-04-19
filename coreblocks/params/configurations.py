@@ -260,7 +260,7 @@ full_core_config = CoreConfiguration(
                 ZbkxComponent(),
                 ZbsComponent(),
             ],
-            rs_entries=4,
+            rs_entries=2,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
@@ -273,7 +273,7 @@ full_core_config = CoreConfiguration(
                 ExceptionUnitComponent(),
                 PrivilegedUnitComponent(),
             ],
-            rs_entries=4,
+            rs_entries=2,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
