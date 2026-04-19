@@ -110,7 +110,8 @@ class TestRSSelect(TestCaseWithSimulator):
         async def process(sim: TestbenchContext):
             for _ in range(instr_count):
                 result = await self.m.push_instrs.call(sim)
-                if result.count == 0: continue
+                if result.count == 0:
+                    continue
 
                 outputs = self.expected_out.popleft()
 
