@@ -69,6 +69,16 @@ class DCache(Elaboratable, CacheInterface):
         self.perf_errors = HwCounter("backend.dcache.errors")
         self.perf_flushes = HwCounter("backend.dcache.flushes")
 
+    def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
+        return {
+            "offset": raw_addr[: self.params.offset_bits],
+            "index": raw_addr[self.params.index_start_bit : self.params.index_end_bit + 1],
+            "tag": raw_addr[-self.params.tag_bits :],
+        }
+
+    def serialize_addr(self, addr: Value) -> Value:
+        return Cat(addr.offset, addr.index, addr.tag)
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -96,10 +106,27 @@ class DCache(Elaboratable, CacheInterface):
         wb_word_counter = Signal(range(self.params.words_in_line))
 
         wb_triggered_by_flush = Signal()
+        flush_writeback_pending = Signal()
+
+        # Request/response communication (lookup)
+        pending_req = Signal(self.layouts.issue_req)
+        pending_req_valid = Signal()
+        lookup_addr = Signal(self.addr_layout)
+        lookup_valid = Signal()
+        res_reg = Signal(self.layouts.accept_res)
+        res_valid = Signal()
+
+        # Refill state
+        refill_addr = Signal(self.addr_layout)
+        refill_way = Signal(range(self.params.num_of_ways))
+        refill_error = Signal()
+
 
         with m.FSM(init="FLUSH") as fsm:
             with m.State("FLUSH"):
-                with m.If(flush_finish):
+                with m.If(flush_writeback_pending):
+                    m.next = "WRITEBACK"
+                with m.Elif(flush_finish):
                     m.next = "LOOKUP"
 
             with m.State("LOOKUP"):
@@ -115,20 +142,19 @@ class DCache(Elaboratable, CacheInterface):
                     m.next = "LOOKUP"
 
             with m.State("WRITEBACK"):
-                """
-                Writeback does:
-                1. Gets dirty line data from memory
-                2. Iterates through every word in dirty line
-                    1. Send that to refiller -- refiller calls provide_writebackdata
-                3. Accept the writeback (call refiller.accept_writeback)
-                """
-                # transactions with handle state change, fix that later
-                # with m.If(writeback_finish):
-                #     with m.If(wb_triggered_by_flush):
-                #         m.d.sync += wb_triggered_by_flush.eq(0)
-                #         m.next = "FLUSH"
-                #     with m.Else():
-                #         m.next = "REFILL"
+                with m.If(writeback_finish):
+                    with m.If(wb_triggered_by_flush):
+                        m.d.sync += [
+                            wb_triggered_by_flush.eq(0),
+                            flush_writeback_pending.eq(0),
+                        ]
+                        m.next = "FLUSH"
+                    with m.Else():
+                        m.next = "REFILL"
+
+
+        with m.If(fsm.ongoing("LOOKUP") & pending_req_valid & ~lookup_valid & ~res_valid):
+            m.d.sync += lookup_valid.eq(1)
 
 
         # ------------- FLUSH -------
@@ -177,14 +203,14 @@ class DCache(Elaboratable, CacheInterface):
                     wb_addr.index.eq(flush_index),
                     wb_addr.tag.eq(self.mem.tag_rd_data[dirty_way].tag),
                 ]
-                self.refiller.start_writeback(m, addr=wb_addr)
+                self.refiller.start_writeback(m, addr=self.serialize_addr(wb_addr))
                 m.d.sync += [
                     wb_way.eq(dirty_way),
                     wb_index.eq(flush_index),
                     wb_word_counter.eq(0),
                     wb_triggered_by_flush.eq(1),
+                    flush_writeback_pending.eq(1),
                 ]
-                m.next = "WRITEBACK"
             with m.Else():
                 # No dirty ways — invalidate all ways at this set
                 m.d.comb += [
@@ -234,10 +260,6 @@ class DCache(Elaboratable, CacheInterface):
                 self.mem.tag_wr_en.eq(1),
             ]
 
-            with m.If(wb_triggered_by_flush):
-                m.next = "FLUSH"
-            with m.Else():
-                pass  # todo: start refill
             m.d.comb += writeback_finish.eq(1)
 
 
@@ -246,26 +268,170 @@ class DCache(Elaboratable, CacheInterface):
 
         # ---------- LOOKUP ----
 
-        with Transaction(name="Lookup").body(m, ready=fsm.ongoing("LOOKUP")):
+        with Transaction(name="Lookup").body(m, ready=fsm.ongoing("LOOKUP") & pending_req_valid & lookup_valid):
+            tag_hit = Array(
+                self.mem.tag_rd_data[i].valid & (self.mem.tag_rd_data[i].tag == lookup_addr.tag)
+                for i in range(self.params.num_of_ways)
+            )
 
-            # TODO
             tag_hit_any = Signal()
+            m.d.comb += tag_hit_any.eq(Cat(tag_hit).any())
 
-            with m.If(~tag_hit_any):
+            hit_way = Signal(range(self.params.num_of_ways))
+            load_data = Signal(self.params.word_width)
 
-                victim_dirty = Signal()
-                # TODO
+            # TODO: optimize that
+            for i in range(self.params.num_of_ways):
+                with m.If(tag_hit[i]):
+                    m.d.comb += [
+                        hit_way.eq(i),
+                        load_data.eq(self.mem.data_rd_data[i]),
+                    ]
 
-                with m.If(victim_dirty):
-                    self.refiller.start_writeback(m, addr=0) #todo
-                    m.d.sync += wb_way.eq(1) #todo
-                    m.d.sync += wb_index.eq(1) #todo
-                    m.d.sync += wb_word_counter.eq(0)
-                    m.d.sync += wb_triggered_by_flush.eq(0)
-                    m.next = "WRITEBACK"
+            with m.If(tag_hit_any):
+                with m.If(pending_req.store):
+                    # TODO: For now, do not check if victim is dirty.
+                    m.d.comb += [
+                        self.mem.way_wr_en.eq(1 << hit_way),
+                        self.mem.data_wr_en.eq(1),
+                        self.mem.data_wr_addr.index.eq(lookup_addr.index),
+                        self.mem.data_wr_addr.offset.eq(lookup_addr.offset),
+                        self.mem.data_wr_data.eq(pending_req.data),
+                        self.mem.data_wr_mask.eq(pending_req.byte_mask),
+
+                        self.mem.tag_wr_index.eq(lookup_addr.index),
+                        self.mem.tag_wr_data.valid.eq(1),
+                        self.mem.tag_wr_data.dirty.eq(1),
+                        self.mem.tag_wr_data.tag.eq(lookup_addr.tag),
+                        self.mem.tag_wr_en.eq(1),
+                    ]
+                    m.d.sync += [
+                        res_reg.data.eq(0),
+                        res_reg.error.eq(0),
+                    ]
                 with m.Else():
-                    self.refiller.start_refill(m, addr=0) #todo
-                    m.next = "REFILL"
+                    m.d.sync += [
+                        res_reg.data.eq(load_data),
+                        res_reg.error.eq(0),
+                    ]
+
+                m.d.sync += [
+                    pending_req_valid.eq(0),
+                    lookup_valid.eq(0),
+                    res_valid.eq(1),
+                ]
+
+            with m.Else():
+                aligned_addr = self.serialize_addr(lookup_addr) & ~((1 << self.params.offset_bits) - 1)
+                self.refiller.start_refill(m, aligned_addr)
+                m.d.comb += needs_refill.eq(1)
+                m.d.sync += [
+                    refill_addr.offset.eq(0),
+                    refill_addr.index.eq(lookup_addr.index),
+                    refill_addr.tag.eq(lookup_addr.tag),
+                    refill_way.eq(0),  # TODO: choose invalid way first, otherwise replacement policy
+                    refill_error.eq(0),
+                    lookup_valid.eq(0),
+                ]
+
+
+        # ------------- REFILL ---------
+        with Transaction(name="Refill").body(m, ready=fsm.ongoing("REFILL")):
+            ret = self.refiller.accept_refill(m)
+            deserialized = self.deserialize_addr(ret.addr)
+            refill_error_now = Signal()
+            m.d.comb += refill_error_now.eq(refill_error | ret.error)
+
+            with m.If(~ret.error):
+                m.d.comb += [
+                    self.mem.way_wr_en.eq(1 << refill_way),
+                    self.mem.data_wr_en.eq(1),
+                    self.mem.data_wr_addr.index.eq(deserialized["index"]),
+                    self.mem.data_wr_addr.offset.eq(deserialized["offset"]),
+                    self.mem.data_wr_data.eq(ret.data),
+                    self.mem.data_wr_mask.eq((1 << self.params.word_width_bytes) - 1),
+                ]
+
+            with m.If(ret.error):
+                m.d.sync += refill_error.eq(1)
+
+            with m.If(ret.last):
+                m.d.comb += refill_finish.eq(1)
+                with m.If(~refill_error_now):
+                    m.d.comb += [
+                        self.mem.way_wr_en.eq(1 << refill_way),
+                        self.mem.tag_wr_index.eq(refill_addr.index),
+                        self.mem.tag_wr_data.valid.eq(1),
+                        self.mem.tag_wr_data.dirty.eq(0),
+                        self.mem.tag_wr_data.tag.eq(refill_addr.tag),
+                        self.mem.tag_wr_en.eq(1),
+                    ]
+                    m.d.sync += [
+                        lookup_valid.eq(0),
+                        refill_error.eq(0),
+                    ]
+                with m.Else():
+                    m.d.sync += [
+                        res_reg.data.eq(0),
+                        res_reg.error.eq(1),
+                        res_valid.eq(1),
+                        pending_req_valid.eq(0),
+                        lookup_valid.eq(0),
+                        refill_error.eq(0),
+                    ]
+
+
+
+
+
+
+
+
+        # ------ Methods ---
+        @def_method(m, self.accept_res, ready=res_valid)
+        def _():
+            m.d.sync += res_valid.eq(0)
+            return res_reg
+
+        @def_method(
+            m,
+            self.issue_req,
+            ready=fsm.ongoing("LOOKUP") & ~pending_req_valid & ~lookup_valid & ~res_valid,
+        )
+        def _(addr: Value, data: Value, byte_mask: Value, store: Value):
+            deserialized = self.deserialize_addr(addr)
+
+            with m.If(store):
+                self.perf_stores.incr(m)
+            with m.Else():
+                self.perf_loads.incr(m)
+
+            m.d.sync += [
+                pending_req.addr.eq(addr),
+                pending_req.data.eq(data),
+                pending_req.byte_mask.eq(byte_mask),
+                pending_req.store.eq(store),
+                pending_req_valid.eq(1),
+
+                assign(lookup_addr, deserialized),
+                lookup_valid.eq(0),
+            ]
+
+
+        # Connection to memory
+        with m.If(fsm.ongoing("FLUSH")):
+            m.d.comb += self.mem.tag_rd_index.eq(flush_index)
+        with m.Elif(fsm.ongoing("WRITEBACK")):
+            m.d.comb += [
+                self.mem.data_rd_addr.index.eq(wb_index),
+                self.mem.data_rd_addr.offset.eq(wb_word_counter << exact_log2(self.params.word_width_bytes)),
+            ]
+        with m.Else():
+            m.d.comb += [
+                self.mem.tag_rd_index.eq(lookup_addr.index),
+                self.mem.data_rd_addr.index.eq(lookup_addr.index),
+                self.mem.data_rd_addr.offset.eq(lookup_addr.offset),
+            ]
 
         return m
 
@@ -305,6 +471,8 @@ class DCacheMemory(Elaboratable):
         self.data_wr_data = Signal(self.word_bits)
 
         self.data_wr_mask = Signal(self.word_bytes)  # byte-granularity write mask
+        self.tag_mems: list[memory.Memory] = []
+        self.data_mems: list[memory.Memory] = []
 
     def elaborate(self, platform):
         m = TModule()
@@ -313,17 +481,18 @@ class DCacheMemory(Elaboratable):
             way_wr = self.way_wr_en[i]
 
             tag_mem = memory.Memory(shape=self.tag_data_layout, depth=self.params.num_of_sets, init=[])
+            self.tag_mems.append(tag_mem)
 
             tag_mem_wp = tag_mem.write_port()
             tag_mem_rp = tag_mem.read_port(transparent_for=[tag_mem_wp])
             m.submodules[f"tag_mem_{i}"] = tag_mem
 
             m.d.comb += [
-                assign(self.tag_rd_data[i], tag_mem_rp.data),  # odczytuje dane z tagu dla kazdego way
-                tag_mem_rp.addr.eq(self.tag_rd_index),  # ustawia adres ktory tag odczytujemy
-                tag_mem_wp.addr.eq(self.tag_wr_index),  # ustawia adres do ktorego piszemy
-                assign(tag_mem_wp.data, self.tag_wr_data),  # podlacza dane ktore chcemy zapisac
-                tag_mem_wp.en.eq(self.tag_wr_en & way_wr),  # zapis wykona sie jesli to jest 1
+                assign(self.tag_rd_data[i], tag_mem_rp.data),
+                tag_mem_rp.addr.eq(self.tag_rd_index),
+                tag_mem_wp.addr.eq(self.tag_wr_index),
+                assign(tag_mem_wp.data, self.tag_wr_data),
+                tag_mem_wp.en.eq(self.tag_wr_en & way_wr),
             ]
 
             data_mem = memory.Memory(
@@ -331,21 +500,22 @@ class DCacheMemory(Elaboratable):
                 depth=self.params.num_of_sets * self.params.words_in_line,
                 init=[],
             )
+            self.data_mems.append(data_mem)
             data_mem_wp = data_mem.write_port(
                 granularity=8
-            )  # 1 byte granularity, 1 bit maski data_wr_mask odpowiada 1 bajtowi danych
+            )
             data_mem_rp = data_mem.read_port(transparent_for=[data_mem_wp])
             m.submodules[f"data_mem_{i}"] = data_mem
 
-            rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[exact_log2(self.word_bytes)]
-            wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[exact_log2(self.word_bytes)]
+            word_bytes_log = exact_log2(self.word_bytes)
+            rd_addr = Cat(self.data_rd_addr.offset, self.data_rd_addr.index)[word_bytes_log:]
+            wr_addr = Cat(self.data_wr_addr.offset, self.data_wr_addr.index)[word_bytes_log:]
 
             m.d.comb += [
-                self.data_rd_data[i].eq(data_mem_rp.data),  # podlaczamy dane ktore chcemy odczytac na wyjscie z klasy
-                data_mem_rp.addr.eq(rd_addr),  # adres wyliczony z offset+idx
-                data_mem_wp.addr.eq(wr_addr),  # adres wyliczony z offset+idx
-                data_mem_wp.data.eq(self.data_wr_data),  # podlaczamy dane ktore chcemy zapisac na wejscie do srodka
-                # dany bit odpowiada czy zapisujemy dany bajt czy ignorujemy
+                self.data_rd_data[i].eq(data_mem_rp.data),
+                data_mem_rp.addr.eq(rd_addr),
+                data_mem_wp.addr.eq(wr_addr),
+                data_mem_wp.data.eq(self.data_wr_data),
                 data_mem_wp.en.eq(Mux(self.data_wr_en & way_wr, self.data_wr_mask, 0)),
             ]
 
