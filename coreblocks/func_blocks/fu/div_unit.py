@@ -8,15 +8,14 @@ from amaranth.lib import data
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 from transactron.utils import OneHotSwitch
-from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.func_blocks.fu.division.long_division import LongDivider
 
 
@@ -40,14 +39,12 @@ def get_input(arg: data.View) -> tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
-class DivUnit(FuncUnitBase):
-    def __init__(self, gen_params: GenParams, ipc: int = 4, div_fn=DivFn()):
-        super().__init__(gen_params)
+class DivUnit(FuncUnitBase[DivFn]):
+    def __init__(self, gen_params: GenParams, ipc: int = 4, fn=DivFn()):
+        super().__init__(gen_params, fn)
         self.ipc = ipc
 
         self.clear = Method()
-
-        self.div_fn = div_fn
 
     def elaborate(self, platform):
         m = TModule()
@@ -61,7 +58,7 @@ class DivUnit(FuncUnitBase):
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.div_fn.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         m.submodules.divider = divider = LongDivider(self.gen_params, self.ipc)
 

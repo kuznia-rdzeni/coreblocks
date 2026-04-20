@@ -5,15 +5,14 @@ from amaranth import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron import Method, TModule, def_method
+from transactron import TModule, def_method
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 
-class ZbsFunction(DecoderManager):
+class ZbsFn(DecoderManager):
     """
     Enum of Zbs functions.
     """
@@ -39,7 +38,7 @@ class Zbs(Elaboratable):
 
     Attributes
     ----------
-    function: ZbsFunction, in
+    fn: ZbsFunction, in
         Function to be executed.
     in1: Signal(xlen), in
         First input.
@@ -47,7 +46,7 @@ class Zbs(Elaboratable):
         Second input.
     """
 
-    def __init__(self, gen_params: GenParams, function=ZbsFunction()):
+    def __init__(self, gen_params: GenParams, fn=ZbsFn()):
         """
         Parameters
         ----------
@@ -59,7 +58,7 @@ class Zbs(Elaboratable):
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen
-        self.function = function.get_function()
+        self.function = fn.get_function()
         self.in1 = Signal(self.xlen)
         self.in2 = Signal(self.xlen)
 
@@ -71,44 +70,31 @@ class Zbs(Elaboratable):
         xlen_log = self.gen_params.isa.xlen_log
 
         with OneHotSwitch(m, self.function) as OneHotCase:
-            with OneHotCase(ZbsFunction.Fn.BCLR):
+            with OneHotCase(ZbsFn.Fn.BCLR):
                 m.d.comb += self.result.eq(self.in1 & ~(1 << self.in2[0:xlen_log]))
-            with OneHotCase(ZbsFunction.Fn.BEXT):
+            with OneHotCase(ZbsFn.Fn.BEXT):
                 m.d.comb += self.result.eq((self.in1 >> self.in2[0:xlen_log]) & 1)
-            with OneHotCase(ZbsFunction.Fn.BINV):
+            with OneHotCase(ZbsFn.Fn.BINV):
                 m.d.comb += self.result.eq(self.in1 ^ (1 << self.in2[0:xlen_log]))
-            with OneHotCase(ZbsFunction.Fn.BSET):
+            with OneHotCase(ZbsFn.Fn.BSET):
                 m.d.comb += self.result.eq(self.in1 | (1 << self.in2[0:xlen_log]))
 
         return m
 
 
-class ZbsUnit(FuncUnit, Elaboratable):
+class ZbsUnit(FuncUnitBase[ZbsFn]):
     """
-    Module responsible for executing Zbs instructions.
-
-    Attributes
-    ----------
-    issue: Method(i=FuncUnitLayouts.issue)
-        Method used for requesting computation.
-    push_result: Method(i=FuncUnitLayouts.push_result)
-        Method called for pushing result of requested computation.
+    Executes Zbs instructions.
     """
 
-    def __init__(self, gen_params: GenParams, zbs_fn=ZbsFunction()):
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.gen_params = gen_params
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
-        self.zbs_fn = zbs_fn
+    def __init__(self, gen_params: GenParams, fn=ZbsFn()):
+        super().__init__(gen_params, fn)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.zbs = zbs = Zbs(self.gen_params, function=self.zbs_fn)
-        m.submodules.decoder = decoder = self.zbs_fn.get_decoder(self.gen_params)
+        m.submodules.zbs = zbs = Zbs(self.gen_params, fn=self.fn)
+        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -126,7 +112,7 @@ class ZbsUnit(FuncUnit, Elaboratable):
 @dataclass(frozen=True)
 class ZbsComponent(FunctionalComponentParams):
     _: KW_ONLY
-    decoder_manager: ZbsFunction = ZbsFunction()
+    decoder_manager: ZbsFn = ZbsFn()
     result_fifo: bool = True
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:

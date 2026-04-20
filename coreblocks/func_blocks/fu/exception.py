@@ -8,14 +8,14 @@ from transactron import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import FetchLayouts
 from transactron.utils import OneHotSwitch
 from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from enum import IntFlag, auto
 
-from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 __all__ = ["ExceptionFuncUnit", "ExceptionUnitComponent"]
 
@@ -41,10 +41,9 @@ class ExceptionUnitFn(DecoderManager):
         ]
 
 
-class ExceptionFuncUnit(FuncUnitBase, Elaboratable):
-    def __init__(self, gen_params: GenParams, unit_fn=ExceptionUnitFn()):
-        super().__init__(gen_params)
-        self.fn = unit_fn
+class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
+    def __init__(self, gen_params: GenParams, fn=ExceptionUnitFn()):
+        super().__init__(gen_params, fn)
 
         self.dm = DependencyContext.get()
         self.report = self.dm.get_dependency(ExceptionReportKey())()

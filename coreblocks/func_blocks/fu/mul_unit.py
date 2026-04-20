@@ -8,11 +8,10 @@ from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import Rec
 from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
-from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
@@ -77,17 +76,9 @@ class MulType(IntEnum):
     RECURSIVE_MUL = 3
 
 
-class MulUnit(FuncUnitBase):
+class MulUnit(FuncUnitBase[MulFn]):
     """
-    Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
-    module. It uses standard FuncUnitLayout.
-
-    Attributes
-    ----------
-    issue: Method(i=gen.get(FuncUnitLayouts).issue)
-        Method used for requesting computation.
-    push_result: Method(i=gen.get(FuncUnitLayouts).push_result)
-        Method called for pushing result of requested computation.
+    Handles multiplication instructions. Delegates to one of selectable unsigned multiplication instructions.
     """
 
     def __init__(
@@ -96,7 +87,7 @@ class MulUnit(FuncUnitBase):
         mul_type: MulType,
         dsp_width: int = 18,
         dsp_number: int = 7,
-        mul_fn=MulFn(),
+        fn=MulFn(),
     ):
         """
         Parameters
@@ -104,12 +95,10 @@ class MulUnit(FuncUnitBase):
         gen_params: GenParams
             Core generation parameters.
         """
-        super().__init__(gen_params)
+        super().__init__(gen_params, fn)
         self.mul_type = mul_type
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
-
-        self.mul_fn = mul_fn
 
     def elaborate(self, platform):
         m = TModule()
@@ -123,7 +112,7 @@ class MulUnit(FuncUnitBase):
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.mul_fn.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:

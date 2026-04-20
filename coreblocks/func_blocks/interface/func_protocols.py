@@ -1,6 +1,5 @@
 from typing import Protocol
 from transactron import Method, Methods, Provided, Required
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from amaranth_types import HasElaborate
 
 

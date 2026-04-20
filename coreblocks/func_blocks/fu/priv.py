@@ -15,7 +15,6 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -26,9 +25,9 @@ from coreblocks.interface.keys import (
     FlushICacheKey,
     WaitForInterruptResumeKey,
 )
-from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 
 log = logging.HardwareLogger("backend.fu.priv")
@@ -45,10 +44,9 @@ class PrivilegedFn(DecoderManager):
         return [(self.Fn.MRET, OpType.MRET), (self.Fn.FENCEI, OpType.FENCEI), (self.Fn.WFI, OpType.WFI)]
 
 
-class PrivilegedFuncUnit(FuncUnitBase):
-    def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
-        super().__init__(gen_params)
-        self.priv_fn = priv_fn
+class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
+    def __init__(self, gen_params: GenParams, fn=PrivilegedFn()):
+        super().__init__(gen_params, fn)
 
         self.dm = DependencyContext.get()
 
@@ -65,7 +63,7 @@ class PrivilegedFuncUnit(FuncUnitBase):
 
         m.submodules += [self.perf_instr]
 
-        m.submodules.decoder = decoder = self.priv_fn.get_decoder(self.gen_params)
+        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         instr_valid = Signal()
         finished = Signal()
@@ -73,7 +71,7 @@ class PrivilegedFuncUnit(FuncUnitBase):
 
         instr_rob = Signal(self.gen_params.rob_entries_bits)
         instr_pc = Signal(self.gen_params.isa.xlen)
-        instr_fn = self.priv_fn.get_function()
+        instr_fn = self.fn.get_function()
 
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())

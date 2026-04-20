@@ -5,15 +5,14 @@ from typing import Sequence
 from amaranth import *
 
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
-from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
-from coreblocks.interface.layouts import FuncUnitLayouts
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.params import FunctionalComponentParams, GenParams
-from transactron import Method, TModule, def_method
+from transactron import TModule, def_method
 from transactron.utils import OneHotSwitch
 
 
-class ZbkxFunction(DecoderManager):
+class ZbkxFn(DecoderManager):
     class Fn(IntFlag):
         XPERM4 = auto()
         XPERM8 = auto()
@@ -26,11 +25,11 @@ class ZbkxFunction(DecoderManager):
 
 
 class Zbkx(Elaboratable):
-    def __init__(self, gen_params: GenParams, function=ZbkxFunction()):
+    def __init__(self, gen_params: GenParams, fn=ZbkxFn()):
         self.gen_params = gen_params
         self.xlen = gen_params.isa.xlen
 
-        self.function = function.get_function()
+        self.fn = fn.get_function()
         self.in1 = Signal(self.xlen)
         self.in2 = Signal(self.xlen)
         self.result = Signal(self.xlen)
@@ -38,15 +37,15 @@ class Zbkx(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        with OneHotSwitch(m, self.function) as OneHotCase:
-            with OneHotCase(ZbkxFunction.Fn.XPERM4):
+        with OneHotSwitch(m, self.fn) as OneHotCase:
+            with OneHotCase(ZbkxFn.Fn.XPERM4):
                 lane_count = self.xlen // 4
                 for lane in range(lane_count):
                     idx = self.in2.word_select(lane, 4)
                     selected = Mux(idx < lane_count, self.in1.word_select(idx, 4), C(0, 4))
                     m.d.comb += self.result.word_select(lane, 4).eq(selected)
 
-            with OneHotCase(ZbkxFunction.Fn.XPERM8):
+            with OneHotCase(ZbkxFn.Fn.XPERM8):
                 lane_count = self.xlen // 8
                 for lane in range(lane_count):
                     idx = self.in2.word_select(lane, 8)
@@ -56,23 +55,21 @@ class Zbkx(Elaboratable):
         return m
 
 
-class ZbkxUnit(FuncUnitBase):
-    def __init__(self, gen_params: GenParams, zbkx_fn=ZbkxFunction()):
-        super().__init__(gen_params)
-
-        self.zbkx_fn = zbkx_fn
+class ZbkxUnit(FuncUnitBase[ZbkxFn]):
+    def __init__(self, gen_params: GenParams, fn=ZbkxFn()):
+        super().__init__(gen_params, fn)
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.zbkx = zbkx = Zbkx(self.gen_params, function=self.zbkx_fn)
-        m.submodules.decoder = decoder = self.zbkx_fn.get_decoder(self.gen_params)
+        m.submodules.zbkx = zbkx = Zbkx(self.gen_params, fn=self.fn)
+        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):
             m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
 
-            m.d.av_comb += zbkx.function.eq(decoder.decode_fn)
+            m.d.av_comb += zbkx.fn.eq(decoder.decode_fn)
             m.d.av_comb += zbkx.in1.eq(arg.s1_val)
             m.d.av_comb += zbkx.in2.eq(arg.s2_val)
 
@@ -84,7 +81,7 @@ class ZbkxUnit(FuncUnitBase):
 @dataclass(frozen=True)
 class ZbkxComponent(FunctionalComponentParams):
     _: KW_ONLY
-    decoder_manager: ZbkxFunction = ZbkxFunction()
+    decoder_manager: ZbkxFn = ZbkxFn()
     result_fifo: bool = True
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:

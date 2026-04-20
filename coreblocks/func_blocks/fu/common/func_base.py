@@ -23,4 +23,3 @@ class FuncUnitBase(ABC, FuncUnit, Elaboratable, Generic[_T_DecoderManager]):
         self.issue = Method(i=self.layouts.issue)
         self.push_result = Method(i=self.layouts.push_result)
         self.fn = fn
-
