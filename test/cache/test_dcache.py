@@ -137,17 +137,18 @@ class TestDCache(TestCaseWithSimulator):
         self, sim: TestbenchContext, addr_base: int, words: list[int], *, way: int = 0, dirty: int = 0
     ):
         tag, index, _ = self.split_addr(addr_base)
-        sim.set(self.m.cache.mem.tag_mems[way].data[index], self.encode_tag_entry(valid=1, dirty=dirty, tag=tag))
+        sim.set(
+            self.m.cache.mem.tag_mems[way].data[index],  # type: ignore[arg-type]
+            self.encode_tag_entry(valid=1, dirty=dirty, tag=tag),
+        )
 
         for word_offset, word in enumerate(words):
             mem_addr = self.line_word_addr(index, word_offset)
-            sim.set(self.m.cache.mem.data_mems[way].data[mem_addr], word)
+            sim.set(self.m.cache.mem.data_mems[way].data[mem_addr], word)  # type: ignore[arg-type]
 
         await sim.tick()
 
-    async def call_cache(
-        self, sim: TestbenchContext, *, addr: int, data: int = 0, byte_mask: int = 0, store: int = 0
-    ):
+    async def call_cache(self, sim: TestbenchContext, *, addr: int, data: int = 0, byte_mask: int = 0, store: int = 0):
         await self.m.issue_req.call(sim, addr=addr, data=data, byte_mask=byte_mask, store=store)
         return await self.m.accept_res.call(sim)
 
@@ -165,7 +166,7 @@ class TestDCache(TestCaseWithSimulator):
                 break
 
     def read_tag_entry(self, sim: TestbenchContext, *, way: int, index: int) -> dict[str, int]:
-        raw_tag = sim.get(self.m.cache.mem.tag_mems[way].data[index])
+        raw_tag = sim.get(self.m.cache.mem.tag_mems[way].data[index])  # type: ignore[arg-type]
         return {
             "valid": raw_tag["valid"],
             "dirty": raw_tag["dirty"],
@@ -174,7 +175,7 @@ class TestDCache(TestCaseWithSimulator):
 
     def read_data_word(self, sim: TestbenchContext, *, way: int, index: int, word_offset: int) -> int:
         mem_addr = self.line_word_addr(index, word_offset)
-        return sim.get(self.m.cache.mem.data_mems[way].data[mem_addr])
+        return sim.get(self.m.cache.mem.data_mems[way].data[mem_addr])  # type: ignore[arg-type]
 
     def test_initial_miss_returns_error(self):
         async def cache_process(sim: TestbenchContext):
@@ -250,7 +251,9 @@ class TestDCache(TestCaseWithSimulator):
 
             await self.m.issue_req.call(sim, addr=base_addr, data=0, byte_mask=0, store=0)
 
-            ret = await self.m.issue_req.call_try(sim, addr=base_addr + self.cp.word_width_bytes, data=0, byte_mask=0, store=0)
+            ret = await self.m.issue_req.call_try(
+                sim, addr=base_addr + self.cp.word_width_bytes, data=0, byte_mask=0, store=0
+            )
             assert ret is None
 
             first_resp = await self.m.accept_res.call(sim)

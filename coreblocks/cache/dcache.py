@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 import amaranth.lib.memory as memory
 from amaranth.utils import exact_log2
 
@@ -54,7 +55,6 @@ class DCache(Elaboratable, CacheInterface):
         # Method called by refiller AFTER cache started writeback (called start_writeback method in refiller)
         self.provide_writeback_data = Method(o=layouts.provide_writeback_data)
 
-
         self.addr_layout = make_layout(
             ("offset", self.params.offset_bits),
             ("index", self.params.index_bits),
@@ -76,7 +76,7 @@ class DCache(Elaboratable, CacheInterface):
             "tag": raw_addr[-self.params.tag_bits :],
         }
 
-    def serialize_addr(self, addr: Value) -> Value:
+    def serialize_addr(self, addr: View) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
 
     def elaborate(self, platform):
@@ -96,7 +96,7 @@ class DCache(Elaboratable, CacheInterface):
 
         flush_start = Signal()
         flush_finish = Signal()
-        needs_writeback = Signal() # if we missed and victim is dirty, writeback the victim and load new line
+        needs_writeback = Signal()  # if we missed and victim is dirty, writeback the victim and load new line
         needs_refill = Signal()
         refill_finish = Signal()
         writeback_finish = Signal()
@@ -120,7 +120,6 @@ class DCache(Elaboratable, CacheInterface):
         refill_addr = Signal(self.addr_layout)
         refill_way = Signal(range(self.params.num_of_ways))
         refill_error = Signal()
-
 
         with m.FSM(init="FLUSH") as fsm:
             with m.State("FLUSH"):
@@ -152,10 +151,8 @@ class DCache(Elaboratable, CacheInterface):
                     with m.Else():
                         m.next = "REFILL"
 
-
         with m.If(fsm.ongoing("LOOKUP") & pending_req_valid & ~lookup_valid & ~res_valid):
             m.d.sync += lookup_valid.eq(1)
-
 
         # ------------- FLUSH -------
         # Iterates through all sets, checks dirty bits, starts writeback if needed, then invalidates.
@@ -228,7 +225,6 @@ class DCache(Elaboratable, CacheInterface):
                     m.d.sync += flush_index.eq(flush_index + 1)
                     m.d.sync += flush_data_valid.eq(0)
 
-
         # ------------------ WRITEBACK ---
 
         with m.If(fsm.ongoing("WRITEBACK")):
@@ -243,11 +239,11 @@ class DCache(Elaboratable, CacheInterface):
             m.d.sync += wb_word_counter.eq(wb_word_counter + 1)
             return {"data": self.mem.data_rd_data[wb_way]}
 
-
         # End the writeback
         # Runs if FSM is WRITEBACK and refiller.accept_writeback is ready
         with Transaction(name="WritebackEnd").body(m, ready=fsm.ongoing("WRITEBACK")):
             result = self.refiller.accept_writeback(m)
+
             # TODO: handle error
 
             # Invalidate the written-back way
@@ -262,9 +258,7 @@ class DCache(Elaboratable, CacheInterface):
 
             m.d.comb += writeback_finish.eq(1)
 
-
         # Writeback is started either by lookup or flush
-
 
         # ---------- LOOKUP ----
 
@@ -298,7 +292,6 @@ class DCache(Elaboratable, CacheInterface):
                         self.mem.data_wr_addr.offset.eq(lookup_addr.offset),
                         self.mem.data_wr_data.eq(pending_req.data),
                         self.mem.data_wr_mask.eq(pending_req.byte_mask),
-
                         self.mem.tag_wr_index.eq(lookup_addr.index),
                         self.mem.tag_wr_data.valid.eq(1),
                         self.mem.tag_wr_data.dirty.eq(1),
@@ -333,7 +326,6 @@ class DCache(Elaboratable, CacheInterface):
                     refill_error.eq(0),
                     lookup_valid.eq(0),
                 ]
-
 
         # ------------- REFILL ---------
         with Transaction(name="Refill").body(m, ready=fsm.ongoing("REFILL")):
@@ -380,13 +372,6 @@ class DCache(Elaboratable, CacheInterface):
                         refill_error.eq(0),
                     ]
 
-
-
-
-
-
-
-
         # ------ Methods ---
         @def_method(m, self.accept_res, ready=res_valid)
         def _():
@@ -412,11 +397,9 @@ class DCache(Elaboratable, CacheInterface):
                 pending_req.byte_mask.eq(byte_mask),
                 pending_req.store.eq(store),
                 pending_req_valid.eq(1),
-
                 assign(lookup_addr, deserialized),
                 lookup_valid.eq(0),
             ]
-
 
         # Connection to memory
         with m.If(fsm.ongoing("FLUSH")):
@@ -501,9 +484,7 @@ class DCacheMemory(Elaboratable):
                 init=[],
             )
             self.data_mems.append(data_mem)
-            data_mem_wp = data_mem.write_port(
-                granularity=8
-            )
+            data_mem_wp = data_mem.write_port(granularity=8)
             data_mem_rp = data_mem.read_port(transparent_for=[data_mem_wp])
             m.submodules[f"data_mem_{i}"] = data_mem
 
@@ -515,7 +496,7 @@ class DCacheMemory(Elaboratable):
                 self.data_rd_data[i].eq(data_mem_rp.data),
                 data_mem_rp.addr.eq(rd_addr),
                 data_mem_wp.addr.eq(wr_addr),
-                data_mem_wp.data.eq(self.data_wr_data),
+                Value.cast(data_mem_wp.data).eq(self.data_wr_data),
                 data_mem_wp.en.eq(Mux(self.data_wr_en & way_wr, self.data_wr_mask, 0)),
             ]
 
