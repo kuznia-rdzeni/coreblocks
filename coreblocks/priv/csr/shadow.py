@@ -2,14 +2,14 @@ from typing import Optional, Callable
 
 from amaranth import *
 from amaranth import ValueLike
+from amaranth_types import SrcLoc
 from transactron.core.method import Method
 from transactron.core.transaction import Transaction
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
-from transactron.utils.dependencies import DependencyContext
+from transactron.utils import get_src_loc
 from transactron.lib import logging
 
-from coreblocks.func_blocks.csr.csr import CSRListKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegisterBase
 
@@ -37,8 +37,9 @@ class ShadowCSR(CSRRegisterBase):
         read_mask: Optional[ValueLike | Method] = None,
         write_mask: Optional[ValueLike | Method] = None,
         access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        src_loc: int | SrcLoc = 0,
     ):
-        super().__init__(gen_params, csr_number, width=shadowed.width)
+        super().__init__(gen_params, csr_number, width=shadowed.width, src_loc=get_src_loc(src_loc))
 
         if mask is not None:
             assert (
@@ -52,9 +53,6 @@ class ShadowCSR(CSRRegisterBase):
         self.read_mask: ValueLike | Method = full_mask if read_mask is None else read_mask
         self.write_mask: ValueLike | Method = full_mask if write_mask is None else write_mask
         self.access_filter = access_filter if access_filter is not None else (lambda _, __: C(1))
-
-        if csr_number is not None:
-            DependencyContext.get().add_dependency(CSRListKey(), (csr_number, self))
 
     def elaborate(self, platform):
         m = TModule()

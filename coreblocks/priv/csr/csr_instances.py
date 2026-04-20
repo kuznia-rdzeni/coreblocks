@@ -22,7 +22,7 @@ from coreblocks.arch.isa_consts import (
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.aliased import AliasedCSR
-from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
 from coreblocks.priv.csr.double_counter import DoubleCounterCSR
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.socks.clint import ClintMtimeKey
@@ -154,7 +154,7 @@ class MachineModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, CSRRegister) or isinstance(value, DoubleCounterCSR):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
                 m.submodules[name] = value
 
         with Transaction().body(m):
@@ -445,7 +445,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegister, DoubleCounterCSR)):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
                 m.submodules[name] = value
 
         return m

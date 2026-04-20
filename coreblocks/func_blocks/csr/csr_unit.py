@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
+from amaranth_types import SrcLoc
 
 from dataclasses import dataclass
 from typing import Protocol
@@ -33,23 +34,13 @@ __all__ = [
 
 
 class RegisteredCSRProtocol(Protocol):
+    """Protocol required to be included as a public CSR via `CSRListKey`"""
+
     _fu_read: Provided[Method]
     _fu_write: Provided[Method]
     _fu_access_valid: Provided[Method]
 
-
-def csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
-    read_only = bits_from_int(csr_addr, 10, 2) == 0b11
-
-    match bits_from_int(csr_addr, 8, 2):
-        case 0b00:
-            return (PrivilegeLevel.USER, read_only)
-        case 0b01:
-            return (PrivilegeLevel.SUPERVISOR, read_only)
-        case 0b10:  # Hypervisior CSRs - accessible with VS mode (S with extension)
-            return (PrivilegeLevel.SUPERVISOR, read_only)
-        case _:
-            return (PrivilegeLevel.MACHINE, read_only)
+    src_loc: SrcLoc
 
 
 class CSRUnit(FuncBlock, Elaboratable):
@@ -94,7 +85,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         self.update = Methods(gen_params.announcement_superscalarity, i=self.csr_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.push_result)
 
-        self.regfile: dict[int, tuple[Method, Method, Method]] = {}
+        self.regfile: dict[int, RegisteredCSRProtocol] = {}
 
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
 
@@ -102,8 +93,23 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Fills `self.regfile` with CSR registers provided by `CSRListKey` dependency.
         for csr_number, csr in self.dependency_manager.get_dependency(CSRListKey()):
             if csr_number in self.regfile:
-                raise RuntimeError(f"CSR number {csr_number} already registered")
-            self.regfile[csr_number] = (csr._fu_read, csr._fu_write, csr._fu_access_valid)
+                raise RuntimeError(
+                    f"CSR number {csr_number} already registered (at {self.regfile[csr_number].src_loc} {csr.src_loc}"
+                )
+            self.regfile[csr_number] = csr
+
+    def _csr_access_privilege(self, csr_addr: int) -> tuple[PrivilegeLevel, bool]:
+        read_only = bits_from_int(csr_addr, 10, 2) == 0b11
+
+        match bits_from_int(csr_addr, 8, 2):
+            case 0b00:
+                return (PrivilegeLevel.USER, read_only)
+            case 0b01:
+                return (PrivilegeLevel.SUPERVISOR, read_only)
+            case 0b10:  # Hypervisior CSRs - accessible with VS mode (S with extension)
+                return (PrivilegeLevel.SUPERVISOR, read_only)
+            case _:
+                return (PrivilegeLevel.MACHINE, read_only)
 
     def elaborate(self, platform):
         self._create_regfile()
@@ -155,13 +161,12 @@ class CSRUnit(FuncBlock, Elaboratable):
             # Use condition() as a workaround for kuznia-rdzeni/transactron#10, as _fu_(read|write) methods
             # are called multiple times, as some CSRs are aliased call other CSR's _fu_* methods.
             with condition(m) as branch:
-                for csr_number, methods in self.regfile.items():
-                    read, write, access_valid = methods
-                    priv_level_required, read_only = csr_access_privilege(csr_number)
+                for csr_number, csr in self.regfile.items():
+                    priv_level_required, read_only = self._csr_access_privilege(csr_number)
 
                     with branch(instr.csr == csr_number):
                         priv_valid = Signal()
-                        csr_access_valid = access_valid(m, current_priv_mode).valid
+                        csr_access_valid = csr._fu_access_valid(m, current_priv_mode).valid
 
                         m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
@@ -169,7 +174,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
                                 with m.If(exe_side_fx):
-                                    m.d.comb += read_val.eq(read(m))
+                                    m.d.comb += read_val.eq(csr._fu_read(m))
                                 m.d.sync += current_result.eq(read_val)
 
                             if read_only:
@@ -187,7 +192,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                                         with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
                                             m.d.comb += write_val.eq(read_val & (~instr.s1_val))
                                     with m.If(exe_side_fx):
-                                        write(m, write_val)
+                                        csr._fu_write(m, write_val)
 
                         with m.Else():
                             # Missing privilege

@@ -1,31 +1,34 @@
 from amaranth import *
+from amaranth_types import SrcLoc
 
 from typing import Optional
 from enum import Enum
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
-from coreblocks.func_blocks.csr.csr import CSRListKey
+
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
-from transactron.utils.dependencies import DependencyContext
+from transactron.utils import get_src_loc
 
 
 class AliasedCSR(CSRRegisterBase):
-    def __init__(self, csr_number: Optional[int], gen_params: GenParams, width: Optional[int] = None):
+    def __init__(
+        self,
+        csr_number: Optional[int],
+        gen_params: GenParams,
+        width: Optional[int] = None,
+        src_loc: int | SrcLoc = 0,
+    ):
         if width is None:
             width = gen_params.isa.xlen
 
-        super().__init__(gen_params, csr_number, width)
+        super().__init__(gen_params, csr_number, width, get_src_loc(src_loc))
 
         self.fields: list[tuple[int, CSRRegisterBase]] = []
         self.ro_values: list[tuple[int, int, int | Enum]] = []
 
         self.elaborated = False
-
-        # append to global CSR list
-        if csr_number is not None:
-            DependencyContext.get().add_dependency(CSRListKey(), (csr_number, self))
 
         # TODO: WPRI defult mode
 

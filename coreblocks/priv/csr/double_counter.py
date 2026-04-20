@@ -2,6 +2,7 @@ from amaranth import *
 from typing import Optional
 
 from transactron.core import Method, TModule, def_method
+from transactron.utils import get_src_loc
 
 from coreblocks.arch import CSRAddress
 from coreblocks.params.genparams import GenParams
@@ -64,6 +65,7 @@ class DoubleCounterCSR(Elaboratable):
                 self.register_low,
                 write_mask=0,
                 access_filter=shadow_access_filter,
+                src_loc=get_src_loc(1),
             )
         if shadow_high_addr is not None:
             if not self.register_high:
@@ -78,6 +80,7 @@ class DoubleCounterCSR(Elaboratable):
                 self.register_high,
                 write_mask=0,
                 access_filter=shadow_access_filter,
+                src_loc=get_src_loc(1),
             )
 
     def elaborate(self, platform):
