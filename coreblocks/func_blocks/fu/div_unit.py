@@ -47,7 +47,7 @@ class DivUnit(FuncUnitBase[DivFn]):
         self.clear = Method()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -58,8 +58,6 @@ class DivUnit(FuncUnitBase[DivFn]):
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
-
         m.submodules.divider = divider = LongDivider(self.gen_params, self.ipc)
 
         xlen = self.gen_params.isa.xlen
@@ -71,7 +69,7 @@ class DivUnit(FuncUnitBase[DivFn]):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             flip_sign = Signal(1)  # if result is negative number
@@ -83,7 +81,7 @@ class DivUnit(FuncUnitBase[DivFn]):
             def _abs(s: Value) -> Value:
                 return Mux(s.as_signed() < 0, -s, s)
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(DivFn.Fn.DIVU):
                     m.d.av_comb += flip_sign.eq(0)
                     m.d.av_comb += rem_res.eq(0)

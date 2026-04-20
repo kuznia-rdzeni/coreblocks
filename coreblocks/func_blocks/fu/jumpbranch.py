@@ -128,7 +128,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules += [
             self.perf_instr,
@@ -139,7 +139,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.fn)
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
         m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         fields = self.gen_params.get(CommonLayoutFields)
@@ -233,8 +232,8 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.top_comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.top_comb += jb.fn.eq(decoder.decode_fn)
+            m.d.top_comb += self.decoder.exec_fn.eq(arg.exec_fn)
+            m.d.top_comb += jb.fn.eq(self.decoder.decode_fn)
 
             m.d.top_comb += jb.in1.eq(arg.s1_val)
             m.d.top_comb += jb.in2.eq(arg.s2_val)
@@ -252,14 +251,14 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 rob_id=arg.rob_id,
                 pc=arg.pc,
                 rp_dst=arg.rp_dst,
-                type=decoder.decode_fn,
+                type=self.decoder.decode_fn,
                 jmp_addr=jb.jmp_addr,
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
                 tag=arg.tag,
             )
-            self.perf_instr.incr(m, decoder.decode_fn)
+            self.perf_instr.incr(m, self.decoder.decode_fn)
 
         return m
 

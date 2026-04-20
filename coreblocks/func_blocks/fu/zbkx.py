@@ -60,16 +60,15 @@ class ZbkxUnit(FuncUnitBase[ZbkxFn]):
         super().__init__(gen_params, fn)
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.zbkx = zbkx = Zbkx(self.gen_params, fn=self.fn)
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
 
-            m.d.av_comb += zbkx.fn.eq(decoder.decode_fn)
+            m.d.av_comb += zbkx.fn.eq(self.decoder.decode_fn)
             m.d.av_comb += zbkx.in1.eq(arg.s1_val)
             m.d.av_comb += zbkx.in2.eq(arg.s2_val)
 

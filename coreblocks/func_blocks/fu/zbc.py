@@ -8,7 +8,7 @@ from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
-from transactron import Transaction, def_method, TModule
+from transactron import Transaction, def_method
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
 
@@ -158,7 +158,7 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
         self.recursion_depth = recursion_depth
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -169,7 +169,6 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
             ],
             1,
         )
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
         m.submodules.clmul = clmul = ClMultiplier(self.gen_params.isa.xlen, self.recursion_depth)
 
         m.d.comb += clmul.reset.eq(0)
@@ -187,7 +186,7 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
 
         @def_method(m, self.issue)
         def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag):
-            m.d.av_comb += decoder.exec_fn.eq(exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(exec_fn)
 
             i1 = s1_val
             i2 = Mux(imm, imm, s2_val)
@@ -197,7 +196,7 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
             high_res = Signal(1)
             rev_res = Signal(1)
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ZbcFn.Fn.CLMUL):
                     m.d.av_comb += high_res.eq(0)
                     m.d.av_comb += rev_res.eq(0)

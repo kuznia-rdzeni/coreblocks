@@ -59,11 +59,9 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules += [self.perf_instr]
-
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         instr_valid = Signal()
         finished = Signal()
@@ -83,12 +81,12 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.comb += self.decoder.exec_fn.eq(arg.exec_fn)
             m.d.sync += [
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
-                instr_fn.eq(decoder.decode_fn),
+                instr_fn.eq(self.decoder.decode_fn),
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):

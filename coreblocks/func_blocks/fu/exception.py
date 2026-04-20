@@ -49,20 +49,18 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
         self.report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
+        m = super().elaborate(platform)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.comb += self.decoder.exec_fn.eq(arg.exec_fn)
 
             cause = Signal(ExceptionCause)
             mtval = Signal(self.gen_params.isa.xlen)
 
             priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
                     m.d.av_comb += mtval.eq(arg.pc)

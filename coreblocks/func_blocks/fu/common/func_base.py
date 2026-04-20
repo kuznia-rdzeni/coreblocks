@@ -1,7 +1,7 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 from amaranth import Elaboratable
-from transactron import Method
+from transactron import Method, TModule
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -23,3 +23,12 @@ class FuncUnitBase(ABC, FuncUnit, Elaboratable, Generic[_T_DecoderManager]):
         self.issue = Method(i=self.layouts.issue)
         self.push_result = Method(i=self.layouts.push_result)
         self.fn = fn
+        self.decoder = fn.get_decoder(gen_params)
+
+    @abstractmethod
+    def elaborate(self, platform) -> TModule:
+        m = TModule()
+
+        m.submodules.decoder = self.decoder
+
+        return m

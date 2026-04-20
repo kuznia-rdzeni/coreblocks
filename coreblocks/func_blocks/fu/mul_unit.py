@@ -101,7 +101,7 @@ class MulUnit(FuncUnitBase[MulFn]):
         self.dsp_number = dsp_number
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -112,7 +112,6 @@ class MulUnit(FuncUnitBase[MulFn]):
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
@@ -135,7 +134,7 @@ class MulUnit(FuncUnitBase[MulFn]):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             value1 = Signal(self.gen_params.isa.xlen)  # input value for multiplier submodule
@@ -148,7 +147,7 @@ class MulUnit(FuncUnitBase[MulFn]):
             # which part of result we want upper or lower part. In the future, it would be a great improvement
             # to save result for chain multiplication of this same numbers, but with different parts as
             # results
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
                     # In this case we care only about lower part of number, so it does not matter if it is
                     # interpreted as binary number or U2 encoded number, so we set result to be interpreted as

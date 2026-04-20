@@ -91,16 +91,15 @@ class ZbsUnit(FuncUnitBase[ZbsFn]):
         super().__init__(gen_params, fn)
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.zbs = zbs = Zbs(self.gen_params, fn=self.fn)
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
 
-            m.d.av_comb += zbs.fn.eq(decoder.decode_fn)
+            m.d.av_comb += zbs.fn.eq(self.decoder.decode_fn)
             m.d.av_comb += zbs.in1.eq(arg.s1_val)
             m.d.av_comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
