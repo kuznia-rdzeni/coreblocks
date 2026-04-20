@@ -8,22 +8,18 @@ from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import Rec
 from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
+from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
 from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
-from transactron.utils import MethodStruct
-
-
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from transactron.utils import MethodStruct, OneHotSwitch
 
 
 __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
-
-from transactron.utils import OneHotSwitch
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 
 class MulFn(DecoderManager):
@@ -81,7 +77,7 @@ class MulType(IntEnum):
     RECURSIVE_MUL = 3
 
 
-class MulUnit(FuncUnit, Elaboratable):
+class MulUnit(FuncUnitBase):
     """
     Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
     module. It uses standard FuncUnitLayout.
@@ -108,15 +104,10 @@ class MulUnit(FuncUnit, Elaboratable):
         gen_params: GenParams
             Core generation parameters.
         """
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.mul_type = mul_type
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
         self.mul_fn = mul_fn
 

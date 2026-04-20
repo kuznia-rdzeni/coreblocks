@@ -15,7 +15,7 @@ from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 
 __all__ = ["ExceptionFuncUnit", "ExceptionUnitComponent"]
 
@@ -41,15 +41,10 @@ class ExceptionUnitFn(DecoderManager):
         ]
 
 
-class ExceptionFuncUnit(FuncUnit, Elaboratable):
+class ExceptionFuncUnit(FuncUnitBase, Elaboratable):
     def __init__(self, gen_params: GenParams, unit_fn=ExceptionUnitFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.fn = unit_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
         self.dm = DependencyContext.get()
         self.report = self.dm.get_dependency(ExceptionReportKey())()

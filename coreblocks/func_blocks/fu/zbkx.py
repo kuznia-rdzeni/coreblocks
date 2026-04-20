@@ -6,7 +6,7 @@ from amaranth import *
 
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params import FunctionalComponentParams, GenParams
 from transactron import Method, TModule, def_method
@@ -56,13 +56,9 @@ class Zbkx(Elaboratable):
         return m
 
 
-class ZbkxUnit(FuncUnit, Elaboratable):
+class ZbkxUnit(FuncUnitBase):
     def __init__(self, gen_params: GenParams, zbkx_fn=ZbkxFunction()):
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.gen_params = gen_params
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+        super().__init__(gen_params)
 
         self.zbkx_fn = zbkx_fn
 

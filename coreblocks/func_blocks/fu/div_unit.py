@@ -16,7 +16,7 @@ from transactron.lib import *
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 from transactron.utils import OneHotSwitch
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 from coreblocks.func_blocks.fu.division.long_division import LongDivider
 
 
@@ -40,15 +40,11 @@ def get_input(arg: data.View) -> tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
-class DivUnit(FuncUnit, Elaboratable):
+class DivUnit(FuncUnitBase):
     def __init__(self, gen_params: GenParams, ipc: int = 4, div_fn=DivFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.ipc = ipc
 
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
         self.clear = Method()
 
         self.div_fn = div_fn

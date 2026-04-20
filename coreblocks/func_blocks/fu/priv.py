@@ -26,7 +26,7 @@ from coreblocks.interface.keys import (
     FlushICacheKey,
     WaitForInterruptResumeKey,
 )
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
@@ -45,16 +45,12 @@ class PrivilegedFn(DecoderManager):
         return [(self.Fn.MRET, OpType.MRET), (self.Fn.FENCEI, OpType.FENCEI), (self.Fn.WFI, OpType.WFI)]
 
 
-class PrivilegedFuncUnit(FuncUnit, Elaboratable):
+class PrivilegedFuncUnit(FuncUnitBase):
     def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.priv_fn = priv_fn
 
-        self.layouts = layouts = gen_params.get(FuncUnitLayouts)
         self.dm = DependencyContext.get()
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",

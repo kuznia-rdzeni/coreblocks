@@ -11,7 +11,7 @@ from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import Method, Transaction, def_method, TModule
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 
 
 class ZbcFn(DecoderManager):
@@ -148,26 +148,16 @@ class ClMultiplier(Elaboratable):
         return m
 
 
-class ZbcUnit(FuncUnit, Elaboratable):
+class ZbcUnit(FuncUnitBase):
     """
-    Module responsible for executing Zbc instructions (carry-less multiplication)
-
-    Attributes
-    ----------
-    issue: Method(i=FuncUnitLayouts.issue)
-        Method used for requesting computation.
-    push_result: Method(i=FuncUnitLayouts.push_result)
-        Method called for pushing result of requested computation.
+    Executes Zbc instructions (carry-less multiplication).
     """
 
     def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
-        layouts = gen_params.get(FuncUnitLayouts)
+        super().__init__(gen_params)
 
         self.zbc_fn = zbc_fn
         self.recursion_depth = recursion_depth
-        self.gen_params = gen_params
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()

@@ -7,11 +7,10 @@ from transactron import *
 from transactron.lib.metrics import *
 
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.params import GenParams, FunctionalComponentParams
 from transactron.utils import OneHotSwitch
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from enum import IntFlag, auto
 
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -234,15 +233,9 @@ class Alu(Elaboratable):
         return m
 
 
-class AluFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, alu_fn=AluFn()):
-        self.gen_params = gen_params
-        self.alu_fn = alu_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+class AluFuncUnit(FuncUnitBase[AluFn]):
+    def __init__(self, gen_params: GenParams, fn=AluFn()):
+        super().__init__(gen_params, fn)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.alu.instr",
@@ -255,8 +248,8 @@ class AluFuncUnit(FuncUnit, Elaboratable):
 
         m.submodules += [self.perf_instr]
 
-        m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.alu_fn)
-        m.submodules.decoder = decoder = self.alu_fn.get_decoder(self.gen_params)
+        m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.fn)
+        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
 
         @def_method(m, self.issue)
         def _(arg):

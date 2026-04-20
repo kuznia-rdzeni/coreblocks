@@ -21,7 +21,7 @@ from coreblocks.interface.keys import (
 )
 from transactron.utils import OneHotSwitch
 from transactron.utils.transactron_helpers import make_layout
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 
 __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
@@ -106,14 +106,9 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFuncUnit(FuncUnit, Elaboratable):
+class JumpBranchFuncUnit(FuncUnitBase):
     def __init__(self, gen_params: GenParams, jb_fn=JumpBranchFn()):
-        self.gen_params = gen_params
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+        super().__init__(gen_params)
 
         self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
 

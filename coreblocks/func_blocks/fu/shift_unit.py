@@ -12,7 +12,7 @@ from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
 from enum import IntFlag, auto
 
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.interface import FuncUnit, FuncUnitBase
 
 __all__ = ["ShiftFuncUnit", "ShiftUnitComponent"]
 
@@ -75,15 +75,10 @@ class ShiftUnit(Elaboratable):
         return m
 
 
-class ShiftFuncUnit(FuncUnit, Elaboratable):
+class ShiftFuncUnit(FuncUnitBase):
     def __init__(self, gen_params: GenParams, shift_unit_fn=ShiftUnitFn()):
-        self.gen_params = gen_params
+        super().__init__(gen_params)
         self.shift_unit_fn = shift_unit_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
         m = TModule()
