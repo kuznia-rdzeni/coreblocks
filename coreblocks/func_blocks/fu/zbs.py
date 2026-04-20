@@ -58,7 +58,7 @@ class Zbs(Elaboratable):
         self.gen_params = gen_params
 
         self.xlen = gen_params.isa.xlen
-        self.function = fn.get_function()
+        self.fn = fn.get_function()
         self.in1 = Signal(self.xlen)
         self.in2 = Signal(self.xlen)
 
@@ -69,7 +69,7 @@ class Zbs(Elaboratable):
 
         xlen_log = self.gen_params.isa.xlen_log
 
-        with OneHotSwitch(m, self.function) as OneHotCase:
+        with OneHotSwitch(m, self.fn) as OneHotCase:
             with OneHotCase(ZbsFn.Fn.BCLR):
                 m.d.comb += self.result.eq(self.in1 & ~(1 << self.in2[0:xlen_log]))
             with OneHotCase(ZbsFn.Fn.BEXT):
@@ -100,7 +100,7 @@ class ZbsUnit(FuncUnitBase[ZbsFn]):
         def _(arg):
             m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
 
-            m.d.av_comb += zbs.function.eq(decoder.decode_fn)
+            m.d.av_comb += zbs.fn.eq(decoder.decode_fn)
             m.d.av_comb += zbs.in1.eq(arg.s1_val)
             m.d.av_comb += zbs.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 
