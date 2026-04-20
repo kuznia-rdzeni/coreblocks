@@ -10,7 +10,7 @@ class QSFTable:
 
 """
 Table for radix 4 with parameter a = 2.
-Table taken from Digital Arithmetic Chapter 8
+Table taken from "Digital Arithmetic" Chapter 8
 """
 R4A2RED = QSFTable(
     [8, 9, 10, 11, 12, 13, 14, 15],

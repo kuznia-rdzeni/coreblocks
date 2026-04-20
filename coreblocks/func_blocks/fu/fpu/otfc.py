@@ -45,7 +45,10 @@ class OTFCMethodLayout:
 
 class OTFCModule(Elaboratable):
     """Module for on-the-fly conversion
-    This module performs on-the-fly-conversion for SRT radix 4 with redundant set where a = 2
+    This module performs on-the-fly-conversion for SRT radix 4 with redundant set where a = 2.
+    Algorithm works by keeping two registers, one assuming next digit is nonnegative and the
+    other one otherwise, to deal with carry propagation.
+    Algorithm taken from "Digital arithmetic" by Miloš D. Ercegovac and Tomás Lang.
 
     Parameters
     ----------
