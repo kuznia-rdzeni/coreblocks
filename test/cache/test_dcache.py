@@ -49,6 +49,7 @@ class DCacheTestCircuit(Elaboratable):
         self.issue_req = TestbenchIO(AdapterTrans.create(self.cache.issue_req))
         self.accept_res = TestbenchIO(AdapterTrans.create(self.cache.accept_res))
         self.flush_cache = TestbenchIO(AdapterTrans.create(self.cache.flush))
+        self.provide_writeback_data = TestbenchIO(AdapterTrans.create(self.cache.provide_writeback_data))
 
         return ModuleConnector(
             refiller=self.refiller,
@@ -56,6 +57,7 @@ class DCacheTestCircuit(Elaboratable):
             issue_req=self.issue_req,
             accept_res=self.accept_res,
             flush_cache=self.flush_cache,
+            provide_writeback_data=self.provide_writeback_data,
         )
 
 
@@ -73,6 +75,9 @@ class TestDCache(TestCaseWithSimulator):
         self.m = DCacheTestCircuit(self.gen_params)
         self.refill_start_calls = deque()
         self.refill_responses = deque()
+        self.writeback_start_calls = deque()
+        self.writeback_accept_responses = deque()
+        self.allow_writeback_accept = False
 
     @def_method_mock(lambda self: self.m.refiller.start_refill_mock, enable=lambda self: True)
     def start_refill_unexpected(self, addr):
@@ -98,15 +103,20 @@ class TestDCache(TestCaseWithSimulator):
     def start_writeback_unexpected(self, addr):
         @MethodMock.effect
         def eff():
-            raise AssertionError(f"unexpected start_writeback call for address 0x{addr:08x}")
+            self.writeback_start_calls.append(addr)
 
-    @def_method_mock(lambda self: self.m.refiller.accept_writeback_mock, enable=lambda self: True)
+    @def_method_mock(
+        lambda self: self.m.refiller.accept_writeback_mock,
+        enable=lambda self: self.allow_writeback_accept and bool(self.writeback_accept_responses),
+    )
     def accept_writeback_unexpected(self):
         @MethodMock.effect
         def eff():
-            raise AssertionError("unexpected accept_writeback call")
+            if not self.writeback_accept_responses:
+                raise AssertionError("unexpected accept_writeback call")
+            self.writeback_accept_responses.popleft()
 
-        return {"error": 0}
+        return self.writeback_accept_responses[0]
 
     def split_addr(self, addr: int) -> tuple[int, int, int]:
         index = (addr >> self.cp.offset_bits) & (self.cp.num_of_sets - 1)
@@ -164,6 +174,22 @@ class TestDCache(TestCaseWithSimulator):
             )
             if error:
                 break
+
+    async def collect_writeback_line(self, sim: TestbenchContext, *, words_in_line: int) -> list[int]:
+        words = []
+        await sim.tick()
+        for _ in range(words_in_line):
+            resp = await self.m.provide_writeback_data.call(sim)
+            words.append(resp["data"])
+            await sim.tick()
+        return words
+
+    async def wait_until(self, sim: TestbenchContext, pred, *, max_ticks: int = 50):
+        for _ in range(max_ticks):
+            if pred():
+                return
+            await sim.tick()
+        raise AssertionError("condition not met in time")
 
     def read_tag_entry(self, sim: TestbenchContext, *, way: int, index: int) -> dict[str, int]:
         raw_tag = sim.get(self.m.cache.mem.tag_mems[way].data[index])  # type: ignore[arg-type]
@@ -341,6 +367,99 @@ class TestDCache(TestCaseWithSimulator):
             assert stored_tag["valid"] == 1
             assert stored_tag["dirty"] == 1
             assert stored_tag["tag"] == tag
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_load_dirty_miss_writebacks_old_line_then_refills_and_replays_request(self):
+        async def cache_process(sim: TestbenchContext):
+            old_base_addr = 0x00000100
+            old_words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
+            new_base_addr = 0x00000200
+            new_words = [0xAAAABBBB, 0xCCCCDDDD, 0xEEEEFFFF, 0x12345678]
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, old_base_addr, old_words, way=0, dirty=1)
+            self.queue_refill_line(new_base_addr, new_words)
+            self.writeback_accept_responses.append({"error": 0})
+
+            await self.m.issue_req.call(
+                sim, addr=new_base_addr + self.cp.word_width_bytes, data=0, byte_mask=0, store=0
+            )
+
+            await self.wait_until(sim, lambda: len(self.writeback_start_calls) == 1)
+            assert list(self.writeback_start_calls) == [old_base_addr]
+            assert not self.refill_start_calls
+
+            written_back_words = await self.collect_writeback_line(sim, words_in_line=self.cp.words_in_line)
+            assert written_back_words == old_words
+            assert not self.refill_start_calls
+
+            self.allow_writeback_accept = True
+            resp = await self.m.accept_res.call(sim)
+
+            assert list(self.refill_start_calls) == [new_base_addr]
+            assert resp["error"] == 0
+            assert resp["data"] == new_words[1]
+            assert not self.refill_responses
+
+            _, index, _ = self.split_addr(new_base_addr)
+            new_tag, _, _ = self.split_addr(new_base_addr)
+            stored_tag = self.read_tag_entry(sim, way=0, index=index)
+            hit_resp = await self.call_cache(sim, addr=new_base_addr + 2 * self.cp.word_width_bytes)
+
+            assert stored_tag["valid"] == 1
+            assert stored_tag["tag"] == new_tag
+            assert hit_resp["error"] == 0
+            assert hit_resp["data"] == new_words[2]
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_store_dirty_miss_writebacks_old_line_then_refills_and_replays_store(self):
+        async def cache_process(sim: TestbenchContext):
+            old_base_addr = 0x00000140
+            old_words = [0xCAFEBABE, 0x0BADF00D, 0x01020304, 0xA0B0C0D0]
+            new_base_addr = 0x00000240
+            new_words = [0x10203040, 0x50607080, 0x90A0B0C0, 0xD0E0F000]
+            store_addr = new_base_addr + self.cp.word_width_bytes
+            store_data = 0x11223344
+            byte_mask = 0b0011
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, old_base_addr, old_words, way=0, dirty=1)
+            self.queue_refill_line(new_base_addr, new_words)
+            self.writeback_accept_responses.append({"error": 0})
+
+            await self.m.issue_req.call(sim, addr=store_addr, data=store_data, byte_mask=byte_mask, store=1)
+
+            await self.wait_until(sim, lambda: len(self.writeback_start_calls) == 1)
+            assert list(self.writeback_start_calls) == [old_base_addr]
+            assert not self.refill_start_calls
+
+            written_back_words = await self.collect_writeback_line(sim, words_in_line=self.cp.words_in_line)
+            assert written_back_words == old_words
+            assert not self.refill_start_calls
+
+            self.allow_writeback_accept = True
+            resp = await self.m.accept_res.call(sim)
+
+            assert list(self.refill_start_calls) == [new_base_addr]
+            assert resp["error"] == 0
+            assert resp["data"] == 0
+            assert not self.refill_responses
+
+            await sim.tick()
+
+            new_tag, index, word_offset = self.split_addr(store_addr)
+            expected_word = self.merge_word(new_words[1], store_data, byte_mask)
+            stored_word = self.read_data_word(sim, way=0, index=index, word_offset=word_offset)
+            stored_tag = self.read_tag_entry(sim, way=0, index=index)
+
+            assert stored_word == expected_word
+            assert stored_tag["valid"] == 1
+            assert stored_tag["dirty"] == 1
+            assert stored_tag["tag"] == new_tag
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)

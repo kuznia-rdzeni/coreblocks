@@ -94,6 +94,8 @@ class DCache(Elaboratable, CacheInterface):
 
         m.submodules.mem = self.mem = DCacheMemory(self.params)
 
+        # rr_way = Signal(range(self.params.num_of_ways))  # Round-robin state
+
         flush_start = Signal()
         flush_finish = Signal()
         needs_writeback = Signal()  # if we missed and victim is dirty, writeback the victim and load new line
@@ -242,9 +244,11 @@ class DCache(Elaboratable, CacheInterface):
         # End the writeback
         # Runs if FSM is WRITEBACK and refiller.accept_writeback is ready
         with Transaction(name="WritebackEnd").body(m, ready=fsm.ongoing("WRITEBACK")):
-            result = self.refiller.accept_writeback(m)
-
+            # result = self.refiller.accept_writeback(m)
             # TODO: handle error
+
+            with m.If(~wb_triggered_by_flush):
+                self.refiller.start_refill(m, addr=self.serialize_addr(refill_addr))
 
             # Invalidate the written-back way
             m.d.comb += [
@@ -263,6 +267,8 @@ class DCache(Elaboratable, CacheInterface):
         # ---------- LOOKUP ----
 
         with Transaction(name="Lookup").body(m, ready=fsm.ongoing("LOOKUP") & pending_req_valid & lookup_valid):
+            # If cache hit: set dirty bit if store -> return data
+            # If cache miss: if victim has dirty bit, writeback cache line -> refill -> return data
             tag_hit = Array(
                 self.mem.tag_rd_data[i].valid & (self.mem.tag_rd_data[i].tag == lookup_addr.tag)
                 for i in range(self.params.num_of_ways)
@@ -284,7 +290,6 @@ class DCache(Elaboratable, CacheInterface):
 
             with m.If(tag_hit_any):
                 with m.If(pending_req.store):
-                    # TODO: For now, do not check if victim is dirty.
                     m.d.comb += [
                         self.mem.way_wr_en.eq(1 << hit_way),
                         self.mem.data_wr_en.eq(1),
@@ -315,17 +320,49 @@ class DCache(Elaboratable, CacheInterface):
                 ]
 
             with m.Else():
-                aligned_addr = self.serialize_addr(lookup_addr) & ~((1 << self.params.offset_bits) - 1)
-                self.refiller.start_refill(m, aligned_addr)
-                m.d.comb += needs_refill.eq(1)
-                m.d.sync += [
-                    refill_addr.offset.eq(0),
-                    refill_addr.index.eq(lookup_addr.index),
-                    refill_addr.tag.eq(lookup_addr.tag),
-                    refill_way.eq(0),  # TODO: choose invalid way first, otherwise replacement policy
-                    refill_error.eq(0),
-                    lookup_valid.eq(0),
+                # we choose way=0 for now (TODO: change to round-robin)
+                # we check if dirty, if yes, change FSM to writeback
+                # then, we refill
+                # then, lookup transaction starts again, now with proper refilled cache line
+                victim_way = 0
+                victim_tag_data = self.mem.tag_rd_data[victim_way]
+                victim_addr = Signal(self.addr_layout)
+                m.d.comb += [
+                    victim_addr.offset.eq(0),
+                    victim_addr.index.eq(lookup_addr.index),
+                    victim_addr.tag.eq(victim_tag_data.tag),
                 ]
+
+                aligned_refill_addr = self.serialize_addr(lookup_addr) & ~((1 << self.params.offset_bits) - 1)
+
+                with m.If(victim_tag_data.valid & victim_tag_data.dirty):
+                    # Writeback, then Refill
+                    self.refiller.start_writeback(m, addr=self.serialize_addr(victim_addr))
+                    m.d.comb += needs_writeback.eq(1)
+                    m.d.sync += [
+                        wb_way.eq(victim_way),
+                        wb_index.eq(lookup_addr.index),
+                        wb_word_counter.eq(0),
+                        wb_triggered_by_flush.eq(0),
+                        refill_addr.offset.eq(0),
+                        refill_addr.index.eq(lookup_addr.index),
+                        refill_addr.tag.eq(lookup_addr.tag),
+                        refill_way.eq(victim_way),
+                        refill_error.eq(0),
+                        lookup_valid.eq(0),
+                    ]
+                with m.Else():
+                    # Refill
+                    self.refiller.start_refill(m, aligned_refill_addr)
+                    m.d.comb += needs_refill.eq(1)
+                    m.d.sync += [
+                        refill_addr.offset.eq(0),
+                        refill_addr.index.eq(lookup_addr.index),
+                        refill_addr.tag.eq(lookup_addr.tag),
+                        refill_way.eq(victim_way),
+                        refill_error.eq(0),
+                        lookup_valid.eq(0),
+                    ]
 
         # ------------- REFILL ---------
         with Transaction(name="Refill").body(m, ready=fsm.ongoing("REFILL")):
