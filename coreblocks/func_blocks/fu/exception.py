@@ -8,11 +8,11 @@ from transactron import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import FetchLayouts
 from transactron.utils import OneHotSwitch
 from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from enum import IntFlag, auto
 
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -41,34 +41,26 @@ class ExceptionUnitFn(DecoderManager):
         ]
 
 
-class ExceptionFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, unit_fn=ExceptionUnitFn()):
-        self.gen_params = gen_params
-        self.fn = unit_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
+    def __init__(self, gen_params: GenParams, fn=ExceptionUnitFn()):
+        super().__init__(gen_params, fn)
 
         self.dm = DependencyContext.get()
         self.report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
+        m = super().elaborate(platform)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.comb += self.decoder.exec_fn.eq(arg.exec_fn)
 
             cause = Signal(ExceptionCause)
             mtval = Signal(self.gen_params.isa.xlen)
 
             priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
                     m.d.av_comb += mtval.eq(arg.pc)

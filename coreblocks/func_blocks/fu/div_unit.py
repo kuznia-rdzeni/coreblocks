@@ -8,12 +8,11 @@ from amaranth.lib import data
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 from transactron.utils import OneHotSwitch
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -40,21 +39,15 @@ def get_input(arg: data.View) -> tuple[Value, Value]:
     return arg.s1_val, Mux(arg.imm, arg.imm, arg.s2_val)
 
 
-class DivUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, ipc: int = 4, div_fn=DivFn()):
-        self.gen_params = gen_params
+class DivUnit(FuncUnitBase[DivFn]):
+    def __init__(self, gen_params: GenParams, ipc: int = 4, fn=DivFn()):
+        super().__init__(gen_params, fn)
         self.ipc = ipc
 
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
         self.clear = Method()
 
-        self.div_fn = div_fn
-
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -65,8 +58,6 @@ class DivUnit(FuncUnit, Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.div_fn.get_decoder(self.gen_params)
-
         m.submodules.divider = divider = LongDivider(self.gen_params, self.ipc)
 
         xlen = self.gen_params.isa.xlen
@@ -78,7 +69,7 @@ class DivUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             flip_sign = Signal(1)  # if result is negative number
@@ -90,7 +81,7 @@ class DivUnit(FuncUnit, Elaboratable):
             def _abs(s: Value) -> Value:
                 return Mux(s.as_signed() < 0, -s, s)
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(DivFn.Fn.DIVU):
                     m.d.av_comb += flip_sign.eq(0)
                     m.d.av_comb += rem_res.eq(0)
