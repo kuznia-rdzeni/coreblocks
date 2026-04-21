@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from coreblocks.func_blocks.fu.fpu.fpu_qsf import QSFParams
 
 
 @dataclass(frozen=True)
@@ -26,3 +27,5 @@ R4A2RED = QSFTable(
     ],
     [(1, 2), (1, 1), (0, 0), (0, 1), (0, 2)],
 )
+
+R4A2RED_PARAMS = QSFParams(residual_width=7, divisor_width=4, q_bits=2)
