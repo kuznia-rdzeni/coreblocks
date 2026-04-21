@@ -95,6 +95,7 @@ class DCache(Elaboratable, CacheInterface):
         m.submodules.mem = self.mem = DCacheMemory(self.params)
 
         rr_way = Signal(range(self.params.num_of_ways))  # Round-robin state
+        rr_used = Signal()
 
         flush_start = Signal()
         flush_finish = Signal()
@@ -341,11 +342,22 @@ class DCache(Elaboratable, CacheInterface):
                 ]
 
             with m.Else():
-                # we choose way=0 for now (TODO: change to round-robin)
                 # we check if dirty, if yes, change FSM to writeback
                 # then, we refill
                 # then, lookup transaction starts again, now with proper refilled cache line
-                victim_way = 0
+
+                # 1. Choose way determined by round-robin
+                victim_way = Signal(range(self.params.num_of_ways))
+                victim_used_rr = Signal()
+                m.d.comb += [victim_way.eq(rr_way), victim_used_rr.eq(1)]
+
+                # 2. If there are already some invalid ways, use theam instead of round-robin
+                for i in reversed(range(self.params.num_of_ways)):
+                    with m.If(~self.mem.tag_rd_data[i].valid):
+                        m.d.comb += [victim_way.eq(i), victim_used_rr.eq(0)]
+
+                m.d.sync += [rr_used.eq(victim_used_rr)]
+
                 victim_tag_data = self.mem.tag_rd_data[victim_way]
                 victim_addr = Signal(self.addr_layout)
                 m.d.comb += [
@@ -419,7 +431,14 @@ class DCache(Elaboratable, CacheInterface):
                     m.d.sync += [
                         lookup_valid.eq(0),
                         refill_error.eq(0),
+                        rr_used.eq(0),
                     ]
+                    # move
+                    with m.If(rr_used):
+                        m.d.sync += [
+                            rr_way.eq(Mux(refill_way == self.params.num_of_ways - 1, 0, refill_way + 1)),
+                        ]
+
                 with m.Else():
                     m.d.sync += [
                         res_reg.data.eq(0),
@@ -428,6 +447,7 @@ class DCache(Elaboratable, CacheInterface):
                         pending_req_valid.eq(0),
                         lookup_valid.eq(0),
                         refill_error.eq(0),
+                        rr_used.eq(0),
                     ]
 
         # ------ Methods ---
