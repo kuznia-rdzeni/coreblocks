@@ -1,0 +1,53 @@
+coreblocks.func\_blocks.fu.common package
+=========================================
+
+Submodules
+----------
+
+coreblocks.func\_blocks.fu.common.fifo\_rs module
+-------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.common.fifo_rs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.common.fu\_decoder module
+----------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.common.fu_decoder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.common.func\_base module
+---------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.common.func_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.common.rs module
+-------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.common.rs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+coreblocks.func\_blocks.fu.common.rs\_func\_block module
+--------------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.common.rs_func_block
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.func_blocks.fu.common
+   :members:
+   :undoc-members:
+   :show-inheritance:
