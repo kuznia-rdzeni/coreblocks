@@ -463,3 +463,77 @@ class TestDCache(TestCaseWithSimulator):
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
+
+    def test_dirty_miss_writeback_error_returns_error_without_refill(self):
+        async def cache_process(sim: TestbenchContext):
+            old_base_addr = 0x00000100
+            old_words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
+            new_base_addr = 0x00000200
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, old_base_addr, old_words, way=0, dirty=1)
+            self.writeback_accept_responses.append({"error": 1})
+
+            await self.m.issue_req.call(sim, addr=new_base_addr, data=0, byte_mask=0, store=0)
+
+            await self.wait_until(sim, lambda: len(self.writeback_start_calls) == 1)
+            assert list(self.writeback_start_calls) == [old_base_addr]
+            assert not self.refill_start_calls
+
+            written_back_words = await self.collect_writeback_line(sim, words_in_line=self.cp.words_in_line)
+            assert written_back_words == old_words
+
+            self.allow_writeback_accept = True
+            resp = await self.m.accept_res.call(sim)
+
+            assert resp["error"] == 1
+            assert resp["data"] == 0
+            assert not self.refill_start_calls
+
+            old_tag, index, _ = self.split_addr(old_base_addr)
+            stored_tag = self.read_tag_entry(sim, way=0, index=index)
+            assert stored_tag["valid"] == 1
+            assert stored_tag["dirty"] == 1
+            assert stored_tag["tag"] == old_tag
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_flush_dirty_line_same_set(self):
+        async def cache_process(sim: TestbenchContext):
+            first_cache_line_addr = 0x00000100
+            first_words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
+            second_cache_line_addr = 0x00000200
+            second_words = [0xDEADBEE9, 0x11223349, 0x55667789, 0x99AABBC9]
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, first_cache_line_addr, first_words, way=0, dirty=1)
+            await self.preload_line(sim, second_cache_line_addr, second_words, way=1, dirty=0)
+
+            self.writeback_accept_responses.append({"error": 0})
+
+            await self.m.flush_cache.call(sim)
+            await self.wait_until(sim, lambda: len(self.writeback_start_calls) == 1)
+            assert list(self.writeback_start_calls) == [first_cache_line_addr]
+            assert not self.refill_start_calls
+
+            written_back_words = await self.collect_writeback_line(sim, words_in_line=self.cp.words_in_line)
+            assert written_back_words == first_words
+
+            self.allow_writeback_accept = True
+            await self.wait_for_initial_flush(sim)
+
+            _, first_index, _ = self.split_addr(first_cache_line_addr)
+            _, second_index, _ = self.split_addr(second_cache_line_addr)
+
+            first_tag = self.read_tag_entry(sim, way=0, index=first_index)
+            second_tag = self.read_tag_entry(sim, way=1, index=second_index)
+
+            assert first_tag["valid"] == 0
+            assert first_tag["dirty"] == 0
+            assert second_tag["valid"] == 0
+            assert second_tag["dirty"] == 0
+
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)

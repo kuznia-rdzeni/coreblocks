@@ -94,14 +94,16 @@ class DCache(Elaboratable, CacheInterface):
 
         m.submodules.mem = self.mem = DCacheMemory(self.params)
 
-        # rr_way = Signal(range(self.params.num_of_ways))  # Round-robin state
+        rr_way = Signal(range(self.params.num_of_ways))  # Round-robin state
 
         flush_start = Signal()
         flush_finish = Signal()
         needs_writeback = Signal()  # if we missed and victim is dirty, writeback the victim and load new line
         needs_refill = Signal()
         refill_finish = Signal()
-        writeback_finish = Signal()
+        writeback_done_error = Signal()
+        writeback_done_flush = Signal()
+        writeback_done_refill = Signal()
 
         wb_way = Signal(range(self.params.num_of_ways))
         wb_index = Signal(self.params.index_bits)
@@ -143,15 +145,21 @@ class DCache(Elaboratable, CacheInterface):
                     m.next = "LOOKUP"
 
             with m.State("WRITEBACK"):
-                with m.If(writeback_finish):
+                with m.If(writeback_done_error):
                     with m.If(wb_triggered_by_flush):
                         m.d.sync += [
                             wb_triggered_by_flush.eq(0),
                             flush_writeback_pending.eq(0),
                         ]
-                        m.next = "FLUSH"
-                    with m.Else():
-                        m.next = "REFILL"
+                    m.next = "LOOKUP"
+                with m.Elif(writeback_done_flush):
+                    m.d.sync += [
+                        wb_triggered_by_flush.eq(0),
+                        flush_writeback_pending.eq(0),
+                    ]
+                    m.next = "FLUSH"
+                with m.Elif(writeback_done_refill):
+                    m.next = "REFILL"
 
         with m.If(fsm.ongoing("LOOKUP") & pending_req_valid & ~lookup_valid & ~res_valid):
             m.d.sync += lookup_valid.eq(1)
@@ -244,23 +252,36 @@ class DCache(Elaboratable, CacheInterface):
         # End the writeback
         # Runs if FSM is WRITEBACK and refiller.accept_writeback is ready
         with Transaction(name="WritebackEnd").body(m, ready=fsm.ongoing("WRITEBACK")):
-            # result = self.refiller.accept_writeback(m)
-            # TODO: handle error
+            result = self.refiller.accept_writeback(m)
+            self.perf_errors.incr(m, enable_call=result.error)
 
-            with m.If(~wb_triggered_by_flush):
-                self.refiller.start_refill(m, addr=self.serialize_addr(refill_addr))
+            with m.If(~result.error):
+                # After a successful writeback, the victim line can be invalidated.
+                m.d.comb += [
+                    self.mem.way_wr_en.eq(1 << wb_way),
+                    self.mem.tag_wr_index.eq(wb_index),
+                    self.mem.tag_wr_data.valid.eq(0),
+                    self.mem.tag_wr_data.dirty.eq(0),
+                    self.mem.tag_wr_data.tag.eq(0),
+                    self.mem.tag_wr_en.eq(1),
+                ]
 
-            # Invalidate the written-back way
-            m.d.comb += [
-                self.mem.way_wr_en.eq(1 << wb_way),
-                self.mem.tag_wr_index.eq(wb_index),
-                self.mem.tag_wr_data.valid.eq(0),
-                self.mem.tag_wr_data.dirty.eq(0),
-                self.mem.tag_wr_data.tag.eq(0),
-                self.mem.tag_wr_en.eq(1),
-            ]
+                with m.If(wb_triggered_by_flush):
+                    m.d.comb += writeback_done_flush.eq(1)
+                with m.Else():
+                    self.refiller.start_refill(m, addr=self.serialize_addr(refill_addr))
+                    m.d.comb += writeback_done_refill.eq(1)
 
-            m.d.comb += writeback_finish.eq(1)
+            with m.Else():
+                m.d.comb += writeback_done_error.eq(1)
+                with m.If(~wb_triggered_by_flush):
+                    m.d.sync += [
+                        res_reg.data.eq(0),
+                        res_reg.error.eq(1),
+                        res_valid.eq(1),
+                        pending_req_valid.eq(0),
+                        lookup_valid.eq(0),
+                    ]
 
         # Writeback is started either by lookup or flush
 
