@@ -79,14 +79,13 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         flush_icache = self.dm.get_dependency(FlushICacheKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
-        @def_method(m, self.issue, ready=~instr_valid)
+        @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
-            m.d.comb += self.decoder.exec_fn.eq(arg.exec_fn)
             m.d.sync += [
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
-                instr_fn.eq(self.decoder.decode_fn),
+                instr_fn.eq(arg.decode_fn),
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):

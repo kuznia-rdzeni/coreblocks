@@ -230,11 +230,9 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 exception=exception,
             )
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.top_comb += self.decoder.exec_fn.eq(arg.exec_fn)
-            m.d.top_comb += jb.fn.eq(self.decoder.decode_fn)
-
+            m.d.top_comb += jb.fn.eq(arg.decode_fn)
             m.d.top_comb += jb.in1.eq(arg.s1_val)
             m.d.top_comb += jb.in2.eq(arg.s2_val)
             m.d.top_comb += jb.in_pc.eq(arg.pc)
@@ -251,14 +249,14 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 rob_id=arg.rob_id,
                 pc=arg.pc,
                 rp_dst=arg.rp_dst,
-                type=self.decoder.decode_fn,
+                type=arg.decode_fn,
                 jmp_addr=jb.jmp_addr,
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
                 tag=arg.tag,
             )
-            self.perf_instr.incr(m, self.decoder.decode_fn)
+            self.perf_instr.incr(m, arg.decode_fn)
 
         return m
 
