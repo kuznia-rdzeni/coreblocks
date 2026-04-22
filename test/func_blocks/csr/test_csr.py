@@ -3,7 +3,7 @@ import random
 
 from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
-from coreblocks.func_blocks.csr.csr import CSRUnit
+from coreblocks.func_blocks.csr.csr_unit import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams

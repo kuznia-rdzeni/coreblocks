@@ -4,14 +4,13 @@ from typing import Sequence
 
 from amaranth import *
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
-from transactron import Method, Transaction, def_method, TModule
+from transactron import Transaction, def_method
 from transactron.lib import FIFO
 from transactron.utils import OneHotSwitch
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 
 class ZbcFn(DecoderManager):
@@ -148,29 +147,18 @@ class ClMultiplier(Elaboratable):
         return m
 
 
-class ZbcUnit(FuncUnit, Elaboratable):
+class ZbcUnit(FuncUnitBase[ZbcFn]):
     """
-    Module responsible for executing Zbc instructions (carry-less multiplication)
-
-    Attributes
-    ----------
-    issue: Method(i=FuncUnitLayouts.issue)
-        Method used for requesting computation.
-    push_result: Method(i=FuncUnitLayouts.push_result)
-        Method called for pushing result of requested computation.
+    Executes Zbc instructions (carry-less multiplication).
     """
 
-    def __init__(self, gen_params: GenParams, recursion_depth: int, zbc_fn: ZbcFn):
-        layouts = gen_params.get(FuncUnitLayouts)
+    def __init__(self, gen_params: GenParams, recursion_depth: int, fn: ZbcFn):
+        super().__init__(gen_params, fn)
 
-        self.zbc_fn = zbc_fn
         self.recursion_depth = recursion_depth
-        self.gen_params = gen_params
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -181,7 +169,6 @@ class ZbcUnit(FuncUnit, Elaboratable):
             ],
             1,
         )
-        m.submodules.decoder = decoder = self.zbc_fn.get_decoder(self.gen_params)
         m.submodules.clmul = clmul = ClMultiplier(self.gen_params.isa.xlen, self.recursion_depth)
 
         m.d.comb += clmul.reset.eq(0)
@@ -199,7 +186,7 @@ class ZbcUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag):
-            m.d.av_comb += decoder.exec_fn.eq(exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(exec_fn)
 
             i1 = s1_val
             i2 = Mux(imm, imm, s2_val)
@@ -209,7 +196,7 @@ class ZbcUnit(FuncUnit, Elaboratable):
             high_res = Signal(1)
             rev_res = Signal(1)
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(ZbcFn.Fn.CLMUL):
                     m.d.av_comb += high_res.eq(0)
                     m.d.av_comb += rev_res.eq(0)
