@@ -282,6 +282,7 @@ class DCache(Elaboratable, CacheInterface):
                         res_valid.eq(1),
                         pending_req_valid.eq(0),
                         lookup_valid.eq(0),
+                        rr_used.eq(0),
                     ]
 
         # Writeback is started either by lookup or flush

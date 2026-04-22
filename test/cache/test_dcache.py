@@ -203,6 +203,9 @@ class TestDCache(TestCaseWithSimulator):
         mem_addr = self.line_word_addr(index, word_offset)
         return sim.get(self.m.cache.mem.data_mems[way].data[mem_addr])  # type: ignore[arg-type]
 
+    def same_set_addr(self, addr: int, distance: int) -> int:
+        return addr + distance * self.cp.num_of_sets * self.cp.line_size_bytes
+
     def test_initial_miss_returns_error(self):
         async def cache_process(sim: TestbenchContext):
             await self.wait_for_initial_flush(sim)
@@ -367,6 +370,32 @@ class TestDCache(TestCaseWithSimulator):
             assert stored_tag["valid"] == 1
             assert stored_tag["dirty"] == 1
             assert stored_tag["tag"] == tag
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_clean_miss_refill_error_returns_error_without_valid_line(self):
+        async def cache_process(sim: TestbenchContext):
+            base_addr = 0x00000280
+            words = [0xABCDEF01, 0x23456789, 0x3456789A, 0x456789AB]
+
+            await self.wait_for_initial_flush(sim)
+            self.queue_refill_line(base_addr, words, error=1)
+
+            resp = await self.call_cache(sim, addr=base_addr)
+
+            assert list(self.refill_start_calls) == [base_addr]
+            assert resp["error"] == 1
+            assert resp["data"] == 0
+            assert not self.refill_responses
+
+            _, index, _ = self.split_addr(base_addr)
+            way0_entry = self.read_tag_entry(sim, way=0, index=index)
+            way1_entry = self.read_tag_entry(sim, way=1, index=index)
+
+            assert way0_entry["valid"] == 0
+            assert way1_entry["valid"] == 0
+            assert not self.writeback_start_calls
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
@@ -542,6 +571,145 @@ class TestDCache(TestCaseWithSimulator):
             assert first_tag["dirty"] == 0
             assert second_tag["valid"] == 0
             assert second_tag["dirty"] == 0
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_flush_dirty_writeback_error_aborts_without_invalidation(self):
+        async def cache_process(sim: TestbenchContext):
+            base_addr = 0x00000100
+            words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, base_addr, words, way=0, dirty=1)
+            self.writeback_accept_responses.append({"error": 1})
+
+            await self.m.flush_cache.call(sim)
+            await self.wait_until(sim, lambda: len(self.writeback_start_calls) == 1)
+            assert list(self.writeback_start_calls) == [base_addr]
+
+            written_back_words = await self.collect_writeback_line(sim, words_in_line=self.cp.words_in_line)
+            assert written_back_words == words
+
+            self.allow_writeback_accept = True
+            await self.wait_for_initial_flush(sim)
+
+            tag, index, _ = self.split_addr(base_addr)
+            stored_tag = self.read_tag_entry(sim, way=0, index=index)
+
+            assert stored_tag["valid"] == 1
+            assert stored_tag["dirty"] == 1
+            assert stored_tag["tag"] == tag
+            assert not self.refill_start_calls
+
+            hit_resp = await self.call_cache(sim, addr=base_addr)
+            assert hit_resp["error"] == 0
+            assert hit_resp["data"] == words[0]
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_clean_miss_prefers_invalid_way(self):
+        async def cache_process(sim: TestbenchContext):
+            way0_addr = 0x00000100
+            refill_addr = self.same_set_addr(way0_addr, 1)
+            way0_words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+            refill_words = [0xAABBCCDD, 0x10203040, 0x50607080, 0x90A0B0C0]
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, way0_addr, way0_words, way=0, dirty=0)
+            self.queue_refill_line(refill_addr, refill_words)
+
+            resp = await self.call_cache(sim, addr=refill_addr)
+
+            assert resp["error"] == 0
+            assert resp["data"] == refill_words[0]
+            assert list(self.refill_start_calls) == [refill_addr]
+
+            way0_tag, index, _ = self.split_addr(way0_addr)
+            refill_tag, _, _ = self.split_addr(refill_addr)
+            way0_entry = self.read_tag_entry(sim, way=0, index=index)
+            way1_entry = self.read_tag_entry(sim, way=1, index=index)
+
+            assert way0_entry["valid"] == 1
+            assert way0_entry["tag"] == way0_tag
+            assert way1_entry["valid"] == 1
+            assert way1_entry["tag"] == refill_tag
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_clean_miss_uses_round_robin_when_all_ways_valid(self):
+        async def cache_process(sim: TestbenchContext):
+            way0_addr = 0x00000100
+            way1_addr = self.same_set_addr(way0_addr, 1)
+            refill_addr = self.same_set_addr(way0_addr, 2)
+            way0_words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+            way1_words = [0x41424344, 0x51525354, 0x61626364, 0x71727374]
+            refill_words = [0xAABBCCDD, 0x10203040, 0x50607080, 0x90A0B0C0]
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, way0_addr, way0_words, way=0, dirty=0)
+            await self.preload_line(sim, way1_addr, way1_words, way=1, dirty=0)
+            self.queue_refill_line(refill_addr, refill_words)
+
+            resp = await self.call_cache(sim, addr=refill_addr)
+
+            assert resp["error"] == 0
+            assert resp["data"] == refill_words[0]
+            assert list(self.refill_start_calls) == [refill_addr]
+
+            refill_tag, index, _ = self.split_addr(refill_addr)
+            way1_tag, _, _ = self.split_addr(way1_addr)
+            way0_entry = self.read_tag_entry(sim, way=0, index=index)
+            way1_entry = self.read_tag_entry(sim, way=1, index=index)
+
+            assert way0_entry["valid"] == 1
+            assert way0_entry["tag"] == refill_tag
+            assert way1_entry["valid"] == 1
+            assert way1_entry["tag"] == way1_tag
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_round_robin_advances_only_after_rr_victim_refill(self):
+        async def cache_process(sim: TestbenchContext):
+            way0_addr = 0x00000100
+            way1_addr = self.same_set_addr(way0_addr, 1)
+            first_refill_addr = self.same_set_addr(way0_addr, 2)
+            second_refill_addr = self.same_set_addr(way0_addr, 3)
+            third_refill_addr = self.same_set_addr(way0_addr, 4)
+            way0_words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+            first_refill_words = [0xA0A0A0A0, 0xA1A1A1A1, 0xA2A2A2A2, 0xA3A3A3A3]
+            way1_words = [0xB0B0B0B0, 0xB1B1B1B1, 0xB2B2B2B2, 0xB3B3B3B3]
+            second_refill_words = [0xC0C0C0C0, 0xC1C1C1C1, 0xC2C2C2C2, 0xC3C3C3C3]
+            third_refill_words = [0xD0D0D0D0, 0xD1D1D1D1, 0xD2D2D2D2, 0xD3D3D3D3]
+
+            await self.wait_for_initial_flush(sim)
+            await self.preload_line(sim, way0_addr, way0_words, way=0, dirty=0)
+
+            self.queue_refill_line(first_refill_addr, first_refill_words)
+            first_resp = await self.call_cache(sim, addr=first_refill_addr)
+            assert first_resp["error"] == 0
+
+            _, index, _ = self.split_addr(way0_addr)
+            first_refill_tag, _, _ = self.split_addr(first_refill_addr)
+            assert self.read_tag_entry(sim, way=1, index=index)["tag"] == first_refill_tag
+
+            await self.preload_line(sim, way1_addr, way1_words, way=1, dirty=0)
+            self.queue_refill_line(second_refill_addr, second_refill_words)
+            second_resp = await self.call_cache(sim, addr=second_refill_addr)
+            assert second_resp["error"] == 0
+
+            second_refill_tag, _, _ = self.split_addr(second_refill_addr)
+            assert self.read_tag_entry(sim, way=0, index=index)["tag"] == second_refill_tag
+
+            self.queue_refill_line(third_refill_addr, third_refill_words)
+            third_resp = await self.call_cache(sim, addr=third_refill_addr)
+            assert third_resp["error"] == 0
+
+            third_refill_tag, _, _ = self.split_addr(third_refill_addr)
+            assert self.read_tag_entry(sim, way=1, index=index)["tag"] == third_refill_tag
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
