@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 from amaranth import Elaboratable, Signal
 from transactron import Method, TModule, def_method
+from transactron.lib import HwMetric
 from transactron.utils import DependencyContext, assign, extend_layout
 from coreblocks.params import GenParams
 from coreblocks.interface.keys import InstructionTaggedCounterKey
@@ -25,7 +26,7 @@ class FuncUnitBase(ABC, FuncUnit, Elaboratable, Generic[_T_DecoderManager]):
         self.issue = Method(i=self.layouts.issue)
         self.issue_decoded = Method(i=extend_layout(self.layouts.issue, ("decode_fn", fn.Fn)))
         self.push_result = Method(i=self.layouts.push_result)
-        self.increment_counter = Method(i=[("tag", fn.Fn)])
+        self.increment_counter = HwMetric.wrap_method(Method(i=[("tag", fn.Fn)]))
         self.fn = fn
 
         dm = DependencyContext.get()
