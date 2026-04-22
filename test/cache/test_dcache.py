@@ -9,10 +9,214 @@ from transactron.testing.method_mock import MethodMock
 from transactron.utils import ModuleConnector
 
 from coreblocks.cache.dcache import DCache
+from coreblocks.cache.refiller import SimpleCommonBusDataCacheRefiller
 from coreblocks.cache.iface import DataCacheRefillerInterface
 from coreblocks.interface.layouts import DCacheLayouts
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
+
+from ..peripherals.bus_mock import BusMockParameters, MockMasterAdapter
+
+
+class SimpleCommonBusDataCacheRefillerTestCircuit(Elaboratable):
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+        self.cp = self.gen_params.dcache_params
+
+    def elaborate(self, platform):
+        layouts = self.gen_params.get(DCacheLayouts)
+        bus_mock_params = BusMockParameters(
+            data_width=self.gen_params.isa.xlen,
+            addr_width=self.gen_params.wb_params.addr_width,
+        )
+
+        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
+        self.refiller = SimpleCommonBusDataCacheRefiller(layouts, self.cp, self.bus_master_adapter)
+
+        self.writeback_data_mock = TestbenchIO(Adapter(o=layouts.provide_writeback_data))
+        self.refiller.get_writeback_data.provide(self.writeback_data_mock.adapter.iface)
+
+        self.start_refill = TestbenchIO(AdapterTrans.create(self.refiller.start_refill))
+        self.accept_refill = TestbenchIO(AdapterTrans.create(self.refiller.accept_refill))
+        self.start_writeback = TestbenchIO(AdapterTrans.create(self.refiller.start_writeback))
+        self.accept_writeback = TestbenchIO(AdapterTrans.create(self.refiller.accept_writeback))
+
+        return ModuleConnector(
+            bus_master_adapter=self.bus_master_adapter,
+            refiller=self.refiller,
+            writeback_data_mock=self.writeback_data_mock,
+            start_refill=self.start_refill,
+            accept_refill=self.accept_refill,
+            start_writeback=self.start_writeback,
+            accept_writeback=self.accept_writeback,
+        )
+
+
+class TestSimpleCommonBusDataCacheRefiller(TestCaseWithSimulator):
+    def setup_method(self) -> None:
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                xlen=32,
+                dcache_line_bytes_log=4,
+            )
+        )
+        self.cp = self.gen_params.dcache_params
+        self.m = SimpleCommonBusDataCacheRefillerTestCircuit(self.gen_params)
+        self.writeback_words = deque()
+
+    @def_method_mock(lambda self: self.m.writeback_data_mock, enable=lambda self: bool(self.writeback_words))
+    def writeback_data(self):
+        @MethodMock.effect
+        def eff():
+            self.writeback_words.popleft()
+
+        return {"data": self.writeback_words[0]}
+
+    def bus_word_addr(self, byte_addr: int, word_idx: int) -> int:
+        return (byte_addr >> exact_log2(self.cp.word_width_bytes)) + word_idx
+
+    def byte_word_addr(self, byte_addr: int, word_idx: int) -> int:
+        return byte_addr + word_idx * self.cp.word_width_bytes
+
+    def full_sel(self) -> int:
+        return (1 << self.cp.word_width_bytes) - 1
+
+    def test_refill_reads_full_line_and_emits_word_beats(self):
+        async def process(sim: TestbenchContext):
+            base_addr = 0x00000100
+            words = [0x10203040, 0x50607080, 0x90A0B0C0, 0xD0E0F000]
+
+            await self.m.start_refill.call(sim, addr=base_addr)
+
+            for word_idx, word in enumerate(words):
+                req = await self.m.bus_master_adapter.request_read_mock.call(sim)
+                assert req["addr"] == self.bus_word_addr(base_addr, word_idx)
+                assert req["sel"] == self.full_sel()
+
+                await self.m.bus_master_adapter.get_read_response_mock.call(sim, data=word, err=0)
+                resp = await self.m.accept_refill.call(sim)
+
+                assert resp["addr"] == self.byte_word_addr(base_addr, word_idx)
+                assert resp["data"] == word
+                assert resp["error"] == 0
+                assert resp["last"] == int(word_idx == len(words) - 1)
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_refill_error_returns_error_last_and_stops(self):
+        async def process(sim: TestbenchContext):
+            base_addr = 0x00000140
+            words = [0x11111111, 0x22222222]
+
+            await self.m.start_refill.call(sim, addr=base_addr)
+
+            req = await self.m.bus_master_adapter.request_read_mock.call(sim)
+            assert req["addr"] == self.bus_word_addr(base_addr, 0)
+            await self.m.bus_master_adapter.get_read_response_mock.call(sim, data=words[0], err=0)
+
+            resp = await self.m.accept_refill.call(sim)
+            assert resp["addr"] == self.byte_word_addr(base_addr, 0)
+            assert resp["data"] == words[0]
+            assert resp["error"] == 0
+            assert resp["last"] == 0
+
+            req = await self.m.bus_master_adapter.request_read_mock.call(sim)
+            assert req["addr"] == self.bus_word_addr(base_addr, 1)
+            await self.m.bus_master_adapter.get_read_response_mock.call(sim, data=words[1], err=1)
+
+            resp = await self.m.accept_refill.call(sim)
+            assert resp["addr"] == self.byte_word_addr(base_addr, 1)
+            assert resp["data"] == words[1]
+            assert resp["error"] == 1
+            assert resp["last"] == 1
+
+            for _ in range(3):
+                req = await self.m.bus_master_adapter.request_read_mock.call_try(sim)
+                assert req is None
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_writeback_writes_full_line_and_returns_success(self):
+        async def process(sim: TestbenchContext):
+            base_addr = 0x00000200
+            words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
+            self.writeback_words.extend(words)
+
+            await self.m.start_writeback.call(sim, addr=base_addr)
+
+            for word_idx, word in enumerate(words):
+                req = await self.m.bus_master_adapter.request_write_mock.call(sim)
+                assert req["addr"] == self.bus_word_addr(base_addr, word_idx)
+                assert req["data"] == word
+                assert req["sel"] == self.full_sel()
+
+                await self.m.bus_master_adapter.get_write_response_mock.call(sim, err=0)
+
+            resp = await self.m.accept_writeback.call(sim)
+            assert resp["error"] == 0
+            assert not self.writeback_words
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_writeback_accumulates_error(self):
+        async def process(sim: TestbenchContext):
+            base_addr = 0x00000240
+            words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+            errors = [0, 1, 0, 0]
+            self.writeback_words.extend(words)
+
+            await self.m.start_writeback.call(sim, addr=base_addr)
+
+            for word_idx, word in enumerate(words):
+                req = await self.m.bus_master_adapter.request_write_mock.call(sim)
+                assert req["addr"] == self.bus_word_addr(base_addr, word_idx)
+                assert req["data"] == word
+
+                await self.m.bus_master_adapter.get_write_response_mock.call(sim, err=errors[word_idx])
+
+            resp = await self.m.accept_writeback.call(sim)
+            assert resp["error"] == 1
+            assert not self.writeback_words
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_start_methods_are_not_ready_while_busy(self):
+        async def process(sim: TestbenchContext):
+            refill_addr = 0x00000300
+            writeback_addr = 0x00000340
+            words = [0xA0A0A0A0, 0xB1B1B1B1, 0xC2C2C2C2, 0xD3D3D3D3]
+
+            await self.m.start_refill.call(sim, addr=refill_addr)
+            ret = await self.m.start_writeback.call_try(sim, addr=writeback_addr)
+            assert ret is None
+
+            for word_idx, word in enumerate(words):
+                await self.m.bus_master_adapter.request_read_mock.call(sim)
+                await self.m.bus_master_adapter.get_read_response_mock.call(sim, data=word, err=0)
+                resp = await self.m.accept_refill.call(sim)
+                assert resp["last"] == int(word_idx == len(words) - 1)
+
+            self.writeback_words.extend(words)
+            await self.m.start_writeback.call(sim, addr=writeback_addr)
+            ret = await self.m.start_refill.call_try(sim, addr=refill_addr)
+            assert ret is None
+
+            for _ in words:
+                await self.m.bus_master_adapter.request_write_mock.call(sim)
+                await self.m.bus_master_adapter.get_write_response_mock.call(sim, err=0)
+
+            resp = await self.m.accept_writeback.call(sim)
+            assert resp["error"] == 0
+
+            ret = await self.m.start_refill.call_try(sim, addr=refill_addr)
+            assert ret is not None
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
 
 
 class MockedDataCacheRefiller(Elaboratable, DataCacheRefillerInterface):
