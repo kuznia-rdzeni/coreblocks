@@ -15,7 +15,6 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
     AsyncInterruptInsertSignalKey,
@@ -28,7 +27,7 @@ from coreblocks.interface.keys import (
 )
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 
 log = logging.HardwareLogger("backend.fu.priv")
@@ -45,16 +44,11 @@ class PrivilegedFn(DecoderManager):
         return [(self.Fn.MRET, OpType.MRET), (self.Fn.FENCEI, OpType.FENCEI), (self.Fn.WFI, OpType.WFI)]
 
 
-class PrivilegedFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
-        self.gen_params = gen_params
-        self.priv_fn = priv_fn
+class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
+    def __init__(self, gen_params: GenParams, fn=PrivilegedFn()):
+        super().__init__(gen_params, fn)
 
-        self.layouts = layouts = gen_params.get(FuncUnitLayouts)
         self.dm = DependencyContext.get()
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
@@ -65,11 +59,9 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules += [self.perf_instr]
-
-        m.submodules.decoder = decoder = self.priv_fn.get_decoder(self.gen_params)
 
         instr_valid = Signal()
         finished = Signal()
@@ -77,7 +69,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
         instr_rob = Signal(self.gen_params.rob_entries_bits)
         instr_pc = Signal(self.gen_params.isa.xlen)
-        instr_fn = self.priv_fn.get_function()
+        instr_fn = self.fn.get_function()
 
         mret = self.dm.get_dependency(MretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
@@ -89,12 +81,12 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue, ready=~instr_valid)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.comb += self.decoder.exec_fn.eq(arg.exec_fn)
             m.d.sync += [
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
-                instr_fn.eq(decoder.decode_fn),
+                instr_fn.eq(self.decoder.decode_fn),
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):

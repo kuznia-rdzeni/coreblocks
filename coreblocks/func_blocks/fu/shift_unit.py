@@ -6,10 +6,9 @@ from transactron import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron.utils import OneHotSwitch
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from enum import IntFlag, auto
 
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -75,26 +74,19 @@ class ShiftUnit(Elaboratable):
         return m
 
 
-class ShiftFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, shift_unit_fn=ShiftUnitFn()):
-        self.gen_params = gen_params
-        self.shift_unit_fn = shift_unit_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+class ShiftFuncUnit(FuncUnitBase[ShiftUnitFn]):
+    def __init__(self, gen_params: GenParams, fn=ShiftUnitFn()):
+        super().__init__(gen_params, fn)
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
-        m.submodules.shift_alu = shift_alu = ShiftUnit(self.gen_params, shift_unit_fn=self.shift_unit_fn)
-        m.submodules.decoder = decoder = self.shift_unit_fn.get_decoder(self.gen_params)
+        m.submodules.shift_alu = shift_alu = ShiftUnit(self.gen_params, shift_unit_fn=self.fn)
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.av_comb += shift_alu.fn.eq(decoder.decode_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += shift_alu.fn.eq(self.decoder.decode_fn)
 
             m.d.av_comb += shift_alu.in1.eq(arg.s1_val)
             m.d.av_comb += shift_alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))

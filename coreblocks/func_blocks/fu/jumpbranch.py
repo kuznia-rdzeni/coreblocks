@@ -12,7 +12,7 @@ from transactron.lib import logging
 from transactron.utils import DependencyContext, from_method_layout
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
-from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, CommonLayoutFields
+from coreblocks.interface.layouts import JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     BranchVerifyKey,
@@ -22,7 +22,7 @@ from coreblocks.interface.keys import (
 from transactron.utils import OneHotSwitch
 from transactron.utils.transactron_helpers import make_layout
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 __all__ = ["JumpBranchFuncUnit", "JumpComponent"]
 
@@ -106,18 +106,11 @@ class JumpBranch(Elaboratable):
         return m
 
 
-class JumpBranchFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, jb_fn=JumpBranchFn()):
-        self.gen_params = gen_params
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
+    def __init__(self, gen_params: GenParams, fn=JumpBranchFn()):
+        super().__init__(gen_params, fn)
 
         self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
-
-        self.jb_fn = jb_fn
 
         self.dm = DependencyContext.get()
         self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
@@ -135,7 +128,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules += [
             self.perf_instr,
@@ -145,8 +138,7 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
 
-        m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.jb_fn)
-        m.submodules.decoder = decoder = self.jb_fn.get_decoder(self.gen_params)
+        m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.fn)
         m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         fields = self.gen_params.get(CommonLayoutFields)
@@ -240,8 +232,8 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.top_comb += decoder.exec_fn.eq(arg.exec_fn)
-            m.d.top_comb += jb.fn.eq(decoder.decode_fn)
+            m.d.top_comb += self.decoder.exec_fn.eq(arg.exec_fn)
+            m.d.top_comb += jb.fn.eq(self.decoder.decode_fn)
 
             m.d.top_comb += jb.in1.eq(arg.s1_val)
             m.d.top_comb += jb.in2.eq(arg.s2_val)
@@ -259,14 +251,14 @@ class JumpBranchFuncUnit(FuncUnit, Elaboratable):
                 rob_id=arg.rob_id,
                 pc=arg.pc,
                 rp_dst=arg.rp_dst,
-                type=decoder.decode_fn,
+                type=self.decoder.decode_fn,
                 jmp_addr=jb.jmp_addr,
                 reg_res=jb.reg_res,
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
                 tag=arg.tag,
             )
-            self.perf_instr.incr(m, decoder.decode_fn)
+            self.perf_instr.incr(m, self.decoder.decode_fn)
 
         return m
 

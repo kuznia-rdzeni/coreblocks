@@ -8,22 +8,17 @@ from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import Rec
 from coreblocks.func_blocks.fu.unsigned_multiplication.sequence import SequentialUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.shift import ShiftUnsignedMul
 from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
+from coreblocks.func_blocks.interface.func_protocols import FuncUnit
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
-from coreblocks.interface.layouts import FuncUnitLayouts
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
-from transactron.utils import MethodStruct
-
-
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from transactron.utils import MethodStruct, OneHotSwitch
 
 
 __all__ = ["MulUnit", "MulFn", "MulComponent", "MulType"]
-
-from transactron.utils import OneHotSwitch
-from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
 
 class MulFn(DecoderManager):
@@ -81,17 +76,9 @@ class MulType(IntEnum):
     RECURSIVE_MUL = 3
 
 
-class MulUnit(FuncUnit, Elaboratable):
+class MulUnit(FuncUnitBase[MulFn]):
     """
-    Module responsible for handling every kind of multiplication based on selected unsigned integer multiplication
-    module. It uses standard FuncUnitLayout.
-
-    Attributes
-    ----------
-    issue: Method(i=gen.get(FuncUnitLayouts).issue)
-        Method used for requesting computation.
-    push_result: Method(i=gen.get(FuncUnitLayouts).push_result)
-        Method called for pushing result of requested computation.
+    Handles multiplication instructions. Delegates to one of selectable unsigned multiplication instructions.
     """
 
     def __init__(
@@ -100,7 +87,7 @@ class MulUnit(FuncUnit, Elaboratable):
         mul_type: MulType,
         dsp_width: int = 18,
         dsp_number: int = 7,
-        mul_fn=MulFn(),
+        fn=MulFn(),
     ):
         """
         Parameters
@@ -108,20 +95,13 @@ class MulUnit(FuncUnit, Elaboratable):
         gen_params: GenParams
             Core generation parameters.
         """
-        self.gen_params = gen_params
+        super().__init__(gen_params, fn)
         self.mul_type = mul_type
         self.dsp_width = dsp_width
         self.dsp_number = dsp_number
 
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
-
-        self.mul_fn = mul_fn
-
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules.params_fifo = params_fifo = FIFO(
             [
@@ -132,7 +112,6 @@ class MulUnit(FuncUnit, Elaboratable):
             ],
             2,
         )
-        m.submodules.decoder = decoder = self.mul_fn.get_decoder(self.gen_params)
 
         # Selecting unsigned integer multiplication module
         match self.mul_type:
@@ -155,7 +134,7 @@ class MulUnit(FuncUnit, Elaboratable):
 
         @def_method(m, self.issue)
         def _(arg):
-            m.d.av_comb += decoder.exec_fn.eq(arg.exec_fn)
+            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             value1 = Signal(self.gen_params.isa.xlen)  # input value for multiplier submodule
@@ -168,7 +147,7 @@ class MulUnit(FuncUnit, Elaboratable):
             # which part of result we want upper or lower part. In the future, it would be a great improvement
             # to save result for chain multiplication of this same numbers, but with different parts as
             # results
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
                     # In this case we care only about lower part of number, so it does not matter if it is
                     # interpreted as binary number or U2 encoded number, so we set result to be interpreted as
