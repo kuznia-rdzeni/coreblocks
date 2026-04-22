@@ -365,13 +365,15 @@
 </li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.CSRInstances.__init__">(coreblocks.priv.csr.csr_instances.CSRInstances method)</a>
 </li>
-        <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.DoubleCounterCSR.__init__">(coreblocks.priv.csr.csr_instances.DoubleCounterCSR method)</a>
-</li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters.__init__">(coreblocks.priv.csr.csr_instances.MachineModeCSRRegisters method)</a>
 </li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.SupervisorModeCSRRegisters.__init__">(coreblocks.priv.csr.csr_instances.SupervisorModeCSRRegisters method)</a>
 </li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_register.CSRRegister.__init__">(coreblocks.priv.csr.csr_register.CSRRegister method)</a>
+</li>
+        <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_register.CSRRegisterBase.__init__">(coreblocks.priv.csr.csr_register.CSRRegisterBase method)</a>
+</li>
+        <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.double_counter.DoubleCounterCSR.__init__">(coreblocks.priv.csr.double_counter.DoubleCounterCSR method)</a>
 </li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.shadow.ShadowCSR.__init__">(coreblocks.priv.csr.shadow.ShadowCSR method)</a>
 </li>
@@ -1099,8 +1101,6 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.fpu_sign_injection">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.fpu.int_to_float
 
@@ -1108,6 +1108,8 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.int_to_float">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.fpu.lza
 
@@ -1382,6 +1384,13 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.priv.csr.double_counter
+
+      <ul>
+        <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.double_counter">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.priv.csr.shadow
 
       <ul>
@@ -1494,6 +1503,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.CSRRCI">CSRRCI (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_register.CSRRegister">CSRRegister (class in coreblocks.priv.csr.csr_register)</a>
+</li>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_register.CSRRegisterBase">CSRRegisterBase (class in coreblocks.priv.csr.csr_register)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.CSRRS">CSRRS (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
@@ -1617,7 +1628,7 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.DIVW">DIVW (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
-      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.DoubleCounterCSR">DoubleCounterCSR (class in coreblocks.priv.csr.csr_instances)</a>
+      <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.double_counter.DoubleCounterCSR">DoubleCounterCSR (class in coreblocks.priv.csr.double_counter)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.DPC">DPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
@@ -2725,10 +2736,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.MISC_MEM">MISC_MEM (coreblocks.arch.isa_consts.Opcode attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion.mmio">mmio (coreblocks.func_blocks.fu.lsu.pma.PMARegion attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNCAUSE">MNCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNEPC">MNEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2926,6 +2937,8 @@
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.csr_instances">coreblocks.priv.csr.csr_instances</a>
 </li>
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.csr_register">coreblocks.priv.csr.csr_register</a>
+</li>
+        <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.double_counter">coreblocks.priv.csr.double_counter</a>
 </li>
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.shadow">coreblocks.priv.csr.shadow</a>
 </li>
@@ -4235,7 +4248,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 07:16 2026-04-21.
+      <span class="lastupdated">Last updated on 11:42 2026-04-22.
       </span></p>
   </div>
 

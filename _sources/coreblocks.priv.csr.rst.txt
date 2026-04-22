@@ -28,6 +28,14 @@ coreblocks.priv.csr.csr\_register module
    :undoc-members:
    :show-inheritance:
 
+coreblocks.priv.csr.double\_counter module
+------------------------------------------
+
+.. automodule:: coreblocks.priv.csr.double_counter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 coreblocks.priv.csr.shadow module
 ---------------------------------
 
