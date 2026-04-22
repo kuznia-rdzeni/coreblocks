@@ -29,8 +29,9 @@ class FuncUnitBase(ABC, FuncUnit, Elaboratable, Generic[_T_DecoderManager]):
         self.increment_counter = HwMetric.wrap_method(Method(i=[("tag", fn.Fn)]))
         self.fn = fn
 
-        dm = DependencyContext.get()
-        dm.add_dependency(InstructionTaggedCounterKey(), (self.__class__.__name__, self.increment_counter))
+        if HwMetric.metrics_enabled():
+            dm = DependencyContext.get()
+            dm.add_dependency(InstructionTaggedCounterKey(), (self.__class__.__name__, self.increment_counter))
 
     @abstractmethod
     def elaborate(self, platform) -> TModule:
