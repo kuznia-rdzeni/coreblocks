@@ -47,7 +47,7 @@ class DataCacheRefillerInterface(CacheRefillerInterface):
     Data Cache Refiller Interface.
 
     Parameters
-    ---------
+    ----------
     start_refill: Method
         A method that is used to start a refill for a given cache line.
     accept_refill: Method
