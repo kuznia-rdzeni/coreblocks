@@ -1,11 +1,9 @@
 from amaranth import *
 from amaranth.lib.data import StructLayout
-from amaranth_types import SrcLoc
 
 from dataclasses import dataclass
-from typing import Protocol
 
-from transactron import Method, Methods, def_method, def_methods, Transaction, TModule, Provided
+from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
@@ -15,6 +13,7 @@ from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
 from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
 from coreblocks.interface.keys import (
@@ -29,18 +28,7 @@ from coreblocks.interface.keys import (
 __all__ = [
     "CSRUnit",
     "CSRBlockComponent",
-    "RegisteredCSRProtocol",
 ]
-
-
-class RegisteredCSRProtocol(Protocol):
-    """Protocol required to be included as a public CSR via `CSRListKey`"""
-
-    _fu_read: Provided[Method]
-    _fu_write: Provided[Method]
-    _fu_access_valid: Provided[Method]
-
-    src_loc: SrcLoc
 
 
 class CSRUnit(FuncBlock, Elaboratable):
@@ -94,11 +82,13 @@ class CSRUnit(FuncBlock, Elaboratable):
         for csr_number, csr in self.dependency_manager.get_dependency(CSRListKey()):
             if csr_number in self.regfile:
                 raise RuntimeError(
-                    f"CSR number {csr_number} already registered (at {self.regfile[csr_number].src_loc} {csr.src_loc}"
+                    f"CSR number 0x{csr_number:03x} already registered at {self.regfile[csr_number].src_loc}"
+                    f" and {csr.src_loc}"
                 )
             self.regfile[csr_number] = csr
 
-    def _csr_access_privilege(self, csr_addr: int) -> tuple[PrivilegeLevel, bool]:
+    @staticmethod
+    def _csr_access_privilege(csr_addr: int) -> tuple[PrivilegeLevel, bool]:
         read_only = bits_from_int(csr_addr, 10, 2) == 0b11
 
         match bits_from_int(csr_addr, 8, 2):
