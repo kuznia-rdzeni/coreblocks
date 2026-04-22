@@ -1,4 +1,3 @@
-from typing import Optional
 from amaranth import signed
 from amaranth.lib.data import ArrayLayout
 from amaranth.lib.enum import IntFlag, auto
@@ -728,9 +727,7 @@ class LSULayouts:
 class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
-    def __init__(self, gen_params: GenParams, *, data_width: Optional[int] = None):
-        data_width = data_width if data_width is not None else gen_params.isa.xlen
-
+    def __init__(self, gen_params: GenParams, *, data_width: int):
         self.data: LayoutListField = ("data", data_width)
 
         self.read = make_layout(
