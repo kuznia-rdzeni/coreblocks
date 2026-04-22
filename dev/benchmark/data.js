@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776859529322,
+  "lastUpdate": 1776859531631,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -57555,6 +57555,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 41201,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 2916,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2316,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8491,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8fa78b4598f3e226c9f9ac94e73ad939bbef059c",
+          "message": "Big CSR refactor - CSR Register ABC, Protocol, misc clean-ups (#904)",
+          "timestamp": "2026-04-22T13:41:29+02:00",
+          "tree_id": "d3886859d364e8cf55c289ac53ab2e71266d4596",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8fa78b4598f3e226c9f9ac94e73ad939bbef059c"
+        },
+        "date": 1776859530843,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.35,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 39514,
             "unit": "LUT4"
           },
           {
