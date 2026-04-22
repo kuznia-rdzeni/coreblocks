@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776757365470,
+  "lastUpdate": 1776859526886,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -20373,6 +20373,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a4fee34c7879dc4b50703a1db780a4e11d3a5afb"
         },
         "date": 1776757354681,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4111175920873552,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543893258502759,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3447129022791744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6348581591300038,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35711212332527187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2893045362123626,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.317895465559017,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4240201114875943,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8fa78b4598f3e226c9f9ac94e73ad939bbef059c",
+          "message": "Big CSR refactor - CSR Register ABC, Protocol, misc clean-ups (#904)",
+          "timestamp": "2026-04-22T13:41:29+02:00",
+          "tree_id": "d3886859d364e8cf55c289ac53ab2e71266d4596",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8fa78b4598f3e226c9f9ac94e73ad939bbef059c"
+        },
+        "date": 1776859519283,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
