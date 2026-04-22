@@ -115,11 +115,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
-        self.perf_instr = TaggedCounter(
-            "backend.fu.jumpbranch.instr",
-            "Counts of instructions executed by the jumpbranch unit",
-            tags=JumpBranchFn.Fn,
-        )
         self.perf_misaligned = HwCounter(
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
         )
@@ -131,7 +126,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         m = super().elaborate(platform)
 
         m.submodules += [
-            self.perf_instr,
             self.perf_misaligned,
             self.perf_mispredictions,
         ]
@@ -256,7 +250,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 predicted_taken=funct7_info.predicted_taken,
                 tag=arg.tag,
             )
-            self.perf_instr.incr(m, arg.decode_fn)
 
         return m
 
