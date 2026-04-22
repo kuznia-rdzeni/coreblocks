@@ -139,11 +139,11 @@ class TestDCache(TestCaseWithSimulator):
                 result |= ((new >> byte_shift) & 0xFF) << byte_shift
         return result
 
-    async def wait_for_initial_flush(self, sim: TestbenchContext):
+    async def wait_for_flush(self, sim: TestbenchContext):
         for _ in range(self.cp.num_of_sets * 3 + 4):
             await sim.tick()
 
-    async def preload_line(
+    async def load_line_directly(
         self, sim: TestbenchContext, addr_base: int, words: list[int], *, way: int = 0, dirty: int = 0
     ):
         tag, index, _ = self.split_addr(addr_base)
@@ -206,9 +206,9 @@ class TestDCache(TestCaseWithSimulator):
     def same_set_addr(self, addr: int, distance: int) -> int:
         return addr + distance * self.cp.num_of_sets * self.cp.line_size_bytes
 
-    def test_initial_miss_returns_error(self):
+    def test_miss_returns_error_on_empty_refiller(self):
         async def cache_process(sim: TestbenchContext):
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
 
             resp = await self.call_cache(sim, addr=0x00000100)
 
@@ -218,13 +218,13 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_load_hit_returns_cached_word(self):
+    def test_load_hit(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000120
             words = [0x11223344, 0x55667788, 0x99AABBCC, 0xDDEEFF00]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, base_addr, words, way=0, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, base_addr, words, way=0, dirty=0)
 
             resp = await self.call_cache(sim, addr=base_addr + self.cp.word_width_bytes)
 
@@ -234,7 +234,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_store_hit_updates_word_and_sets_dirty(self):
+    def test_store_hit(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000140
             initial_words = [0x11223344, 0x55667788, 0x99AABBCC, 0xDDEEFF00]
@@ -242,8 +242,8 @@ class TestDCache(TestCaseWithSimulator):
             store_data = 0xAABBCCDD
             byte_mask = 0b0101
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, base_addr, initial_words, way=0, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, base_addr, initial_words, way=0, dirty=0)
 
             resp = await self.call_cache(sim, addr=store_addr, data=store_data, byte_mask=byte_mask, store=1)
 
@@ -275,8 +275,8 @@ class TestDCache(TestCaseWithSimulator):
             base_addr = 0x00000180
             words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, base_addr, words, way=0, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, base_addr, words, way=0, dirty=0)
 
             await self.m.issue_req.call(sim, addr=base_addr, data=0, byte_mask=0, store=0)
 
@@ -296,20 +296,20 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_flush_invalidates_clean_line(self):
+    def test_flush_invalidates(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x000001C0
             words = [0xCAFEBABE, 0x0BADF00D, 0x12345678, 0x89ABCDEF]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, base_addr, words, way=0, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, base_addr, words, way=0, dirty=0)
 
             hit_resp = await self.call_cache(sim, addr=base_addr)
             assert hit_resp["error"] == 0
             assert hit_resp["data"] == words[0]
 
             await self.m.flush_cache.call(sim)
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
 
             miss_resp = await self.call_cache(sim, addr=base_addr)
             assert miss_resp["error"] == 1
@@ -318,12 +318,12 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_load_clean_miss_refills_line_and_replays_request(self):
+    def test_load_miss(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000200
             words = [0xAAAABBBB, 0xCCCCDDDD, 0x11112222, 0x33334444]
 
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
             self.queue_refill_line(base_addr, words)
 
             resp = await self.call_cache(sim, addr=base_addr + self.cp.word_width_bytes)
@@ -341,7 +341,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_store_clean_miss_refills_then_updates_line(self):
+    def test_store_miss(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000240
             initial_words = [0x10203040, 0x50607080, 0x90A0B0C0, 0xD0E0F000]
@@ -349,7 +349,7 @@ class TestDCache(TestCaseWithSimulator):
             store_data = 0x11223344
             byte_mask = 0b0011
 
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
             self.queue_refill_line(base_addr, initial_words)
 
             resp = await self.call_cache(sim, addr=store_addr, data=store_data, byte_mask=byte_mask, store=1)
@@ -374,12 +374,12 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_clean_miss_refill_error_returns_error_without_valid_line(self):
+    def test_refill_error(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000280
             words = [0xABCDEF01, 0x23456789, 0x3456789A, 0x456789AB]
 
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
             self.queue_refill_line(base_addr, words, error=1)
 
             resp = await self.call_cache(sim, addr=base_addr)
@@ -400,7 +400,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_load_dirty_miss_writebacks_old_line_then_refills_and_replays_request(self):
+    def test_load_miss_multiple_lines(self):
         async def cache_process(sim: TestbenchContext):
             old_base_addr = 0x00000100
             old_words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
@@ -409,9 +409,9 @@ class TestDCache(TestCaseWithSimulator):
             new_base_addr = 0x00000200
             new_words = [0xAAAABBBB, 0xCCCCDDDD, 0xEEEEFFFF, 0x12345678]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, old_base_addr, old_words, way=0, dirty=1)
-            await self.preload_line(sim, other_base_addr, other_words, way=1, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, old_base_addr, old_words, way=0, dirty=1)
+            await self.load_line_directly(sim, other_base_addr, other_words, way=1, dirty=0)
             self.queue_refill_line(new_base_addr, new_words)
             self.writeback_accept_responses.append({"error": 0})
 
@@ -448,7 +448,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_store_dirty_miss_writebacks_old_line_then_refills_and_replays_store(self):
+    def test_store_miss_multiple_lines(self):
         async def cache_process(sim: TestbenchContext):
             old_base_addr = 0x00000140
             old_words = [0xCAFEBABE, 0x0BADF00D, 0x01020304, 0xA0B0C0D0]
@@ -460,9 +460,9 @@ class TestDCache(TestCaseWithSimulator):
             store_data = 0x11223344
             byte_mask = 0b0011
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, old_base_addr, old_words, way=0, dirty=1)
-            await self.preload_line(sim, other_base_addr, other_words, way=1, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, old_base_addr, old_words, way=0, dirty=1)
+            await self.load_line_directly(sim, other_base_addr, other_words, way=1, dirty=0)
             self.queue_refill_line(new_base_addr, new_words)
             self.writeback_accept_responses.append({"error": 0})
 
@@ -499,7 +499,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_dirty_miss_writeback_error_returns_error_without_refill(self):
+    def test_miss_writeback_error(self):
         async def cache_process(sim: TestbenchContext):
             old_base_addr = 0x00000100
             old_words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
@@ -507,9 +507,9 @@ class TestDCache(TestCaseWithSimulator):
             other_words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
             new_base_addr = 0x00000200
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, old_base_addr, old_words, way=0, dirty=1)
-            await self.preload_line(sim, other_base_addr, other_words, way=1, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, old_base_addr, old_words, way=0, dirty=1)
+            await self.load_line_directly(sim, other_base_addr, other_words, way=1, dirty=0)
             self.writeback_accept_responses.append({"error": 1})
 
             await self.m.issue_req.call(sim, addr=new_base_addr, data=0, byte_mask=0, store=0)
@@ -537,16 +537,16 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_flush_dirty_line_same_set(self):
+    def test_flush_same_set(self):
         async def cache_process(sim: TestbenchContext):
             first_cache_line_addr = 0x00000100
             first_words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
             second_cache_line_addr = 0x00000200
             second_words = [0xDEADBEE9, 0x11223349, 0x55667789, 0x99AABBC9]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, first_cache_line_addr, first_words, way=0, dirty=1)
-            await self.preload_line(sim, second_cache_line_addr, second_words, way=1, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, first_cache_line_addr, first_words, way=0, dirty=1)
+            await self.load_line_directly(sim, second_cache_line_addr, second_words, way=1, dirty=0)
 
             self.writeback_accept_responses.append({"error": 0})
 
@@ -559,7 +559,7 @@ class TestDCache(TestCaseWithSimulator):
             assert written_back_words == first_words
 
             self.allow_writeback_accept = True
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
 
             _, first_index, _ = self.split_addr(first_cache_line_addr)
             _, second_index, _ = self.split_addr(second_cache_line_addr)
@@ -575,13 +575,13 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_flush_dirty_writeback_error_aborts_without_invalidation(self):
+    def test_flush_writeback_error(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000100
             words = [0xDEADBEEF, 0x11223344, 0x55667788, 0x99AABBCC]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, base_addr, words, way=0, dirty=1)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, base_addr, words, way=0, dirty=1)
             self.writeback_accept_responses.append({"error": 1})
 
             await self.m.flush_cache.call(sim)
@@ -592,7 +592,7 @@ class TestDCache(TestCaseWithSimulator):
             assert written_back_words == words
 
             self.allow_writeback_accept = True
-            await self.wait_for_initial_flush(sim)
+            await self.wait_for_flush(sim)
 
             tag, index, _ = self.split_addr(base_addr)
             stored_tag = self.read_tag_entry(sim, way=0, index=index)
@@ -609,15 +609,15 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_clean_miss_prefers_invalid_way(self):
+    def test_miss_prefers_invalid_way(self):
         async def cache_process(sim: TestbenchContext):
             way0_addr = 0x00000100
             refill_addr = self.same_set_addr(way0_addr, 1)
             way0_words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
             refill_words = [0xAABBCCDD, 0x10203040, 0x50607080, 0x90A0B0C0]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, way0_addr, way0_words, way=0, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, way0_addr, way0_words, way=0, dirty=0)
             self.queue_refill_line(refill_addr, refill_words)
 
             resp = await self.call_cache(sim, addr=refill_addr)
@@ -639,7 +639,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_clean_miss_uses_round_robin_when_all_ways_valid(self):
+    def test_miss_uses_round_robin(self):
         async def cache_process(sim: TestbenchContext):
             way0_addr = 0x00000100
             way1_addr = self.same_set_addr(way0_addr, 1)
@@ -648,9 +648,9 @@ class TestDCache(TestCaseWithSimulator):
             way1_words = [0x41424344, 0x51525354, 0x61626364, 0x71727374]
             refill_words = [0xAABBCCDD, 0x10203040, 0x50607080, 0x90A0B0C0]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, way0_addr, way0_words, way=0, dirty=0)
-            await self.preload_line(sim, way1_addr, way1_words, way=1, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, way0_addr, way0_words, way=0, dirty=0)
+            await self.load_line_directly(sim, way1_addr, way1_words, way=1, dirty=0)
             self.queue_refill_line(refill_addr, refill_words)
 
             resp = await self.call_cache(sim, addr=refill_addr)
@@ -672,7 +672,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_round_robin_advances_only_after_rr_victim_refill(self):
+    def test_round_robin_advances_only_if_used(self):
         async def cache_process(sim: TestbenchContext):
             way0_addr = 0x00000100
             way1_addr = self.same_set_addr(way0_addr, 1)
@@ -685,8 +685,8 @@ class TestDCache(TestCaseWithSimulator):
             second_refill_words = [0xC0C0C0C0, 0xC1C1C1C1, 0xC2C2C2C2, 0xC3C3C3C3]
             third_refill_words = [0xD0D0D0D0, 0xD1D1D1D1, 0xD2D2D2D2, 0xD3D3D3D3]
 
-            await self.wait_for_initial_flush(sim)
-            await self.preload_line(sim, way0_addr, way0_words, way=0, dirty=0)
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, way0_addr, way0_words, way=0, dirty=0)
 
             self.queue_refill_line(first_refill_addr, first_refill_words)
             first_resp = await self.call_cache(sim, addr=first_refill_addr)
@@ -696,7 +696,7 @@ class TestDCache(TestCaseWithSimulator):
             first_refill_tag, _, _ = self.split_addr(first_refill_addr)
             assert self.read_tag_entry(sim, way=1, index=index)["tag"] == first_refill_tag
 
-            await self.preload_line(sim, way1_addr, way1_words, way=1, dirty=0)
+            await self.load_line_directly(sim, way1_addr, way1_words, way=1, dirty=0)
             self.queue_refill_line(second_refill_addr, second_refill_words)
             second_resp = await self.call_cache(sim, addr=second_refill_addr)
             assert second_resp["error"] == 0
