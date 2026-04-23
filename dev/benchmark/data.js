@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1776974026593,
+  "lastUpdate": 1776976198000,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -20501,6 +20501,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2d586c7558656ce613df33dc1b067f11f0f987e3"
         },
         "date": 1776974016405,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4111175920873552,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5543893258502759,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3447129022791744,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6348581591300038,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35711212332527187,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2893045362123626,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.317895465559017,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4240201114875943,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d769abc3cdc359fc5dc43762194c2c5680ca6643",
+          "message": "fetch: more explicit access fault handling, test improvements (#910)",
+          "timestamp": "2026-04-23T22:03:31+02:00",
+          "tree_id": "cd93f1e89003635028bbdcb6f65b67a98903697d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d769abc3cdc359fc5dc43762194c2c5680ca6643"
+        },
+        "date": 1776976191453,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
