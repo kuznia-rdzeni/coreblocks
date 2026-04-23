@@ -18,6 +18,7 @@ from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.func_blocks.instruction_metrics import InstructionMetrics
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.frontend.frontend import CoreFrontend
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
@@ -120,6 +121,8 @@ class Core(Component):
         m.d.comb += self.interrupt_controller.custom_report.eq(self.interrupts[16:])
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
+
+        m.submodules.instruction_metrics = InstructionMetrics()
 
         get_instr = Method.like(self.frontend.consume_instr)
 
