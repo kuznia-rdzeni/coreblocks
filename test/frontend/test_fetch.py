@@ -205,12 +205,10 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
-            access_fault = FetchLayouts.AccessFaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
+            access_fault = FetchLayouts.FaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
             if not instr["rvc"]:
                 if instr["pc"] + 2 in self.memerr:
-                    access_fault = (
-                        FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF if not access_fault else access_fault
-                    )
+                    access_fault = FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF if not access_fault else access_fault
 
             print(instr, v["pc"], v["access_fault"])
             assert v["pc"] == instr["pc"]
@@ -237,7 +235,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                     resume_pc = (
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
                     ) + self.gen_params.fetch_block_bytes * (
-                        2 if access_fault == FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF else 1
+                        2 if access_fault == FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF else 1
                     )
 
                 self.backend_redirect.append(resume_pc)
