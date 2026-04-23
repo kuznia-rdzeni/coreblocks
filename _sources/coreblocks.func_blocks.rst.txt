@@ -10,6 +10,17 @@ Subpackages
    coreblocks.func_blocks.fu
    coreblocks.func_blocks.interface
 
+Submodules
+----------
+
+coreblocks.func\_blocks.instruction\_metrics module
+---------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.instruction_metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
