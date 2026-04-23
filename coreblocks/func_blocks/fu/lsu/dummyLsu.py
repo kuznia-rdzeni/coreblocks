@@ -147,7 +147,7 @@ class LSUDummy(FuncUnit, Elaboratable):
                 res = requester.issue(
                     m,
                     paddr=paddr,
-                    addr=addr,
+                    vaddr=addr,
                     data=arg.s2_val,
                     funct3=arg.exec_fn.funct3,
                     store=~is_load,
