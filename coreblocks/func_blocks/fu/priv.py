@@ -105,7 +105,6 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
-                instr_fn.eq(self.decoder.decode_fn),
                 instr_fn.eq(arg.decode_fn),
                 instr_s1_val.eq(arg.s1_val),
                 instr_s2_val.eq(arg.s2_val),
