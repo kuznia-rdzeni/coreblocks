@@ -6,7 +6,7 @@ from transactron import Method, TModule, def_method
 from transactron.lib import Forwarder
 from transactron.utils import DependencyContext
 
-from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode
+from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE, PAGE_SIZE_LOG
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
@@ -51,7 +51,7 @@ def page_table_entry_format(mode: SatpMode) -> StructLayout:
                     "G": 1,
                     "A": 1,
                     "D": 1,
-                    "_rsv": 2,
+                    "RSW": 2,
                     "ppn": 22,
                 }
             )
@@ -66,7 +66,7 @@ def page_table_entry_format(mode: SatpMode) -> StructLayout:
                     "G": 1,
                     "A": 1,
                     "D": 1,
-                    "_rsv": 2,
+                    "RSW": 2,
                     "ppn": 44,
                     "reserved": 7,
                     "PBMT": 2,
@@ -78,7 +78,8 @@ def page_table_entry_format(mode: SatpMode) -> StructLayout:
 
 
 def bits_per_level(mode: SatpMode) -> int:
-    num_entries = (1 << 12) // page_table_entry_format(mode).as_shape().width
+    """Number of virtual address bits translated at each page table level."""
+    num_entries = PAGE_SIZE // page_table_entry_format(mode).as_shape().width
     return num_entries.bit_length() - 1
 
 
@@ -129,14 +130,13 @@ class AddressTranslator(Elaboratable):
                 with m.If(effective_priv_mode < PrivilegeLevel.MACHINE):
                     m.d.av_comb += effective_satp_mode.eq(csr.s_mode.satp_mode)
 
-            poffset = Signal(12)
-            ppn = Signal(self.gen_params.phys_addr_bits - 12)
-            vpn = Signal(self.gen_params.isa.xlen - 12)
+            poffset = Signal(PAGE_SIZE_LOG)
+            ppn = Signal(self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)
+            vpn = Signal(self.gen_params.isa.xlen - PAGE_SIZE_LOG)
 
-            m.d.av_comb += poffset.eq(addr[:12])
-            m.d.av_comb += vpn.eq(addr[12:])
+            m.d.av_comb += Cat(poffset, vpn).eq(addr)
 
-            max_ppn = 1 << (self.gen_params.phys_addr_bits - 12) - 1
+            max_ppn = 1 << (self.gen_params.phys_addr_bits - PAGE_SIZE_LOG) - 1
 
             vpn_invalid = Signal()
             with m.Switch(effective_satp_mode):

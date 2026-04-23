@@ -16,6 +16,8 @@ __all__ = [
     "PrivilegeLevel",
     "InterruptCauseNumber",
     "XlenEncoding",
+    "PAGE_SIZE",
+    "PAGE_SIZE_LOG",
 ]
 
 
@@ -264,3 +266,7 @@ class SatpLayout(StructLayout):
                 )
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP layout: {xlen}")
+
+
+PAGE_SIZE_LOG = 12
+PAGE_SIZE = 1 << PAGE_SIZE_LOG
