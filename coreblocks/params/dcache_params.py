@@ -13,6 +13,8 @@ class DCacheParameters:
         Log of the number of cache sets.
     line_bytes_log : int
         Log of the size of a single cache line in bytes.
+    request_depth : int
+        Number of requests accepted by the public D-cache interface.
     enable : bool
         Enable the data cache. If disabled, requests are bypassed to the bus.
     """
@@ -25,6 +27,7 @@ class DCacheParameters:
         num_of_ways,
         num_of_sets_bits,
         line_bytes_log,
+        request_depth=4,
         enable=True,
     ):
         self.addr_width = addr_width
@@ -32,6 +35,7 @@ class DCacheParameters:
         self.num_of_ways = num_of_ways
         self.num_of_sets_bits = num_of_sets_bits
         self.line_bytes_log = line_bytes_log
+        self.request_depth = request_depth
         self.enable = enable
 
         self.num_of_sets = 2**num_of_sets_bits

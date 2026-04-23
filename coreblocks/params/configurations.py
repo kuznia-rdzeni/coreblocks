@@ -107,6 +107,8 @@ class _CoreConfigurationDataClass:
         Log of the number of sets of the data cache.
     dcache_line_bytes_log: int
         Log of the data cache line size (in bytes).
+    dcache_request_depth: int
+        Number of requests accepted by the data cache interface.
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
     instr_buffer_size: int
@@ -181,6 +183,7 @@ class _CoreConfigurationDataClass:
     dcache_ways: int = 2
     dcache_sets_bits: int = 7
     dcache_line_bytes_log: int = 5
+    dcache_request_depth: int = 4
 
     fetch_block_bytes_log: int = 2
 

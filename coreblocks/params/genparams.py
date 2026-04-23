@@ -63,6 +63,7 @@ class GenParams(DependentCache):
             num_of_ways=cfg.dcache_ways,
             num_of_sets_bits=cfg.dcache_sets_bits,
             line_bytes_log=cfg.dcache_line_bytes_log,
+            request_depth=cfg.dcache_request_depth,
             enable=cfg.dcache_enable,
         )
 

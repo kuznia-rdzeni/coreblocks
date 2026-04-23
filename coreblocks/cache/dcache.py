@@ -9,17 +9,78 @@ from coreblocks.params import DCacheParameters
 from transactron.utils import assign
 from transactron.lib import *
 from transactron.lib import logging
+from transactron.lib.simultaneous import condition
 
 from coreblocks.cache.iface import CacheInterface, DataCacheRefillerInterface
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
     "DCache",
+    "DCacheBypass",
 ]
 
 from coreblocks.interface.layouts import DCacheLayouts
 
 log = logging.HardwareLogger("backend.dcache")
+
+
+class DCacheBypass(Elaboratable, CacheInterface):
+    def __init__(self, layouts: DCacheLayouts, params: DCacheParameters, bus_master: BusMasterInterface) -> None:
+        self.layouts = layouts
+        self.params = params
+        self.bus_master = bus_master
+
+        self.issue_req = Method(i=layouts.issue_req)
+        self.accept_res = Method(o=layouts.accept_res)
+        self.flush = Method()
+
+        if params.word_width != bus_master.params.data_width:
+            raise ValueError("Data cache bypass word width must match bus data width.")
+        if bus_master.params.granularity != 8:
+            raise ValueError("Data cache bypass expects byte-granular bus selects.")
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.store_fifo = store_fifo = BasicFifo([("store", 1)], self.params.request_depth)
+
+        @def_method(m, self.issue_req)
+        def _(addr: Value, data: Value, byte_mask: Value, store: Value):
+            bus_addr = addr >> exact_log2(self.params.word_width_bytes)
+
+            with condition(m) as branch:
+                with branch(store):
+                    self.bus_master.request_write(m, addr=bus_addr, data=data, sel=byte_mask)
+                with branch():
+                    self.bus_master.request_read(m, addr=bus_addr, sel=byte_mask)
+
+            store_fifo.write(m, store=store)
+
+        @def_method(m, self.accept_res)
+        def _():
+            request = store_fifo.read(m)
+            data = Signal(self.params.word_width)
+            error = Signal()
+
+            with condition(m) as branch:
+                with branch(request.store):
+                    res = self.bus_master.get_write_response(m)
+                    m.d.comb += error.eq(res.err)
+                with branch():
+                    res = self.bus_master.get_read_response(m)
+                    m.d.comb += [
+                        data.eq(res.data),
+                        error.eq(res.err),
+                    ]
+
+            return {"data": data, "error": error}
+
+        @def_method(m, self.flush)
+        def _() -> None:
+            pass
+
+        return m
 
 
 class DCache(Elaboratable, CacheInterface):
@@ -48,6 +109,7 @@ class DCache(Elaboratable, CacheInterface):
         # Methods
         self.issue_req = Method(i=layouts.issue_req)
         self.accept_res = Method(o=layouts.accept_res)
+        self.issue_req.add_conflict(self.accept_res, Priority.LEFT)
 
         self.flush = Method()
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
@@ -93,9 +155,12 @@ class DCache(Elaboratable, CacheInterface):
         ]
 
         m.submodules.mem = self.mem = DCacheMemory(self.params)
+        m.submodules.req_fifo = req_fifo = BasicFifo(self.layouts.issue_req, self.params.request_depth)
+        m.submodules.res_fifo = res_fifo = BasicFifo(self.layouts.accept_res, self.params.request_depth)
 
         rr_way = Signal(range(self.params.num_of_ways))  # Round-robin state
         rr_used = Signal()
+        outstanding = Signal(range(self.params.request_depth + 1))
 
         flush_start = Signal()
         flush_finish = Signal()
@@ -118,8 +183,6 @@ class DCache(Elaboratable, CacheInterface):
         pending_req_valid = Signal()
         lookup_addr = Signal(self.addr_layout)
         lookup_valid = Signal()
-        res_reg = Signal(self.layouts.accept_res)
-        res_valid = Signal()
 
         # Refill state
         refill_addr = Signal(self.addr_layout)
@@ -162,8 +225,23 @@ class DCache(Elaboratable, CacheInterface):
                 with m.Elif(writeback_done_refill):
                     m.next = "REFILL"
 
-        with m.If(fsm.ongoing("LOOKUP") & pending_req_valid & ~lookup_valid & ~res_valid):
+        with m.If(fsm.ongoing("LOOKUP") & pending_req_valid & ~lookup_valid):
             m.d.sync += lookup_valid.eq(1)
+
+        with Transaction(name="StartLookupFromQueue").body(
+            m, ready=fsm.ongoing("LOOKUP") & ~pending_req_valid & ~lookup_valid
+        ):
+            req = req_fifo.read(m)
+            deserialized = self.deserialize_addr(req.addr)
+            m.d.sync += [
+                pending_req.addr.eq(req.addr),
+                pending_req.data.eq(req.data),
+                pending_req.byte_mask.eq(req.byte_mask),
+                pending_req.store.eq(req.store),
+                pending_req_valid.eq(1),
+                assign(lookup_addr, deserialized),
+                lookup_valid.eq(0),
+            ]
 
         # ------------- FLUSH -------
         # Iterates through all sets, checks dirty bits, starts writeback if needed, then invalidates.
@@ -184,7 +262,11 @@ class DCache(Elaboratable, CacheInterface):
         with m.If(fsm.ongoing("FLUSH")):
             m.d.comb += self.mem.tag_rd_index.eq(flush_index)
 
-        @def_method(m, self.flush, ready=fsm.ongoing("LOOKUP"))
+        @def_method(
+            m,
+            self.flush,
+            ready=fsm.ongoing("LOOKUP") & (outstanding == 0) & ~pending_req_valid & ~lookup_valid,
+        )
         def _():
             log.info(m, True, "Flushing the cache...")
             m.d.sync += flush_index.eq(0)
@@ -276,10 +358,8 @@ class DCache(Elaboratable, CacheInterface):
             with m.Else():
                 m.d.comb += writeback_done_error.eq(1)
                 with m.If(~wb_triggered_by_flush):
+                    res_fifo.write(m, data=0, error=1)
                     m.d.sync += [
-                        res_reg.data.eq(0),
-                        res_reg.error.eq(1),
-                        res_valid.eq(1),
                         pending_req_valid.eq(0),
                         lookup_valid.eq(0),
                         rr_used.eq(0),
@@ -312,6 +392,8 @@ class DCache(Elaboratable, CacheInterface):
                     ]
 
             with m.If(tag_hit_any):
+                response_data = Signal(self.params.word_width)
+                m.d.comb += response_data.eq(load_data)
                 with m.If(pending_req.store):
                     m.d.comb += [
                         self.mem.way_wr_en.eq(1 << hit_way),
@@ -326,20 +408,13 @@ class DCache(Elaboratable, CacheInterface):
                         self.mem.tag_wr_data.tag.eq(lookup_addr.tag),
                         self.mem.tag_wr_en.eq(1),
                     ]
-                    m.d.sync += [
-                        res_reg.data.eq(0),
-                        res_reg.error.eq(0),
-                    ]
-                with m.Else():
-                    m.d.sync += [
-                        res_reg.data.eq(load_data),
-                        res_reg.error.eq(0),
-                    ]
+                    m.d.comb += response_data.eq(0)
+
+                res_fifo.write(m, data=response_data, error=0)
 
                 m.d.sync += [
                     pending_req_valid.eq(0),
                     lookup_valid.eq(0),
-                    res_valid.eq(1),
                 ]
 
             with m.Else():
@@ -441,10 +516,8 @@ class DCache(Elaboratable, CacheInterface):
                         ]
 
                 with m.Else():
+                    res_fifo.write(m, data=0, error=1)
                     m.d.sync += [
-                        res_reg.data.eq(0),
-                        res_reg.error.eq(1),
-                        res_valid.eq(1),
                         pending_req_valid.eq(0),
                         lookup_valid.eq(0),
                         refill_error.eq(0),
@@ -452,33 +525,24 @@ class DCache(Elaboratable, CacheInterface):
                     ]
 
         # ------ Methods ---
-        @def_method(m, self.accept_res, ready=res_valid)
+        @def_method(m, self.accept_res)
         def _():
-            m.d.sync += res_valid.eq(0)
-            return res_reg
+            m.d.sync += outstanding.eq(outstanding - 1)
+            return res_fifo.read(m)
 
         @def_method(
             m,
             self.issue_req,
-            ready=fsm.ongoing("LOOKUP") & ~pending_req_valid & ~lookup_valid & ~res_valid,
+            ready=outstanding != self.params.request_depth,
         )
         def _(addr: Value, data: Value, byte_mask: Value, store: Value):
-            deserialized = self.deserialize_addr(addr)
-
             with m.If(store):
                 self.perf_stores.incr(m)
             with m.Else():
                 self.perf_loads.incr(m)
 
-            m.d.sync += [
-                pending_req.addr.eq(addr),
-                pending_req.data.eq(data),
-                pending_req.byte_mask.eq(byte_mask),
-                pending_req.store.eq(store),
-                pending_req_valid.eq(1),
-                assign(lookup_addr, deserialized),
-                lookup_valid.eq(0),
-            ]
+            req_fifo.write(m, addr=addr, data=data, byte_mask=byte_mask, store=store)
+            m.d.sync += outstanding.eq(outstanding + 1)
 
         # Connection to memory
         with m.If(fsm.ongoing("FLUSH")):

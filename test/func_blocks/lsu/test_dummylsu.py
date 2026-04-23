@@ -184,7 +184,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def setup_method(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=4))
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=4, dcache_enable=False))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.mem_data_queue = deque()
@@ -296,7 +296,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
     def setup_method(self) -> None:
         random.seed(14)
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3, dcache_enable=False))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
     async def one_instr_test(self, sim: TestbenchContext):
@@ -375,7 +375,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def setup_method(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3, dcache_enable=False))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.mem_data_queue = deque()
@@ -462,7 +462,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
         await self.push_one_instr(sim, self.get_instr(load_fn))
 
     def test_fence(self):
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3, dcache_enable=False))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -492,6 +492,84 @@ class TestDummyLSUFence(TestCaseWithSimulator):
                 pending_req = False
 
             return {"data": 1, "err": 0}
+
+        with self.run_simulation(self.test_module) as sim:
+            sim.add_testbench(self.process)
+
+
+class TestDummyLSUDCacheIntegration(TestCaseWithSimulator):
+    def setup_method(self) -> None:
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                phys_regs_bits=3,
+                rob_entries_bits=3,
+                dcache_enable=True,
+                dcache_ways=2,
+                dcache_sets_bits=2,
+                dcache_line_bytes_log=4,
+            )
+        )
+        self.test_module = DummyLSUTestCircuit(self.gen_params)
+        self.cp = self.gen_params.dcache_params
+
+    def get_load_instr(self, addr: int, rob_id: int):
+        return {
+            "rp_dst": 1,
+            "rob_id": rob_id,
+            "exec_fn": {"op_type": OpType.LOAD, "funct3": Funct3.W, "funct7": 0},
+            "s1_val": addr,
+            "s2_val": 0,
+            "imm": 0,
+            "pc": 0,
+        }
+
+    async def respond_to_refill(self, sim: TestbenchContext, base_addr: int, words: list[int]):
+        for word_idx, word in enumerate(words):
+            req = await self.test_module.bus_master_adapter.request_read_mock.call(sim)
+            assert req["addr"] == (base_addr >> 2) + word_idx
+            assert req["sel"] == 0xF
+            await self.test_module.bus_master_adapter.get_read_response_mock.call(sim, data=word, err=0)
+
+    async def process(self, sim: TestbenchContext):
+        base_addr = 0x00000100
+        words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+
+        await self.test_module.issue.call(sim, self.get_load_instr(base_addr, rob_id=1))
+        await self.respond_to_refill(sim, base_addr, words)
+
+        first_result = await self.test_module.push_result.call(sim)
+        assert first_result["rob_id"] == 1
+        assert first_result["result"] == words[0]
+        assert first_result["exception"] == 0
+
+        for word_idx in range(1, self.cp.words_in_line):
+            addr = base_addr + word_idx * self.cp.word_width_bytes
+            await self.test_module.issue.call(sim, self.get_load_instr(addr, rob_id=word_idx + 1))
+
+            for _ in range(4):
+                req = await self.test_module.bus_master_adapter.request_read_mock.call_try(sim)
+                assert req is None
+                await sim.tick()
+
+            result = await self.test_module.push_result.call(sim)
+            assert result["rob_id"] == word_idx + 1
+            assert result["result"] == words[word_idx]
+            assert result["exception"] == 0
+
+    def test_first_load_refills_and_following_loads_hit(self):
+        @def_method_mock(lambda: self.test_module.exception_report)
+        def exception_consumer(arg):
+            @MethodMock.effect
+            def eff():
+                assert False
+
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
+        def precommiter(rob_id):
+            return {"side_fx": 1}
+
+        @def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.process)

@@ -4,11 +4,11 @@ from amaranth import Elaboratable
 from amaranth.utils import exact_log2
 
 from transactron.lib import Adapter, AdapterTrans
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
+from transactron.testing import CallTrigger, TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
 from transactron.testing.method_mock import MethodMock
 from transactron.utils import ModuleConnector
 
-from coreblocks.cache.dcache import DCache
+from coreblocks.cache.dcache import DCache, DCacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusDataCacheRefiller
 from coreblocks.cache.iface import DataCacheRefillerInterface
 from coreblocks.interface.layouts import DCacheLayouts
@@ -214,6 +214,151 @@ class TestSimpleCommonBusDataCacheRefiller(TestCaseWithSimulator):
 
             ret = await self.m.start_refill.call_try(sim, addr=refill_addr)
             assert ret is not None
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+
+class DCacheBypassTestCircuit(Elaboratable):
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+        self.cp = self.gen_params.dcache_params
+
+    def elaborate(self, platform):
+        layouts = self.gen_params.get(DCacheLayouts)
+        bus_mock_params = BusMockParameters(
+            data_width=self.gen_params.isa.xlen,
+            addr_width=self.gen_params.wb_params.addr_width,
+        )
+
+        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
+        self.cache = DCacheBypass(layouts, self.cp, self.bus_master_adapter)
+        self.issue_req = TestbenchIO(AdapterTrans.create(self.cache.issue_req))
+        self.accept_res = TestbenchIO(AdapterTrans.create(self.cache.accept_res))
+        self.flush_cache = TestbenchIO(AdapterTrans.create(self.cache.flush))
+
+        return ModuleConnector(
+            bus_master_adapter=self.bus_master_adapter,
+            cache=self.cache,
+            issue_req=self.issue_req,
+            accept_res=self.accept_res,
+            flush_cache=self.flush_cache,
+        )
+
+
+class TestDCacheBypass(TestCaseWithSimulator):
+    def setup_method(self) -> None:
+        self.gen_params = GenParams(
+            test_core_config.replace(
+                xlen=32,
+                dcache_line_bytes_log=4,
+            )
+        )
+        self.cp = self.gen_params.dcache_params
+        self.m = DCacheBypassTestCircuit(self.gen_params)
+
+    def test_load(self):
+        async def process(sim: TestbenchContext):
+            byte_addr = 0x00000114
+            data = 0x11223344
+            byte_mask = 0b0110
+
+            _, req = await (
+                CallTrigger(sim)
+                .call(self.m.issue_req, addr=byte_addr, data=0, byte_mask=byte_mask, store=0)
+                .call(self.m.bus_master_adapter.request_read_mock)
+            )
+
+            assert req["addr"] == byte_addr >> exact_log2(self.cp.word_width_bytes)
+            assert req["sel"] == byte_mask
+
+            _, resp = await (
+                CallTrigger(sim)
+                .call(self.m.bus_master_adapter.get_read_response_mock, data=data, err=0)
+                .call(self.m.accept_res)
+            )
+
+            assert resp["data"] == data
+            assert resp["error"] == 0
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_store(self):
+        async def process(sim: TestbenchContext):
+            byte_addr = 0x00000118
+            data = 0xAABBCCDD
+            byte_mask = 0b1100
+
+            _, req = await (
+                CallTrigger(sim)
+                .call(self.m.issue_req, addr=byte_addr, data=data, byte_mask=byte_mask, store=1)
+                .call(self.m.bus_master_adapter.request_write_mock)
+            )
+
+            assert req["addr"] == byte_addr >> exact_log2(self.cp.word_width_bytes)
+            assert req["data"] == data
+            assert req["sel"] == byte_mask
+
+            _, resp = await (
+                CallTrigger(sim).call(self.m.bus_master_adapter.get_write_response_mock, err=0).call(self.m.accept_res)
+            )
+
+            assert resp["data"] == 0
+            assert resp["error"] == 0
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_error(self):
+        async def process(sim: TestbenchContext):
+            byte_addr = 0x0000011C
+
+            await (
+                CallTrigger(sim)
+                .call(self.m.issue_req, addr=byte_addr, data=0, byte_mask=0b1111, store=0)
+                .call(self.m.bus_master_adapter.request_read_mock)
+            )
+
+            _, resp = await (
+                CallTrigger(sim)
+                .call(self.m.bus_master_adapter.get_read_response_mock, data=0, err=1)
+                .call(self.m.accept_res)
+            )
+
+            assert resp["data"] == 0
+            assert resp["error"] == 1
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+    def test_queue_order(self):
+        async def process(sim: TestbenchContext):
+            base_addr = 0x00000200
+            words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+
+            for word_idx in range(self.cp.request_depth):
+                _, req = await (
+                    CallTrigger(sim)
+                    .call(
+                        self.m.issue_req,
+                        addr=base_addr + word_idx * self.cp.word_width_bytes,
+                        data=0,
+                        byte_mask=0b1111,
+                        store=0,
+                    )
+                    .call(self.m.bus_master_adapter.request_read_mock)
+                )
+                assert req["addr"] == (base_addr >> exact_log2(self.cp.word_width_bytes)) + word_idx
+
+            for word in words:
+                _, resp = await (
+                    CallTrigger(sim)
+                    .call(self.m.bus_master_adapter.get_read_response_mock, data=word, err=0)
+                    .call(self.m.accept_res)
+                )
+                assert resp["data"] == word
+                assert resp["error"] == 0
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(process)
@@ -474,7 +619,7 @@ class TestDCache(TestCaseWithSimulator):
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
 
-    def test_second_request_not_accepted_while_response_pending(self):
+    def test_requests_queued(self):
         async def cache_process(sim: TestbenchContext):
             base_addr = 0x00000180
             words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
@@ -487,15 +632,46 @@ class TestDCache(TestCaseWithSimulator):
             ret = await self.m.issue_req.call_try(
                 sim, addr=base_addr + self.cp.word_width_bytes, data=0, byte_mask=0, store=0
             )
-            assert ret is None
+            assert ret is not None
 
             first_resp = await self.m.accept_res.call(sim)
             assert first_resp["error"] == 0
             assert first_resp["data"] == words[0]
 
-            second_resp = await self.call_cache(sim, addr=base_addr + self.cp.word_width_bytes)
+            second_resp = await self.m.accept_res.call(sim)
             assert second_resp["error"] == 0
             assert second_resp["data"] == words[1]
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_request_queue_full(self):
+        async def cache_process(sim: TestbenchContext):
+            base_addr = 0x00000180
+            words = [0x01020304, 0x11121314, 0x21222324, 0x31323334]
+
+            await self.wait_for_flush(sim)
+            await self.load_line_directly(sim, base_addr, words, way=0, dirty=0)
+
+            for word_offset in range(self.cp.request_depth):
+                await self.m.issue_req.call(
+                    sim,
+                    addr=base_addr + (word_offset % self.cp.words_in_line) * self.cp.word_width_bytes,
+                    data=0,
+                    byte_mask=0,
+                    store=0,
+                )
+
+            ret = await self.m.issue_req.call_try(sim, addr=base_addr, data=0, byte_mask=0, store=0)
+            assert ret is None
+
+            for word_offset in range(self.cp.request_depth):
+                resp = await self.m.accept_res.call(sim)
+                assert resp["error"] == 0
+                assert resp["data"] == words[word_offset % self.cp.words_in_line]
+
+            ret = await self.m.issue_req.call_try(sim, addr=base_addr, data=0, byte_mask=0, store=0)
+            assert ret is not None
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
@@ -574,6 +750,43 @@ class TestDCache(TestCaseWithSimulator):
             assert stored_tag["valid"] == 1
             assert stored_tag["dirty"] == 1
             assert stored_tag["tag"] == tag
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(cache_process)
+
+    def test_refill_with_queued_requests(self):
+        async def cache_process(sim: TestbenchContext):
+            base_addr = 0x00000260
+            words = [0x10203040, 0x50607080, 0x90A0B0C0, 0xD0E0F000]
+
+            await self.wait_for_flush(sim)
+            self.queue_refill_line(base_addr, words)
+
+            await self.m.issue_req.call(
+                sim,
+                addr=base_addr + self.cp.word_width_bytes,
+                data=0,
+                byte_mask=0,
+                store=0,
+            )
+            ret = await self.m.issue_req.call_try(
+                sim,
+                addr=base_addr + 2 * self.cp.word_width_bytes,
+                data=0,
+                byte_mask=0,
+                store=0,
+            )
+            assert ret is not None
+
+            first_resp = await self.m.accept_res.call(sim)
+            second_resp = await self.m.accept_res.call(sim)
+
+            assert list(self.refill_start_calls) == [base_addr]
+            assert first_resp["error"] == 0
+            assert first_resp["data"] == words[1]
+            assert second_resp["error"] == 0
+            assert second_resp["data"] == words[2]
+            assert not self.refill_responses
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
