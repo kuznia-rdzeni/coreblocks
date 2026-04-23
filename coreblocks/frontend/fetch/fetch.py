@@ -212,7 +212,7 @@ class FetchUnit(Elaboratable):
                 else:
                     m.d.av_comb += expanded_instr[i].eq(cache_resp.fetch_block[i * 32 : (i + 1) * 32])
 
-            # Mask denoting at which offsets an instruction starts
+            # Mask denoting at which offsets expected instructions start (depends on rvc indication and start address)
             instr_start = [Signal() for _ in range(fetch_width)]
             for i in range(fetch_width):
                 if Extension.ZCA in self.gen_params.isa.extensions:
@@ -230,7 +230,7 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += instr_start[i].eq(fetch_block_offset <= i)
 
             if Extension.ZCA in self.gen_params.isa.extensions:
-                valid_instr_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
+                instr_position_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
                 m.d.sync += prev_half_v.eq(
                     (flushing_counter <= 1) & (cache_resp.error == 0) & ~is_rvc[-1] & instr_start[-1]
@@ -238,12 +238,15 @@ class FetchUnit(Elaboratable):
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
                 m.d.sync += prev_half_addr.eq(fetch_block_addr)
             else:
-                valid_instr_mask = Cat(instr_start)
+                instr_position_mask = Cat(instr_start)
+
+            # Reported fault pc (signalled by emitting an instruction) must always match first requested instruction
+            access_fault_instr_position = 1 << fetch_block_offset
 
             s1_s2_pipe.write(
                 m,
                 fb_addr=fetch_block_addr,
-                instr_valid=valid_instr_mask,
+                instr_valid=Mux(cache_resp.error, access_fault_instr_position, instr_position_mask),
                 access_fault=cache_resp.error,
                 rvc=is_rvc,
                 instrs=expanded_instr,
