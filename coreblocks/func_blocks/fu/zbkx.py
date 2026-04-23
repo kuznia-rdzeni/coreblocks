@@ -64,11 +64,9 @@ class ZbkxUnit(FuncUnitBase[ZbkxFn]):
 
         m.submodules.zbkx = zbkx = Zbkx(self.gen_params, fn=self.fn)
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
-
-            m.d.av_comb += zbkx.fn.eq(self.decoder.decode_fn)
+            m.d.av_comb += zbkx.fn.eq(arg.decode_fn)
             m.d.av_comb += zbkx.in1.eq(arg.s1_val)
             m.d.av_comb += zbkx.in2.eq(arg.s2_val)
 

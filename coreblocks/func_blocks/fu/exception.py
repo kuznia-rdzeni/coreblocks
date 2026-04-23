@@ -51,16 +51,14 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
     def elaborate(self, platform):
         m = super().elaborate(platform)
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.comb += self.decoder.exec_fn.eq(arg.exec_fn)
-
             cause = Signal(ExceptionCause)
             mtval = Signal(self.gen_params.isa.xlen)
 
             priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
-            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, arg.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
                     m.d.av_comb += mtval.eq(arg.pc)
