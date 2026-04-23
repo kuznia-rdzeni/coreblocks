@@ -6,11 +6,11 @@ from transactron.lib.dependencies import SimpleKey, UnifierKey, ListKey
 from transactron.lib.transformers import MethodProduct
 from transactron import Method, TModule
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
-    from coreblocks.priv.csr.csr_register import CSRRegister  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -26,6 +26,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "RollbackKey",
+    "InstructionTaggedCounterKey",
 ]
 
 
@@ -97,8 +98,9 @@ class CoreStateKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class CSRListKey(ListKey["CSRRegister"]):
-    """DependencyManager key collecting CSR registers globally as a list."""
+class CSRListKey(ListKey[tuple[int, RegisteredCSRProtocol]]):
+    """DependencyManager key collecting CSR registers globally as a list.
+    Requires tuple of architectural CSR number to register and the register itself."""
 
     pass
 
@@ -113,6 +115,17 @@ class RollbackKey(UnifierKey, unifier=MethodProduct.create):
     """
     Collects method that want to be notifed about tag rollback event.
     Expected layout is `RATLayouts.rollback_in`.
+    """
+
+    pass
+
+
+@dataclass(frozen=True)
+class InstructionTaggedCounterKey(ListKey[tuple[str, Method]]):
+    """
+    Collects methods called on instruction issue, paired with FU name.
+    The method must have a tag argument, which will be passed to a `TaggedCounter`.
+    A separate counter will be created for different tag types.
     """
 
     pass
