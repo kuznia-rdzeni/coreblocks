@@ -191,10 +191,11 @@ class FetchUnit(Elaboratable):
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
             # Conditionally read from icache or mark PMP fault.
+            cache_resp = Signal(self.icache.accept_res.layout_out)
             access_fault = Signal()
             with condition(m) as branch:
                 with branch(~fetch_request.pmp_fault):
-                    cache_resp = self.icache.accept_res(m)
+                    m.d.av_comb += assign(cache_resp, self.icache.accept_res(m))
                     m.d.comb += access_fault.eq(cache_resp.error)
                 with branch(fetch_request.pmp_fault):
                     m.d.comb += access_fault.eq(1)
