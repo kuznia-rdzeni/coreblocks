@@ -3,7 +3,6 @@ import pytest
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel, PMPCfgLayout
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 from coreblocks.interface.keys import CSRInstancesKey
 from transactron.lib.adapters import AdapterTrans
 from transactron.testing import TestbenchIO
@@ -232,12 +231,14 @@ class TestPMPDirect(TestCaseWithSimulator):
         with pytest.raises(ValueError):
             GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain_log=2, icache_enable=True))
 
-    @pytest.mark.parametrize("grain", [0, 1, 2])
+    @pytest.mark.parametrize("grain", [2, 3, 4])
     def test_pmpaddr_discovery(self, grain):
         gen_params = GenParams(
             test_core_config.replace(pmp_register_count=16, pmp_grain_log=grain + 2, icache_enable=False)
         )
-        csr = MachineModeCSRRegisters(gen_params)
+        csr_instances = CSRInstances(gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), csr_instances)
+        csr = csr_instances.m_mode
         pmpaddr0_read = TestbenchIO(AdapterTrans.create(csr.pmpaddrx[0]._fu_read))
         pmpaddr1_read = TestbenchIO(AdapterTrans.create(csr.pmpaddrx[1]._fu_read))
         pmpcfg0_write = TestbenchIO(AdapterTrans.create(csr.pmpxcfg[0].fu_write_filter.method))
@@ -245,7 +246,7 @@ class TestPMPDirect(TestCaseWithSimulator):
         pmpcfg1_write = TestbenchIO(AdapterTrans.create(csr.pmpxcfg[1].fu_write_filter.method))
 
         test_module = ModuleConnector(
-            csr=csr,
+            csr_instances=csr_instances,
             pmpaddr0_read=pmpaddr0_read,
             pmpaddr1_read=pmpaddr1_read,
             pmpcfg0_write=pmpcfg0_write,
