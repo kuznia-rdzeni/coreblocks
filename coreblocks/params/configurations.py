@@ -26,7 +26,7 @@ from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
-from coreblocks.func_blocks.csr.csr import CSRBlockComponent
+from coreblocks.func_blocks.csr.csr_unit import CSRBlockComponent
 from coreblocks.arch.isa_consts import SatpMode
 
 __all__ = [
