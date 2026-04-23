@@ -1,10 +1,5 @@
 from amaranth import *
 from amaranth_types import ValueLike
-from typing import Optional
-
-from transactron.core import TModule, Transaction
-from transactron.utils import DependencyContext
-
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import (
     CounterEnableFieldOffsets,
@@ -15,13 +10,9 @@ from coreblocks.arch.csr_address import (
 )
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
-    PrivilegeLevel,
     SatpMode,
-    TrapVectorMode,
-    XlenEncoding,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
-from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.aliased import AliasedCSR
 from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
@@ -31,10 +22,8 @@ from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.interface.keys import CSRInstancesKey
 from typing import Optional
 from amaranth.lib import data
-from transactron.core import Method, Transaction, def_method, TModule
+from transactron.core import Transaction, TModule
 from transactron.utils import DependencyContext
-
-PMPXCFG_WIDTH = 8
 
 
 def counteren_writable_mask(hpm_counters_count: int) -> int:

@@ -1,19 +1,17 @@
 from dataclasses import dataclass
 import pytest
-from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
-from coreblocks.func_blocks.fu.lsu.pmp import PMPCfgLayout, PMPChecker
-from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel, PMPCfgLayout
 from coreblocks.params import GenParams
 from coreblocks.params.configurations import test_core_config
-from coreblocks.priv.csr.csr_instances import CSRInstances, MachineModeCSRRegisters
+from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 from coreblocks.interface.keys import CSRInstancesKey
 from transactron.lib.adapters import AdapterTrans
-from transactron.testing import TestbenchContext, TestbenchIO, TestCaseWithSimulator
-from transactron.utils import DependencyContext
+from transactron.testing import TestbenchIO
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing import TestbenchContext, TestCaseWithSimulator
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.utils.dependencies import DependencyContext
+from coreblocks.priv.pmp import PMPChecker
 
 
 def make_cfg(*, r=0, w=0, x=0, a=0, lock=0) -> int:
