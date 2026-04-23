@@ -182,6 +182,7 @@ class InternalInterruptController(Component):
         pending_m = Signal(self.gen_params.isa.xlen)
         pending_s = Signal(self.gen_params.isa.xlen)
         selected_pending = Signal(self.gen_params.isa.xlen)
+        interrupt_pending = Signal()
 
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
@@ -190,15 +191,16 @@ class InternalInterruptController(Component):
             pending = Signal(self.gen_params.isa.xlen)
             mideleg = Signal(self.gen_params.isa.xlen)
 
-            m.d.comb += [
+            m.d.av_comb += [
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data),
                 pending.eq(mie & mip),
+                interrupt_pending.eq(pending.any()),
             ]
 
             if self.gen_params.supervisor_mode:
-                m.d.comb += mideleg.eq(self.mideleg.read(m).data)
-                m.d.comb += [
+                m.d.av_comb += mideleg.eq(self.mideleg.read(m).data)
+                m.d.av_comb += [
                     pending_m.eq(pending & ~mideleg),
                     pending_s.eq(pending & mideleg),
                     interrupt_enable_s.eq(
@@ -207,32 +209,25 @@ class InternalInterruptController(Component):
                     ),
                 ]
             else:
-                m.d.comb += [
+                m.d.av_comb += [
                     pending_m.eq(pending),
                     pending_s.eq(0),
                     interrupt_enable_s.eq(0),
                 ]
 
-            m.d.comb += interrupt_enable_m.eq(self.mstatus_mie.read(m).data | (priv < PrivilegeLevel.MACHINE))
+            m.d.av_comb += interrupt_enable_m.eq(self.mstatus_mie.read(m).data | (priv < PrivilegeLevel.MACHINE))
         log.error(m, ~assign_trans.run, "assert transaction running failed")
 
         m_interrupt_insert = Signal()
         s_interrupt_insert = Signal()
-        interrupt_pending = Signal()
 
         m.d.comb += [
             m_interrupt_insert.eq(pending_m.any() & interrupt_enable_m),
             s_interrupt_insert.eq(pending_s.any() & interrupt_enable_s),
             self.interrupt_insert.eq(m_interrupt_insert | s_interrupt_insert),
-            interrupt_pending.eq((mie & mip).any()),
         ]
 
-        with m.If(m_interrupt_insert):
-            m.d.comb += selected_pending.eq(pending_m)
-        with m.Elif(s_interrupt_insert):
-            m.d.comb += selected_pending.eq(pending_s)
-        with m.Else():
-            m.d.comb += selected_pending.eq(0)
+        m.d.comb += selected_pending.eq(Mux(m_interrupt_insert, pending_m, pending_s))
 
         # WFI is independent of global mstatus.xIE and mideleg
         m.d.comb += self.wfi_resume.eq(interrupt_pending)
@@ -263,35 +258,35 @@ class InternalInterruptController(Component):
         @def_method(m, self.mret)
         def _():
             log.info(m, True, "Interrupt handler return")
-            pass
 
         if self.gen_params.supervisor_mode:
 
             @def_method(m, self.sret)
             def _():
                 log.info(m, True, "Supervisor interrupt handler return")
-                pass
 
         @def_method(m, self.entry)
         def _(target_priv):
-            log.info(m, True, "Interrupt handler entry")
-            pass
+            log.info(m, True, "Interrupt handler entry to {}", target_priv)
 
         # mret/sret/entry conflicts cannot happen in real conditions - xret is called under precommit
         # this is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
         with Transaction().body(m):
             with m.If(self.entry.run):
-                with m.Switch(self.entry.data_in.target_priv):
+                priv = priv_mode.read(m).data
+                target_priv = self.entry.data_in.target_priv
+                log.assertion(m, priv <= target_priv, "Trap must not decrease privilege levels")
+                with m.Switch(target_priv):
                     if self.gen_params.supervisor_mode:
                         with m.Case(PrivilegeLevel.SUPERVISOR):
                             self.mstatus_sie.write(m, {"data": 0})
                             self.mstatus_spie.write(m, self.mstatus_sie.read(m).data)
-                            self.mstatus_spp.write(m, priv_mode.read(m).data != PrivilegeLevel.USER)
+                            self.mstatus_spp.write(m, priv != PrivilegeLevel.USER)
                             priv_mode.write(m, PrivilegeLevel.SUPERVISOR)
                     with m.Case(PrivilegeLevel.MACHINE):
                         self.mstatus_mie.write(m, {"data": 0})
                         self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
-                        self.mstatus_mpp.write(m, priv_mode.read(m).data)
+                        self.mstatus_mpp.write(m, priv)
                         priv_mode.write(m, PrivilegeLevel.MACHINE)
             with m.Elif(self.mret.run):
                 self.mstatus_mie.write(m, self.mstatus_mpie.read(m).data)
@@ -308,6 +303,7 @@ class InternalInterruptController(Component):
                     self.mstatus_spp.write(m, 0)
                     spp = self.mstatus_spp.read(m).data
                     priv_mode.write(m, Mux(spp, PrivilegeLevel.SUPERVISOR, PrivilegeLevel.USER))
+                    self.m_mode_csr.mstatus_mprv.write(m, 0)
 
         interrupt_priority = [
             InterruptCauseNumber.MEI,

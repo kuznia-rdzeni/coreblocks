@@ -774,6 +774,9 @@ class CSRUnitLayouts:
             ("rd", gen_params.isa.reg_cnt_log),
             ("rs1", gen_params.isa.reg_cnt_log),
         )
+        """Immediate layout used for CSR instructions.
+        Needed for re-encoding the instruction for xtval, when access is illegal.
+        """
         assert self.imm_layout.size == gen_params.isa.xlen
 
 
@@ -825,4 +828,7 @@ class PrivUnitLayouts:
             ("rs1", gen_params.isa.reg_cnt_log),
             ("rs2", gen_params.isa.reg_cnt_log),
         )
+        """Immediate layout used for SFENCE.VMA instruction.
+        Needed for re-encoding the instruction for xtval, when access is illegal.
+        """
         assert self.sfencevma_imm_layout.size == gen_params.isa.xlen
