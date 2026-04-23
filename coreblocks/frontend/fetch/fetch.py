@@ -153,7 +153,7 @@ class FetchUnit(Elaboratable):
 
             fetch_requests.write(
                 m,
-                pc=translated.addr,
+                pc=translated.vaddr,
                 access_fault=translated.access_fault,
                 page_fault=translated.page_fault,
             )

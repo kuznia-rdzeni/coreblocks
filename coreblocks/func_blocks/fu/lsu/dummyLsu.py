@@ -118,7 +118,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             arg = requests.read(m)
             translated_req = translated.read(m)
             paddr = translated_req.paddr
-            addr = translated_req.addr
+            addr = translated_req.vaddr
 
             m.d.av_comb += pma_checker.paddr.eq(paddr)
             m.d.av_comb += pmp_checker.paddr.eq(paddr)

@@ -89,6 +89,9 @@ class CommonLayoutFields:
         self.addr: LayoutListField = ("addr", gen_params.isa.xlen)
         """Memory address."""
 
+        self.vaddr: LayoutListField = ("vaddr", gen_params.isa.xlen)
+        """Memory address - used when both virtual and physical addresses are present."""
+
         self.paddr: LayoutListField = ("paddr", gen_params.phys_addr_bits)
         """Physical memory address."""
 
@@ -171,7 +174,7 @@ class AddressTranslationLayouts:
         self.request = make_layout(fields.addr)
 
         self.accept = make_layout(
-            fields.addr,
+            fields.vaddr,
             fields.paddr,
             ("page_fault", 1),
             ("access_fault", 1),
@@ -740,7 +743,7 @@ class LSULayouts:
 
         self.store: LayoutListField = ("store", 1)
 
-        self.issue = make_layout(fields.paddr, fields.addr, fields.data, fields.funct3, self.store)
+        self.issue = make_layout(fields.paddr, fields.vaddr, fields.data, fields.funct3, self.store)
 
         self.issue_out = make_layout(fields.exception, fields.cause)
 

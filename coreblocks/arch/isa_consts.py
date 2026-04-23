@@ -240,6 +240,18 @@ class SatpMode(IntEnum, shape=4):
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP mode encoding: {xlen}")
 
+    @classmethod
+    def mode_dependencies(cls, mode: "SatpMode") -> Set["SatpMode"]:
+        match mode:
+            case cls.BARE | cls.SV32 | cls.SV39:
+                return frozenset()
+            case cls.SV48:
+                return frozenset({cls.SV39})
+            case cls.SV57:
+                return frozenset({cls.SV48})
+            case _:
+                raise ValueError(f"Unsupported SATP mode: {mode}")
+
 
 class SatpLayout(StructLayout):
     ppn: Value

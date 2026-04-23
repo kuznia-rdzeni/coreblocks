@@ -163,7 +163,7 @@ class AddressTranslator(Elaboratable):
 
             resp_fwd.write(
                 m,
-                addr=addr,
+                vaddr=addr,
                 paddr=Cat(poffset, ppn),
                 page_fault=page_fault,
                 access_fault=access_fault,

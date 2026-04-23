@@ -1,15 +1,18 @@
 from typing import Collection
 
-from coreblocks.arch.isa_consts import SatpMode, SatpLayout
+from coreblocks.arch.isa_consts import SatpMode, SatpLayout, PAGE_SIZE_LOG
 
 
 class VirtualMemoryParameters:
     """Parameters for virtual memory support."""
 
     @staticmethod
-    def max_physical_address_bits(xlen: int) -> int:
+    def max_physical_address_bits(xlen: int, supported_schemes: Collection[SatpMode]) -> int:
+        if xlen == 32 and supported_schemes == {SatpMode.BARE}:
+            return 32  # without virtual memory only lower 32 bits of physical addresses are reachable
+
         satp_layout = SatpLayout(xlen)
-        return satp_layout["ppn"].width + 12
+        return satp_layout["ppn"].width + PAGE_SIZE_LOG
 
     def __init__(
         self,
@@ -39,6 +42,13 @@ class VirtualMemoryParameters:
         supported_for_xlen = SatpMode.valid_modes(xlen)
         if not self.supported_schemes <= supported_for_xlen:
             raise ValueError(f"Schemes {self.supported_schemes - supported_for_xlen} are not valid for XLEN={xlen}")
+
+        for mode in self.supported_schemes:
+            dependencies = SatpMode.mode_dependencies(mode)
+            if not dependencies <= self.supported_schemes:
+                raise ValueError(
+                    f"Schemes {dependencies - self.supported_schemes} are required by {mode} but not supported"
+                )
 
         self.xlen = xlen
         self.asidlen = asidlen

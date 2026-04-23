@@ -8,7 +8,7 @@ from transactron.lib import BasicFifo
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from coreblocks.interface.layouts import LSULayouts
+from coreblocks.interface.layouts import CommonLayoutFields, LSULayouts
 
 
 class LSURequester(Elaboratable):
@@ -105,10 +105,11 @@ class LSURequester(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        layouts = self.gen_params.get(CommonLayoutFields)
         m.submodules.args_fifo = args_fifo = BasicFifo(
             [
-                ("paddr", self.gen_params.phys_addr_bits),
-                ("addr", self.gen_params.isa.xlen),
+                layouts.vaddr,
+                layouts.paddr,
                 ("funct3", Funct3),
                 ("store", 1),
             ],
@@ -116,7 +117,7 @@ class LSURequester(Elaboratable):
         )
 
         @def_method(m, self.issue)
-        def _(paddr: Value, addr: Value, data: Value, funct3: Value, store: Value):
+        def _(paddr: Value, vaddr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
 
@@ -128,7 +129,7 @@ class LSURequester(Elaboratable):
                 m,
                 1,
                 "issue addr=0x{:08x} data=0x{:08x} funct3={} store={} aligned={}",
-                addr,
+                vaddr,
                 data,
                 funct3,
                 store,
@@ -142,7 +143,7 @@ class LSURequester(Elaboratable):
                     self.bus.request_read(m, addr=paddr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
-                args_fifo.write(m, paddr=paddr, addr=addr, funct3=funct3, store=store)
+                args_fifo.write(m, paddr=paddr, vaddr=vaddr, funct3=funct3, store=store)
             with m.Else():
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
@@ -178,6 +179,6 @@ class LSURequester(Elaboratable):
                     Mux(request_args.store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
                 )
 
-            return {"data": data, "exception": exception, "cause": cause, "addr": request_args.addr}
+            return {"data": data, "exception": exception, "cause": cause, "addr": request_args.vaddr}
 
         return m
