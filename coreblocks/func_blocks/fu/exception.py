@@ -59,7 +59,9 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
             priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
             instr_exc_on_second_half = Signal()
-            m.d.av_comb += instr_exc_on_second_half.eq((arg.imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF).any())
+            m.d.av_comb += instr_exc_on_second_half.eq(
+                (arg.imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF).any()
+            )
 
             with OneHotSwitch(m, arg.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
