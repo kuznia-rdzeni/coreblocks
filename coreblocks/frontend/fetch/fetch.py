@@ -11,7 +11,7 @@ from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
-from coreblocks.priv.pmp import PMPChecker
+from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 from coreblocks.arch import *
 from coreblocks.params import *
@@ -142,7 +142,10 @@ class FetchUnit(Elaboratable):
         # - check PMP execute permission (if PMP is enabled)
         #
 
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(
+            self.gen_params,
+            mode=PMPOperationMode.INSTRUCTION_FETCH,
+        )
 
         @def_method(m, self.fetch_request)
         def _(pc):
