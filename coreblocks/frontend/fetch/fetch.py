@@ -11,6 +11,7 @@ from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
+from coreblocks.priv.pmp import PMPChecker
 
 from coreblocks.arch import *
 from coreblocks.params import *
@@ -114,7 +115,7 @@ class FetchUnit(Elaboratable):
                 )
             self.cont(m, result)
 
-        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc), depth=2)
+        m.submodules.fetch_requests = fetch_requests = BasicFifo(make_layout(fields.pc, ("pmp_fault", 1)), depth=2)
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
@@ -131,13 +132,23 @@ class FetchUnit(Elaboratable):
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
+        # - check PMP execute permission (if PMP is enabled)
         #
+        pmp_addr = Signal(self.gen_params.isa.xlen)
+
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
+        m.d.comb += pmp_checker.addr.eq(pmp_addr)
+
         @def_method(m, self.fetch_request)
         def _(pc):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
-            self.icache.issue_req(m, addr=pc)
-            fetch_requests.write(m, pc=pc)
+            m.d.comb += pmp_addr.eq(pc)
+            with m.If(pmp_checker.result.x):
+                self.icache.issue_req(m, addr=pc)
+                fetch_requests.write(m, pc=pc, pmp_fault=0)
+            with m.Else():
+                fetch_requests.write(m, pc=pc, pmp_fault=1)
 
         #
         # State passed between stage 1 and stage 2
@@ -173,12 +184,21 @@ class FetchUnit(Elaboratable):
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             fetch_request = fetch_requests.read(m)
-            cache_resp = self.icache.accept_res(m)
 
             # The address of the fetch block.
             fetch_block_addr = params.fb_addr(fetch_request.pc)
             # The index (in instructions) of the first instruction that we should process.
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
+
+            # Conditionally read from icache or mark PMP fault.
+            cache_resp = Signal(self.icache.accept_res.layout_out)
+            access_fault = Signal()
+            with condition(m) as branch:
+                with branch(~fetch_request.pmp_fault):
+                    m.d.av_comb += assign(cache_resp, self.icache.accept_res(m))
+                    m.d.comb += access_fault.eq(cache_resp.error)
+                with branch(fetch_request.pmp_fault):
+                    m.d.comb += access_fault.eq(1)
 
             #
             # Expand compressed instructions from the fetch block.
@@ -232,9 +252,7 @@ class FetchUnit(Elaboratable):
             if Extension.ZCA in self.gen_params.isa.extensions:
                 instr_position_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
-                m.d.sync += prev_half_v.eq(
-                    (flushing_counter <= 1) & (cache_resp.error == 0) & ~is_rvc[-1] & instr_start[-1]
-                )
+                m.d.sync += prev_half_v.eq((flushing_counter <= 1) & (~access_fault) & ~is_rvc[-1] & instr_start[-1])
                 m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
                 m.d.sync += prev_half_addr.eq(fetch_block_addr)
             else:
@@ -247,7 +265,7 @@ class FetchUnit(Elaboratable):
                 m,
                 fb_addr=fetch_block_addr,
                 instr_valid=Mux(cache_resp.error, access_fault_instr_position, instr_position_mask),
-                access_fault=cache_resp.error,
+                access_fault=access_fault,
                 rvc=is_rvc,
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
