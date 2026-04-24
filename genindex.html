@@ -113,6 +113,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.ISA.__init__">__init__() (coreblocks.arch.isa.ISA method)</a>
 
       <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPCfgLayout.__init__">(coreblocks.arch.isa_consts.PMPCfgLayout method)</a>
+</li>
         <li><a href="coreblocks.backend.html#coreblocks.backend.announcement.ResultAnnouncement.__init__">(coreblocks.backend.announcement.ResultAnnouncement method)</a>
 </li>
         <li><a href="coreblocks.backend.html#coreblocks.backend.retirement.Retirement.__init__">(coreblocks.backend.retirement.Retirement method)</a>
@@ -257,12 +259,6 @@
 </li>
         <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion.__init__">(coreblocks.func_blocks.fu.lsu.pma.PMARegion method)</a>
 </li>
-        <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pmp.PMPCfgLayout.__init__">(coreblocks.func_blocks.fu.lsu.pmp.PMPCfgLayout method)</a>
-</li>
-        <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pmp.PMPChecker.__init__">(coreblocks.func_blocks.fu.lsu.pmp.PMPChecker method)</a>
-</li>
-        <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pmp.PMPLayout.__init__">(coreblocks.func_blocks.fu.lsu.pmp.PMPLayout method)</a>
-</li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulComponent.__init__">(coreblocks.func_blocks.fu.mul_unit.MulComponent method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulUnit.__init__">(coreblocks.func_blocks.fu.mul_unit.MulUnit method)</a>
@@ -377,6 +373,10 @@
 </li>
         <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.shadow.ShadowCSR.__init__">(coreblocks.priv.csr.shadow.ShadowCSR method)</a>
 </li>
+        <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.PMPChecker.__init__">(coreblocks.priv.pmp.PMPChecker method)</a>
+</li>
+        <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.PMPLayout.__init__">(coreblocks.priv.pmp.PMPLayout method)</a>
+</li>
         <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.exception.ExceptionInformationRegister.__init__">(coreblocks.priv.traps.exception.ExceptionInformationRegister method)</a>
 </li>
         <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.instr_counter.CoreInstructionCounter.__init__">(coreblocks.priv.traps.instr_counter.CoreInstructionCounter method)</a>
@@ -416,6 +416,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InterruptCauseNumber.__new__">(coreblocks.arch.isa_consts.InterruptCauseNumber method)</a>
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.__new__">(coreblocks.arch.isa_consts.Opcode method)</a>
+</li>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPAFlagEncoding.__new__">(coreblocks.arch.isa_consts.PMPAFlagEncoding method)</a>
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel.__new__">(coreblocks.arch.isa_consts.PrivilegeLevel method)</a>
 </li>
@@ -1160,13 +1162,6 @@
 </li>
       </ul></li>
       <li>
-    coreblocks.func_blocks.fu.lsu.pmp
-
-      <ul>
-        <li><a href="coreblocks.func_blocks.fu.lsu.html#module-coreblocks.func_blocks.fu.lsu.pmp">module</a>
-</li>
-      </ul></li>
-      <li>
     coreblocks.func_blocks.fu.mul_unit
 
       <ul>
@@ -1402,6 +1397,13 @@
 
       <ul>
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.shadow">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.priv.pmp
+
+      <ul>
+        <li><a href="coreblocks.priv.html#module-coreblocks.priv.pmp">module</a>
 </li>
       </ul></li>
       <li>
@@ -2883,8 +2885,6 @@
 </li>
         <li><a href="coreblocks.func_blocks.fu.lsu.html#module-coreblocks.func_blocks.fu.lsu.pma">coreblocks.func_blocks.fu.lsu.pma</a>
 </li>
-        <li><a href="coreblocks.func_blocks.fu.lsu.html#module-coreblocks.func_blocks.fu.lsu.pmp">coreblocks.func_blocks.fu.lsu.pmp</a>
-</li>
         <li><a href="coreblocks.func_blocks.fu.html#module-coreblocks.func_blocks.fu.mul_unit">coreblocks.func_blocks.fu.mul_unit</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.html#module-coreblocks.func_blocks.fu.priv">coreblocks.func_blocks.fu.priv</a>
@@ -2952,6 +2952,8 @@
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.double_counter">coreblocks.priv.csr.double_counter</a>
 </li>
         <li><a href="coreblocks.priv.csr.html#module-coreblocks.priv.csr.shadow">coreblocks.priv.csr.shadow</a>
+</li>
+        <li><a href="coreblocks.priv.html#module-coreblocks.priv.pmp">coreblocks.priv.pmp</a>
 </li>
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps">coreblocks.priv.traps</a>
 </li>
@@ -3086,12 +3088,16 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.N">N (coreblocks.arch.isa.Extension attribute)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_INF">NEG_INF (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPAFlagEncoding.NA4">NA4 (coreblocks.arch.isa_consts.PMPAFlagEncoding attribute)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_NORM">NEG_NORM (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPAFlagEncoding.NAPOT">NAPOT (coreblocks.arch.isa_consts.PMPAFlagEncoding attribute)</a>
+</li>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_INF">NEG_INF (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_NORM">NEG_NORM (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_SUB">NEG_SUB (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_ZERO">NEG_ZERO (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
@@ -3104,6 +3110,8 @@
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPAFlagEncoding.OFF">OFF (coreblocks.arch.isa_consts.PMPAFlagEncoding attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.OP">OP (coreblocks.arch.isa_consts.Opcode attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.OP32">OP32 (coreblocks.arch.isa_consts.Opcode attribute)</a>
@@ -3306,6 +3314,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR9">PMPADDR9 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPAFlagEncoding">PMPAFlagEncoding (class in coreblocks.arch.isa_consts)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPCFG0">PMPCFG0 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPCFG1">PMPCFG1 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3338,11 +3348,11 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPCFG9">PMPCFG9 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pmp.PMPCfgLayout">PMPCfgLayout (class in coreblocks.func_blocks.fu.lsu.pmp)</a>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPCfgLayout">PMPCfgLayout (class in coreblocks.arch.isa_consts)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pmp.PMPChecker">PMPChecker (class in coreblocks.func_blocks.fu.lsu.pmp)</a>
+      <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.PMPChecker">PMPChecker (class in coreblocks.priv.pmp)</a>
 </li>
-      <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pmp.PMPLayout">PMPLayout (class in coreblocks.func_blocks.fu.lsu.pmp)</a>
+      <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.PMPLayout">PMPLayout (class in coreblocks.priv.pmp)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_INF">POS_INF (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
@@ -3884,10 +3894,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TDATA1">TDATA1 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TDATA2">TDATA2 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TDATA3">TDATA3 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TIME">TIME (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3895,6 +3905,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TIMEH">TIMEH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.TM">TM (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PMPAFlagEncoding.TOR">TOR (coreblocks.arch.isa_consts.PMPAFlagEncoding attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.TP">TP (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
@@ -4259,7 +4271,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:04 2026-04-23.
+      <span class="lastupdated">Last updated on 09:49 2026-04-24.
       </span></p>
   </div>
 

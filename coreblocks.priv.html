@@ -108,6 +108,50 @@
 </ul>
 </div>
 </div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="module-coreblocks.priv.pmp">
+<span id="coreblocks-priv-pmp-module"></span><h2>coreblocks.priv.pmp module<a class="headerlink" href="#module-coreblocks.priv.pmp" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPChecker</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Implementation of physical memory protection checker.
+This is a combinational circuit with return value read from <cite>result</cite> output.</p>
+<p>M-mode accesses bypass PMP by default (result = 1/1/1) unless a matching
+locked entry (L=1) is found. S/U-mode accesses default to no access (0/0/0)
+if no entry matches.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>addr</strong><span class="classifier">Signal</span></dt><dd><p>Memory address, for which PMP checks are requested.</p>
+</dd>
+<dt><strong>result</strong><span class="classifier">PMPLayout</span></dt><dd><p>RWX permission bits for the given address based on current PMP configuration
+and privilege mode. Bits are set to 0 if access is denied.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPLayout</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev125)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="module-coreblocks.priv">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.priv" title="Permalink to this heading"></a></h2>
 </div>
@@ -125,7 +169,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 20:04 2026-04-23.
+      <span class="lastupdated">Last updated on 09:49 2026-04-24.
       </span></p>
   </div>
 
