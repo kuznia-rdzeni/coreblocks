@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777025687583,
+  "lastUpdate": 1777025690077,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -58056,6 +58056,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8491,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "93407779+dawidpawliczek4@users.noreply.github.com",
+            "name": "Dawid Pawliczek",
+            "username": "dawidpawliczek4"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fa0664fae36d630fa28b79bca8ce6dc44a46b924",
+          "message": "Integrate PMP (#881)",
+          "timestamp": "2026-04-24T11:48:11+02:00",
+          "tree_id": "ca31848cedc099d6e5c63804fa187503c138aaee",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/fa0664fae36d630fa28b79bca8ce6dc44a46b924"
+        },
+        "date": 1777025689293,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.54,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 43269,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3286,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2320,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8411,
             "unit": "LUT"
           }
         ]
