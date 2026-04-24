@@ -302,6 +302,7 @@ full_core_config = CoreConfiguration(
     pmp_register_count=16,
     frontend_superscalarity=2,
     announcement_superscalarity=2,
+    retirement_superscalarity=2,
 )
 
 # Core configuration used in internal testbenches
