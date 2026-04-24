@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
+from transactron.lib import BasicFifo
 from transactron.lib.connectors import FIFO
 from transactron.lib.logging import HardwareLogger
 from transactron.lib.simultaneous import condition
@@ -9,6 +10,9 @@ from transactron.utils import DependencyContext
 from transactron.utils.transactron_helpers import make_layout
 
 from coreblocks.arch import OpType
+from coreblocks.cache.dcache import DCache, DCacheBypass
+from coreblocks.cache.iface import CacheInterface
+from coreblocks.cache.refiller import SimpleCommonBusDataCacheRefiller
 from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.frontend.decoder import *
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
@@ -22,11 +26,62 @@ from coreblocks.interface.keys import (
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
-from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts
+from coreblocks.interface.layouts import DCacheLayouts, FuncUnitLayouts, LSULayouts
 from coreblocks.params import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 __all__ = ["LSUDummy", "LSUComponent"]
+
+
+class LSUDataPathRouter(Elaboratable, CacheInterface):
+    def __init__(self, gen_params: GenParams, cached_data_path: CacheInterface, mmio_data_path: CacheInterface) -> None:
+        self.gen_params = gen_params
+        layouts = gen_params.get(DCacheLayouts)
+
+        self.cached_data_path = cached_data_path
+        self.mmio_data_path = mmio_data_path
+
+        self.issue_req = Method(i=layouts.issue_req)
+        self.accept_res = Method(o=layouts.accept_res)
+        self.flush = Method()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
+        m.submodules.mmio_fifo = mmio_fifo = BasicFifo([("mmio", 1)], self.gen_params.dcache_params.request_depth)
+
+        @def_method(m, self.issue_req)
+        def _(addr: Value, data: Value, byte_mask: Value, store: Value):
+            m.d.av_comb += pma_checker.addr.eq(addr)
+
+            with condition(m) as branch:
+                with branch(pma_checker.result["mmio"]):
+                    self.mmio_data_path.issue_req(m, addr=addr, data=data, byte_mask=byte_mask, store=store)
+                with branch():
+                    self.cached_data_path.issue_req(m, addr=addr, data=data, byte_mask=byte_mask, store=store)
+
+            mmio_fifo.write(m, mmio=pma_checker.result["mmio"])
+
+        @def_method(m, self.accept_res)
+        def _():
+            route = mmio_fifo.read(m)
+            response = Signal(self.gen_params.get(DCacheLayouts).accept_res)
+
+            with condition(m) as branch:
+                with branch(route.mmio):
+                    m.d.comb += response.eq(self.mmio_data_path.accept_res(m))
+                with branch():
+                    m.d.comb += response.eq(self.cached_data_path.accept_res(m))
+
+            return response
+
+        @def_method(m, self.flush)
+        def _() -> None:
+            self.cached_data_path.flush(m)
+            self.mmio_data_path.flush(m)
+
+        return m
 
 
 class LSUDummy(FuncUnit, Elaboratable):
@@ -77,7 +132,28 @@ class LSUDummy(FuncUnit, Elaboratable):
         csr = self.dependency_manager.get_dependency(CSRInstancesKey())
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
-        m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
+
+        dcache_layouts = self.gen_params.get(DCacheLayouts)
+        if self.gen_params.dcache_params.enable:
+            m.submodules.dcache_refiller = dcache_refiller = SimpleCommonBusDataCacheRefiller(
+                dcache_layouts, self.gen_params.dcache_params, self.bus
+            )
+            m.submodules.cached_data_path = cached_data_path = DCache(
+                dcache_layouts, self.gen_params.dcache_params, dcache_refiller
+            )
+            dcache_refiller.get_writeback_data.provide(cached_data_path.provide_writeback_data)
+        else:
+            m.submodules.cached_data_path = cached_data_path = DCacheBypass(
+                dcache_layouts, self.gen_params.dcache_params, self.bus
+            )
+
+        m.submodules.mmio_data_path = mmio_data_path = DCacheBypass(
+            dcache_layouts, self.gen_params.dcache_params, self.bus
+        )
+        m.submodules.data_path_router = data_path_router = LSUDataPathRouter(
+            self.gen_params, cached_data_path, mmio_data_path
+        )
+        m.submodules.requester = requester = LSURequester(self.gen_params, data_path_router)
 
         request_layout = make_layout(
             ("data", self.fu_layouts.issue),

@@ -4,7 +4,7 @@ from transactron import Method
 
 from amaranth_types import HasElaborate
 
-__all__ = ["CacheInterface", "CacheRefillerInterface"]
+__all__ = ["CacheInterface", "CacheRefillerInterface", "DataCacheRefillerInterface"]
 
 
 class CacheInterface(HasElaborate, Protocol):
@@ -40,3 +40,23 @@ class CacheRefillerInterface(HasElaborate, Protocol):
 
     start_refill: Method
     accept_refill: Method
+
+
+class DataCacheRefillerInterface(CacheRefillerInterface):
+    """
+    Data Cache Refiller Interface.
+
+    Parameters
+    ----------
+    start_refill: Method
+        A method that is used to start a refill for a given cache line.
+    accept_refill: Method
+        A method that is used to accept one fetch block from the requested cache line.
+    start_writeback: Method
+        Writes dirty data from cache to memory
+    accept_writeback: Method
+        Accepts writeback result
+    """
+
+    start_writeback: Method
+    accept_writeback: Method

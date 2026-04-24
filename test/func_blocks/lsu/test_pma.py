@@ -35,7 +35,7 @@ class TestPMADirect(TestCaseWithSimulator):
             PMARegion(0x121, 0x130, False),
         ]
 
-        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions, dcache_enable=False))
         self.test_module = PMAChecker(self.gen_params)
 
         with self.run_simulation(self.test_module) as sim:
@@ -125,7 +125,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
             PMARegion(0x10, 0x1F, False),
             PMARegion(0x20, 0x2F, True),
         ]
-        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions, dcache_enable=False))
         self.test_module = PMAIndirectTestCircuit(self.gen_params)
         self.precommit_enabled = False
 
