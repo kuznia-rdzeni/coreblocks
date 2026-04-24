@@ -18,7 +18,7 @@ from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 class TestPMADirect(TestCaseWithSimulator):
     async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for i in range(region.start, region.end + 1):
-            sim.set(self.test_module.addr, i)
+            sim.set(self.test_module.paddr, i)
             mmio = sim.get(self.test_module.result.mmio)
             assert mmio == region.mmio
 

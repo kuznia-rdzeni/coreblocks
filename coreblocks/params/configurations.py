@@ -117,6 +117,9 @@ class _CoreConfigurationDataClass:
         Number of writable ASID bits in SATP.
     supported_vm_schemes: Collection[SatpMode]
         SATP MODE values accepted by this core.
+    phys_addr_bits: int | None
+        Width of physical addresses in bits. If not set, defaults to 34 for RV32 if supported_vm_schemes has
+        SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     pmp_register_count: int
@@ -185,6 +188,7 @@ class _CoreConfigurationDataClass:
 
     asidlen: int = 0
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
+    phys_addr_bits: int | None = None
     hpm_counters_count: int = 0
 
     pmp_register_count: int = 0

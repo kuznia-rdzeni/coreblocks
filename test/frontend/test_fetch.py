@@ -175,10 +175,10 @@ class TestFetchUnit(TestCaseWithSimulator):
     @def_method_mock(
         lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
-    def issue_req_mock(self, addr):
+    def issue_req_mock(self, paddr):
         @MethodMock.effect
         def eff():
-            self.input_q.append(addr)
+            self.input_q.append(paddr)
 
     @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
@@ -204,11 +204,13 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
-            access_fault = FetchLayouts.AccessFaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
+            access_fault = FetchLayouts.FaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
             if not instr["rvc"]:
                 if instr["pc"] + 2 in self.memerr:
                     access_fault = (
-                        FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF if not access_fault else access_fault
+                        FetchLayouts.FaultFlag.ACCESS_FAULT | FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF
+                        if not access_fault
+                        else access_fault
                     )
 
             print(instr, v["pc"], v["access_fault"])
@@ -236,7 +238,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                     resume_pc = (
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
                     ) + self.gen_params.fetch_block_bytes * (
-                        2 if access_fault == FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF else 1
+                        2 if FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF in access_fault else 1
                     )
 
                 self.backend_redirect.append(resume_pc)

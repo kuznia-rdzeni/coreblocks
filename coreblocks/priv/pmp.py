@@ -25,7 +25,7 @@ class PMPChecker(Elaboratable):
 
     Attributes
     ----------
-    addr : Signal
+    paddr : Signal
         Memory address, for which PMP checks are requested.
     result : PMPLayout
         RWX permission bits for the given address based on current PMP configuration
@@ -35,7 +35,7 @@ class PMPChecker(Elaboratable):
     def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
         self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
-        self.addr = Signal(gen_params.isa.xlen)
+        self.paddr = Signal(gen_params.phys_addr_bits)
         self.result = Signal(PMPLayout())
 
     def elaborate(self, platform) -> HasElaborate:
@@ -70,11 +70,11 @@ class PMPChecker(Elaboratable):
                 with m.Case(PMPAFlagEncoding.TOR):
                     lower = addr_vals[i - 1][grain:] if i > 0 else 0
                     m.d.comb += entry_match.eq(
-                        (self.addr[2 + grain :] >= lower) & (self.addr[2 + grain :] < addr_val[grain:])
+                        (self.paddr[2 + grain :] >= lower) & (self.paddr[2 + grain :] < addr_val[grain:])
                     )
                 with m.Case(PMPAFlagEncoding.NA4):
                     if grain == 0:
-                        m.d.comb += entry_match.eq(self.addr[2:] == addr_val)
+                        m.d.comb += entry_match.eq(self.paddr[2:] == addr_val)
                     else:
                         m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
@@ -85,7 +85,7 @@ class PMPChecker(Elaboratable):
                     start_bit = max(0, grain - 1)
                     napot_mask = addr_val[start_bit:] ^ (addr_val[start_bit:] + 1)
                     m.d.comb += entry_match.eq(
-                        (self.addr[2 + start_bit :] & ~napot_mask) == (addr_val[start_bit:] & ~napot_mask)
+                        (self.paddr[2 + start_bit :] & ~napot_mask) == (addr_val[start_bit:] & ~napot_mask)
                     )
 
             entry_matches.append(entry_match)
