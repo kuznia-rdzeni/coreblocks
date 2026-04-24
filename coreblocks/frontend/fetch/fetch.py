@@ -141,10 +141,8 @@ class FetchUnit(Elaboratable):
         # - send a request to the instruction cache
         # - check PMP execute permission (if PMP is enabled)
         #
-        pmp_addr = Signal(self.gen_params.isa.xlen)
 
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
-        m.d.comb += pmp_checker.paddr.eq(pmp_addr)
 
         @def_method(m, self.fetch_request)
         def _(pc):
@@ -155,9 +153,9 @@ class FetchUnit(Elaboratable):
 
         with Transaction().body(m):
             translated = addr_translator.accept(m)
-            m.d.av_comb += pmp_addr.eq(translated.paddr)
-
             access_fault = Signal()
+
+            m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
             m.d.av_comb += access_fault.eq(translated.access_fault | ~pmp_checker.result.x)
 
             with m.If(~translated.page_fault & ~access_fault):
