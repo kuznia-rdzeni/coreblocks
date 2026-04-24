@@ -316,9 +316,8 @@ class WishboneMuxer(Component):
     ----------
     wb_params: WishboneParameters
         Parameters for bus generation.
-    num_slaves: int
-        Number of slave devices to multiplex.
     ssel_tga: Signal
+        Nuber of slave devices is determied from `ssel_tga` bit width.
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
         is asserted.
@@ -338,19 +337,18 @@ class WishboneMuxer(Component):
     master_wb: WishboneInterface
     slaves: list[WishboneInterface]
 
-    def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
+    def __init__(self, wb_params: WishboneParameters, ssel_tga: Signal):
+        self.num_slaves = ssel_tga.shape().width
         super().__init__(
             {
                 "master_wb": In(WishboneInterface(wb_params).signature),
-                "slaves": Out(WishboneInterface(wb_params).signature).array(num_slaves),
+                "slaves": Out(WishboneInterface(wb_params).signature).array(self.num_slaves),
             }
         )
         self.sselTGA = ssel_tga
 
-        select_bits = ssel_tga.shape().width
-        assert select_bits == num_slaves
-        self.txn_sel = Signal(select_bits)
-        self.txn_sel_r = Signal(select_bits)
+        self.txn_sel = Signal(self.num_slaves)
+        self.txn_sel_r = Signal(self.num_slaves)
 
         self.prev_stb = Signal()
 
