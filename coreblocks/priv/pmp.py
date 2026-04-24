@@ -2,20 +2,16 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
 from transactron.core import TModule
+from transactron.utils import DependencyContext
 
-from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel
+from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
+from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import *
-from coreblocks.priv.csr.csr_instances import MachineModeCSRRegisters
 
 
 class PMPLayout(data.StructLayout):
     def __init__(self):
         super().__init__({"r": 1, "w": 1, "x": 1})
-
-
-class PMPCfgLayout(data.StructLayout):
-    def __init__(self):
-        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
 
 
 class PMPChecker(Elaboratable):
@@ -36,25 +32,29 @@ class PMPChecker(Elaboratable):
         and privilege mode. Bits are set to 0 if access is denied.
     """
 
-    def __init__(self, gen_params: GenParams, csr: MachineModeCSRRegisters) -> None:
+    def __init__(self, gen_params: GenParams) -> None:
         self.gen_params = gen_params
-        self.csr = csr
+        self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
         self.paddr = Signal(gen_params.phys_addr_bits)
-
         self.result = Signal(PMPLayout())
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
+
+        grain = self.gen_params.pmp_grain
+        n = self.gen_params.pmp_register_count
+
+        if n == 0:
+            m.d.comb += self.result.r.eq(1)
+            m.d.comb += self.result.w.eq(1)
+            m.d.comb += self.result.x.eq(1)
+            return m
 
         priv_mode = self.csr.priv_mode.value
         with m.If(priv_mode == PrivilegeLevel.MACHINE):
             m.d.comb += self.result.r.eq(1)
             m.d.comb += self.result.w.eq(1)
             m.d.comb += self.result.x.eq(1)
-
-        n = self.gen_params.pmp_register_count
-        if n == 0:
-            return m
 
         entry_matches = []
         cfgs = []
@@ -72,13 +72,25 @@ class PMPChecker(Elaboratable):
                 with m.Case(PMPAFlagEncoding.OFF):
                     m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.TOR):
-                    lower = addr_vals[i - 1] if i > 0 else 0
-                    m.d.comb += entry_match.eq((self.paddr[2:] >= lower) & (self.paddr[2:] < addr_val))
+                    lower = addr_vals[i - 1][grain:] if i > 0 else 0
+                    m.d.comb += entry_match.eq(
+                        (self.paddr[2 + grain :] >= lower) & (self.paddr[2 + grain :] < addr_val[grain:])
+                    )
                 with m.Case(PMPAFlagEncoding.NA4):
-                    m.d.comb += entry_match.eq(self.paddr[2:] == addr_val)
+                    if grain == 0:
+                        m.d.comb += entry_match.eq(self.paddr[2:] == addr_val)
+                    else:
+                        m.d.comb += entry_match.eq(0)
                 with m.Case(PMPAFlagEncoding.NAPOT):
-                    napot_mask = addr_val ^ (addr_val + 1)
-                    m.d.comb += entry_match.eq((self.paddr[2:] & ~napot_mask) == (addr_val & ~napot_mask))
+                    # NAPOT region size is encoded by trailing ones in pmpaddr.
+                    # XOR with (pmpaddr + 1) extracts those trailing ones as a mask.
+                    # Bits below the mask define the region; bits above must match.
+                    # With grain > 0, lower bits are forced to 1 so we skip them.
+                    start_bit = max(0, grain - 1)
+                    napot_mask = addr_val[start_bit:] ^ (addr_val[start_bit:] + 1)
+                    m.d.comb += entry_match.eq(
+                        (self.paddr[2 + start_bit :] & ~napot_mask) == (addr_val[start_bit:] & ~napot_mask)
+                    )
 
             entry_matches.append(entry_match)
 

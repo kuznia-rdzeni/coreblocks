@@ -10,8 +10,7 @@ from amaranth import Elaboratable, Module
 from transactron.core import Method
 from transactron.lib import Adapter, BasicFifo
 from transactron.testing.method_mock import MethodMock
-from transactron.utils import ModuleConnector
-from transactron.utils.dependencies import DependencyContext
+from transactron.utils import ModuleConnector, DependencyContext
 from transactron.testing import (
     TestCaseWithSimulator,
     TestbenchIO,
@@ -68,8 +67,8 @@ class TestFetchUnit(TestCaseWithSimulator):
             )
         )
 
-        self.csr = CSRInstances(self.gen_params)
-        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr)
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, depth=2)
@@ -81,7 +80,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(self.icache, self.fifo, self.fetch, self.csr)
+        self.m = ModuleConnector(self.csr_instances, self.icache, self.fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}

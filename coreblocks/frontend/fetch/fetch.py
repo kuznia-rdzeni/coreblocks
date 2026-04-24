@@ -11,6 +11,7 @@ from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
+from coreblocks.priv.pmp import PMPChecker
 
 from coreblocks.arch import *
 from coreblocks.params import *
@@ -138,7 +139,13 @@ class FetchUnit(Elaboratable):
         # Fetch - stage 0
         # ================
         # - send a request to the instruction cache
+        # - check PMP execute permission (if PMP is enabled)
         #
+        pmp_addr = Signal(self.gen_params.isa.xlen)
+
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
+        m.d.comb += pmp_checker.paddr.eq(pmp_addr)
+
         @def_method(m, self.fetch_request)
         def _(pc):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
@@ -148,13 +155,18 @@ class FetchUnit(Elaboratable):
 
         with Transaction().body(m):
             translated = addr_translator.accept(m)
-            with m.If(~translated.page_fault & ~translated.access_fault):
+            m.d.av_comb += pmp_addr.eq(translated.paddr)
+
+            access_fault = Signal()
+            m.d.av_comb += access_fault.eq(translated.access_fault | ~pmp_checker.result.x)
+
+            with m.If(~translated.page_fault & ~access_fault):
                 self.icache.issue_req(m, paddr=translated.paddr)
 
             fetch_requests.write(
                 m,
                 pc=translated.vaddr,
-                access_fault=translated.access_fault,
+                access_fault=access_fault,
                 page_fault=translated.page_fault,
             )
 
@@ -192,6 +204,13 @@ class FetchUnit(Elaboratable):
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             fetch_request = fetch_requests.read(m)
+
+            # The address of the fetch block.
+            fetch_block_addr = params.fb_addr(fetch_request.pc)
+            # The index (in instructions) of the first instruction that we should process.
+            fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
+
+            # Conditionally read from icache or mark fault
             cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
             access_fault = Signal(FetchLayouts.FaultFlag)
 
@@ -206,11 +225,6 @@ class FetchUnit(Elaboratable):
                 with branch():
                     m.d.av_comb += cache_resp.eq(self.icache.accept_res(m))
                     m.d.av_comb += access_fault.eq(Mux(cache_resp.error, FetchLayouts.FaultFlag.ACCESS_FAULT, 0))
-
-            # The address of the fetch block.
-            fetch_block_addr = params.fb_addr(fetch_request.pc)
-            # The index (in instructions) of the first instruction that we should process.
-            fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
             #
             # Expand compressed instructions from the fetch block.

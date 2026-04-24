@@ -16,6 +16,8 @@ __all__ = [
     "PrivilegeLevel",
     "InterruptCauseNumber",
     "XlenEncoding",
+    "PMPAFlagEncoding",
+    "PMPCfgLayout",
     "PAGE_SIZE",
     "PAGE_SIZE_LOG",
 ]
@@ -278,6 +280,11 @@ class SatpLayout(StructLayout):
                 )
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP layout: {xlen}")
+
+
+class PMPCfgLayout(StructLayout):
+    def __init__(self):
+        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
 
 
 PAGE_SIZE_LOG = 12
