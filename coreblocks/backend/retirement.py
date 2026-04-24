@@ -223,10 +223,10 @@ class Retirement(Elaboratable):
                     tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
                     sel_mask = Signal.like(tag_incr_mask)
                     m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
-                    m.d.av_comb += sel_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.count))
+                    m.d.av_comb += sel_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
                     m.d.av_comb += count.eq(count_trailing_zeros(sel_mask))
 
-                    self.rob_retire(m, count=rob_entries.count)
+                    self.rob_retire(m, count=count)
 
                     with m.If((tag_incr_mask & ~(-1 << count)).any()):
                         self.checkpoint_tag_free(m)
