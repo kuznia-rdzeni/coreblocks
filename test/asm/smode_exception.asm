@@ -1,4 +1,10 @@
 _start:
+	# Configure PMP: allow all access for S-mode
+	li x1, 0x1F
+	csrw pmpcfg0, x1
+	li x1, -1
+	csrw pmpaddr0, x1
+
 	li x31, 0xde
 
 	la x1, machine_trap
