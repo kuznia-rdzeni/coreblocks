@@ -113,7 +113,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 
-        self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params))
+        self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params), exclude=["increment_counter"])
         self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)

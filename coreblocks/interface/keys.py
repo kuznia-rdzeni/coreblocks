@@ -26,6 +26,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "RollbackKey",
+    "InstructionTaggedCounterKey",
 ]
 
 
@@ -114,6 +115,17 @@ class RollbackKey(UnifierKey, unifier=MethodProduct.create):
     """
     Collects method that want to be notifed about tag rollback event.
     Expected layout is `RATLayouts.rollback_in`.
+    """
+
+    pass
+
+
+@dataclass(frozen=True)
+class InstructionTaggedCounterKey(ListKey[tuple[str, Method]]):
+    """
+    Collects methods called on instruction issue, paired with FU name.
+    The method must have a tag argument, which will be passed to a `TaggedCounter`.
+    A separate counter will be created for different tag types.
     """
 
     pass

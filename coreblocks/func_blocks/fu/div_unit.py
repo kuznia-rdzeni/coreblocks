@@ -67,9 +67,8 @@ class DivUnit(FuncUnitBase[DivFn]):
         def _():
             divider.clear(m)
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             flip_sign = Signal(1)  # if result is negative number
@@ -81,7 +80,7 @@ class DivUnit(FuncUnitBase[DivFn]):
             def _abs(s: Value) -> Value:
                 return Mux(s.as_signed() < 0, -s, s)
 
-            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, arg.decode_fn) as OneHotCase:
                 with OneHotCase(DivFn.Fn.DIVU):
                     m.d.av_comb += flip_sign.eq(0)
                     m.d.av_comb += rem_res.eq(0)

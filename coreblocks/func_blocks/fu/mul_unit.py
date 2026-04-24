@@ -132,9 +132,8 @@ class MulUnit(FuncUnitBase[MulFn]):
         #
         # half_sign_bit = xlen // 2 - 1  # position of sign bit considering only half of input being used
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
             i1, i2 = get_input(arg)
 
             value1 = Signal(self.gen_params.isa.xlen)  # input value for multiplier submodule
@@ -147,7 +146,7 @@ class MulUnit(FuncUnitBase[MulFn]):
             # which part of result we want upper or lower part. In the future, it would be a great improvement
             # to save result for chain multiplication of this same numbers, but with different parts as
             # results
-            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, arg.decode_fn) as OneHotCase:
                 with OneHotCase(MulFn.Fn.MUL):  # MUL
                     # In this case we care only about lower part of number, so it does not matter if it is
                     # interpreted as binary number or U2 encoded number, so we set result to be interpreted as

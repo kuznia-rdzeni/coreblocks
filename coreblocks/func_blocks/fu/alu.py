@@ -237,28 +237,16 @@ class AluFuncUnit(FuncUnitBase[AluFn]):
     def __init__(self, gen_params: GenParams, fn=AluFn()):
         super().__init__(gen_params, fn)
 
-        self.perf_instr = TaggedCounter(
-            "backend.fu.alu.instr",
-            "Counts of instructions executed by the jumpbranch unit",
-            tags=AluFn.Fn,
-        )
-
     def elaborate(self, platform):
         m = super().elaborate(platform)
 
-        m.submodules += [self.perf_instr]
-
         m.submodules.alu = alu = Alu(self.gen_params, alu_fn=self.fn)
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
-            m.d.av_comb += alu.fn.eq(self.decoder.decode_fn)
-
+            m.d.av_comb += alu.fn.eq(arg.decode_fn)
             m.d.av_comb += alu.in1.eq(arg.s1_val)
             m.d.av_comb += alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
-
-            self.perf_instr.incr(m, self.decoder.decode_fn)
 
             self.push_result(m, rob_id=arg.rob_id, result=alu.out, rp_dst=arg.rp_dst, exception=0)
 

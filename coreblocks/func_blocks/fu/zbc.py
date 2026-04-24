@@ -184,10 +184,8 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
 
             self.push_result(m, rob_id=params.rob_id, rp_dst=params.rp_dst, result=reversed_result, exception=0)
 
-        @def_method(m, self.issue)
-        def _(exec_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag):
-            m.d.av_comb += self.decoder.exec_fn.eq(exec_fn)
-
+        @def_method(m, self.issue_decoded)
+        def _(exec_fn, decode_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag):
             i1 = s1_val
             i2 = Mux(imm, imm, s2_val)
 
@@ -196,7 +194,7 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
             high_res = Signal(1)
             rev_res = Signal(1)
 
-            with OneHotSwitch(m, self.decoder.decode_fn) as OneHotCase:
+            with OneHotSwitch(m, decode_fn) as OneHotCase:
                 with OneHotCase(ZbcFn.Fn.CLMUL):
                     m.d.av_comb += high_res.eq(0)
                     m.d.av_comb += rev_res.eq(0)

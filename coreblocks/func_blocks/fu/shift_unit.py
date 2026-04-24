@@ -83,11 +83,9 @@ class ShiftFuncUnit(FuncUnitBase[ShiftUnitFn]):
 
         m.submodules.shift_alu = shift_alu = ShiftUnit(self.gen_params, shift_unit_fn=self.fn)
 
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.av_comb += self.decoder.exec_fn.eq(arg.exec_fn)
-            m.d.av_comb += shift_alu.fn.eq(self.decoder.decode_fn)
-
+            m.d.av_comb += shift_alu.fn.eq(arg.decode_fn)
             m.d.av_comb += shift_alu.in1.eq(arg.s1_val)
             m.d.av_comb += shift_alu.in2.eq(Mux(arg.imm, arg.imm, arg.s2_val))
 

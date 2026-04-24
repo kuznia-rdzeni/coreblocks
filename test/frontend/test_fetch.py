@@ -164,6 +164,10 @@ class TestFetchUnit(TestCaseWithSimulator):
             for i in range(0, self.gen_params.fetch_block_bytes, 2):
                 fetch_block |= load_or_gen_mem(req_addr + i) << (8 * i)
                 if req_addr + i in self.memerr:
+                    if random.random() < 0.3:
+                        fetch_block = 0
+                    elif random.random() < 0.3:
+                        fetch_block = random.randrange(1 << (self.gen_params.fetch_block_bytes * 8))
                     bad_addr = True
 
             self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
@@ -200,16 +204,21 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
-            access_fault = instr["pc"] in self.memerr
+            access_fault = FetchLayouts.AccessFaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
             if not instr["rvc"]:
-                access_fault |= instr["pc"] + 2 in self.memerr
+                if instr["pc"] + 2 in self.memerr:
+                    access_fault = (
+                        FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF if not access_fault else access_fault
+                    )
 
+            print(instr, v["pc"], v["access_fault"])
             assert v["pc"] == instr["pc"]
             assert v["access_fault"] == access_fault
 
-            instr_data = instr["instr"]
-            if (instr_data & 0b11) == 0b11:
-                assert v["instr"] == instr_data
+            if not access_fault:
+                instr_data = instr["instr"]
+                if (instr_data & 0b11) == 0b11:
+                    assert v["instr"] == instr_data
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 await self.random_wait(sim, 5)
@@ -226,7 +235,10 @@ class TestFetchUnit(TestCaseWithSimulator):
                     # Resume from the next fetch block
                     resume_pc = (
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
-                    ) + self.gen_params.fetch_block_bytes
+                    ) + self.gen_params.fetch_block_bytes * (
+                        2 if access_fault == FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF else 1
+                    )
+
                 self.backend_redirect.append(resume_pc)
 
                 return True
@@ -270,7 +282,7 @@ class TestFetchUnit(TestCaseWithSimulator):
             self.last_redirect = None
 
     def run_sim(self):
-        with self.run_simulation(self.m) as sim:
+        with self.run_simulation(self.m, max_cycles=1000) as sim:
             sim.add_process(self.cache_process)
             sim.add_process(self.requester)
             sim.add_testbench(self.fetch_out_check)
@@ -431,6 +443,16 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         # We will resume from the next fetch block
         self.pc = pc + self.gen_params.fetch_block_bytes
+
+        if self.with_rvc:
+            # Access fault on sencond half on instruction
+            for _ in range(self.gen_params.fetch_width - 1):
+                self.gen_non_branch_instr(rvc=True)
+            pc = self.gen_non_branch_instr(rvc=False)  # 4 byte instruction crossing block
+            self.memerr.add(pc + 2)
+
+            # We will resume from next valid block
+            self.pc = pc + 2 + self.gen_params.fetch_block_bytes
 
         self.gen_non_branch_instr(rvc=False)
 
