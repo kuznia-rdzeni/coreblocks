@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth_types import HasElaborate
 from transactron.core import TModule
-from transactron.utils import DependencyContext
+from transactron.utils import DependencyContext, assign
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
 from coreblocks.interface.keys import CSRInstancesKey
@@ -45,16 +45,12 @@ class PMPChecker(Elaboratable):
         n = self.gen_params.pmp_register_count
 
         if n == 0:
-            m.d.comb += self.result.r.eq(1)
-            m.d.comb += self.result.w.eq(1)
-            m.d.comb += self.result.x.eq(1)
+            m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
             return m
 
         priv_mode = self.csr.priv_mode.value
         with m.If(priv_mode == PrivilegeLevel.MACHINE):
-            m.d.comb += self.result.r.eq(1)
-            m.d.comb += self.result.w.eq(1)
-            m.d.comb += self.result.x.eq(1)
+            m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
 
         entry_matches = []
         cfgs = []
@@ -108,8 +104,6 @@ class PMPChecker(Elaboratable):
         selected_l = (one_hot & l_bits).any()
 
         with m.If(matches.any() & ((priv_mode != PrivilegeLevel.MACHINE) | selected_l)):
-            m.d.comb += self.result.r.eq(selected_r)
-            m.d.comb += self.result.w.eq(selected_w)
-            m.d.comb += self.result.x.eq(selected_x)
+            m.d.comb += assign(self.result, {"r": selected_r, "w": selected_w, "x": selected_x})
 
         return m
