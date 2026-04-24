@@ -49,12 +49,8 @@ class Retirement(Elaboratable):
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
         )
-        self.trap_entry = Method(i=[("target_priv", PrivilegeLevel)])
+        self.trap_entry = Method(i=[("cause", gen_params.isa.xlen)], o=[("target_priv", PrivilegeLevel)])
         interrupt_controller_layouts = gen_params.get(InternalInterruptControllerLayouts)
-        self.get_trap_target_priv = Method(
-            i=interrupt_controller_layouts.get_trap_target_priv_i,
-            o=interrupt_controller_layouts.get_trap_target_priv_o,
-        )
         self.async_interrupt_cause = Method(o=interrupt_controller_layouts.interrupt_cause)
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
@@ -189,7 +185,7 @@ class Retirement(Elaboratable):
 
                         with m.If(arch_trap):
                             # Register RISC-V architectural trap in CSRs.
-                            target_priv = self.get_trap_target_priv(m, cause=cause_entry).data
+                            target_priv = self.trap_entry(m, cause=cause_entry).target_priv
 
                             def set_trap_csrs(cause_reg, epc_reg, tval_reg):
                                 cause_reg.write(m, cause_entry)
@@ -205,7 +201,6 @@ class Retirement(Elaboratable):
                                     set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
 
                             m.d.sync += trap_target_priv.eq(target_priv)
-                            self.trap_entry(m, target_priv=target_priv)
 
                         # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):

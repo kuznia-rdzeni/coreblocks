@@ -120,16 +120,11 @@ class InternalInterruptController(Component):
         self.mret = Method()
         self.dm.add_dependency(MretKey(), self.mret)
 
-        self.entry = Method(i=[("target_priv", PrivilegeLevel)])
+        self.entry = Method(i=[("cause", gen_params.isa.xlen)], o=[("target_priv", PrivilegeLevel)])
 
         if gen_params.supervisor_mode:
             self.sret = Method()
             self.dm.add_dependency(SretKey(), self.sret)
-
-        self.get_trap_target_priv = Method(
-            i=internal_layouts.get_trap_target_priv_i,
-            o=internal_layouts.get_trap_target_priv_o,
-        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -140,42 +135,10 @@ class InternalInterruptController(Component):
 
         if self.gen_params.supervisor_mode:
             m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg]
-            if self.medelegh:
+            if self.medelegh is not None:
                 m.submodules += [self.medelegh]
 
         priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
-
-        @def_method(m, self.get_trap_target_priv)
-        def _(cause):
-            if not self.gen_params.supervisor_mode:
-                return {"data": PrivilegeLevel.MACHINE}
-
-            cause_num = Signal(self.gen_params.isa.xlen - 1)
-            is_interrupt = Signal()
-            m.d.av_comb += Cat(cause_num, is_interrupt).eq(cause)
-
-            edeleg = Signal(64)
-            ideleg = self.mideleg.read(m).data
-            current_priv = priv_mode.read(m).data
-
-            if self.medelegh:
-                m.d.av_comb += edeleg.eq(Cat(self.medeleg.read(m).data, self.medelegh.read(m).data))
-            else:
-                m.d.av_comb += edeleg.eq(self.medeleg.read(m).data)
-
-            target_priv = Signal(PrivilegeLevel)
-            with m.If(is_interrupt):
-                m.d.av_comb += target_priv.eq(
-                    Mux(ideleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
-                )
-            with m.Elif(current_priv < PrivilegeLevel.MACHINE):
-                m.d.av_comb += target_priv.eq(
-                    Mux(edeleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
-                )
-            with m.Else():
-                m.d.av_comb += target_priv.eq(PrivilegeLevel.MACHINE)
-
-            return {"data": target_priv}
 
         interrupt_enable_m = Signal()
         interrupt_enable_s = Signal()
@@ -266,24 +229,54 @@ class InternalInterruptController(Component):
                 log.info(m, True, "Supervisor interrupt handler return")
 
         @def_method(m, self.entry)
-        def _(target_priv):
+        def _(cause):
+            cause_num = Signal(self.gen_params.isa.xlen - 1)
+            is_interrupt = Signal()
+            m.d.av_comb += Cat(cause_num, is_interrupt).eq(cause)
+
+            target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
+
+            if self.gen_params.supervisor_mode:
+                with m.If(is_interrupt):
+                    ideleg = self.mideleg.read(m).data
+                    m.d.av_comb += target_priv.eq(
+                        Mux(ideleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
+                    )
+                with m.Else():
+                    edeleg = Signal(64)
+
+                    if self.medelegh is not None:
+                        m.d.av_comb += edeleg.eq(Cat(self.medeleg.read(m).data, self.medelegh.read(m).data))
+                    else:
+                        m.d.av_comb += edeleg.eq(self.medeleg.read(m).data)
+
+                    with m.If(priv_mode.read(m).data < PrivilegeLevel.MACHINE):
+                        m.d.av_comb += target_priv.eq(
+                            Mux(edeleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
+                        )
+                    with m.Else():
+                        m.d.av_comb += target_priv.eq(PrivilegeLevel.MACHINE)
+
             log.info(m, True, "Interrupt handler entry to {}", target_priv)
+            return {"target_priv": target_priv}
 
         # mret/sret/entry conflicts cannot happen in real conditions - xret is called under precommit
         # this is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
         with Transaction().body(m):
             with m.If(self.entry.run):
                 priv = priv_mode.read(m).data
-                target_priv = self.entry.data_in.target_priv
-                log.assertion(m, priv <= target_priv, "Trap must not decrease privilege levels")
+                target_priv = self.entry.data_out.target_priv
+                log.assertion(m, target_priv >= priv, "Trap must not decrease privilege levels")
                 with m.Switch(target_priv):
                     if self.gen_params.supervisor_mode:
                         with m.Case(PrivilegeLevel.SUPERVISOR):
+                            log.info(m, True, "Entering supervisor interrupt handler")
                             self.mstatus_sie.write(m, {"data": 0})
                             self.mstatus_spie.write(m, self.mstatus_sie.read(m).data)
                             self.mstatus_spp.write(m, priv != PrivilegeLevel.USER)
                             priv_mode.write(m, PrivilegeLevel.SUPERVISOR)
                     with m.Case(PrivilegeLevel.MACHINE):
+                        log.info(m, True, "Entering machine interrupt handler")
                         self.mstatus_mie.write(m, {"data": 0})
                         self.mstatus_mpie.write(m, self.mstatus_mie.read(m).data)
                         self.mstatus_mpp.write(m, priv)

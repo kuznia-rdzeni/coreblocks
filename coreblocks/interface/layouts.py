@@ -808,9 +808,6 @@ class InternalInterruptControllerLayouts:
 
         self.interrupt_cause = make_layout(self.cause)
 
-        self.get_trap_target_priv_i = make_layout(self.cause)
-        self.get_trap_target_priv_o = make_layout(("data", PrivilegeLevel))
-
 
 class CoreInstructionCounterLayouts:
     def __init__(self, gen_params: GenParams):
