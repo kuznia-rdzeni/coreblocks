@@ -4,6 +4,7 @@ from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule
 from transactron.lib import Connect, Pipe, WideFifo
+from transactron.lib import logging
 from transactron.utils import OneHotSwitchDynamic, assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -13,6 +14,9 @@ from coreblocks.arch.optypes import OpType
 from coreblocks.interface.keys import CoreStateKey
 
 __all__ = ["Scheduler"]
+
+
+log = logging.HardwareLogger("frontend.scheduler")
 
 
 class RegAllocation(Elaboratable):
@@ -374,10 +378,13 @@ class RSInsertion(Elaboratable):
 
             for i in range(self.gen_params.frontend_superscalarity):
                 instr = instrs.data[i]
-                with Transaction().body(m):
+
+                # RS insertion guarantees RF response for present instructions
+                # Nested transaction used to avoid locking
+                with (tr := Transaction()).body(m):
                     source1 = self.rf_read_resp[2 * i](m, reg_id=instr.regs_p.rp_s1)
                     source2 = self.rf_read_resp[2 * i + 1](m, reg_id=instr.regs_p.rp_s2)
-                # TODO: assert that if i < count, transaction runs
+                log.assertion(m, tr.run == (i < instrs.count), f"invalid RF response for instr {i}")
 
                 rs_data = Signal(self.gen_params.get(RSFullDataLayout).data_layout)
                 m.d.av_comb += assign(
