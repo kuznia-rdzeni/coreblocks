@@ -2,7 +2,7 @@ from amaranth import *
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import FuncUnitLayouts, RFLayouts, ROBLayouts, RSLayouts
-from transactron import Method, Transaction, TModule
+from transactron import Method, Provided, Required, TModule, def_method
 
 __all__ = ["ResultAnnouncement"]
 
@@ -15,16 +15,10 @@ class ResultAnnouncement(Elaboratable):
     is also sent to RS in case if there is an instruction which waits for
     this value.
 
-    Method `get_result` gets already serialized instruction results, so in
-    case in which we have more than one FU, then their outputs should be connected by
-    `ManyToOneConnectTrans` to a FIFO.
-
     Attributes
     ----------
-    get_result : Method, required
-        Method which is invoked to get results of next ready instruction,
-        which should be announced in core. This method assumes that results
-        from different FUs are already serialized.
+    push_result : Method, provided
+        Should be called to perform result announcement.
     rob_mark_done : Method, required
         Method which is invoked to mark that instruction ended.
     rs_update : Method, required
@@ -33,6 +27,11 @@ class ResultAnnouncement(Elaboratable):
     rf_write : Method, required
         Method which is invoked to save value which is an output of finished instruction to RF.
     """
+
+    push_result: Provided[Method]
+    rob_mark_done: Required[Method]
+    rs_update: Required[Method]
+    rf_write_val: Required[Method]
 
     def __init__(self, *, gen_params: GenParams):
         """
@@ -43,23 +42,20 @@ class ResultAnnouncement(Elaboratable):
             fetch unit.
         """
 
-        self.get_result = Method(o=gen_params.get(FuncUnitLayouts).push_result)
+        self.push_result = Method(i=gen_params.get(FuncUnitLayouts).push_result)
         self.rob_mark_done = Method(i=gen_params.get(ROBLayouts).mark_done_layout)
         self.rs_update = Method(i=gen_params.get(RSLayouts, rs_entries=gen_params.max_rs_entries).rs.update_in)
         self.rf_write_val = Method(i=gen_params.get(RFLayouts).rf_write)
 
-    def debug_signals(self):
-        return [self.get_result.debug_signals()]
-
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
-            result = self.get_result(m)
-            self.rob_mark_done(m, rob_id=result.rob_id, exception=result.exception)
+        @def_method(m, self.push_result)
+        def _(result, rob_id, rp_dst, exception):
+            self.rob_mark_done(m, rob_id=rob_id, exception=exception)
 
-            self.rf_write_val(m, reg_id=result.rp_dst, reg_val=result.result)
-            with m.If(result.rp_dst != 0):
-                self.rs_update(m, reg_id=result.rp_dst, reg_val=result.result)
+            self.rf_write_val(m, reg_id=rp_dst, reg_val=result)
+            with m.If(rp_dst != 0):
+                self.rs_update(m, reg_id=rp_dst, reg_val=result)
 
         return m

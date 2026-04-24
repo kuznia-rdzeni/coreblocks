@@ -1,6 +1,6 @@
 from amaranth import *
+from amaranth_types import ModuleLike
 from transactron import Method, def_method, TModule
-from transactron.utils import ModuleLike
 from transactron.lib.simultaneous import condition
 from transactron.lib.logging import HardwareLogger
 from transactron.lib import BasicFifo
@@ -8,7 +8,7 @@ from transactron.lib import BasicFifo
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from coreblocks.interface.layouts import LSULayouts
+from coreblocks.interface.layouts import CommonLayoutFields, LSULayouts
 
 
 class LSURequester(Elaboratable):
@@ -105,24 +105,31 @@ class LSURequester(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        layouts = self.gen_params.get(CommonLayoutFields)
         m.submodules.args_fifo = args_fifo = BasicFifo(
-            [("addr", self.gen_params.isa.xlen), ("funct3", Funct3), ("store", 1)], self.depth
+            [
+                layouts.vaddr,
+                layouts.paddr,
+                ("funct3", Funct3),
+                ("store", 1),
+            ],
+            self.depth,
         )
 
         @def_method(m, self.issue)
-        def _(addr: Value, data: Value, funct3: Value, store: Value):
+        def _(paddr: Value, vaddr: Value, data: Value, funct3: Value, store: Value):
             exception = Signal()
             cause = Signal(ExceptionCause)
 
-            aligned = self.check_align(m, funct3, addr)
-            bytes_mask = self.prepare_bytes_mask(m, funct3, addr)
-            bus_data = self.prepare_data_to_save(m, funct3, data, addr)
+            aligned = self.check_align(m, funct3, paddr)
+            bytes_mask = self.prepare_bytes_mask(m, funct3, paddr)
+            bus_data = self.prepare_data_to_save(m, funct3, data, paddr)
 
             self.log.debug(
                 m,
                 1,
                 "issue addr=0x{:08x} data=0x{:08x} funct3={} store={} aligned={}",
-                addr,
+                vaddr,
                 data,
                 funct3,
                 store,
@@ -131,12 +138,12 @@ class LSURequester(Elaboratable):
 
             with condition(m, nonblocking=True) as branch:
                 with branch(aligned & store):
-                    self.bus.request_write(m, addr=addr >> 2, data=bus_data, sel=bytes_mask)
+                    self.bus.request_write(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
                 with branch(aligned & ~store):
-                    self.bus.request_read(m, addr=addr >> 2, sel=bytes_mask)
+                    self.bus.request_read(m, addr=paddr >> 2, sel=bytes_mask)
 
             with m.If(aligned):
-                args_fifo.write(m, addr=addr, funct3=funct3, store=store)
+                args_fifo.write(m, paddr=paddr, vaddr=vaddr, funct3=funct3, store=store)
             with m.Else():
                 m.d.av_comb += exception.eq(1)
                 m.d.av_comb += cause.eq(
@@ -163,7 +170,7 @@ class LSURequester(Elaboratable):
                     fetched = self.bus.get_read_response(m)
                     m.d.comb += err.eq(fetched.err)
                     m.d.top_comb += data.eq(
-                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.addr)
+                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)
                     )
 
             with m.If(err):
@@ -172,6 +179,6 @@ class LSURequester(Elaboratable):
                     Mux(request_args.store, ExceptionCause.STORE_ACCESS_FAULT, ExceptionCause.LOAD_ACCESS_FAULT)
                 )
 
-            return {"data": data, "exception": exception, "cause": cause, "addr": request_args.addr}
+            return {"data": data, "exception": exception, "cause": cause, "addr": request_args.vaddr}
 
         return m

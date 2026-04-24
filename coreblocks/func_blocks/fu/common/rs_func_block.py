@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from coreblocks.params import *
 from .rs import RS, RSBase
 from coreblocks.scheduler.wakeup_select import WakeupSelect
-from transactron import Method, TModule
+from transactron import Method, Methods, TModule
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import FIFO, Collector, Connect
 from coreblocks.arch import OpType
-from coreblocks.interface.layouts import RSLayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import RSInterfaceLayouts, RSLayouts, FuncUnitLayouts
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -24,8 +24,8 @@ class RSFuncBlock(FuncBlock, Elaboratable):
         RS insert method.
     select: Method
         RS select method.
-    update: Method
-        RS update method.
+    update: Methods
+        RS update methods.
     get_result: Method
         Method used for getting single result out of one of the FUs. It uses
         layout described by `FuncUnitLayouts`.
@@ -63,7 +63,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
 
         self.insert = Method(i=self.rs_layouts.rs.insert_in)
         self.select = Method(o=self.rs_layouts.rs.select_out)
-        self.update = Method(i=self.rs_layouts.rs.update_in)
+        self.update = Methods(gen_params.announcement_superscalarity, i=self.rs_layouts.rs.update_in)
         self.get_result = Method(o=self.fu_layouts.push_result)
 
     def elaborate(self, platform):
@@ -73,6 +73,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             gen_params=self.gen_params,
             rs_entries=self.rs_entries,
             rs_number=self.rs_number,
+            rs_ways=self.gen_params.announcement_superscalarity,
             ready_for=(optypes for _, optypes, _ in self.func_units),
         )
 
@@ -83,9 +84,9 @@ class RSFuncBlock(FuncBlock, Elaboratable):
                 gen_params=self.gen_params,
                 rs_entries=self.rs_entries,
             )
-            wakeup_select.get_ready.proxy(m, self.rs.get_ready_list[n])
-            wakeup_select.take_row.proxy(m, self.rs.take)
-            wakeup_select.issue.proxy(m, func_unit.issue)
+            wakeup_select.get_ready.provide(self.rs.get_ready_list[n])
+            wakeup_select.take_row.provide(self.rs.take)
+            wakeup_select.issue.provide(func_unit.issue)
             if result_fifo:
                 connector = FIFO(self.gen_params.get(FuncUnitLayouts).push_result, 2)
             else:
@@ -93,15 +94,15 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             m.submodules[f"func_unit_{n}"] = func_unit
             m.submodules[f"wakeup_select_{n}"] = wakeup_select
             m.submodules[f"connector_{n}"] = connector
-            func_unit.push_result.proxy(m, connector.write)
+            func_unit.push_result.provide(connector.write)
             targets.append(connector.read)
 
-        m.submodules.collector = collector = Collector(targets)
+        m.submodules.collector = collector = Collector.create(targets)
 
-        self.insert.proxy(m, self.rs.insert)
-        self.select.proxy(m, self.rs.select)
-        self.update.proxy(m, self.rs.update[0])
-        self.get_result.proxy(m, collector.method)
+        self.insert.provide(self.rs.insert)
+        self.select.provide(self.rs.select)
+        self.update.provide(self.rs.update)
+        self.get_result.provide(collector.method)
 
         return m
 
@@ -126,6 +127,9 @@ class RSBlockComponent(BlockComponentParams):
 
     def get_optypes(self) -> set[OpType]:
         return optypes_supported(self.func_units)
+
+    def get_layouts(self, gen_params: GenParams) -> RSInterfaceLayouts:
+        return gen_params.get(RSLayouts, rs_entries=self.rs_entries).rs
 
     def get_rs_entry_count(self) -> int:
         return self.rs_entries

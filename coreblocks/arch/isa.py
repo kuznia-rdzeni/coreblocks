@@ -13,6 +13,8 @@ __all__ = [
 class Extension(enum.IntFlag):
     """
     Enum of available RISC-V extensions.
+
+    Extensions are ordered by ISA naming convention: IMAFDQLCBKJTPVH, Z[category letter order]*, S[vshm]*, X*
     """
 
     #: Reduced integer operations
@@ -45,20 +47,22 @@ class Extension(enum.IntFlag):
     V = auto()
     #: User-level interruptions
     N = auto()
+    #: Enables base counters and timers
+    ZICNTR = auto()
+    #: Integer conditional operations
+    ZICOND = auto()
     #: Control and Status Register access
     ZICSR = auto()
     #: Instruction-Fetch fence operations
     ZIFENCEI = auto()
-    #: Enables sending pause hint for energy saving
-    ZIHINTPAUSE = auto()
     #: Enables non-temporal locality hints
     ZIHINTNTL = auto()
-    #: Enables base counters and timers
-    ZICNTR = auto()
+    #: Enables sending pause hint for energy saving
+    ZIHINTPAUSE = auto()
     #: Enables hardware performance counters
     ZIHPM = auto()
-    #: Integer conditional operations
-    ZICOND = auto()
+    #: Integer multiplication operations
+    ZMMUL = auto()
     #: Atomic memory operations
     ZAAMO = auto()
     #: Load-Reserved/Store-Conditional Instructions
@@ -75,14 +79,22 @@ class Extension(enum.IntFlag):
     ZDINX = auto()
     #: Support for half precision floating-point operations in integer registers
     ZHINX = auto()
-    #: Integer multiplication operations
-    ZMMUL = auto()
     #: Extended shift operations
     ZBA = auto()
+    #: Compressed integer instructions (16-bit, formerly part of C)
+    ZCA = auto()
+    #: Compressed single-precision floating-point instructions (formerly part of C if F enabled)
+    ZCF = auto()
+    #: Compressed floating-point double instructions (formerly part of C if D enabled)
+    ZCD = auto()
+    #: Compressed simple code-size reduction instructions
+    ZCB = auto()
     #: Basic bit manipulation operations
     ZBB = auto()
     #: Carry-less multiplication operations
     ZBC = auto()
+    #: Crossbar permutation operations
+    ZBKX = auto()
     #: Single bit operations
     ZBS = auto()
     #: Total store ordering
@@ -105,6 +117,9 @@ _extension_requirements = {
     Extension.ZFINX: Extension.F,
     Extension.ZDINX: Extension.D,
     Extension.ZHINX: Extension.ZFH,
+    Extension.ZCF: Extension.F | Extension.ZCA,
+    Extension.ZCD: Extension.D | Extension.ZCA,
+    Extension.ZCB: Extension.ZCA,
 }
 
 # Extensions which implicitly imply another extensions (can be joined using | operator)
@@ -112,8 +127,18 @@ extension_implications = {
     Extension.F: Extension.ZICSR,
     Extension.M: Extension.ZMMUL,
     Extension.A: Extension.ZAAMO | Extension.ZALRSC,
-    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBC | Extension.ZBS,
+    Extension.B: Extension.ZBA | Extension.ZBB | Extension.ZBS,
 }
+
+
+def get_c_extension_expansion(extensions: Extension, xlen: int) -> Extension:
+    c_alias_mask = Extension.ZCA
+    if Extension.F in extensions and xlen == 32:
+        c_alias_mask |= Extension.ZCF
+    if Extension.D in extensions:
+        c_alias_mask |= Extension.ZCD
+    return c_alias_mask
+
 
 # Extensions (not aliases) that only imply other sub-extensions, but don't add any new OpTypes.
 extension_only_implies = {
@@ -198,6 +223,17 @@ class ISA:
         for ext, imply in extension_implications.items():
             if ext in self.extensions:
                 self.extensions |= imply
+
+        c_alias_mask = get_c_extension_expansion(self.extensions, self.xlen)
+
+        if self.extensions & Extension.C:
+            self.extensions |= c_alias_mask
+
+        if c_alias_mask in self.extensions:
+            self.extensions |= Extension.C
+
+        if self.extensions & Extension.ZCF and self.xlen != 32:
+            raise RuntimeError("ISA extension Zcf is only relevant to RV32")
 
         for ext, requirements in _extension_requirements.items():
             if ext in self.extensions and requirements not in self.extensions:

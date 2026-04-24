@@ -18,6 +18,7 @@ def main():
     parser.add_argument("-t", "--trace", action="store_true", help="Dump waveforms")
     parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    parser.add_argument("-s", "--no-capture", action="store_true", help="Don't capture output")
     parser.add_argument("-a", "--all", action="store_true", default=False, help="Run all tests")
     parser.add_argument(
         "-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend for regression tests"
@@ -44,7 +45,9 @@ def main():
         pytest_arguments += ["--coreblocks-test-count", str(args.count)]
     if args.list:
         pytest_arguments.append("--coreblocks-list")
-    if args.jobs and not args.list:
+    if args.no_capture:
+        pytest_arguments.append("-s")
+    if args.jobs and not args.list and not args.no_capture:
         # To list tests we can not use xdist, because it doesn't support forwarding of stdout from workers.
         pytest_arguments += ["-n", str(args.jobs)]
     if args.all:

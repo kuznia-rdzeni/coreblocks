@@ -20,13 +20,14 @@ class TestFPUError(TestCaseWithSimulator):
             m = TModule()
             m.submodules.fpue = fpue = self.fpu_error_module = FPUErrorModule(fpu_params=self.params)
             m.submodules.error_checking = self.error_checking_request_adapter = TestbenchIO(
-                AdapterTrans(fpue.error_checking_request)
+                AdapterTrans.create(fpue.error_checking_request)
             )
             return m
 
     class HelpValues:
         def __init__(self, params: FPUParams):
             self.params = params
+            self.implicit_bit = 2 ** (self.params.sig_width - 1)
             self.max_exp = (2**self.params.exp_width) - 1
             self.max_norm_exp = (2**self.params.exp_width) - 2
             self.not_max_norm_exp = (2**self.params.exp_width) - 3
@@ -94,7 +95,7 @@ class TestFPUError(TestCaseWithSimulator):
                 # division by zero
                 {
                     "sign": 0,
-                    "sig": 0,
+                    "sig": help_values.implicit_bit,
                     "exp": help_values.max_exp,
                     "inexact": 1,
                     "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
@@ -105,7 +106,7 @@ class TestFPUError(TestCaseWithSimulator):
                 # overflow but no round and sticky bits
                 {
                     "sign": 0,
-                    "sig": 0,
+                    "sig": help_values.implicit_bit,
                     "exp": help_values.max_exp,
                     "inexact": 0,
                     "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
@@ -138,7 +139,7 @@ class TestFPUError(TestCaseWithSimulator):
                 # one of inputs was inf
                 {
                     "sign": 1,
-                    "sig": 0,
+                    "sig": help_values.implicit_bit,
                     "exp": help_values.max_exp,
                     "inexact": 1,
                     "rounding_mode": RoundingModes.ROUND_NEAREST_AWAY,
@@ -174,20 +175,29 @@ class TestFPUError(TestCaseWithSimulator):
                 # invalid operation
                 {"sign": 0, "sig": help_values.qnan, "exp": help_values.max_exp, "errors": Errors.INVALID_OPERATION},
                 # division by zero
-                {"sign": 0, "sig": 0, "exp": help_values.max_exp, "errors": Errors.DIVISION_BY_ZERO},
+                {
+                    "sign": 0,
+                    "sig": help_values.implicit_bit,
+                    "exp": help_values.max_exp,
+                    "errors": Errors.DIVISION_BY_ZERO,
+                },
                 # overflow but no round and sticky bits
-                {"sign": 0, "sig": 0, "exp": help_values.max_exp, "errors": Errors.INEXACT | Errors.OVERFLOW},
+                {
+                    "sign": 0,
+                    "sig": help_values.implicit_bit,
+                    "exp": help_values.max_exp,
+                    "errors": Errors.INEXACT | Errors.OVERFLOW,
+                },
                 # tininess but no underflow
                 {"sign": 0, "sig": help_values.sub_norm_sig, "exp": 0, "errors": 0},
                 # one of inputs was qnan
                 {"sign": 0, "sig": help_values.qnan, "exp": help_values.max_exp, "errors": 0},
                 # one of inputs was inf
-                {"sign": 1, "sig": 0, "exp": help_values.max_exp, "errors": 0},
+                {"sign": 1, "sig": help_values.implicit_bit, "exp": help_values.max_exp, "errors": 0},
                 # subnormal number become normalized after rounding
                 {"sign": 1, "sig": help_values.min_norm_sig, "exp": 1, "errors": Errors.INEXACT},
             ]
             for i in range(len(test_cases)):
-
                 resp = await fpue.error_checking_request_adapter.call(sim, test_cases[i])
                 assert resp.sign == expected_results[i]["sign"]
                 assert resp.exp == expected_results[i]["exp"]
@@ -206,25 +216,25 @@ class TestFPUError(TestCaseWithSimulator):
                 params,
                 help_values,
                 RoundingModes.ROUND_NEAREST_EVEN,
-                0,
+                help_values.implicit_bit,
                 help_values.max_exp,
-                0,
+                help_values.implicit_bit,
                 help_values.max_exp,
             ),
             (
                 params,
                 help_values,
                 RoundingModes.ROUND_NEAREST_AWAY,
-                0,
+                help_values.implicit_bit,
                 help_values.max_exp,
-                0,
+                help_values.implicit_bit,
                 help_values.max_exp,
             ),
             (
                 params,
                 help_values,
                 RoundingModes.ROUND_UP,
-                0,
+                help_values.implicit_bit,
                 help_values.max_exp,
                 help_values.max_sig,
                 help_values.max_norm_exp,
@@ -235,7 +245,7 @@ class TestFPUError(TestCaseWithSimulator):
                 RoundingModes.ROUND_DOWN,
                 help_values.max_sig,
                 help_values.max_norm_exp,
-                0,
+                help_values.implicit_bit,
                 help_values.max_exp,
             ),
             (
@@ -266,7 +276,7 @@ class TestFPUError(TestCaseWithSimulator):
                 # overflow detection
                 {
                     "sign": 0,
-                    "sig": 0,
+                    "sig": help_values.implicit_bit,
                     "exp": help_values.max_exp,
                     "rounding_mode": rm,
                     "inexact": 0,
@@ -276,7 +286,7 @@ class TestFPUError(TestCaseWithSimulator):
                 },
                 {
                     "sign": 1,
-                    "sig": 0,
+                    "sig": help_values.implicit_bit,
                     "exp": help_values.max_exp,
                     "rounding_mode": rm,
                     "inexact": 0,
@@ -287,8 +297,18 @@ class TestFPUError(TestCaseWithSimulator):
             ]
             expected_results = [
                 # overflow detection
-                {"sign": 0, "sig": plus_overflow_sig, "exp": plus_overflow_exp, "errors": 20},
-                {"sign": 1, "sig": minus_overflow_sig, "exp": minus_overflow_exp, "errors": 20},
+                {
+                    "sign": 0,
+                    "sig": plus_overflow_sig,
+                    "exp": plus_overflow_exp,
+                    "errors": Errors.INEXACT | Errors.OVERFLOW,
+                },
+                {
+                    "sign": 1,
+                    "sig": minus_overflow_sig,
+                    "exp": minus_overflow_exp,
+                    "errors": Errors.INEXACT | Errors.OVERFLOW,
+                },
             ]
 
             for i in range(len(test_cases)):

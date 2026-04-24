@@ -26,7 +26,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
 
         m.submodules.resp_fwd = resp_fwd = Forwarder(self.layouts.accept_refill)
 
-        cache_line_address = Signal(self.params.word_width - self.params.offset_bits)
+        cache_line_address = Signal(self.params.addr_width - self.params.offset_bits)
 
         refill_active = Signal()
         flushing = Signal()
@@ -34,7 +34,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
         sending_requests = Signal()
         req_word_counter = Signal(range(self.params.words_in_line))
 
-        with Transaction().body(m, request=sending_requests):
+        with Transaction().body(m, ready=sending_requests):
             self.bus_master.request_read(
                 m,
                 addr=Cat(req_word_counter, cache_line_address),
@@ -72,7 +72,7 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
 
                     resp_fwd.write(
                         m,
-                        addr=fetch_block_addr,
+                        paddr=fetch_block_addr,
                         fetch_block=block,
                         error=bus_response.err,
                         last=(resp_word_counter == self.params.words_in_line - 1) | bus_response.err,
@@ -91,8 +91,8 @@ class SimpleCommonBusCacheRefiller(Elaboratable, CacheRefillerInterface):
             m.d.sync += flushing.eq(0)
 
         @def_method(m, self.start_refill, ready=~refill_active)
-        def _(addr) -> None:
-            m.d.sync += cache_line_address.eq(addr[self.params.offset_bits :])
+        def _(paddr) -> None:
+            m.d.sync += cache_line_address.eq(paddr[self.params.offset_bits :])
             m.d.sync += req_word_counter.eq(0)
             m.d.sync += sending_requests.eq(1)
 

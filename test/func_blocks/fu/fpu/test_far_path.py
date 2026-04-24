@@ -17,7 +17,7 @@ class TestFarPath(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = TModule()
             m.submodules.fp = fp = self.far_path = FarPathModule(fpu_params=self.params)
-            m.submodules.compute = self.far_path_request_adapter = TestbenchIO(AdapterTrans(fp.far_path_request))
+            m.submodules.compute = self.far_path_request_adapter = TestbenchIO(AdapterTrans.create(fp.far_path_request))
             return m
 
     params = FPUParams(sig_width=24, exp_width=8)

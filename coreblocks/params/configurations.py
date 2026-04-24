@@ -4,7 +4,9 @@ import dataclasses
 from dataclasses import dataclass, field
 
 from typing import Self
-from transactron.utils._typing import type_self_kwargs_as
+from transactron.utils.typing import type_self_kwargs_as
+from amaranth_types.memory import AbstractMemoryConstructor
+from amaranth.lib.memory import Memory
 
 from coreblocks.arch.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
@@ -17,16 +19,24 @@ from coreblocks.func_blocks.fu.jumpbranch import JumpComponent
 from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.func_blocks.fu.div_unit import DivComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
+from coreblocks.func_blocks.fu.zbkx import ZbkxComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
 from coreblocks.func_blocks.fu.exception import ExceptionUnitComponent
 from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
-from coreblocks.func_blocks.csr.csr import CSRBlockComponent
+from coreblocks.func_blocks.csr.csr_unit import CSRBlockComponent
+from coreblocks.arch.isa_consts import SatpMode
 
-
-__all__ = ["CoreConfiguration", "basic_core_config", "tiny_core_config", "full_core_config", "test_core_config"]
+__all__ = [
+    "CoreConfiguration",
+    "basic_core_config",
+    "tiny_core_config",
+    "small_linux_config",
+    "full_core_config",
+    "test_core_config",
+]
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
@@ -35,7 +45,7 @@ basic_configuration: tuple[BlockComponentParams, ...] = (
     ),
     RSBlockComponent(
         [
-            MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+            MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
             DivComponent(),
         ],
         rs_entries=2,
@@ -58,7 +68,9 @@ class _CoreConfigurationDataClass:
         Configuration of Functional Units and Reservation Stations.
         Example: [RSBlockComponent([ALUComponent()], rs_entries=4), LSUBlockComponent()]
     compressed: bool
-        Enables 16-bit Compressed Instructions extension.
+        Enables 16-bit Compressed instructions. Enables Zca, Zcf, and Zcd extensions as permitted by the ISA.
+    zcb: bool
+        Enables the Zcb compressed code-size reduction extension.
     embedded: bool
         Enables Reduced Integer (E) extension.
     marchid: int
@@ -99,10 +111,29 @@ class _CoreConfigurationDataClass:
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
         Enable User Mode.
+    supervisor_mode: bool
+        Enable Supervisor Mode.
+    asidlen: int
+        Number of writable ASID bits in SATP.
+    supported_vm_schemes: Collection[SatpMode]
+        SATP MODE values accepted by this core.
+    phys_addr_bits: int | None
+        Width of physical addresses in bits. If not set, defaults to 34 for RV32 if supported_vm_schemes has
+        SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
+    hpm_counters_count: int
+        Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
+    pmp_register_count: int
+        Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
+    pmp_grain_log: int
+        Log of the PMP grain size (in bytes).
+        Must be >= 2 if PMP registers are enabled.
+        When PMP and icache are both enabled, must be >= icache_line_bytes_log.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
         Enables generation of additional hardware checks (asserts via logging system). Defaults to True.
+    multiport_memory_type: AbstractMemoryConstructor
+        The type of multiport synchronous memory to be used in the core, e.g. in superscalar structures.
     _implied_extensions: Extension
         Bit flag specifying enabled extensions that are not specified by func_units_config. Used in internal tests.
     _generate_test_hardware: bool
@@ -121,6 +152,7 @@ class _CoreConfigurationDataClass:
     func_units_config: Collection[BlockComponentParams] = basic_configuration
 
     compressed: bool = False
+    zcb: bool = False
     embedded: bool = False
 
     marchid: int = 44
@@ -131,6 +163,10 @@ class _CoreConfigurationDataClass:
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7
     start_pc: int = 0
+
+    frontend_superscalarity: int = 1
+    announcement_superscalarity: int = 1
+    retirement_superscalarity: int = 1
 
     checkpoint_count: int = 16
     tag_bits: int = 5
@@ -148,10 +184,21 @@ class _CoreConfigurationDataClass:
     interrupt_custom_edge_trig_mask: int = 0
 
     user_mode: bool = True
+    supervisor_mode: bool = True
+
+    asidlen: int = 0
+    supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
+    phys_addr_bits: int | None = None
+    hpm_counters_count: int = 0
+
+    pmp_register_count: int = 0
+    pmp_grain_log: int = 5
 
     allow_partial_extensions: bool = False
 
     extra_verification: bool = True
+
+    multiport_memory_type: AbstractMemoryConstructor = Memory
 
     _implied_extensions: Extension = Extension(0)
     _generate_test_hardware: bool = False
@@ -183,6 +230,33 @@ tiny_core_config = CoreConfiguration(
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
     icache_enable=False,
     user_mode=False,
+    supervisor_mode=False,
+    pmp_grain_log=2,
+)
+
+# Basic core config with minimal additions required for Linux
+small_linux_config = CoreConfiguration(
+    func_units_config=(
+        RSBlockComponent(
+            [
+                ALUComponent(),
+                ShiftUnitComponent(),
+                JumpComponent(),
+                ExceptionUnitComponent(),
+                PrivilegedUnitComponent(),
+            ],
+            rs_entries=4,
+        ),
+        RSBlockComponent(
+            [
+                MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
+                DivComponent(),
+            ],
+            rs_entries=2,
+        ),
+        RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
+        CSRBlockComponent(),
+    )
 )
 
 # Core configuration with all supported components
@@ -193,6 +267,7 @@ full_core_config = CoreConfiguration(
                 ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
                 ShiftUnitComponent(zbb_enable=True),
                 ZbcComponent(),
+                ZbkxComponent(),
                 ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
@@ -202,7 +277,7 @@ full_core_config = CoreConfiguration(
         ),
         RSBlockComponent(
             [
-                MulComponent(mul_unit_type=MulType.SEQUENCE_MUL),
+                MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
             rs_entries=2,
@@ -211,8 +286,12 @@ full_core_config = CoreConfiguration(
         CSRBlockComponent(),
     ),
     compressed=True,
+    zcb=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
+    pmp_register_count=16,
+    frontend_superscalarity=2,
+    announcement_superscalarity=2,
 )
 
 # Core configuration used in internal testbenches

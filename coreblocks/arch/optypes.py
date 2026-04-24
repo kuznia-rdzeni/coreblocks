@@ -1,7 +1,7 @@
 from amaranth import *
 from amaranth.lib.enum import unique, IntEnum, auto
 
-from transactron.utils._typing import ValueLike
+from amaranth_types import ValueLike
 
 from .isa import Extension, extension_implications, extension_only_implies
 
@@ -47,6 +47,7 @@ class OpType(IntEnum):
     UNARY_BIT_MANIPULATION_3 = auto()
     UNARY_BIT_MANIPULATION_4 = auto()
     UNARY_BIT_MANIPULATION_5 = auto()
+    CROSSBAR_PERMUTATION = auto()
     CLMUL = auto()
     SRET = auto()
     SFENCEVMA = auto()
@@ -154,6 +155,9 @@ optypes_by_extensions = {
     ],
     Extension.ZBC: [
         OpType.CLMUL,
+    ],
+    Extension.ZBKX: [
+        OpType.CROSSBAR_PERMUTATION,
     ],
     Extension.ZICOND: [
         OpType.CZERO,

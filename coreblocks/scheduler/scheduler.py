@@ -2,17 +2,15 @@ from collections.abc import Sequence
 
 from amaranth import *
 
-from transactron import Method, Transaction, TModule
-from transactron.lib import FIFO
-from transactron.lib.connectors import Connect
+from transactron import Method, Methods, Required, Transaction, TModule, def_method
+from transactron.lib import Connect, Pipe, WideFifo
 from transactron.utils import assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.interface.layouts import SchedulerLayouts
+from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.arch.optypes import OpType
 from coreblocks.interface.keys import CoreStateKey
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 
 __all__ = ["Scheduler"]
 
@@ -23,44 +21,38 @@ class RegAllocation(Elaboratable):
     the instruction result). A part of the scheduling process.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, get_free_reg: Method, gen_params: GenParams):
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
+    get_free_reg: Required[Methods]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing decoded instructions to be scheduled for execution. Uses
-            `SchedulerLayouts.reg_alloc_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.reg_alloc_out`.
-        get_free_reg: Method
-             Method providing the ID of a currently free physical register.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.reg_alloc_in
-        self.output_layout = layouts.reg_alloc_out
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.get_free_reg = get_free_reg
+        self.get_instrs = Method(o=layouts.reg_alloc_in)
+        self.push_instrs = Method(i=layouts.reg_alloc_out)
+        self.get_free_reg = Methods(gen_params.frontend_superscalarity, o=layouts.free_rf_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        free_reg = Signal(self.gen_params.phys_regs_bits)
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            with m.If(instr.regs_l.rl_dst != 0):
-                reg_id = self.get_free_reg(m)
-                m.d.comb += free_reg.eq(reg_id)
+            instrs = self.get_instrs(m)
+            m.d.av_comb += assign(data_out, instrs)
 
-            m.d.comb += assign(data_out, instr)
-            m.d.comb += data_out.regs_p.rp_dst.eq(free_reg)
-            self.push_instr(m, data_out)
+            for i in range(self.gen_params.frontend_superscalarity):
+                with m.If((i < instrs.count) & (instrs.data[i].regs_l.rl_dst != 0)):
+                    m.d.av_comb += data_out.data[i].regs_p.rp_dst.eq(self.get_free_reg[i](m).ident)
+
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -70,37 +62,47 @@ class InstructionTagger(Elaboratable):
     `Scheduler` driver of `CheckpointRAT` `tag` stage. See `CheckpointRAT.tag` for description.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, crat_tag: Method, gen_params: GenParams):
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
+    crat_tag: Required[Method]
+
+    def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.instr_tag_in
-        self.output_layout = layouts.instr_tag_out
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.crat_tag = crat_tag
+        self.get_instrs = Method(o=layouts.instr_tag_in)
+        self.push_instrs = Method(i=layouts.instr_tag_out)
+        self.crat_tag = Method(i=gen_params.get(RATLayouts).crat_tag_in, o=gen_params.get(RATLayouts).crat_tag_out)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
+            instrs = self.get_instrs(m)
+
+            idx = Signal(range(self.gen_params.frontend_superscalarity))
+            m.d.av_comb += idx.eq(instrs.count - 1)
 
             tag_out = self.crat_tag(
                 m,
-                rollback_tag=instr.rollback_tag,
-                rollback_tag_v=instr.rollback_tag_v,
-                commit_checkpoint=instr.commit_checkpoint,
+                rollback_tag=instrs.data[idx].rollback_tag,
+                rollback_tag_v=instrs.data[idx].rollback_tag_v,
+                commit_checkpoint=instrs.data[idx].commit_checkpoint,
             )
 
-            m.d.av_comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.av_comb += data_out.tag.eq(tag_out.tag)
-            m.d.av_comb += data_out.tag_increment.eq(tag_out.tag_increment)
-            m.d.av_comb += data_out.commit_checkpoint.eq(tag_out.commit_checkpoint)
+            m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
 
-            self.push_instr(m, data_out)
+            for i in range(self.gen_params.frontend_superscalarity):
+                m.d.av_comb += data_out.data[i].tag.eq(tag_out.tag)
+
+            # Jump insn always last in group - commit_checkpoint is set there
+            # Tag increment happens after jump or flush - first insn in group
+            m.d.av_comb += data_out.data[0].tag_increment.eq(tag_out.tag_increment)
+            m.d.av_comb += data_out.data[idx].commit_checkpoint.eq(tag_out.commit_checkpoint)
+
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -112,52 +114,66 @@ class Renaming(Elaboratable):
     the F-RAT with the translation from the logical destination register ID to the physical ID.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, rename: Method, gen_params: GenParams):
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
+    crat_commit_checkpoint: Required[Method]
+    rename: Required[Methods]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with an allocated physical register. Uses `SchedulerLayouts.renaming_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step. Uses `SchedulerLayouts.renaming_out`.
-        rename: Method
-            Method used for renaming the source register in F-RAT. Uses
-            `RATLayouts.rename_input_layout` and `RATLayouts.rename_output_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.renaming_in
-        self.output_layout = layouts.renaming_out
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rename = rename
+        self.get_instrs = Method(o=layouts.renaming_in)
+        self.push_instrs = Method(i=layouts.renaming_out)
+        self.crat_commit_checkpoint = Method(i=gen_params.get(RATLayouts).crat_commit_checkpoint_in)
+        self.rename = Methods(
+            gen_params.frontend_superscalarity,
+            i=gen_params.get(RATLayouts).crat_rename_in,
+            o=gen_params.get(RATLayouts).crat_rename_out,
+        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
-            renamed_regs = self.rename(
-                m,
-                rl_s1=instr.regs_l.rl_s1,
-                rl_s2=instr.regs_l.rl_s2,
-                rl_dst=instr.regs_l.rl_dst,
-                rp_dst=instr.regs_p.rp_dst,
-                tag=instr.tag,
-                commit_checkpoint=instr.commit_checkpoint,
-            )
+            instrs = self.get_instrs(m)
 
-            m.d.comb += assign(data_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
-            m.d.comb += assign(data_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
-            m.d.comb += data_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
-            m.d.comb += data_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
-            m.d.comb += data_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
-            self.push_instr(m, data_out)
+            m.d.av_comb += data_out.count.eq(instrs.count)
+
+            idx = Signal(range(self.gen_params.frontend_superscalarity))
+            m.d.av_comb += idx.eq(instrs.count - 1)
+
+            # tag is the same for all instrs
+            self.crat_commit_checkpoint(m, tag=instrs.data[0].tag, commit_checkpoint=instrs.data[idx].commit_checkpoint)
+
+            for i in range(self.gen_params.frontend_superscalarity):
+                instr = instrs.data[i]
+                instr_out = data_out.data[i]
+
+                with m.If(i < instrs.count):
+                    renamed_regs = self.rename[i](
+                        m,
+                        rl_s1=instr.regs_l.rl_s1,
+                        rl_s2=instr.regs_l.rl_s2,
+                        rl_dst=instr.regs_l.rl_dst,
+                        rp_dst=instr.regs_p.rp_dst,
+                    )
+
+                m.d.av_comb += assign(instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
+                m.d.av_comb += assign(instr_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
+                m.d.av_comb += instr_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
+                m.d.av_comb += instr_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
+                m.d.av_comb += instr_out.regs_p.rp_s2.eq(renamed_regs.rp_s2)
+
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -167,50 +183,50 @@ class ROBAllocation(Elaboratable):
     Module performing "ReOrder Buffer entry allocation" step of scheduling process.
     """
 
-    def __init__(self, *, get_instr: Method, push_instr: Method, rob_put: Method, gen_params: GenParams):
+    get_instrs: Required[Method]
+    push_instrs: Required[Method]
+    rob_put: Required[Method]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with physical register IDs present for all used registers.
-            Uses `SchedulerLayouts.rob_allocate_in`.
-        push_instr: Method
-            Method used for pushing the serviced instruction to the next step.
-            Uses `SchedulerLayouts.rob_allocate_out`.
-        rob_put: Method
-            Method used for getting a free entry in the ROB. Uses `ROBLayouts.data_layout`
-            and `ROBLayouts.id_layout`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rob_allocate_in
-        self.output_layout = layouts.rob_allocate_out
 
-        self.get_instr = get_instr
-        self.push_instr = push_instr
-        self.rob_put = rob_put
+        self.get_instrs = Method(o=layouts.rob_allocate_in)
+        self.push_instrs = Method(i=layouts.rob_allocate_out)
+        self.rob_put = Method(i=gen_params.get(ROBLayouts).put_layout, o=gen_params.get(ROBLayouts).put_out_layout)
 
     def elaborate(self, platform):
         m = TModule()
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
-            instr = self.get_instr(m)
+            instrs = self.get_instrs(m)
 
-            rob_id = self.rob_put(
+            rob_ids = self.rob_put(
                 m,
-                rl_dst=instr.regs_l.rl_dst,
-                rp_dst=instr.regs_p.rp_dst,
-                tag_increment=instr.tag_increment,
+                count=instrs.count,
+                entries=[
+                    {
+                        "rl_dst": instr.regs_l.rl_dst,
+                        "rp_dst": instr.regs_p.rp_dst,
+                        "tag_increment": instr.tag_increment,
+                    }
+                    for instr in instrs.data
+                ],
             )
 
-            m.d.comb += assign(data_out, instr, fields=AssignType.COMMON)
-            m.d.comb += data_out.rob_id.eq(rob_id.rob_id)
+            m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
+            for i in range(self.gen_params.frontend_superscalarity):
+                m.d.av_comb += data_out.data[i].rob_id.eq(rob_ids.entries[i].rob_id)
 
-            self.push_instr(m, data_out)
+            self.push_instrs(m, data_out)
 
         return m
 
@@ -224,49 +240,28 @@ class RSSelection(Elaboratable):
     methods to be available at the same time.
     """
 
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        push_instr: Method,
-        rs_select: Sequence[tuple[Method, set[OpType]]],
-        rf_read_req1: Method,
-        rf_read_req2: Method,
-        gen_params: GenParams
-    ):
+    get_instr: Required[Method]
+    push_instr: Required[Method]
+    rf_read_req1: Required[Method]
+    rf_read_req2: Required[Method]
+    rs_select: Required[Sequence[Method]]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with entry in ROB. Uses `SchedulerLayouts.rs_select_in`.
-        push_instr: Method
-            Method used for pushing instruction with selected RS to next step.
-            Uses `SchedulerLayouts.rs_select_out`.
-        rs_select: Sequence[tuple[Method, set[OpType]]]
-            Sequence of pairs, each representing a single RS. The components are:
-
-            - A method used for allocating an entry in the RS. Uses `RSLayouts.select_out`.
-            - A set of `OpType`\\s that can be handled by this RS.
-        rf_read_req1: Method
-            Method used for requesting value of first source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out`.
-        rf_read_req2: Method
-            Method used for requesting value of second source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
 
         layouts = gen_params.get(SchedulerLayouts)
-        self.input_layout = layouts.rs_select_in
-        self.output_layout = layouts.rs_select_out
 
-        self.get_instr = get_instr
-        self.rs_select = rs_select
-        self.push_instr = push_instr
-        self.rf_read_req1 = rf_read_req1
-        self.rf_read_req2 = rf_read_req2
+        self.get_instr = Method(o=layouts.rs_select_in)
+        self.push_instr = Method(i=layouts.rs_select_out)
+        self.rf_read_req1 = Method(i=gen_params.get(RFLayouts).rf_read_in)
+        self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
+        self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
 
     def decode_optype_set(self, optypes: set[OpType]) -> int:
         res = 0x0
@@ -280,12 +275,12 @@ class RSSelection(Elaboratable):
         lookup = Signal(OpType)  # lookup of currently processed optype
         m.d.comb += lookup.eq(self.get_instr.data_out.exec_fn.op_type)
 
-        data_out = Signal(self.output_layout)
+        data_out = Signal(self.push_instr.layout_in)
 
-        for i, (alloc, optypes) in enumerate(self.rs_select):
+        for i, (alloc, block_params) in enumerate(zip(self.rs_select, self.gen_params.func_units_config)):
             # checks if RS can perform this kind of operation
-            optype_matches = Cat(lookup == op for op in optypes).any()
-            with Transaction().body(m, request=optype_matches):
+            optype_matches = Cat(lookup == op for op in block_params.get_optypes()).any()
+            with Transaction().body(m, ready=optype_matches):
                 instr = self.get_instr(m)
                 allocated_field = alloc(m)
 
@@ -309,40 +304,28 @@ class RSInsertion(Elaboratable):
     a single instruction to the RS.
     """
 
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        rs_insert: Sequence[Method],
-        rf_read_resp1: Method,
-        rf_read_resp2: Method,
-        crat_active_tags: Method,
-        gen_params: GenParams
-    ):
+    get_instr: Required[Method]
+    rf_read_resp1: Required[Method]
+    rf_read_resp2: Required[Method]
+    crat_active_tags: Required[Method]
+    rs_insert: Required[Sequence[Method]]
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing instructions with reserved entry in ROB. Uses `SchedulerLayouts.rs_insert_in`.
-        rs_insert: Sequence[Method]
-            Sequence of methods used for pushing an instruction into the RS. Ordering of this list
-            determines the ID of a specific RS. They use `RSLayouts.insert_in`
-        rf_read_resp1: Method
-            Method used for getting value of first source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        rf_read_resp2: Method
-            Method used for getting value of second source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
 
-        self.get_instr = get_instr
-        self.rs_insert = rs_insert
-        self.rf_read_resp1 = rf_read_resp1
-        self.rf_read_resp2 = rf_read_resp2
-        self.crat_active_tags = crat_active_tags
+        layouts = gen_params.get(SchedulerLayouts)
+
+        self.get_instr = Method(o=layouts.rs_insert_in)
+        self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
+        self.rs_insert = [Method(i=conf.get_layouts(gen_params).insert_in) for conf in gen_params.func_units_config]
 
     def elaborate(self, platform):
         m = TModule()
@@ -416,123 +399,131 @@ class Scheduler(Elaboratable):
     Instruction without any supporting RS will get stuck and block the scheduler pipeline.
     """
 
-    def __init__(
-        self,
-        *,
-        get_instr: Method,
-        get_free_reg: Method,
-        crat_rename: Method,
-        crat_tag: Method,
-        crat_active_tags: Method,
-        rob_put: Method,
-        rf_read_req1: Method,
-        rf_read_req2: Method,
-        rf_read_resp1: Method,
-        rf_read_resp2: Method,
-        reservation_stations: Sequence[tuple[FuncBlock, set[OpType]]],
-        gen_params: GenParams
-    ):
+    get_instr: Required[Method]
+    """
+    Method providing decoded instructions to be scheduled for execution. It has layout as described
+    by `SchedulerLayouts.scheduler_in`.
+    """
+
+    get_free_reg: Required[Methods]
+    """Provides the ID of a currently free physical register."""
+
+    crat_commit_checkpoint: Required[Method]
+    """Handles tags and checkpoints in C-RAT while renaming.."""
+
+    crat_rename: Required[Methods]
+    """Renames the source register in C-RAT."""
+
+    crat_tag: Required[Method]
+    """Tags instructions to checkpoints in C-RAT."""
+
+    crat_active_tags: Required[Method]
+    """Gets information about tags that are on current speculation path from C-RAT."""
+
+    rob_put: Required[Method]
+    """Gets a free entry in ROB."""
+
+    rf_read_req1: Required[Method]
+    """Requests value of first source register."""
+
+    rf_read_req2: Required[Method]
+    """Requests value of second source register."""
+
+    rf_read_resp1: Required[Method]
+    """Gets requested value of first source register and information if it is valid."""
+
+    rf_read_resp2: Required[Method]
+    """Gets requested value of second source register and information if it is valid."""
+
+    rs_select: Required[Sequence[Method]]
+    """Selects RS slot."""
+
+    rs_insert: Required[Sequence[Method]]
+    """Inserts instruction into RS slot."""
+
+    def __init__(self, *, gen_params: GenParams):
         """
         Parameters
         ----------
-        get_instr: Method
-            Method providing decoded instructions to be scheduled for execution. It has
-            layout as described by `DecodeLayouts.decoded_instr`.
-        get_free_reg: Method
-            Method providing the ID of a currently free physical register.
-        crat_rename: Method
-            Method used for renaming the source register in C-RAT. Uses `RATLayouts.crat_rename_in`
-            and `RATLayouts.crat_rename_out`.
-        crat_tag: Method
-            Method used for tagging instruction to checkpoints in C-RAT.
-        crat_active_tags: Method
-            Method used to get information about tags that are on current speculation path from C-RAT.
-        rob_put: Method
-            Method used for getting a free entry in ROB. Uses `ROBLayouts.data_layout`.
-        rf_read_req1: Method
-            Method used for requesting value of first source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out`.
-        rf_read_req2: Method
-            Method used for requesting value of second source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out`.
-        rf_read_resp1: Method
-            Method used for getting value of first source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        rf_read_resp2: Method
-            Method used for getting value of second source register and information if it is valid.
-            Uses `RFLayouts.rf_read_out` and `RFLayouts.rf_read_in`.
-        reservation_stations: Sequence[FuncBlock]
-            Sequence of units with RS interfaces to which instructions should be inserted.
         gen_params: GenParams
             Core generation parameters.
         """
         self.gen_params = gen_params
         self.layouts = self.gen_params.get(SchedulerLayouts)
-        self.get_instr = get_instr
-        self.get_free_reg = get_free_reg
-        self.crat_rename = crat_rename
-        self.crat_active_tags = crat_active_tags
-        self.crat_tag = crat_tag
-        self.rob_put = rob_put
-        self.rf_read_req1 = rf_read_req1
-        self.rf_read_req2 = rf_read_req2
-        self.rf_read_resp1 = rf_read_resp1
-        self.rf_read_resp2 = rf_read_resp2
-        self.rs = reservation_stations
+        self.get_instr = Method(o=self.layouts.scheduler_in)
+        self.get_free_reg = Methods(gen_params.frontend_superscalarity, o=self.layouts.free_rf_layout)
+        self.crat_commit_checkpoint = Method(i=gen_params.get(RATLayouts).crat_commit_checkpoint_in)
+        self.crat_rename = Methods(
+            gen_params.frontend_superscalarity,
+            i=gen_params.get(RATLayouts).crat_rename_in,
+            o=gen_params.get(RATLayouts).crat_rename_out,
+        )
+        self.crat_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
+        self.crat_tag = Method(i=gen_params.get(RATLayouts).crat_tag_in, o=gen_params.get(RATLayouts).crat_tag_out)
+        self.rob_put = Method(i=gen_params.get(ROBLayouts).put_layout, o=gen_params.get(ROBLayouts).put_out_layout)
+        self.rf_read_req1 = Method(i=gen_params.get(RFLayouts).rf_read_in)
+        self.rf_read_req2 = Method(i=gen_params.get(RFLayouts).rf_read_in)
+        self.rf_read_resp1 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.rf_read_resp2 = Method(i=gen_params.get(RFLayouts).rf_read_in, o=gen_params.get(RFLayouts).rf_read_out)
+        self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
+        self.rs_insert = [Method(i=conf.get_layouts(gen_params).insert_in) for conf in gen_params.func_units_config]
 
     def elaborate(self, platform):
         m = TModule()
 
         # This could be ideally changed to Connect, but unfortunately causes comb loop
-        m.submodules.alloc_rename_buf = alloc_rename_buf = FIFO(self.layouts.reg_alloc_out, 2)
-        m.submodules.reg_alloc = RegAllocation(
-            get_instr=self.get_instr,
-            push_instr=alloc_rename_buf.write,
-            get_free_reg=self.get_free_reg,
-            gen_params=self.gen_params,
-        )
+        m.submodules.alloc_rename_buf = alloc_rename_buf = Pipe(self.layouts.reg_alloc_out)
+        m.submodules.reg_alloc = reg_alloc = RegAllocation(gen_params=self.gen_params)
+        reg_alloc.get_instrs.provide(self.get_instr)
+        reg_alloc.push_instrs.provide(alloc_rename_buf.write)
+        reg_alloc.get_free_reg.provide(self.get_free_reg)
 
-        m.submodules.instr_tag_buf = instr_tag_buf = FIFO(self.layouts.instr_tag_out, 2)
-        m.submodules.instr_tag = InstructionTagger(
-            get_instr=alloc_rename_buf.read,
-            push_instr=instr_tag_buf.write,
-            crat_tag=self.crat_tag,
-            gen_params=self.gen_params,
-        )
+        m.submodules.instr_tag_buf = instr_tag_buf = Pipe(self.layouts.instr_tag_out)
+        m.submodules.instr_tag = instr_tag = InstructionTagger(gen_params=self.gen_params)
+        instr_tag.get_instrs.provide(alloc_rename_buf.read)
+        instr_tag.push_instrs.provide(instr_tag_buf.write)
+        instr_tag.crat_tag.provide(self.crat_tag)
 
         m.submodules.rename_out_buf = rename_out_buf = Connect(self.layouts.renaming_out)
-        m.submodules.renaming = Renaming(
-            get_instr=instr_tag_buf.read,
-            push_instr=rename_out_buf.write,
-            rename=self.crat_rename,
-            gen_params=self.gen_params,
-        )
+        m.submodules.renaming = renaming = Renaming(gen_params=self.gen_params)
+        renaming.get_instrs.provide(instr_tag_buf.read)
+        renaming.push_instrs.provide(rename_out_buf.write)
+        renaming.crat_commit_checkpoint.provide(self.crat_commit_checkpoint)
+        renaming.rename.provide(self.crat_rename)
 
-        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
-        m.submodules.rob_alloc = ROBAllocation(
-            get_instr=rename_out_buf.read,
-            push_instr=rob_alloc_out_buf.write,
-            rob_put=self.rob_put,
-            gen_params=self.gen_params,
+        # m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = FIFO(self.layouts.rob_allocate_out, 2)
+        m.submodules.rob_alloc_out_buf = rob_alloc_out_buf = WideFifo(
+            self.layouts.rs_select_in_data,
+            2 * self.gen_params.frontend_superscalarity,
+            1,
+            self.gen_params.frontend_superscalarity,
         )
+        m.submodules.rob_alloc = rob_alloc = ROBAllocation(gen_params=self.gen_params)
 
-        m.submodules.rs_select_out_buf = rs_select_out_buf = FIFO(self.layouts.rs_select_out, 2)
-        m.submodules.rs_selector = RSSelection(
-            gen_params=self.gen_params,
-            get_instr=rob_alloc_out_buf.read,
-            rs_select=[(rs.select, optypes) for rs, optypes in self.rs],
-            push_instr=rs_select_out_buf.write,
-            rf_read_req1=self.rf_read_req1,
-            rf_read_req2=self.rf_read_req2,
-        )
+        rob_alloc.get_instrs.provide(rename_out_buf.read)
+        rob_alloc.push_instrs.provide(rob_alloc_out_buf.write)
+        rob_alloc.rob_put.provide(self.rob_put)
 
-        m.submodules.rs_insertion = RSInsertion(
-            get_instr=rs_select_out_buf.read,
-            rs_insert=[rs.insert for rs, _ in self.rs],
-            rf_read_resp1=self.rf_read_resp1,
-            rf_read_resp2=self.rf_read_resp2,
-            crat_active_tags=self.crat_active_tags,
-            gen_params=self.gen_params,
-        )
+        m.submodules.rs_select_out_buf = rs_select_out_buf = Pipe(self.layouts.rs_select_out)
+        m.submodules.rs_selector = rs_selector = RSSelection(gen_params=self.gen_params)
+
+        # rs_selector.get_instr.provide(rob_alloc_out_buf.read)
+        @def_method(m, rs_selector.get_instr)
+        def _():
+            return rob_alloc_out_buf.read(m, count=1).data[0]
+
+        rs_selector.push_instr.provide(rs_select_out_buf.write)
+        rs_selector.rf_read_req1.provide(self.rf_read_req1)
+        rs_selector.rf_read_req2.provide(self.rf_read_req2)
+        for rs_select, rs_select_impl in zip(rs_selector.rs_select, self.rs_select):
+            rs_select.provide(rs_select_impl)
+
+        m.submodules.rs_insertion = rs_insertion = RSInsertion(gen_params=self.gen_params)
+        rs_insertion.get_instr.provide(rs_select_out_buf.read)
+        rs_insertion.rf_read_resp1.provide(self.rf_read_resp1)
+        rs_insertion.rf_read_resp2.provide(self.rf_read_resp2)
+        rs_insertion.crat_active_tags.provide(self.crat_active_tags)
+        for rs_insert, rs_insert_impl in zip(rs_insertion.rs_insert, self.rs_insert):
+            rs_insert.provide(rs_insert_impl)
 
         return m

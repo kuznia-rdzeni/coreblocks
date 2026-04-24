@@ -5,7 +5,7 @@
 
    ```{eval-rst}
    .. include:: auto_graph.rst
-      
+
    ```
 
 </div>

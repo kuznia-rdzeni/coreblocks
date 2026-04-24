@@ -1,19 +1,20 @@
+from dataclasses import dataclass
 import random
 from amaranth import *
 
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
 from parameterized import parameterized_class
+from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.keys import CoreStateKey, RollbackKey
-from coreblocks.interface.layouts import RetirementLayouts
-from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
+from coreblocks.interface.layouts import RSInterfaceLayouts, RetirementLayouts
 
-from transactron.core import Method
 from transactron.lib import FIFO, AdapterTrans, Adapter
 from transactron.testing.functions import MethodData, data_const_to_dict
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.utils.dependencies import DependencyContext
+from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.core_structs.crat import CheckpointRAT
@@ -22,14 +23,30 @@ from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params.configurations import test_core_config
 from coreblocks.core_structs.rob import ReorderBuffer
-from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
 
 
+@dataclass(frozen=True)
+class MockedBlockComponent(BlockComponentParams):
+    op_types: set[OpType]
+    rs_entries: int
+
+    def get_module(self, gen_params: GenParams) -> FuncBlock:
+        raise NotImplementedError()
+
+    def get_optypes(self) -> set[OpType]:
+        return self.op_types
+
+    def get_layouts(self, gen_params: GenParams) -> RSInterfaceLayouts:
+        return gen_params.get(RSLayouts, rs_entries=self.rs_entries).rs
+
+    def get_rs_entry_count(self) -> int:
+        return self.rs_entries
+
+
 class SchedulerTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, rs: list[set[OpType]]):
+    def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
-        self.rs = rs
 
     def elaborate(self, platform):
         m = Module()
@@ -43,80 +60,60 @@ class SchedulerTestCircuit(Elaboratable):
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
         m.submodules.crat = self.crat = crat = CheckpointRAT(gen_params=self.gen_params)
-        m.submodules.rob = self.rob = ReorderBuffer(self.gen_params)
-        m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params)
+        m.submodules.rob = self.rob = ReorderBuffer(self.gen_params, 1)
+        m.submodules.rf = self.rf = RegisterFile(gen_params=self.gen_params, read_ports=2, write_ports=1, free_ports=1)
 
-        # mocked RSFuncBlock
-        class MockedRSFuncBlock(FuncBlock):
-            def __init__(self, select, insert):
-                self.select = select
-                self.insert = insert
-
-            update: Method
-            get_result: Method
-
-            def elaborate(self, platform):
-                raise NotImplementedError
-
-        method_rs_alloc = []
-        method_rs_insert = []
-        rs_blocks: list[tuple[FuncBlock, set[OpType]]] = []
-        self.rs_alloc = []
-        self.rs_insert = []
+        self.rs_alloc: list[TestbenchIO] = []
+        self.rs_insert: list[TestbenchIO] = []
 
         # mocked RS
-        for i, rs in enumerate(self.rs):
-            alloc_adapter = Adapter.create(o=rs_layouts.rs.select_out)
-            insert_adapter = Adapter.create(i=rs_layouts.rs.insert_in)
+        for i in range(len(self.gen_params.func_units_config)):
+            select_test = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
+            insert_test = TestbenchIO(Adapter(i=rs_layouts.rs.insert_in))
 
-            select_test = TestbenchIO(alloc_adapter)
-            insert_test = TestbenchIO(insert_adapter)
-
-            method_rs_alloc.append(alloc_adapter)
-            method_rs_insert.append(insert_adapter)
             self.rs_alloc.append(select_test)
             self.rs_insert.append(insert_test)
-            rs_blocks.append((MockedRSFuncBlock(alloc_adapter.iface, insert_adapter.iface), rs))
 
             m.submodules[f"rs_alloc_{i}"] = self.rs_alloc[i]
             m.submodules[f"rs_insert_{i}"] = self.rs_insert[i]
 
         # mocked input and output
-        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans(self.rf.write))
-        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans(self.rf.free))
-        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans(self.rob.mark_done))
-        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans(self.rob.retire))
-        m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans(self.rob.peek))
-        m.submodules.rob_get_indices = self.rob_get_indices = TestbenchIO(AdapterTrans(self.rob.get_indices))
-        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans(instr_fifo.write))
-        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans(free_rf_fifo.write))
+        m.submodules.rf_write = self.rf_write = TestbenchIO(AdapterTrans.create(self.rf.write[0]))
+        m.submodules.rf_free = self.rf_free = TestbenchIO(AdapterTrans.create(self.rf.free[0]))
+        m.submodules.rob_markdone = self.rob_done = TestbenchIO(AdapterTrans.create(self.rob.mark_done[0]))
+        m.submodules.rob_retire = self.rob_retire = TestbenchIO(AdapterTrans.create(self.rob.retire))
+        m.submodules.rob_peek = self.rob_peek = TestbenchIO(AdapterTrans.create(self.rob.peek))
+        m.submodules.rob_get_indices = self.rob_get_indices = TestbenchIO(AdapterTrans.create(self.rob.get_indices))
+        m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans.create(instr_fifo.write))
+        m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans.create(free_rf_fifo.write))
         m.submodules.core_state = self.core_state = TestbenchIO(
-            Adapter.create(o=self.gen_params.get(RetirementLayouts).core_state)
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
-        m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans(crat.get_active_tags))
-        m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans(crat.free_tag))
+        m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans.create(crat.get_active_tags))
+        m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans.create(crat.free_tag))
         dm = DependencyContext.get()
         dm.add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         # main scheduler
-        m.submodules.scheduler = self.scheduler = Scheduler(
-            get_instr=instr_fifo.read,
-            get_free_reg=free_rf_fifo.read,
-            crat_rename=crat.rename,
-            crat_tag=crat.tag,
-            crat_active_tags=crat.get_active_tags,
-            rob_put=self.rob.put,
-            rf_read_req1=self.rf.read_req1,
-            rf_read_req2=self.rf.read_req2,
-            rf_read_resp1=self.rf.read_resp1,
-            rf_read_resp2=self.rf.read_resp2,
-            reservation_stations=rs_blocks,
-            gen_params=self.gen_params,
-        )
+        m.submodules.scheduler = self.scheduler = Scheduler(gen_params=self.gen_params)
+        self.scheduler.get_instr.provide(instr_fifo.read)
+        self.scheduler.get_free_reg[0].provide(free_rf_fifo.read)
+        self.scheduler.crat_rename.provide(crat.rename)
+        self.scheduler.crat_commit_checkpoint.provide(crat.commit_checkpoint)
+        self.scheduler.crat_tag.provide(crat.tag)
+        self.scheduler.crat_active_tags.provide(crat.get_active_tags)
+        self.scheduler.rob_put.provide(self.rob.put)
+        self.scheduler.rf_read_req1.provide(self.rf.read_req[0])
+        self.scheduler.rf_read_req2.provide(self.rf.read_req[1])
+        self.scheduler.rf_read_resp1.provide(self.rf.read_resp[0])
+        self.scheduler.rf_read_resp2.provide(self.rf.read_resp[1])
+        for i, (rs_select, rs_insert) in enumerate(zip(self.rs_alloc, self.rs_insert)):
+            self.scheduler.rs_select[i].provide(rs_select.adapter.iface)
+            self.scheduler.rs_insert[i].provide(rs_insert.adapter.iface)
 
         rollback, rollback_unifiers = dm.get_dependency(RollbackKey())
         m.submodules.rollback_unifiers = ModuleConnector(**rollback_unifiers)
-        m.submodules.rollback = self.rollback = TestbenchIO(AdapterTrans(rollback))
+        m.submodules.rollback = self.rollback = TestbenchIO(AdapterTrans.create(rollback))
 
         return m
 
@@ -141,7 +138,8 @@ class TestScheduler(TestCaseWithSimulator):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
             test_core_config.replace(
-                func_units_config=tuple(RSBlockComponent([], rs_entries=4, rs_number=k) for k in range(self.rs_count))
+                func_units_config=tuple(MockedBlockComponent(optypes, rs_entries=4) for optypes in self.optype_sets),
+                allow_partial_extensions=True,
             )
         )
         self.expected_rename_queue = deque()
@@ -151,7 +149,7 @@ class TestScheduler(TestCaseWithSimulator):
         self.expected_rs_entry_queue = [deque() for _ in self.optype_sets]
         self.current_RAT = [0] * self.gen_params.isa.reg_cnt
         self.allocated_instr_count = 0
-        self.m = SchedulerTestCircuit(self.gen_params, self.optype_sets)
+        self.m = SchedulerTestCircuit(self.gen_params)
 
         random.seed(42)
 
@@ -167,7 +165,7 @@ class TestScheduler(TestCaseWithSimulator):
             self.free_phys_reg(i)
 
     def free_phys_reg(self, reg_id):
-        self.free_regs_queue.append({"reg_id": reg_id})
+        self.free_regs_queue.append({"ident": reg_id})
         self.expected_phys_reg_queue.append(reg_id)
 
     async def queue_gather(self, sim: TestbenchContext, queues: Iterable[deque]):
@@ -307,6 +305,7 @@ class TestScheduler(TestCaseWithSimulator):
     def test_randomized(self):
         async def instr_input_process(sim: TestbenchContext):
             self.m.rob_retire.enable(sim)
+            self.m.rob_retire.set_inputs(sim, {"count": 1})
 
             # set up RF to reflect our static rf_state reference lookup table
             for i in range(2**self.gen_params.phys_regs_bits - 1):
@@ -348,19 +347,22 @@ class TestScheduler(TestCaseWithSimulator):
 
                 await self.m.instr_inp.call(
                     sim,
-                    {
-                        "exec_fn": {
-                            "op_type": op_type,
-                            "funct3": funct3,
-                            "funct7": funct7,
-                        },
-                        "regs_l": {
-                            "rl_s1": rl_s1,
-                            "rl_s2": rl_s2,
-                            "rl_dst": rl_dst,
-                        },
-                        "imm": immediate,
-                    },
+                    count=1,
+                    data=[
+                        {
+                            "exec_fn": {
+                                "op_type": op_type,
+                                "funct3": funct3,
+                                "funct7": funct7,
+                            },
+                            "regs_l": {
+                                "rl_s1": rl_s1,
+                                "rl_s2": rl_s2,
+                                "rl_dst": rl_dst,
+                            },
+                            "imm": immediate,
+                        }
+                    ],
                 )
             # Terminate other processes
             self.expected_rename_queue.append(None)

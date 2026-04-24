@@ -9,7 +9,7 @@ Coreblocks is an experimental, modular out-of-order [RISC-V](https://riscv.org/s
  * Simplicity. Coreblocks is an academic project, accessible to students.
    It should be suitable for teaching essentials of out-of-order architectures.
  * Modularity. We want to be able to easily experiment with the core by adding, replacing and modifying modules without changing the source too much.
-   For this goal, we designed a transaction system called [Transactron](https://github.com/kuznia-rdzeni/transactron), which is inspired by [Bluespec](http://wiki.bluespec.com/).
+   For this goal, we designed a transaction system called [Transactron](https://github.com/kuznia-rdzeni/transactron), which is inspired by [Bluespec](http://github.com/b-lang-org/bsc).
  * Fine-grained testing. Outside of the integration tests for the full core, modules are tested individually.
    This is to support an agile style of development.
 
@@ -17,17 +17,35 @@ In the future, we would like to achieve the following goals:
 
  * Performance (up to a point, on FPGAs). We would like Coreblocks not to be too sluggish, without compromising the simplicity goal.
    We don't wish to compete with high performance cores like [BOOM](https://github.com/riscv-boom/riscv-boom) though.
- * Wide(r) RISC-V support. Currently, we are focusing on getting the support for the core RV32I ISA right, but the ambitious long term plan is to be able to run full operating systems (e.g. Linux) on the core.
+ * Wide RISC-V support.
+   The core can currently run [Zephyr](https://github.com/kuznia-rdzeni/zephyr-on-litex-coreblocks) and [a MMU-less Linux kernel](https://github.com/kuznia-rdzeni/linux-on-litex-coreblocks).
+   Running a fully-featured Linux core in supervisor mode is our next target.
 
 ## State of the project
 
-The core currently supports the full RV32I instruction set and several extensions, including M (multiplication and division) and C (compressed instructions).
-Exceptions and some of machine-mode CSRs are supported, the support for interrupts is currently rudimentary and incompatible with the RISC-V spec.
-Coreblocks can be used with [LiteX](https://github.com/enjoy-digital/litex) (currently using a [patched version](https://github.com/kuznia-rdzeni/litex/tree/coreblocks)).
+The core currently supports the full unprivileged RV32I instruction set and a number of extensions, including:
+
+ * M - integer multiplication and division, with Zmmul only as an option,
+ * A - atomic instructions, comprising of Zaamo and Zalrsc (without multi-core support),
+ * C - compressed instructions,
+ * B - bit manipulation, comprising of Zba, Zbb and Zbs, extension Zbc is implemented too.
+
+Machine and user modes are fully implemented. Support for supervisor mode is currently missing.
+
+Coreblocks can be easily integrated with [LiteX](https://github.com/enjoy-digital/litex) SoC generator.
+
+## Community
+
+We have an community IRC channel - [#coreforge at libera.chat](https://web.libera.chat/#coreforge) bridged with Matrix chat [#coreforge:fossi-chat.org](https://matrix.to/#/#coreforge:fossi-chat.org).
+You are welcome to join and ask questions, discuss development, or share feedback about [Coreforge projects](https://github.com/kuznia-rdzeni) :)
+
+Coreblocks is maintained under the [Coreforge Foundation](https://kuznia-rdzeni.org)
+and is **looking for new contributors!** - Want to get involved? We will be happy to help you.
 
 ## Documentation
 
 The [documentation for our project](https://kuznia-rdzeni.github.io/coreblocks/) is automatically generated using [Sphinx](https://www.sphinx-doc.org/).
+*It is currently a bit outdated.*
 
 Resource usage and maximum clock frequency is [automatically measured and recorded](https://kuznia-rdzeni.github.io/coreblocks/dev/benchmark/).
 
@@ -35,12 +53,22 @@ Resource usage and maximum clock frequency is [automatically measured and record
 
 Set up the [development environment](https://kuznia-rdzeni.github.io/coreblocks/Development_environment.html) following the project documentation.
 
-External contributors are welcome to submit pull requests for simple contributions directly.
-For larger changes, please discuss your plans with us through the [issues page](https://github.com/kuznia-rdzeni/coreblocks/issues) or the [discussions page](https://github.com/kuznia-rdzeni/coreblocks/discussions) first.
-This way, you can ensure that the contribution fits the project and will be merged sooner.
+For larger changes, please discuss your plans with us first, so you can ensure that the contribution fits the project and will be merged sooner.
+You are welcome to submit pull requests for simple contributions directly.
+
+## Acknowledgements
+
+Coreblocks project is financially supported by [NGI0 Commons Fund](https://nlnet.nl/commonsfund/) made possible by [NLNet](https://nlnet.nl) and European Commission.
+
+<div align="center">
+        <img src="docs/images/nlnet.svg" height="50px" />
+        <img src="docs/images/ngi0-commons.svg" width="40%" height="50px" />
+</div>
+
+Contact us at [Coreforge Foundation](https://kuznia-rdzeni.org) if you want to support development of Coreforge projects!
 
 ## License
 
-Copyright © 2022-2024, University of Wrocław.
+Copyright © 2022-2025, University of Wrocław.
 
 This project is [three-clause BSD](https://github.com/kuznia-rdzeni/coreblocks/blob/master/LICENSE) licensed.

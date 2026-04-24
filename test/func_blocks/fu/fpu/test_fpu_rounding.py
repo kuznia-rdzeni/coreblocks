@@ -18,7 +18,9 @@ class TestFPURounding(TestCaseWithSimulator):
         def elaborate(self, platform):
             m = TModule()
             m.submodules.fpur = fpur = self.fpu_rounding = FPURounding(fpu_params=self.params)
-            m.submodules.rounding = self.rounding_request_adapter = TestbenchIO(AdapterTrans(fpur.rounding_request))
+            m.submodules.rounding = self.rounding_request_adapter = TestbenchIO(
+                AdapterTrans.create(fpur.rounding_request)
+            )
             return m
 
     class HelpValues:

@@ -6,7 +6,8 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params.configurations import test_core_config
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
@@ -17,7 +18,7 @@ from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 class TestPMADirect(TestCaseWithSimulator):
     async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for i in range(region.start, region.end + 1):
-            sim.set(self.test_module.addr, i)
+            sim.set(self.test_module.paddr, i)
             mmio = sim.get(self.test_module.result.mmio)
             assert mmio == region.mmio
 
@@ -53,14 +54,14 @@ class PMAIndirectTestCircuit(Elaboratable):
         self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter.create(i=self.gen.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
-            Adapter.create(
+            Adapter(
                 i=layouts.precommit_in,
                 o=layouts.precommit_out,
                 nonexclusive=True,
@@ -69,13 +70,16 @@ class PMAIndirectTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
 
-        m.submodules.core_state = self.core_state = TestbenchIO(Adapter.create(o=layouts.core_state, nonexclusive=True))
+        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
-        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans(func_unit.issue))
-        m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter(func_unit.push_result))
+        m.submodules.issue_mock = self.issue = TestbenchIO(AdapterTrans.create(func_unit.issue))
+        m.submodules.push_result_mock = self.push_result = TestbenchIO(Adapter.create(func_unit.push_result))
         m.submodules.bus_master_adapter = self.bus_master_adapter
         return m
 

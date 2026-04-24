@@ -17,8 +17,9 @@ from transactron.lib.metrics import *
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause
+from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
-from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR, counteren_access_filter
 from coreblocks.arch.isa_consts import TrapVectorMode
 
 
@@ -29,7 +30,7 @@ class Retirement(Elaboratable):
     ):
         self.gen_params = gen_params
         self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
-        self.rob_retire = Method()
+        self.rob_retire = Method(i=gen_params.get(ROBLayouts).retire_layout)
         self.r_rat_commit = Method(
             i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
         )
@@ -40,13 +41,23 @@ class Retirement(Elaboratable):
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
         self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
-        self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
+        self.instr_decrement = Method(
+            i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
+            o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
+        )
         self.trap_entry = Method()
         self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
-        self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+        self.instret_csr = DoubleCounterCSR(
+            gen_params,
+            CSRAddress.MINSTRET,
+            CSRAddress.MINSTRETH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.INSTRET,
+            CSRAddress.INSTRETH if gen_params.isa.xlen == 32 else None,
+            shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.IR),
+        )
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",
@@ -103,7 +114,8 @@ class Retirement(Elaboratable):
         retire_valid = Signal()
         with Transaction().body(m) as validate_transaction:
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
-            rob_entry = self.rob_peek(m)
+            rob_entries = self.rob_peek(m)
+            rob_entry = rob_entries.entries[0]
             ecr_entry = self.exception_cause_get(m)
             m.d.comb += retire_valid.eq(
                 ~rob_entry.exception | (rob_entry.exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entry.rob_id))
@@ -115,14 +127,15 @@ class Retirement(Elaboratable):
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
-                with Transaction().body(m, request=retire_valid) as retire_transaction:
-                    rob_entry = self.rob_peek(m)
-                    self.rob_retire(m)
+                with Transaction().body(m, ready=retire_valid) as retire_transaction:
+                    rob_entries = self.rob_peek(m)
+                    rob_entry = rob_entries.entries[0]
+                    self.rob_retire(m, count=1)
 
                     with m.If(rob_entry.rob_data.tag_increment):
                         self.checkpoint_tag_free(m)
 
-                    core_empty = self.instr_decrement(m)
+                    core_empty = self.instr_decrement(m, count=1)
 
                     commit = Signal()
 
@@ -194,13 +207,14 @@ class Retirement(Elaboratable):
             with m.State("TRAP_FLUSH"):
                 with Transaction().body(m):
                     # Flush entire core
-                    rob_entry = self.rob_peek(m)
-                    self.rob_retire(m)
+                    rob_entries = self.rob_peek(m)
+                    rob_entry = rob_entries.entries[0]
+                    self.rob_retire(m, count=1)
 
                     with m.If(rob_entry.rob_data.tag_increment):
                         self.checkpoint_tag_free(m)
 
-                    core_empty = self.instr_decrement(m)
+                    core_empty = self.instr_decrement(m, count=1)
 
                     flush_instr(rob_entry)
 
@@ -256,7 +270,7 @@ class Retirement(Elaboratable):
             combiner=lambda m, args, runs: 0,
         )
         def _(rob_id):
-            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).rob_id)
+            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).entries[0].rob_id)
             return {"side_fx": side_fx}
 
         return m

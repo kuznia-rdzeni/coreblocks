@@ -8,7 +8,9 @@ import argparse
 from amaranth.build import Platform
 from amaranth.build.res import PortGroup
 from amaranth import *
+from amaranth.lib import memory
 from amaranth.lib.wiring import Component, Flow, Out, connect, flipped
+from amaranth_types import AbstractInterface
 
 if __name__ == "__main__":
     parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +19,6 @@ if __name__ == "__main__":
 
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.utils import ModuleConnector
-from transactron.utils._typing import AbstractInterface
 from coreblocks.params.genparams import GenParams
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.core import Core
@@ -27,8 +28,9 @@ from coreblocks.func_blocks.fu.mul_unit import MulComponent, MulType
 from coreblocks.func_blocks.fu.shift_unit import ShiftUnitComponent
 from coreblocks.func_blocks.fu.zbc import ZbcComponent
 from coreblocks.func_blocks.fu.zbs import ZbsComponent
-from transactron import TransactionModule
+from transactron import TransactronContextElaboratable
 from transactron.lib import Adapter, AdapterTrans
+from transactron.utils.amaranth_ext.memory import MultiportXORMemory, MultiportXORILVTMemory, MultiportOneHotILVTMemory
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
 from constants.ecp5_platforms import (
     ResourceBuilder,
@@ -104,14 +106,14 @@ def unit_core(gen_params: GenParams):
 
     module = ModuleConnector(core=core, connector=connector)
 
-    return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
+    return resources, TransactronContextElaboratable(module, dependency_manager=DependencyContext.get())
 
 
 def unit_fu(unit_params: FunctionalComponentParams):
     def unit(gen_params: GenParams):
         fu = unit_params.get_module(gen_params)
-        issue_adapter = AdapterTrans(fu.issue)
-        push_result_adapter = Adapter(fu.push_result)
+        issue_adapter = AdapterTrans.create(fu.issue)
+        push_result_adapter = Adapter.create(fu.push_result)
 
         issue_connector, issue_resources = InterfaceConnector.with_resources(issue_adapter, "adapter", 0)
         push_connector, push_resources = InterfaceConnector.with_resources(push_result_adapter, "adapter", 1)
@@ -126,7 +128,7 @@ def unit_fu(unit_params: FunctionalComponentParams):
             accept_adapter=push_result_adapter,
         )
 
-        return resources, TransactionModule(module, dependency_manager=DependencyContext.get())
+        return resources, TransactronContextElaboratable(module, dependency_manager=DependencyContext.get())
 
     return unit
 
@@ -137,12 +139,21 @@ core_units = {
     "alu_full": unit_fu(ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True)),
     "mul_shift": unit_fu(MulComponent(MulType.SHIFT_MUL)),
     "mul_sequence": unit_fu(MulComponent(MulType.SEQUENCE_MUL)),
+    "mul_pipelined": unit_fu(MulComponent(MulType.PIPELINED_MUL)),
     "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
     "div": unit_fu(DivComponent()),
     "shift_basic": unit_fu(ShiftUnitComponent(zbb_enable=False)),
     "shift_full": unit_fu(ShiftUnitComponent(zbb_enable=True)),
     "zbs": unit_fu(ZbsComponent()),
     "zbc": unit_fu(ZbcComponent()),
+}
+
+
+memory_types = {
+    "plain": memory.Memory,
+    "xor": MultiportXORMemory,
+    "xor-ilvt": MultiportXORILVTMemory,
+    "onehot-ilvt": MultiportOneHotILVTMemory,
 }
 
 
@@ -177,7 +188,11 @@ def main():
         "-u",
         "--unit",
         default="core",
-        help="Select core unit." + f"Available units: {', '.join(core_units.keys())}. Default: %(default)s",
+        help="Select core unit. " + f"Available units: {', '.join(core_units.keys())}. Default: %(default)s",
+    )
+
+    parser.add_argument(
+        "-m", "--memory", default="xor-ilvt", choices=memory_types.keys(), help="Select superscalar memory type."
     )
 
     parser.add_argument(
@@ -206,6 +221,8 @@ def main():
     config = str_to_coreconfig[args.config]
     if args.strip_debug:
         config = config.replace(debug_signals=False)
+
+    config = config.replace(multiport_memory_type=memory_types[args.memory])
 
     synthesize(config, args.platform, core_units[args.unit])
 

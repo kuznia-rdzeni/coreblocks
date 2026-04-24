@@ -3,9 +3,9 @@ from functools import reduce
 from operator import or_
 from amaranth import *
 from amaranth.lib import data
+from amaranth_types import HasElaborate
 
 from coreblocks.params import *
-from transactron.utils import HasElaborate
 from transactron.core import TModule
 
 
@@ -42,7 +42,7 @@ class PMAChecker(Elaboratable):
 
     Attributes
     ----------
-    addr : Signal
+    paddr : Signal
         Memory address, for which PMAs are requested.
     result : View
         PMAs for given address.
@@ -52,20 +52,20 @@ class PMAChecker(Elaboratable):
         # poor man's interval list
         self.segments = gen_params.pma
         self.result = Signal(PMALayout())
-        self.addr = Signal(gen_params.isa.xlen)
+        self.paddr = Signal(gen_params.phys_addr_bits)
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
 
         outputs = [Signal(PMALayout()) for _ in self.segments]
 
-        # zero output if addr not in region, propagate value if addr in region
+        # zero output if paddr not in region, propagate value if paddr in region
         for i, segment in enumerate(self.segments):
             start = segment.start
             end = segment.end
 
-            # check if addr in region
-            with m.If((self.addr >= start) & (self.addr <= end)):
+            # check if paddr in region
+            with m.If((self.paddr >= start) & (self.paddr <= end)):
                 m.d.comb += outputs[i].eq(segment.mmio)
 
         # OR all outputs
