@@ -368,16 +368,15 @@ class RSInsertion(Elaboratable):
             core_state = DependencyContext.get().get_dependency(CoreStateKey())
             flushing = core_state(m).flushing
 
-            tag_inactive = ~self.crat_active_tags(m).active_tags[instrs.data[0].tag]
-
-            skip_source_registers = flushing | tag_inactive
-
+            active_tags = self.crat_active_tags(m)
             rs_entry_id: list[Value] = []
             rs_selected: list[Value] = []
             rs_datas = []
 
             for i in range(self.gen_params.frontend_superscalarity):
                 instr = instrs.data[i]
+                tag_inactive = ~active_tags.active_tags[instr.tag]
+                skip_source_registers = flushing | tag_inactive
 
                 # RS insertion guarantees RF response for present instructions
                 # Nested transaction used to avoid locking
