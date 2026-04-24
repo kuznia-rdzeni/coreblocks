@@ -58,6 +58,11 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
 
             priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
+            instr_exc_on_second_half = Signal()
+            m.d.av_comb += instr_exc_on_second_half.eq(
+                (arg.imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF).any()
+            )
+
             with OneHotSwitch(m, arg.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
@@ -75,9 +80,7 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
                     # With C extension access fault can be only on the second half of instruction, and mepc != mtval.
                     # This information is passed in imm field
-                    m.d.av_comb += mtval.eq(
-                        arg.pc + ((arg.imm & FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF).any() << 1)
-                    )
+                    m.d.av_comb += mtval.eq(arg.pc + (instr_exc_on_second_half << 1))
                 with OneHotCase(ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION):
                     m.d.av_comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
                     m.d.av_comb += mtval.eq(arg.imm)  # passed instruction bytes
@@ -86,7 +89,7 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
                     m.d.av_comb += mtval.eq(arg.pc)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_PAGE_FAULT):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
-                    m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
+                    m.d.av_comb += mtval.eq(arg.pc + (instr_exc_on_second_half << 1))
 
             self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, mtval=mtval)
 

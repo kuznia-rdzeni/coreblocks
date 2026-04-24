@@ -4,6 +4,12 @@
 # trap_handler verifies trap cause and priv mode change
 
 _start:
+    # Configure PMP: allow all access for U-mode
+    li x1, 0x1F
+    csrw pmpcfg0, x1
+    li x1, -1
+    csrw pmpaddr0, x1
+
     li x4, 0
 
     la x1, trap_handler

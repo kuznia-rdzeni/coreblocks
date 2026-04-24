@@ -117,10 +117,17 @@ class _CoreConfigurationDataClass:
         Number of writable ASID bits in SATP.
     supported_vm_schemes: Collection[SatpMode]
         SATP MODE values accepted by this core.
+    phys_addr_bits: int | None
+        Width of physical addresses in bits. If not set, defaults to 34 for RV32 if supported_vm_schemes has
+        SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
+    pmp_grain_log: int
+        Log of the PMP grain size (in bytes).
+        Must be >= 2 if PMP registers are enabled.
+        When PMP and icache are both enabled, must be >= icache_line_bytes_log.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -181,9 +188,11 @@ class _CoreConfigurationDataClass:
 
     asidlen: int = 0
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
+    phys_addr_bits: int | None = None
     hpm_counters_count: int = 0
 
     pmp_register_count: int = 0
+    pmp_grain_log: int = 5
 
     allow_partial_extensions: bool = False
 
@@ -222,6 +231,7 @@ tiny_core_config = CoreConfiguration(
     icache_enable=False,
     user_mode=False,
     supervisor_mode=False,
+    pmp_grain_log=2,
 )
 
 # Basic core config with minimal additions required for Linux

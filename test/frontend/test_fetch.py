@@ -10,7 +10,7 @@ from amaranth import Elaboratable, Module
 from transactron.core import Method
 from transactron.lib import Adapter, BasicFifo
 from transactron.testing.method_mock import MethodMock
-from transactron.utils import ModuleConnector
+from transactron.utils import ModuleConnector, DependencyContext
 from transactron.testing import (
     TestCaseWithSimulator,
     TestbenchIO,
@@ -26,6 +26,8 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
+from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -65,6 +67,9 @@ class TestFetchUnit(TestCaseWithSimulator):
             )
         )
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, depth=2)
         self.fifo = SimpleTestCircuit(fifo, exclude={"write"})
@@ -75,7 +80,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(self.icache, self.fifo, self.fetch)
+        self.m = ModuleConnector(self.csr_instances, self.icache, self.fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -170,10 +175,10 @@ class TestFetchUnit(TestCaseWithSimulator):
     @def_method_mock(
         lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
-    def issue_req_mock(self, addr):
+    def issue_req_mock(self, paddr):
         @MethodMock.effect
         def eff():
-            self.input_q.append(addr)
+            self.input_q.append(paddr)
 
     @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
@@ -199,11 +204,13 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
-            access_fault = FetchLayouts.AccessFaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
+            access_fault = FetchLayouts.FaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
             if not instr["rvc"]:
                 if instr["pc"] + 2 in self.memerr:
                     access_fault = (
-                        FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF if not access_fault else access_fault
+                        FetchLayouts.FaultFlag.ACCESS_FAULT | FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF
+                        if not access_fault
+                        else access_fault
                     )
 
             print(instr, v["pc"], v["access_fault"])
@@ -231,7 +238,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                     resume_pc = (
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
                     ) + self.gen_params.fetch_block_bytes * (
-                        2 if access_fault == FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF else 1
+                        2 if FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF in access_fault else 1
                     )
 
                 self.backend_redirect.append(resume_pc)
