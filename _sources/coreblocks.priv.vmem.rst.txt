@@ -1,0 +1,21 @@
+coreblocks.priv.vmem package
+============================
+
+Submodules
+----------
+
+coreblocks.priv.vmem.translation module
+---------------------------------------
+
+.. automodule:: coreblocks.priv.vmem.translation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.priv.vmem
+   :members:
+   :undoc-members:
+   :show-inheritance:

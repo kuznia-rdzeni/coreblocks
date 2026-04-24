@@ -9,6 +9,7 @@ Subpackages
 
    coreblocks.priv.csr
    coreblocks.priv.traps
+   coreblocks.priv.vmem
 
 Submodules
 ----------

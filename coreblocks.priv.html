@@ -105,6 +105,12 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.priv.traps.html#module-coreblocks.priv.traps">Module contents</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="coreblocks.priv.vmem.html">coreblocks.priv.vmem package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.priv.vmem.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.translation">coreblocks.priv.vmem.translation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem">Module contents</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -125,7 +131,7 @@ if no entry matches.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>addr</strong><span class="classifier">Signal</span></dt><dd><p>Memory address, for which PMP checks are requested.</p>
+<dt><strong>paddr</strong><span class="classifier">Signal</span></dt><dd><p>Memory address, for which PMP checks are requested.</p>
 </dd>
 <dt><strong>result</strong><span class="classifier">PMPLayout</span></dt><dd><p>RWX permission bits for the given address based on current PMP configuration
 and privilege mode. Bits are set to 0 if access is denied.</p>
@@ -143,7 +149,7 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPLayout</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev125)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev130)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout.__init__" title="Permalink to this definition"></a></dt>
@@ -169,7 +175,7 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:34 2026-04-24.
+      <span class="lastupdated">Last updated on 11:43 2026-04-24.
       </span></p>
   </div>
 

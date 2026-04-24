@@ -383,6 +383,8 @@
 </li>
         <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.interrupt_controller.InternalInterruptController.__init__">(coreblocks.priv.traps.interrupt_controller.InternalInterruptController method)</a>
 </li>
+        <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslator.__init__">(coreblocks.priv.vmem.translation.AddressTranslator method)</a>
+</li>
         <li><a href="coreblocks.scheduler.html#coreblocks.scheduler.scheduler.Scheduler.__init__">(coreblocks.scheduler.scheduler.Scheduler method)</a>
 </li>
         <li><a href="coreblocks.scheduler.html#coreblocks.scheduler.wakeup_select.WakeupSelect.__init__">(coreblocks.scheduler.wakeup_select.WakeupSelect method)</a>
@@ -496,6 +498,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.ADDRESS_GENERATION">ADDRESS_GENERATION (coreblocks.arch.optypes.OpType attribute)</a>
 </li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslator">AddressTranslator (class in coreblocks.priv.vmem.translation)</a>
+</li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslatorMode">AddressTranslatorMode (class in coreblocks.priv.vmem.translation)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.ADUE">ADUE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.aliased.AliasedCSR">AliasedCSR (class in coreblocks.priv.csr.aliased)</a>
@@ -506,10 +512,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.AMO">AMO (coreblocks.arch.isa_consts.Opcode attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOADD">AMOADD (coreblocks.arch.isa_consts.Funct7 attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOADD">AMOADD (coreblocks.arch.isa_consts.Funct7 attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOAND">AMOAND (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOMAX">AMOMAX (coreblocks.arch.isa_consts.Funct7 attribute)</a>
@@ -1110,8 +1116,6 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.int_to_float">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.fpu.lza
 
@@ -1119,6 +1123,8 @@
         <li><a href="coreblocks.func_blocks.fu.fpu.html#module-coreblocks.func_blocks.fu.fpu.lza">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.jumpbranch
 
@@ -1432,6 +1438,20 @@
 
       <ul>
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps.interrupt_controller">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.priv.vmem
+
+      <ul>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.priv.vmem.translation
+
+      <ul>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.translation">module</a>
 </li>
       </ul></li>
       <li>
@@ -2275,6 +2295,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InstrType">InstrType (class in coreblocks.arch.isa_consts)</a>
 </li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslatorMode.INSTRUCTION">INSTRUCTION (coreblocks.priv.vmem.translation.AddressTranslatorMode attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ACCESS_FAULT">INSTRUCTION_ACCESS_FAULT (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
   </ul></td>
@@ -2399,11 +2421,13 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.LPE">LPE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.LR">LR (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent.lsu">lsu (coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapperComponent attribute)</a>
+</li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslatorMode.LSU">LSU (coreblocks.priv.vmem.translation.AddressTranslatorMode attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper.LSUAtomicWrapper">LSUAtomicWrapper (class in coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper)</a>
 </li>
@@ -2447,6 +2471,8 @@
         <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.MAX">(coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters.max_physical_address_bits">max_physical_address_bits() (coreblocks.params.vmem_params.VirtualMemoryParameters static method)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.MAXU">MAXU (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.MBE">MBE (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
@@ -2749,10 +2775,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion.mmio">mmio (coreblocks.func_blocks.fu.lsu.pma.PMARegion attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNCAUSE">MNCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNEPC">MNEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNSCRATCH">MNSCRATCH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2962,6 +2988,10 @@
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps.instr_counter">coreblocks.priv.traps.instr_counter</a>
 </li>
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps.interrupt_controller">coreblocks.priv.traps.interrupt_controller</a>
+</li>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem">coreblocks.priv.vmem</a>
+</li>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.translation">coreblocks.priv.vmem.translation</a>
 </li>
         <li><a href="coreblocks.scheduler.html#module-coreblocks.scheduler">coreblocks.scheduler</a>
 </li>
@@ -4271,7 +4301,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:34 2026-04-24.
+      <span class="lastupdated">Last updated on 11:43 2026-04-24.
       </span></p>
   </div>
 
