@@ -156,7 +156,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, basic_core_config),
         ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, full_core_config),
         ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, full_core_config),
-        ("smode_exception", "smode_exception.asm", 500, {4: 1, 5: 1, 7: 1, 8: 2, 31: 0xDE}, full_core_config),
+        ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, full_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):

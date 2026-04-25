@@ -1,11 +1,14 @@
 _start:
+	li x5, 0
+	li x6, 0
+	li x7, 0
+	li x8, 0
+
 	# Configure PMP: allow all access for S-mode
 	li x1, 0x1F
 	csrw pmpcfg0, x1
 	li x1, -1
 	csrw pmpaddr0, x1
-
-	li x31, 0xde
 
 	la x1, machine_trap
 	csrw mtvec, x1
@@ -22,7 +25,7 @@ m_illegal_site:
 	.4byte 0
 
 after_m_illegal:
-	li x5, 1
+	addi x5, x5, 1
 
 	# Enter supervisor mode via MRET.
 	li x1, 0b11 << 11
@@ -40,37 +43,38 @@ s_illegal_site:
 	.4byte 0
 
 after_s_illegal:
-	li x4, 1
-	li x6, 1
-	bne x7, x6, fail
+	addi x6, x6, 1
 	j pass
 
 supervisor_trap:
-	csrr x8, scause
-	li x9, 2 # ILLEGAL_INSTRUCTION
-	bne x8, x9, fail
+	addi x7, x7, 1
 
-	csrr x10, sepc
-	la x11, s_illegal_site
-	bne x10, x11, fail
+	csrr x1, scause
+	li x2, 2 # ILLEGAL_INSTRUCTION
+	bne x1, x2, fail
 
-	li x7, 1
+	csrr x1, sepc
+	la x2, s_illegal_site
+	bne x1, x2, fail
 
-	addi x10, x10, 4
-	csrw sepc, x10
+	addi x1, x1, 4
+	csrw sepc, x1
+
 	sret
 
 machine_trap:
-	csrr x10, mcause
-	li x11, 2 # ILLEGAL_INSTRUCTION
-	bne x10, x11, fail
+	addi x8, x8, 1
 
-	csrr x12, mepc
-	la x13, m_illegal_site
-	bne x12, x13, fail
+	csrr x1, mcause
+	li x2, 2 # ILLEGAL_INSTRUCTION
+	bne x1, x2, fail
 
-	addi x12, x12, 4
-	csrw mepc, x12
+	csrr x1, mepc
+	la x2, m_illegal_site
+	bne x1, x2, fail
+
+	addi x1, x1, 4
+	csrw mepc, x1
 	mret
 
 fail:

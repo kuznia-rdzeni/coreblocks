@@ -40,7 +40,7 @@ __all__ = [
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
-        [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
+        [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent(supervisor_enable=True)],
         rs_entries=4,
     ),
     RSBlockComponent(
