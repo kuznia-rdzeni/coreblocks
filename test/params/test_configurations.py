@@ -18,9 +18,9 @@ class TestConfigurationsISAString(TestCase):
     TEST_CASES = [
         ISAStrTest(
             basic_core_config,
-            "rv32imzicsr_zifencei_xintmachinemode",
-            "rv32imzicsr_zifencei_xintmachinemode",
-            "rv32imzicsr_zifencei_xintmachinemode",
+            "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
+            "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
+            "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
         ),
         ISAStrTest(
             small_linux_config,
