@@ -181,6 +181,13 @@ class AddressTranslationLayouts:
             ("access_fault", 1),
         )
 
+        self.sfence_vma = make_layout(
+            fields.vaddr,
+            ("asid", gen_params.vmem_params.asidlen),
+            ("all_vaddrs", 1),
+            ("all_asids", 1),
+        )
+
 
 class SchedulerLayouts:
     """Layouts used in the scheduler."""

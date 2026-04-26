@@ -27,6 +27,7 @@ __all__ = [
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
+    "SFenceVMAKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -114,6 +115,16 @@ class CSRListKey(ListKey[tuple[int, RegisteredCSRProtocol]]):
 
 @dataclass(frozen=True)
 class FlushICacheKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
+    """
+    Collects SFENCE.VMA handlers to invalidate translation caches.
+    Expected layout is `AddressTranslationLayouts.sfence_vma`.
+    """
+
     pass
 
 
