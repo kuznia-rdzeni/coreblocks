@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777308416682,
+  "lastUpdate": 1777308418565,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -58694,6 +58694,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 3288,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2364,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8487,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ff6d3651abe37034faa1cfe2f28c95a6f76cd5a5",
+          "message": "Superscalar R-RAT (#914)",
+          "timestamp": "2026-04-27T18:20:20+02:00",
+          "tree_id": "0f7d6dfb1d9236d8f2694484d4cb469753d2930f",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ff6d3651abe37034faa1cfe2f28c95a6f76cd5a5"
+        },
+        "date": 1777308418198,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.06,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 41935,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3320,
             "unit": "LUT"
           },
           {
