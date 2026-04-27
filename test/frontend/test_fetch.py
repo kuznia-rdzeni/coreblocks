@@ -10,7 +10,7 @@ from amaranth import Elaboratable, Module
 from transactron.core import Method
 from transactron.lib import Adapter, BasicFifo
 from transactron.testing.method_mock import MethodMock
-from transactron.utils import ModuleConnector
+from transactron.utils import ModuleConnector, DependencyContext
 from transactron.testing import (
     TestCaseWithSimulator,
     TestbenchIO,
@@ -26,6 +26,8 @@ from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params.configurations import test_core_config
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
+from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 
 
 class MockedICache(Elaboratable, CacheInterface):
@@ -65,6 +67,9 @@ class TestFetchUnit(TestCaseWithSimulator):
             )
         )
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.icache = MockedICache(self.gen_params)
         fifo = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, depth=2)
         self.fifo = SimpleTestCircuit(fifo, exclude={"write"})
@@ -75,7 +80,7 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.fetch = SimpleTestCircuit(fetch_unit, exclude={"cont"})
 
-        self.m = ModuleConnector(self.icache, self.fifo, self.fetch)
+        self.m = ModuleConnector(self.csr_instances, self.icache, self.fifo, self.fetch)
 
         self.instr_queue = deque()
         self.mem = {}
@@ -159,6 +164,10 @@ class TestFetchUnit(TestCaseWithSimulator):
             for i in range(0, self.gen_params.fetch_block_bytes, 2):
                 fetch_block |= load_or_gen_mem(req_addr + i) << (8 * i)
                 if req_addr + i in self.memerr:
+                    if random.random() < 0.3:
+                        fetch_block = 0
+                    elif random.random() < 0.3:
+                        fetch_block = random.randrange(1 << (self.gen_params.fetch_block_bytes * 8))
                     bad_addr = True
 
             self.output_q.append({"fetch_block": fetch_block, "error": bad_addr})
@@ -166,10 +175,10 @@ class TestFetchUnit(TestCaseWithSimulator):
     @def_method_mock(
         lambda self: self.icache.issue_req_io, enable=lambda self: len(self.input_q) < 2
     )  # TODO had sched_prio
-    def issue_req_mock(self, addr):
+    def issue_req_mock(self, paddr):
         @MethodMock.effect
         def eff():
-            self.input_q.append(addr)
+            self.input_q.append(paddr)
 
     @def_method_mock(lambda self: self.icache.accept_res_io, enable=lambda self: len(self.output_q) > 0)
     def accept_res_mock(self):
@@ -195,16 +204,23 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
-            access_fault = instr["pc"] in self.memerr
+            access_fault = FetchLayouts.FaultFlag.ACCESS_FAULT if instr["pc"] in self.memerr else 0
             if not instr["rvc"]:
-                access_fault |= instr["pc"] + 2 in self.memerr
+                if instr["pc"] + 2 in self.memerr:
+                    access_fault = (
+                        FetchLayouts.FaultFlag.ACCESS_FAULT | FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF
+                        if not access_fault
+                        else access_fault
+                    )
 
+            print(instr, v["pc"], v["access_fault"])
             assert v["pc"] == instr["pc"]
             assert v["access_fault"] == access_fault
 
-            instr_data = instr["instr"]
-            if (instr_data & 0b11) == 0b11:
-                assert v["instr"] == instr_data
+            if not access_fault:
+                instr_data = instr["instr"]
+                if (instr_data & 0b11) == 0b11:
+                    assert v["instr"] == instr_data
 
             if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
                 await self.random_wait(sim, 5)
@@ -221,7 +237,10 @@ class TestFetchUnit(TestCaseWithSimulator):
                     # Resume from the next fetch block
                     resume_pc = (
                         instr["pc"] & ~(self.gen_params.fetch_block_bytes - 1)
-                    ) + self.gen_params.fetch_block_bytes
+                    ) + self.gen_params.fetch_block_bytes * (
+                        2 if FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF in access_fault else 1
+                    )
+
                 self.backend_redirect.append(resume_pc)
 
                 return True
@@ -265,7 +284,7 @@ class TestFetchUnit(TestCaseWithSimulator):
             self.last_redirect = None
 
     def run_sim(self):
-        with self.run_simulation(self.m) as sim:
+        with self.run_simulation(self.m, max_cycles=1000) as sim:
             sim.add_process(self.cache_process)
             sim.add_process(self.requester)
             sim.add_testbench(self.fetch_out_check)
@@ -426,6 +445,16 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         # We will resume from the next fetch block
         self.pc = pc + self.gen_params.fetch_block_bytes
+
+        if self.with_rvc:
+            # Access fault on sencond half on instruction
+            for _ in range(self.gen_params.fetch_width - 1):
+                self.gen_non_branch_instr(rvc=True)
+            pc = self.gen_non_branch_instr(rvc=False)  # 4 byte instruction crossing block
+            self.memerr.add(pc + 2)
+
+            # We will resume from next valid block
+            self.pc = pc + 2 + self.gen_params.fetch_block_bytes
 
         self.gen_non_branch_instr(rvc=False)
 

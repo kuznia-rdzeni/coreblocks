@@ -1,10 +1,5 @@
 from amaranth import *
 from amaranth_types import ValueLike
-from typing import Optional
-
-from transactron.core import TModule, Transaction
-from transactron.utils import DependencyContext
-
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import (
     CounterEnableFieldOffsets,
@@ -15,11 +10,9 @@ from coreblocks.arch.csr_address import (
 )
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
-    PrivilegeLevel,
     SatpMode,
-    TrapVectorMode,
-    XlenEncoding,
 )
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.aliased import AliasedCSR
 from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
@@ -27,6 +20,10 @@ from coreblocks.priv.csr.double_counter import DoubleCounterCSR
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.interface.keys import CSRInstancesKey
+from typing import Optional
+from amaranth.lib import data
+from transactron.core import Transaction, TModule
+from transactron.utils import DependencyContext
 
 
 def counteren_writable_mask(hpm_counters_count: int) -> int:
@@ -114,6 +111,27 @@ class MachineModeCSRRegisters(Elaboratable):
         self.pmpxcfg = []
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
         pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
+
+        def filter(_: TModule, v: Value):
+            cfg = data.View(PMPCfgLayout(), v)
+
+            # R=0, W=1 is a reserved combination (WARL): force W=0
+            filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
+
+            # When G >= 1, NA4 mode is not selectable: change to OFF
+            if gen_params.pmp_grain >= 1:
+                filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
+            else:
+                filtered_a = cfg.A
+
+            # L bit is not implemented (write-locking not supported): force to 0.
+            # TODO: Implement L bit — when L=1, writes to pmpcfg and pmpaddr should be
+            # ignored. Additionally, if entry i is locked and A=TOR, writes to pmpaddr(i-1)
+            # must also be ignored.
+            # Bits 5-6 (reserved): force to 0
+            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), C(0))
+            return C(1), filtered_v
+
         for i in range(0, pmpcfgx_cnt):
             # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
             pmpcfg_index = i * 2 if gen_params.isa.xlen == 64 else i
@@ -121,7 +139,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
             # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
             for j in range(pmpcfg_subregisters):
-                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH)
+                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter)
                 pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
                 self.pmpxcfg.append(pmpcfg_sub)
                 setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
@@ -129,8 +147,32 @@ class MachineModeCSRRegisters(Elaboratable):
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
+
         for i in range(gen_params.pmp_register_count):
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
+
+            def make_pmpaddr_fu_read_map(idx: int):
+                def pmpaddr_fu_read_map(_: TModule, value: Value):
+                    cfg = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value)
+                    a_field = cfg.A
+
+                    if gen_params.pmp_grain >= 2:
+                        # When G >= 2 and pmpcfgi.A[1] is set (NAPOT/NA4), then bits pmpaddri[G-2:0] read as all ones.
+                        napot_value = Cat(C(1).replicate(gen_params.pmp_grain - 1), value[gen_params.pmp_grain - 1 :])
+                    else:
+                        napot_value = value
+
+                    if gen_params.pmp_grain >= 1:
+                        # When G >= 1 and pmpcfgi.A[1] is clear (OFF/TOR), then bits pmpaddri[G-1:0] read as all zeros.
+                        tor_value = Cat(C(0, gen_params.pmp_grain), value[gen_params.pmp_grain :])
+                    else:
+                        tor_value = value
+
+                    is_napot_or_na4 = (a_field == PMPAFlagEncoding.NAPOT) | (a_field == PMPAFlagEncoding.NA4)
+                    return Mux(is_napot_or_na4, napot_value, tor_value)
+
+                return pmpaddr_fu_read_map
+
+            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, fu_read_map=make_pmpaddr_fu_read_map(i))
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
