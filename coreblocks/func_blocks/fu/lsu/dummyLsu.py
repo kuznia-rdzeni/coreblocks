@@ -11,7 +11,7 @@ from coreblocks.arch import OpType
 from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
-from coreblocks.priv.pmp import PMPChecker
+from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
     CommonBusDataKey,
@@ -77,7 +77,7 @@ class LSUDummy(FuncUnit, Elaboratable):
             self.gen_params, mode=AddressTranslatorMode.LSU
         )
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)

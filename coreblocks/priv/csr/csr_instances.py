@@ -24,6 +24,10 @@ from typing import Optional
 from amaranth.lib import data
 from transactron.core import Transaction, TModule
 from transactron.utils import DependencyContext
+from transactron.lib import logging
+
+
+log = logging.HardwareLogger("priv.csr.instances")
 
 
 def counteren_writable_mask(hpm_counters_count: int) -> int:
@@ -542,5 +546,12 @@ class CSRInstances(Elaboratable):
         m.submodules.time = self.time
         if self.gen_params.isa.xlen == 32:
             m.submodules.timeh = self.timeh
+
+        with Transaction().body(m):
+            priv_mode = self.m_mode.priv_mode.read(m).data
+            mprv = self.m_mode.mstatus_mprv.read(m).data
+            log.assertion(
+                m, ~mprv | (priv_mode == PrivilegeLevel.MACHINE), "MPRV should only be on when priv_mode is MACHINE"
+            )
 
         return m

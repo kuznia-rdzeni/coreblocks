@@ -10,7 +10,7 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing import TestbenchContext, TestCaseWithSimulator
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.utils.dependencies import DependencyContext
-from coreblocks.priv.pmp import PMPChecker
+from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 
 def make_cfg(*, r=0, w=0, x=0, a=0, lock=0) -> int:
@@ -42,6 +42,9 @@ class TestPMPDirect(TestCaseWithSimulator):
         entries: list[PMPEntry],
         checks: list[PMPCheck],
         priv_mode=PrivilegeLevel.USER,
+        pmp_mode=PMPOperationMode.LSU,
+        mprv=0,
+        mpp=PrivilegeLevel.USER,
         pmp_grain_log=2,
         icache_enable=False,
     ):
@@ -50,11 +53,13 @@ class TestPMPDirect(TestCaseWithSimulator):
         )
         csr = CSRInstances(gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
-        pmp = PMPChecker(gen_params)
+        pmp = PMPChecker(gen_params, mode=pmp_mode)
         test_module = ModuleConnector(csr_instances=csr, pmp=pmp)
 
         async def process(sim: TestbenchContext):
             sim.set(csr.m_mode.priv_mode.value, priv_mode)
+            sim.set(csr.m_mode.mstatus_mprv.value, mprv)
+            sim.set(csr.m_mode.mstatus_mpp.value, mpp)
             for i, entry in enumerate(entries):
                 sim.set(csr.m_mode.pmpaddrx[i].value, entry.addr)
                 sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
@@ -75,12 +80,50 @@ class TestPMPDirect(TestCaseWithSimulator):
             [],
             [PMPCheck(0x1000, 1, 1, 1), PMPCheck(0xDEAD, 1, 1, 1)],
             priv_mode=PrivilegeLevel.MACHINE,
+            pmp_mode=PMPOperationMode.INSTRUCTION_FETCH,
             pmp_grain_log=pmp_grain_log,
         )
 
     @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
     def test_umode_no_entries(self, pmp_grain_log):
         self.run_pmp_test([], [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0xDEAD, 0, 0, 0)], pmp_grain_log=pmp_grain_log)
+
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_lsu_mode_honors_mprv(self, pmp_grain_log):
+        # In LSU mode, MPRV redirects machine-mode memory accesses through MPP.
+        self.run_pmp_test(
+            [],
+            [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0xDEAD, 0, 0, 0)],
+            priv_mode=PrivilegeLevel.MACHINE,
+            pmp_mode=PMPOperationMode.LSU,
+            mprv=1,
+            mpp=PrivilegeLevel.USER,
+            pmp_grain_log=pmp_grain_log,
+        )
+
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_fetch_mode_ignores_mprv(self, pmp_grain_log):
+        # Fetch checks use current privilege mode only and ignore MPRV.
+        self.run_pmp_test(
+            [],
+            [PMPCheck(0x1000, 1, 1, 1), PMPCheck(0xDEAD, 1, 1, 1)],
+            priv_mode=PrivilegeLevel.MACHINE,
+            pmp_mode=PMPOperationMode.INSTRUCTION_FETCH,
+            mprv=1,
+            mpp=PrivilegeLevel.USER,
+            pmp_grain_log=pmp_grain_log,
+        )
+
+    @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
+    def test_mmu_mode_forces_supervisor(self, pmp_grain_log):
+        # MMU checks are always evaluated as-if in supervisor mode.
+        self.run_pmp_test(
+            [],
+            [PMPCheck(0x1000, 0, 0, 0), PMPCheck(0xDEAD, 0, 0, 0)],
+            priv_mode=PrivilegeLevel.MACHINE,
+            pmp_mode=PMPOperationMode.MMU,
+            pmp_grain_log=pmp_grain_log,
+        )
 
     @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
     def test_priority(self, pmp_grain_log):
