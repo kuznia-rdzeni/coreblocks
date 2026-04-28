@@ -69,7 +69,7 @@ class Core(Component):
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(
             gen_params=self.gen_params,
-            read_ports=2,
+            read_ports=2 * self.gen_params.frontend_superscalarity,
             write_ports=self.gen_params.announcement_superscalarity,
             free_ports=1,
         )
@@ -140,10 +140,8 @@ class Core(Component):
         scheduler.crat_tag.provide(crat.tag)
         scheduler.crat_active_tags.provide(crat.get_active_tags)
         scheduler.rob_put.provide(rob.put)
-        scheduler.rf_read_req1.provide(rf.read_req[0])
-        scheduler.rf_read_req2.provide(rf.read_req[1])
-        scheduler.rf_read_resp1.provide(rf.read_resp[0])
-        scheduler.rf_read_resp2.provide(rf.read_resp[1])
+        scheduler.rf_read_req.provide(rf.read_req)
+        scheduler.rf_read_resp.provide(rf.read_resp)
         for i, block in enumerate(self.func_blocks_unifier.rs_blocks):
             scheduler.rs_select[i].provide(block.select)
             scheduler.rs_insert[i].provide(block.insert)
