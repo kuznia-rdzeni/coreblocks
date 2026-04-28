@@ -29,8 +29,8 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
-        self.retirement.r_rat_commit.provide(self.rat.commit)
-        self.retirement.r_rat_peek.provide(self.rat.peek)
+        self.retirement.r_rat_commit.provide(self.rat.commit[0])
+        self.retirement.r_rat_peek.provide(self.rat.peek[0])
         self.retirement.free_rf_put.provide(self.free_rf.write)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
