@@ -363,3 +363,6 @@ jobs:
         run: |
           git add --renormalize .
           git diff --cached --exit-code
+
+      - name: Check pre-commit hooks
+        run: pre-commit run --all-files --show-diff-on-failure

@@ -20,5 +20,3 @@ RUN cd verilator && \
     make install && \
     make clean && \
     ccache -C
-
-

@@ -1,4 +1,3 @@
-from typing import Optional
 from amaranth import signed
 from amaranth.lib.data import ArrayLayout
 from amaranth.lib.enum import IntFlag, auto
@@ -9,6 +8,7 @@ from transactron.utils.transactron_helpers import make_layout, extend_layout
 
 __all__ = [
     "CommonLayoutFields",
+    "AddressTranslationLayouts",
     "SchedulerLayouts",
     "ROBLayouts",
     "FetchLayouts",
@@ -89,6 +89,12 @@ class CommonLayoutFields:
         self.addr: LayoutListField = ("addr", gen_params.isa.xlen)
         """Memory address."""
 
+        self.vaddr: LayoutListField = ("vaddr", gen_params.isa.xlen)
+        """Memory address - used when both virtual and physical addresses are present."""
+
+        self.paddr: LayoutListField = ("paddr", gen_params.phys_addr_bits)
+        """Physical memory address."""
+
         self.data: LayoutListField = ("data", gen_params.isa.xlen)
         """Piece of data."""
 
@@ -157,6 +163,22 @@ class CommonLayoutFields:
 
         self.commit_checkpoint: LayoutListField = ("commit_checkpoint", 1)
         """New checkpoint should be made for this instruction"""
+
+
+class AddressTranslationLayouts:
+    """Layouts used by virtual-to-physical address translation methods."""
+
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.request = make_layout(fields.addr)
+
+        self.accept = make_layout(
+            fields.vaddr,
+            fields.paddr,
+            ("page_fault", 1),
+            ("access_fault", 1),
+        )
 
 
 class SchedulerLayouts:
@@ -523,7 +545,7 @@ class ICacheLayouts:
         self.fetch_block: LayoutListField = ("fetch_block", gen_params.fetch_block_bytes * 8)
         """The block of data the fetch unit operates on."""
 
-        self.issue_req = make_layout(fields.addr)
+        self.issue_req = make_layout(fields.paddr)
 
         self.accept_res = make_layout(
             self.fetch_block,
@@ -531,11 +553,11 @@ class ICacheLayouts:
         )
 
         self.start_refill = make_layout(
-            fields.addr,
+            fields.paddr,
         )
 
         self.accept_refill = make_layout(
-            fields.addr,
+            fields.paddr,
             self.fetch_block,
             fields.error,
             self.last,
@@ -545,20 +567,23 @@ class ICacheLayouts:
 class FetchLayouts:
     """Layouts used in the fetcher."""
 
-    class AccessFaultFlag(IntFlag):
+    class FaultFlag(IntFlag):
         # standard access fault when accessing instruction
         # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
         ACCESS_FAULT = auto()
+        # standard page fault when accessing instruction
+        # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
+        PAGE_FAULT = auto()
         # with C extension (2-byte alignment enabled) fault condition
         # could only affect second half of 4-byte instruction.
         # Bit set if this is the case
-        ACCESS_FAULT_ON_SECOND_HALF = auto()
+        EXCEPTION_ON_SECOND_HALF = auto()
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.AccessFaultFlag)
-        """Instruction fetch errors. See `FetchLayouts.AccessFaultFlag` fields documentation"""
+        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.FaultFlag)
+        """Instruction fetch errors. See `FetchLayouts.FaultFlag` fields documentation"""
 
         self.raw_instr = make_layout(
             fields.instr,
@@ -718,7 +743,7 @@ class LSULayouts:
 
         self.store: LayoutListField = ("store", 1)
 
-        self.issue = make_layout(fields.addr, fields.data, fields.funct3, self.store)
+        self.issue = make_layout(fields.paddr, fields.vaddr, fields.data, fields.funct3, self.store)
 
         self.issue_out = make_layout(fields.exception, fields.cause)
 
@@ -728,9 +753,7 @@ class LSULayouts:
 class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
-    def __init__(self, gen_params: GenParams, *, data_width: Optional[int] = None):
-        data_width = data_width if data_width is not None else gen_params.isa.xlen
-
+    def __init__(self, gen_params: GenParams, *, data_width: int):
         self.data: LayoutListField = ("data", data_width)
 
         self.read = make_layout(
@@ -741,8 +764,10 @@ class CSRRegisterLayouts:
 
         self.write = make_layout(self.data)
 
-        self._fu_read = make_layout(self.data)
-        self._fu_write = make_layout(self.data)
+        self.fu_read = make_layout(self.data)
+        self.fu_write = make_layout(self.data)
+        self.fu_access_valid_i = make_layout(("priv_mode", PrivilegeLevel))
+        self.fu_access_valid_o = make_layout(("valid", 1))
 
 
 class CSRUnitLayouts:

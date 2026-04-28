@@ -24,4 +24,3 @@ SECTIONS
   .bss : { *(.bss) } >data AT>data :data
   _end = .;
 }
-

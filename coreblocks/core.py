@@ -18,6 +18,7 @@ from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.func_blocks.instruction_metrics import InstructionMetrics
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.frontend.frontend import CoreFrontend
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
@@ -121,6 +122,8 @@ class Core(Component):
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
+        m.submodules.instruction_metrics = InstructionMetrics()
+
         get_instr = Method.like(self.frontend.consume_instr)
 
         @def_method(m, get_instr)
@@ -162,8 +165,8 @@ class Core(Component):
         m.submodules.retirement = retirement = self.retirement
         retirement.rob_peek.provide(rob.peek)
         retirement.rob_retire.provide(rob.retire)
-        retirement.r_rat_commit.provide(rrat.commit)
-        retirement.r_rat_peek.provide(rrat.peek)
+        retirement.r_rat_commit.provide(rrat.commit[0])
+        retirement.r_rat_peek.provide(rrat.peek[0])
         retirement.free_rf_put.provide(rf_allocator.free[0])
         retirement.rf_free.provide(rf.free[0])
         retirement.exception_cause_get.provide(self.exception_information_register.get)

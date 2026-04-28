@@ -26,8 +26,8 @@ from coreblocks.func_blocks.fu.priv import PrivilegedUnitComponent
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapperComponent
-from coreblocks.func_blocks.csr.csr import CSRBlockComponent
-
+from coreblocks.func_blocks.csr.csr_unit import CSRBlockComponent
+from coreblocks.arch.isa_consts import SatpMode
 
 __all__ = [
     "CoreConfiguration",
@@ -111,8 +111,23 @@ class _CoreConfigurationDataClass:
         read-only and directly connected to input signal (implementation must provide clearing method)
     user_mode: bool
         Enable User Mode.
+    supervisor_mode: bool
+        Enable Supervisor Mode.
+    asidlen: int
+        Number of writable ASID bits in SATP.
+    supported_vm_schemes: Collection[SatpMode]
+        SATP MODE values accepted by this core.
+    phys_addr_bits: int | None
+        Width of physical addresses in bits. If not set, defaults to 34 for RV32 if supported_vm_schemes has
+        SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
+    hpm_counters_count: int
+        Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
+    pmp_grain_log: int
+        Log of the PMP grain size (in bytes).
+        Must be >= 2 if PMP registers are enabled.
+        When PMP and icache are both enabled, must be >= icache_line_bytes_log.
     allow_partial_extensions: bool
         Allow partial support of extensions.
     extra_verification: bool
@@ -169,8 +184,15 @@ class _CoreConfigurationDataClass:
     interrupt_custom_edge_trig_mask: int = 0
 
     user_mode: bool = True
+    supervisor_mode: bool = True
+
+    asidlen: int = 0
+    supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
+    phys_addr_bits: int | None = None
+    hpm_counters_count: int = 0
 
     pmp_register_count: int = 0
+    pmp_grain_log: int = 5
 
     allow_partial_extensions: bool = False
 
@@ -208,6 +230,8 @@ tiny_core_config = CoreConfiguration(
     rob_entries_bits=basic_core_config.rob_entries_bits - 1,
     icache_enable=False,
     user_mode=False,
+    supervisor_mode=False,
+    pmp_grain_log=2,
 )
 
 # Basic core config with minimal additions required for Linux
