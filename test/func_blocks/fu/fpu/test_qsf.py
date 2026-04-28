@@ -7,11 +7,11 @@ from amaranth import *
 class TestQSF(TestCaseWithSimulator):
 
     def test_manual(self):
-        intervals = R4A2RED.intervals
-        bounds = R4A2RED.bounds
-        digits = R4A2RED.digits
-        params = QSFParams(residual_width=7, divisor_width=4, q_bits=2)
-        qsf = SimpleTestCircuit(QSFModule(qsf_params=params, qsf_table=R4A2RED))
+        params = R4A2RED_PARAMS
+        intervals = params.qsf_table.intervals
+        bounds = params.qsf_table.bounds
+        digits = params.qsf_table.digits
+        qsf = SimpleTestCircuit(QSFModule(qsf_params=params))
 
         async def qsf_test(sim, intervals, bounds, digits):
             test_offset = 2

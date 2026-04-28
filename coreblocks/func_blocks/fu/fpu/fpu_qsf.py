@@ -1,6 +1,13 @@
+from dataclasses import dataclass
 from amaranth import *
 from transactron import TModule, Method, def_method
-from coreblocks.func_blocks.fu.fpu.qsf_tables import QSFTable
+
+
+@dataclass(frozen=True)
+class QSFTable:
+    intervals: list[int]
+    bounds: list[list[int]]
+    digits: list[tuple[int, int]]
 
 
 class QSFParams:
@@ -14,12 +21,22 @@ class QSFParams:
         Number of bits of divisor used in QSF
     q_bits: int
         Number of bits of quotient (log2(Radix))
+    qsf_table: QSFTable
+        Table for QSF
     """
 
-    def __init__(self, *, residual_width: int, divisor_width: int, q_bits: int):
+    def __init__(
+        self,
+        *,
+        residual_width: int,
+        divisor_width: int,
+        q_bits: int,
+        qsf_table: QSFTable,
+    ):
         self.residual_width = residual_width
         self.divisor_width = divisor_width
         self.q_bits = q_bits
+        self.qsf_table = qsf_table
 
 
 class QSFMethodLayout:
@@ -69,13 +86,13 @@ class QSFModule(Elaboratable):
         Returns result as 'qsf_out_layout'
     """
 
-    def __init__(self, *, qsf_params: QSFParams, qsf_table: QSFTable):
+    def __init__(self, *, qsf_params: QSFParams):
 
         self.qsf_params = qsf_params
         self.method_layouts = QSFMethodLayout(qsf_params=self.qsf_params)
-        self.intervals = qsf_table.intervals
-        self.bounds = qsf_table.bounds
-        self.digits = qsf_table.digits
+        self.intervals = qsf_params.qsf_table.intervals
+        self.bounds = qsf_params.qsf_table.bounds
+        self.digits = qsf_params.qsf_table.digits
         self.qsf_request = Method(
             i=self.method_layouts.qsf_in_layout,
             o=self.method_layouts.qsf_out_layout,

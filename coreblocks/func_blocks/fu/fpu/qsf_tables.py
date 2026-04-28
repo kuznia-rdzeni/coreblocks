@@ -1,18 +1,8 @@
-from dataclasses import dataclass
-from coreblocks.func_blocks.fu.fpu.fpu_qsf import QSFParams
+from coreblocks.func_blocks.fu.fpu.fpu_qsf import QSFParams, QSFTable
 
 
-@dataclass(frozen=True)
-class QSFTable:
-    intervals: list[int]
-    bounds: list[list[int]]
-    digits: list[tuple[int, int]]
-
-
-"""
-Table for radix 4 with parameter a = 2.
-Table taken from "Digital Arithmetic" Chapter 8
-"""
+# Table for radix 4 with parameter a = 2.
+# Table taken from "Digital Arithmetic" Chapter 8
 R4A2RED = QSFTable(
     [8, 9, 10, 11, 12, 13, 14, 15],
     [
@@ -27,5 +17,5 @@ R4A2RED = QSFTable(
     ],
     [(1, 2), (1, 1), (0, 0), (0, 1), (0, 2)],
 )
-
-R4A2RED_PARAMS = QSFParams(residual_width=7, divisor_width=4, q_bits=2)
+# Parameters for R4A2RED
+R4A2RED_PARAMS = QSFParams(residual_width=7, divisor_width=4, q_bits=2, qsf_table=R4A2RED)
