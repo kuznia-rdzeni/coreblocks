@@ -292,12 +292,15 @@ class RSSelection(Elaboratable):
                 lookup = Signal(OpType)  # lookup of currently processed optype
                 m.d.av_comb += lookup.eq(instr.exec_fn.op_type)
                 m.d.av_comb += assign(instr_out, instr)
+                optype_matches_list: list[Value] = []
 
                 for j, (alloc, block_params) in enumerate(zip(self.rs_select, self.gen_params.func_units_config)):
                     # checks if RS can perform this kind of operation
                     optype_matches = Cat(lookup == op for op in block_params.get_optypes()).any()
+                    optype_matches_list.append(optype_matches)
                     tr = Transaction(name=f"RSSelection_{i}_{j}")
                     with tr.body(m, ready=(i < instrs.count) & prev_insert & optype_matches):
+                        # Transactron guarantees each RS will only be allocated once
                         allocated_field = alloc(m)
 
                         m.d.comb += instr_out.rs_entry_id.eq(allocated_field.rs_entry_id)
@@ -307,6 +310,9 @@ class RSSelection(Elaboratable):
 
                         self.rf_read_req[2 * i](m, instr.regs_p.rp_s1)
                         self.rf_read_req[2 * i + 1](m, instr.regs_p.rp_s2)
+
+                with m.If(i < instrs.count):
+                    log.assertion(m, Cat(optype_matches_list).any(), "optype {} didn't match any RS", lookup)
 
                 with m.If(next_insert):
                     m.d.av_comb += count.eq(i + 1)
