@@ -10,6 +10,7 @@ from amaranth.lib.memory import Memory
 
 from coreblocks.arch.isa import Extension
 from coreblocks.params.fu_params import BlockComponentParams
+from coreblocks.params.vmem_params import TLBCacheConfiguration
 
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
@@ -128,6 +129,8 @@ class _CoreConfigurationDataClass:
         SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
+    tlb_config: TLBCacheConfiguration
+        Grouped TLB configuration for L1I, L1D, and shared L2.
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     pmp_grain_log: int
@@ -196,6 +199,8 @@ class _CoreConfigurationDataClass:
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
     phys_addr_bits: int | None = None
     hpm_counters_count: int = 0
+
+    tlb_config: TLBCacheConfiguration = field(default_factory=TLBCacheConfiguration)
 
     pmp_register_count: int = 0
     pmp_grain_log: int = 5

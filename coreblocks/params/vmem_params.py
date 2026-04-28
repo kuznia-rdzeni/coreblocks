@@ -1,6 +1,26 @@
+from dataclasses import dataclass, field
 from typing import Collection
 
 from coreblocks.arch.isa_consts import SatpMode, SatpLayout, PAGE_SIZE_LOG
+
+__all__ = [
+    "TLBLineConfiguration",
+    "TLBCacheConfiguration",
+    "VirtualMemoryParameters",
+]
+
+
+@dataclass(frozen=True)
+class TLBLineConfiguration:
+    entries: int = 16
+    ways: int = 4
+
+
+@dataclass(frozen=True)
+class TLBCacheConfiguration:
+    itlb: TLBLineConfiguration = field(default_factory=TLBLineConfiguration)
+    dtlb: TLBLineConfiguration = field(default_factory=TLBLineConfiguration)
+    l2tlb: TLBLineConfiguration = field(default_factory=lambda: TLBLineConfiguration(entries=64, ways=8))
 
 
 class VirtualMemoryParameters:
@@ -13,6 +33,14 @@ class VirtualMemoryParameters:
 
         satp_layout = SatpLayout(xlen)
         return satp_layout["ppn"].width + PAGE_SIZE_LOG
+
+    @staticmethod
+    def vpn_bits_for_mode(xlen: int, mode: SatpMode) -> int:
+        return SatpMode.bits_per_page_table_level(xlen) * SatpMode.level_count(mode)
+
+    @staticmethod
+    def size_class_shift(xlen: int, size_class: int) -> int:
+        return SatpMode.bits_per_page_table_level(xlen) * size_class
 
     def __init__(
         self,
@@ -53,3 +81,17 @@ class VirtualMemoryParameters:
         self.xlen = xlen
         self.asidlen = asidlen
         self.max_asid = (1 << asidlen) - 1
+        self.page_table_level_bits = SatpMode.bits_per_page_table_level(xlen)
+        self.max_tlb_vpn_bits = max(
+            (self.vpn_bits_for_mode(xlen, mode) for mode in self.supported_non_bare_schemes),
+            default=0,
+        )
+        self.max_tlb_size_class = max(
+            (SatpMode.level_count(mode) - 1 for mode in self.supported_non_bare_schemes),
+            default=0,
+        )
+        self.tlb_size_class_bits = self.max_tlb_size_class.bit_length()
+
+    @property
+    def supported_non_bare_schemes(self) -> Collection[SatpMode]:
+        return [scheme for scheme in self.supported_schemes if scheme != SatpMode.BARE]

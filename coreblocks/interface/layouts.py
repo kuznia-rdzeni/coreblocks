@@ -169,11 +169,31 @@ class CommonLayoutFields:
 class AddressTranslationLayouts:
     """Layouts used by virtual-to-physical address translation methods."""
 
+    class TLBResult(IntFlag):
+        HIT = auto()
+        PAGE_FAULT = auto()
+        ACCESS_FAULT = auto()
+
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.request = make_layout(fields.addr)
+        self.ppn = ("ppn", gen_params.phys_addr_bits - PAGE_SIZE_LOG)
+        self.vpn = ("vpn", gen_params.vmem_params.max_tlb_vpn_bits)
+        self.asid = ("asid", gen_params.vmem_params.asidlen)
+        self.permissions = make_layout(
+            ("r", 1),
+            ("w", 1),
+            ("x", 1),
+            ("u", 1),
+            ("d", 1),
+            ("g", 1),
+        )
+        self.size_class = ("size_class", gen_params.vmem_params.tlb_size_class_bits)
 
+        self.request = make_layout(
+            fields.addr,
+            ("write_aspect", 1),
+        )
         self.accept = make_layout(
             fields.vaddr,
             fields.paddr,
@@ -181,9 +201,21 @@ class AddressTranslationLayouts:
             ("access_fault", 1),
         )
 
+        self.tlb_request = make_layout(
+            self.vpn,
+            self.asid,
+            ("write_aspect", 1),
+        )
+        self.tlb_accept = make_layout(
+            ("result", self.TLBResult),
+            self.ppn,
+            ("permissions", self.permissions),
+            self.size_class,
+        )
+
         self.sfence_vma = make_layout(
             fields.vaddr,
-            ("asid", gen_params.vmem_params.asidlen),
+            self.asid,
             ("all_vaddrs", 1),
             ("all_asids", 1),
         )

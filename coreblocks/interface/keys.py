@@ -7,10 +7,11 @@ from transactron.lib.transformers import MethodProduct
 from transactron import Method, TModule
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
-from amaranth import Signal
+from amaranth import Elaboratable, Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
+    from coreblocks.priv.vmem.tlb import PageTableWalker, TLB  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -28,6 +29,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "SFenceVMAKey",
+    "L1TLBBackingDevice",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -124,6 +126,11 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
     Collects SFENCE.VMA handlers to invalidate translation caches.
     Expected layout is `AddressTranslationLayouts.sfence_vma`.
     """
+
+
+@dataclass(frozen=True)
+class L1TLBBackingDevice(SimpleKey[Elaboratable]):
+    """Used to provide a component that can be used as a backing device for the L1 TLB."""
 
     pass
 
