@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib import data
+from amaranth.lib.enum import Enum, auto, unique
 from amaranth_types import HasElaborate
 from transactron.core import TModule
 from transactron.utils import DependencyContext, assign
@@ -14,14 +15,26 @@ class PMPLayout(data.StructLayout):
         super().__init__({"r": 1, "w": 1, "x": 1})
 
 
+@unique
+class PMPOperationMode(Enum):
+    LSU = auto()
+    INSTRUCTION_FETCH = auto()
+    MMU = auto()
+
+
 class PMPChecker(Elaboratable):
     """
     Implementation of physical memory protection checker.
     This is a combinational circuit with return value read from `result` output.
 
-    M-mode accesses bypass PMP by default (result = 1/1/1) unless a matching
-    locked entry (L=1) is found. S/U-mode accesses default to no access (0/0/0)
-    if no entry matches.
+    Effective mode depends on `mode`:
+    - LSU: MPRV-aware (using MPP when MPRV=1 and current mode is M)
+    - INSTRUCTION_FETCH: uses only current privilege mode
+    - MMU: always behaves as supervisor mode
+
+    In machine mode, accesses bypass PMP by default (result = 1/1/1) unless a
+    matching locked entry (L=1) is found. S/U-mode accesses default to no
+    access (0/0/0) if no entry matches.
 
     Attributes
     ----------
@@ -32,8 +45,9 @@ class PMPChecker(Elaboratable):
         and privilege mode. Bits are set to 0 if access is denied.
     """
 
-    def __init__(self, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams, *, mode: PMPOperationMode) -> None:
         self.gen_params = gen_params
+        self.mode = mode
         self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
         self.paddr = Signal(gen_params.phys_addr_bits)
         self.result = Signal(PMPLayout())
@@ -49,7 +63,19 @@ class PMPChecker(Elaboratable):
             return m
 
         priv_mode = self.csr.priv_mode.value
-        with m.If(priv_mode == PrivilegeLevel.MACHINE):
+        mprv = self.csr.mstatus_mprv.value
+        mpp = self.csr.mstatus_mpp.value
+
+        effective_priv_mode = Signal(PrivilegeLevel)
+        match self.mode:
+            case PMPOperationMode.LSU:
+                m.d.comb += effective_priv_mode.eq(Mux(mprv, mpp, priv_mode))
+            case PMPOperationMode.INSTRUCTION_FETCH:
+                m.d.comb += effective_priv_mode.eq(priv_mode)
+            case PMPOperationMode.MMU:
+                m.d.comb += effective_priv_mode.eq(PrivilegeLevel.SUPERVISOR)
+
+        with m.If(effective_priv_mode == PrivilegeLevel.MACHINE):
             m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
 
         entry_matches = []
@@ -103,7 +129,7 @@ class PMPChecker(Elaboratable):
         selected_x = (one_hot & x_bits).any()
         selected_l = (one_hot & l_bits).any()
 
-        with m.If(matches.any() & ((priv_mode != PrivilegeLevel.MACHINE) | selected_l)):
+        with m.If(matches.any() & ((effective_priv_mode != PrivilegeLevel.MACHINE) | selected_l)):
             m.d.comb += assign(self.result, {"r": selected_r, "w": selected_w, "x": selected_x})
 
         return m
