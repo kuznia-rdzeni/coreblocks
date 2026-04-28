@@ -281,14 +281,12 @@ class SchedulerLayouts:
             fields.tag,
         )
 
-        self.rob_allocate_out = make_layout(
+        self.rob_allocate_out = self.rs_select_in = make_layout(
             ("count", range(gen_params.frontend_superscalarity + 1)),
             ("data", ArrayLayout(self.rs_select_in_data, gen_params.frontend_superscalarity)),
         )
 
-        self.rs_select_in = self.rs_select_in_data
-
-        self.rs_select_out = make_layout(
+        self.rs_insert_in_data = make_layout(
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
@@ -300,7 +298,10 @@ class SchedulerLayouts:
             fields.tag,
         )
 
-        self.rs_insert_in = self.rs_select_out
+        self.rs_insert_in = self.rs_select_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.rs_insert_in_data, gen_params.frontend_superscalarity)),
+        )
 
         self.free_rf_layout = make_layout(("ident", gen_params.phys_regs_bits))
 
