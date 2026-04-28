@@ -117,9 +117,7 @@ class AddressTranslator(Elaboratable):
                     mprv = csr.m_mode.mstatus_mprv.read(m).data
                     mpp = csr.m_mode.mstatus_mpp.read(m).data
 
-                    m.d.av_comb += effective_priv_mode.eq(
-                        (Mux(mprv & (priv_mode == PrivilegeLevel.MACHINE), mpp, priv_mode))
-                    )
+                    m.d.av_comb += effective_priv_mode.eq(Mux(mprv, mpp, priv_mode))
 
                 case AddressTranslatorMode.INSTRUCTION:
                     m.d.av_comb += effective_priv_mode.eq(priv_mode)
