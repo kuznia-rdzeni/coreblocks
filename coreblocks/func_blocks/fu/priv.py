@@ -254,6 +254,6 @@ class PrivilegedUnitComponent(FunctionalComponentParams):
         return PrivilegedFn(supervisor_enable=self.supervisor_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
-        assert decoder_manager.supervisor_enable == gen_params.supervisor_mode
+        assert self.supervisor_enable == gen_params.supervisor_mode
 
         return PrivilegedFuncUnit(gen_params, self.decoder_manager)
