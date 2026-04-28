@@ -28,7 +28,7 @@ class PMPChecker(Elaboratable):
     This is a combinational circuit with return value read from `result` output.
 
     Effective mode depends on `mode`:
-    - LSU: MPRV-aware, using MPP when (MPRV=1 and current mode is M)
+    - LSU: MPRV-aware (using MPP when MPRV=1 and current mode is M)
     - INSTRUCTION_FETCH: uses only current privilege mode
     - MMU: always behaves as supervisor mode
 
