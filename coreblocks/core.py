@@ -165,8 +165,8 @@ class Core(Component):
         m.submodules.retirement = retirement = self.retirement
         retirement.rob_peek.provide(rob.peek)
         retirement.rob_retire.provide(rob.retire)
-        retirement.r_rat_commit.provide(rrat.commit)
-        retirement.r_rat_peek.provide(rrat.peek)
+        retirement.r_rat_commit.provide(rrat.commit[0])
+        retirement.r_rat_peek.provide(rrat.peek[0])
         retirement.free_rf_put.provide(rf_allocator.free[0])
         retirement.rf_free.provide(rf.free[0])
         retirement.exception_cause_get.provide(self.exception_information_register.get)
