@@ -125,9 +125,13 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Implementation of physical memory protection checker.
 This is a combinational circuit with return value read from <cite>result</cite> output.</p>
-<p>M-mode accesses bypass PMP by default (result = 1/1/1) unless a matching
-locked entry (L=1) is found. S/U-mode accesses default to no access (0/0/0)
-if no entry matches.</p>
+<p>Effective mode depends on <cite>mode</cite>:
+- LSU: MPRV-aware (using MPP when MPRV=1 and current mode is M)
+- INSTRUCTION_FETCH: uses only current privilege mode
+- MMU: always behaves as supervisor mode</p>
+<p>In machine mode, accesses bypass PMP by default (result = 1/1/1) unless a
+matching locked entry (L=1) is found. S/U-mode accesses default to no
+access (0/0/0) if no entry matches.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
@@ -141,7 +145,7 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.__init__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.pmp.PMPOperationMode" title="coreblocks.priv.pmp.PMPOperationMode"><span class="pre">PMPOperationMode</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.__init__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -153,6 +157,27 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPOperationMode</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode.INSTRUCTION_FETCH">
+<span class="sig-name descname"><span class="pre">INSTRUCTION_FETCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode.INSTRUCTION_FETCH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode.LSU">
+<span class="sig-name descname"><span class="pre">LSU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode.LSU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode.MMU">
+<span class="sig-name descname"><span class="pre">MMU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode.MMU" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -175,7 +200,7 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 16:21 2026-04-27.
+      <span class="lastupdated">Last updated on 10:35 2026-04-28.
       </span></p>
   </div>
 
