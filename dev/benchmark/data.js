@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777483582964,
+  "lastUpdate": 1777487701061,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21077,6 +21077,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/32f7160d4a1cb2fe25f9513d4de59793aa7889f2"
         },
         "date": 1777483571017,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.419727157177572,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544042848855251,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3627255884169354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6512149532710281,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35429193867712755,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2924226972236746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32033484478549007,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4335468643132066,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "26c3a2f44ea459c693f6a3b4185a93da1b160371",
+          "message": "Implement S-mode traps (#884)",
+          "timestamp": "2026-04-29T20:07:14+02:00",
+          "tree_id": "e3b305fa37fc0b26756b76dd971d82654c944d44",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/26c3a2f44ea459c693f6a3b4185a93da1b160371"
+        },
+        "date": 1777487693631,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
