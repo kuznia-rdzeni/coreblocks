@@ -1,7 +1,13 @@
 hart_ids: [0]
 hart0:
-  ISA: RV32IMACSUBZicond_Zicsr_Zifencei_Zcb_Zbc_Zbkx
+  ISA: RV32IMCBSUZicsr_Zifencei_Zcb_Zba_Zbb_Zbc_Zbs_Zbkx
   physical_addr_sz: 32
 
   User_Spec_Version: '2.3'
   supported_xlen: [32]
+
+  PMP:
+    implemented: True
+    pmp-grain: 0
+    pmp-count: 16
+    pmp-writable: 7
