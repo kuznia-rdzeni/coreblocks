@@ -1,7 +1,6 @@
 from functools import reduce
 import operator
 from amaranth import *
-from amaranth.utils import ceil_log2
 from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib.fifo import WideFifo
 from transactron.lib import logging
@@ -80,17 +79,15 @@ class ReorderBuffer(Elaboratable):
             bucket_count=gen_params.rob_entries_bits + 1,
             sample_width=gen_params.rob_entries_bits,
         )
-        self.perf_rob_put_count = HwExpHistogram(
+        self.perf_rob_put_count = TaggedCounter(
             "backend.rob.put_count",
             description="Number of instructions inserted into ROB in one cycle",
-            bucket_count=ceil_log2(gen_params.frontend_superscalarity + 1) + 1,
-            sample_width=ceil_log2(gen_params.frontend_superscalarity + 1),
+            tags=range(gen_params.frontend_superscalarity + 1),
         )
-        self.perf_rob_retire_count = HwExpHistogram(
+        self.perf_rob_retire_count = TaggedCounter(
             "backend.rob.retire_count",
             description="Number of instructions removed from ROB in one cycle",
-            bucket_count=ceil_log2(gen_params.retirement_superscalarity + 1) + 1,
-            sample_width=ceil_log2(gen_params.retirement_superscalarity + 1),
+            tags=range(gen_params.retirement_superscalarity + 1),
         )
 
     def elaborate(self, platform):
@@ -136,7 +133,7 @@ class ReorderBuffer(Elaboratable):
             )
             log.assertion(m, (count <= peek_ret.count) & retire_ok, "retire called with invalid count {}", count)
             self.perf_rob_wait_time.stop(m, count=count)
-            self.perf_rob_retire_count.add(m, sample=count)
+            self.perf_rob_retire_count.incr(m, tag=count)
             self.data.read(m, count=count)
             for i in range(self.params.retirement_superscalarity):
                 with m.If(i < count):
@@ -145,7 +142,7 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.put)
         def _(count: int, entries):
             self.perf_rob_wait_time.start(m, count=count)
-            self.perf_rob_put_count.add(m, sample=count)
+            self.perf_rob_put_count.incr(m, tag=count)
             self.data.write(m, count=count, data=entries)
             entries = []
             for i in range(self.params.frontend_superscalarity):
