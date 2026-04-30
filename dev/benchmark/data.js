@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777487705821,
+  "lastUpdate": 1777554273308,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21141,6 +21141,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/26c3a2f44ea459c693f6a3b4185a93da1b160371"
         },
         "date": 1777487693631,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.419727157177572,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544042848855251,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3627255884169354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6512149532710281,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35429193867712755,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2924226972236746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32033484478549007,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4335468643132066,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3c7f8ee7a044740f54d59d397522be64d845c0c1",
+          "message": "Add superscalarity metrics (#922)",
+          "timestamp": "2026-04-30T14:37:26+02:00",
+          "tree_id": "8bc8348d31b9df16df4b02985de745d867174baf",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3c7f8ee7a044740f54d59d397522be64d845c0c1"
+        },
+        "date": 1777554265039,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
