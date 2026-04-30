@@ -5,6 +5,7 @@ from amaranth import *
 from transactron import Method, Methods, Required, Transaction, TModule
 from transactron.lib import Connect, Pipe, WideFifo
 from transactron.lib import logging
+from transactron.lib.metrics import TaggedCounter
 from transactron.utils import OneHotSwitchDynamic, assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
@@ -267,6 +268,12 @@ class RSSelection(Elaboratable):
         self.rf_read_req = Methods(2 * gen_params.frontend_superscalarity, i=gen_params.get(RFLayouts).rf_read_in)
         self.rs_select = [Method(o=conf.get_layouts(gen_params).select_out) for conf in gen_params.func_units_config]
 
+        self.perf_rs_selection_count = TaggedCounter(
+            "frontend.scheduler.rs_selection_count",
+            description="Number of instructions inserted into RSs in one cycle",
+            tags=range(gen_params.frontend_superscalarity + 1),
+        )
+
     def decode_optype_set(self, optypes: set[OpType]) -> int:
         res = 0x0
         for op in optypes:
@@ -275,6 +282,8 @@ class RSSelection(Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.perf_rs_selection_count]
 
         count = Signal(range(self.gen_params.frontend_superscalarity + 1))
         data_out = Signal(self.push_instrs.layout_in)
@@ -321,6 +330,7 @@ class RSSelection(Elaboratable):
 
             self.get_instrs(m, count=count)
             self.push_instrs(m, data_out)
+            self.perf_rs_selection_count.incr(m, tag=count)
 
         return m
 

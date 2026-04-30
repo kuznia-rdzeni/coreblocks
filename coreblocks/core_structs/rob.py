@@ -79,11 +79,26 @@ class ReorderBuffer(Elaboratable):
             bucket_count=gen_params.rob_entries_bits + 1,
             sample_width=gen_params.rob_entries_bits,
         )
+        self.perf_rob_put_count = TaggedCounter(
+            "backend.rob.put_count",
+            description="Number of instructions inserted into ROB in one cycle",
+            tags=range(gen_params.frontend_superscalarity + 1),
+        )
+        self.perf_rob_retire_count = TaggedCounter(
+            "backend.rob.retire_count",
+            description="Number of instructions removed from ROB in one cycle",
+            tags=range(gen_params.retirement_superscalarity + 1),
+        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_rob_wait_time, self.perf_rob_size]
+        m.submodules += [
+            self.perf_rob_wait_time,
+            self.perf_rob_size,
+            self.perf_rob_put_count,
+            self.perf_rob_retire_count,
+        ]
 
         start_idx = Value.cast(self.data.read_idx)
         end_idx = Value.cast(self.data.write_idx)
@@ -118,6 +133,7 @@ class ReorderBuffer(Elaboratable):
             )
             log.assertion(m, (count <= peek_ret.count) & retire_ok, "retire called with invalid count {}", count)
             self.perf_rob_wait_time.stop(m, count=count)
+            self.perf_rob_retire_count.incr(m, tag=count)
             self.data.read(m, count=count)
             for i in range(self.params.retirement_superscalarity):
                 with m.If(i < count):
@@ -126,6 +142,7 @@ class ReorderBuffer(Elaboratable):
         @def_method(m, self.put)
         def _(count: int, entries):
             self.perf_rob_wait_time.start(m, count=count)
+            self.perf_rob_put_count.incr(m, tag=count)
             self.data.write(m, count=count, data=entries)
             entries = []
             for i in range(self.params.frontend_superscalarity):
