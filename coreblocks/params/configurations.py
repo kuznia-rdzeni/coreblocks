@@ -40,7 +40,13 @@ __all__ = [
 
 basic_configuration: tuple[BlockComponentParams, ...] = (
     RSBlockComponent(
-        [ALUComponent(), ShiftUnitComponent(), JumpComponent(), ExceptionUnitComponent(), PrivilegedUnitComponent()],
+        [
+            ALUComponent(),
+            ShiftUnitComponent(),
+            JumpComponent(),
+            ExceptionUnitComponent(),
+            PrivilegedUnitComponent(supervisor_enable=True),
+        ],
         rs_entries=4,
     ),
     RSBlockComponent(
@@ -243,7 +249,7 @@ small_linux_config = CoreConfiguration(
                 ShiftUnitComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
-                PrivilegedUnitComponent(),
+                PrivilegedUnitComponent(supervisor_enable=True),
             ],
             rs_entries=4,
         ),
@@ -281,7 +287,7 @@ full_core_config = CoreConfiguration(
                 ZbsComponent(),
                 JumpComponent(),
                 ExceptionUnitComponent(),
-                PrivilegedUnitComponent(),
+                PrivilegedUnitComponent(supervisor_enable=True),
             ],
             rs_entries=2,  # reduced RS size to reduce impact of bad predictions
         ),

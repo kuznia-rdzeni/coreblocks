@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.data import StructLayout
+from amaranth.lib.data import StructLayout, View
 
 from dataclasses import dataclass
 
@@ -226,17 +226,19 @@ class CSRUnit(FuncBlock, Elaboratable):
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)
                 # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise mtval must be 0)
+                imm_view = View(self.csr_layouts.imm_layout, instr.imm)
+
                 m.d.av_comb += mtval[0:2].eq(0b11)
                 m.d.av_comb += mtval[2:7].eq(Opcode.SYSTEM)
-                m.d.av_comb += mtval[7:12].eq(instr.imm[32 - self.gen_params.isa.reg_cnt_log : 32])  # rl_rd
+                m.d.av_comb += mtval[7:12].eq(imm_view.rd)
                 m.d.av_comb += mtval[12:15].eq(instr.exec_fn.funct3)
                 m.d.av_comb += mtval[15:20].eq(
                     Mux(
                         instr.exec_fn.op_type == OpType.CSR_IMM,
-                        instr.imm[0:5],
-                        instr.imm[32 - self.gen_params.isa.reg_cnt_log * 2 : 32 - self.gen_params.isa.reg_cnt_log],
+                        imm_view.imm,
+                        imm_view.rs1,
                     )
-                )  # rl_s1 or imm
+                )
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
                 self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
             with m.Elif(interrupt):

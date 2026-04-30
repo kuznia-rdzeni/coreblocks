@@ -162,8 +162,8 @@ class TestRetirement(TestCaseWithSimulator):
         return {"empty": 0}
 
     @def_method_mock(lambda self: self.retc.mock_trap_entry)
-    def mock_trap_entry_process(self):
-        pass
+    def mock_trap_entry_process(self, cause):
+        return {"target_priv": PrivilegeLevel.MACHINE}
 
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)
     def mock_fetch_continue_process(self, pc):
