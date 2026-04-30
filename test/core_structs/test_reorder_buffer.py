@@ -55,10 +55,11 @@ class TestReorderBuffer(TestCaseWithSimulator):
                 assert res is None  # transaction should not be ready if there is nothing to retire
             else:
                 results = self.m.peek.get_call_result(sim)
-                count = randrange(1, results.count + 1)
-                count = (
-                    [self.retire_queue[i][0]["rp_dst"] in self.executed_set for i in range(count)] + [False]
+                done_count = (
+                    [self.retire_queue[i][0]["rp_dst"] in self.executed_set for i in range(results.count)] + [False]
                 ).index(False)
+                assert results.done_count == done_count
+                count = min(done_count, randrange(1, results.count + 1))
                 regs, rob_id_exp = zip(*(self.retire_queue.popleft() for _ in range(count)))
                 await self.m.retire.call(sim, count=count)
                 for k in range(count):
