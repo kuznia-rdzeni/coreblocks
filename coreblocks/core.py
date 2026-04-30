@@ -62,7 +62,9 @@ class Core(Component):
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
         self.rf_allocator = PriorityEncoderAllocator(
-            gen_params.phys_regs, gen_params.frontend_superscalarity, init=2**gen_params.phys_regs - 2
+            gen_params.phys_regs,
+            max(gen_params.frontend_superscalarity, gen_params.retirement_superscalarity),
+            init=2**gen_params.phys_regs - 2,
         )  # TODO: different ways for alloc and dealloc
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
