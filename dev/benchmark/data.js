@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777554277387,
+  "lastUpdate": 1777558772491,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21205,6 +21205,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3c7f8ee7a044740f54d59d397522be64d845c0c1"
         },
         "date": 1777554265039,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.419727157177572,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544042848855251,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3627255884169354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6512149532710281,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35429193867712755,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2924226972236746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32033484478549007,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4335468643132066,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "piotro888"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "15a29a5121cdd9e3d3fd4873696158fdb8d2e361",
+          "message": "Fix WishboneMuxer select signal (#923)",
+          "timestamp": "2026-04-30T15:52:09+02:00",
+          "tree_id": "fc625a0d226505a44973866fa70bad1bd22ce0d8",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/15a29a5121cdd9e3d3fd4873696158fdb8d2e361"
+        },
+        "date": 1777558765175,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
