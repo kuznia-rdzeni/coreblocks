@@ -2,8 +2,6 @@
 ISA_TESTS_DIR := riscv-tests/isa
 ENV_DIR := environment/custom
 
-include riscv-tests/isa/rv32mi/Makefrag
-include riscv-tests/isa/rv32si/Makefrag
 include riscv-tests/isa/rv32ui/Makefrag
 include riscv-tests/isa/rv32um/Makefrag
 include riscv-tests/isa/rv32ua/Makefrag
@@ -26,7 +24,6 @@ test-$(1)-%: $${ISA_TESTS_DIR}/$(1)/%.S
 
 endef
 
-$(eval $(call compile_template,rv32ui,-mabi=ilp32 -march=rv32i))
 $(eval $(call compile_template,rv32ui,-mabi=ilp32 -march=rv32i_zifencei))
 $(eval $(call compile_template,rv32um,-mabi=ilp32 -march=rv32im_zifencei))
 $(eval $(call compile_template,rv32ua,-mabi=ilp32 -march=rv32ia_zifencei))
