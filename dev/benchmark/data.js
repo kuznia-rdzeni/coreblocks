@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777558776457,
+  "lastUpdate": 1777631373601,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21269,6 +21269,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/15a29a5121cdd9e3d3fd4873696158fdb8d2e361"
         },
         "date": 1777558765175,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.419727157177572,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544042848855251,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3627255884169354,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6512149532710281,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35429193867712755,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.2924226972236746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.32033484478549007,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4335468643132066,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3bbc840e5a59226da78ee98a07f599e98841612",
+          "message": "Add .egg-info to gitignore (#925)",
+          "timestamp": "2026-05-01T11:59:04+02:00",
+          "tree_id": "a242bddb4cd041781ba69b8d924cb43afbe5670b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e3bbc840e5a59226da78ee98a07f599e98841612"
+        },
+        "date": 1777631366408,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
