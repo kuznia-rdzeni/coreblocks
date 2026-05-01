@@ -395,6 +395,9 @@ class ROBLayouts:
         self.retire_count: LayoutListField = ("count", range(gen_params.retirement_superscalarity + 1))
         """Number of ROB entries to retire."""
 
+        self.done_count: LayoutListField = ("done_count", range(gen_params.retirement_superscalarity + 1))
+        """Number of done ROB entries at the beginning of the ROB."""
+
         self.peek_data = make_layout(
             self.rob_data,
             fields.rob_id,
@@ -411,7 +414,9 @@ class ROBLayouts:
         )
 
         self.peek_layout = make_layout(
-            self.retire_count, ("entries", ArrayLayout(self.peek_data, gen_params.retirement_superscalarity))
+            self.retire_count,
+            self.done_count,
+            ("entries", ArrayLayout(self.peek_data, gen_params.retirement_superscalarity)),
         )
 
         self.put_layout = make_layout(

@@ -63,8 +63,10 @@ class Core(Component):
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
         self.rf_allocator = PriorityEncoderAllocator(
-            gen_params.phys_regs, gen_params.frontend_superscalarity, init=2**gen_params.phys_regs - 2
-        )
+            gen_params.phys_regs,
+            max(gen_params.frontend_superscalarity, gen_params.retirement_superscalarity),
+            init=2**gen_params.phys_regs - 2,
+        )  # TODO: different ways for alloc and dealloc
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
@@ -72,7 +74,7 @@ class Core(Component):
             gen_params=self.gen_params,
             read_ports=2 * self.gen_params.frontend_superscalarity,
             write_ports=self.gen_params.announcement_superscalarity,
-            free_ports=1,
+            free_ports=self.gen_params.retirement_superscalarity,
         )
         self.ROB = ReorderBuffer(
             gen_params=self.gen_params, mark_done_ports=self.gen_params.announcement_superscalarity
@@ -143,7 +145,7 @@ class Core(Component):
 
         m.submodules.scheduler = scheduler = Scheduler(gen_params=self.gen_params)
         scheduler.get_instr.provide(get_instr)
-        scheduler.get_free_reg.provide(rf_allocator.alloc)
+        scheduler.get_free_reg.provide(rf_allocator.alloc[: self.gen_params.frontend_superscalarity])
         scheduler.crat_commit_checkpoint.provide(crat.commit_checkpoint)
         scheduler.crat_rename.provide(crat.rename)
         scheduler.crat_tag.provide(crat.tag)
@@ -175,10 +177,10 @@ class Core(Component):
         m.submodules.retirement = retirement = self.retirement
         retirement.rob_peek.provide(rob.peek)
         retirement.rob_retire.provide(rob.retire)
-        retirement.r_rat_commit.provide(rrat.commit[0])
-        retirement.r_rat_peek.provide(rrat.peek[0])
-        retirement.free_rf_put.provide(rf_allocator.free[0])
-        retirement.rf_free.provide(rf.free[0])
+        retirement.r_rat_commit.provide(rrat.commit)
+        retirement.r_rat_peek.provide(rrat.peek)
+        retirement.free_rf_put.provide(rf_allocator.free[: self.gen_params.retirement_superscalarity])
+        retirement.rf_free.provide(rf.free)
         retirement.exception_cause_get.provide(self.exception_information_register.get)
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)
