@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777656002993,
+  "lastUpdate": 1777656005392,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -44629,6 +44629,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 18612,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1382,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1372,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4800,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f0d1d139c1040d91095c930b169788fc323ee7da",
+          "message": "Enable privileged ISA tests in riscof (#921)",
+          "timestamp": "2026-05-01T18:51:56+02:00",
+          "tree_id": "ec3c6ff68cda4796252da10ab775796095dc63c7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f0d1d139c1040d91095c930b169788fc323ee7da"
+        },
+        "date": 1777656004657,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.39,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 18512,
             "unit": "LUT4"
           },
           {
