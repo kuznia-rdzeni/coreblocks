@@ -241,12 +241,12 @@ class Retirement(Elaboratable):
 
                     count = Signal(range(self.gen_params.retirement_superscalarity + 1))
                     tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
-                    sel_mask = Signal.like(tag_incr_mask)
+                    safe_mask = Signal.like(tag_incr_mask)
                     # CRAT can currently deallocate at most one tag per cycle, this logic reduces the flush rate
                     # TODO: improve
                     m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
-                    m.d.av_comb += sel_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
-                    m.d.av_comb += count.eq(count_trailing_zeros(sel_mask))
+                    m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
+                    m.d.av_comb += count.eq(count_trailing_zeros(safe_mask))
 
                     self.rob_retire(m, count=count)
 
