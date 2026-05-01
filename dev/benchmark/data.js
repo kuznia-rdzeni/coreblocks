@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777636168038,
+  "lastUpdate": 1777651765010,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21397,6 +21397,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a84f2cfb83a154b67152f927a0b179092a2e98dd"
         },
         "date": 1777636157442,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4310548345625105,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544192447280725,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3821075915511284,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6529039609007227,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3609059761135394,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30483586342368985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3308119011598588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.44964532430803467,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef739a48dfbfd1b5cb30a7e4ea7f1bbd12f6e448",
+          "message": "bump gh actions (#927)",
+          "timestamp": "2026-05-01T17:41:09+02:00",
+          "tree_id": "b0c79e638f74bac0eb12440f68a9a979e3788f70",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ef739a48dfbfd1b5cb30a7e4ea7f1bbd12f6e448"
+        },
+        "date": 1777651757636,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
