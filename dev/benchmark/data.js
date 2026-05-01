@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777651766851,
+  "lastUpdate": 1777651768758,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -60147,6 +60147,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 47437,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3524,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2636,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 10184,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef739a48dfbfd1b5cb30a7e4ea7f1bbd12f6e448",
+          "message": "bump gh actions (#927)",
+          "timestamp": "2026-05-01T17:41:09+02:00",
+          "tree_id": "b0c79e638f74bac0eb12440f68a9a979e3788f70",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ef739a48dfbfd1b5cb30a7e4ea7f1bbd12f6e448"
+        },
+        "date": 1777651768268,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 34.37,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 48541,
             "unit": "LUT4"
           },
           {
