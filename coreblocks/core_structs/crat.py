@@ -76,7 +76,7 @@ class CheckpointRAT(Elaboratable):
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
         self.commit_checkpoint = Method(i=layouts.crat_commit_checkpoint_in)
         self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
-        self.flush_restore = Method(i=layouts.crat_flush_restore)
+        self.flush_restore = Methods(self.gen_params.retirement_superscalarity, i=layouts.crat_flush_restore)
 
         self.rollback = Method(i=layouts.rollback_in)
         self.dm = DependencyContext.get()
@@ -192,7 +192,10 @@ class CheckpointRAT(Elaboratable):
                     # could be shared with multiple tags (useful for branch chains)
 
         active_renames = Signal(
-            ArrayLayout(self.gen_params.get(RATLayouts).active_rename_layout, self.gen_params.frontend_superscalarity)
+            ArrayLayout(
+                self.gen_params.get(RATLayouts).active_rename_layout,
+                max(self.gen_params.frontend_superscalarity, self.gen_params.retirement_superscalarity),
+            )
         )
 
         def frat_get(k: int, rl: Value):
@@ -238,19 +241,20 @@ class CheckpointRAT(Elaboratable):
 
         # Block until last FRAT overwrite from Rollback is finished.
         # Retirement restores entries on hard-flushes that were not covered by checkpoints one-by-one, don't overwrite.
-        @def_method(m, self.flush_restore, ready=last_rollback_finished)
-        def _(rl_dst: Value, rp_dst: Value):
+        @def_methods(m, self.flush_restore, ready=lambda _: last_rollback_finished)
+        def _(i: int, rl_dst: Value, rp_dst: Value):
             with m.If(rl_dst != 0):  # Duplicated, because otherwise causes comb loop in rename condition
-                m.d.comb += active_renames[0].valid.eq(1)
-                m.d.comb += active_renames[0].rl_dst.eq(rl_dst)
-                m.d.comb += active_renames[0].rp_dst.eq(rp_dst)
+                m.d.comb += active_renames[i].valid.eq(1)
+                m.d.comb += active_renames[i].rl_dst.eq(rl_dst)
+                m.d.comb += active_renames[i].rp_dst.eq(rp_dst)
 
         for k in range(len(active_renames)):
             with m.If(active_renames[k].valid):
                 m.d.sync += self.frat[active_renames[k].rl_dst].eq(active_renames[k].rp_dst)
 
         for rename in self.rename:
-            self.flush_restore.add_conflict(rename, Priority.RIGHT)
+            for flush_restore in self.flush_restore:
+                flush_restore.add_conflict(rename, Priority.RIGHT)
         # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
         # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
