@@ -5,6 +5,7 @@ from transactron import Method, Methods, Transaction, def_method, TModule, def_m
 from transactron.lib.fifo import WideFifo
 from transactron.lib import logging
 from transactron.lib.metrics import *
+from transactron.utils import count_trailing_zeros
 from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.params import GenParams
 
@@ -123,7 +124,10 @@ class ReorderBuffer(Elaboratable):
                         "exception": self.exception[start_idx_plus[i]],
                     }
                 )
-            return {"count": peek_ret.count, "entries": entries}
+            done_count = count_trailing_zeros(
+                Cat(~self.done[start_idx_plus[i]] for i in range(self.params.retirement_superscalarity))
+            )
+            return {"count": peek_ret.count, "done_count": done_count, "entries": entries}
 
         @def_method(m, self.retire, ready=self.done[start_idx])
         def _(count: int):
