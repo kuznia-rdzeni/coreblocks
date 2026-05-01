@@ -8,7 +8,7 @@ from coreblocks.arch import InterruptCauseNumber, PrivilegeLevel
 from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.priv.traps.interrupt_controller import InternalInterruptController
 
@@ -34,7 +34,7 @@ class InterruptControllerTestCircuit(Elaboratable):
 
 class TestInterruptControllerSModeTraps(TestCaseWithSimulator):
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config.replace(supervisor_mode=True, xlen=64, fetch_block_bytes_log=3))
+        self.gen_params = GenParams(configurations.test.replace(supervisor_mode=True, xlen=64, fetch_block_bytes_log=3))
         self.tc = InterruptControllerTestCircuit(self.gen_params)
 
     async def entry_to_supervisor_process(self, sim: TestbenchContext):

@@ -9,7 +9,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, Testbe
 from coreblocks.func_blocks.fu.common.rs import RS, RSBase
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
 from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.arch import OpType
 from transactron.testing.functions import data_const_to_dict
 
@@ -65,7 +65,7 @@ class TestRS(TestCaseWithSimulator):
         num_optypes = optypes_per_list * ready_lists
         optypes = [OpType(k + 1) for k in range(num_optypes)]
         self.optype_groups = list(zip(*(iter(optypes),) * optypes_per_list))
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.rs_entries_bits = self.gen_params.max_rs_entries_bits
         self.m = SimpleTestCircuit(rs_type(self.gen_params, 2**self.rs_entries_bits, 0, rs_ways, self.optype_groups))
         self.data_list = create_data_list(self.gen_params, 10 * 2**self.rs_entries_bits, num_optypes)

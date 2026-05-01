@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import pytest
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PrivilegeLevel, PMPCfgLayout
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.interface.keys import CSRInstancesKey
 from transactron.lib.adapters import AdapterTrans
 from transactron.testing import TestbenchIO
@@ -49,7 +49,7 @@ class TestPMPDirect(TestCaseWithSimulator):
         icache_enable=False,
     ):
         gen_params = GenParams(
-            test_core_config.replace(pmp_register_count=16, pmp_grain_log=pmp_grain_log, icache_enable=icache_enable)
+            configurations.test.replace(pmp_register_count=16, pmp_grain_log=pmp_grain_log, icache_enable=icache_enable)
         )
         csr = CSRInstances(gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
@@ -272,12 +272,12 @@ class TestPMPDirect(TestCaseWithSimulator):
 
     def test_pmp_grain_icache_validation_error(self):
         with pytest.raises(ValueError):
-            GenParams(test_core_config.replace(pmp_register_count=16, pmp_grain_log=2, icache_enable=True))
+            GenParams(configurations.test.replace(pmp_register_count=16, pmp_grain_log=2, icache_enable=True))
 
     @pytest.mark.parametrize("grain", [2, 3, 4])
     def test_pmpaddr_discovery(self, grain):
         gen_params = GenParams(
-            test_core_config.replace(pmp_register_count=16, pmp_grain_log=grain + 2, icache_enable=False)
+            configurations.test.replace(pmp_register_count=16, pmp_grain_log=grain + 2, icache_enable=False)
         )
         csr_instances = CSRInstances(gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), csr_instances)
