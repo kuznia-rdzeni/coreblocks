@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, In, Out
+from transactron import Transaction
 from transactron.lib.allocators import PriorityEncoderAllocator
 
 from transactron.utils.dependencies import DependencyContext
@@ -27,7 +28,7 @@ from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
-from transactron.lib.metrics import HwMetricsEnabledKey
+from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
 
 __all__ = ["Core"]
 
@@ -97,8 +98,16 @@ class Core(Component):
 
         self.interrupt_controller = InternalInterruptController(self.gen_params)
 
+        self.announcement_counter = TaggedCounter(
+            "backend.announcement.announcement_count",
+            "Number of instruction results announced in one cycle",
+            tags=range(gen_params.announcement_superscalarity + 1),
+        )
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.announcement_counter]
 
         connect(m.top_module, flipped(self.wb_instr), self.wb_master_instr.wb_master)
         connect(m.top_module, flipped(self.wb_data), self.wb_master_data.wb_master)
@@ -157,6 +166,9 @@ class Core(Component):
             announcement.rs_update.provide(self.func_blocks_unifier.update[i])
             announcement.rf_write_val.provide(self.RF.write[i])
             announce_result.append(announcement.push_result)
+
+        with Transaction().body(m):
+            self.announcement_counter.incr(m, tag=sum(method.run for method in announce_result))
 
         m.submodules.announcement_connector = CrossbarConnectTrans.create(
             self.func_blocks_unifier.get_result, announce_result

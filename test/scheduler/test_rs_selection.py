@@ -1,5 +1,6 @@
 from collections import deque
 import random
+import pytest
 
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, Funct7
@@ -16,6 +17,7 @@ _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
 
 
 class TestRSSelect(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(
             test_core_config.replace(
