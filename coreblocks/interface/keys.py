@@ -7,11 +7,11 @@ from transactron.lib.transformers import MethodProduct
 from transactron import Method, TModule
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
-from amaranth import Elaboratable, Signal
+from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
-    from coreblocks.priv.vmem.tlb import PageTableWalker, TLB  # noqa: F401
+    from coreblocks.priv.vmem.iface import TLBBackingDevice  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -29,7 +29,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "SFenceVMAKey",
-    "L1TLBBackingDevice",
+    "L1TLBBackingDeviceKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -129,7 +129,7 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
 
 
 @dataclass(frozen=True)
-class L1TLBBackingDevice(SimpleKey[Elaboratable]):
+class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
     """Used to provide a component that can be used as a backing device for the L1 TLB."""
 
     pass

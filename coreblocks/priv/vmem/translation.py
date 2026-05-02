@@ -7,7 +7,7 @@ from transactron.utils import DependencyContext, make_layout
 from transactron.lib.logging import HardwareLogger
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE_LOG
-from coreblocks.interface.keys import CSRInstancesKey, L1TLBBackingDevice
+from coreblocks.interface.keys import CSRInstancesKey, L1TLBBackingDeviceKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
 
@@ -43,6 +43,8 @@ class AddressTranslator(Elaboratable):
         self.accept = Method(o=self.layouts.accept)
         self.sfence_vma = Method(i=self.layouts.sfence_vma)
 
+        self.dm = DependencyContext.get()
+
         self.tlb = None
         if gen_params.vmem_params.supported_non_bare_schemes:
             tlb_cfg = (
@@ -53,7 +55,7 @@ class AddressTranslator(Elaboratable):
                 gen_params,
                 entries=tlb_cfg.entries,
                 ways=tlb_cfg.ways,
-                backing_resolver=gen_params.get(L1TLBBackingDevice),
+                backing_resolver=self.dm.get_dependency(L1TLBBackingDeviceKey()),
             )
 
     def elaborate(self, platform):
@@ -72,7 +74,7 @@ class AddressTranslator(Elaboratable):
         if self.tlb is not None:
             m.submodules.tlb = self.tlb
 
-        csr = DependencyContext.get().get_dependency(CSRInstancesKey())
+        csr = self.dm.get_dependency(CSRInstancesKey())
 
         effective_priv_mode = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
         effective_satp_mode = Signal(SatpMode, init=SatpMode.BARE)
