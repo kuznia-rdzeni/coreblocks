@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777750681999,
+  "lastUpdate": 1777750683821,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -60638,6 +60638,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 3556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2636,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 10184,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "js-gh@sigmanetwork.org",
+            "name": "Jo Seaton",
+            "username": "jseaton"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6c41e3a2abcb90ba7d1dc186811721d8d455328d",
+          "message": "Add configfile option to gen_verilog/synthesize & refactor config names (#928)",
+          "timestamp": "2026-05-02T21:10:00+02:00",
+          "tree_id": "041cd9dd15b912bac663272587587e02ca0eded4",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c41e3a2abcb90ba7d1dc186811721d8d455328d"
+        },
+        "date": 1777750683278,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 35.42,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 51454,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3524,
             "unit": "LUT"
           },
           {
