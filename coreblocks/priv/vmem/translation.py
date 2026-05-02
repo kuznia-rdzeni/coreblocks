@@ -79,7 +79,6 @@ class AddressTranslator(Elaboratable):
 
         effective_priv_mode = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
         effective_satp_mode = Signal(SatpMode, init=SatpMode.BARE)
-        current_asid = Signal(self.gen_params.vmem_params.asidlen)
 
         mxr = Signal()
         sum_ = Signal()
@@ -100,8 +99,6 @@ class AddressTranslator(Elaboratable):
             if self.gen_params.supervisor_mode:
                 with m.If(effective_priv_mode < PrivilegeLevel.MACHINE):
                     m.d.av_comb += effective_satp_mode.eq(csr.s_mode.satp_mode)
-
-                m.d.av_comb += current_asid.eq(csr.s_mode.satp_asid)
 
             m.d.av_comb += mxr.eq(csr.m_mode.mstatus_mxr.read(m).data)
             m.d.av_comb += sum_.eq(csr.m_mode.mstatus_sum.read(m).data)
@@ -139,7 +136,6 @@ class AddressTranslator(Elaboratable):
                     self.tlb.request(
                         m,
                         vpn=vpn,
-                        asid=current_asid,
                         write_aspect=write_aspect,
                     )
 
@@ -183,7 +179,8 @@ class AddressTranslator(Elaboratable):
             with m.Else():
                 with m.Switch(tlb_data.result):
                     with m.Case(AddressTranslationLayouts.TLBResult.HIT):
-                        pass
+                        with m.If(tlb_data.write_aspect):
+                            log.assertion(m, tlb_data.permissions.d, "TLB entry must have dirty bit set if we are writing")
                     with m.Case(AddressTranslationLayouts.TLBResult.PAGE_FAULT):
                         m.d.av_comb += page_fault.eq(1)
                     with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):

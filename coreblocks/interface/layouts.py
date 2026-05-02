@@ -203,7 +203,6 @@ class AddressTranslationLayouts:
 
         self.tlb_request = make_layout(
             self.vpn,
-            self.asid,
             ("write_aspect", 1),
         )
         self.tlb_accept = make_layout(

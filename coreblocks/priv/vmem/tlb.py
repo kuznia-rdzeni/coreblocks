@@ -66,7 +66,7 @@ class TLB(TLBBackingDevice, Elaboratable):
         self.sets = entries // ways
         self.backing_resolver = backing_resolver
         self.entry_layout = TLBEntry(gen_params)
-        self.layout = AddressTranslationLayouts(gen_params)
+        self.layout = gen_params.get(AddressTranslationLayouts)
 
         self.request = Method(i=self.layout.tlb_request)
         self.accept = Method(o=self.layout.tlb_accept)
