@@ -11,7 +11,6 @@ from coreblocks.interface.keys import CSRInstancesKey, L1TLBBackingDevice
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
 
-from coreblocks.priv.vmem import tlb
 from coreblocks.priv.vmem.tlb import TLB
 
 
@@ -47,9 +46,7 @@ class AddressTranslator(Elaboratable):
         self.tlb = None
         if gen_params.vmem_params.supported_non_bare_schemes:
             tlb_cfg = (
-                gen_params.tlb_config.itlb
-                if mode == AddressTranslatorMode.INSTRUCTION
-                else gen_params.tlb_config.dtlb
+                gen_params.tlb_config.itlb if mode == AddressTranslatorMode.INSTRUCTION else gen_params.tlb_config.dtlb
             )
 
             self.tlb = TLB(
@@ -121,9 +118,7 @@ class AddressTranslator(Elaboratable):
                     vm_vpn_len = bits_per_level * SatpMode.level_count(vm_mode)
 
                     with m.Case(vm_mode):
-                        m.d.av_comb += vpn_invalid.eq(
-                            vpn[vm_vpn_len - 1:].any() & ~vpn[vm_vpn_len - 1:].all()
-                        )
+                        m.d.av_comb += vpn_invalid.eq(vpn[vm_vpn_len - 1 :].any() & ~vpn[vm_vpn_len - 1 :].all())
 
             max_ppn = (1 << (self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)) - 1
 
@@ -180,7 +175,9 @@ class AddressTranslator(Elaboratable):
                 with m.Switch(tlb_data.result):
                     with m.Case(AddressTranslationLayouts.TLBResult.HIT):
                         with m.If(tlb_data.write_aspect):
-                            log.assertion(m, tlb_data.permissions.d, "TLB entry must have dirty bit set if we are writing")
+                            log.assertion(
+                                m, tlb_data.permissions.d, "TLB entry must have dirty bit set if we are writing"
+                            )
                     with m.Case(AddressTranslationLayouts.TLBResult.PAGE_FAULT):
                         m.d.av_comb += page_fault.eq(1)
                     with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):

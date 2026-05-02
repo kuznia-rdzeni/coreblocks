@@ -3,6 +3,7 @@ from typing import Protocol
 from amaranth_types import HasElaborate
 from transactron import Method, Provided
 
+
 class TLBBackingDevice(HasElaborate, Protocol):
     """Protocol for devices that can be used as a backing device for TLBs."""
 

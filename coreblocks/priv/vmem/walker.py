@@ -101,18 +101,18 @@ class PTEView(View):
 
 class PageTableWalker(TLBBackingDevice, Elaboratable):
     """Hardware page table walker for RISC-V virtual memory translation.
-    
+
     This module implements a page table walker that translates virtual page numbers (VPN)
     to physical page numbers (PPN) by walking through the page table hierarchy according
     to the current SATP configuration.
-    
+
     Supported virtual memory modes:
     - BARE: No translation (immediate page fault)
     - SV32: 32-bit virtual addresses, 2-level page table
     - SV39: 64-bit virtual addresses, 3-level page table
     - SV48: 64-bit virtual addresses, 4-level page table
     - SV57: 64-bit virtual addresses, 5-level page table
-    
+
     Implements Svade semantics (exception on missing A/D bits).
     """
 
@@ -178,7 +178,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                     fetched = bus.get_read_response(m)
                     pte = Signal(pte_layout)
                     m.d.av_comb += pte.eq(fetched.data)
-                    
+
                     m.d.sync += [
                         permissions.r.eq(pte.R),
                         permissions.w.eq(pte.W),

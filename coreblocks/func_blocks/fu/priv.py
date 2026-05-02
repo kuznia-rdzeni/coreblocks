@@ -159,7 +159,9 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     if self.gen_params.vmem_params.supported_schemes > {SatpMode.BARE}:
                         assert sfence_vma is not None
                         with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
-                            sfence_vma[0](m, vaddr=instr_s1_val, asid=instr_s2_val, all_vaddrs=instr_s1_x0, all_asids=instr_s2_x0)
+                            sfence_vma[0](
+                                m, vaddr=instr_s1_val, asid=instr_s2_val, all_vaddrs=instr_s1_x0, all_asids=instr_s2_x0
+                            )
 
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
