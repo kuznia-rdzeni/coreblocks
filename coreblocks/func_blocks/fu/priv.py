@@ -90,8 +90,6 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         instr_imm = Signal(self.gen_params.isa.xlen)
         instr_s1_val = Signal(self.gen_params.isa.xlen)
         instr_s2_val = Signal(self.gen_params.isa.xlen)
-        instr_s1_x0 = Signal()
-        instr_s2_x0 = Signal()
 
         mret = self.dm.get_dependency(MretKey())
         sret = self.dm.get_optional_dependency(SretKey())
@@ -112,8 +110,6 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 instr_fn.eq(arg.decode_fn),
                 instr_s1_val.eq(arg.s1_val),
                 instr_s2_val.eq(arg.s2_val),
-                instr_s1_x0.eq(arg.rp_s1_reg == 0),
-                instr_s2_x0.eq(arg.rp_s2_reg == 0),
                 instr_imm.eq(arg.imm),
             ]
 
@@ -159,8 +155,14 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     if self.gen_params.vmem_params.supported_schemes > {SatpMode.BARE}:
                         assert sfence_vma is not None
                         with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
+
                             sfence_vma[0](
-                                m, vaddr=instr_s1_val, asid=instr_s2_val, all_vaddrs=instr_s1_x0, all_asids=instr_s2_x0
+                                m,
+                                vaddr=instr_s1_val,
+                                asid=instr_s2_val,
+                                all_vaddrs=imm_view.rs1 == 0,
+                                all_asids=imm_view.rs2 == 0,
                             )
 
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
