@@ -10,7 +10,7 @@ from transactron.testing import (
 from coreblocks.frontend.decoder.decode_stage import Decode
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 
 def mk_test(
@@ -47,7 +47,7 @@ tests = [
 class TestDecode(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
     def setup(self, fixture_initialize_testing_env):
-        self.gen_params = GenParams(test_core_config.replace(start_pc=24))
+        self.gen_params = GenParams(configurations.test.replace(start_pc=24))
 
         self.decode = Decode(self.gen_params, lambda m: ())
 

@@ -9,7 +9,7 @@ from transactron.lib import AdapterTrans, Adapter
 from coreblocks.cache.icache import ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ICacheLayouts
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
@@ -65,7 +65,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     def setup_method(self) -> None:
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 xlen=self.isa_xlen, icache_line_bytes_log=self.line_size, fetch_block_bytes_log=self.fetch_block
             )
         )
@@ -179,7 +179,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     def setup_method(self) -> None:
         self.gen_params = GenParams(
-            test_core_config.replace(xlen=self.isa_xlen, fetch_block_bytes_log=self.fetch_block, icache_enable=False)
+            configurations.test.replace(xlen=self.isa_xlen, fetch_block_bytes_log=self.fetch_block, icache_enable=False)
         )
         self.cp = self.gen_params.icache_params
         self.m = ICacheBypassTestCircuit(self.gen_params)
@@ -319,7 +319,7 @@ class TestICache(TestCaseWithSimulator):
 
     def init_module(self, ways, sets) -> None:
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 xlen=self.isa_xlen,
                 icache_ways=ways,
                 icache_sets_bits=exact_log2(sets),
