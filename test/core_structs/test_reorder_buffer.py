@@ -3,7 +3,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, Testbe
 
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from collections import deque
 from random import Random, randrange
@@ -75,7 +75,7 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 phys_regs_bits=5,
                 rob_entries_bits=6,
                 frontend_superscalarity=frontend_superscalarity,
@@ -137,7 +137,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.test_steps = 2**self.gen_params.rob_entries_bits
         m = SimpleTestCircuit(ReorderBuffer(self.gen_params, mark_done_ports=1))
         self.m = m

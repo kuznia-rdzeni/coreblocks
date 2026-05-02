@@ -4,7 +4,7 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.lib import FIFO, Adapter
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -77,7 +77,7 @@ class RetirementTestCircuit(Elaboratable):
 # TODO: test superscalar retirement, too
 class TestRetirement(TestCaseWithSimulator):
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.rf_exp_q = deque()
         self.rat_map_q = deque()
         self.submit_q = deque()
