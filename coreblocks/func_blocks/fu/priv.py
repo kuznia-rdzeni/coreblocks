@@ -27,6 +27,7 @@ from coreblocks.interface.keys import (
     UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
+    SFenceVMAKey,
 )
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
@@ -97,6 +98,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
+        sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
         @def_method(m, self.issue_decoded, ready=~instr_valid)
@@ -150,8 +152,18 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
                         sret(m)
 
-                    # TODO: implement proper SFENCE.VMA, for BARE only - NO-OP is ok
-                    assert self.gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
+                    if self.gen_params.vmem_params.supported_schemes > {SatpMode.BARE}:
+                        assert sfence_vma is not None
+                        with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
+
+                            sfence_vma[0](
+                                m,
+                                vaddr=instr_s1_val,
+                                asid=instr_s2_val,
+                                all_vaddrs=imm_view.rs1 == 0,
+                                all_asids=imm_view.rs2 == 0,
+                            )
 
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)

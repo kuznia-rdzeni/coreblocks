@@ -11,6 +11,7 @@ from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
+    from coreblocks.priv.vmem.iface import TLBBackingDevice  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -27,6 +28,8 @@ __all__ = [
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
+    "SFenceVMAKey",
+    "L1TLBBackingDeviceKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -114,6 +117,21 @@ class CSRListKey(ListKey[tuple[int, RegisteredCSRProtocol]]):
 
 @dataclass(frozen=True)
 class FlushICacheKey(SimpleKey[Method]):
+    pass
+
+
+@dataclass(frozen=True)
+class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
+    """
+    Collects SFENCE.VMA handlers to invalidate translation caches.
+    Expected layout is `AddressTranslationLayouts.sfence_vma`.
+    """
+
+
+@dataclass(frozen=True)
+class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
+    """Used to provide a component that can be used as a backing device for the L1 TLB."""
+
     pass
 
 
