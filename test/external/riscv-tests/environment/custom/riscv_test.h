@@ -218,6 +218,7 @@ reset_vector:                                                           \
 
 #define RVTEST_PASS                                                     \
 0:                                      \
+        fence;                          \
         li      a0,DEBUG_REG;           \
         li      a1,0x0;                 \
         sw      a1,0(a0);               \
@@ -225,6 +226,7 @@ reset_vector:                                                           \
 
 #define RVTEST_FAIL                                                     \
 0:                                      \
+        fence;                          \
         li      a0,DEBUG_REG;           \
         mv      a1,TESTNUM;             \
         sw      a1,0(a0);               \
