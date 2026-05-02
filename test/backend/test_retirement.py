@@ -29,15 +29,15 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 
-        self.retirement.r_rat_commit.provide(self.rat.commit[0])
-        self.retirement.r_rat_peek.provide(self.rat.peek[0])
-        self.retirement.free_rf_put.provide(self.free_rf.write)
+        self.retirement.r_rat_commit.provide(self.rat.commit)
+        self.retirement.r_rat_peek.provide(self.rat.peek)
+        self.retirement.free_rf_put[0].provide(self.free_rf.write)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
             Adapter.create(self.retirement.rob_peek, nonexclusive=True)
         )
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter.create(self.retirement.rob_retire))
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(self.retirement.rf_free))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(self.retirement.rf_free[0]))
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
             Adapter.create(self.retirement.exception_cause_get, nonexclusive=True)
         )
@@ -62,7 +62,7 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(self.retirement.checkpoint_get_active_tags)
         )
         m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
-            Adapter.create(self.retirement.c_rat_restore)
+            Adapter.create(self.retirement.c_rat_restore[0])
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))
@@ -74,6 +74,7 @@ class RetirementTestCircuit(Elaboratable):
 
 
 # TODO: write a proper retirement test
+# TODO: test superscalar retirement, too
 class TestRetirement(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(test_core_config)
