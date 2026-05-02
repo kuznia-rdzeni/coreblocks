@@ -16,30 +16,20 @@ from coreblocks.params import GenParams
 from coreblocks.priv.vmem.iface import TLBBackingDevice
 
 __all__ = [
-    "TLBEntry",
     "TLB",
 ]
 
 
 class TLBEntry(StructLayout):
     def __init__(self, gen_params: GenParams):
-        vpn_width = gen_params.vmem_params.max_tlb_vpn_bits
-        ppn_width = gen_params.phys_addr_bits - PAGE_SIZE_LOG
-        asid_width = max(1, gen_params.vmem_params.asidlen)
-
         super().__init__(
             {
                 "valid": 1,
-                "global_mapping": 1,
-                "asid": asid_width,
+                "asid": gen_params.vmem_params.asidlen,
                 "size_class": gen_params.vmem_params.tlb_size_class_bits,
-                "vpn": vpn_width,
-                "ppn": ppn_width,
-                "r": 1,
-                "w": 1,
-                "x": 1,
-                "u": 1,
-                "d": 1,
+                "vpn": gen_params.vmem_params.max_tlb_vpn_bits,
+                "ppn": gen_params.phys_addr_bits - PAGE_SIZE_LOG,
+                "permissions": gen_params.get(AddressTranslationLayouts).permissions
             }
         )
 
