@@ -176,7 +176,7 @@ class AddressTranslator(Elaboratable):
             with m.Else():
                 with m.Switch(tlb_data.result):
                     with m.Case(AddressTranslationLayouts.TLBResult.HIT):
-                        with m.If(tlb_data.write_aspect):
+                        with m.If(data.write_aspect):
                             log.assertion(
                                 m, tlb_data.permissions.d, "TLB entry must have dirty bit set if we are writing"
                             )
