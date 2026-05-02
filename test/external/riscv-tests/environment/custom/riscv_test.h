@@ -12,8 +12,39 @@
 #define TESTNUM gp
 #define DEBUG_REG 0x80000000
 
-#define RVTEST_RV32U
-#define RVTEST_RV64U RVTEST_RV32U
+#define RVTEST_RV64U                                                    \
+  .macro init;                                                          \
+  .endm
+
+#define RVTEST_RV32U                                                    \
+  .macro init;                                                          \
+  .endm
+
+#define RVTEST_RV64M                                                    \
+  .macro init;                                                          \
+  RVTEST_ENABLE_MACHINE;                                                \
+  .endm
+
+#define RVTEST_RV64S                                                    \
+  .macro init;                                                          \
+  RVTEST_ENABLE_SUPERVISOR;                                             \
+  .endm
+
+#define RVTEST_RV32M                                                    \
+  .macro init;                                                          \
+  RVTEST_ENABLE_MACHINE;                                                \
+  .endm
+
+#define RVTEST_RV32S                                                    \
+  .macro init;                                                          \
+  RVTEST_ENABLE_SUPERVISOR;                                             \
+  .endm
+
+#if __riscv_xlen == 64
+# define CHECK_XLEN li a0, 1; slli a0, a0, 31; bgez a0, 1f; RVTEST_PASS; 1:
+#else
+# define CHECK_XLEN li a0, 1; slli a0, a0, 31; bltz a0, 1f; RVTEST_PASS; 1:
+#endif
 
 #define INIT_XREG                                                       \
   li x1, 0;                                                             \
@@ -48,13 +79,130 @@
   li x30, 0;                                                            \
   li x31, 0;
 
+#define INIT_PMP                                                        \
+  la t0, 1f;                                                            \
+  csrw mtvec, t0;                                                       \
+  /* Set up a PMP to permit all accesses */                             \
+  li t0, (1 << (31 + (__riscv_xlen / 64) * (53 - 31))) - 1;             \
+  csrw pmpaddr0, t0;                                                    \
+  li t0, PMP_NAPOT | PMP_R | PMP_W | PMP_X;                             \
+  csrw pmpcfg0, t0;                                                     \
+  .align 2;                                                             \
+1:
+
+#define INIT_RNMI                                                       \
+  la t0, 1f;                                                            \
+  csrw mtvec, t0;                                                       \
+  csrwi CSR_MNSTATUS, MNSTATUS_NMIE;                                    \
+  .align 2;                                                             \
+1:
+
+#define INIT_SATP                                                      \
+  la t0, 1f;                                                            \
+  csrw mtvec, t0;                                                       \
+  csrwi satp, 0;                                                       \
+  .align 2;                                                             \
+1:
+
+#define DELEGATE_NO_TRAPS                                               \
+  csrwi mie, 0;                                                         \
+  la t0, 1f;                                                            \
+  csrw mtvec, t0;                                                       \
+  csrwi medeleg, 0;                                                     \
+  csrwi mideleg, 0;                                                     \
+  .align 2;                                                             \
+1:
+
+#define RVTEST_ENABLE_SUPERVISOR                                        \
+  li a0, MSTATUS_MPP & (MSTATUS_MPP >> 1);                              \
+  csrs mstatus, a0;                                                     \
+  li a0, SIP_SSIP | SIP_STIP;                                           \
+  csrs mideleg, a0;                                                     \
+
+#define RVTEST_ENABLE_MACHINE                                           \
+  li a0, MSTATUS_MPP;                                                   \
+  csrs mstatus, a0;                                                     \
+
+#define RVTEST_FP_ENABLE                                                \
+  li a0, MSTATUS_FS & (MSTATUS_FS >> 1);                                \
+  csrs mstatus, a0;                                                     \
+  csrwi fcsr, 0
+
+#define RVTEST_VECTOR_ENABLE                                            \
+  li a0, (MSTATUS_VS & (MSTATUS_VS >> 1)) |                             \
+         (MSTATUS_FS & (MSTATUS_FS >> 1));                              \
+  csrs mstatus, a0;                                                     \
+  csrwi fcsr, 0;                                                        \
+  csrwi vcsr, 0;
+
+#define RISCV_MULTICORE_DISABLE                                         \
+  csrr a0, mhartid;                                                     \
+  1: bnez a0, 1b
+
+#define EXTRA_TVEC_USER
+#define EXTRA_TVEC_MACHINE
+#define EXTRA_INIT
+#define EXTRA_INIT_TIMER
+#define FILTER_TRAP
+#define FILTER_PAGE_FAULT
+
+#define INTERRUPT_HANDLER j other_exception /* No interrupts should occur */
+
 #define RVTEST_CODE_BEGIN                                               \
         .section .text.init;                                            \
         .align  6;                                                      \
+        .weak stvec_handler;                                            \
+        .weak mtvec_handler;                                            \
         .globl _start;                                                  \
 _start:                                                                 \
+        /* reset vector */                                              \
+        j reset_vector;                                                 \
+        .align 2;                                                       \
+trap_vector:                                                            \
+        /* if an mtvec_handler is defined, jump to it */                \
+        la t5, mtvec_handler;                                           \
+        beqz t5, 1f;                                                    \
+        jr t5;                                                          \
+        /* was it an interrupt or an exception? */                      \
+  1:    csrr t5, mcause;                                                \
+        bgez t5, handle_exception;                                      \
+        INTERRUPT_HANDLER;                                              \
+handle_exception:                                                       \
+        /* we don't know how to handle whatever the exception was */    \
+  other_exception:                                                      \
+        /* some unhandlable exception occurred */                       \
+  1:    ori TESTNUM, TESTNUM, 1337;                                     \
+        RVTEST_FAIL;                                                    \
+reset_vector:                                                           \
         INIT_XREG;                                                      \
+        RISCV_MULTICORE_DISABLE;                                        \
+        INIT_RNMI;                                                      \
+        INIT_SATP;                                                      \
+        INIT_PMP;                                                       \
+        DELEGATE_NO_TRAPS;                                              \
         li TESTNUM, 0;                                                  \
+        la t0, trap_vector;                                             \
+        csrw mtvec, t0;                                                 \
+        CHECK_XLEN;                                                     \
+        /* if an stvec_handler is defined, delegate exceptions to it */ \
+        la t0, stvec_handler;                                           \
+        beqz t0, 1f;                                                    \
+        csrw stvec, t0;                                                 \
+        li t0, (1 << CAUSE_LOAD_PAGE_FAULT) |                           \
+               (1 << CAUSE_STORE_PAGE_FAULT) |                          \
+               (1 << CAUSE_FETCH_PAGE_FAULT) |                          \
+               (1 << CAUSE_MISALIGNED_FETCH) |                          \
+               (1 << CAUSE_USER_ECALL) |                                \
+               (1 << CAUSE_BREAKPOINT);                                 \
+        csrw medeleg, t0;                                               \
+1:      csrwi mstatus, 0;                                               \
+        init;                                                           \
+        EXTRA_INIT;                                                     \
+        EXTRA_INIT_TIMER;                                               \
+        la t0, 1f;                                                      \
+        csrw mepc, t0;                                                  \
+        csrr a0, mhartid;                                               \
+        mret;                                                           \
 1:
 
 //-----------------------------------------------------------------------
@@ -69,23 +217,24 @@ _start:                                                                 \
 //-----------------------------------------------------------------------
 
 #define RVTEST_PASS                                                     \
-.pass:                                  \
+0:                                      \
         li      a0,DEBUG_REG;           \
         li      a1,0x0;                 \
         sw      a1,0(a0);               \
-        j .pass;
+        j 0b
 
 #define RVTEST_FAIL                                                     \
-.fail:                                  \
+0:                                      \
         li      a0,DEBUG_REG;           \
         mv      a1,TESTNUM;             \
         sw      a1,0(a0);               \
-        j .fail;
+        j 0b
 
 //-----------------------------------------------------------------------
 // Data Section Macro
 //-----------------------------------------------------------------------
 
+#define EXTRA_DATA
 #define RVTEST_DATA_BEGIN                                               \
         .align 4
 
