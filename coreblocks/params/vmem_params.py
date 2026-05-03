@@ -1,26 +1,20 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Collection
 
 from coreblocks.arch.isa_consts import SatpMode, SatpLayout, PAGE_SIZE_LOG
 
 __all__ = [
-    "TLBLineConfiguration",
     "TLBCacheConfiguration",
     "VirtualMemoryParameters",
 ]
 
 
 @dataclass(frozen=True)
-class TLBLineConfiguration:
-    entries: int = 16
-    ways: int = 4
-
-
-@dataclass(frozen=True)
 class TLBCacheConfiguration:
-    itlb: TLBLineConfiguration = field(default_factory=TLBLineConfiguration)
-    dtlb: TLBLineConfiguration = field(default_factory=TLBLineConfiguration)
-    l2tlb: TLBLineConfiguration = field(default_factory=lambda: TLBLineConfiguration(entries=64, ways=8))
+    itlb_entries: int = 16
+    dtlb_entries: int = 16
+    l2tlb_entries: int = 64
+    l2tlb_ways: int = 4
 
 
 class VirtualMemoryParameters:

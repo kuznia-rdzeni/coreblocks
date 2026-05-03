@@ -11,7 +11,7 @@ from coreblocks.interface.keys import CSRInstancesKey, L1TLBBackingDeviceKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
 
-from coreblocks.priv.vmem.tlb import TLB
+from coreblocks.priv.vmem.tlb import FullyAssociativeTLB
 
 
 __all__ = ["AddressTranslator", "AddressTranslatorMode"]
@@ -47,14 +47,13 @@ class AddressTranslator(Elaboratable):
 
         self.tlb = None
         if gen_params.vmem_params.supported_non_bare_schemes:
-            tlb_cfg = (
-                gen_params.tlb_config.itlb if mode == AddressTranslatorMode.INSTRUCTION else gen_params.tlb_config.dtlb
-            )
-
-            self.tlb = TLB(
+            self.tlb = FullyAssociativeTLB(
                 gen_params,
-                entries=tlb_cfg.entries,
-                ways=tlb_cfg.ways,
+                entries=(
+                    gen_params.tlb_config.itlb_entries
+                    if mode == AddressTranslatorMode.INSTRUCTION
+                    else gen_params.tlb_config.dtlb_entries
+                ),
                 backing_resolver=self.dm.get_dependency(L1TLBBackingDeviceKey()),
             )
 

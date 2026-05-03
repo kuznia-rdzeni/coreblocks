@@ -127,17 +127,16 @@ class GenParams(DependentCache):
 
         self.tlb_config = cfg.tlb_config
 
-        for name, tlb_cfg in (
-            ("itlb", self.tlb_config.itlb),
-            ("dtlb", self.tlb_config.dtlb),
-            ("l2tlb", self.tlb_config.l2tlb),
-        ):
-            if tlb_cfg.entries <= 0:
-                raise ValueError(f"{name} entries must be positive")
-            if tlb_cfg.ways <= 0:
-                raise ValueError(f"{name} ways must be positive")
-            if tlb_cfg.entries % tlb_cfg.ways != 0:
-                raise ValueError(f"{name} entries must be divisible by ways")
+        if self.tlb_config.itlb_entries <= 0:
+            raise ValueError("ITLB entries must be positive")
+        if self.tlb_config.dtlb_entries <= 0:
+            raise ValueError("DTLB entries must be positive")
+        if self.tlb_config.l2tlb_entries <= 0:
+            raise ValueError("L2 TLB entries must be positive")
+        if self.tlb_config.l2tlb_ways <= 0:
+            raise ValueError("L2 TLB ways must be positive")
+        if self.tlb_config.l2tlb_entries % self.tlb_config.l2tlb_ways != 0:
+            raise ValueError("L2 TLB entries must be divisible by L2 TLB ways")
 
         if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
             raise ValueError("HPM counters count must be in range [0, 29]")
