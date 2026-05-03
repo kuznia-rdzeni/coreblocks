@@ -476,7 +476,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     m.d.av_comb += next_flush_set.eq(flush_set + 1)
                     m.d.av_comb += flush_done.eq(flush_set == self.sets - 1)
                 with m.Else():
-                    with m.If(flush_size_class == self.gen_params.gen_params.vmem_params.max_tlb_size_class):
+                    with m.If(flush_size_class == self.gen_params.vmem_params.max_tlb_size_class):
                         m.d.av_comb += flush_done.eq(1)
                     with m.Else():
                         m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
