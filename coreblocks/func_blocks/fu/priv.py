@@ -8,7 +8,7 @@ from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, Privileg
 
 
 from transactron import *
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
