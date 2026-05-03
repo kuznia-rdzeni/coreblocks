@@ -310,14 +310,15 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += set_rd.addr.eq(set_idx)
             m.d.comb += set_rd.en.eq(1)
 
+            m.d.sync += cam.checked_asid.eq(current_asid)
+            m.d.sync += cam.checked_vpn.eq(vpn)
+
             request_pipe.write(m, vpn=vpn, write_aspect=write_aspect)
 
         slow_path = Signal()
 
         with Transaction(name="TLBLookup").body(m, ready=~slow_path):
             req = request_pipe.peek(m)
-            m.d.comb += cam.checked_asid.eq(current_asid)
-            m.d.comb += cam.checked_vpn.eq(req.vpn)
 
             valid_vec = Signal(self.ways)
             m.d.av_comb += valid_vec.eq(cam.valid_match & cam.addr_match & (cam.asid_match | cam.global_match))
@@ -399,8 +400,6 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                 with Transaction().body(m):
                     # We have received a valid PTE from the backing resolver and have the correct set index
                     req = request_pipe.read(m)
-                    m.d.comb += cam.checked_asid.eq(current_asid)
-                    m.d.comb += cam.checked_vpn.eq(req.vpn)
 
                     fwd.write(m, arg=refill_response)
                     m.d.sync += slow_path.eq(0)
@@ -433,6 +432,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         flush_all_vaddrs = Signal(init=1)
         flush_all_asids = Signal(init=1)
         flush_set = Signal(set_index_bits)
+        flush_size_class = Signal(self.gen_params.vmem_params.tlb_size_class_bits)
         flush_fetched = Signal()
 
         @def_method(m, self.sfence_vma, ready=~flushing)
@@ -445,20 +445,22 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             m.d.sync += flush_set.eq(Mux(flush_all_vaddrs, 0, vpn_to_set_idx(flush_vpn, 0)))
             m.d.sync += flush_fetched.eq(0)
+            m.d.sync += flush_size_class.eq(0)
 
             # we block new inputs, wait for the current lookup to finish and then perform flush routine
+
+        self.sfence_vma.add_conflict(self.request, Priority.LEFT)
 
         with Transaction(name="flush").body(m, ready=flushing & ~slow_path):
             with m.If(~flush_fetched):
                 m.d.comb += set_rd.addr.eq(flush_set)
                 m.d.comb += set_rd.en.eq(1)
+                m.d.sync += cam.checked_asid.eq(flush_asid)
+                m.d.sync += cam.checked_vpn.eq(flush_vpn)
 
                 m.d.sync += flush_fetched.eq(1)
             with m.Else():
                 # we have flush_set opened - invalidate the matching entries and move to the next set
-                m.d.comb += cam.checked_asid.eq(flush_asid)
-                m.d.comb += cam.checked_vpn.eq(flush_vpn)
-
                 m.d.comb += set_wr.data.eq(set_rd.data)
                 for way in range(self.ways):
                     with m.If((flush_all_asids | cam.asid_match[way]) & (flush_all_vaddrs | cam.addr_match[way])):
@@ -467,10 +469,25 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                 m.d.comb += set_wr.addr.eq(flush_set)
                 m.d.comb += set_wr.en.eq(1)
 
-                m.d.comb += set_rd.addr.eq(flush_set + 1)
+                next_flush_set = Signal(set_index_bits)
+                flush_done = Signal()
+
+                with m.If(flush_all_vaddrs):
+                    m.d.av_comb += next_flush_set.eq(flush_set + 1)
+                    m.d.av_comb += flush_done.eq(flush_set == self.sets - 1)
+                with m.Else():
+                    with m.If(flush_size_class == self.gen_params.gen_params.vmem_params.max_tlb_size_class):
+                        m.d.av_comb += flush_done.eq(1)
+                    with m.Else():
+                        m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
+                        m.d.sync += flush_size_class.eq(flush_size_class + 1)
+
+                m.d.sync += flush_set.eq(next_flush_set)
+
+                m.d.comb += set_rd.addr.eq(next_flush_set)
                 m.d.comb += set_rd.en.eq(1)
 
-                with m.If(~flush_all_vaddrs | (flush_set == self.sets - 1)):
+                with m.If(flush_done):
                     m.d.sync += flushing.eq(0)
 
         return m
