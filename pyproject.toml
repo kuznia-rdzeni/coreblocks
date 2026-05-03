@@ -17,11 +17,11 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "amaranth==0.5.8",
-    "amaranth-stubs==0.1.2",
+    "amaranth~=0.5.8",
+    "amaranth-stubs~=0.5.0.0",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron @ git+https://github.com/tilk/transactron#ae58d01fa6d496ccc568bd58eb6160a0070143e2",
+    "transactron @ git+https://github.com/tilk/transactron@ae58d01fa6d496ccc568bd58eb6160a0070143e2",
 ]
 
 [project.urls]
