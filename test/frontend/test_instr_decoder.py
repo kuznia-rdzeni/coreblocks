@@ -3,7 +3,7 @@ from amaranth.sim import *
 from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.frontend.decoder.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
 from coreblocks.arch import *
 from unittest import TestCase
@@ -201,7 +201,7 @@ class TestDecoder(TestCaseWithSimulator):
 
     def setup_method(self):
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 _implied_extensions=Extension.G
                 | Extension.XINTMACHINEMODE
                 | Extension.XINTSUPERVISOR
@@ -318,7 +318,7 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
     ]
 
     def test_e(self):
-        self.gen_params = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
+        self.gen_params = GenParams(configurations.test.replace(embedded=True, _implied_extensions=Extension.E))
         self.decoder = InstrDecoder(self.gen_params)
 
         async def process(sim: TestbenchContext):

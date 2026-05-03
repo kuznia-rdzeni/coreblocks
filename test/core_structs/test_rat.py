@@ -2,7 +2,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, Testbe
 
 from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from collections import deque
 from random import Random
@@ -38,7 +38,7 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=5, rob_entries_bits=6))
         m = SimpleTestCircuit(FRAT(gen_params=self.gen_params))
         self.m = m
 
@@ -85,7 +85,7 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(
-            test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6, retirement_superscalarity=ports)
+            configurations.test.replace(phys_regs_bits=5, rob_entries_bits=6, retirement_superscalarity=ports)
         )
         m = SimpleTestCircuit(RRAT(gen_params=self.gen_params))
         self.m = m

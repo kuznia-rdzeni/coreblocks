@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from unittest import TestCase
 
 from coreblocks.arch.isa import gen_isa_string
-from coreblocks.params.configurations import *
+from coreblocks.params.core_configuration import CoreConfiguration
+from coreblocks.params import configurations
 from coreblocks.params.fu_params import extensions_supported
 from coreblocks.params.genparams import GenParams
 
@@ -17,25 +18,25 @@ class TestConfigurationsISAString(TestCase):
 
     TEST_CASES = [
         ISAStrTest(
-            basic_core_config,
+            configurations.basic,
             "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
             "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
             "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
         ),
         ISAStrTest(
-            small_linux_config,
+            configurations.small_linux,
             "rv32imazicsr_zifencei_xintmachinemode_xintsupervisor",
             "rv32imazicsr_zifencei_xintmachinemode_xintsupervisor",
             "rv32imazicsr_zifencei_xintmachinemode_xintsupervisor",
         ),
         ISAStrTest(
-            full_core_config,
+            configurations.full,
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
         ),
-        ISAStrTest(tiny_core_config, "rv32e", "rv32e", "rv32e"),
-        ISAStrTest(test_core_config, "rv32", "rv32", "rv32i"),
+        ISAStrTest(configurations.tiny, "rv32e", "rv32e", "rv32e"),
+        ISAStrTest(configurations.test, "rv32", "rv32", "rv32i"),
     ]
 
     def test_isa_str_gp(self):
