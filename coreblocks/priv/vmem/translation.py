@@ -41,7 +41,6 @@ class AddressTranslator(Elaboratable):
 
         self.request = Method(i=self.layouts.request)
         self.accept = Method(o=self.layouts.accept)
-        self.sfence_vma = Method(i=self.layouts.sfence_vma)
 
         self.dm = DependencyContext.get()
 
@@ -65,7 +64,7 @@ class AddressTranslator(Elaboratable):
         fwd_layout = make_layout(
             ("vaddr", self.gen_params.isa.xlen),
             ("access_fault", 1),
-            ("page_fault", 1),
+            ("vpn_invalid", 1),
             ("write_aspect", 1),
         )
         m.submodules.resp_fwd = resp_fwd = Forwarder(fwd_layout)
@@ -106,29 +105,27 @@ class AddressTranslator(Elaboratable):
         @def_method(m, self.request)
         def _(addr: Value, write_aspect: Value):
             access_fault = Signal()
-            page_fault = Signal()
+            vpn_invalid = Signal()
 
             poffset = Signal(PAGE_SIZE_LOG)
             vpn = Signal(self.gen_params.isa.xlen - PAGE_SIZE_LOG)
 
+            max_ppn = (1 << (self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)) - 1
+
             m.d.av_comb += Cat(poffset, vpn).eq(addr)
 
-            vpn_invalid = Signal()
             with m.Switch(effective_satp_mode):
+                with m.Case(SatpMode.BARE):
+                    m.d.av_comb += access_fault.eq(vpn > max_ppn)
+
                 for vm_mode in self.gen_params.vmem_params.supported_non_bare_schemes:
                     vm_vpn_len = bits_per_level * SatpMode.level_count(vm_mode)
 
                     with m.Case(vm_mode):
                         m.d.av_comb += vpn_invalid.eq(vpn[vm_vpn_len - 1 :].any() & ~vpn[vm_vpn_len - 1 :].all())
 
-            max_ppn = (1 << (self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)) - 1
-
-            with m.If(effective_satp_mode == SatpMode.BARE):
-                m.d.av_comb += access_fault.eq(vpn > max_ppn)
-            with m.Elif(vpn_invalid):
-                m.d.av_comb += page_fault.eq(1)
-            with m.Else():
-                if self.tlb is not None:
+            if self.tlb is not None:
+                with m.If((effective_satp_mode != SatpMode.BARE) & ~vpn_invalid):
                     self.tlb.request(
                         m,
                         vpn=vpn,
@@ -138,7 +135,7 @@ class AddressTranslator(Elaboratable):
             resp_fwd.write(
                 m,
                 vaddr=addr,
-                page_fault=vpn_invalid,
+                vpn_invalid=vpn_invalid,
                 access_fault=access_fault,
                 write_aspect=write_aspect,
             )
@@ -157,18 +154,16 @@ class AddressTranslator(Elaboratable):
 
             m.d.av_comb += Cat(poffset, vpn).eq(data.vaddr)
 
-            with m.If(data.page_fault):
-                m.d.av_comb += page_fault.eq(1)
-
             with m.If(data.access_fault):
                 m.d.av_comb += access_fault.eq(1)
 
+            with m.If(data.vpn_invalid):
+                m.d.av_comb += page_fault.eq(1)
+
             if self.tlb is not None:
-                with condition(m) as branch:
-                    with branch((effective_satp_mode != SatpMode.BARE) & ~data.page_fault):
+                with condition(m, nonblocking=True) as branch:
+                    with branch((effective_satp_mode != SatpMode.BARE) & ~data.vpn_invalid):
                         m.d.av_comb += tlb_data.eq(self.tlb.accept(m))
-                    with branch():
-                        pass
 
             with m.If(effective_satp_mode == SatpMode.BARE):
                 m.d.av_comb += ppn.eq(vpn)
@@ -184,7 +179,7 @@ class AddressTranslator(Elaboratable):
                     with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):
                         m.d.av_comb += access_fault.eq(1)
 
-                # apply lower bits from VPN if we have hit to a non-leaf
+                # apply lower bits from VPN if we have hit a superpage
                 with m.Switch(tlb_data.size_class):
                     for size_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
                         level_bits = bits_per_level * size_class
@@ -203,7 +198,7 @@ class AddressTranslator(Elaboratable):
                             with m.If(~tlb_data.permissions.w):
                                 m.d.av_comb += page_fault.eq(1)
                         with m.Else():
-                            with m.If(~tlb_data.permissions.r & (~mxr | ~tlb_data.permissions.x)):
+                            with m.If(~tlb_data.permissions.r & ~(mxr & tlb_data.permissions.x)):
                                 m.d.av_comb += page_fault.eq(1)
 
                 # check U/S permissions
@@ -211,19 +206,19 @@ class AddressTranslator(Elaboratable):
                 match self.mode:
                     case AddressTranslatorMode.INSTRUCTION:
                         # SUM does not affect instruction fetches
-                        with m.If(is_user == tlb_data.permissions.u):
+                        with m.If(is_user != tlb_data.permissions.u):
                             m.d.av_comb += page_fault.eq(1)
                     case AddressTranslatorMode.LSU:
                         with m.If(is_user):
                             with m.If(~tlb_data.permissions.u):
                                 m.d.av_comb += page_fault.eq(1)
                         with m.Else():
-                            with m.If(~tlb_data.permissions.u & ~sum_):
+                            with m.If(tlb_data.permissions.u & ~sum_):
                                 m.d.av_comb += page_fault.eq(1)
 
             return {
                 "vaddr": data.vaddr,
-                "paddr": Cat(ppn, poffset),
+                "paddr": Cat(poffset, ppn),
                 "page_fault": page_fault,
                 "access_fault": access_fault,
             }
