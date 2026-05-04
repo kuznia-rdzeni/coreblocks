@@ -353,16 +353,21 @@ class CheckpointRAT(Elaboratable):
 
             # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
             tag_plus_1 = Signal(self.gen_params.tag_bits)
-            latest_tag = Signal(self.gen_params.tag_bits)
+            alloc_tags_bound = Signal(self.gen_params.tag_bits)
             m.d.av_comb += tag_plus_1.eq(tag + 1)
-            m.d.av_comb += latest_tag.eq(tags_tail - 1)
+            m.d.av_comb += alloc_tags_bound.eq(tags_tail - 1)
             with m.If(tag_plus_1 == tags_tail):
                 log.debug(m, True, "rollback to 0x{:x}. no tags to invalidate", tag)
             with m.Else():
-                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag_plus_1, latest_tag)
+                invalidate_mask = cyclic_mask(2**self.gen_params.tag_bits, tag_plus_1, alloc_tags_bound)
                 m.d.comb += active_tags_reset_mask_0.eq(invalidate_mask)
                 log.debug(
-                    m, True, "rollback to 0x{:x}. invalidate tags from 0x{:x} to 0x{:x}", tag, tag_plus_1, latest_tag
+                    m,
+                    True,
+                    "rollback to 0x{:x}. invalidate tags from 0x{:x} to 0x{:x}",
+                    tag,
+                    tag_plus_1,
+                    alloc_tags_bound,
                 )
 
             log.assertion(m, ((active_tags & checkpointed_tags) & (1 << tag)).any(), "rollback to illegal tag")
