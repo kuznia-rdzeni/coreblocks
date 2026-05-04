@@ -28,6 +28,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "RollbackKey",
+    "ActiveTagsKey",
     "InstructionTaggedCounterKey",
 ]
 
@@ -38,7 +39,7 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(SimpleKey[Method]):
+class InstructionPrecommitKey(SimpleKey[Callable]):
     pass
 
 
@@ -118,10 +119,21 @@ class FlushICacheKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class RollbackKey(UnifierKey, unifier=MethodProduct.create):
+class RollbackKey(UnifierKey, unifier=lambda _, targets: MethodProduct.create(targets)):  # type: ignore
+    # transactron type bug
     """
     Collects method that want to be notifed about tag rollback event.
     Expected layout is `RATLayouts.rollback_in`.
+    """
+
+    pass
+
+
+@dataclass(frozen=True)
+class ActiveTagsKey(SimpleKey[Method]):
+    """
+    Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path (and should
+    side-effects be executed).
     """
 
     pass

@@ -4,6 +4,7 @@ from amaranth.lib.data import StructLayout, View
 from dataclasses import dataclass
 
 from transactron import Method, Methods, def_method, def_methods, Transaction, TModule
+from transactron.lib import ConnectTrans, Forwarder
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
@@ -143,7 +144,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, ready=(ready_to_process & ~done)):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, instr.rob_id)
+            info = precommit(m, rob_id=instr.rob_id, tag=instr.tag)
             m.d.top_comb += exe_side_fx.eq(info.side_fx)
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
@@ -222,6 +223,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             interrupt = self.dependency_manager.get_dependency(AsyncInterruptInsertSignalKey())
             resume_core = self.dependency_manager.get_dependency(UnsafeInstructionResolvedKey())
+            m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
+            m.submodules.resume_conn = ConnectTrans.create(resume_core_fwd.read, resume_core)
 
             with m.If(exception):
                 mtval = Signal(self.gen_params.isa.xlen)
@@ -240,7 +243,14 @@ class CSRUnit(FuncBlock, Elaboratable):
                     )
                 )
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
-                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
+                self.report(
+                    m,
+                    rob_id=instr.rob_id,
+                    cause=ExceptionCause.ILLEGAL_INSTRUCTION,
+                    pc=instr.pc,
+                    tag=instr.tag,
+                    mtval=mtval,
+                )
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
@@ -252,6 +262,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                     rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
                     pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                    tag=instr.tag,
                     mtval=0,
                 )
 
@@ -259,7 +270,8 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(exe_side_fx & ~exception & ~interrupt):
                 # CSR instructions are never compressed, PC+4 is always next instruction
-                resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
+                # exe_side_fx already checks if instruction tag is active
+                resume_core_fwd.write(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,

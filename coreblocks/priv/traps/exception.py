@@ -4,40 +4,10 @@ from coreblocks.params.genparams import GenParams
 
 from coreblocks.arch import ExceptionCause
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
-from coreblocks.interface.keys import ExceptionReportKey
-from transactron.core import TModule, def_method, Method
+from coreblocks.interface.keys import ActiveTagsKey, ExceptionReportKey
+from transactron.core import TModule, def_method, Method, Transaction
 from transactron.lib.connectors import ConnectTrans
 from transactron.lib.fifo import BasicFifo
-
-
-# NOTE: This function is not used in ExceptionCauseRegister, but may be useful in computing priorities before reporting
-def should_update_priority(m: TModule, current_cause: Value, new_cause: Value) -> Value:
-    # Comparing all priorities would be expensive, this function only checks conditions that could happen in hardware
-    _update = Signal()
-
-    # All breakpoint kinds have the highest priority in conflicting cases
-    with m.If(new_cause == ExceptionCause.BREAKPOINT):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        ((new_cause == ExceptionCause.INSTRUCTION_PAGE_FAULT) | (new_cause == ExceptionCause.INSTRUCTION_ACCESS_FAULT))
-        & (current_cause != ExceptionCause.BREAKPOINT)
-    ):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        (new_cause == ExceptionCause.LOAD_ADDRESS_MISALIGNED)
-        & ((current_cause == ExceptionCause.LOAD_ACCESS_FAULT) | (current_cause == ExceptionCause.LOAD_PAGE_FAULT))
-    ):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        (new_cause == ExceptionCause.STORE_ADDRESS_MISALIGNED)
-        & ((current_cause == ExceptionCause.STORE_ACCESS_FAULT) | (current_cause == ExceptionCause.STORE_PAGE_FAULT))
-    ):
-        m.d.comb += _update.eq(1)
-
-    return _update
 
 
 class ExceptionInformationRegister(Elaboratable):
@@ -50,13 +20,14 @@ class ExceptionInformationRegister(Elaboratable):
     If `exception` bit is set in the ROB, `Retirement` stage fetches exception details from this module.
     """
 
-    def __init__(self, gen_params: GenParams, rob_get_indices: Method, fetch_stall_exception: Method):
+    def __init__(self, gen_params: GenParams, rob_get_indices: Method):
         self.gen_params = gen_params
 
         self.cause = Signal(ExceptionCause)
         self.rob_id = Signal(gen_params.rob_entries_bits)
         self.pc = Signal(gen_params.isa.xlen)
         self.mtval = Signal(gen_params.isa.xlen)
+        self.tag = Signal(gen_params.tag_bits)
         self.valid = Signal()
 
         self.layouts = gen_params.get(ExceptionRegisterLayouts)
@@ -81,24 +52,38 @@ class ExceptionInformationRegister(Elaboratable):
 
             return call
 
-        dm = DependencyContext.get()
-        dm.add_dependency(ExceptionReportKey(), call_report)
+        self.dm = DependencyContext.get()
+        self.dm.add_dependency(ExceptionReportKey(), call_report)
 
         self.get = Method(o=self.layouts.get)
 
         self.clear = Method()
 
         self.rob_get_indices = rob_get_indices
-        self.fetch_stall_exception = fetch_stall_exception
 
     def elaborate(self, platform):
         m = TModule()
 
+        active_tags_m = self.dm.get_dependency(ActiveTagsKey())
+        active_tags = Signal(active_tags_m.layout_out)
+        with Transaction().body(m):
+            m.d.comb += active_tags.eq(active_tags_m(m))
+
+        with m.If(~active_tags.active_tags[self.tag]):
+            # we can safely invalidate all exceptions (the entry) in case of rollback, because rollback invalidates
+            # suffix of (youngest) instructions. If the current entry was in that suffix, it means that no older
+            # instructions (priority on rob_id selection), including all that remain valid, have raised any exception.
+            # Tag can be invalidated only as an effect of rollback.
+            m.d.sync += self.valid.eq(0)
+
         @def_method(m, self.report)
-        def _(cause, rob_id, pc, mtval):
+        def _(cause, rob_id, pc, tag, mtval):
             should_write = Signal()
 
-            with m.If(self.valid & (self.rob_id == rob_id)):
+            with m.If(~active_tags.active_tags[tag]):
+                # ignore inactive instructions
+                m.d.comb += should_write.eq(0)
+            with m.Elif(self.valid & (self.rob_id == rob_id)):
                 # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
                 # in Retirement.
                 m.d.comb += should_write.eq(0)
@@ -110,20 +95,25 @@ class ExceptionInformationRegister(Elaboratable):
             with m.Else():
                 m.d.comb += should_write.eq(1)
 
-            with m.If(should_write):
+            with m.If(should_write):  # TODO: convert to dict
                 m.d.sync += self.rob_id.eq(rob_id)
                 m.d.sync += self.cause.eq(cause)
                 m.d.sync += self.pc.eq(pc)
+                m.d.sync += self.tag.eq(tag)
                 m.d.sync += self.mtval.eq(mtval)
 
             m.d.sync += self.valid.eq(1)
 
-            # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
-            self.fetch_stall_exception(m)
-
         @def_method(m, self.get, nonexclusive=True)
         def _():
-            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "mtval": self.mtval, "valid": self.valid}
+            return {
+                "rob_id": self.rob_id,
+                "cause": self.cause,
+                "pc": self.pc,
+                "tag": self.tag,
+                "mtval": self.mtval,
+                "valid": self.valid,
+            }
 
         @def_method(m, self.clear)
         def _():

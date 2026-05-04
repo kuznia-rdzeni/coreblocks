@@ -8,7 +8,7 @@ from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, Privileg
 
 
 from transactron import *
-from transactron.lib import logging
+from transactron.lib import ConnectTrans, Forwarder, logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
@@ -18,6 +18,7 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
 from coreblocks.interface.layouts import PrivUnitLayouts
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     MretKey,
     SretKey,
     AsyncInterruptInsertSignalKey,
@@ -86,6 +87,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         instr_pc = Signal(self.gen_params.isa.xlen)
         instr_fn = self.fn.get_function()
 
+        instr_tag = Signal(self.gen_params.tag_bits)
         instr_imm = Signal(self.gen_params.isa.xlen)
         instr_s1_val = Signal(self.gen_params.isa.xlen)
         instr_s2_val = Signal(self.gen_params.isa.xlen)
@@ -98,6 +100,8 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
+        m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
+        m.submodules.resume_conn = ConnectTrans.create(resume_core_fwd.read, resume_core)
 
         @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
@@ -105,6 +109,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
+                instr_tag.eq(arg.tag),
                 instr_fn.eq(arg.decode_fn),
                 instr_s1_val.eq(arg.s1_val),
                 instr_s2_val.eq(arg.s2_val),
@@ -113,7 +118,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         with Transaction().body(m, ready=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, instr_rob)
+            info = precommit(m, rob_id=instr_rob, tag=instr_tag)
             m.d.sync += finished.eq(1)
             self.perf_instr.incr(m, instr_fn, enable_call=info.side_fx)
 
@@ -214,7 +219,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                         log.error(m, True, "missing Funct12 case")
 
                 self.exception_report(
-                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr
+                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, tag=instr_tag, mtval=instr
                 )
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
@@ -226,12 +231,19 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 # would normally return to (mepc value is preserved)
                 m.d.av_comb += exception.eq(1)
                 self.exception_report(
-                    m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
+                    m,
+                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    pc=ret_pc,
+                    rob_id=instr_rob,
+                    tag=instr_tag,
+                    mtval=0,
                 )
             with m.Else():
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                resume_core(m, pc=ret_pc)
+                get_active_tags = self.dm.get_dependency(ActiveTagsKey())
+                with m.If(get_active_tags(m).active_tags[instr_tag]):
+                    resume_core_fwd.write(m, pc=ret_pc)
 
             self.push_result(
                 m,

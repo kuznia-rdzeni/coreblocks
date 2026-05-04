@@ -91,7 +91,7 @@ class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
                     m.d.av_comb += mtval.eq(arg.pc + (instr_exc_on_second_half << 1))
 
-            self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, mtval=mtval)
+            self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, tag=arg.tag, mtval=mtval)
 
             self.push_result(m, result=0, exception=1, rob_id=arg.rob_id, rp_dst=arg.rp_dst)
 
