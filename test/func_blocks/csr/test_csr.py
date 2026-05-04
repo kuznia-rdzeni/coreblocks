@@ -3,12 +3,12 @@ import random
 
 from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
-from coreblocks.func_blocks.csr.csr import CSRUnit
+from coreblocks.func_blocks.csr.csr_unit import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
-from coreblocks.arch import Funct3, ExceptionCause, OpType
-from coreblocks.params.configurations import test_core_config
+from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
+from coreblocks.params import configurations
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
@@ -58,6 +58,13 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.priv_io = self.priv_io = TestbenchIO(
             AdapterTrans.create(self.csr_instances.m_mode.priv_mode.write)
         )
+        m.submodules.mcounteren_io = self.mcounteren_io = TestbenchIO(
+            AdapterTrans.create(self.csr_instances.m_mode.mcounteren.write)
+        )
+        if self.gen_params.supervisor_mode:
+            m.submodules.scounteren_io = self.scounteren_io = TestbenchIO(
+                AdapterTrans.create(self.csr_instances.s_mode.scounteren.write)
+            )
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
         DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self.fetch_resume.adapter.iface)
@@ -168,7 +175,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert res.exception == 0
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(8)
 
         self.cycles = 256
@@ -183,6 +190,37 @@ class TestCSRUnit(TestCaseWithSimulator):
         0xCC0,  # read_only
         0xFFF,  # nonexistent
         0x7FE,  # missing priv
+    ]
+
+    counteren_exception_cases = [
+        {
+            "priv": PrivilegeLevel.SUPERVISOR,
+            "csr": CSRAddress.CYCLE,
+            "mcounteren": 0b000,
+            "scounteren": 0b111,
+            "expect_exception": True,
+        },
+        {
+            "priv": PrivilegeLevel.USER,
+            "csr": CSRAddress.TIME,
+            "mcounteren": 0b010,
+            "scounteren": 0b000,
+            "expect_exception": True,
+        },
+        {
+            "priv": PrivilegeLevel.USER,
+            "csr": CSRAddress.CYCLE,
+            "mcounteren": 0b001,
+            "scounteren": 0b001,
+            "expect_exception": False,
+        },
+        {
+            "priv": PrivilegeLevel.MACHINE,
+            "csr": CSRAddress.CYCLE,
+            "mcounteren": 0b000,
+            "scounteren": 0b000,
+            "expect_exception": False,
+        },
     ]
 
     async def process_exception_test(self, sim: TestbenchContext):
@@ -230,13 +268,74 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
 
     def test_exception(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(9)
 
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
 
         with self.run_simulation(self.dut) as sim:
             sim.add_testbench(self.process_exception_test)
+
+    async def process_counteren_access_test(self, sim: TestbenchContext):
+        self.dut.fetch_resume.enable(sim)
+        self.dut.exception_report.enable(sim)
+
+        for idx, case in enumerate(self.counteren_exception_cases):
+            await self.dut.priv_io.call(sim, data=case["priv"])
+            await self.dut.mcounteren_io.call(sim, data=case["mcounteren"])
+            if self.gen_params.supervisor_mode:
+                await self.dut.scounteren_io.call(sim, data=case["scounteren"])
+
+            await self.random_wait_geom(sim)
+            await self.dut.select.call(sim)
+
+            rob_id = idx + 100
+            await self.dut.insert.call(
+                sim,
+                rs_data={
+                    "exec_fn": {
+                        "op_type": OpType.CSR_REG,
+                        "funct3": Funct3.CSRRS,
+                        "funct7": 0,
+                    },
+                    "rp_s1": 0,
+                    "rp_s1_reg": 0,
+                    "s1_val": 0,
+                    "rp_dst": 2,
+                    "imm": 0,
+                    "csr": case["csr"],
+                    "rob_id": rob_id,
+                },
+            )
+
+            await self.random_wait_geom(sim)
+            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+                sim.set(r, 1)
+            self.dut.precommit.call_init(sim, side_fx=1)
+
+            await self.random_wait_geom(sim)
+            res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
+            self.dut.precommit.disable(sim)
+
+            assert res is not None
+            assert res.exception == int(case["expect_exception"])
+
+            if case["expect_exception"]:
+                assert report is not None
+                report_dict = data_const_to_dict(report)
+                report_dict.pop("mtval")
+                assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
+            else:
+                assert report is None
+
+    def test_counteren_access(self):
+        self.gen_params = GenParams(configurations.test.replace(supervisor_mode=True, user_mode=True))
+        random.seed(10)
+
+        self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(self.process_counteren_access_test)
 
 
 class TestCSRRegister(TestCaseWithSimulator):
@@ -291,7 +390,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             self.dut.write.disable(sim)
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(42)
 
         self.cycles = 200
@@ -326,7 +425,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             prev_value = output
 
     def test_filtermap(self):
-        gen_params = GenParams(test_core_config)
+        gen_params = GenParams(configurations.test)
 
         def write_filtermap(m: TModule, v: Value):
             res = Signal(34)
@@ -390,7 +489,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         assert self.dut._fu_read.get_call_result(sim).data == 0xDBBB
 
     def test_comb(self):
-        gen_params = GenParams(test_core_config)
+        gen_params = GenParams(configurations.test)
 
         random.seed(4326)
 

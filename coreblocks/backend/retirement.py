@@ -11,16 +11,22 @@ from coreblocks.interface.layouts import (
     RetirementLayouts,
 )
 
-from transactron.core import Method, Transaction, TModule, def_method
+from transactron.core import Method, Methods, Transaction, TModule, def_method
 from transactron.lib.simultaneous import condition
+from transactron.utils import count_trailing_zeros
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
 from transactron.lib.logging import HardwareLogger
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.arch import ExceptionCause
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey
-from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR
+from coreblocks.arch import ExceptionCause, PrivilegeLevel
+from coreblocks.arch.csr_address import CounterEnableFieldOffsets
+from coreblocks.interface.keys import (
+    CoreStateKey,
+    CSRInstancesKey,
+    InstructionPrecommitKey,
+)
+from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR, counteren_access_filter
 from coreblocks.arch.isa_consts import TrapVectorMode
 
 log = HardwareLogger("backend.retirement")
@@ -37,22 +43,35 @@ class Retirement(Elaboratable):
 
         self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
         self.rob_retire = Method(i=gen_params.get(ROBLayouts).retire_layout)
-        self.r_rat_commit = Method(
-            i=gen_params.get(RATLayouts).rrat_commit_in, o=gen_params.get(RATLayouts).rrat_commit_out
+        self.r_rat_commit = Methods(
+            gen_params.retirement_superscalarity,
+            i=gen_params.get(RATLayouts).rrat_commit_in,
+            o=gen_params.get(RATLayouts).rrat_commit_out,
         )
-        self.free_rf_put = Method(i=[("ident", range(gen_params.phys_regs))])
-        self.rf_free = Method(i=gen_params.get(RFLayouts).rf_free)
+        self.free_rf_put = Methods(gen_params.retirement_superscalarity, i=[("ident", range(gen_params.phys_regs))])
+        self.rf_free = Methods(gen_params.retirement_superscalarity, i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore)
-        self.fetch_resume_from_core_flush = Method(i=self.gen_params.get(FetchLayouts).resume)
-        self.instr_decrement = Method(o=gen_params.get(CoreInstructionCounterLayouts).decrement)
-        self.trap_entry = Method()
-        self.async_interrupt_cause = Method(o=gen_params.get(InternalInterruptControllerLayouts).interrupt_cause)
+        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
+        self.instr_decrement = Method(
+            i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
+            o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
+        )
+        self.trap_entry = Method(i=[("cause", gen_params.isa.xlen)], o=[("target_priv", PrivilegeLevel)])
+        interrupt_controller_layouts = gen_params.get(InternalInterruptControllerLayouts)
+        self.async_interrupt_cause = Method(o=interrupt_controller_layouts.interrupt_cause)
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
-        self.instret_csr = DoubleCounterCSR(gen_params, CSRAddress.INSTRET, CSRAddress.INSTRETH)
+        self.instret_csr = DoubleCounterCSR(
+            gen_params,
+            CSRAddress.MINSTRET,
+            CSRAddress.MINSTRETH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.INSTRET,
+            CSRAddress.INSTRETH if gen_params.isa.xlen == 32 else None,
+            shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.IR),
+        )
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",
@@ -71,22 +90,24 @@ class Retirement(Elaboratable):
 
         m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
-        m_csr = self.dependency_manager.get_dependency(CSRInstancesKey()).m_mode
+        csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
+        m_csr = csr_instances.m_mode
+        s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
         m.submodules.instret_csr = self.instret_csr
 
-        def free_phys_reg(rp_dst: Value):
+        def free_phys_reg(i: int, rp_dst: Value):
             # mark reg in Register File as free
-            self.rf_free(m, rp_dst)
+            self.rf_free[i](m, rp_dst)
             # put to Free RF list
             with m.If(rp_dst):  # don't put rp0 to free list - reserved to no-return instructions
-                self.free_rf_put(m, rp_dst)
+                self.free_rf_put[i](m, rp_dst)
 
         def retire_instr(rob_entry):
             # set rl_dst -> rp_dst in R-RAT
-            rat_out = self.r_rat_commit(m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
+            rat_out = self.r_rat_commit[0](m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rob_entry.rob_data.rp_dst)
 
             # free old rp_dst from overwritten R-RAT mapping
-            free_phys_reg(rat_out.old_rp_dst)
+            free_phys_reg(0, rat_out.old_rp_dst)
 
             log.debug(
                 m,
@@ -100,17 +121,17 @@ class Retirement(Elaboratable):
             self.instret_csr.increment(m)
             self.perf_instr_ret.incr(m)
 
-        def flush_instr(rob_entry):
+        def flush_instr(i: int, rob_entry: View):
             # we will copy full R-RAT mapping to C-RAT (F-RAT) in single cycle after last instruction is flushed
             # FUTURE-TODO: restore in single cycle with bitmask from RAT
-            free_phys_reg(rob_entry.rob_data.rp_dst)
+            free_phys_reg(i, rob_entry.rob_data.rp_dst)
 
             log.debug(m, True, "hard flushing instruction rp{}", rob_entry.rob_data.rp_dst)
 
         def retire_inactive_instr(rob_entry):
             # F-RAT entry was already rolled back
             # free the "new" instruction rp_dst - result is flushed
-            free_phys_reg(rob_entry.rob_data.rp_dst)
+            free_phys_reg(0, rob_entry.rob_data.rp_dst)
 
             log.debug(m, True, "retiring rolled-back instruction, freeing rp{}", rob_entry.rob_data.rp_dst)
 
@@ -137,6 +158,7 @@ class Retirement(Elaboratable):
             )
 
         core_flushing = Signal()
+        trap_target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
 
         with m.FSM("NORMAL"):
             with m.State("NORMAL"):
@@ -149,7 +171,7 @@ class Retirement(Elaboratable):
                         m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
                         self.checkpoint_tag_free(m)
 
-                    core_empty = self.instr_decrement(m)
+                    core_empty = self.instr_decrement(m, count=1)
 
                     commit = Signal()
 
@@ -182,11 +204,23 @@ class Retirement(Elaboratable):
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
                         with m.If(arch_trap):
-                            # Register RISC-V architectural trap in CSRs
-                            m_csr.mcause.write(m, cause_entry)
-                            m_csr.mepc.write(m, cause_register.pc)
-                            m_csr.mtval.write(m, cause_register.mtval)
-                            self.trap_entry(m)
+                            # Register RISC-V architectural trap in CSRs.
+                            target_priv = self.trap_entry(m, cause=cause_entry).target_priv
+
+                            def set_trap_csrs(cause_reg, epc_reg, tval_reg):
+                                cause_reg.write(m, cause_entry)
+                                epc_reg.write(m, cause_register.pc)
+                                tval_reg.write(m, cause_register.mtval)
+
+                            with m.Switch(target_priv):
+                                if self.gen_params.supervisor_mode:
+                                    with m.Case(PrivilegeLevel.SUPERVISOR):
+                                        assert s_csr is not None
+                                        set_trap_csrs(s_csr.scause, s_csr.sepc, s_csr.stval)
+                                with m.Case(PrivilegeLevel.MACHINE):
+                                    set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
+
+                            m.d.sync += trap_target_priv.eq(target_priv)
 
                         # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):
@@ -206,7 +240,7 @@ class Retirement(Elaboratable):
                             with m.Else():
                                 retire_inactive_instr(rob_entry)
                         with cond():  # (Blocking if branch is not ready) , will not trigger on inactive instructions
-                            flush_instr(rob_entry)
+                            flush_instr(0, rob_entry)
 
                             m.d.comb += core_flushing.eq(1)
 
@@ -216,16 +250,29 @@ class Retirement(Elaboratable):
                 with Transaction().body(m):
                     # Flush entire core
                     rob_entries = self.rob_peek(m)
-                    rob_entry = rob_entries.entries[0]
-                    self.rob_retire(m, count=1)
 
-                    with m.If(rob_entry.rob_data.tag_increment):
+                    count = Signal(range(self.gen_params.retirement_superscalarity + 1))
+                    tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
+                    safe_mask = Signal.like(tag_incr_mask)
+                    # CRAT can currently deallocate at most one tag per cycle, this logic reduces the flush rate
+                    # TODO: improve
+                    m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
+                    m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
+                    m.d.av_comb += count.eq(count_trailing_zeros(safe_mask))
+
+                    self.rob_retire(m, count=count)
+
+                    with m.If(count):
                         m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
+
+                    with m.If((tag_incr_mask & ~(-1 << count)).any()):
                         self.checkpoint_tag_free(m)
 
-                    core_empty = self.instr_decrement(m)
+                    core_empty = self.instr_decrement(m, count=count)
 
-                    flush_instr(rob_entry)
+                    for i in range(self.gen_params.retirement_superscalarity):
+                        with m.If(i < count):
+                            flush_instr(i, rob_entries.entries[i])
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
@@ -244,18 +291,33 @@ class Retirement(Elaboratable):
                     log.debug(m, True, "crat restored, resuming core")
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
-                    mtvec_offset = Signal(self.gen_params.isa.xlen)
-                    mtvec_base = m_csr.mtvec_base.read(m).data
-                    mtvec_mode = m_csr.mtvec_mode.read(m).data
-                    mcause = m_csr.mcause.read(m).data
+                    tvec_offset = Signal(self.gen_params.isa.xlen)
+                    tvec_base = Signal(self.gen_params.isa.xlen)
+                    tvec_mode = Signal(TrapVectorMode)
+                    tcause = Signal(self.gen_params.isa.xlen)
+
+                    def set_vals(reg_base, reg_mode, reg_cause):
+                        m.d.av_comb += [
+                            tvec_base.eq(reg_base.read(m).data),
+                            tvec_mode.eq(reg_mode.read(m).data),
+                            tcause.eq(reg_cause.read(m).data),
+                        ]
+
+                    with m.Switch(trap_target_priv):
+                        if self.gen_params.supervisor_mode:
+                            with m.Case(PrivilegeLevel.SUPERVISOR):
+                                assert s_csr is not None
+                                set_vals(s_csr.stvec_base, s_csr.stvec_mode, s_csr.scause)
+                        with m.Case(PrivilegeLevel.MACHINE):
+                            set_vals(m_csr.mtvec_base, m_csr.mtvec_mode, m_csr.mcause)
 
                     # When mode is Vectored, interrupts set pc to base + 4 * cause_number
-                    with m.If(mcause[-1] & (mtvec_mode == TrapVectorMode.VECTORED)):
-                        m.d.av_comb += mtvec_offset.eq(mcause << 2)
+                    with m.If(tcause[-1] & (tvec_mode == TrapVectorMode.VECTORED)):
+                        m.d.av_comb += tvec_offset.eq(tcause << 2)
 
-                    # (mtvec_base stores base[MXLEN-1:2])
-                    m.d.av_comb += handler_pc.eq((mtvec_base << 2) + mtvec_offset)
-                    self.fetch_resume_from_core_flush(m, pc=handler_pc)
+                    # (xtvec_base stores base[MXLEN-1:2])
+                    m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
+                    self.fetch_continue(m, pc=handler_pc)
 
                     # Release pending trap state and the fetch lock
                     self.exception_cause_clear(m)

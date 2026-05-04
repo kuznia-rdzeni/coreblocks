@@ -49,10 +49,12 @@ class CheckpointRAT(Elaboratable):
         to be provided from previous stage.
         It manages allocating new tags, scheduler flushing, information for unlocking FRAT
         and stalling the pipeline in case FRAT is not yet restored.
-    rename: Method
+    commit_checkpoint: Method
+        Method responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
+        Should be called in the same cycle as the rename methods.
+    rename: Methods
         Rename stage of CheckpointRAT. Works like FRAT rename.
         Renames source registers and updates destination register mapping on valid tagged instructions.
-        It is responsible for saving checkpoints after instruction (with commit_checkpoint flag) rename.
     flush_restore: Method
         Subset of `rename`. Used for restoring RAT state from Retirement on hard flushes.
         Blocks until restores are safe to be made. `rollback` must not be called after first restore.
@@ -72,7 +74,8 @@ class CheckpointRAT(Elaboratable):
 
         layouts = gen_params.get(RATLayouts)
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
-        self.rename = Method(i=layouts.crat_rename_in, o=layouts.crat_rename_out)
+        self.commit_checkpoint = Method(i=layouts.crat_commit_checkpoint_in)
+        self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
         self.flush_restore = Method(i=layouts.crat_flush_restore)
 
         self.rollback = Method(i=layouts.rollback_in)
@@ -167,11 +170,13 @@ class CheckpointRAT(Elaboratable):
         # --------------------------------------
 
         create_checkpoint_pipe = Pipe([("checkpoint", range(self.gen_params.checkpoint_count))])
+        tag_valid = Signal()
+        group_tag = Signal(self.gen_params.tag_bits)
 
-        @def_method(m, self.rename)
-        def _(rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value, tag: Value, commit_checkpoint: Value):
+        @def_method(m, self.commit_checkpoint)
+        def _(tag: Value, commit_checkpoint: Value):
+            m.d.av_comb += group_tag.eq(tag)
             # don't overwrite freshly restored FRAT with flushed inactive instructions
-            tag_valid = Signal()
             m.d.av_comb += tag_valid.eq(~frat_lock | (tag == frat_unlock_tag))
             with m.If(tag_valid):
                 m.d.sync += frat_lock.eq(0)
@@ -187,23 +192,49 @@ class CheckpointRAT(Elaboratable):
                     # Future optimization: If no change happened in FRAT, then checkpoint
                     # could be shared with multiple tags (useful for branch chains)
 
-            with m.If(tag_valid & (rl_dst != 0)):
-                m.d.sync += self.frat[rl_dst].eq(rp_dst)
-                log.debug(m, True, "frat write for rl {} -> rp {}", rl_dst, rp_dst)
+        active_renames = Signal(
+            ArrayLayout(
+                self.gen_params.get(RATLayouts).active_rename_layout,
+                max(self.gen_params.frontend_superscalarity, self.gen_params.retirement_superscalarity),
+            )
+        )
 
+        def frat_get(k: int, rl: Value):
+            rp = Signal(self.gen_params.phys_regs_bits)
+            m.d.av_comb += rp.eq(self.frat[rl])
+            for i in range(k):
+                with m.If(active_renames[i].valid & (active_renames[i].rl_dst == rl)):
+                    m.d.av_comb += rp.eq(active_renames[i].rp_dst)
+            return rp
+
+        @def_methods(m, self.rename)
+        def _(k: int, rp_dst: Value, rl_dst: Value, rl_s1: Value, rl_s2: Value):
+            log.assertion(m, self.commit_checkpoint.run, "commit_checkpoint must run simultaneously with rename")
+
+            with m.If(tag_valid & (rl_dst != 0)):
+                m.d.comb += active_renames[k].valid.eq(1)
+                m.d.comb += active_renames[k].rl_dst.eq(rl_dst)
+                m.d.comb += active_renames[k].rp_dst.eq(rp_dst)
+                log.debug(m, True, "frat write {} for rl {} -> rp {}", k, rl_dst, rp_dst)
+
+            rp_s1 = Signal(self.gen_params.phys_regs_bits)
+            rp_s2 = Signal(self.gen_params.phys_regs_bits)
+            m.d.av_comb += rp_s1.eq(frat_get(k, rl_s1))
+            m.d.av_comb += rp_s2.eq(frat_get(k, rl_s2))
             log.debug(
                 m,
                 True,
-                "frat rename r_s1: {} -> {} r_s2 {} -> {} tag 0x{:x} [{}] ({})",
+                "frat rename {} r_s1: {} -> {} r_s2 {} -> {} tag 0x{:x} [{}] ({})",
+                k,
                 rl_s1,
-                self.frat[rl_s1],
+                rp_s1,
                 rl_s2,
-                self.frat[rl_s2],
-                tag,
+                rp_s2,
+                group_tag,
                 frat_unlock_tag,
                 tag_valid,
             )
-            return {"rp_s1": self.frat[rl_s1], "rp_s2": self.frat[rl_s2]}
+            return {"rp_s1": rp_s1, "rp_s2": rp_s2}
 
         with Transaction().body(m):
             checkpoint = create_checkpoint_pipe.read(m).checkpoint
@@ -215,7 +246,12 @@ class CheckpointRAT(Elaboratable):
         def _(entries: Value):
             m.d.sync += self.frat.eq(entries)
 
-        self.flush_restore.add_conflict(self.rename, Priority.RIGHT)
+        for k in range(len(active_renames)):
+            with m.If(active_renames[k].valid):
+                m.d.sync += self.frat[active_renames[k].rl_dst].eq(active_renames[k].rp_dst)
+
+        for i in range(self.gen_params.frontend_superscalarity):
+            self.flush_restore.add_conflict(self.rename[i], Priority.RIGHT)
         self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
         # -------------------------------------------
@@ -291,7 +327,11 @@ class CheckpointRAT(Elaboratable):
 
             m.d.sync += last_issued_tag.eq(out_tag)
 
-            return {"tag": out_tag, "tag_increment": tag_increment_allocate, "commit_checkpoint": out_commit_checkpoint}
+            return {
+                "tag": out_tag,
+                "tag_increment": tag_increment_allocate,
+                "commit_checkpoint": out_commit_checkpoint,
+            }
 
         # --------------------------------------------
         # Rollback RAT restore memory access pipeline

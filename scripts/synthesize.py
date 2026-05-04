@@ -4,6 +4,7 @@ from collections.abc import Callable
 import os
 import sys
 import argparse
+from importlib.machinery import SourceFileLoader
 
 from amaranth.build import Platform
 from amaranth.build.res import PortGroup
@@ -39,13 +40,8 @@ from constants.ecp5_platforms import (
     make_ecp5_platform,
 )
 
-from coreblocks.params.configurations import *
-
-str_to_coreconfig: dict[str, CoreConfiguration] = {
-    "basic": basic_core_config,
-    "tiny": tiny_core_config,
-    "full": full_core_config,
-}
+from coreblocks.params.core_configuration import CoreConfiguration
+from coreblocks.params import configurations
 
 
 class InterfaceConnector(Elaboratable):
@@ -139,6 +135,7 @@ core_units = {
     "alu_full": unit_fu(ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True)),
     "mul_shift": unit_fu(MulComponent(MulType.SHIFT_MUL)),
     "mul_sequence": unit_fu(MulComponent(MulType.SEQUENCE_MUL)),
+    "mul_pipelined": unit_fu(MulComponent(MulType.PIPELINED_MUL)),
     "mul_recursive": unit_fu(MulComponent(MulType.RECURSIVE_MUL)),
     "div": unit_fu(DivComponent()),
     "shift_basic": unit_fu(ShiftUnitComponent(zbb_enable=False)),
@@ -178,9 +175,19 @@ def main():
     parser.add_argument(
         "-c",
         "--config",
+        action="store",
         default="basic",
         help="Select core configuration. "
-        + f"Available configurations: {', '.join(str_to_coreconfig.keys())}. Default: %(default)s",
+        + f"Available configurations: {', '.join(configurations.__all__)}. Default: %(default)s",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--configfile",
+        action="store",
+        default=None,
+        help="Select custom config file for core configuration. "
+        + "File should contain CoreConfiguration instances as global variables",
     )
 
     parser.add_argument(
@@ -211,13 +218,17 @@ def main():
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
-    if args.config not in str_to_coreconfig:
+    configfile = SourceFileLoader("configfile", args.configfile).load_module() if args.configfile else configurations
+
+    if args.config not in dir(configfile):
         raise KeyError(f"Unknown config '{args.config}'")
+
+    config = getattr(configfile, args.config)
+    assert isinstance(config, CoreConfiguration)
 
     if args.unit not in core_units:
         raise KeyError(f"Unknown core unit '{args.unit}'")
 
-    config = str_to_coreconfig[args.config]
     if args.strip_debug:
         config = config.replace(debug_signals=False)
 

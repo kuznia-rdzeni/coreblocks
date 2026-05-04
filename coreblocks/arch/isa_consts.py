@@ -1,3 +1,6 @@
+from collections.abc import Set
+from amaranth import Value
+from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag
 
 __all__ = [
@@ -13,6 +16,10 @@ __all__ = [
     "PrivilegeLevel",
     "InterruptCauseNumber",
     "XlenEncoding",
+    "PMPAFlagEncoding",
+    "PMPCfgLayout",
+    "PAGE_SIZE",
+    "PAGE_SIZE_LOG",
 ]
 
 
@@ -51,9 +58,9 @@ class Funct3(IntEnum, shape=3):
     JALR = BEQ = B = ADD = SUB = FENCE = PRIV = MUL = MULW = _EINSTRACCESSFAULT = 0b000
     BNE = H = SLL = FENCEI = CSRRW = MULH = BCLR = BINV = BSET = CLZ = CPOP = CTZ = ROL \
             = SEXTB = SEXTH = CLMUL = _EILLEGALINSTR = 0b001  # fmt: skip
-    W = SLT = CSRRS = MULHSU = SH1ADD = CLMULR = _EBREAKPOINT = 0b010
+    W = SLT = CSRRS = MULHSU = SH1ADD = XPERM4 = CLMULR = _EBREAKPOINT = 0b010
     D = SLTU = CSRRC = MULHU = CLMULH = _EINSTRPAGEFAULT = 0b011
-    BLT = BU = XOR = DIV = DIVW = SH2ADD = MIN = XNOR = ZEXTH = 0b100
+    BLT = BU = XOR = DIV = DIVW = SH2ADD = XPERM8 = MIN = XNOR = ZEXTH = 0b100
     BGE = HU = SR = CSRRWI = DIVU = DIVUW = BEXT = ORCB = REV8 = ROR = MINU = CZEROEQZ = 0b101
     BLTU = OR = CSRRSI = REM = REMW = SH3ADD = MAX = ORN = 0b110
     BGEU = AND = CSRRCI = REMU = REMUW = ANDN = MAXU = CZERONEZ = 0b111
@@ -69,7 +76,7 @@ class Funct7(IntEnum, shape=7):
     SFENCEVMA = 0b0001001
     SC = 0b0001100
     SH1ADD = SH2ADD = SH3ADD = AMOXOR = 0b0010000
-    BSET = ORCB = 0b0010100
+    BSET = ORCB = XPERM = 0b0010100
     SA = SUB = ANDN = ORN = XNOR = AMOOR = 0b0100000
     BCLR = BEXT = 0b0100100
     ROL = ROR = SEXTB = SEXTH = CPOP = CLZ = CTZ = AMOAND = 0b0110000
@@ -164,6 +171,18 @@ class ExceptionCause(IntEnum, shape=5):
     STORE_PAGE_FAULT = 15
     _COREBLOCKS_ASYNC_INTERRUPT = 24
 
+    @classmethod
+    def smode_delegable_mask(cls, xlen: int) -> int:
+        mask = 0
+        for cause in cls:
+            if cause.name.startswith("_"):
+                continue
+            if cause == cls.ENVIRONMENT_CALL_FROM_M:
+                continue
+            mask |= 1 << cause.value
+
+        return mask
+
 
 @unique
 class PrivilegeLevel(IntEnum, shape=2):
@@ -193,3 +212,79 @@ class XlenEncoding(IntEnum, shape=2):
     W32 = 1
     W64 = 2
     W128 = 3
+
+
+@unique
+class PMPAFlagEncoding(IntEnum, shape=2):
+    OFF = 0
+    TOR = 1
+    NA4 = 2
+    NAPOT = 3
+
+
+@unique
+class SatpMode(IntEnum, shape=4):
+    BARE = 0
+    SV32 = 1
+    SV39 = 8
+    SV48 = 9
+    SV57 = 10
+    SV64 = 11
+
+    @classmethod
+    def valid_modes(cls, xlen: int) -> Set["SatpMode"]:
+        match xlen:
+            case 32:
+                return frozenset({cls.BARE, cls.SV32})
+            case 64:
+                return frozenset({cls.BARE, cls.SV39, cls.SV48, cls.SV57, cls.SV64})
+            case _:
+                raise ValueError(f"Unsupported XLEN for SATP mode encoding: {xlen}")
+
+    @classmethod
+    def mode_dependencies(cls, mode: "SatpMode") -> Set["SatpMode"]:
+        match mode:
+            case cls.BARE | cls.SV32 | cls.SV39:
+                return frozenset()
+            case cls.SV48:
+                return frozenset({cls.SV39})
+            case cls.SV57:
+                return frozenset({cls.SV48})
+            case _:
+                raise ValueError(f"Unsupported SATP mode: {mode}")
+
+
+class SatpLayout(StructLayout):
+    ppn: Value
+    asid: Value
+    mode: Value
+
+    def __init__(self, xlen: int):
+        match xlen:
+            case 32:
+                super().__init__(
+                    {
+                        "ppn": 22,
+                        "asid": 9,
+                        "mode": 1,
+                    }
+                )
+            case 64:
+                super().__init__(
+                    {
+                        "ppn": 44,
+                        "asid": 16,
+                        "mode": 4,
+                    }
+                )
+            case _:
+                raise ValueError(f"Unsupported XLEN for SATP layout: {xlen}")
+
+
+class PMPCfgLayout(StructLayout):
+    def __init__(self):
+        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
+
+
+PAGE_SIZE_LOG = 12
+PAGE_SIZE = 1 << PAGE_SIZE_LOG

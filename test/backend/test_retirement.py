@@ -4,7 +4,7 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.lib import FIFO, Adapter
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -31,13 +31,13 @@ class RetirementTestCircuit(Elaboratable):
 
         self.retirement.r_rat_commit.provide(self.rat.commit)
         self.retirement.r_rat_peek.provide(self.rat.peek)
-        self.retirement.free_rf_put.provide(self.free_rf.write)
+        self.retirement.free_rf_put[0].provide(self.free_rf.write)
 
         m.submodules.mock_rob_peek = self.mock_rob_peek = TestbenchIO(
             Adapter.create(self.retirement.rob_peek, nonexclusive=True)
         )
         m.submodules.mock_rob_retire = self.mock_rob_retire = TestbenchIO(Adapter.create(self.retirement.rob_retire))
-        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(self.retirement.rf_free))
+        m.submodules.mock_rf_free = self.mock_rf_free = TestbenchIO(Adapter.create(self.retirement.rf_free[0]))
         m.submodules.mock_exception_cause = self.mock_exception_cause = TestbenchIO(
             Adapter.create(self.retirement.exception_cause_get, nonexclusive=True)
         )
@@ -62,7 +62,7 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(self.retirement.checkpoint_get_active_tags)
         )
         m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
-            Adapter.create(self.retirement.c_rat_restore)
+            Adapter.create(self.retirement.c_rat_restore[0])
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))
@@ -74,9 +74,10 @@ class RetirementTestCircuit(Elaboratable):
 
 
 # TODO: write a proper retirement test
+# TODO: test superscalar retirement, too
 class TestRetirement(TestCaseWithSimulator):
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.rf_exp_q = deque()
         self.rat_map_q = deque()
         self.submit_q = deque()
@@ -157,12 +158,12 @@ class TestRetirement(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_instr_decrement)
-    def instr_decrement_process(self):
+    def instr_decrement_process(self, count):
         return {"empty": 0}
 
     @def_method_mock(lambda self: self.retc.mock_trap_entry)
-    def mock_trap_entry_process(self):
-        pass
+    def mock_trap_entry_process(self, cause):
+        return {"target_priv": PrivilegeLevel.MACHINE}
 
     @def_method_mock(lambda self: self.retc.mock_fetch_continue)
     def mock_fetch_continue_process(self, pc):

@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from transactron import Method, def_method, TModule
+from transactron import Methods, def_methods, TModule
 from coreblocks.interface.layouts import RATLayouts
 from coreblocks.params import GenParams
 
@@ -15,13 +15,15 @@ class RRAT(Elaboratable):
         self.entries = Signal(storage_layout, init=[0 for _ in range(gen_params.isa.reg_cnt)])
 
         layouts = gen_params.get(RATLayouts)
-        self.commit = Method(i=layouts.rrat_commit_in, o=layouts.rrat_commit_out)
+        self.commit = Methods(
+            self.gen_params.retirement_superscalarity, i=layouts.rrat_commit_in, o=layouts.rrat_commit_out
+        )
 
     def elaborate(self, platform):
         m = TModule()
 
-        @def_method(m, self.commit)
-        def _(rp_dst: Value, rl_dst: Value):
+        @def_methods(m, self.commit)
+        def _(i: int, rp_dst: Value, rl_dst: Value):
             with m.If(rl_dst != 0):
                 m.d.sync += self.entries[rl_dst].eq(rp_dst)
             return {"old_rp_dst": self.entries[rl_dst]}

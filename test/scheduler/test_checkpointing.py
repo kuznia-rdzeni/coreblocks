@@ -5,30 +5,29 @@ from collections import deque
 from enum import Enum
 
 from coreblocks.arch import OpType
-from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.testing import CallTrigger, MethodMock, TestCaseWithSimulator, def_method_mock
 
-from test.scheduler.test_scheduler import SchedulerTestCircuit
+from test.scheduler.test_scheduler import SchedulerTestCircuit, MockedBlockComponent
 
 
 class TestSchedulerCheckpointing(TestCaseWithSimulator):
     @pytest.mark.parametrize("tag_bits, checkpoint_count", [(2, 3), (5, 8)])
     def test_randomized(self, tag_bits: int, checkpoint_count: int):
         gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 func_units_config=(
-                    RSBlockComponent([], rs_entries=4, rs_number=0),
-                    RSBlockComponent([], rs_entries=4, rs_number=1),
+                    MockedBlockComponent({OpType.ARITHMETIC}, rs_entries=4),
+                    MockedBlockComponent({OpType.BRANCH}, rs_entries=4),
                 ),
                 tag_bits=tag_bits,
                 checkpoint_count=checkpoint_count,
+                allow_partial_extensions=True,
             )
         )
 
-        rs = [{OpType.ARITHMETIC}, {OpType.BRANCH}]
-        dut = SchedulerTestCircuit(gen_params, rs)
+        dut = SchedulerTestCircuit(gen_params)
 
         branch_in_flight = set()
 
@@ -116,7 +115,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
             nonlocal end
             for _ in range(instr_cnt):
                 data = get_instr()
-                await dut.instr_inp.call(sim, data)
+                await dut.instr_inp.call(sim, count=1, data=[data])
                 await self.random_wait_geom(sim, 0.5)
             end = True
 
@@ -125,7 +124,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
         async def free_rf_process(sim):
             free_rp_inp = 1
             while True:
-                await dut.free_rf_inp.call(sim, {"reg_id": free_rp_inp})
+                await dut.free_rf_inp.call(sim, {"ident": free_rp_inp})
                 free_rp_inp += 1
                 if free_rp_inp == gen_params.phys_regs:
                     free_rp_inp = 1

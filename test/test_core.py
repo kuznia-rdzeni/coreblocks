@@ -13,7 +13,8 @@ from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.core import Core
 from coreblocks.params import GenParams
 from coreblocks.params.instr import *
-from coreblocks.params.configurations import *
+from coreblocks.params import configurations
+from coreblocks.params.core_configuration import CoreConfiguration
 from coreblocks.peripherals.wishbone import WishboneMemorySlave
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS
 from coreblocks.socks.socks import Socks
@@ -143,17 +144,20 @@ class TestCoreAsmSourceBase(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 600, {2: 2971215073}, basic_core_config),
-        ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, basic_core_config),
-        ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, tiny_core_config),
-        ("csr", "csr.asm", 200, {1: 1, 2: 4}, full_core_config),
-        ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, full_core_config),
-        ("exception", "exception.asm", 200, {1: 1, 2: 2}, basic_core_config),
-        ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, basic_core_config),
-        ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, full_core_config),
-        ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
-        ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
-        ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, basic_core_config),
+        ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, configurations.basic),
+        ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, configurations.basic),
+        ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, configurations.tiny),
+        ("csr", "csr.asm", 200, {1: 1, 2: 4}, configurations.full),
+        ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, configurations.full),
+        ("exception", "exception.asm", 200, {1: 1, 2: 2}, configurations.basic),
+        ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, configurations.basic),
+        ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, configurations.full),
+        ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, configurations.full),
+        ("mtval", "mtval.asm", 2000, {8: 5 * 8}, configurations.full),
+        ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, configurations.basic),
+        ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, configurations.full),
+        ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, configurations.full),
+        ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, configurations.full),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
@@ -228,7 +232,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
     reg_init_mem_offset: int = 0x100
 
     def setup_method(self):
-        self.configuration = full_core_config.replace(
+        self.configuration = configurations.full.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
         )
         self.gen_params = GenParams(self.configuration)
@@ -316,7 +320,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 @parameterized_class(
     ("source_file", "cycle_count", "expected_regvals", "always_mmode"),
     [
-        ("user_mode.asm", 1100, {4: 5}, False),
+        ("user_mode.asm", 1800, {4: 6}, False),
         ("wfi_no_mie.asm", 250, {8: 8}, True),  # only using level enable
     ],
 )
@@ -327,7 +331,7 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
     always_mmode: bool
 
     def setup_method(self):
-        self.configuration = full_core_config.replace(
+        self.configuration = configurations.full.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
         )
         self.gen_params = GenParams(self.configuration)
@@ -375,3 +379,58 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.run_with_interrupt_process)
+
+
+class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
+    source_file: str = "smode_interrupt.asm"
+    cycle_count: int = 600
+    expected_regvals: dict[int, int] = {5: 1, 7: 1, 8: 0x80000011, 31: 0xDE}
+
+    def setup_method(self):
+        self.configuration = configurations.full.replace(
+            _generate_test_hardware=True,
+            interrupt_custom_count=2,
+            interrupt_custom_edge_trig_mask=0b01,
+        )
+        self.gen_params = GenParams(self.configuration)
+
+    async def run_with_smode_interrupt_process(self, sim: TestbenchContext):
+        ticks = DependencyContext.get().get_dependency(TicksKey())
+
+        # Wait until software transitions into supervisor mode and enables delegated interrupt source.
+        for _ in range(self.cycle_count):
+            if sim.get(self.m.core.csr_instances.m_mode.priv_mode.value) == PrivilegeLevel.SUPERVISOR:
+                break
+            await sim.tick()
+        else:
+            assert False, "Timed out waiting to enter supervisor mode"
+
+        for _ in range(self.cycle_count):
+            if sim.get(self.m.core.interrupt_controller.sie.value) != 0:
+                break
+            await sim.tick()
+        else:
+            assert False, "Timed out waiting for delegated supervisor interrupt enable"
+
+        sim.set(self.m.interrupt_level, 1)
+
+        # Keep the level interrupt asserted until a single handler entry is observed.
+        while self.get_arch_reg_val(sim, 7) == 0:
+            await sim.tick()
+            if sim.get(ticks) > self.cycle_count:
+                assert False, "Timed out waiting for delegated S-mode interrupt"
+
+        sim.set(self.m.interrupt_level, 0)
+
+        while sim.get(ticks) < self.cycle_count:
+            await sim.tick()
+
+        for reg_id, val in self.expected_regvals.items():
+            assert self.get_arch_reg_val(sim, reg_id) == val
+
+    def test_smode_delegated_interrupt(self):
+        bin_src = self.prepare_source(self.source_file)
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(self.run_with_smode_interrupt_process)

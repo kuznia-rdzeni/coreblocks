@@ -6,7 +6,7 @@ from amaranth_types import ValueLike
 from coreblocks.frontend.decoder.rvc import InstrDecompress
 from coreblocks.arch import *
 from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
@@ -278,7 +278,7 @@ class TestInstrDecompress(TestCaseWithSimulator):
 
     def test(self):
         self.gen_params = GenParams(
-            test_core_config.replace(compressed=True, xlen=self.isa_xlen, fetch_block_bytes_log=3)
+            configurations.test.replace(compressed=True, xlen=self.isa_xlen, fetch_block_bytes_log=3)
         )
         self.m = InstrDecompress(self.gen_params)
 
@@ -291,6 +291,98 @@ class TestInstrDecompress(TestCaseWithSimulator):
 
                 if expected == illegal:
                     expected = instr_in  # for exception handling
+
+                assert sim.get(self.m.instr_out) == expected
+                await sim.tick()
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(process)
+
+
+ZCB_COMMON_TESTS = [
+    # c.lbu x13, 3(x11)
+    (0x81F4, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X13, funct3=Funct3.BU, rs1=Registers.X11, imm=3)),
+    # c.lhu x13, 2(x11)
+    (0x85B4, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X13, funct3=Funct3.HU, rs1=Registers.X11, imm=2)),
+    # c.lh x13, 2(x11)
+    (0x85F4, ITypeInstr(opcode=Opcode.LOAD, rd=Registers.X13, funct3=Funct3.H, rs1=Registers.X11, imm=2)),
+    # c.sb x13, 3(x11)
+    (0x89F4, STypeInstr(opcode=Opcode.STORE, imm=3, funct3=Funct3.B, rs1=Registers.X11, rs2=Registers.X13)),
+    # c.sh x13, 2(x11)
+    (0x8DB4, STypeInstr(opcode=Opcode.STORE, imm=2, funct3=Funct3.H, rs1=Registers.X11, rs2=Registers.X13)),
+    # c.zext.b x13
+    (0x9EE1, ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.AND, rs1=Registers.X13, imm=0xFF)),
+    # c.not x13
+    (0x9EF5, ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.XOR, rs1=Registers.X13, imm=-1)),
+    # c.sext.b x13
+    (
+        0x9EE5,
+        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.SEXTB, rs1=Registers.X13, imm=Funct12.SEXTB),
+    ),
+    # c.zext.h x13
+    (
+        0x9EE9,
+        RTypeInstr(
+            opcode=Opcode.OP,
+            rd=Registers.X13,
+            funct3=Funct3.ZEXTH,
+            rs1=Registers.X13,
+            rs2=Registers.ZERO,
+            funct7=Funct7.ZEXTH,
+        ),
+    ),
+    # c.sext.h x13
+    (
+        0x9EED,
+        ITypeInstr(opcode=Opcode.OP_IMM, rd=Registers.X13, funct3=Funct3.SEXTH, rs1=Registers.X13, imm=Funct12.SEXTH),
+    ),
+    # c.mul x13, x11
+    (
+        0x9ECD,
+        RTypeInstr(
+            opcode=Opcode.OP,
+            rd=Registers.X13,
+            funct3=Funct3.MUL,
+            rs1=Registers.X13,
+            rs2=Registers.X11,
+            funct7=Funct7.MULDIV,
+        ),
+    ),
+]
+
+ZCB_RV64_ONLY_TESTS = [
+    # c.zext.w x13 (left illegal until add.uw is supported)
+    (0x9EF1, IllegalInstr()),
+]
+
+
+@parameterized_class(
+    ("name", "isa_xlen", "test_cases"),
+    [("rv32imc_zcb_zbb", 32, ZCB_COMMON_TESTS), ("rv64imc_zcb_zbb", 64, ZCB_COMMON_TESTS + ZCB_RV64_ONLY_TESTS)],
+)
+class TestInstrDecompressZcb(TestCaseWithSimulator):
+    isa_xlen: int
+    test_cases: list[tuple[int, ValueLike]]
+
+    def test(self):
+        self.gen_params = GenParams(
+            configurations.test.replace(
+                xlen=self.isa_xlen,
+                fetch_block_bytes_log=3,
+                _implied_extensions=Extension.I | Extension.ZCA | Extension.ZCB | Extension.ZBB | Extension.M,
+            )
+        )
+        self.m = InstrDecompress(self.gen_params)
+
+        async def process(sim: TestbenchContext):
+            illegal = Const.cast(IllegalInstr()).value
+
+            for instr_in, instr_out in self.test_cases:
+                sim.set(self.m.instr_in, instr_in)
+                expected = Const.cast(instr_out).value
+
+                if expected == illegal:
+                    expected = instr_in
 
                 assert sim.get(self.m.instr_out) == expected
                 await sim.tick()

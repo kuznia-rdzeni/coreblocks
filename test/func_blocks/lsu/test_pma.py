@@ -4,9 +4,10 @@ from amaranth import *
 from transactron.lib import Adapter, AdapterTrans
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
@@ -17,7 +18,7 @@ from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 class TestPMADirect(TestCaseWithSimulator):
     async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for i in range(region.start, region.end + 1):
-            sim.set(self.test_module.addr, i)
+            sim.set(self.test_module.paddr, i)
             mmio = sim.get(self.test_module.result.mmio)
             assert mmio == region.mmio
 
@@ -34,7 +35,7 @@ class TestPMADirect(TestCaseWithSimulator):
             PMARegion(0x121, 0x130, False),
         ]
 
-        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.gen_params = GenParams(configurations.test.replace(pma=self.pma_regions))
         self.test_module = PMAChecker(self.gen_params)
 
         with self.run_simulation(self.test_module) as sim:
@@ -71,6 +72,9 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -121,7 +125,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
             PMARegion(0x10, 0x1F, False),
             PMARegion(0x20, 0x2F, True),
         ]
-        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.gen_params = GenParams(configurations.test.replace(pma=self.pma_regions))
         self.test_module = PMAIndirectTestCircuit(self.gen_params)
         self.precommit_enabled = False
 

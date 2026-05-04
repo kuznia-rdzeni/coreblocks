@@ -8,11 +8,11 @@ from transactron import *
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3, ExceptionCause
-from coreblocks.interface.layouts import FetchLayouts, FuncUnitLayouts
+from coreblocks.interface.layouts import FetchLayouts
 from transactron.utils import OneHotSwitch
 from coreblocks.interface.keys import ExceptionReportKey, CSRInstancesKey
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 from enum import IntFlag, auto
 
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
@@ -41,34 +41,29 @@ class ExceptionUnitFn(DecoderManager):
         ]
 
 
-class ExceptionFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, unit_fn=ExceptionUnitFn()):
-        self.gen_params = gen_params
-        self.fn = unit_fn
-
-        layouts = gen_params.get(FuncUnitLayouts)
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
+class ExceptionFuncUnit(FuncUnitBase[ExceptionUnitFn]):
+    def __init__(self, gen_params: GenParams, fn=ExceptionUnitFn()):
+        super().__init__(gen_params, fn)
 
         self.dm = DependencyContext.get()
         self.report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
-        m.submodules.decoder = decoder = self.fn.get_decoder(self.gen_params)
-
-        @def_method(m, self.issue)
+        @def_method(m, self.issue_decoded)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
-
             cause = Signal(ExceptionCause)
             mtval = Signal(self.gen_params.isa.xlen)
 
             priv_level = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode.read(m).data
 
-            with OneHotSwitch(m, decoder.decode_fn) as OneHotCase:
+            instr_exc_on_second_half = Signal()
+            m.d.av_comb += instr_exc_on_second_half.eq(
+                (arg.imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF).any()
+            )
+
+            with OneHotSwitch(m, arg.decode_fn) as OneHotCase:
                 with OneHotCase(ExceptionUnitFn.Fn.EBREAK):
                     m.d.av_comb += cause.eq(ExceptionCause.BREAKPOINT)
                     m.d.av_comb += mtval.eq(arg.pc)
@@ -76,6 +71,8 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     with m.Switch(priv_level):
                         with m.Case(PrivilegeLevel.MACHINE):
                             m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_M)
+                        with m.Case(PrivilegeLevel.SUPERVISOR):
+                            m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_S)
                         with m.Case(PrivilegeLevel.USER):
                             m.d.av_comb += cause.eq(ExceptionCause.ENVIRONMENT_CALL_FROM_U)
                     m.d.av_comb += mtval.eq(0)  # by SPEC
@@ -83,9 +80,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_ACCESS_FAULT)
                     # With C extension access fault can be only on the second half of instruction, and mepc != mtval.
                     # This information is passed in imm field
-                    m.d.av_comb += mtval.eq(
-                        arg.pc + ((arg.imm & FetchLayouts.AccessFaultFlag.ACCESS_FAULT_ON_SECOND_HALF).any() << 1)
-                    )
+                    m.d.av_comb += mtval.eq(arg.pc + (instr_exc_on_second_half << 1))
                 with OneHotCase(ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION):
                     m.d.av_comb += cause.eq(ExceptionCause.ILLEGAL_INSTRUCTION)
                     m.d.av_comb += mtval.eq(arg.imm)  # passed instruction bytes
@@ -94,7 +89,7 @@ class ExceptionFuncUnit(FuncUnit, Elaboratable):
                     m.d.av_comb += mtval.eq(arg.pc)
                 with OneHotCase(ExceptionUnitFn.Fn.INSTR_PAGE_FAULT):
                     m.d.av_comb += cause.eq(ExceptionCause.INSTRUCTION_PAGE_FAULT)
-                    m.d.av_comb += mtval.eq(arg.pc + (arg.imm[1] << 1))
+                    m.d.av_comb += mtval.eq(arg.pc + (instr_exc_on_second_half << 1))
 
             self.report(m, rob_id=arg.rob_id, cause=cause, pc=arg.pc, tag=arg.tag, mtval=mtval)
 

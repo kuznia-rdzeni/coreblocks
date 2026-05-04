@@ -1,110 +1,86 @@
 from collections import deque
 import random
-
-from amaranth import *
+import pytest
 
 from coreblocks.params import GenParams
-from coreblocks.interface.layouts import RFLayouts, RSLayouts, SchedulerLayouts
 from coreblocks.arch import Funct3, Funct7
 from coreblocks.arch import OpType
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.scheduler.scheduler import RSSelection
-from transactron.lib import FIFO, Adapter, AdapterTrans
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, TestbenchContext
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 from transactron.testing.method_mock import MethodMock, def_method_mock
+from .test_scheduler import MockedBlockComponent
 
 _rs1_optypes = {OpType.ARITHMETIC, OpType.COMPARE}
 _rs2_optypes = {OpType.LOGIC, OpType.COMPARE}
 
 
-class RSSelector(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-
-    def elaborate(self, platform):
-        m = Module()
-
-        rs_layouts = self.gen_params.get(RSLayouts, rs_entries=self.gen_params.max_rs_entries)
-        rf_layouts = self.gen_params.get(RFLayouts)
-        scheduler_layouts = self.gen_params.get(SchedulerLayouts)
-
-        # data structures
-        m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.rs_select_in, 2)
-        m.submodules.out_fifo = out_fifo = FIFO(scheduler_layouts.rs_select_out, 2)
-
-        # mocked input and output
-        m.submodules.instr_in = self.instr_in = TestbenchIO(AdapterTrans.create(instr_fifo.write))
-        m.submodules.instr_out = self.instr_out = TestbenchIO(AdapterTrans.create(out_fifo.read))
-        m.submodules.rs1_alloc = self.rs1_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
-        m.submodules.rs2_alloc = self.rs2_alloc = TestbenchIO(Adapter(o=rs_layouts.rs.select_out))
-        m.submodules.rf_read_req1 = self.rf_read_req1 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
-        m.submodules.rf_read_req2 = self.rf_read_req2 = TestbenchIO(Adapter(i=rf_layouts.rf_read_in))
-
-        # rs selector
-        m.submodules.selector = self.selector = RSSelection(
-            gen_params=self.gen_params,
-            get_instr=instr_fifo.read,
-            rs_select=[(self.rs1_alloc.adapter.iface, _rs1_optypes), (self.rs2_alloc.adapter.iface, _rs2_optypes)],
-            push_instr=out_fifo.write,
-            rf_read_req1=self.rf_read_req1.adapter.iface,
-            rf_read_req2=self.rf_read_req2.adapter.iface,
-        )
-
-        return m
-
-
 class TestRSSelect(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config)
-        self.m = RSSelector(self.gen_params)
+        self.gen_params = GenParams(
+            configurations.test.replace(
+                func_units_config=(MockedBlockComponent(_rs1_optypes, 4), MockedBlockComponent(_rs2_optypes, 4)),
+                allow_partial_extensions=True,
+            )
+        )
+        self.m = SimpleTestCircuit(RSSelection(gen_params=self.gen_params))
         self.expected_out: deque[dict] = deque()
+        self.input_instrs: deque[dict] = deque()
         self.instr_in: deque[dict] = deque()
         random.seed(1789)
 
-    def create_instr_input_process(self, instr_count: int, optypes: set[OpType], random_wait: int = 0):
-        async def process(sim: TestbenchContext):
-            for i in range(instr_count):
-                rp_dst = random.randrange(self.gen_params.phys_regs_bits)
-                rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
-                rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
+    def gen_instrs(self, instr_count: int, optypes: set[OpType]):
+        for i in range(instr_count):
+            rp_dst = random.randrange(self.gen_params.phys_regs_bits)
+            rp_s1 = random.randrange(self.gen_params.phys_regs_bits)
+            rp_s2 = random.randrange(self.gen_params.phys_regs_bits)
 
-                op_type = random.choice(list(optypes))
-                funct3 = random.choice(list(Funct3))
-                funct7 = random.choice(list(Funct7))
+            op_type = random.choice(list(optypes))
+            funct3 = random.choice(list(Funct3))
+            funct7 = random.choice(list(Funct7))
 
-                immediate = random.randrange(2**32)
+            immediate = random.randrange(2**32)
 
-                rob_id = random.randrange(self.gen_params.rob_entries_bits)
-                pc = random.randrange(2**32)
-                csr = random.randrange(2**self.gen_params.isa.csr_alen)
+            rob_id = random.randrange(self.gen_params.rob_entries_bits)
+            pc = random.randrange(2**32)
+            csr = random.randrange(2**self.gen_params.isa.csr_alen)
 
-                instr = {
-                    "exec_fn": {
-                        "op_type": op_type,
-                        "funct3": funct3,
-                        "funct7": funct7,
-                    },
-                    "regs_p": {
-                        "rp_dst": rp_dst,
-                        "rp_s1": rp_s1,
-                        "rp_s2": rp_s2,
-                    },
-                    "rob_id": rob_id,
-                    "imm": immediate,
-                    "csr": csr,
-                    "pc": pc,
-                    "tag": 0,
-                }
+            instr = {
+                "exec_fn": {
+                    "op_type": op_type,
+                    "funct3": funct3,
+                    "funct7": funct7,
+                },
+                "regs_p": {
+                    "rp_dst": rp_dst,
+                    "rp_s1": rp_s1,
+                    "rp_s2": rp_s2,
+                },
+                "rob_id": rob_id,
+                "imm": immediate,
+                "csr": csr,
+                "pc": pc,
+                "tag": 0,
+            }
 
-                self.instr_in.append(instr)
-                await self.m.instr_in.call(sim, instr)
-                await self.random_wait(sim, random_wait)
+            self.input_instrs.append(instr)
 
-        return process
+    def create_instr_input_process(self, enable_prob: float = 1.0):
+        @def_method_mock(lambda: self.m.get_instrs, enable=lambda: random.random() <= enable_prob)
+        def process(count: int):
+            @MethodMock.effect
+            def eff():
+                for _ in range(count):
+                    self.instr_in.append(self.input_instrs.popleft())
+
+            return {"count": count, "data": [self.input_instrs[0]]}
+
+        return process()
 
     def create_rs_alloc_process(self, io: TestbenchIO, rs_id: int, rs_optypes: set[OpType], enable_prob: float = 1):
-        @def_method_mock(lambda: io, enable=lambda: random.random() <= enable_prob)
+        @def_method_mock(lambda: io, enable=lambda: random.random() <= enable_prob, delay=1e-9)
         def process():
             random_entry = random.randrange(self.gen_params.max_rs_entries)
 
@@ -120,22 +96,30 @@ class TestRSSelect(TestCaseWithSimulator):
 
         return process()
 
-    @def_method_mock(lambda self: self.m.rf_read_req1)
+    @def_method_mock(lambda self: self.m.peek_instrs, enable=lambda self: bool(self.input_instrs))
+    def peek_instrs_mock(self):
+        return {"count": 1, "data": [self.input_instrs[0]]}
+
+    @def_method_mock(lambda self: self.m.rf_read_req[0])
     def rf_read_req1_mock(self, reg_id):
         pass
 
-    @def_method_mock(lambda self: self.m.rf_read_req2)
+    @def_method_mock(lambda self: self.m.rf_read_req[1])
     def rf_read_req2_mock(self, reg_id):
         pass
 
     def create_output_process(self, instr_count: int, random_wait: int = 0):
         async def process(sim: TestbenchContext):
             for _ in range(instr_count):
-                result = await self.m.instr_out.call(sim)
+                result = await self.m.push_instrs.call(sim)
+                if result.count == 0:
+                    continue
+
                 outputs = self.expected_out.popleft()
 
                 await self.random_wait(sim, random_wait)
-                assert data_const_to_dict(result) == outputs
+                assert result.count == 1
+                assert data_const_to_dict(result.data[0]) == outputs
 
         return process
 
@@ -144,10 +128,11 @@ class TestRSSelect(TestCaseWithSimulator):
         Test checking basic functionality when both RS select methods are available.
         """
 
+        self.gen_instrs(100, _rs1_optypes.union(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.union(_rs2_optypes)))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
+            self.add_mock(sim, self.create_instr_input_process())
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs1(self):
@@ -156,9 +141,10 @@ class TestRSSelect(TestCaseWithSimulator):
         the RS select method is not available.
         """
 
+        self.gen_instrs(100, _rs1_optypes.intersection(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes))
+            self.add_mock(sim, self.create_instr_input_process())
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs2(self):
@@ -167,9 +153,10 @@ class TestRSSelect(TestCaseWithSimulator):
         the RS select method is not available.
         """
 
+        self.gen_instrs(100, _rs1_optypes.intersection(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            sim.add_testbench(self.create_instr_input_process(100, _rs1_optypes.intersection(_rs2_optypes)))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes))
+            self.add_mock(sim, self.create_instr_input_process())
+            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_delays(self):
@@ -178,12 +165,15 @@ class TestRSSelect(TestCaseWithSimulator):
         in methods availability.
         """
 
+        self.gen_instrs(300, _rs1_optypes.union(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=5000) as sim:
-            sim.add_testbench(self.create_instr_input_process(300, _rs1_optypes.union(_rs2_optypes), random_wait=4))
+            self.add_mock(sim, self.create_instr_input_process(enable_prob=0.3))
             self.add_mock(
-                sim, self.create_rs_alloc_process(self.m.rs1_alloc, rs_id=0, rs_optypes=_rs1_optypes, enable_prob=0.1)
+                sim,
+                self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes, enable_prob=0.1),
             )
             self.add_mock(
-                sim, self.create_rs_alloc_process(self.m.rs2_alloc, rs_id=1, rs_optypes=_rs2_optypes, enable_prob=0.1)
+                sim,
+                self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes, enable_prob=0.1),
             )
             sim.add_testbench(self.create_output_process(300, random_wait=12))

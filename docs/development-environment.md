@@ -6,7 +6,7 @@ In order to prepare the development environment, please follow the steps below:
 
 1. Install the Python 3.11 interpreter and pip package manager.
     * Optionally create a Python virtual environment with `python3 -m venv venv` in the project directory and activate it using generated script: `. venv/bin/activate`.
-2. Install all required libraries with `pip3 install -r requirements-dev.txt`.
+2. Install all required libraries with `pip3 install ".[dev]"`.
 3. Install `riscv64-unknown-elf` binutils using your favourite package manager. On Debian-based distros the package is called `binutils-riscv64-unknown-elf`, on Arch-based - `riscv64-unknown-elf-binutils`.
 4. Optionally, install all precommit hooks with `pre-commit install`. This will automatically run the linter before commits.
 
@@ -53,7 +53,7 @@ The `run_tests.py` script has the following options:
 * `-v`, `--verbose` -- makes the test runner more verbose. It will, for example, print the names of all the tests being run.
 * `-j`, `--jobs` -- the number of concurrent testing jobs.
   By default, the number of jobs will be equal to the number of hardware threads available.
-* `-s`, `--no-capture` -- test stdout/stderr output will be visible for the currently running test. 
+* `-s`, `--no-capture` -- test stdout/stderr output will be visible for the currently running test.
   This is useful to see the output of passing tests, including prints and logs.
   The number of jobs is automatically reduced to 1 to avoid confusion.
 * `-a`, `--all` -- include the `riscv-tests` and `riscv-arch-test` test suites.

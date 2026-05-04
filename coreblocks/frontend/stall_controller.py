@@ -25,27 +25,26 @@ class StallController(Elaboratable):
     The stall controller is responsible for managing all stall/unstall signals
     that may be triggered in the core and based on them deciding if and where
     the frontend should be resumed.
-
-
-    Attributes
-    ----------
-    stall_unsafe : Method
-        Signals that the frontend should be stalled because an unsafe (i.e. causing
-        difficult to handle side effects) instruction was just fetched.
-    stall_exception : Method
-        Signals that the frontend should be stalled because of an exception.
-    stall_guard : Method
-        A non-exclusive method whose readiness denotes if the frontend is currently stalled.
-    resume_from_flush: Method
-        Signals that the backend handled the exception and the frontend can be resumed.
-    redirect_frontend : Required Method
-        A method that will be called when the frontend needs to be redirected. Must be always
-        ready.
-    flush_frontend: Required Method
-        Always ready.
     """
 
-    get_exception_information: Required[Method]
+    stall_unsafe: Provided[Method]
+    """
+    Signals that the frontend should be stalled because an unsafe (i.e. causing
+    difficult to handle side effects) instruction was just fetched.
+    """
+
+    stall_exception: Provided[Method]
+    """Signals that the frontend should be stalled because of an exception."""
+
+    stall_guard: Provided[Method]
+    """A non-exclusive method whose readiness denotes if the frontend is currently stalled."""
+
+    resume_from_core_flush: Provided[Method]
+    """Signals that the backend handled the exception and the frontend can be resumed."""
+
+    redirect_frontend: Required[Method]
+    """A method that will be called when the frontend needs to be redirected. Should be always ready."""
+
     fetch_flush: Required[Method]
 
     def __init__(self, gen_params: GenParams):

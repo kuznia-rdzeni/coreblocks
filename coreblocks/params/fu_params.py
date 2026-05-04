@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from coreblocks.params.genparams import GenParams
     from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+    from coreblocks.interface.layouts import RSInterfaceLayouts
 
 
 __all__ = [
@@ -29,6 +30,10 @@ class BlockComponentParams(ABC):
 
     @abstractmethod
     def get_optypes(self) -> set["OpType"]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_layouts(self, gen_params: "GenParams") -> "RSInterfaceLayouts":
         raise NotImplementedError()
 
     @abstractmethod
@@ -70,7 +75,10 @@ def _remove_implications(extensions: Extension):
 
 
 def extensions_supported(
-    fu_config: Collection[BlockComponentParams], embedded: bool = False, compressed: bool = False
+    fu_config: Collection[BlockComponentParams],
+    embedded: bool = False,
+    compressed: bool = False,
+    zcb: bool = False,
 ) -> tuple[Extension, Extension]:
     optypes = optypes_supported(fu_config)
 
@@ -112,5 +120,9 @@ def extensions_supported(
     if compressed:
         extensions_partial |= Extension.C
         extensions_full |= Extension.C
+
+    if zcb:
+        extensions_partial |= Extension.ZCB
+        extensions_full |= Extension.ZCB
 
     return (extensions_partial, extensions_full)

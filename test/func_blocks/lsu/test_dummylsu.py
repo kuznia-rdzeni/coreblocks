@@ -9,9 +9,10 @@ from transactron.testing.method_mock import MethodMock
 from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
@@ -91,6 +92,9 @@ class DummyLSUTestCircuit(Elaboratable):
 
         m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+
+        m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -180,7 +184,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
     def setup_method(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=4))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=3, rob_entries_bits=4))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.mem_data_queue = deque()
@@ -292,7 +296,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
     def setup_method(self) -> None:
         random.seed(14)
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
     async def one_instr_test(self, sim: TestbenchContext):
@@ -371,7 +375,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def setup_method(self) -> None:
         random.seed(14)
         self.tests_number = 100
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
         self.instr_queue = deque()
         self.mem_data_queue = deque()
@@ -458,7 +462,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
         await self.push_one_instr(sim, self.get_instr(load_fn))
 
     def test_fence(self):
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=3, rob_entries_bits=3))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=3, rob_entries_bits=3))
         self.test_module = DummyLSUTestCircuit(self.gen_params)
 
         @def_method_mock(lambda: self.test_module.exception_report)

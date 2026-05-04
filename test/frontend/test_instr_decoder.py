@@ -3,7 +3,7 @@ from amaranth.sim import *
 from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
 from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.frontend.decoder.instr_decoder import InstrDecoder, Encoding, instructions_by_optype
 from coreblocks.arch import *
 from unittest import TestCase
@@ -180,6 +180,17 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x0E005033, Opcode.OP, Funct3.CZEROEQZ, Funct7.CZERO, rd=0, rs1=0, rs2=0, op=OpType.CZERO),
     ]
 
+    DECODER_TESTS_ZBKX = [
+        # XPERM4
+        InstrTest(
+            0x28002033, Opcode.OP, Funct3.XPERM4, Funct7.XPERM, rd=0, rs1=0, rs2=0, op=OpType.CROSSBAR_PERMUTATION
+        ),
+        # XPERM8
+        InstrTest(
+            0x28004033, Opcode.OP, Funct3.XPERM8, Funct7.XPERM, rd=0, rs1=0, rs2=0, op=OpType.CROSSBAR_PERMUTATION
+        ),
+    ]
+
     DECODER_TESTS_A = [
         InstrTest(0x0821A22F, Opcode.AMO, Funct3.W, Funct7.AMOSWAP, rd=4, rs2=2, rs1=3, op=OpType.ATOMIC_MEMORY_OP),
         InstrTest(
@@ -190,11 +201,12 @@ class TestDecoder(TestCaseWithSimulator):
 
     def setup_method(self):
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 _implied_extensions=Extension.G
                 | Extension.XINTMACHINEMODE
                 | Extension.XINTSUPERVISOR
                 | Extension.ZBB
+                | Extension.ZBKX
                 | Extension.ZICOND
             )
         )
@@ -287,6 +299,9 @@ class TestDecoder(TestCaseWithSimulator):
     def test_zicond(self):
         self.do_test(self.DECODER_TESTS_ZICOND)
 
+    def test_zbkx(self):
+        self.do_test(self.DECODER_TESTS_ZBKX)
+
     def test_a(self):
         self.do_test(self.DECODER_TESTS_A)
 
@@ -303,7 +318,7 @@ class TestDecoderEExtLegal(TestCaseWithSimulator):
     ]
 
     def test_e(self):
-        self.gen_params = GenParams(test_core_config.replace(embedded=True, _implied_extensions=Extension.E))
+        self.gen_params = GenParams(configurations.test.replace(embedded=True, _implied_extensions=Extension.E))
         self.decoder = InstrDecoder(self.gen_params)
 
         async def process(sim: TestbenchContext):

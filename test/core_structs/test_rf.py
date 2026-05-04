@@ -6,7 +6,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, Testbe
 
 from coreblocks.core_structs.rf import RegisterFile
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 
 class TestRegisterFile(TestCaseWithSimulator):
@@ -73,7 +73,7 @@ class TestRegisterFile(TestCaseWithSimulator):
 
     @pytest.mark.parametrize("read_ports, write_ports, free_ports", [(2, 1, 1), (4, 2, 2)])
     def test_randomized(self, read_ports: int, write_ports: int, free_ports: int):
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=4))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=4))
         self.m = m = SimpleTestCircuit(
             RegisterFile(
                 gen_params=self.gen_params, read_ports=read_ports, write_ports=write_ports, free_ports=free_ports

@@ -1,6 +1,14 @@
+from collections.abc import Set
 from amaranth.lib.enum import IntEnum, unique
 
-__all__ = ["CSRAddress", "MstatusFieldOffsets"]
+__all__ = [
+    "CSRAddress",
+    "MstatusFieldOffsets",
+    "MenvcfgFieldOffsets",
+    "CounterEnableFieldOffsets",
+    "sstatus_field_subset",
+    "senvcfg_field_subset",
+]
 
 
 @unique
@@ -440,6 +448,10 @@ class CSRAddress(IntEnum, shape=12):
     COREBLOCKS_TEST_PRIV_MODE = 0x8FF
 
 
+# Width of pmpXcfg subfields in pmpcfgX registers
+PMPXCFG_WIDTH = 8
+
+
 @unique
 class MstatusFieldOffsets(IntEnum):
     SIE = 1  # Supervisor Interrupt Enable
@@ -458,8 +470,117 @@ class MstatusFieldOffsets(IntEnum):
     TVM = 20  # Trap Virtual Memory
     TW = 21  # Timeout Wait
     TSR = 22  # Trap SRET
+    SPELP = 23  # Supervisor Previous Expected Landing Pad
+    SDT = 24  # Supervisor Double Trap
     UXL = 32  # User XLEN
     SXL = 34  # Supervisor XLEN
     SBE = 36  # Supervisor Endianness Control
     MBE = 37  # Machine Endianness Control
+    GVA = 38  # Guest Virtual Address
+    MPV = 39  # Mass Page Valid
+    MPELP = 40  # Machine Previous Expected Landing Pad
+    MDT = 41  # Machine Disable Trap
     SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus
+
+    def field_length(self) -> int:
+        if self in [
+            MstatusFieldOffsets.VS,
+            MstatusFieldOffsets.MPP,
+            MstatusFieldOffsets.FS,
+            MstatusFieldOffsets.XS,
+            MstatusFieldOffsets.UXL,
+            MstatusFieldOffsets.SXL,
+        ]:
+            return 2
+
+        return 1
+
+
+@unique
+class MenvcfgFieldOffsets(IntEnum):
+    FIOM = 0  # Fence of I/O implies Memory
+    LPE = 2  # Landing Pad Enable
+    SSE = 3  # Supervisor Shadow Stack Enable
+    CBIE = 4  # Cache Block Invalidate instruction Enable
+    CBCFE = 6  # Cache Block Clean and Flush instruction Enable
+    CBZE = 7  # Cache Block Zero instruction Enable
+    PMM = 32  # Pointer Masking for Machine mode
+    DTE = 59  # Double Trap Enable
+    CDE = 60  # Counter Delegation Enable
+    ADUE = 61  # Accessed Dirty Update Enable
+    PBMTE = 62  # Page-Based Memory Types Enable
+    STCE = 63  # STimeCmp Enable
+
+    def field_length(self) -> int:
+        if self in [
+            MenvcfgFieldOffsets.PMM,
+            MenvcfgFieldOffsets.CBIE,
+        ]:
+            return 2
+
+        return 1
+
+
+@unique
+class CounterEnableFieldOffsets(IntEnum):
+    CY = 0  # Cycle counter enable
+    TM = 1  # Timer counter enable
+    IR = 2  # Instret counter enable
+    HPM3 = 3  # HPMCOUNTER3 enable
+    HPM4 = 4  # HPMCOUNTER4 enable
+    HPM5 = 5  # HPMCOUNTER5 enable
+    HPM6 = 6  # HPMCOUNTER6 enable
+    HPM7 = 7  # HPMCOUNTER7 enable
+    HPM8 = 8  # HPMCOUNTER8 enable
+    HPM9 = 9  # HPMCOUNTER9 enable
+    HPM10 = 10  # HPMCOUNTER10 enable
+    HPM11 = 11  # HPMCOUNTER11 enable
+    HPM12 = 12  # HPMCOUNTER12 enable
+    HPM13 = 13  # HPMCOUNTER13 enable
+    HPM14 = 14  # HPMCOUNTER14 enable
+    HPM15 = 15  # HPMCOUNTER15 enable
+    HPM16 = 16  # HPMCOUNTER16 enable
+    HPM17 = 17  # HPMCOUNTER17 enable
+    HPM18 = 18  # HPMCOUNTER18 enable
+    HPM19 = 19  # HPMCOUNTER19 enable
+    HPM20 = 20  # HPMCOUNTER20 enable
+    HPM21 = 21  # HPMCOUNTER21 enable
+    HPM22 = 22  # HPMCOUNTER22 enable
+    HPM23 = 23  # HPMCOUNTER23 enable
+    HPM24 = 24  # HPMCOUNTER24 enable
+    HPM25 = 25  # HPMCOUNTER25 enable
+    HPM26 = 26  # HPMCOUNTER26 enable
+    HPM27 = 27  # HPMCOUNTER27 enable
+    HPM28 = 28  # HPMCOUNTER28 enable
+    HPM29 = 29  # HPMCOUNTER29 enable
+    HPM30 = 30  # HPMCOUNTER30 enable
+    HPM31 = 31  # HPMCOUNTER31 enable
+
+
+sstatus_field_subset: Set[MstatusFieldOffsets] = frozenset(
+    {
+        MstatusFieldOffsets.SIE,
+        MstatusFieldOffsets.SPIE,
+        MstatusFieldOffsets.UBE,
+        MstatusFieldOffsets.SPP,
+        MstatusFieldOffsets.VS,
+        MstatusFieldOffsets.FS,
+        MstatusFieldOffsets.XS,
+        MstatusFieldOffsets.SUM,
+        MstatusFieldOffsets.MXR,
+        MstatusFieldOffsets.SPELP,
+        MstatusFieldOffsets.SDT,
+        MstatusFieldOffsets.SD,
+    }
+)
+
+senvcfg_field_subset: Set[MenvcfgFieldOffsets] = frozenset(
+    {
+        MenvcfgFieldOffsets.FIOM,
+        MenvcfgFieldOffsets.LPE,
+        MenvcfgFieldOffsets.SSE,
+        MenvcfgFieldOffsets.CBIE,
+        MenvcfgFieldOffsets.CBCFE,
+        MenvcfgFieldOffsets.CBZE,
+    }
+)
