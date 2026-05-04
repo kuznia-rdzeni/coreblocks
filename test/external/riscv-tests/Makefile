@@ -9,7 +9,9 @@ include riscv-tests/isa/rv32uc/Makefrag
 include riscv-tests/isa/rv32uzba/Makefrag
 include riscv-tests/isa/rv32uzbb/Makefrag
 include riscv-tests/isa/rv32uzbc/Makefrag
+include riscv-tests/isa/rv32uzbkx/Makefrag
 include riscv-tests/isa/rv32uzbs/Makefrag
+include riscv-tests/isa/rv32uzicond/Makefrag
 
 RISCV_PREFIX ?= riscv64-unknown-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
@@ -29,9 +31,11 @@ $(eval $(call compile_template,rv32uc,-mabi=ilp32 -march=rv32ic_zifencei))
 $(eval $(call compile_template,rv32uzba,-mabi=ilp32 -march=rv32i_zba_zifencei))
 $(eval $(call compile_template,rv32uzbb,-mabi=ilp32 -march=rv32i_zbb_zifencei))
 $(eval $(call compile_template,rv32uzbc,-mabi=ilp32 -march=rv32i_zbc_zifencei))
+$(eval $(call compile_template,rv32uzbkx,-mabi=ilp32 -march=rv32i_zbkx_zifencei))
 $(eval $(call compile_template,rv32uzbs,-mabi=ilp32 -march=rv32i_zbs_zifencei))
+$(eval $(call compile_template,rv32uzicond,-mabi=ilp32 -march=rv32i_zicond_zifencei))
 
-all: $(addprefix test-rv32ui-,${rv32ui_sc_tests}) $(addprefix test-rv32um-,${rv32um_sc_tests}) $(addprefix test-rv32ua-,${rv32ua_sc_tests}) $(addprefix test-rv32uc-,${rv32uc_sc_tests}) $(addprefix test-rv32uzba-,${rv32uzba_sc_tests}) $(addprefix test-rv32uzbb-,${rv32uzbb_sc_tests}) $(addprefix test-rv32uzbc-,${rv32uzbc_sc_tests}) $(addprefix test-rv32uzbs-,${rv32uzbs_sc_tests})
+all: $(addprefix test-rv32ui-,${rv32ui_sc_tests}) $(addprefix test-rv32um-,${rv32um_sc_tests}) $(addprefix test-rv32ua-,${rv32ua_sc_tests}) $(addprefix test-rv32uc-,${rv32uc_sc_tests}) $(addprefix test-rv32uzba-,${rv32uzba_sc_tests}) $(addprefix test-rv32uzbb-,${rv32uzbb_sc_tests}) $(addprefix test-rv32uzbc-,${rv32uzbc_sc_tests}) $(addprefix test-rv32uzbkx-,${rv32uzbkx_sc_tests}) $(addprefix test-rv32uzbs-,${rv32uzbs_sc_tests}) $(addprefix test-rv32uzicond-,${rv32uzicond_sc_tests})
 
 clean:
 	rm test-*

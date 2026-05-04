@@ -21,7 +21,7 @@ from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.core_structs.rob import ReorderBuffer
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
 
@@ -135,7 +135,7 @@ class TestScheduler(TestCaseWithSimulator):
     def setup_method(self):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 func_units_config=tuple(MockedBlockComponent(optypes, rs_entries=4) for optypes in self.optype_sets),
                 allow_partial_extensions=True,
             )

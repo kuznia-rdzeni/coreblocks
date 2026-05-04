@@ -8,7 +8,7 @@ from inspect import isclass
 import random
 
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from transactron import *
 from coreblocks.scheduler.wakeup_select import *
@@ -20,7 +20,7 @@ from transactron.testing.functions import data_const_to_dict
 class TestWakeupSelect(TestCaseWithSimulator):
     def setup_method(self):
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 func_units_config=tuple(RSBlockComponent([], rs_entries=16, rs_number=k) for k in range(2))
             )
         )

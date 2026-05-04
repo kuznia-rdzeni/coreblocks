@@ -12,7 +12,7 @@ from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import Pipeline
 from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, TestbenchContext
 
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.testing.functions import data_const_to_dict
 
 
@@ -41,7 +41,7 @@ class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
     mul_unit: type[MulBaseUnsigned]
 
     def setup_method(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.m = SimpleTestCircuit(self.mul_unit(self.gen_params))
         self.waiting_time = 10
 
