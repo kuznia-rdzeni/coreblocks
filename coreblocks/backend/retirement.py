@@ -236,7 +236,7 @@ class Retirement(Elaboratable):
                                 retire_instr(rob_entry)
                             with m.Else():
                                 retire_inactive_instr(rob_entry)
-                        with cond():  # (Blocking if branch is not ready) , will not trigger on inactive instructions
+                        with cond():  # (Blocking if branch is not ready), will not trigger on inactive instructions
                             flush_instr(0, rob_entry)
 
                             m.d.comb += core_flushing.eq(1)
@@ -259,10 +259,8 @@ class Retirement(Elaboratable):
 
                     self.rob_retire(m, count=count)
 
-                    with m.If(count):
-                        m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
-
                     with m.If((tag_incr_mask & ~(-1 << count)).any()):
+                        m.d.sync += retirement_last_tag.eq(retirement_last_tag + 1)
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m, count=count)
