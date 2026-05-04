@@ -182,8 +182,6 @@ class Retirement(Elaboratable):
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
-                        arch_trap = Signal(init=1)
-
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
                             # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
@@ -203,24 +201,23 @@ class Retirement(Elaboratable):
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
-                        with m.If(arch_trap):
-                            # Register RISC-V architectural trap in CSRs.
-                            target_priv = self.trap_entry(m, cause=cause_entry).target_priv
+                        # Register RISC-V architectural trap in CSRs.
+                        target_priv = self.trap_entry(m, cause=cause_entry).target_priv
 
-                            def set_trap_csrs(cause_reg, epc_reg, tval_reg):
-                                cause_reg.write(m, cause_entry)
-                                epc_reg.write(m, cause_register.pc)
-                                tval_reg.write(m, cause_register.mtval)
+                        def set_trap_csrs(cause_reg, epc_reg, tval_reg):
+                            cause_reg.write(m, cause_entry)
+                            epc_reg.write(m, cause_register.pc)
+                            tval_reg.write(m, cause_register.mtval)
 
-                            with m.Switch(target_priv):
-                                if self.gen_params.supervisor_mode:
-                                    with m.Case(PrivilegeLevel.SUPERVISOR):
-                                        assert s_csr is not None
-                                        set_trap_csrs(s_csr.scause, s_csr.sepc, s_csr.stval)
-                                with m.Case(PrivilegeLevel.MACHINE):
-                                    set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
+                        with m.Switch(target_priv):
+                            if self.gen_params.supervisor_mode:
+                                with m.Case(PrivilegeLevel.SUPERVISOR):
+                                    assert s_csr is not None
+                                    set_trap_csrs(s_csr.scause, s_csr.sepc, s_csr.stval)
+                            with m.Case(PrivilegeLevel.MACHINE):
+                                set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
 
-                            m.d.sync += trap_target_priv.eq(target_priv)
+                        m.d.sync += trap_target_priv.eq(target_priv)
 
                         # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):
