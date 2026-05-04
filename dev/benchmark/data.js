@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777758726633,
+  "lastUpdate": 1777904112427,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21717,6 +21717,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/37a68f500687e0b4e476ee71a93fd0c554fb9651"
         },
         "date": 1777758714092,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4310548345625105,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544192447280725,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3821075915511284,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6529039609007227,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3609059761135394,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30483586342368985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3308119011598588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.44964532430803467,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a42f0ac1fe11d694606abca16ee4f8df97dae054",
+          "message": "Fix tag invalidation bug (#934)",
+          "timestamp": "2026-05-04T15:45:32+02:00",
+          "tree_id": "406655d133c5d72b8240de26f7b5c10b51939cb1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a42f0ac1fe11d694606abca16ee4f8df97dae054"
+        },
+        "date": 1777904085921,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
