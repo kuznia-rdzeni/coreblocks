@@ -96,6 +96,14 @@ class _CoreConfigurationDataClass:
         Log of the number of sets of the instruction cache.
     icache_line_bytes_log: int
         Log of the cache line size (in bytes).
+    dcache_enable: bool
+        Enable data cache. If disabled, requests are bypassed directly to the bus.
+    dcache_ways: int
+        Associativity of the data cache.
+    dcache_sets_bits: int
+        Log of the number of sets of the data cache.
+    dcache_line_bytes_log: int
+        Log of the data cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
     instr_buffer_size: int
@@ -172,6 +180,10 @@ class _CoreConfigurationDataClass:
     icache_ways: int = 2
     icache_sets_bits: int = 7
     icache_line_bytes_log: int = 5
+    dcache_enable: bool = False
+    dcache_ways: int = 2
+    dcache_sets_bits: int = 7
+    dcache_line_bytes_log: int = 5
 
     fetch_block_bytes_log: int = 2
 
