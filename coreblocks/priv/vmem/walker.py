@@ -94,7 +94,7 @@ class PTEView(View):
             is_bad |= self.N
 
         # Non-leaf PTEs have A and D bits reserved
-        is_bad |= self.is_leaf() & (self.A | self.D)
+        is_bad |= ~self.is_leaf() & (self.A | self.D)
 
         return is_bad
 

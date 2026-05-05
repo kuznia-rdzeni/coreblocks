@@ -198,10 +198,10 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += cam.checked_vpn.eq(requested_vpn)
             m.d.comb += cam.checked_asid.eq(current_asid)
 
-            fwd.write(m, arg=resp)
+            fwd.write(m, resp)
 
             with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
-                new_entry = TLBEntry(self.gen_params)
+                new_entry = Signal(TLBEntry(self.gen_params))
                 m.d.av_comb += [
                     new_entry.valid.eq(1),
                     new_entry.asid.eq(current_asid),
@@ -380,7 +380,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     req = request_pipe.peek(m)
                     resp = self.backing_resolver.accept(m)
 
-                    set_idx = vpn_to_set_idx(req.vpn, req.size_class)
+                    set_idx = vpn_to_set_idx(req.vpn, resp.size_class)
                     m.d.sync += refill_set_idx.eq(set_idx)
                     m.d.sync += refill_response.eq(resp)
 
@@ -394,14 +394,14 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     with m.Else():
                         # Miss in the backing resolver - just forward the miss response
                         request_pipe.read(m)
-                        fwd.write(m, arg=resp)
+                        fwd.write(m, resp)
 
             with m.State("REFILL"):
                 with Transaction().body(m):
                     # We have received a valid PTE from the backing resolver and have the correct set index
                     req = request_pipe.read(m)
 
-                    fwd.write(m, arg=refill_response)
+                    fwd.write(m, refill_response)
                     m.d.sync += slow_path.eq(0)
 
                     new_entry = Signal(TLBEntry(self.gen_params))
