@@ -5,16 +5,16 @@ from transactron.lib.simultaneous import condition
 from transactron.utils import logging
 from transactron.lib import BasicFifo
 
+from coreblocks.cache.iface import CacheInterface
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
-from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.interface.layouts import CommonLayoutFields, LSULayouts
 
 
 class LSURequester(Elaboratable):
     """
-    Bus request logic for the load/store unit. Its job is to interface
-    between the LSU and the bus.
+    Memory request logic for the load/store unit. Its job is to interface
+    between the LSU and the data cache.
 
     Attributes
     ----------
@@ -24,20 +24,20 @@ class LSURequester(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, bus: BusMasterInterface, depth: int = 4) -> None:
+    def __init__(self, gen_params: GenParams, cache: CacheInterface, depth: int = 4) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        bus : BusMasterInterface
-            An instance of the bus master for interfacing with the data bus.
+        cache : CacheInterface
+            An instance of the data cache for interfacing with the memory.
         depth : int
             Number of requests which can be send to memory, before it provides first response. Describe
             the resiliency of `LSURequester` to latency of memory in case when memory is fully pipelined.
         """
         self.gen_params = gen_params
-        self.bus = bus
+        self.cache = cache
         self.depth = depth
 
         lsu_layouts = gen_params.get(LSULayouts)
@@ -48,7 +48,7 @@ class LSURequester(Elaboratable):
         self.log = logging.HardwareLogger("backend.lsu.requester")
 
     def prepare_bytes_mask(self, m: ModuleLike, funct3: Value, addr: Value) -> Signal:
-        mask_len = self.gen_params.isa.xlen // self.bus.params.granularity
+        mask_len = self.gen_params.isa.xlen // 8
         mask = Signal(mask_len)
         with m.Switch(funct3):
             with m.Case(Funct3.B, Funct3.BU):
@@ -137,10 +137,8 @@ class LSURequester(Elaboratable):
             )
 
             with condition(m, nonblocking=True) as branch:
-                with branch(aligned & store):
-                    self.bus.request_write(m, addr=paddr >> 2, data=bus_data, sel=bytes_mask)
-                with branch(aligned & ~store):
-                    self.bus.request_read(m, addr=paddr >> 2, sel=bytes_mask)
+                with branch(aligned):
+                    self.cache.issue_req(m, paddr=paddr, data=bus_data, byte_mask=bytes_mask, store=store)
 
             with m.If(aligned):
                 args_fifo.write(m, paddr=paddr, vaddr=vaddr, funct3=funct3, store=store)
@@ -162,16 +160,12 @@ class LSURequester(Elaboratable):
             request_args = args_fifo.read(m)
             self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
 
-            with condition(m) as branch:
-                with branch(request_args.store):
-                    fetched = self.bus.get_write_response(m)
-                    m.d.comb += err.eq(fetched.err)
-                with branch():
-                    fetched = self.bus.get_read_response(m)
-                    m.d.comb += err.eq(fetched.err)
-                    m.d.top_comb += data.eq(
-                        self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)
-                    )
+            fetched = self.cache.accept_res(m)
+            m.d.comb += err.eq(fetched.error)
+            with m.If(~request_args.store):
+                m.d.comb += data.eq(
+                    self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)
+                )
 
             with m.If(err):
                 m.d.av_comb += exception.eq(1)
