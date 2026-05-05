@@ -96,12 +96,14 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
 
         bits_per_size_class = self.gen_params.vmem_params.page_table_level_bits
 
-        results = [{
-            "result": AddressTranslationLayouts.TLBResult.PAGE_FAULT,
-            "ppn": 0,
-            "permissions": Permissions(),
-            "size_class": 0,
-        }]
+        results = [
+            {
+                "result": AddressTranslationLayouts.TLBResult.PAGE_FAULT,
+                "ppn": 0,
+                "permissions": Permissions(),
+                "size_class": 0,
+            }
+        ]
         requested = False
 
         @def_method_mock(lambda: request_mock, enable=lambda: not requested)
@@ -218,7 +220,9 @@ class TestTLBCache(TestCaseWithSimulator):
         )
         self.tc = TLBTestCircuit(self.gen_params, self.dut_kind)
 
-    def assert_hit(self, response, *, ppn: int, permissions: Permissions, size_class: int = 0, global_entry: bool = False):
+    def assert_hit(
+        self, response, *, ppn: int, permissions: Permissions, size_class: int = 0, global_entry: bool = False
+    ):
         assert response["result"] == AddressTranslationLayouts.TLBResult.HIT
         assert response["ppn"] == ppn
         assert response["size_class"] == size_class
