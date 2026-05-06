@@ -21,7 +21,7 @@ dependencies = [
     "amaranth-stubs~=0.5.0.0",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron @ git+https://github.com/tilk/transactron@d17024977ec9241cd0b3cf36e779ee868028b34e",
+    "transactron @ git+https://github.com/tilk/transactron@0ca55ff3a92054db908a1972c3f28c0d3ba813ae",
 ]
 
 [project.urls]
