@@ -7,8 +7,8 @@ from amaranth import *
 
 import pytest
 from transactron import *
-from transactron.lib import Adapter, Pipe
-from transactron.utils import DependencyContext, ModuleConnector, make_layout
+from transactron.lib import Adapter
+from transactron.utils import DependencyContext, ModuleConnector
 from transactron.testing import (
     ProcessContext,
     TestCaseWithSimulator,
@@ -26,7 +26,6 @@ from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.priv.vmem.iface import TLBBackingDevice
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
-from test.regression.pysim import PySimulation
 
 
 @dataclass(frozen=True)
@@ -58,16 +57,17 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
 
         self.ready = False
         self.translated = []
-        
+
         self.asid = -1
 
-    def add_translation(self,
-                        vpn: int,
-                        ppn: int,
-                        permissions: Permissions = Permissions(),
-                        size_class: int = 0,
-                        asid: Optional[int] = None
-                        ):
+    def add_translation(
+        self,
+        vpn: int,
+        ppn: int,
+        permissions: Permissions = Permissions(),
+        size_class: int = 0,
+        asid: Optional[int] = None,
+    ):
         """Add a translation to the backing device.
         asid == None means global entry.
         """

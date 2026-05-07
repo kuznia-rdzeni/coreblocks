@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr
-from transactron.lib import Forwarder, condition, Pipe
+from transactron.lib import Forwarder, Pipe
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
@@ -197,7 +197,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += cam.checked_vpn.eq(requested_vpn)
             m.d.comb += cam.checked_asid.eq(current_asid)
 
-            fwd.write(m, resp)            
+            fwd.write(m, resp)
 
             with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
                 new_entry = Signal(TLBEntry(self.gen_params))
@@ -286,7 +286,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         rd_rd = rd_mem.read_port()
         rd_wr = rd_mem.write_port()
         m.d.comb += cam.replacement_data.eq(rd_rd.data)
-        
+
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
 
         flushing = Signal(init=1)
