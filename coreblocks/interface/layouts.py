@@ -1,6 +1,6 @@
 from amaranth import signed
 from amaranth.lib.data import ArrayLayout
-from amaranth.lib.enum import IntFlag, auto
+from amaranth.lib.enum import IntFlag, IntEnum, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
@@ -169,7 +169,7 @@ class CommonLayoutFields:
 class AddressTranslationLayouts:
     """Layouts used by virtual-to-physical address translation methods."""
 
-    class TLBResult(IntFlag):
+    class TLBResult(IntEnum, shape=2):
         HIT = auto()
         PAGE_FAULT = auto()
         ACCESS_FAULT = auto()

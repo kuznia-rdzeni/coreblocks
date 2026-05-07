@@ -49,9 +49,9 @@ class TLBCAM(Elaboratable):
         self.layout = gen_params.get(AddressTranslationLayouts)
 
         self.ways_data = Signal(ArrayLayout(TLBEntry(gen_params), ways))
-        self.rr_index = Signal(range(ways))  # round-robin pointer for replacement
         self.checked_asid = Signal(gen_params.vmem_params.asidlen)
         self.checked_vpn = Signal(gen_params.vmem_params.max_tlb_vpn_bits)
+        self.replacement_data = Signal(range(ways))
 
         self.addr_match = Signal(ways)
         self.asid_match = Signal(ways)
@@ -61,6 +61,7 @@ class TLBCAM(Elaboratable):
         self.full_match = Signal(ways)
 
         self.replace_candidate = Signal(range(ways))
+        self.next_replacement_data = Signal.like(self.replacement_data)
 
     def elaborate(self, platform):
         m = TModule()
@@ -86,7 +87,7 @@ class TLBCAM(Elaboratable):
 
         # Replacement candidate is the first invalid entry, or the round-robin entry if all are valid
         # The order of checks: currently present entry -> invalid entry -> round-robin.
-        m.d.comb += self.replace_candidate.eq(self.rr_index)
+        m.d.comb += self.replace_candidate.eq(self.replacement_data)
 
         for way in range(self.ways):
             with m.If(~self.valid_match[way]):
@@ -95,6 +96,8 @@ class TLBCAM(Elaboratable):
         for way in range(self.ways):
             with m.If(self.full_match[way]):
                 m.d.comb += self.replace_candidate.eq(way)
+
+        m.d.comb += self.next_replacement_data.eq(mod_incr(self.replacement_data, self.ways))
 
         return m
 
@@ -143,6 +146,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.d.comb += cam.ways_data.eq(entries)
 
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.slow_fwd = slow_fwd = Forwarder(self.layout.tlb_request)
 
         request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
@@ -153,12 +157,10 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += cam.checked_vpn.eq(vpn)
 
             found_entry = Signal(TLBEntry(self.gen_params))
-            found_entry_idx = Signal(range(self.entries))
 
             for way in range(self.entries):
                 with m.If(cam.full_match[way]):
                     m.d.av_comb += found_entry.eq(cam.ways_data[way])
-                    m.d.av_comb += found_entry_idx.eq(way)
 
             ask_backing = Signal()
             with m.If(~cam.full_match.any()):
@@ -169,15 +171,12 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                 #   as we only implement Svade, so if this happens, we are almost sure
                 #   the re-walk will not fix the issue.
                 m.d.av_comb += ask_backing.eq(1)
-                m.d.sync += entries[found_entry_idx].valid.eq(0)
 
-            with condition(m, nonblocking=True) as branch:
-                with branch(ask_backing):
-                    m.d.sync += request_in_flight.eq(1)
-                    m.d.sync += requested_vpn.eq(vpn)
-                    self.backing_resolver.request(m, vpn=vpn, write_aspect=write_aspect)
-
-            with m.If(~ask_backing):
+            with m.If(ask_backing):
+                m.d.sync += request_in_flight.eq(1)
+                m.d.sync += requested_vpn.eq(vpn)
+                slow_fwd.write(m, vpn=vpn, write_aspect=write_aspect)
+            with m.Else():
                 fwd.write(
                     m,
                     result=AddressTranslationLayouts.TLBResult.HIT,
@@ -186,9 +185,9 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     size_class=found_entry.size_class,
                 )
 
-        @def_method(m, self.accept)
-        def _():
-            return fwd.read(m)
+        with Transaction().body(m):
+            req = slow_fwd.read(m)
+            self.backing_resolver.request(m, vpn=req.vpn, write_aspect=req.write_aspect)
 
         # Slow path - refill from backing resolver
         with Transaction().body(m, ready=request_in_flight):
@@ -198,7 +197,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += cam.checked_vpn.eq(requested_vpn)
             m.d.comb += cam.checked_asid.eq(current_asid)
 
-            fwd.write(m, resp)
+            fwd.write(m, resp)            
 
             with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
                 new_entry = Signal(TLBEntry(self.gen_params))
@@ -210,8 +209,10 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     new_entry.size_class.eq(resp.size_class),
                     new_entry.permissions.eq(resp.permissions),
                 ]
-                m.d.sync += cam.rr_index.eq(mod_incr(cam.replace_candidate, self.entries))
+                m.d.sync += cam.replacement_data.eq(cam.next_replacement_data)
                 m.d.sync += entries[cam.replace_candidate].eq(new_entry)
+
+        self.accept.provide(fwd.read)
 
         @def_method(m, self.sfence_vma, ready=~request_in_flight)
         def _(vaddr, asid, all_vaddrs, all_asids):
@@ -268,6 +269,9 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         current_asid = Signal(asid_bits)
         m.d.comb += current_asid.eq(csr.s_mode.satp_asid)
 
+        # Single CAM instance that will be used to check each set
+        m.submodules.cam = cam = TLBCAM(self.gen_params, self.ways)
+
         # All sets stored in synchronous memory
         # entries_array[set_index][way_index] = TLBEntry
         m.submodules.mem = mem = memory.Memory(
@@ -275,18 +279,15 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         )
         set_rd = mem.read_port()
         set_wr = mem.write_port()
-
-        # Round robin pointers for each set
-        m.submodules.rr_mem = rr_mem = memory.Memory(shape=range(self.ways), depth=self.sets, init=[])
-        rr_rd = rr_mem.read_port()
-        rr_wr = rr_mem.write_port()
-
-        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
-
-        # Single CAM instance that will be used to check each set
-        m.submodules.cam = cam = TLBCAM(self.gen_params, self.ways)
         m.d.comb += cam.ways_data.eq(set_rd.data)
-        m.d.comb += cam.rr_index.eq(rr_rd.data)
+
+        # replacement data for each set
+        m.submodules.rd_mem = rd_mem = memory.Memory(shape=cam.replacement_data.shape(), depth=self.sets, init=[])
+        rd_rd = rd_mem.read_port()
+        rd_wr = rd_mem.write_port()
+        m.d.comb += cam.replacement_data.eq(rd_rd.data)
+        
+        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
 
         flushing = Signal(init=1)
 
@@ -324,12 +325,10 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.av_comb += valid_vec.eq(cam.valid_match & cam.addr_match & (cam.asid_match | cam.global_match))
 
             found_entry = Signal(TLBEntry(self.gen_params))
-            found_entry_idx = Signal(range(self.ways))
 
             for way in range(self.ways):
                 with m.If(valid_vec[way]):
                     m.d.av_comb += found_entry.eq(cam.ways_data[way])
-                    m.d.av_comb += found_entry_idx.eq(way)
 
             miss = Signal()
             ask_backing = Signal()
@@ -338,11 +337,6 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             with m.If(~miss & req.write_aspect & ~found_entry.permissions.d):
                 m.d.av_comb += ask_backing.eq(1)
-                # invalidate the entry
-                m.d.comb += set_wr.addr.eq(requested_set)
-                m.d.comb += set_wr.data.eq(set_rd.data)
-                m.d.comb += set_wr.data[found_entry_idx].valid.eq(0)
-                m.d.comb += set_wr.en.eq(1)
 
             max_class = self.gen_params.vmem_params.max_tlb_size_class
             with m.If(miss & (requested_class == max_class)):
@@ -385,9 +379,9 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     m.d.sync += refill_response.eq(resp)
 
                     m.d.comb += set_rd.addr.eq(set_idx)
-                    m.d.comb += rr_rd.addr.eq(set_idx)
+                    m.d.comb += rd_rd.addr.eq(set_idx)
                     m.d.comb += set_rd.en.eq(1)
-                    m.d.comb += rr_rd.en.eq(1)
+                    m.d.comb += rd_rd.en.eq(1)
 
                     with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
                         m.next = "REFILL"
@@ -414,9 +408,9 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                         new_entry.permissions.eq(refill_response.permissions),
                     ]
 
-                    m.d.comb += rr_wr.data.eq(mod_incr(cam.replace_candidate, self.ways))
-                    m.d.comb += rr_wr.addr.eq(refill_set_idx)
-                    m.d.comb += rr_wr.en.eq(1)
+                    m.d.comb += rd_wr.data.eq(cam.next_replacement_data)
+                    m.d.comb += rd_wr.addr.eq(refill_set_idx)
+                    m.d.comb += rd_wr.en.eq(1)
 
                     m.d.comb += set_wr.data.eq(set_rd.data)
                     m.d.comb += set_wr.data[cam.replace_candidate].eq(new_entry)

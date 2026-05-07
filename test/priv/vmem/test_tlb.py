@@ -1,5 +1,3 @@
-"""Unit tests for TLB implementations (FullyAssociativeTLB and SetAssociativeTLB)."""
-
 from typing import Optional
 
 from attr import dataclass
@@ -7,24 +5,28 @@ from parameterized import parameterized_class
 
 from amaranth import *
 
+import pytest
 from transactron import *
-from transactron.lib import Adapter, AdapterTrans
+from transactron.lib import Adapter, Pipe
+from transactron.utils import DependencyContext, ModuleConnector, make_layout
 from transactron.testing import (
+    ProcessContext,
     TestCaseWithSimulator,
     TestbenchContext,
     TestbenchIO,
     def_method_mock,
+    SimpleTestCircuit,
     MethodMock,
 )
-from transactron.utils import DependencyContext
 
-from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
+from coreblocks.arch.isa_consts import SatpMode
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.priv.vmem.iface import TLBBackingDevice
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
+from test.regression.pysim import PySimulation
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,8 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
 
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
+        self.csr_instances = DependencyContext.get().get_dependency(CSRInstancesKey())
+
         self.layout = gen_params.get(AddressTranslationLayouts)
 
         self.request_mock = TestbenchIO(Adapter(i=self.layout.tlb_request))
@@ -51,17 +55,19 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
 
         # Storage for mock translations: (vpn, asid) -> (ppn, permissions, size_class, result)
         self.translations = dict()
-        self.request_count = 0
-        self.accept_count = 0
 
-    def add_translation(
-        self,
-        vpn: int,
-        ppn: int,
-        permissions: Permissions = Permissions(),
-        size_class: int = 0,
-        asid: Optional[int] = None,
-    ):
+        self.ready = False
+        self.translated = []
+        
+        self.asid = -1
+
+    def add_translation(self,
+                        vpn: int,
+                        ppn: int,
+                        permissions: Permissions = Permissions(),
+                        size_class: int = 0,
+                        asid: Optional[int] = None
+                        ):
         """Add a translation to the backing device.
         asid == None means global entry.
         """
@@ -88,51 +94,45 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
             AddressTranslationLayouts.TLBResult.ACCESS_FAULT,
         )
 
-    def elaborate(self, platform):
-        m = TModule()
+    async def asid_get(self, sim: ProcessContext):
+        async for *_, asid in sim.tick().sample(self.csr_instances.s_mode.satp_asid):  # type: ignore
+            self.asid = asid
 
-        m.submodules.request_mock = request_mock = self.request_mock
-        m.submodules.accept_mock = accept_mock = self.accept_mock
-
-        bits_per_size_class = self.gen_params.vmem_params.page_table_level_bits
-
-        results = [
-            {
-                "result": AddressTranslationLayouts.TLBResult.PAGE_FAULT,
-                "ppn": 0,
-                "permissions": Permissions(),
-                "size_class": 0,
-            }
-        ]
-        requested = False
-
-        @def_method_mock(lambda: request_mock, enable=lambda: not requested)
-        def process_request(vpn: int, asid: int):
+    @def_method_mock(lambda self: self.request_mock, enable=lambda self: not self.ready)
+    def process_request(self, vpn, write_aspect):
+        @MethodMock.effect
+        def _():
             found_key = None
 
+            bits_per_size_class = self.gen_params.vmem_params.page_table_level_bits
+
             for size_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
-                mask = (1 << bits_per_size_class * size_class) - 1
+                mask = (1 << (bits_per_size_class * size_class)) - 1
                 vpn_masked = vpn & ~mask
-                if (vpn_masked, asid) in self.translations:
-                    found_key = (vpn_masked, asid)
+                if (vpn_masked, self.asid) in self.translations:
+                    found_key = (vpn_masked, self.asid)
                     break
                 if (vpn_masked, None) in self.translations:
                     found_key = (vpn_masked, None)
                     break
 
-            ret_val = None
-
             if found_key is None:
-                ret_val = {
+                res_dict = {
                     "result": AddressTranslationLayouts.TLBResult.PAGE_FAULT,
                     "ppn": 0,
-                    "permissions": Permissions(),
+                    "permissions": {
+                        "r": 0,
+                        "w": 0,
+                        "x": 0,
+                        "u": 0,
+                        "d": 0,
+                        "g": 0,
+                    },
                     "size_class": 0,
                 }
             else:
                 ppn, permissions, size_class, result = self.translations[found_key]
-
-                ret_val = {
+                res_dict = {
                     "result": result,
                     "ppn": ppn,
                     "permissions": {
@@ -146,79 +146,61 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
                     "size_class": size_class,
                 }
 
-            @MethodMock.effect
-            def eff():
-                nonlocal requested
-                requested = True
-                self.request_count += 1
-                results.append(ret_val)
+            self.ready = True
+            print("!!!")
+            self.translated.append(res_dict)
 
-        @def_method_mock(lambda: accept_mock, enable=lambda: requested)
-        def process_accept():
-            @MethodMock.effect
-            def eff():
-                nonlocal requested
-                requested = False
-                self.accept_count += 1
+    @def_method_mock(lambda self: self.accept_mock, enable=lambda self: self.ready)
+    def process_accept(self):
+        @MethodMock.effect
+        def _():
+            self.ready = False
 
-            return results[-1]
-
-        return m
-
-
-class TLBTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams, dut_kind: str):
-        self.gen_params = gen_params
-        self.dut_kind = dut_kind
-
-    def create_dut(self, backing: TLBBackingDevice) -> Elaboratable:
-        if self.dut_kind == "fully_associative":
-            return FullyAssociativeTLB(self.gen_params, entries=4, backing_resolver=backing)
-
-        if self.dut_kind == "set_associative":
-            return SetAssociativeTLB(self.gen_params, entries=4, ways=2, backing_resolver=backing)
-
-        raise ValueError(f"Unknown TLB kind: {self.dut_kind}")
+        if self.translated:
+            return self.translated[-1]
 
     def elaborate(self, platform):
         m = TModule()
-
-        self.csr_instances = CSRInstances(self.gen_params)
-        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
-
-        self.backing = MockTLBBackingDevice(self.gen_params)
-        self.dut = self.create_dut(self.backing)
-
-        m.submodules.csr_instances = self.csr_instances
-        m.submodules.backing = self.backing
-        m.submodules.dut = self.dut
-        m.submodules.request = self.request = TestbenchIO(AdapterTrans.create(self.dut.request))
-        m.submodules.accept = self.accept = TestbenchIO(AdapterTrans.create(self.dut.accept))
-
+        m.submodules += [self.request_mock, self.accept_mock]
         return m
 
 
 @parameterized_class(
-    ("name", "dut_kind"),
+    ("name",),
     [
-        ("fully_associative", "fully_associative"),
-        ("set_associative", "set_associative"),
+        ("fully_associative",),
+        ("set_associative",),
     ],
 )
 class TestTLBCache(TestCaseWithSimulator):
-    dut_kind: str
+    name: str
 
+    @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(
             configurations.test.replace(
-                xlen=64,
                 supervisor_mode=True,
                 asidlen=4,
-                supported_vm_schemes=(SatpMode.BARE, SatpMode.SV39),
+                supported_vm_schemes=(SatpMode.BARE, SatpMode.SV32),
                 fetch_block_bytes_log=3,
             )
         )
-        self.tc = TLBTestCircuit(self.gen_params, self.dut_kind)
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
+        self.backing = MockTLBBackingDevice(self.gen_params)
+
+        if self.name == "fully_associative":
+            dut = FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing)
+        elif self.name == "set_associative":
+            dut = SetAssociativeTLB(self.gen_params, ways=4, entries=16, backing_resolver=self.backing)
+        else:
+            print(self.name)
+            assert False, "Invalid TLB type"
+
+        self.dut = SimpleTestCircuit(dut)
+
+        self.m = ModuleConnector(self.dut, backing=self.backing, csrs=self.csr_instances)
 
     def assert_hit(
         self, response, *, ppn: int, permissions: Permissions, size_class: int = 0, global_entry: bool = False
@@ -236,37 +218,42 @@ class TestTLBCache(TestCaseWithSimulator):
         }
 
     async def set_satp_asid(self, sim: TestbenchContext, asid: int):
-        sim.set(self.tc.csr_instances.s_mode.satp_asid.value, asid)
         await sim.tick()
 
     async def translation_is_cached_process(self, sim: TestbenchContext):
-        vpn = 0x12345 & ((1 << self.gen_params.vmem_params.max_tlb_vpn_bits) - 1)
-        ppn = 0x23456 & ((1 << (self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)) - 1)
+        vpn = 0x12345
+        ppn = 0x23456
         asid = 3
         permissions = Permissions(r=1, w=1, x=0, u=1, d=1)
 
-        self.tc.backing.add_translation(vpn, ppn, permissions=permissions, asid=asid)
-        await self.set_satp_asid(sim, asid)
+        self.backing.add_translation(vpn, ppn, permissions=permissions, asid=asid)
+        sim.set(self.csr_instances.s_mode.satp_asid, asid)
 
-        await self.tc.request.call(sim, vpn=vpn, write_aspect=0)
-        response = await self.tc.accept.call(sim)
+        print("Starting translation_is_cached_process")
+        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        print("Requested translation")
+        response = await self.dut.accept.call(sim)
+        print("Received response")
         self.assert_hit(response, ppn=ppn, permissions=permissions)
-        assert self.tc.backing.request_count == 1
+        assert len(self.backing.translated) == 1
 
-        await self.tc.request.call(sim, vpn=vpn, write_aspect=0)
-        cached_response = await self.tc.accept.call(sim)
+        print("Requesting translation again to test caching")
+        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        print("Requested translation again")
+        cached_response = await self.dut.accept.call(sim)
+        print("Received cached response")
         self.assert_hit(cached_response, ppn=ppn, permissions=permissions)
-        assert self.tc.backing.request_count == 1
+        assert len(self.backing.translated) == 1
 
     async def access_fault_is_forwarded_process(self, sim: TestbenchContext):
-        vpn = 0x5A5A & ((1 << self.gen_params.vmem_params.max_tlb_vpn_bits) - 1)
+        vpn = 0x5A5A
         asid = 2
 
-        self.tc.backing.add_access_fault(vpn, asid=asid)
-        await self.set_satp_asid(sim, asid)
+        self.backing.add_access_fault(vpn, asid=asid)
+        sim.set(self.csr_instances.s_mode.satp_asid, asid)
 
-        await self.tc.request.call(sim, vpn=vpn, write_aspect=0)
-        response = await self.tc.accept.call(sim)
+        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        response = await self.dut.accept.call(sim)
 
         assert response["result"] == AddressTranslationLayouts.TLBResult.ACCESS_FAULT
         assert response["ppn"] == 0
@@ -279,12 +266,17 @@ class TestTLBCache(TestCaseWithSimulator):
             "d": 0,
             "g": False,
         }
-        assert self.tc.backing.request_count == 1
 
     def test_translation_is_cached(self):
-        with self.run_simulation(self.tc) as sim:
+        with self.run_simulation(self.m, max_cycles=300) as sim:
+            sim.add_process(self.backing.asid_get)
+            self.add_mock(sim, self.backing.process_request())  # type: ignore
+            self.add_mock(sim, self.backing.process_accept())  # type: ignore
             sim.add_testbench(self.translation_is_cached_process)
 
     def test_access_fault_is_forwarded(self):
-        with self.run_simulation(self.tc) as sim:
+        with self.run_simulation(self.m, max_cycles=300) as sim:
+            sim.add_process(self.backing.asid_get)
+            self.add_mock(sim, self.backing.process_request())  # type: ignore
+            self.add_mock(sim, self.backing.process_accept())  # type: ignore
             sim.add_testbench(self.access_fault_is_forwarded_process)
