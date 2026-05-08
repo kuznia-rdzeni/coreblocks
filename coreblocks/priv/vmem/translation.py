@@ -53,9 +53,7 @@ class AddressTranslator(Elaboratable):
                     else gen_params.tlb_config.dtlb_entries
                 ),
                 backing_resolver=self.dm.get_dependency(L1TLBBackingDeviceKey()),
-                perf_name_prefix=(
-                    "mmu.itlb" if mode == AddressTranslatorMode.INSTRUCTION else "mmu.dtlb"
-                ),
+                perf_name_prefix=("mmu.itlb" if mode == AddressTranslatorMode.INSTRUCTION else "mmu.dtlb"),
             )
 
     def elaborate(self, platform):

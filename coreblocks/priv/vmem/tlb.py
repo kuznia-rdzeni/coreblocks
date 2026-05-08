@@ -131,9 +131,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
-        self.perf_loads = HwCounter(
-            f"{self.perf_name_prefix}.loads", "Number of requests to the TLB"
-        )
+        self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB")
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
         self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
         self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
@@ -278,9 +276,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
-        self.perf_loads = HwCounter(
-            f"{self.perf_name_prefix}.loads", "Number of requests to the TLB"
-        )
+        self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB")
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
         self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
         self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
