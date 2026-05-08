@@ -12,7 +12,7 @@ from coreblocks.params import ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
 from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.lib import *
-from transactron.lib import logging
+from transactron.utils import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface

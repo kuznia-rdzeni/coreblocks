@@ -23,8 +23,7 @@ from coreblocks.interface.keys import CSRInstancesKey
 from typing import Optional
 from amaranth.lib import data
 from transactron.core import Transaction, TModule
-from transactron.utils import DependencyContext
-from transactron.lib import logging
+from transactron.utils import DependencyContext, logging
 
 
 log = logging.HardwareLogger("priv.csr.instances")

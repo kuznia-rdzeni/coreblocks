@@ -13,7 +13,7 @@ from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from transactron import *
 from coreblocks.scheduler.wakeup_select import *
 
-from transactron.testing import RecordIntDict, SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
+from transactron.testing import NameIntDict, SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 
 
@@ -30,7 +30,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
 
         random.seed(42)
 
-    def random_entry(self, layout: StructLayout) -> RecordIntDict:
+    def random_entry(self, layout: StructLayout) -> NameIntDict:
         result = {}
         for key, width_or_layout in layout.members.items():
             if isinstance(width_or_layout, int):
@@ -41,7 +41,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
                 result[key] = self.random_entry(width_or_layout)
         return result
 
-    def maybe_insert(self, rs: list[Optional[RecordIntDict]]):
+    def maybe_insert(self, rs: list[Optional[NameIntDict]]):
         empty_entries = sum(1 for entry in rs if entry is None)
         if empty_entries > 0 and random.random() < 0.5:
             empty_idx = random.randrange(empty_entries)
@@ -56,7 +56,7 @@ class TestWakeupSelect(TestCaseWithSimulator):
     async def process(self, sim: TestbenchContext):
         inserted_count = 0
         issued_count = 0
-        rs: list[Optional[RecordIntDict]] = [None for _ in range(self.gen_params.max_rs_entries)]
+        rs: list[Optional[NameIntDict]] = [None for _ in range(self.gen_params.max_rs_entries)]
 
         self.m.take_row.enable(sim)
         self.m.issue.enable(sim)
