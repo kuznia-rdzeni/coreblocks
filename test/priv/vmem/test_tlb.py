@@ -209,12 +209,13 @@ class TestTLBCache(TestCaseWithSimulator):
         self.m = ModuleConnector(self.dut, backing=self.backing, csrs=self.csr_instances)
 
     def matches_lookup(self, response, vpn, asid):
-        for (e_ppn, e_permissions, e_size_class, e_result, e_global) in self.backing.lookup(vpn, asid):
+        for e_ppn, e_permissions, e_size_class, e_result, e_global in self.backing.lookup(vpn, asid):
             if (
                 response["result"] == e_result
                 and response["ppn"] == e_ppn
                 and response["size_class"] == e_size_class
-                and response["permissions"] == {
+                and response["permissions"]
+                == {
                     "r": e_permissions.r,
                     "w": e_permissions.w,
                     "x": e_permissions.x,
@@ -287,7 +288,7 @@ class TestTLBCache(TestCaseWithSimulator):
             await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
             response = await self.dut.accept.call(sim)
             assert self.matches_lookup(response, vpn, asid)
-            
+
         # check that we actually cached anything
         assert len(self.backing.translated) < len(test_cases)
 
