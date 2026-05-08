@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr
-from transactron.lib import Forwarder, Pipe
+from transactron.lib import Forwarder, Pipe, condition
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
@@ -146,15 +146,16 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.d.comb += cam.ways_data.eq(entries)
 
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
-        m.submodules.slow_fwd = slow_fwd = Forwarder(self.layout.tlb_request)
 
         request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
 
         @def_method(m, self.request, ready=~request_in_flight)
         def _(vpn, write_aspect):
-            m.d.comb += cam.checked_asid.eq(current_asid)
-            m.d.comb += cam.checked_vpn.eq(vpn)
+            # Set CAM data as request's VPN and ASID by default, so condition will not create a cycle.
+            # As all other uses of CAM are exclusive with this method, other places should use m.d.comb
+            m.d.av_comb += cam.checked_asid.eq(current_asid)
+            m.d.av_comb += cam.checked_vpn.eq(vpn)
 
             found_entry = Signal(TLBEntry(self.gen_params))
 
@@ -172,22 +173,19 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                 #   the re-walk will not fix the issue.
                 m.d.av_comb += ask_backing.eq(1)
 
-            with m.If(ask_backing):
-                m.d.sync += request_in_flight.eq(1)
-                m.d.sync += requested_vpn.eq(vpn)
-                slow_fwd.write(m, vpn=vpn, write_aspect=write_aspect)
-            with m.Else():
-                fwd.write(
-                    m,
-                    result=AddressTranslationLayouts.TLBResult.HIT,
-                    permissions=found_entry.permissions,
-                    ppn=found_entry.ppn,
-                    size_class=found_entry.size_class,
-                )
-
-        with Transaction().body(m):
-            req = slow_fwd.read(m)
-            self.backing_resolver.request(m, vpn=req.vpn, write_aspect=req.write_aspect)
+            with condition(m) as branch:
+                with branch(ask_backing):
+                    m.d.sync += request_in_flight.eq(1)
+                    m.d.sync += requested_vpn.eq(vpn)
+                    self.backing_resolver.request(m, vpn=vpn, write_aspect=write_aspect)
+                with branch():
+                    fwd.write(
+                        m,
+                        result=AddressTranslationLayouts.TLBResult.HIT,
+                        permissions=found_entry.permissions,
+                        ppn=found_entry.ppn,
+                        size_class=found_entry.size_class,
+                    )
 
         # Slow path - refill from backing resolver
         with Transaction().body(m, ready=request_in_flight):
