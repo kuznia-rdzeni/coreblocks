@@ -242,6 +242,11 @@ class SatpMode(IntEnum, shape=4):
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP mode encoding: {xlen}")
 
+    @staticmethod
+    def bits_per_page_table_level(xlen: int) -> int:
+        """Number of virtual address bits translated at each page table level for a given XLEN."""
+        return 10 if xlen == 32 else 9
+
     @classmethod
     def mode_dependencies(cls, mode: "SatpMode") -> Set["SatpMode"]:
         match mode:
@@ -251,6 +256,23 @@ class SatpMode(IntEnum, shape=4):
                 return frozenset({cls.SV39})
             case cls.SV57:
                 return frozenset({cls.SV48})
+            case _:
+                raise ValueError(f"Unsupported SATP mode: {mode}")
+
+    @classmethod
+    def level_count(cls, mode: "SatpMode") -> int:
+        """Number of page table levels for a given SATP mode."""
+        match mode:
+            case cls.BARE:
+                return 0
+            case cls.SV32:
+                return 2
+            case cls.SV39:
+                return 3
+            case cls.SV48:
+                return 4
+            case cls.SV57:
+                return 5
             case _:
                 raise ValueError(f"Unsupported SATP mode: {mode}")
 

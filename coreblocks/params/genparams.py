@@ -125,6 +125,13 @@ class GenParams(DependentCache):
         self.supervisor_mode = cfg.supervisor_mode
         self.hpm_counters_count = cfg.hpm_counters_count
 
+        self.tlb_config = cfg.tlb_config
+
+        if self.tlb_config.itlb_entries <= 0:
+            raise ValueError("ITLB entries must be positive")
+        if self.tlb_config.dtlb_entries <= 0:
+            raise ValueError("DTLB entries must be positive")
+
         if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
             raise ValueError("HPM counters count must be in range [0, 29]")
 
