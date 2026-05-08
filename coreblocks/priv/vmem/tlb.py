@@ -150,13 +150,18 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
 
+        with m.If(self.sfence_vma.run):
+            m.d.comb += cam.checked_asid.eq(self.sfence_vma.data_in.asid)
+            m.d.comb += cam.checked_vpn.eq(self.sfence_vma.data_in.vaddr >> PAGE_SIZE_LOG)
+        with m.Elif(request_in_flight):
+            m.d.comb += cam.checked_asid.eq(current_asid)
+            m.d.comb += cam.checked_vpn.eq(requested_vpn)
+        with m.Else():
+            m.d.comb += cam.checked_asid.eq(current_asid)
+            m.d.comb += cam.checked_vpn.eq(self.request.data_in.vpn)
+
         @def_method(m, self.request, ready=~request_in_flight)
         def _(vpn, write_aspect):
-            # Set CAM data as request's VPN and ASID by default, so condition will not create a cycle.
-            # As all other uses of CAM are exclusive with this method, other places should use m.d.comb
-            m.d.av_comb += cam.checked_asid.eq(current_asid)
-            m.d.av_comb += cam.checked_vpn.eq(vpn)
-
             found_entry = Signal(TLBEntry(self.gen_params))
 
             for way in range(self.entries):
@@ -192,9 +197,6 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             resp = self.backing_resolver.accept(m)
             m.d.sync += request_in_flight.eq(0)
 
-            m.d.comb += cam.checked_vpn.eq(requested_vpn)
-            m.d.comb += cam.checked_asid.eq(current_asid)
-
             fwd.write(m, resp)
 
             with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
@@ -214,9 +216,6 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         @def_method(m, self.sfence_vma, ready=~request_in_flight)
         def _(vaddr, asid, all_vaddrs, all_asids):
-            m.d.comb += cam.checked_asid.eq(asid)
-            m.d.comb += cam.checked_vpn.eq(vaddr >> PAGE_SIZE_LOG)
-
             for way in range(self.entries):
                 with m.If((all_asids | cam.asid_match[way]) & (all_vaddrs | cam.addr_match[way])):
                     m.d.sync += entries[way].valid.eq(0)
