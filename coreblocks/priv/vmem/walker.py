@@ -7,7 +7,8 @@ from amaranth.utils import exact_log2
 from coreblocks.arch.isa_consts import PAGE_SIZE, SatpMode, PAGE_SIZE_LOG
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import AddressTranslationLayouts
-from coreblocks.interface.keys import CSRInstancesKey, CommonBusDataKey
+from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 from transactron import *
@@ -15,6 +16,9 @@ from transactron.utils import DependencyContext
 from transactron.lib.logging import HardwareLogger
 
 from coreblocks.priv.vmem.iface import TLBBackingDevice
+
+
+__all__ = ["PageTableWalker"]
 
 
 log = HardwareLogger("mmu.walker")
@@ -116,17 +120,17 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
     Implements Svade semantics (exception on missing A/D bits).
     """
 
-    def __init__(self, gen_params: GenParams) -> None:
+    def __init__(self, gen_params: GenParams, bus: BusMasterInterface) -> None:
         self.gen_params = gen_params
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.request = Method(i=self.layout.tlb_request)
         self.accept = Method(o=self.layout.tlb_accept)
         self.dm = DependencyContext.get()
+        self.bus = bus
 
     def elaborate(self, platform):
         m = TModule()
 
-        bus = self.dm.get_dependency(CommonBusDataKey())
         csr = self.dm.get_dependency(CSRInstancesKey())
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.MMU)
 
@@ -171,11 +175,11 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                         m.next = "DONE"
                     with m.Else():
                         assert xlen == pte_bytes * 8
-                        bus.request_read(m, addr=pte_addr >> exact_log2(xlen), sel=~0)
+                        self.bus.request_read(m, addr=pte_addr >> exact_log2(xlen), sel=~0)
                         m.next = "EVAL"
             with m.State("EVAL"):
                 with Transaction().body(m):
-                    fetched = bus.get_read_response(m)
+                    fetched = self.bus.get_read_response(m)
                     pte = Signal(pte_layout)
                     m.d.av_comb += pte.eq(fetched.data)
 
