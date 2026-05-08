@@ -18,13 +18,13 @@ coreblocks.func\_blocks.instruction\_metrics module
 
 .. automodule:: coreblocks.func_blocks.instruction_metrics
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.func_blocks
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

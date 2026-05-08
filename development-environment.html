@@ -1,22 +1,23 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Development environment &mdash; Coreblocks documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
-        <script>mermaid.initialize({startOnLoad:true});</script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+      <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -29,12 +30,16 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> Coreblocks documentation
-            <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Coreblocks documentation
+              <img src="_static/logo-banner.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -79,8 +84,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Development environment</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Development environment</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/development-environment.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -90,10 +95,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="development-environment">
-<h1>Development environment<a class="headerlink" href="#development-environment" title="Permalink to this heading"></a></h1>
-<div class="section" id="setting-up">
-<h2>Setting up<a class="headerlink" href="#setting-up" title="Permalink to this heading"></a></h2>
+  <section id="development-environment">
+<h1>Development environment<a class="headerlink" href="#development-environment" title="Link to this heading"></a></h1>
+<section id="setting-up">
+<h2>Setting up<a class="headerlink" href="#setting-up" title="Link to this heading"></a></h2>
 <p>In order to prepare the development environment, please follow the steps below:</p>
 <ol class="arabic simple">
 <li><p>Install the Python 3.11 interpreter and pip package manager.</p>
@@ -105,12 +110,12 @@
 <li><p>Install <code class="docutils literal notranslate"><span class="pre">riscv64-unknown-elf</span></code> binutils using your favourite package manager. On Debian-based distros the package is called <code class="docutils literal notranslate"><span class="pre">binutils-riscv64-unknown-elf</span></code>, on Arch-based - <code class="docutils literal notranslate"><span class="pre">riscv64-unknown-elf-binutils</span></code>.</p></li>
 <li><p>Optionally, install all precommit hooks with <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">install</span></code>. This will automatically run the linter before commits.</p></li>
 </ol>
-</div>
-<div class="section" id="using-scripts">
-<h2>Using scripts<a class="headerlink" href="#using-scripts" title="Permalink to this heading"></a></h2>
+</section>
+<section id="using-scripts">
+<h2>Using scripts<a class="headerlink" href="#using-scripts" title="Link to this heading"></a></h2>
 <p>The development environment contains a number of scripts which are run in CI, but are also intended for local use. They are:</p>
-<div class="section" id="run-tests-py">
-<h3>run_tests.py<a class="headerlink" href="#run-tests-py" title="Permalink to this heading"></a></h3>
+<section id="run-tests-py">
+<h3>run_tests.py<a class="headerlink" href="#run-tests-py" title="Link to this heading"></a></h3>
 <p>Runs the unit tests.
 By default, every available test is run (excluding the <code class="docutils literal notranslate"><span class="pre">riscv-tests</span></code> and <code class="docutils literal notranslate"><span class="pre">riscv-arch-test</span></code> test suites).
 Tests from a specific file can be run using the following call (<code class="docutils literal notranslate"><span class="pre">test_alu</span></code> is used as an example):</p>
@@ -163,9 +168,9 @@ Faster than grepping the script output.</p></li>
 </ul>
 <p>The <code class="docutils literal notranslate"><span class="pre">run_tests.py</span></code> is actually a thin wrapper over <code class="docutils literal notranslate"><span class="pre">pytest</span></code>.
 For more advanced use, see <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">--help</span></code>.</p>
-</div>
-<div class="section" id="lint-sh">
-<h3>lint.sh<a class="headerlink" href="#lint-sh" title="Permalink to this heading"></a></h3>
+</section>
+<section id="lint-sh">
+<h3>lint.sh<a class="headerlink" href="#lint-sh" title="Link to this heading"></a></h3>
 <p>Checks the code formatting and typing. It should be run as follows:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scripts</span><span class="o">/</span><span class="n">lint</span><span class="o">.</span><span class="n">sh</span> <span class="n">subcommand</span> <span class="p">[</span><span class="n">filename</span><span class="o">...</span><span class="p">]</span>
 </pre></div>
@@ -182,22 +187,22 @@ For more advanced use, see <code class="docutils literal notranslate"><span clas
 </pre></div>
 </div>
 <p>This way you may display the changes <code class="docutils literal notranslate"><span class="pre">black</span></code> would apply to <code class="docutils literal notranslate"><span class="pre">[filename]</span></code> if you chose the <code class="docutils literal notranslate"><span class="pre">format</span></code> option for <code class="docutils literal notranslate"><span class="pre">lint.sh</span></code> script. This may help you locate the formatting issues.</p>
-</div>
-<div class="section" id="core-graph-py">
-<h3>core_graph.py<a class="headerlink" href="#core-graph-py" title="Permalink to this heading"></a></h3>
+</section>
+<section id="core-graph-py">
+<h3>core_graph.py<a class="headerlink" href="#core-graph-py" title="Link to this heading"></a></h3>
 <p>Visualizes the core architecture as a graph. The script outputs a file in one of supported graph formats, which need to be passed to an appropriate tool to get a graph.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">core_graph.py</span></code> script has the following options:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">-p</span></code>, <code class="docutils literal notranslate"><span class="pre">--prune</span></code> – removes disconnected nodes from the output graph.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-f</span> <span class="pre">FORMAT</span></code>, <code class="docutils literal notranslate"><span class="pre">--format</span> <span class="pre">FORMAT</span></code> – selects the output format. Supported formats are <code class="docutils literal notranslate"><span class="pre">elk</span></code> (for <a class="reference external" href="https://www.eclipse.org/elk/">Eclipse Layout Kernel</a>), <code class="docutils literal notranslate"><span class="pre">dot</span></code> (for <a class="reference external" href="https://graphviz.org/">Graphviz</a>), <code class="docutils literal notranslate"><span class="pre">mermaid</span></code> (for <a class="reference external" href="https://mermaid.js.org/">Mermaid</a>).</p></li>
 </ul>
-</div>
-<div class="section" id="build-docs-sh">
-<h3>build_docs.sh<a class="headerlink" href="#build-docs-sh" title="Permalink to this heading"></a></h3>
+</section>
+<section id="build-docs-sh">
+<h3>build_docs.sh<a class="headerlink" href="#build-docs-sh" title="Link to this heading"></a></h3>
 <p>Generates local documentation using <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a>. The generated HTML files are located in <code class="docutils literal notranslate"><span class="pre">build/html</span></code>.</p>
-</div>
-<div class="section" id="tprof-py">
-<h3>tprof.py<a class="headerlink" href="#tprof-py" title="Permalink to this heading"></a></h3>
+</section>
+<section id="tprof-py">
+<h3>tprof.py<a class="headerlink" href="#tprof-py" title="Link to this heading"></a></h3>
 <p>Processes Transactron profile files and presents them in a readable way.
 To generate a profile file, the <code class="docutils literal notranslate"><span class="pre">run_tests.py</span></code> script should be used with the <code class="docutils literal notranslate"><span class="pre">--profile</span></code> option.
 The <code class="docutils literal notranslate"><span class="pre">tprof.py</span></code> can then be run as follows:</p>
@@ -224,9 +229,9 @@ In this mode, the <code class="docutils literal notranslate"><span class="pre">l
 <li><p><code class="docutils literal notranslate"><span class="pre">--filter-name</span></code> – filters rows by name. Regular expressions can be used.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--filter-loc</span></code> – filters rows by source locations. Regular expressions can be used.</p></li>
 </ul>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>
@@ -240,7 +245,7 @@ In this mode, the <code class="docutils literal notranslate"><span class="pre">l
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:46 2026-05-04.
+      <span class="lastupdated">Last updated on 15:51 2026-05-08.
       </span></p>
   </div>
 

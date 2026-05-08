@@ -9,21 +9,21 @@ coreblocks.backend.announcement module
 
 .. automodule:: coreblocks.backend.announcement
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.backend.retirement module
 ------------------------------------
 
 .. automodule:: coreblocks.backend.retirement
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.backend
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

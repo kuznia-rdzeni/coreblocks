@@ -9,61 +9,61 @@ coreblocks.params.configurations module
 
 .. automodule:: coreblocks.params.configurations
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.params.core\_configuration module
 --------------------------------------------
 
 .. automodule:: coreblocks.params.core_configuration
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.params.fu\_params module
 -----------------------------------
 
 .. automodule:: coreblocks.params.fu_params
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.params.genparams module
 ----------------------------------
 
 .. automodule:: coreblocks.params.genparams
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.params.icache\_params module
 ---------------------------------------
 
 .. automodule:: coreblocks.params.icache_params
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.params.instr module
 ------------------------------
 
 .. automodule:: coreblocks.params.instr
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.params.vmem\_params module
 -------------------------------------
 
 .. automodule:: coreblocks.params.vmem_params
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.params
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

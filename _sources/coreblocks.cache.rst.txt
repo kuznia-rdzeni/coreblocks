@@ -9,29 +9,29 @@ coreblocks.cache.icache module
 
 .. automodule:: coreblocks.cache.icache
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.cache.iface module
 -----------------------------
 
 .. automodule:: coreblocks.cache.iface
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.cache.refiller module
 --------------------------------
 
 .. automodule:: coreblocks.cache.refiller
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.cache
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

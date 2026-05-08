@@ -9,45 +9,45 @@ coreblocks.priv.csr.aliased module
 
 .. automodule:: coreblocks.priv.csr.aliased
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.priv.csr.csr\_instances module
 -----------------------------------------
 
 .. automodule:: coreblocks.priv.csr.csr_instances
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.priv.csr.csr\_register module
 ----------------------------------------
 
 .. automodule:: coreblocks.priv.csr.csr_register
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.priv.csr.double\_counter module
 ------------------------------------------
 
 .. automodule:: coreblocks.priv.csr.double_counter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.priv.csr.shadow module
 ---------------------------------
 
 .. automodule:: coreblocks.priv.csr.shadow
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.priv.csr
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

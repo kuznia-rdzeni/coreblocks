@@ -9,109 +9,109 @@ coreblocks.func\_blocks.fu.fpu.close\_path module
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.close_path
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.far\_path module
 -----------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.far_path
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.float\_to\_int module
 ----------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.float_to_int
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_add\_sub module
 ---------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_add_sub
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_class module
 ------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_class
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_common module
 -------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_common
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_comp module
 -----------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_comp
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_error\_module module
 --------------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_error_module
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_mul module
 ----------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_mul
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_rounding\_module module
 -----------------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_rounding_module
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.fpu\_sign\_injection module
 ----------------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.fpu_sign_injection
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.int\_to\_float module
 ----------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.int_to_float
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.fpu.lza module
 -----------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.lza
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

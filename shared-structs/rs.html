@@ -1,22 +1,23 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reservation Station &mdash; Coreblocks documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
-        <script>mermaid.initialize({startOnLoad:true});</script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+      <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -29,12 +30,16 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> Coreblocks documentation
-            <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Coreblocks documentation
+              <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -83,8 +88,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Reservation Station</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Reservation Station</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/shared-structs/rs.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -94,21 +99,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="reservation-station">
-<h1>Reservation Station<a class="headerlink" href="#reservation-station" title="Permalink to this heading"></a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+  <section id="reservation-station">
+<h1>Reservation Station<a class="headerlink" href="#reservation-station" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <p>The reservation station is used to store instructions which wait for their operands to be ready.  When the instruction
 is ready it should be woken up by wakeup logic and dispatched to the correct FU.</p>
-<div class="section" id="reset-initial-state">
-<h3>Reset / Initial state<a class="headerlink" href="#reset-initial-state" title="Permalink to this heading"></a></h3>
+<section id="reset-initial-state">
+<h3>Reset / Initial state<a class="headerlink" href="#reset-initial-state" title="Link to this heading"></a></h3>
 <p>In initial state all rows are marked as invalid.</p>
-</div>
-</div>
-<div class="section" id="external-interface-methods">
-<h2>External interface methods<a class="headerlink" href="#external-interface-methods" title="Permalink to this heading"></a></h2>
-<div class="section" id="get-slot-and-mark-as-used">
-<h3>Get slot and mark as used<a class="headerlink" href="#get-slot-and-mark-as-used" title="Permalink to this heading"></a></h3>
+</section>
+</section>
+<section id="external-interface-methods">
+<h2>External interface methods<a class="headerlink" href="#external-interface-methods" title="Link to this heading"></a></h2>
+<section id="get-slot-and-mark-as-used">
+<h3>Get slot and mark as used<a class="headerlink" href="#get-slot-and-mark-as-used" title="Link to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><em>null</em></p></li>
@@ -121,9 +126,9 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 <ul class="simple">
 <li><p>Slot on <code class="docutils literal notranslate"><span class="pre">position</span></code> marked as used</p></li>
 </ul>
-</div>
-<div class="section" id="insert-new-instruction">
-<h3>Insert new instruction<a class="headerlink" href="#insert-new-instruction" title="Permalink to this heading"></a></h3>
+</section>
+<section id="insert-new-instruction">
+<h3>Insert new instruction<a class="headerlink" href="#insert-new-instruction" title="Link to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">opcode</span></code> - instruction opcode for FU</p></li>
@@ -141,10 +146,10 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 <ul class="simple">
 <li><p>Save data from input to the slot in RS specified by the <code class="docutils literal notranslate"><span class="pre">position</span></code> argument</p></li>
 </ul>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="get-ready-vector">
-<h3>Get ready vector<a class="headerlink" href="#get-ready-vector" title="Permalink to this heading"></a></h3>
+<section id="get-ready-vector">
+<h3>Get ready vector<a class="headerlink" href="#get-ready-vector" title="Link to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><em>null</em></p></li>
@@ -162,9 +167,9 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 <ul class="simple">
 <li><p><em>null</em></p></li>
 </ul>
-</div>
-<div class="section" id="read-and-clean-row">
-<h3>Read and clean row<a class="headerlink" href="#read-and-clean-row" title="Permalink to this heading"></a></h3>
+</section>
+<section id="read-and-clean-row">
+<h3>Read and clean row<a class="headerlink" href="#read-and-clean-row" title="Link to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">position</span></code> - of RS row which should be read and cleared</p></li>
@@ -181,10 +186,10 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 <ul class="simple">
 <li><p>RS row on <code class="docutils literal notranslate"><span class="pre">position</span></code> marked as invalid</p></li>
 </ul>
-</div>
+</section>
 <hr class="docutils" />
-<div class="section" id="compare-and-substitute-all">
-<h3>Compare and substitute all<a class="headerlink" href="#compare-and-substitute-all" title="Permalink to this heading"></a></h3>
+<section id="compare-and-substitute-all">
+<h3>Compare and substitute all<a class="headerlink" href="#compare-and-substitute-all" title="Link to this heading"></a></h3>
 <p>Input:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">tag</span></code> - from RF for which RS should be checked for</p></li>
@@ -199,15 +204,15 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 <li><p>For each row of RS if in this row are fields tagged with <code class="docutils literal notranslate"><span class="pre">tag</span></code> store
 <code class="docutils literal notranslate"><span class="pre">value</span></code> in these fields.</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="external-interface-signals">
-<h2>External interface signals<a class="headerlink" href="#external-interface-signals" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+<section id="external-interface-signals">
+<h2>External interface signals<a class="headerlink" href="#external-interface-signals" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">free</span></code>: one-bit signal indicating if there is a free slot in the RS</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
@@ -221,7 +226,7 @@ is ready it should be woken up by wakeup logic and dispatched to the correct FU.
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:46 2026-05-04.
+      <span class="lastupdated">Last updated on 15:51 2026-05-08.
       </span></p>
   </div>
 

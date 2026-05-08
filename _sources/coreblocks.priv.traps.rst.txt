@@ -9,29 +9,29 @@ coreblocks.priv.traps.exception module
 
 .. automodule:: coreblocks.priv.traps.exception
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.priv.traps.instr\_counter module
 -------------------------------------------
 
 .. automodule:: coreblocks.priv.traps.instr_counter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.priv.traps.interrupt\_controller module
 --------------------------------------------------
 
 .. automodule:: coreblocks.priv.traps.interrupt_controller
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.priv.traps
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

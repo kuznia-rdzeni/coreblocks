@@ -9,37 +9,37 @@ coreblocks.core\_structs.crat module
 
 .. automodule:: coreblocks.core_structs.crat
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.core\_structs.rat module
 -----------------------------------
 
 .. automodule:: coreblocks.core_structs.rat
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.core\_structs.rf module
 ----------------------------------
 
 .. automodule:: coreblocks.core_structs.rf
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.core\_structs.rob module
 -----------------------------------
 
 .. automodule:: coreblocks.core_structs.rob
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.core_structs
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

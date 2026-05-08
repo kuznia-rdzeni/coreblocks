@@ -18,29 +18,29 @@ coreblocks.frontend.frontend module
 
 .. automodule:: coreblocks.frontend.frontend
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.frontend.frontend\_params module
 -------------------------------------------
 
 .. automodule:: coreblocks.frontend.frontend_params
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.frontend.stall\_controller module
 --------------------------------------------
 
 .. automodule:: coreblocks.frontend.stall_controller
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.frontend
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

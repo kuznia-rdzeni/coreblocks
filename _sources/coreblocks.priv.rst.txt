@@ -19,13 +19,13 @@ coreblocks.priv.pmp module
 
 .. automodule:: coreblocks.priv.pmp
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.priv
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

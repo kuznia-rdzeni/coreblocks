@@ -9,29 +9,29 @@ coreblocks.peripherals.axi\_lite module
 
 .. automodule:: coreblocks.peripherals.axi_lite
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.peripherals.bus\_adapter module
 ------------------------------------------
 
 .. automodule:: coreblocks.peripherals.bus_adapter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.peripherals.wishbone module
 --------------------------------------
 
 .. automodule:: coreblocks.peripherals.wishbone
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.peripherals
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

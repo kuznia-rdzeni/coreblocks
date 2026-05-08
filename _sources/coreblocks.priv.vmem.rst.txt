@@ -9,13 +9,13 @@ coreblocks.priv.vmem.translation module
 
 .. automodule:: coreblocks.priv.vmem.translation
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.priv.vmem
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

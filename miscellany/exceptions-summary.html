@@ -1,22 +1,23 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Summary of papers about interrupts &mdash; Coreblocks documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
-        <script>mermaid.initialize({startOnLoad:true});</script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+      <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -29,12 +30,16 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> Coreblocks documentation
-            <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Coreblocks documentation
+              <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -79,8 +84,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Summary of papers about interrupts</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Summary of papers about interrupts</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/miscellany/exceptions-summary.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -90,10 +95,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="summary-of-papers-about-interrupts">
-<h1>Summary of papers about interrupts<a class="headerlink" href="#summary-of-papers-about-interrupts" title="Permalink to this heading"></a></h1>
-<div class="section" id="introduction">
-<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h2>
+  <section id="summary-of-papers-about-interrupts">
+<h1>Summary of papers about interrupts<a class="headerlink" href="#summary-of-papers-about-interrupts" title="Link to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
 <p>This summary is a result of analysis of journal articles which I made as a preparation to implement support for
 interrupts, exceptions and speculation to core blocks. It looks like the choice of primary interrupts related to
 structure determines the interrupt handling procedure. We have chosen a ROB, so there is a one classical implementation
@@ -109,17 +114,17 @@ working at that time. So there is probably a lot of other works which can be wor
 <li><p>M. Moudgill and S. Vassiliadis. “Precise interrupts.” IEEE Micro, vol. 16, no. 1, pp. 58–67, February 1996
 These two works present a survey of the topic of interrupts as a time of writing.</p></li>
 </ul>
-</div>
-<div class="section" id="interrupt-handling-in-old-pcs">
-<h2>Interrupt handling in old PCs<a class="headerlink" href="#interrupt-handling-in-old-pcs" title="Permalink to this heading"></a></h2>
+</section>
+<section id="interrupt-handling-in-old-pcs">
+<h2>Interrupt handling in old PCs<a class="headerlink" href="#interrupt-handling-in-old-pcs" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>CDC 6600 - interrupt handling is done by inserting a jump instruction into the interrupt handler</p></li>
 <li><p>IBM360 - stop fetching and wait for all fetched instructions to be committed, then jump to interrupt handler</p></li>
 <li><p>CRAY-1 - similar to IBM360, but here latency can be even bigger due to vector instructions</p></li>
 </ul>
-</div>
-<div class="section" id="interrupt-handling-for-out-of-order-execution-processors">
-<h2>Interrupt Handling for Out-of-Order Execution Processors<a class="headerlink" href="#interrupt-handling-for-out-of-order-execution-processors" title="Permalink to this heading"></a></h2>
+</section>
+<section id="interrupt-handling-for-out-of-order-execution-processors">
+<h2>Interrupt Handling for Out-of-Order Execution Processors<a class="headerlink" href="#interrupt-handling-for-out-of-order-execution-processors" title="Link to this heading"></a></h2>
 <blockquote>
 <div><p>Interrupt Handling for Out-of-Order Execution Processors
 H. C. Torng and Martin Day, 1993</p>
@@ -151,9 +156,9 @@ instructions in different places to allow different interrupt latency</p></li>
 <li><p>for vector instructions IW remember how many elements are left to be processed, so after this context restore allows
 to restore vector operation in the middle of the vector</p></li>
 </ul>
-</div>
-<div class="section" id="in-line-interrupt-handling-for-software-managed-tlbs">
-<h2>In-Line Interrupt Handling for Software-Managed TLBs<a class="headerlink" href="#in-line-interrupt-handling-for-software-managed-tlbs" title="Permalink to this heading"></a></h2>
+</section>
+<section id="in-line-interrupt-handling-for-software-managed-tlbs">
+<h2>In-Line Interrupt Handling for Software-Managed TLBs<a class="headerlink" href="#in-line-interrupt-handling-for-software-managed-tlbs" title="Link to this heading"></a></h2>
 <blockquote>
 <div><p>In-Line Interrupt Handling for Software-Managed TLBs
 Aamer Jaleel and Bruce Jacob, 2001</p>
@@ -186,9 +191,9 @@ each of general purpose registers, so on the start we have already 32 instructio
 with stopping user space program</p></li>
 <li><p>Interrupts and exceptions can be treated as branches and can be speculated</p></li>
 </ul>
-</div>
-<div class="section" id="hardware-software-cost-analysis-of-interrupt-processing-strategies">
-<h2>Hardware/software cost analysis of interrupt processing strategies:<a class="headerlink" href="#hardware-software-cost-analysis-of-interrupt-processing-strategies" title="Permalink to this heading"></a></h2>
+</section>
+<section id="hardware-software-cost-analysis-of-interrupt-processing-strategies">
+<h2>Hardware/software cost analysis of interrupt processing strategies:<a class="headerlink" href="#hardware-software-cost-analysis-of-interrupt-processing-strategies" title="Link to this heading"></a></h2>
 <blockquote>
 <div><p>Hardware/software cost analysis of interrupt processing strategies
 Mansur H. Samadzadeh, Loai E. Garalnabi, 2001</p>
@@ -201,9 +206,9 @@ Mansur H. Samadzadeh, Loai E. Garalnabi, 2001</p>
 <li><p>Reorder buffer</p></li>
 <li><p>Future file</p></li>
 </ul>
-</div>
-<div class="section" id="igpu-exception-support-and-speculative-execution-on-gpus">
-<h2>iGPU: Exception Support and Speculative Execution on GPUs<a class="headerlink" href="#igpu-exception-support-and-speculative-execution-on-gpus" title="Permalink to this heading"></a></h2>
+</section>
+<section id="igpu-exception-support-and-speculative-execution-on-gpus">
+<h2>iGPU: Exception Support and Speculative Execution on GPUs<a class="headerlink" href="#igpu-exception-support-and-speculative-execution-on-gpus" title="Link to this heading"></a></h2>
 <blockquote>
 <div><p>iGPU: Exception Support and Speculative Execution on GPUs Jaikrishnan Menon, Marc de Kruijf, Karthikeyan
 Sankaralingam, 2012</p>
@@ -221,9 +226,9 @@ subregion. Each subregion end is an instruction barrier.</p>
 <p>Exceptions and interrupts are handled by restarting execution of warp from the beginning of region. Wrong speculation is
 handled by restarting execution of current subregion. In case when there are two exceptions in region, code is
 dynamically recompiled and split into two regions to prevent live-locks.</p>
-</div>
-<div class="section" id="efficient-exception-handling-support-for-gpus">
-<h2>Efficient Exception Handling Support for GPUs<a class="headerlink" href="#efficient-exception-handling-support-for-gpus" title="Permalink to this heading"></a></h2>
+</section>
+<section id="efficient-exception-handling-support-for-gpus">
+<h2>Efficient Exception Handling Support for GPUs<a class="headerlink" href="#efficient-exception-handling-support-for-gpus" title="Link to this heading"></a></h2>
 <blockquote>
 <div><p>Efficient Exception Handling Support for GPUs
 Ivan Tanasic, Isaac Gelado, Marc Jorda, Eduard Ayguade, Nacho Navarro, 2017</p>
@@ -238,9 +243,9 @@ other warp which wait to be executed.</p></li>
 modified until this instruction don’t claim that it doesn’t fail</p></li>
 <li><p>operand logging - replay queue + storing operations</p></li>
 </ul>
-</div>
-<div class="section" id="others">
-<h2>Others<a class="headerlink" href="#others" title="Permalink to this heading"></a></h2>
+</section>
+<section id="others">
+<h2>Others<a class="headerlink" href="#others" title="Link to this heading"></a></h2>
 <blockquote>
 <div><p>Reducing Exception Management Overhead with Software Restart Markers
 Mark Jerome Hampton, 2008</p>
@@ -248,15 +253,15 @@ Mark Jerome Hampton, 2008</p>
 <p>Mention a paper of Alli and Bailey [AB04] where there is no ROB. Instead of that in RAT there are FIFO-s which store
 mapping between physical and logical registers and the age of instruction. If there is a need to raise an exception it
 is checked if all younger instruction have already ended if not an exception wait for some cycles and repeat the check.</p>
-</div>
-<div class="section" id="summary">
-<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h2>
+</section>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
 <p>GPU research don’t help us much, because the main assumption is that operations don’t cause side effects
 except of communication with main memory by load/store instructions. From research about CPUs, it looks like,
 there is a “canonical” implementation of ROB that can be eventually introduced some small improvements, but
 there aren’t any very different procedures.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
@@ -270,7 +275,7 @@ there aren’t any very different procedures.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:46 2026-05-04.
+      <span class="lastupdated">Last updated on 15:51 2026-05-08.
       </span></p>
   </div>
 

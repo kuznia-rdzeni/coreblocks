@@ -9,37 +9,37 @@ coreblocks.func\_blocks.fu.lsu.dummyLsu module
 
 .. automodule:: coreblocks.func_blocks.fu.lsu.dummyLsu
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.lsu.lsu\_atomic\_wrapper module
 ----------------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.lsu.lsu\_requester module
 ----------------------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.lsu.lsu_requester
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.func\_blocks.fu.lsu.pma module
 -----------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.lsu.pma
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.func_blocks.fu.lsu
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

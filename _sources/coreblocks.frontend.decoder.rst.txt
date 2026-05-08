@@ -9,37 +9,37 @@ coreblocks.frontend.decoder.decode\_stage module
 
 .. automodule:: coreblocks.frontend.decoder.decode_stage
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.frontend.decoder.instr\_decoder module
 -------------------------------------------------
 
 .. automodule:: coreblocks.frontend.decoder.instr_decoder
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.frontend.decoder.instr\_description module
 -----------------------------------------------------
 
 .. automodule:: coreblocks.frontend.decoder.instr_description
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.frontend.decoder.rvc module
 --------------------------------------
 
 .. automodule:: coreblocks.frontend.decoder.rvc
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.frontend.decoder
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

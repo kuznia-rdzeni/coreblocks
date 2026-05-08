@@ -9,37 +9,37 @@ coreblocks.arch.csr\_address module
 
 .. automodule:: coreblocks.arch.csr_address
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.arch.isa module
 --------------------------
 
 .. automodule:: coreblocks.arch.isa
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.arch.isa\_consts module
 ----------------------------------
 
 .. automodule:: coreblocks.arch.isa_consts
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 coreblocks.arch.optypes module
 ------------------------------
 
 .. automodule:: coreblocks.arch.optypes
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.arch
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

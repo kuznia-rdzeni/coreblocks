@@ -9,13 +9,13 @@ coreblocks.frontend.fetch.fetch module
 
 .. automodule:: coreblocks.frontend.fetch.fetch
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks.frontend.fetch
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

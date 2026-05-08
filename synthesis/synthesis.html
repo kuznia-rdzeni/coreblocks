@@ -1,22 +1,23 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Core verification &mdash; Coreblocks documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
-        <script>mermaid.initialize({startOnLoad:true});</script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+      <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -29,12 +30,16 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> Coreblocks documentation
-            <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Coreblocks documentation
+              <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -83,8 +88,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Core verification</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Core verification</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/synthesis/synthesis.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -94,8 +99,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="core-verification">
-<h1>Core verification<a class="headerlink" href="#core-verification" title="Permalink to this heading"></a></h1>
+  <section id="core-verification">
+<h1>Core verification<a class="headerlink" href="#core-verification" title="Link to this heading"></a></h1>
 <p>Coreblocks is verified at several levels of abstraction. Beside of unit tests and module tests, we also
 synthesise the core to the ECP5 FPGA target, to check that it can work in reality. Performance is verified
 using synthesis results and a set of benchmarks simulated with cycle precision in cocotb. We also verify
@@ -110,8 +115,8 @@ They can be recreated using standard docker build commands:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">build</span> <span class="o">--</span><span class="n">platform</span> <span class="n">linux</span><span class="o">/</span><span class="n">amd64</span> <span class="o">-</span><span class="n">t</span> <span class="s2">&quot;amaranth-synth:latest&quot;</span> <span class="o">-</span><span class="n">f</span> <span class="o">./</span><span class="n">docker</span><span class="o">/</span><span class="n">AmaranthSynthECP5</span><span class="o">.</span><span class="n">Dockerfile</span> <span class="o">.</span>
 </pre></div>
 </div>
-<div class="section" id="synthesis">
-<h2>Synthesis<a class="headerlink" href="#synthesis" title="Permalink to this heading"></a></h2>
+<section id="synthesis">
+<h2>Synthesis<a class="headerlink" href="#synthesis" title="Link to this heading"></a></h2>
 <p>The basic step in verification is to see if it is possible to synthesise the <code class="docutils literal notranslate"><span class="pre">Core</span></code> circuit. This allows us to
 control the level of complexity of the core. Although Coreblocks is an educational core, we want it to be practical.
 It should have an acceptable maximum frequency and shouldn’t use too many resources, so it can be run
@@ -127,8 +132,8 @@ for Amaranth is also acceptable for the synthesis tools.</p>
 </ul>
 <p>The configuration of the docker container is described in the <code class="docutils literal notranslate"><span class="pre">AmaranthSynthECP5.Dockerfile</span></code>, which can be found in
 <a class="reference external" href="https://github.com/orgs/kuznia-rdzeni/packages/container/package/amaranth-synth">our repo</a>.</p>
-<div class="section" id="manual-reproduction">
-<h3>Manual reproduction<a class="headerlink" href="#manual-reproduction" title="Permalink to this heading"></a></h3>
+<section id="manual-reproduction">
+<h3>Manual reproduction<a class="headerlink" href="#manual-reproduction" title="Link to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/kuznia-rdzeni/amaranth-synth:latest
 sudo<span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>ghcr.io/kuznia-rdzeni/amaranth-synth:latest
 git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="o">=</span><span class="m">1</span><span class="w"> </span>https://github.com/kuznia-rdzeni/coreblocks.git
@@ -149,19 +154,19 @@ the configuration provided by the user and then passes it to Amaranth to generat
 This description is then processed by Yosys and nextpnr-ecp5 to generate the ECP5 bitstream.</p>
 <p>A strength of Coreblocks is its modularity, so we can provide different configurations with little effort. You can choose
 a configuration to synthesise using the <code class="docutils literal notranslate"><span class="pre">--config</span></code> argument to the <code class="docutils literal notranslate"><span class="pre">synthesise.py</span></code> script.</p>
-</div>
-<div class="section" id="dependencies">
-<h3>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this heading"></a></h3>
+</section>
+<section id="dependencies">
+<h3>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading"></a></h3>
 <p>In order to perform synthesis we use:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://github.com/YosysHQ/yosys">yosys</a> - to synthesise the Verilog generated by Amaranth up to gate level;</p></li>
 <li><p><a class="reference external" href="https://github.com/YosysHQ/nextpnr.git">nextpnr-ecp5</a> - to perform the “Place and Route” step;</p></li>
 <li><p><a class="reference external" href="https://github.com/YosysHQ/prjtrellis">prjtrellis</a> - provides the description of the ECP5 bitstream format.</p></li>
 </ul>
-</div>
-</div>
-<div class="section" id="benchmarking">
-<h2>Benchmarking<a class="headerlink" href="#benchmarking" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+<section id="benchmarking">
+<h2>Benchmarking<a class="headerlink" href="#benchmarking" title="Link to this heading"></a></h2>
 <p>The maximum clock frequency determined by synthesis isn’t the only measure of performance. In theory, it is always
 possible to increase Fmax by increasing latency. To avoid the pitfall of too long latency affecting the core
 throughput, we monitor the number of instructions executed per clock cycle (IPC). We simulate the core with cycle
@@ -175,8 +180,8 @@ with glibc configured for different architectural subsets of RISC-V extensions (
 <a class="reference external" href="https://github.com/verilator/verilator">Verilator</a>. We use Amaranth features to generate Verilog code describing Coreblocks instance,
 which is passed to Verilator for compilation. Cocotb controls the simulation and execution of the program by stubbing external
 interfaces. Pre-compiled Verilator in a compatible version is available in <a class="reference external" href="https://github.com/kuznia-rdzeni/coreblocks/blob/master/docker/Verilator.Dockerfile">Verilator.Dockerfile</a>.</p>
-<div class="section" id="benchmarks-manual-execution">
-<h3>Benchmarks manual execution<a class="headerlink" href="#benchmarks-manual-execution" title="Permalink to this heading"></a></h3>
+<section id="benchmarks-manual-execution">
+<h3>Benchmarks manual execution<a class="headerlink" href="#benchmarks-manual-execution" title="Link to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># ========== STEP 1: Compilation ==========</span>
 <span class="c1"># Clone coreblocks into host file system</span>
 git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="o">=</span><span class="m">1</span><span class="w"> </span>https://github.com/kuznia-rdzeni/coreblocks.git
@@ -208,16 +213,16 @@ pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quo
 ./scripts/run_benchmarks.py
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="regression-tests">
-<h2>Regression tests<a class="headerlink" href="#regression-tests" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+<section id="regression-tests">
+<h2>Regression tests<a class="headerlink" href="#regression-tests" title="Link to this heading"></a></h2>
 <p>Regression tests should ensure that Coreblocks is compliant with RISC-V specification requirements. Tests include
 assembler programs that tests entire RISC-V instruction set. We execute these programs in a similar way to benchmarks.
 So, as a first step, we compile the programs to the binary format and then we run them on core simulated by Verilator
 and Cocotb.</p>
-<div class="section" id="regression-tests-manual-execution">
-<h3>Regression tests manual execution<a class="headerlink" href="#regression-tests-manual-execution" title="Permalink to this heading"></a></h3>
+<section id="regression-tests-manual-execution">
+<h3>Regression tests manual execution<a class="headerlink" href="#regression-tests-manual-execution" title="Link to this heading"></a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># ========== STEP 1: Compilation ==========</span>
 <span class="c1"># Clone coreblocks into host file system</span>
 git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="o">=</span><span class="m">1</span><span class="w"> </span>https://github.com/kuznia-rdzeni/coreblocks.git
@@ -249,9 +254,9 @@ pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quo
 ./scripts/run_tests.py<span class="w"> </span>-a<span class="w"> </span>regression
 </pre></div>
 </div>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
            </div>
@@ -265,7 +270,7 @@ pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quo
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:46 2026-05-04.
+      <span class="lastupdated">Last updated on 15:51 2026-05-08.
       </span></p>
   </div>
 

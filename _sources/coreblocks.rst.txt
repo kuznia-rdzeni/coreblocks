@@ -26,13 +26,13 @@ coreblocks.core module
 
 .. automodule:: coreblocks.core
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: coreblocks
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

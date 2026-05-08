@@ -1,22 +1,23 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scheduler overview &mdash; Coreblocks documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
-        <script>mermaid.initialize({startOnLoad:true});</script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
+      <script>mermaid.initialize({startOnLoad:true});</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -29,12 +30,16 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> Coreblocks documentation
-            <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Coreblocks documentation
+              <img src="../_static/logo-banner.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -74,8 +79,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Scheduler overview</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Scheduler overview</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/scheduler/overview.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -85,10 +90,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="scheduler-overview">
-<h1>Scheduler overview<a class="headerlink" href="#scheduler-overview" title="Permalink to this heading"></a></h1>
-<div class="section" id="description">
-<h2>Description<a class="headerlink" href="#description" title="Permalink to this heading"></a></h2>
+  <section id="scheduler-overview">
+<h1>Scheduler overview<a class="headerlink" href="#scheduler-overview" title="Link to this heading"></a></h1>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
 <p>The scheduler is the middle part of our processor.
 It is located after the frontend and before execution units.
 Its main tasks are:</p>
@@ -98,9 +103,9 @@ Its main tasks are:</p>
 <li><p>ROB entry allocation</p></li>
 <li><p>dispatching instructions to RSs</p></li>
 </ul>
-</div>
-<div class="section" id="schema">
-<h2>Schema<a class="headerlink" href="#schema" title="Permalink to this heading"></a></h2>
+</section>
+<section id="schema">
+<h2>Schema<a class="headerlink" href="#schema" title="Link to this heading"></a></h2>
 <div class="mermaid">
             graph
     Reg;
@@ -113,9 +118,9 @@ Its main tasks are:</p>
     Select[&lt;b&gt;RS SELECTION&lt;/b&gt;&lt;br&gt;-choose RS to which instruction should be send&lt;br&gt;-reserve entry in that RS]
     Select --&gt; Insert;
     Insert[&lt;b&gt;RS INSERTION&lt;/b&gt;&lt;br&gt;-insert instruction to selected RS&lt;br&gt;-get operands from RF&lt;br&gt;-save them in RS field of new instruction]
-        </div></div>
-<div class="section" id="structure">
-<h2>Structure<a class="headerlink" href="#structure" title="Permalink to this heading"></a></h2>
+        </div></section>
+<section id="structure">
+<h2>Structure<a class="headerlink" href="#structure" title="Link to this heading"></a></h2>
 <p>We decided to split the scheduler into 5 phases:</p>
 <ul class="simple">
 <li><p>register allocation</p></li>
@@ -126,12 +131,12 @@ Its main tasks are:</p>
 </ul>
 <p>Each phase can potentially take one clock cycle, but they can be merged as a potential future optimization.
 During implementation each phase should be treated as a separate hardware block for future flexibility.</p>
-</div>
-<div class="section" id="more-detailed-description-of-each-block">
-<h2>More detailed description of each block<a class="headerlink" href="#more-detailed-description-of-each-block" title="Permalink to this heading"></a></h2>
+</section>
+<section id="more-detailed-description-of-each-block">
+<h2>More detailed description of each block<a class="headerlink" href="#more-detailed-description-of-each-block" title="Link to this heading"></a></h2>
 <p>TODO</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
@@ -145,7 +150,7 @@ During implementation each phase should be treated as a separate hardware block 
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:46 2026-05-04.
+      <span class="lastupdated">Last updated on 15:51 2026-05-08.
       </span></p>
   </div>
 
