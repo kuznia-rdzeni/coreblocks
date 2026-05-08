@@ -311,9 +311,7 @@ class TestTLBCache(TestCaseWithSimulator):
         assert len(self.backing.translated) == base + 4
 
         # 1) sfence for single vaddr+asid should only flush that mapping
-        await self.sfence_vma.call(
-            sim, vaddr=vpn0 << PAGE_SIZE_LOG, asid=asid_a, all_vaddrs=0, all_asids=0
-        )
+        await self.sfence_vma.call(sim, vaddr=vpn0 << PAGE_SIZE_LOG, asid=asid_a, all_vaddrs=0, all_asids=0)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
 
