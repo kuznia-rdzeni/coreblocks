@@ -1,4 +1,3 @@
-from ftplib import all_errors
 import random
 from typing import Optional
 
