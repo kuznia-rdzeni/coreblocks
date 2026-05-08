@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr
-from transactron.lib import Forwarder, Pipe, condition
+from transactron.lib import Forwarder, Pipe, condition, HwCounter
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
@@ -113,6 +113,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         *,
         entries: int,
         backing_resolver: TLBBackingDevice,
+        perf_name_prefix: str = "mmu.tlb",
     ):
         if entries <= 0:
             raise ValueError("entries must be positive")
@@ -121,6 +122,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.entries = entries
         self.backing_resolver = backing_resolver
         self.layout = gen_params.get(AddressTranslationLayouts)
+        self.perf_name_prefix = perf_name_prefix
 
         self.request = Method(i=self.layout.tlb_request)
         self.accept = Method(o=self.layout.tlb_accept)
@@ -129,8 +131,22 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
+        self.perf_loads = HwCounter(
+            f"{self.perf_name_prefix}.loads", "Number of requests to the TLB"
+        )
+        self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
+        self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
+        self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [
+            self.perf_loads,
+            self.perf_hits,
+            self.perf_misses,
+            self.perf_flushes,
+        ]
 
         csr = self.dm.get_dependency(CSRInstancesKey())
 
@@ -162,6 +178,8 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         @def_method(m, self.request, ready=~request_in_flight)
         def _(vpn, write_aspect):
+            self.perf_loads.incr(m)
+
             found_entry = Signal(TLBEntry(self.gen_params))
 
             for way in range(self.entries):
@@ -180,10 +198,12 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             with condition(m) as branch:
                 with branch(ask_backing):
+                    self.perf_misses.incr(m)
                     m.d.sync += request_in_flight.eq(1)
                     m.d.sync += requested_vpn.eq(vpn)
                     self.backing_resolver.request(m, vpn=vpn, write_aspect=write_aspect)
                 with branch():
+                    self.perf_hits.incr(m)
                     fwd.write(
                         m,
                         result=AddressTranslationLayouts.TLBResult.HIT,
@@ -216,6 +236,8 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         @def_method(m, self.sfence_vma, ready=~request_in_flight)
         def _(vaddr, asid, all_vaddrs, all_asids):
+            self.perf_flushes.incr(m)
+
             for way in range(self.entries):
                 with m.If((all_asids | cam.asid_match[way]) & (all_vaddrs | cam.addr_match[way])):
                     m.d.sync += entries[way].valid.eq(0)
@@ -233,6 +255,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         entries: int,
         ways: int,
         backing_resolver: TLBBackingDevice,
+        perf_name_prefix: str = "mmu.tlb",
     ):
         if entries <= 0:
             raise ValueError("entries must be positive")
@@ -247,6 +270,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.sets = entries // ways
         self.backing_resolver = backing_resolver
         self.layout = gen_params.get(AddressTranslationLayouts)
+        self.perf_name_prefix = perf_name_prefix
 
         self.request = Method(i=self.layout.tlb_request)
         self.accept = Method(o=self.layout.tlb_accept)
@@ -254,8 +278,22 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
+        self.perf_loads = HwCounter(
+            f"{self.perf_name_prefix}.loads", "Number of requests to the TLB"
+        )
+        self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
+        self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
+        self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [
+            self.perf_loads,
+            self.perf_hits,
+            self.perf_misses,
+            self.perf_flushes,
+        ]
 
         csr = self.dm.get_dependency(CSRInstancesKey())
 
@@ -301,6 +339,8 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         @def_method(m, self.request, ready=~flushing)
         def _(vpn, write_aspect):
+            self.perf_loads.incr(m)
+
             set_idx = vpn_to_set_idx(vpn, 0)
             m.d.sync += requested_set.eq(set_idx)
             m.d.sync += requested_class.eq(0)
@@ -340,6 +380,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                 m.d.av_comb += ask_backing.eq(1)
 
             with m.If(ask_backing):
+                self.perf_misses.incr(m)
                 m.d.sync += slow_path.eq(1)
                 self.backing_resolver.request(m, vpn=req.vpn, write_aspect=req.write_aspect)
             with m.Elif(miss & (requested_class < max_class)):
@@ -353,6 +394,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             with m.Else():
                 # consume the request and return the hit result
                 request_pipe.read(m)
+                self.perf_hits.incr(m)
 
                 fwd.write(
                     m,
@@ -431,6 +473,8 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         @def_method(m, self.sfence_vma, ready=~flushing)
         def _(vaddr, asid, all_vaddrs, all_asids):
+            self.perf_flushes.incr(m)
+
             m.d.sync += flushing.eq(1)
             m.d.sync += flush_vpn.eq(vaddr >> PAGE_SIZE_LOG)
             m.d.sync += flush_asid.eq(asid)
