@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1777904122701,
+  "lastUpdate": 1778257189591,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -21781,6 +21781,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a42f0ac1fe11d694606abca16ee4f8df97dae054"
         },
         "date": 1777904085921,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4310548345625105,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544192447280725,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3821075915511284,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6529039609007227,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3609059761135394,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30483586342368985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3308119011598588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.44964532430803467,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "78a40bbdb2cfc223f33c0f0234515613847e1ce2",
+          "message": "Update for Transactron 0.7 (#939)",
+          "timestamp": "2026-05-08T17:50:24+02:00",
+          "tree_id": "6d6dec9d37475c5e2e25c93ad298174bc4f9cf97",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/78a40bbdb2cfc223f33c0f0234515613847e1ce2"
+        },
+        "date": 1778257181505,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
