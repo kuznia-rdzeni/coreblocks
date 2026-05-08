@@ -12,8 +12,7 @@ from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
 from transactron import *
-from transactron.utils import DependencyContext
-from transactron.lib.logging import HardwareLogger
+from transactron.utils import DependencyContext, HardwareLogger
 
 from coreblocks.priv.vmem.iface import TLBBackingDevice
 

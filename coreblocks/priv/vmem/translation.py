@@ -3,8 +3,7 @@ from amaranth.lib.enum import Enum, unique, auto
 
 from transactron import Method, TModule, def_method, Transaction
 from transactron.lib import Forwarder, condition
-from transactron.utils import DependencyContext, make_layout
-from transactron.lib.logging import HardwareLogger
+from transactron.utils import DependencyContext, make_layout, HardwareLogger
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE_LOG
 from coreblocks.interface.keys import CSRInstancesKey, L1TLBBackingDeviceKey
