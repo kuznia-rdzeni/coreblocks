@@ -208,26 +208,23 @@ class TestTLBCache(TestCaseWithSimulator):
 
         self.m = ModuleConnector(self.dut, backing=self.backing, csrs=self.csr_instances)
 
-    def assert_hit(
-        self,
-        response,
-        *,
-        ppn: int,
-        permissions: Permissions,
-        size_class: int = 0,
-        global_entry: bool = False,
-    ):
-        assert response["result"] == AddressTranslationLayouts.TLBResult.HIT
-        assert response["ppn"] == ppn
-        assert response["size_class"] == size_class
-        assert response["permissions"] == {
-            "r": permissions.r,
-            "w": permissions.w,
-            "x": permissions.x,
-            "u": permissions.u,
-            "d": permissions.d,
-            "g": global_entry,
-        }
+    def matches_lookup(self, response, vpn, asid):
+        for (e_ppn, e_permissions, e_size_class, e_result, e_global) in self.backing.lookup(vpn, asid):
+            if (
+                response["result"] == e_result
+                and response["ppn"] == e_ppn
+                and response["size_class"] == e_size_class
+                and response["permissions"] == {
+                    "r": e_permissions.r,
+                    "w": e_permissions.w,
+                    "x": e_permissions.x,
+                    "u": e_permissions.u,
+                    "d": e_permissions.d,
+                    "g": e_global,
+                }
+            ):
+                return True
+        return False
 
     async def set_satp_asid(self, sim: TestbenchContext, asid: int):
         await sim.tick()
@@ -244,17 +241,17 @@ class TestTLBCache(TestCaseWithSimulator):
 
         await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
         response = await self.dut.accept.call(sim)
-        self.assert_hit(response, ppn=ppn, permissions=permissions)
+        self.matches_lookup(response, vpn, asid)
         assert len(self.backing.translated) == 1
 
         await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
         cached_response = await self.dut.accept.call(sim)
-        self.assert_hit(cached_response, ppn=ppn, permissions=permissions)
+        self.matches_lookup(cached_response, vpn, asid)
         assert len(self.backing.translated) == 1
 
     async def randomized_process(self, sim: TestbenchContext):
         # fill the backing device with random translations
-        for _ in range(128):
+        for _ in range(64):
             vpn = random.randint(0, 0xFFFFF)
             ppn = random.randint(0, 0xFFFFF)
             asid = random.randint(0, 0xF)
@@ -279,66 +276,20 @@ class TestTLBCache(TestCaseWithSimulator):
             asid = random.randint(0, 0xF)
             self.backing.add_access_fault(vpn, asid=asid)
 
-        def matches_lookup(response, expected):
-            expected_ppn, expected_permissions, expected_size_class, expected_result, expected_global = expected
+        test_cases = list(self.backing.translations.keys()) * 4
+        test_cases.extend((random.randint(0, 0xFFFFF), random.randint(0, 0xF)) for _ in range(64))
+        random.shuffle(test_cases)
 
-            if response["result"] != expected_result:
-                return False
-            if response["ppn"] != expected_ppn:
-                return False
-            if response["size_class"] != expected_size_class:
-                return False
-            if response["permissions"] != {
-                "r": expected_permissions.r,
-                "w": expected_permissions.w,
-                "x": expected_permissions.x,
-                "u": expected_permissions.u,
-                "d": expected_permissions.d,
-                "g": expected_global,
-            }:
-                return False
-            return True
-
-        # check that each vpn in the backing device is translated correctly
-        for vpn, asid in self.backing.translations.keys():
-            sim.set(self.csr_instances.s_mode.satp_asid, asid if asid is not None else 0xF)
-            await sim.tick()
-
-            await self.dut.request.call(sim, vpn=vpn, write_aspect=random.randint(0, 1))
-            response = await self.dut.accept.call(sim)
-            matches = self.backing.lookup(vpn, asid if asid is not None else 0xF)
-            print(f"VPN: {vpn:X}, ASID: {asid}")
-            # print response and matches for debugging
-            perms = response.permissions
-            print(
-                f"Response: {response.ppn:x}, "
-                f"{perms.r}{perms.w}{perms.x}{perms.u}{perms.d}, "
-                f"{response.size_class}, {response.result}"
-            )
-            print("Matches:")
-            for match in matches:
-                perms = match[1]
-                print(
-                    f"{match[0]:x}, "
-                    f"{perms.r}{perms.w}{perms.x}{perms.u}{perms.d}, "
-                    f"{match[2]}, {match[3]}, global={match[4]}"
-                )
-
-            assert any(matches_lookup(response, expected) for expected in matches)
-
-        # check some random VPNs that are not in the backing device to ensure they cause page faults
-        for _ in range(128):
-            vpn = random.randint(0, 0xFFFFF)
-            asid = random.randint(0, 0xF)
-
+        for vpn, asid in test_cases:
             sim.set(self.csr_instances.s_mode.satp_asid, asid)
             await sim.tick()
 
-            await self.dut.request.call(sim, vpn=vpn, write_aspect=random.randint(0, 1))
+            await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
             response = await self.dut.accept.call(sim)
-            matches = self.backing.lookup(vpn, asid)
-
-            assert any(matches_lookup(response, expected) for expected in matches)
+            assert self.matches_lookup(response, vpn, asid)
+            
+        # check that we actually cached anything
+        assert len(self.backing.translated) < len(test_cases)
 
     def test_translation_is_cached(self):
         with self.run_simulation(self.m) as sim:

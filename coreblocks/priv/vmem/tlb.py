@@ -389,6 +389,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                         # Miss in the backing resolver - just forward the miss response
                         request_pipe.read(m)
                         fwd.write(m, resp)
+                        m.d.sync += slow_path.eq(0)
 
             with m.State("REFILL"):
                 with Transaction().body(m):
@@ -416,6 +417,8 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     m.d.comb += set_wr.data[cam.replace_candidate].eq(new_entry)
                     m.d.comb += set_wr.addr.eq(refill_set_idx)
                     m.d.comb += set_wr.en.eq(1)
+
+                    m.next = "IDLE"
 
         @def_method(m, self.accept)
         def _():
