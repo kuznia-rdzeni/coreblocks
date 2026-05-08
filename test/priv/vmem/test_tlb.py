@@ -1,3 +1,4 @@
+from ftplib import all_errors
 import random
 from typing import Optional
 
@@ -8,7 +9,7 @@ from amaranth import *
 
 import pytest
 from transactron import *
-from transactron.lib import Adapter
+from transactron.lib import Adapter, AdapterTrans
 from transactron.utils import DependencyContext, ModuleConnector
 from transactron.testing import (
     ProcessContext,
@@ -20,8 +21,8 @@ from transactron.testing import (
     MethodMock,
 )
 
-from coreblocks.arch.isa_consts import SatpMode
-from coreblocks.interface.keys import CSRInstancesKey
+from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
+from coreblocks.interface.keys import CSRInstancesKey, SFenceVMAKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
@@ -191,26 +192,32 @@ class TestTLBCache(TestCaseWithSimulator):
 
         self.backing = MockTLBBackingDevice(self.gen_params)
 
-        if self.name == "fully_associative":
-            dut = FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing)
-        elif self.name == "set_associative":
-            dut = SetAssociativeTLB(
-                self.gen_params,
-                ways=4,
-                entries=16,
-                backing_resolver=self.backing,
-            )
-        else:
-            print(self.name)
-            assert False, "Invalid TLB type"
+        match self.name:
+            case "fully_associative":
+                dut = FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing)
+            case "set_associative":
+                dut = SetAssociativeTLB(
+                    self.gen_params,
+                    ways=4,
+                    entries=16,
+                    backing_resolver=self.backing,
+                )
+            case _:
+                assert False, f"{self.name}: Invalid TLB type"
 
         self.dut = SimpleTestCircuit(dut)
 
-        self.m = ModuleConnector(self.dut, backing=self.backing, csrs=self.csr_instances)
+        sfence_vma, _ = DependencyContext.get().get_dependency(SFenceVMAKey())
+        self.sfence_vma = TestbenchIO(AdapterTrans.create(sfence_vma))
+
+        self.m = ModuleConnector(
+            dut=self.dut, sfence_vma=self.sfence_vma, backing=self.backing, csrs=self.csr_instances
+        )
 
     def matches_lookup(self, response, vpn, asid):
-        for e_ppn, e_permissions, e_size_class, e_result, e_global in self.backing.lookup(vpn, asid):
-            if (
+        def entry_matches(e):
+            e_ppn, e_permissions, e_size_class, e_result, e_global = e
+            return (
                 response["result"] == e_result
                 and response["ppn"] == e_ppn
                 and response["size_class"] == e_size_class
@@ -223,12 +230,9 @@ class TestTLBCache(TestCaseWithSimulator):
                     "d": e_permissions.d,
                     "g": e_global,
                 }
-            ):
-                return True
-        return False
+            )
 
-    async def set_satp_asid(self, sim: TestbenchContext, asid: int):
-        await sim.tick()
+        return any(entry_matches(e) for e in self.backing.lookup(vpn, asid))
 
     async def translation_is_cached_process(self, sim: TestbenchContext):
         vpn = 0x12345
@@ -242,13 +246,23 @@ class TestTLBCache(TestCaseWithSimulator):
 
         await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
         response = await self.dut.accept.call(sim)
-        self.matches_lookup(response, vpn, asid)
+        assert self.matches_lookup(response, vpn, asid)
         assert len(self.backing.translated) == 1
 
         await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
         cached_response = await self.dut.accept.call(sim)
-        self.matches_lookup(cached_response, vpn, asid)
+        assert self.matches_lookup(cached_response, vpn, asid)
         assert len(self.backing.translated) == 1
+
+        # update entry and invalidate TLB
+        ppn = 0x34567
+        self.backing.add_translation(vpn, ppn, permissions=permissions, asid=asid)
+        await self.sfence_vma.call(sim, vaddr=vpn << PAGE_SIZE_LOG, asid=asid, all_vaddrs=0, all_asids=0)
+        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        response_after_sfence = await self.dut.accept.call(sim)
+
+        assert self.matches_lookup(response_after_sfence, vpn, asid)
+        assert len(self.backing.translated) == 2
 
     async def randomized_process(self, sim: TestbenchContext):
         # fill the backing device with random translations

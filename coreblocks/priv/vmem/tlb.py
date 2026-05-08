@@ -440,7 +440,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.sync += flush_all_vaddrs.eq(all_vaddrs)
             m.d.sync += flush_all_asids.eq(all_asids)
 
-            m.d.sync += flush_set.eq(Mux(flush_all_vaddrs, 0, vpn_to_set_idx(flush_vpn, 0)))
+            m.d.sync += flush_set.eq(Mux(all_vaddrs, 0, vpn_to_set_idx(vaddr >> PAGE_SIZE_LOG, 0)))
             m.d.sync += flush_fetched.eq(0)
             m.d.sync += flush_size_class.eq(0)
 
@@ -461,7 +461,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                 m.d.comb += set_wr.data.eq(set_rd.data)
                 for way in range(self.ways):
                     with m.If((flush_all_asids | cam.asid_match[way]) & (flush_all_vaddrs | cam.addr_match[way])):
-                        m.d.av_comb += set_wr.data[way].valid.eq(0)
+                        m.d.comb += set_wr.data[way].valid.eq(0)
 
                 m.d.comb += set_wr.addr.eq(flush_set)
                 m.d.comb += set_wr.en.eq(1)
@@ -473,11 +473,11 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     m.d.av_comb += next_flush_set.eq(flush_set + 1)
                     m.d.av_comb += flush_done.eq(flush_set == self.sets - 1)
                 with m.Else():
+                    m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
+                    m.d.sync += flush_size_class.eq(flush_size_class + 1)
+
                     with m.If(flush_size_class == self.gen_params.vmem_params.max_tlb_size_class):
                         m.d.av_comb += flush_done.eq(1)
-                    with m.Else():
-                        m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
-                        m.d.sync += flush_size_class.eq(flush_size_class + 1)
 
                 m.d.sync += flush_set.eq(next_flush_set)
 
