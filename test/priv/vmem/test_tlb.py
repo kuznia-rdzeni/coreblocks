@@ -112,20 +112,20 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
                     matching.append((*self.translations[(vpn_masked, None)], True))
 
         if not matching:
-            matching.append((
-                0,
-                Permissions(),
-                0,
-                AddressTranslationLayouts.TLBResult.PAGE_FAULT,
-                0,
-            ))
+            matching.append(
+                (
+                    0,
+                    Permissions(),
+                    0,
+                    AddressTranslationLayouts.TLBResult.PAGE_FAULT,
+                    0,
+                )
+            )
 
         return matching
 
     async def asid_get(self, sim: ProcessContext):
-        async for *_, asid in (
-            sim.tick().sample(self.csr_instances.s_mode.satp_asid)  # type: ignore
-        ):
+        async for *_, asid in sim.tick().sample(self.csr_instances.s_mode.satp_asid):  # type: ignore
             self.asid = asid
 
     @def_method_mock(lambda self: self.request_mock, enable=lambda self: not self.ready)
@@ -135,19 +135,21 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
             ppn, permissions, size_class, result, global_ = self.lookup(vpn, self.asid)[0]
 
             self.ready = True
-            self.translated.append({
-                "ppn": ppn,
-                "permissions": {
-                    "r": permissions.r,
-                    "w": permissions.w,
-                    "x": permissions.x,
-                    "u": permissions.u,
-                    "d": permissions.d,
-                    "g": global_,
-                },
-                "size_class": size_class,
-                "result": result,
-            })
+            self.translated.append(
+                {
+                    "ppn": ppn,
+                    "permissions": {
+                        "r": permissions.r,
+                        "w": permissions.w,
+                        "x": permissions.x,
+                        "u": permissions.u,
+                        "d": permissions.d,
+                        "g": global_,
+                    },
+                    "size_class": size_class,
+                    "result": result,
+                }
+            )
 
     @def_method_mock(lambda self: self.accept_mock, enable=lambda self: self.ready)
     def process_accept(self):
@@ -298,7 +300,7 @@ class TestTLBCache(TestCaseWithSimulator):
             return True
 
         # check that each vpn in the backing device is translated correctly
-        for (vpn, asid) in self.backing.translations.keys():
+        for vpn, asid in self.backing.translations.keys():
             sim.set(self.csr_instances.s_mode.satp_asid, asid if asid is not None else 0xF)
             await sim.tick()
 
@@ -307,10 +309,20 @@ class TestTLBCache(TestCaseWithSimulator):
             matches = self.backing.lookup(vpn, asid if asid is not None else 0xF)
             print(f"VPN: {vpn:X}, ASID: {asid}")
             # print response and matches for debugging
-            print(f"Response: {response.ppn:x}, {response.permissions.r}{response.permissions.w}{response.permissions.x}{response.permissions.u}{response.permissions.d}, {response.size_class}, {response.result}")
+            perms = response.permissions
+            print(
+                f"Response: {response.ppn:x}, "
+                f"{perms.r}{perms.w}{perms.x}{perms.u}{perms.d}, "
+                f"{response.size_class}, {response.result}"
+            )
             print("Matches:")
             for match in matches:
-                print(f"{match[0]:x}, {match[1].r}{match[1].w}{match[1].x}{match[1].u}{match[1].d}, {match[2]}, {match[3]}, global={match[4]}")
+                perms = match[1]
+                print(
+                    f"{match[0]:x}, "
+                    f"{perms.r}{perms.w}{perms.x}{perms.u}{perms.d}, "
+                    f"{match[2]}, {match[3]}, global={match[4]}"
+                )
 
             assert any(matches_lookup(response, expected) for expected in matches)
 
