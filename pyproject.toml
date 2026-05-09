@@ -55,6 +55,9 @@ dev = [
     "hypothesis==6.99.6",
 ]
 
+[project.scripts]
+coreblocks = "coreblocks.gen_verilog:main"
+
 [tool.setuptools.packages.find]
 include = ["coreblocks*"]
 
