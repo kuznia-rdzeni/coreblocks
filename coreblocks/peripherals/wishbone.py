@@ -11,7 +11,7 @@ from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, CIn, COut
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
-from transactron.lib import logging
+from transactron.utils import logging
 
 
 class WishboneParameters:

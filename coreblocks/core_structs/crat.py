@@ -3,7 +3,7 @@ from amaranth.lib.data import ArrayLayout
 from amaranth.utils import ceil_log2
 
 from transactron.core import *
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.connectors import Pipe
 from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
