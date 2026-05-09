@@ -3,7 +3,7 @@ from amaranth.lib.data import StructLayout, ArrayLayout
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr
-from transactron.lib import Forwarder, condition, HwCounter
+from transactron.lib import Forwarder, condition, HwCounter, FIFOLatencyMeasurer
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
@@ -39,7 +39,25 @@ class TLBEntry(StructLayout):
 
 
 class TLBCAM(Elaboratable):
-    """A single set of a TLB CAM, containing multiple ways."""
+    """A single set of a TLB CAM, containing multiple ways.
+
+    Finds entries matching the VPN (taking into account size class) and ASID and returns bit-vectors of matches.
+
+    ways_data: In, Data for all ways, used for matching and replacement.
+    checked_asid: In, ASID to check for matches.
+    checked_vpn: In, VPN to check for matches.
+
+    valid_match: Out, bit-vector of valid entries.
+    addr_match: Out, bit-vector of ways matching the address (taking into account size class).
+    asid_match: Out, bit-vector of ways matching the ASID (only non-global entries).
+    global_match: Out, bit-vector of global entries.
+
+    full_match: Out, bit-vector of ways matching inputs - valid and address and (ASID or global).
+
+    replacement_rr_index: In, index for round-robin replacement.
+    replace_candidate: Out, index of the way to replace on a miss.
+    next_replacement_rr_index: Out, value of replacement_rr_index after replacement.
+    """
 
     def __init__(self, gen_params: GenParams, ways: int):
         self.gen_params = gen_params
@@ -49,7 +67,7 @@ class TLBCAM(Elaboratable):
         self.ways_data = Signal(ArrayLayout(TLBEntry(gen_params), ways))
         self.checked_asid = Signal(gen_params.vmem_params.asidlen)
         self.checked_vpn = Signal(gen_params.vmem_params.max_tlb_vpn_bits)
-        self.replacement_data = Signal(range(ways))
+        self.replacement_rr_index = Signal(range(ways))
 
         self.addr_match = Signal(ways)
         self.asid_match = Signal(ways)
@@ -59,7 +77,7 @@ class TLBCAM(Elaboratable):
         self.full_match = Signal(ways)
 
         self.replace_candidate = Signal(range(ways))
-        self.next_replacement_data = Signal.like(self.replacement_data)
+        self.next_replacement_rr_index = Signal.like(self.replacement_rr_index)
 
     def elaborate(self, platform):
         m = TModule()
@@ -85,7 +103,7 @@ class TLBCAM(Elaboratable):
 
         # Replacement candidate is the first invalid entry, or the round-robin entry if all are valid
         # The order of checks: currently present entry -> invalid entry -> round-robin.
-        m.d.comb += self.replace_candidate.eq(self.replacement_data)
+        m.d.comb += self.replace_candidate.eq(self.replacement_rr_index)
 
         for way in range(self.ways):
             with m.If(~self.valid_match[way]):
@@ -95,7 +113,7 @@ class TLBCAM(Elaboratable):
             with m.If(self.full_match[way]):
                 m.d.comb += self.replace_candidate.eq(way)
 
-        m.d.comb += self.next_replacement_data.eq(mod_incr(self.replacement_data, self.ways))
+        m.d.comb += self.next_replacement_rr_index.eq(mod_incr(self.replacement_rr_index, self.ways))
 
         return m
 
@@ -133,6 +151,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
         self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
         self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
+        self.perf_latency = FIFOLatencyMeasurer(f"{self.perf_name_prefix}.latency", slots_number=2, max_latency=500)
 
     def elaborate(self, platform):
         m = TModule()
@@ -142,6 +161,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             self.perf_hits,
             self.perf_misses,
             self.perf_flushes,
+            self.perf_latency,
         ]
 
         csr = self.dm.get_dependency(CSRInstancesKey())
@@ -173,8 +193,9 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += cam.checked_vpn.eq(self.request.data_in.vpn)
 
         @def_method(m, self.request, ready=~request_in_flight)
-        def _(vpn, write_aspect):
+        def _(vpn, is_store):
             self.perf_loads.incr(m)
+            self.perf_latency.start(m)
 
             found_entry = Signal(TLBEntry(self.gen_params))
 
@@ -185,19 +206,18 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             ask_backing = Signal()
             with m.If(~cam.full_match.any()):
                 m.d.av_comb += ask_backing.eq(1)
-            with m.Elif(write_aspect & ~found_entry.permissions.d):
-                # We have found an entry, but it doesn't have the dirty bit set
-                # NOTE: currently we would never actually need to ask the backing device,
-                #   as we only implement Svade, so if this happens, we are almost sure
-                #   the re-walk will not fix the issue.
-                m.d.av_comb += ask_backing.eq(1)
+            if self.gen_params.vmem_params.supports_svade:
+                with m.Elif(is_store & ~found_entry.permissions.d):
+                    # We have found an entry, but it doesn't have the dirty bit set
+                    # Ask the backing resolver to set it (Svade semantic)
+                    m.d.av_comb += ask_backing.eq(1)
 
             with condition(m) as branch:
                 with branch(ask_backing):
                     self.perf_misses.incr(m)
                     m.d.sync += request_in_flight.eq(1)
                     m.d.sync += requested_vpn.eq(vpn)
-                    self.backing_resolver.request(m, vpn=vpn, write_aspect=write_aspect)
+                    self.backing_resolver.request(m, vpn=vpn, is_store=is_store)
                 with branch():
                     self.perf_hits.incr(m)
                     fwd.write(
@@ -225,10 +245,13 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     new_entry.size_class.eq(resp.size_class),
                     new_entry.permissions.eq(resp.permissions),
                 ]
-                m.d.sync += cam.replacement_data.eq(cam.next_replacement_data)
+                m.d.sync += cam.replacement_rr_index.eq(cam.next_replacement_rr_index)
                 m.d.sync += entries[cam.replace_candidate].eq(new_entry)
 
-        self.accept.provide(fwd.read)
+        @def_method(m, self.accept)
+        def _():
+            self.perf_latency.stop(m)
+            return fwd.read(m)
 
         @def_method(m, self.sfence_vma, ready=~request_in_flight)
         def _(vaddr, asid, all_vaddrs, all_asids):

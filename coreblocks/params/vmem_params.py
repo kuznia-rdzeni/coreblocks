@@ -87,6 +87,8 @@ class VirtualMemoryParameters:
         )
         self.tlb_size_class_bits = self.max_tlb_size_class.bit_length()
 
+        self.supports_svade = False
+
     @property
     def supported_non_bare_schemes(self) -> Collection[SatpMode]:
         return [scheme for scheme in self.supported_schemes if scheme != SatpMode.BARE]

@@ -192,7 +192,7 @@ class AddressTranslationLayouts:
 
         self.request = make_layout(
             fields.addr,
-            ("write_aspect", 1),
+            ("is_store", 1),
         )
         self.accept = make_layout(
             fields.vaddr,
@@ -203,7 +203,7 @@ class AddressTranslationLayouts:
 
         self.tlb_request = make_layout(
             self.vpn,
-            ("write_aspect", 1),
+            ("is_store", 1),
         )
         self.tlb_accept = make_layout(
             ("result", self.TLBResult),

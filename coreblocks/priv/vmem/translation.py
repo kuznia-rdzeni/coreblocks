@@ -65,7 +65,7 @@ class AddressTranslator(Elaboratable):
             ("vaddr", self.gen_params.isa.xlen),
             ("access_fault", 1),
             ("vpn_invalid", 1),
-            ("write_aspect", 1),
+            ("is_store", 1),
         )
         m.submodules.resp_fwd = resp_fwd = Forwarder(fwd_layout)
 
@@ -103,7 +103,7 @@ class AddressTranslator(Elaboratable):
         log.error(m, ~t.run, "Transaction must always run")
 
         @def_method(m, self.request)
-        def _(addr: Value, write_aspect: Value):
+        def _(addr: Value, is_store: Value):
             access_fault = Signal()
             vpn_invalid = Signal()
 
@@ -129,7 +129,7 @@ class AddressTranslator(Elaboratable):
                     self.tlb.request(
                         m,
                         vpn=vpn,
-                        write_aspect=write_aspect,
+                        is_store=is_store,
                     )
 
             resp_fwd.write(
@@ -137,7 +137,7 @@ class AddressTranslator(Elaboratable):
                 vaddr=addr,
                 vpn_invalid=vpn_invalid,
                 access_fault=access_fault,
-                write_aspect=write_aspect,
+                is_store=is_store,
             )
 
         @def_method(m, self.accept)
@@ -170,10 +170,8 @@ class AddressTranslator(Elaboratable):
             with m.Else():
                 with m.Switch(tlb_data.result):
                     with m.Case(AddressTranslationLayouts.TLBResult.HIT):
-                        with m.If(data.write_aspect):
-                            log.assertion(
-                                m, tlb_data.permissions.d, "TLB entry must have dirty bit set if we are writing"
-                            )
+                        with m.If(data.is_store):
+                            m.d.av_comb += page_fault.eq(~tlb_data.permissions.d)
                     with m.Case(AddressTranslationLayouts.TLBResult.PAGE_FAULT):
                         m.d.av_comb += page_fault.eq(1)
                     with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):
@@ -189,12 +187,12 @@ class AddressTranslator(Elaboratable):
                 # check RWX permissions
                 match self.mode:
                     case AddressTranslatorMode.INSTRUCTION:
-                        log.assertion(m, ~data.write_aspect, "Instruction fetch cannot have write aspect")
+                        log.assertion(m, ~data.is_store, "Instruction fetch cannot be a store")
 
                         with m.If(~tlb_data.permissions.x):
                             m.d.av_comb += page_fault.eq(1)
                     case AddressTranslatorMode.LSU:
-                        with m.If(data.write_aspect):
+                        with m.If(data.is_store):
                             with m.If(~tlb_data.permissions.w):
                                 m.d.av_comb += page_fault.eq(1)
                         with m.Else():

@@ -128,7 +128,7 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
             self.asid = asid
 
     @def_method_mock(lambda self: self.request_mock, enable=lambda self: not self.ready)
-    def process_request(self, vpn, write_aspect):
+    def process_request(self, vpn, is_store):
         @MethodMock.effect
         def _():
             ppn, permissions, size_class, result, global_ = self.lookup(vpn, self.asid)[0]
@@ -223,12 +223,12 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid)
         await sim.tick()
 
-        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn, is_store=0)
         response = await self.dut.accept.call(sim)
         assert self.matches_lookup(response, vpn, asid)
         assert len(self.backing.translated) == 1
 
-        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn, is_store=0)
         cached_response = await self.dut.accept.call(sim)
         assert self.matches_lookup(cached_response, vpn, asid)
         assert len(self.backing.translated) == 1
@@ -237,7 +237,7 @@ class TestTLBCache(TestCaseWithSimulator):
         ppn = 0x34567
         self.backing.add_translation(vpn, ppn, permissions=permissions, asid=asid)
         await self.sfence_vma.call(sim, vaddr=vpn << PAGE_SIZE_LOG, asid=asid, all_vaddrs=0, all_asids=0)
-        await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn, is_store=0)
         response_after_sfence = await self.dut.accept.call(sim)
 
         assert self.matches_lookup(response_after_sfence, vpn, asid)
@@ -265,16 +265,16 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
 
-        await self.dut.request.call(sim, vpn=vpn0, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn0, is_store=0)
         _ = await self.dut.accept.call(sim)
-        await self.dut.request.call(sim, vpn=vpn1, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn1, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 2
 
         # Cache vpn2 for asid_b
         sim.set(self.csr_instances.s_mode.satp_asid, asid_b)
         await sim.tick()
-        await self.dut.request.call(sim, vpn=vpn2, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn2, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 3
 
@@ -285,7 +285,7 @@ class TestTLBCache(TestCaseWithSimulator):
         self.backing.add_translation(vpn_g, ppn_g, permissions=permissions, asid=None)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
-        await self.dut.request.call(sim, vpn=vpn_g, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn_g, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 4
 
@@ -295,12 +295,12 @@ class TestTLBCache(TestCaseWithSimulator):
         await sim.tick()
 
         # vpn0 should be re-translated
-        await self.dut.request.call(sim, vpn=vpn0, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn0, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 5
 
         # vpn1 for same ASID should still be cached
-        await self.dut.request.call(sim, vpn=vpn1, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn1, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 5
 
@@ -309,14 +309,14 @@ class TestTLBCache(TestCaseWithSimulator):
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
 
-        await self.dut.request.call(sim, vpn=vpn1, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn1, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 6
 
         # vpn2 for asid_b remains cached
         sim.set(self.csr_instances.s_mode.satp_asid, asid_b)
         await sim.tick()
-        await self.dut.request.call(sim, vpn=vpn2, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn2, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 6
 
@@ -324,7 +324,7 @@ class TestTLBCache(TestCaseWithSimulator):
         await self.sfence_vma.call(sim, vaddr=vpn2 << PAGE_SIZE_LOG, asid=0, all_vaddrs=0, all_asids=1)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_b)
         await sim.tick()
-        await self.dut.request.call(sim, vpn=vpn2, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn2, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 7
 
@@ -332,7 +332,7 @@ class TestTLBCache(TestCaseWithSimulator):
         await self.sfence_vma.call(sim, vaddr=0, asid=0, all_vaddrs=1, all_asids=1)
         sim.set(self.csr_instances.s_mode.satp_asid, asid_a)
         await sim.tick()
-        await self.dut.request.call(sim, vpn=vpn0, write_aspect=0)
+        await self.dut.request.call(sim, vpn=vpn0, is_store=0)
         _ = await self.dut.accept.call(sim)
         assert len(self.backing.translated) == base + 8
 
@@ -371,7 +371,7 @@ class TestTLBCache(TestCaseWithSimulator):
             sim.set(self.csr_instances.s_mode.satp_asid, asid)
             await sim.tick()
 
-            await self.dut.request.call(sim, vpn=vpn, write_aspect=0)
+            await self.dut.request.call(sim, vpn=vpn, is_store=0)
             response = await self.dut.accept.call(sim)
             assert self.matches_lookup(response, vpn, asid)
 
