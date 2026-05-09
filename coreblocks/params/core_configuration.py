@@ -121,7 +121,8 @@ class _CoreConfigurationDataClass:
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     tlb_config: TLBCacheConfiguration
-        Grouped TLB configuration for L1I, L1D, and shared L2 - only applicable when SV* modes are supported.
+        Grouped TLB configuration for L1I TLB, L1D TLB, and shared L2 TLB - only applicable when SV* modes
+        are supported.
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     pmp_grain_log: int
