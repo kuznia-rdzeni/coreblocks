@@ -25,12 +25,12 @@ from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import full_core_config
+from coreblocks.params import configurations
 
 
 class PySimulation(SimulationBackend):
     def __init__(self, traces_file: Optional[str] = None):
-        self.gp = GenParams(full_core_config)
+        self.gp = GenParams(configurations.full)
         self.running = False
         self.cycle_cnt = 0
         self.traces_file = traces_file

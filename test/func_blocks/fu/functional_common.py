@@ -8,7 +8,7 @@ from typing import Generic, TypeVar
 from amaranth import Elaboratable, Signal
 
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.functions import data_const_to_dict
 from transactron.utils.dependencies import DependencyContext
@@ -19,7 +19,7 @@ from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
 from transactron.testing import (
-    RecordIntDict,
+    NameIntDict,
     TestbenchIO,
     TestCaseWithSimulator,
     SimpleTestCircuit,
@@ -78,7 +78,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     number_of_tests = 50
     seed = 40
     zero_imm = True
-    core_config = test_core_config
+    core_config = configurations.test
 
     @staticmethod
     def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
@@ -104,7 +104,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
 
     @pytest.fixture(autouse=True)
     def setup(self, fixture_initialize_testing_env):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
         self.csrs = CSRInstances(self.gen_params)
@@ -117,9 +117,9 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)
-        self.requests = deque[RecordIntDict]()
-        self.responses = deque[RecordIntDict]()
-        self.exceptions = deque[RecordIntDict]()
+        self.requests = deque[NameIntDict]()
+        self.responses = deque[NameIntDict]()
+        self.exceptions = deque[NameIntDict]()
 
         max_int = 2**self.gen_params.isa.xlen - 1
         functions = list(self.ops.keys())

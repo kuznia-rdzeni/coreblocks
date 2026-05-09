@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
 from transactron.lib.connectors import FIFO, ConnectTrans
-from transactron.lib.logging import HardwareLogger
+from transactron.utils import logging
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext
 
@@ -57,7 +57,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         self.bus = bus
 
-        self.log = HardwareLogger("backend.lsu.dummylsu")
+        self.log = logging.HardwareLogger("backend.lsu.dummylsu")
 
     def elaborate(self, platform):
         m = TModule()

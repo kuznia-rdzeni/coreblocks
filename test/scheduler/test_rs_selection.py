@@ -5,7 +5,7 @@ import pytest
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, Funct7
 from coreblocks.arch import OpType
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.scheduler.scheduler import RSSelection
 from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchIO, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
@@ -20,7 +20,7 @@ class TestRSSelect(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 func_units_config=(MockedBlockComponent(_rs1_optypes, 4), MockedBlockComponent(_rs2_optypes, 4)),
                 allow_partial_extensions=True,
             )

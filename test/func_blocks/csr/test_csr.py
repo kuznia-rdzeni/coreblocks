@@ -8,7 +8,7 @@ from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
@@ -175,7 +175,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert res.exception == 0
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(8)
 
         self.cycles = 256
@@ -268,7 +268,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
 
     def test_exception(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(9)
 
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
@@ -329,7 +329,7 @@ class TestCSRUnit(TestCaseWithSimulator):
                 assert report is None
 
     def test_counteren_access(self):
-        self.gen_params = GenParams(test_core_config.replace(supervisor_mode=True, user_mode=True))
+        self.gen_params = GenParams(configurations.test.replace(supervisor_mode=True, user_mode=True))
         random.seed(10)
 
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
@@ -390,7 +390,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             self.dut.write.disable(sim)
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(42)
 
         self.cycles = 200
@@ -425,7 +425,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             prev_value = output
 
     def test_filtermap(self):
-        gen_params = GenParams(test_core_config)
+        gen_params = GenParams(configurations.test)
 
         def write_filtermap(m: TModule, v: Value):
             res = Signal(34)
@@ -489,7 +489,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         assert self.dut._fu_read.get_call_result(sim).data == 0xDBBB
 
     def test_comb(self):
-        gen_params = GenParams(test_core_config)
+        gen_params = GenParams(configurations.test)
 
         random.seed(4326)
 

@@ -4,8 +4,7 @@ import os
 import sys
 import argparse
 from typing import Optional
-
-from amaranth import *
+from importlib.machinery import SourceFileLoader
 
 
 if __name__ == "__main__":
@@ -20,14 +19,8 @@ from transactron.utils import DependencyManager, DependencyContext
 from transactron.utils.gen import generate_verilog
 from transactron.testing.logging import HDLLogWrapperComponent, parse_logging_level
 
-from coreblocks.params.configurations import *
-
-str_to_coreconfig: dict[str, CoreConfiguration] = {
-    "basic": basic_core_config,
-    "tiny": tiny_core_config,
-    "small_linux": small_linux_config,
-    "full": full_core_config,
-}
+from coreblocks.params.core_configuration import CoreConfiguration
+from coreblocks.params import configurations
 
 
 def gen_verilog(
@@ -79,7 +72,16 @@ def main():
         action="store",
         default="basic",
         help="Select core configuration. "
-        + f"Available configurations: {', '.join(list(str_to_coreconfig.keys()))}. Default: %(default)s",
+        + f"Available configurations: {', '.join(configurations.__all__)}. Default: %(default)s",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--configfile",
+        action="store",
+        default=None,
+        help="Select custom config file for core configuration. "
+        + "File should contain CoreConfiguration instances as global variables",
     )
 
     parser.add_argument(
@@ -125,10 +127,14 @@ def main():
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
-    if args.config not in str_to_coreconfig:
+    configfile = SourceFileLoader("configfile", args.configfile).load_module() if args.configfile else configurations
+
+    if args.config not in dir(configfile):
         raise KeyError(f"Unknown config '{args.config}'")
 
-    config = str_to_coreconfig[args.config]
+    config = getattr(configfile, args.config)
+    assert isinstance(config, CoreConfiguration)
+
     if args.strip_debug:
         config = config.replace(debug_signals=False)
 

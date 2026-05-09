@@ -17,7 +17,7 @@ from coreblocks.interface.keys import (
 
 from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.utils.dependencies import DependencyContext
 
 log = logging.HardwareLogger("core.interrupt_controller")

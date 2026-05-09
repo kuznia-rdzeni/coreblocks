@@ -8,7 +8,7 @@ from typing import Sequence
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.utils import DependencyContext, from_method_layout
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
