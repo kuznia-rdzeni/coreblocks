@@ -170,8 +170,8 @@ class AddressTranslator(Elaboratable):
             with m.Else():
                 with m.Switch(tlb_data.result):
                     with m.Case(AddressTranslationLayouts.TLBResult.HIT):
-                        with m.If(data.is_store):
-                            m.d.av_comb += page_fault.eq(~tlb_data.permissions.d)
+                        with m.If(data.is_store & ~tlb_data.permissions.d):
+                            m.d.av_comb += page_fault.eq(1)
                     with m.Case(AddressTranslationLayouts.TLBResult.PAGE_FAULT):
                         m.d.av_comb += page_fault.eq(1)
                     with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):
