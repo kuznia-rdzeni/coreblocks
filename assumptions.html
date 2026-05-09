@@ -50,8 +50,6 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">List of assumptions made during development</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
 <li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Core verification</a></li>
@@ -90,9 +88,8 @@
 <li><p>RF has data forwarding from the Tomasulo announcement bus</p></li>
 <li><p>read of <code class="docutils literal notranslate"><span class="pre">x0</span></code>/<code class="docutils literal notranslate"><span class="pre">RF0</span></code> returns 0</p></li>
 <li><p>write to <code class="docutils literal notranslate"><span class="pre">x0</span></code>/<code class="docutils literal notranslate"><span class="pre">RF0</span></code> is a noop</p></li>
-<li><p>separate RS for each FU</p></li>
-<li><p>the writeback stage saves data to the RF and the ROB (after getting output data from FUs)</p></li>
-<li><p>the commit stage updates the R-RAT</p></li>
+<li><p>the announcement stage saves data to the RF and the ROB (after getting output data from FUs)</p></li>
+<li><p>the retirement stage updates the R-RAT</p></li>
 </ul>
 </section>
 
@@ -108,7 +105,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:50 2026-05-09.
+      <span class="lastupdated">Last updated on 12:08 2026-05-09.
       </span></p>
   </div>
 

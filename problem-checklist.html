@@ -50,8 +50,6 @@
 <li class="toctree-l1"><a class="reference internal" href="assumptions.html">List of assumptions made during development</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
 <li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Core verification</a></li>
@@ -88,10 +86,9 @@
 <h1>Problem checklist<a class="headerlink" href="#problem-checklist" title="Link to this heading"></a></h1>
 <p>If something doesn’t work and you’re puzzled as to why - go through this checklist to see if any of these points apply in your case:</p>
 <ol class="arabic simple">
-<li><p>Make sure that you use <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">from</span></code> when calling generator functions in tests - e.g. <code class="docutils literal notranslate"><span class="pre">TestbenchIO</span></code> functions (notable exception: <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">Settle()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">from</span> <span class="pre">Settle()</span></code>)</p></li>
-<li><p>If a signal has an unexpected value in tests try adding <code class="docutils literal notranslate"><span class="pre">yield</span> <span class="pre">Settle()</span></code> right before you read it.</p></li>
-<li><p>Make sure you don’t do <code class="docutils literal notranslate"><span class="pre">.eq</span></code> on two records with different layouts. Use <code class="docutils literal notranslate"><span class="pre">assign</span></code> from <code class="docutils literal notranslate"><span class="pre">coreblocks.utils</span></code> instead.</p></li>
-<li><p>Make sure all amaranth statements are added to some domain.</p></li>
+<li><p>Make sure that you use <code class="docutils literal notranslate"><span class="pre">await</span></code> when calling async functions in tests - e.g. <code class="docutils literal notranslate"><span class="pre">TestbenchIO</span></code> functions.</p></li>
+<li><p>Make sure you don’t do <code class="docutils literal notranslate"><span class="pre">.eq</span></code> on two structures with different layouts. Use <code class="docutils literal notranslate"><span class="pre">assign</span></code> from <code class="docutils literal notranslate"><span class="pre">transactron.utils</span></code> instead.</p></li>
+<li><p>Make sure all Amaranth statements are added to some domain.</p></li>
 <li><p>Check if your code doesn’t have any combinational loops - especially if your simulation hangs.</p></li>
 </ol>
 <p>Please extend this list if you spot yourself doing an easy-to-fix mistake.</p>
@@ -109,7 +106,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:50 2026-05-09.
+      <span class="lastupdated">Last updated on 12:08 2026-05-09.
       </span></p>
   </div>
 

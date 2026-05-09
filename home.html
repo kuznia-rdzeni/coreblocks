@@ -46,15 +46,10 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="assumptions.html">List of assumptions made during development</a></li>
 <li class="toctree-l1"><a class="reference internal" href="development-environment.html">Development environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scheduler/overview.html">Scheduler overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shared-structs/implementation/rs-impl.html">Proposition of Reservation Station implementation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="shared-structs/rs.html">Reservation Station</a></li>
 <li class="toctree-l1"><a class="reference internal" href="current-graph.html">Full transaction-method graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="problem-checklist.html">Problem checklist</a></li>
 <li class="toctree-l1"><a class="reference internal" href="synthesis/synthesis.html">Core verification</a></li>
@@ -89,14 +84,8 @@
              
   <section id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h1>
-<p>CoreBlocks is going to be an out-of-order processor which will implement a RISC-V microarchitecture.
-The project will focus on flexibility, which should allow to easily make experiments with different
-component implementations.</p>
-<section id="documentation">
-<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
-<p>Documentation located in the <code class="docutils literal notranslate"><span class="pre">docs/</span></code> directory collects description of the whole processor.
-In <code class="docutils literal notranslate"><span class="pre">Overview</span></code> a high level overview of CoreBlocks can be found.</p>
-<p>Html versions of these pages and API documentation generated from code are available at <a class="reference external" href="https://kuznia-rdzeni.github.io/coreblocks/">kuznia-rdzeni.github.io/coreblocks/</a></p>
+<p>Coreblocks is an out-of-order processor which implements the RISC-V architecture.</p>
+<p>The graph below is a high level schematic of the core’s microarchitecture.</p>
 <div class="mermaid">
             graph
     F[&lt;b&gt;FRONTEND&lt;/b&gt;&lt;br&gt;-get instruction&lt;br&gt;-decode]
@@ -119,7 +108,6 @@ In <code class="docutils literal notranslate"><span class="pre">Overview</span><
     B --&gt; RF --&gt; S
     S &lt;--&gt; RAT &lt;--&gt; R
         </div></section>
-</section>
 
 
            </div>
@@ -133,7 +121,7 @@ In <code class="docutils literal notranslate"><span class="pre">Overview</span><
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:50 2026-05-09.
+      <span class="lastupdated">Last updated on 12:08 2026-05-09.
       </span></p>
   </div>
 
