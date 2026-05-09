@@ -87,7 +87,8 @@ class VirtualMemoryParameters:
         )
         self.tlb_size_class_bits = self.max_tlb_size_class.bit_length()
 
-        self.supports_svade = False
+        # Should be True when Svade is not supported or Svadu is supported
+        self.supports_auto_a_d_management = False
 
     @property
     def supported_non_bare_schemes(self) -> Collection[SatpMode]:

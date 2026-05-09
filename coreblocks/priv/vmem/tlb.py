@@ -206,7 +206,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             ask_backing = Signal()
             with m.If(~cam.full_match.any()):
                 m.d.av_comb += ask_backing.eq(1)
-            if self.gen_params.vmem_params.supports_svade:
+            if self.gen_params.vmem_params.supports_auto_a_d_management:
                 with m.Elif(is_store & ~found_entry.permissions.d):
                     # We have found an entry, but it doesn't have the dirty bit set
                     # Ask the backing resolver to set it (Svade semantic)
