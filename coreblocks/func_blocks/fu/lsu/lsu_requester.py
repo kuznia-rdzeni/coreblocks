@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth_types import ModuleLike
 from transactron import Method, def_method, TModule
 from transactron.lib.simultaneous import condition
-from transactron.lib.logging import HardwareLogger
+from transactron.utils import logging
 from transactron.lib import BasicFifo
 
 from coreblocks.params import *
@@ -45,7 +45,7 @@ class LSURequester(Elaboratable):
         self.issue = Method(i=lsu_layouts.issue, o=lsu_layouts.issue_out)
         self.accept = Method(o=lsu_layouts.accept)
 
-        self.log = HardwareLogger("backend.lsu.requester")
+        self.log = logging.HardwareLogger("backend.lsu.requester")
 
     def prepare_bytes_mask(self, m: ModuleLike, funct3: Value, addr: Value) -> Signal:
         mask_len = self.gen_params.isa.xlen // self.bus.params.granularity

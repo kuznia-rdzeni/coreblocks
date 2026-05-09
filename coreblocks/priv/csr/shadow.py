@@ -7,8 +7,7 @@ from transactron.core.method import Method
 from transactron.core.transaction import Transaction
 from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
-from transactron.utils import get_src_loc
-from transactron.lib import logging
+from transactron.utils import get_src_loc, logging
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegisterBase

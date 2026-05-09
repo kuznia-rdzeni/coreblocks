@@ -3,7 +3,7 @@ import operator
 from amaranth import *
 from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
 from transactron.lib.fifo import WideFifo
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import *
 from transactron.utils import count_trailing_zeros
 from coreblocks.interface.layouts import ROBLayouts
