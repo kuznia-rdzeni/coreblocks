@@ -107,7 +107,7 @@ class InternalInterruptController(Component):
         # sip_stip_acc
         # sip_seip_acc
         # sip_ssip_acc
-        self.sip_writeable = self.edge_reported_mask | (1 << InterruptCauseNumber.SSI)
+        self.sip_writeable = (self.sie_writeable & self.edge_reported_mask) | (1 << InterruptCauseNumber.SSI)
 
         if gen_params.supervisor_mode:
             self.mie_writeable |= self.sie_writeable
