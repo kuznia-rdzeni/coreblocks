@@ -175,7 +175,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
                         m.d.sync += access_fault.eq(1)
                         m.next = "DONE"
                     with m.Else():
-                        self.bus.request_read(m, addr=(pte_addr >> offset_bits), sel=~0)
+                        self.bus.request_read(m, addr=pte_addr[offset_bits:], sel=~0)
                         m.next = "EVAL"
             with m.State("EVAL"):
                 with Transaction().body(m):

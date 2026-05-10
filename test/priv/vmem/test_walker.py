@@ -46,8 +46,9 @@ class TestPageTableWalker(TestCaseWithSimulator):
         self.csr_instances = CSRInstances(self.gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
 
+        offset_bits = exact_log2(self.gen_params.isa.xlen // 8)
         self.bus = MockMasterAdapter(
-            BusMockParameters(data_width=self.gen_params.isa.xlen, addr_width=self.gen_params.phys_addr_bits)
+            BusMockParameters(data_width=self.gen_params.isa.xlen, addr_width=self.gen_params.phys_addr_bits - offset_bits)
         )
         self.dut = SimpleTestCircuit(PageTableWalker(self.gen_params, self.bus))
         self.m = ModuleConnector(dut=self.dut, bus=self.bus, csrs=self.csr_instances)
