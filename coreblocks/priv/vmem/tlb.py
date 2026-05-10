@@ -400,7 +400,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.av_comb += miss.eq(~valid_vec.any())
 
             if self.gen_params.vmem_params.supports_auto_a_d_management:
-                if (~miss & req.is_store & ~found_entry.permissions.d):
+                if ~miss & req.is_store & ~found_entry.permissions.d:
                     m.d.av_comb += ask_backing.eq(1)
 
             max_class = self.gen_params.vmem_params.max_tlb_size_class
