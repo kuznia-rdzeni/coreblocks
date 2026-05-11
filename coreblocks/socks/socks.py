@@ -25,7 +25,16 @@ PLIC_BASE = 0xE2000000
 class Socks(Component):
     wb_instr: WishboneInterface
     wb_data: WishboneInterface
+
     interrupts: Signal
+    """ Interrupts input signal
+    If `with_plic` is set to True, then it's the input to the RISC-V Platform Level Interrupt Controller module.
+    PLIC wires interrupts targets 0 to MEI and 1 to SEI. Signal has width of `interrupt_custom_count`.
+    Note that PLIC interrupt 0 is reserved.
+    If `with_plic` is set to False, `interrupts` width is 16 (number of interrupts reserved by ISA) +
+    `interrupt_custom_count` and interrupts are directly wired to Hart Local Interrupt Controller.
+    In both cases MTI and MSI are ignored and provided from CLINT.
+    """
 
     def __init__(self, core: Core, core_gen_params: GenParams, with_plic: bool = True):
         super().__init__(

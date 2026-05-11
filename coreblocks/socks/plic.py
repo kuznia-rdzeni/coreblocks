@@ -15,8 +15,6 @@ from coreblocks.socks.peripheral import (
 MIN_PRIORITY = 1
 PRIORITY_COUNT = 7
 
-FIRST_INTERRUPT_ID = 1
-
 MAX_INTERRUPTS = 1024
 MAX_CONTEXTS = 15872
 
@@ -72,8 +70,8 @@ class PlicPeriph(Component, SocksPeripheral):
 
         # Step 1: Mask currently processed interrupts
 
-        # TODO: What if written in the same cycle?
-        pending_to_enable = self.interrupts & ~processing
+        # interrupt 0 is reserved and hard-wired to 0
+        pending_to_enable = self.interrupts & ~processing & ~(1 << 0)
         m.d.sync += pending.eq((pending & ~pending_to_disable) | (pending_to_enable & ~C(1)))
         m.d.sync += processing.eq((processing & ~processing_to_disable) | pending_to_enable)
 
@@ -160,7 +158,7 @@ class PlicPeriph(Component, SocksPeripheral):
             gen_memory_mapped_register(
                 m, self, self.base_addr + OFFSET_SOURCE_PRIORITY + 4 * interrupt, interrupt_priority[interrupt]
             )
-        gen_memory_mapped_register(m, self, self.base_addr + OFFSET_PENDING_BIT, pending)
+        gen_memory_mapped_register(m, self, self.base_addr + OFFSET_PENDING_BIT, pending, read_only=True)
 
         for context in range(self.context_count):
             gen_memory_mapped_register(

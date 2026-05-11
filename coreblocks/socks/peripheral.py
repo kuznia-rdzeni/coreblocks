@@ -32,7 +32,9 @@ def is_perpiheral_request(periph: SocksPeripheral):
     return periph.bus.cyc & periph.bus.stb & bus_in_periph_range(periph.bus, periph)
 
 
-def gen_memory_mapped_register(m: ModuleLike, periph: SocksPeripheral, addr_offset: int, register: Signal):
+def gen_memory_mapped_register(
+    m: ModuleLike, periph: SocksPeripheral, addr_offset: int, register: Signal, read_only: bool = False
+):
     bus = periph.bus
 
     reg_width = register.shape().width
@@ -51,10 +53,16 @@ def gen_memory_mapped_register(m: ModuleLike, periph: SocksPeripheral, addr_offs
                 m.d.comb += bus.err.eq(0)
 
                 with m.If(bus.we):
-                    if bus.sel.shape().width:
-                        sel_mask_bits = word_width // bus.sel.shape().width
-                        write_mask = Cat([bus.sel[i].replicate(sel_mask_bits) for i in range(bus.sel.shape().width)])
+                    if read_only:
+                        m.d.comb += bus.ack.eq(0)
+                        m.d.comb += bus.err.eq(1)
                     else:
-                        write_mask = -1
+                        if bus.sel.shape().width:
+                            sel_mask_bits = word_width // bus.sel.shape().width
+                            write_mask = Cat(
+                                [bus.sel[i].replicate(sel_mask_bits) for i in range(bus.sel.shape().width)]
+                            )
+                        else:
+                            write_mask = -1
 
-                    m.d.sync += reg_slice.eq((bus.dat_w & write_mask) | (reg_slice & ~write_mask))
+                        m.d.sync += reg_slice.eq((bus.dat_w & write_mask) | (reg_slice & ~write_mask))
