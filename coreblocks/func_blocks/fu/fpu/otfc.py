@@ -90,6 +90,8 @@ class OTFCModule(Elaboratable):
         m = TModule()
         a_register = Signal(2 + self.otfc_params.result_width)
         b_register = Signal(2 + self.otfc_params.result_width)
+        a = Signal(2)
+        b = Signal(2)
 
         @def_method(m, self.otfc_result)
         def _(shift):
@@ -104,20 +106,21 @@ class OTFCModule(Elaboratable):
         def _(sign, q):
             a1 = q[1] | sign
             a0 = q[0]
+            m.d.comb += a.eq((a1 << 1) | a0)
             b1 = ((~q[1]) & (~q[0])) | (sign & q[0])
             b0 = ~q[0]
-
+            m.d.comb += b.eq((b1 << 1) | b0)
             a_shift = ~sign
             b_shift = (sign) | (q == 0)
 
             with m.If(a_shift):
-                m.d.sync += a_register.eq((a_register << 2) | Cat(a0, a1))
+                m.d.sync += a_register.eq((a_register << 2) | a)
             with m.Else():
-                m.d.sync += a_register.eq((b_register << 2) | Cat(a0, a1))
+                m.d.sync += a_register.eq((b_register << 2) | a)
 
             with m.If(b_shift):
-                m.d.sync += b_register.eq((b_register << 2) | Cat(b0, b1))
+                m.d.sync += b_register.eq((b_register << 2) | b)
             with m.Else():
-                m.d.sync += b_register.eq((a_register << 2) | Cat(b0, b1))
+                m.d.sync += b_register.eq((a_register << 2) | b)
 
         return m

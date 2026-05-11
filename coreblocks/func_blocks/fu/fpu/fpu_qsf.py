@@ -106,17 +106,17 @@ class QSFModule(Elaboratable):
             q = Signal(self.qsf_params.q_bits)
             sign = Signal()
             for i in range(0, len(self.intervals)):
-                with m.If(divisor == Const(self.intervals[i])):
-                    with m.If(residual < Const(self.bounds[i][0])):
-                        m.d.av_comb += q.eq(Const(self.digits[0][1]))
-                        m.d.av_comb += sign.eq(Const(self.digits[0][0]))
+                with m.If(divisor == self.intervals[i]):
+                    with m.If(residual < self.bounds[i][0]):
+                        m.d.av_comb += q.eq(self.digits[0][1])
+                        m.d.av_comb += sign.eq((self.digits[0][0]))
                     for j in range(1, len(self.bounds[i])):
-                        with m.Elif(residual < Const(self.bounds[i][j])):
-                            m.d.av_comb += q.eq(Const(self.digits[j][1]))
-                            m.d.av_comb += sign.eq(Const(self.digits[j][0]))
+                        with m.Elif(residual < self.bounds[i][j]):
+                            m.d.av_comb += q.eq((self.digits[j][1]))
+                            m.d.av_comb += sign.eq(self.digits[j][0])
                     with m.Else():
-                        m.d.av_comb += q.eq(Const(self.digits[len(self.bounds[i])][1]))
-                        m.d.av_comb += sign.eq(Const(self.digits[len(self.bounds[i])][0]))
+                        m.d.av_comb += q.eq(self.digits[len(self.bounds[i])][1])
+                        m.d.av_comb += sign.eq(self.digits[len(self.bounds[i])][0])
             return {"q": q, "sign": sign}
 
         return m
