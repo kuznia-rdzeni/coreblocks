@@ -162,6 +162,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, configurations.full),
         ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, configurations.full),
         ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, configurations.full),
+        ("sv32_translation", "sv32_translation.asm", 500, {9: 5, 10: 1}, configurations.full),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
