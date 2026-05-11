@@ -119,7 +119,7 @@ class AddressTranslator(Elaboratable):
                     m.d.av_comb += access_fault.eq(vpn > max_ppn)
 
                 for vm_mode in self.gen_params.vmem_params.supported_non_bare_schemes:
-                    vm_vpn_len = bits_per_level * SatpMode.level_count(vm_mode)
+                    vm_vpn_len = bits_per_level * vm_mode.level_count()
 
                     with m.Case(vm_mode):
                         m.d.av_comb += vpn_invalid.eq(vpn[vm_vpn_len - 1 :].any() & ~vpn[vm_vpn_len - 1 :].all())

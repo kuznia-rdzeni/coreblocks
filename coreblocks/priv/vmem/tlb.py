@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.data import StructLayout, ArrayLayout
+from amaranth.lib.data import StructLayout, ArrayLayout, View
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr
@@ -18,13 +18,6 @@ __all__ = [
 
 
 class TLBEntry(StructLayout):
-    valid: Value
-    asid: Value
-    vpn: Value
-    ppn: Value
-    size_class: Value
-    permissions: Value
-
     def __init__(self, gen_params: GenParams):
         super().__init__(
             {
@@ -42,22 +35,40 @@ class TLBCAM(Elaboratable):
     """A single set of a TLB CAM, containing multiple ways.
 
     Finds entries matching the VPN (taking into account size class) and ASID and returns bit-vectors of matches.
-
-    ways_data: In, Data for all ways, used for matching and replacement.
-    checked_asid: In, ASID to check for matches.
-    checked_vpn: In, VPN to check for matches.
-
-    valid_match: Out, bit-vector of valid entries.
-    addr_match: Out, bit-vector of ways matching the address (taking into account size class).
-    asid_match: Out, bit-vector of ways matching the ASID (only non-global entries).
-    global_match: Out, bit-vector of global entries.
-
-    full_match: Out, bit-vector of ways matching inputs - valid and address and (ASID or global).
-
-    replacement_rr_index: In, index for round-robin replacement.
-    replace_candidate: Out, index of the way to replace on a miss.
-    next_replacement_rr_index: Out, value of replacement_rr_index after replacement.
     """
+
+    ways_data: View
+    """Data for all ways, used for matching and replacement."""
+
+    checked_asid: Signal
+    """ASID to check for matches."""
+
+    checked_vpn: Signal
+    """VPN to check for matches."""
+
+    valid_match: Signal
+    """Bit-vector of valid entries."""
+
+    addr_match: Signal
+    """Bit-vector of ways matching the address (taking into account size class)."""
+
+    asid_match: Signal
+    """Bit-vector of ways matching the ASID (only non-global entries)."""
+
+    global_match: Signal
+    """Bit-vector of global entries."""
+
+    full_match: Signal
+    """Bit-vector of ways matching inputs - valid and address and (ASID or global)."""
+
+    replacement_rr_index: Signal
+    """Round-robin index for replacement."""
+
+    replace_candidate: Signal
+    """Index of the way to replace on a miss."""
+
+    next_replacement_rr_index: Signal
+    """Value of replacement_rr_index after replacement."""
 
     def __init__(self, gen_params: GenParams, ways: int):
         self.gen_params = gen_params

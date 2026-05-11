@@ -30,10 +30,6 @@ class VirtualMemoryParameters:
         return satp_layout["ppn"].width + PAGE_SIZE_LOG
 
     @staticmethod
-    def vpn_bits_for_mode(xlen: int, mode: SatpMode) -> int:
-        return SatpMode.bits_per_page_table_level(xlen) * SatpMode.level_count(mode)
-
-    @staticmethod
     def size_class_shift(xlen: int, size_class: int) -> int:
         return SatpMode.bits_per_page_table_level(xlen) * size_class
 
@@ -67,7 +63,7 @@ class VirtualMemoryParameters:
             raise ValueError(f"Schemes {self.supported_schemes - supported_for_xlen} are not valid for XLEN={xlen}")
 
         for mode in self.supported_schemes:
-            dependencies = SatpMode.mode_dependencies(mode)
+            dependencies = mode.mode_dependencies()
             if not dependencies <= self.supported_schemes:
                 raise ValueError(
                     f"Schemes {dependencies - self.supported_schemes} are required by {mode} but not supported"
@@ -78,11 +74,11 @@ class VirtualMemoryParameters:
         self.max_asid = (1 << asidlen) - 1
         self.page_table_level_bits = SatpMode.bits_per_page_table_level(xlen)
         self.max_tlb_vpn_bits = max(
-            (self.vpn_bits_for_mode(xlen, mode) for mode in self.supported_non_bare_schemes),
+            (mode.vpn_bits() for mode in self.supported_non_bare_schemes),
             default=0,
         )
         self.max_tlb_size_class = max(
-            (SatpMode.level_count(mode) - 1 for mode in self.supported_non_bare_schemes),
+            (mode.level_count() - 1 for mode in self.supported_non_bare_schemes),
             default=0,
         )
         self.tlb_size_class_bits = self.max_tlb_size_class.bit_length()
