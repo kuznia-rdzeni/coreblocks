@@ -3,8 +3,8 @@ from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
-from transactron.utils import DependencyContext, mod_incr
-from transactron.lib import Forwarder, Pipe, condition, HwCounter, FIFOLatencyMeasurer
+from transactron.utils import DependencyContext, mod_incr, HardwareLogger
+from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
@@ -17,6 +17,9 @@ __all__ = [
     "FullyAssociativeTLB",
     "SetAssociativeTLB",
 ]
+
+
+log = HardwareLogger("mmu.tlb")
 
 
 class TLBEntry(StructLayout):
@@ -191,6 +194,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.d.comb += cam.ways_data.eq(entries)
 
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.slow_fwd = slow_fwd = Forwarder(self.layout.tlb_request)
 
         request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
@@ -225,21 +229,22 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     # Ask the backing resolver to set it (Svade semantic)
                     m.d.av_comb += ask_backing.eq(1)
 
-            with condition(m) as branch:
-                with branch(ask_backing):
-                    self.perf_misses.incr(m)
-                    m.d.sync += request_in_flight.eq(1)
-                    m.d.sync += requested_vpn.eq(vpn)
-                    self.backing_resolver.request(m, vpn=vpn, is_store=is_store)
-                with branch():
-                    self.perf_hits.incr(m)
-                    fwd.write(
-                        m,
-                        result=AddressTranslationLayouts.TLBResult.HIT,
-                        permissions=found_entry.permissions,
-                        ppn=found_entry.ppn,
-                        size_class=found_entry.size_class,
-                    )
+            with m.If(ask_backing):
+                m.d.sync += request_in_flight.eq(1)
+                m.d.sync += requested_vpn.eq(vpn)
+                self.perf_misses.incr(m)
+                slow_fwd.write(m, vpn=vpn, is_store=is_store)
+            with m.Else():
+                self.perf_hits.incr(m)
+                fwd.write(
+                    m,
+                    result=AddressTranslationLayouts.TLBResult.HIT,
+                    permissions=found_entry.permissions,
+                    ppn=found_entry.ppn,
+                    size_class=found_entry.size_class,
+                )
+
+        m.submodules += ConnectTrans.create(slow_fwd.read, self.backing_resolver.request)
 
         # Slow path - refill from backing resolver
         with Transaction().body(m, ready=request_in_flight):
@@ -248,16 +253,17 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             fwd.write(m, resp)
 
+            new_entry = Signal(TLBEntry(self.gen_params))
+            m.d.av_comb += [
+                new_entry.valid.eq(1),
+                new_entry.asid.eq(current_asid),
+                new_entry.vpn.eq(requested_vpn),
+                new_entry.ppn.eq(resp.ppn),
+                new_entry.size_class.eq(resp.size_class),
+                new_entry.permissions.eq(resp.permissions),
+            ]
+
             with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
-                new_entry = Signal(TLBEntry(self.gen_params))
-                m.d.av_comb += [
-                    new_entry.valid.eq(1),
-                    new_entry.asid.eq(current_asid),
-                    new_entry.vpn.eq(requested_vpn),
-                    new_entry.ppn.eq(resp.ppn),
-                    new_entry.size_class.eq(resp.size_class),
-                    new_entry.permissions.eq(resp.permissions),
-                ]
                 m.d.sync += cam.replacement_rr_index.eq(cam.next_replacement_rr_index)
                 m.d.sync += entries[cam.replace_candidate].eq(new_entry)
 

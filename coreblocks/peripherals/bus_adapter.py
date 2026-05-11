@@ -3,14 +3,19 @@ from typing import Protocol
 from amaranth import *
 from amaranth_types import HasElaborate
 
-from coreblocks.peripherals.wishbone import WishboneMaster
+from coreblocks.peripherals.wishbone import WishboneMaster, WishboneMasterMethodLayout
 from coreblocks.peripherals.axi_lite import AXILiteMaster
 
 from transactron import Method, def_method, TModule
 from transactron.lib import Serializer
 from transactron.utils.transactron_helpers import make_layout
 
-__all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"]
+__all__ = [
+    "BusMasterInterface",
+    "WishboneMasterAdapter",
+    "AXILiteMasterAdapter",
+    "WishboneMasterRequestResponseSerializer",
+]
 
 
 class BusParametersInterface(Protocol):
@@ -103,6 +108,45 @@ class CommonBusMasterMethodLayout:
         self.write_response_layout = make_layout(("err", 1))
 
 
+class _WishboneSerializedPort:
+    def __init__(self, wb_params: BusParametersInterface, method_layouts: WishboneMasterMethodLayout):
+        self.wb_params = wb_params
+        self.request = Method(i=method_layouts.request_layout)
+        self.result = Method(o=method_layouts.result_layout)
+
+
+class WishboneMasterRequestResponseSerializer(Elaboratable):
+    """Serializes multiple Wishbone request/result endpoints onto a single Wishbone master.
+
+    This provides additional arbitration for `WishboneMaster.request` / `WishboneMaster.result`
+    when multiple adapters must share one physical master.
+    """
+
+    def __init__(self, bus: WishboneMaster, port_count: int):
+        if port_count <= 0:
+            raise ValueError("port_count must be positive")
+
+        self.bus = bus
+        self.port_count = port_count
+        self.method_layouts = WishboneMasterMethodLayout(bus.wb_params)
+        self.ports = [_WishboneSerializedPort(bus.wb_params, self.method_layouts) for _ in range(port_count)]
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.submodules.bus_serializer = bus_serializer = Serializer(
+            port_count=self.port_count,
+            serialized_req_method=self.bus.request,
+            serialized_resp_method=self.bus.result,
+        )
+
+        for port_idx, port in enumerate(self.ports):
+            port.request.provide(bus_serializer.serialize_in[port_idx])
+            port.result.provide(bus_serializer.serialize_out[port_idx])
+
+        return m
+
+
 class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
     """
     An adapter for Wishbone master.
@@ -143,7 +187,7 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
         Output layout is `write_response_layout`.
     """
 
-    def __init__(self, bus: WishboneMaster):
+    def __init__(self, bus: WishboneMaster | _WishboneSerializedPort):
         self.bus = bus
         self.params = self.bus.wb_params
 

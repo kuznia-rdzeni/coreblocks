@@ -121,11 +121,13 @@ class FlushICacheKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
+class SFenceVMAKey(UnifierKey, unifier=lambda _, data: MethodProduct.create(data)):  # type: ignore
     """
     Collects SFENCE.VMA handlers to invalidate translation caches.
     Expected layout is `AddressTranslationLayouts.sfence_vma`.
     """
+
+    pass
 
 
 @dataclass(frozen=True)

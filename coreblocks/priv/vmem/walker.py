@@ -165,6 +165,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
         with m.FSM() as fsm:
             with m.State("IDLE"):
                 with m.If(self.request.run):
+                    log.info(m, 1, "Starting page table walk for VPN {:x}", self.request.data_in.vpn)
                     m.next = "ISSUE"
             with m.State("DONE"):
                 with m.If(self.accept.run):
@@ -172,9 +173,11 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
             with m.State("ISSUE"):
                 with Transaction().body(m):
                     with m.If(~pmp_checker.result.r):
+                        log.debug(m, 1, "PMP check failed for PTE address {:x}", pte_addr)
                         m.d.sync += access_fault.eq(1)
                         m.next = "DONE"
                     with m.Else():
+                        log.debug(m, 1, "Issuing bus request for PTE at address {:x}", pte_addr)
                         self.bus.request_read(m, addr=pte_addr[offset_bits:], sel=~0)
                         m.next = "EVAL"
             with m.State("EVAL"):
@@ -197,20 +200,26 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
 
                     max_ppn = (1 << (self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)) - 1
                     with m.If(fetched.err):
+                        log.debug(m, 1, "Bus error while fetching PTE at address {:x}", pte_addr)
                         m.d.sync += access_fault.eq(1)
                         m.next = "DONE"
                     with m.Elif(pte.invalid()):
+                        log.debug(m, 1, "Invalid PTE for VPN {:x}", walk_vpn)
                         m.d.sync += page_fault.eq(1)
                         m.next = "DONE"
                     with m.Elif(pte.ppn > max_ppn):
+                        log.debug(m, 1, "PTE PPN {:x} exceeds maximum {:x}", pte.ppn, max_ppn)
                         m.d.sync += access_fault.eq(1)
                         m.next = "DONE"
                     with m.Elif(pte.is_leaf()):
+                        log.debug(m, 1, "Leaf PTE found for VPN {:x}, PPN {:x}", walk_vpn, pte.ppn)
                         m.next = "DONE"
                     with m.Elif(walk_level == 0):
+                        log.debug(m, 1, "Non-leaf PTE at lowest level for VPN {:x}", walk_vpn)
                         m.d.sync += page_fault.eq(1)
                         m.next = "DONE"
                     with m.Else():
+                        log.debug(m, 1, "Non-leaf PTE for VPN {:x}, descending to next level", walk_vpn)
                         m.d.sync += walk_level.eq(walk_level - 1)
                         m.next = "ISSUE"
 
