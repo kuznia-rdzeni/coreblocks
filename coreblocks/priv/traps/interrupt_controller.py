@@ -108,6 +108,9 @@ class InternalInterruptController(Component):
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
 
+        if gen_params.interrupt_all_interrupts_delegable:
+            self.mideleg_writeable |= self.mie_writeable
+
         # sip_stip_acc
         # sip_seip_acc
         # sip_ssip_acc
