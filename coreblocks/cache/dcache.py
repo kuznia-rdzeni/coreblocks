@@ -1,22 +1,13 @@
-from functools import reduce
-import operator
-
 from amaranth import *
-from amaranth.lib.data import View
-import amaranth.lib.memory as memory
 from amaranth.utils import exact_log2
-
-from transactron.core import def_method, Priority, TModule
-from transactron import Method, Transaction
-from coreblocks.params import ICacheParameters, DCacheParameters
+from transactron.core import def_method, TModule
+from transactron import Method
+from coreblocks.params import DCacheParameters
 from coreblocks.interface.layouts import DCacheLayouts
-from transactron.utils import assign, OneHotSwitchDynamic
 from transactron.lib import *
 from transactron.lib import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-
-from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
-from transactron.utils.transactron_helpers import make_layout
+from coreblocks.cache.iface import CacheInterface
 
 __all__ = ["DCacheBypass"]
 

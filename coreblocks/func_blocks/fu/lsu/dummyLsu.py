@@ -79,7 +79,9 @@ class LSUDummy(FuncUnit, Elaboratable):
         )
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
-        m.submodules.dcache = dcache = DCacheBypass(self.gen_params.get(DCacheLayouts), self.gen_params.dcache_params, self.bus)
+        m.submodules.dcache = dcache = DCacheBypass(
+            self.gen_params.get(DCacheLayouts), self.gen_params.dcache_params, self.bus
+        )
         m.submodules.requester = requester = LSURequester(self.gen_params, dcache)
 
         m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
