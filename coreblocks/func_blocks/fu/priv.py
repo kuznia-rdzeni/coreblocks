@@ -4,7 +4,7 @@ from amaranth.lib import data
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
-from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel, SatpMode
+from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel
 
 
 from transactron import *
@@ -101,6 +101,10 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
+        if sfence_vma is not None:
+            for name, unifier in sfence_vma[1].items():
+                m.submodules[name] = unifier
+
         @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
             m.d.sync += [
@@ -152,15 +156,14 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
                         sret(m)
 
-                    if self.gen_params.vmem_params.supported_schemes > {SatpMode.BARE}:
-                        assert sfence_vma is not None
+                    if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
                         with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
 
                             sfence_vma[0](
                                 m,
                                 vaddr=instr_s1_val,
-                                asid=instr_s2_val,
+                                asid=instr_s2_val[: self.gen_params.vmem_params.asidlen],
                                 all_vaddrs=imm_view.rs1 == 0,
                                 all_asids=imm_view.rs2 == 0,
                             )
