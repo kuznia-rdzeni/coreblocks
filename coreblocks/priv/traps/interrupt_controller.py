@@ -93,11 +93,15 @@ class InternalInterruptController(Component):
             # mip_stip_no_stimecmp_acc
             # mip_ssip_acc
             # mip_seip_acc
+            # TODO: SEI should be writeable, but with special semantics - mip_seip_rdcsr, mip_seip_wrcsr
+            # currently marking SEI as non-writeable
             self.mip_writeable |= (
-                (1 << InterruptCauseNumber.STI) | (1 << InterruptCauseNumber.SSI) | (1 << InterruptCauseNumber.SEI)
+                (1 << InterruptCauseNumber.STI)
+                | (1 << InterruptCauseNumber.SSI)
+                # | (1 << InterruptCauseNumber.SEI)
             )
 
-        self.sie_writeable = (
+        self.mideleg_writeable = (
             (1 << InterruptCauseNumber.SSI)
             | (1 << InterruptCauseNumber.STI)
             | (1 << InterruptCauseNumber.SEI)
@@ -107,13 +111,13 @@ class InternalInterruptController(Component):
         # sip_stip_acc
         # sip_seip_acc
         # sip_ssip_acc
-        self.sip_writeable = (self.sie_writeable & self.edge_reported_mask) | (1 << InterruptCauseNumber.SSI)
+        self.sip_writeable = (self.mideleg_writeable & self.edge_reported_mask) | (1 << InterruptCauseNumber.SSI)
 
         if gen_params.supervisor_mode:
-            self.mie_writeable |= self.sie_writeable
+            self.mie_writeable |= self.mideleg_writeable
 
         assert self.mip_writeable & ~self.mie_writeable == 0
-        assert self.sip_writeable & ~self.sie_writeable == 0
+        assert self.sip_writeable & ~self.mideleg_writeable == 0
 
         if gen_params.supervisor_mode:
             assert self.sip_writeable & ~self.mip_writeable == 0
@@ -122,7 +126,7 @@ class InternalInterruptController(Component):
         self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.mip_writeable)
 
         if gen_params.supervisor_mode:
-            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~self.sie_writeable)
+            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~self.mideleg_writeable)
 
             smode_delegable = ExceptionCause.smode_delegable_mask(gen_params.isa.xlen)
 
