@@ -93,7 +93,7 @@ class InternalInterruptController(Component):
             # mip_stip_no_stimecmp_acc
             # mip_ssip_acc
             # mip_seip_acc
-            # TODO: SEI should be writeable, but with special semantics - mip_seip_rdcsr, mip_seip_wrcsr
+            # FIXME: SEI should be writeable, but with special semantics - mip_seip_rdcsr, mip_seip_wrcsr
             # currently marking SEI as non-writeable
             self.mip_writeable |= (
                 (1 << InterruptCauseNumber.STI)
