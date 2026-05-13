@@ -13,9 +13,6 @@ from coreblocks.socks.plic import PlicPeriph
 CLINT_BASE = 0xE1000000
 PLIC_BASE = 0xE2000000
 
-# PERIPH_SPACE_ADDR = 0xE1000000
-# PERIPH_SPACE_END = 0xE8000000
-
 # This is a temporary wrapper solution to provide external memory-mapped components, required to run Linux.
 # It is intended to be only usable with LiteX, that uses a simple core-facing interface and Wishbone bus
 # (and is currenty the only supported integration).
@@ -29,7 +26,7 @@ class Socks(Component):
     interrupts: Signal
     """ Interrupts input signal
     If `with_plic` is set to True, then it's the input to the RISC-V Platform Level Interrupt Controller module.
-    PLIC wires interrupts targets 0 to MEI and 1 to SEI. Signal has width of `interrupt_custom_count`.
+    PLIC wires interrupts contexts 0 to MEI and 1 to SEI. Signal has width of `interrupt_custom_count`.
     Note that PLIC interrupt 0 is reserved.
     If `with_plic` is set to False, `interrupts` width is 16 (number of interrupts reserved by ISA) +
     `interrupt_custom_count` and interrupts are directly wired to Hart Local Interrupt Controller.

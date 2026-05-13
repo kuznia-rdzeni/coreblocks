@@ -50,6 +50,9 @@ class CoreTestElaboratable(Elaboratable):
         self.core = Core(gen_params=self.gen_params)
         self.top = Socks(self.core, self.gen_params) if self.with_socks else self.core
 
+        if self.with_socks:
+            m.d.comb += self.top.interrupts.eq(self.core.csr_instances.csr_coreblocks_test.value)
+
         if self.gen_params.interrupt_custom_count == 2:
             self.interrupt_level = Signal()
             self.interrupt_edge = Signal()
@@ -154,6 +157,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, full_core_config),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, full_core_config),
         ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, basic_core_config),
+        ("socks_plic", "plic.asm", 2000, {31: 0xcafe}, basic_core_config),
     ],
 )
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
