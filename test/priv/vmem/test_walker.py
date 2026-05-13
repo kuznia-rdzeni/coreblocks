@@ -66,7 +66,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
 
         translation_path = []
 
-        vpn_len = self.gen_params.vmem_params.vpn_bits_for_mode(self.gen_params.isa.xlen, mode)
+        vpn_len = mode.vpn_bits()
         vpn = random.randint(0, (1 << vpn_len) - 1)
         is_write = random.random() < 0.5
 
