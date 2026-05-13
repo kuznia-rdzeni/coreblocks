@@ -69,21 +69,8 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
-        all_interrupts = Cat(
-            self.internal_report_level,
-            self.custom_report,
-            C(0, self.gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS - gen_params.interrupt_custom_count),
-        )
-        level_interrupts = []
-        new_edge_interrupts = []
-
-        for i in range(self.gen_params.isa.xlen):
-            edge = self.edge_reported_mask & (1 << i)
-            new_edge_interrupts.append(all_interrupts[i] if edge else C(0, 1))
-            level_interrupts.append(all_interrupts[i] if not edge else C(0, 1))
-
-        self.level_interrupts = Cat(*level_interrupts)
-        self.new_edge_interrupts = Cat(*new_edge_interrupts)
+        self.level_interrupts = Signal(self.gen_params.isa.xlen)
+        self.new_edge_interrupts = Signal(self.gen_params.isa.xlen)
 
         self.m_mode_csr = m_mode_csr = self.dm.get_dependency(CSRInstancesKey()).m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
@@ -216,6 +203,16 @@ class InternalInterruptController(Component):
         pending_s = Signal(self.gen_params.isa.xlen)
         selected_pending = Signal(self.gen_params.isa.xlen)
         interrupt_pending = Signal()
+
+        all_interrupts = Cat(
+            self.internal_report_level,
+            self.custom_report,
+        )
+        for i in range(ISA_RESERVED_INTERRUPTS + self.gen_params.interrupt_custom_count):
+            if self.edge_reported_mask & (1 << i):
+                m.d.comb += self.new_edge_interrupts[i].eq(all_interrupts[i])
+            else:
+                m.d.comb += self.level_interrupts[i].eq(all_interrupts[i])
 
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
