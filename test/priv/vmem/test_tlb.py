@@ -17,6 +17,7 @@ from transactron.testing import (
     def_method_mock,
     SimpleTestCircuit,
     MethodMock,
+    CallTrigger,
 )
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -378,6 +379,45 @@ class TestTLBCache(TestCaseWithSimulator):
         # check that we actually cached anything
         assert len(self.backing.translated) < len(test_cases)
 
+    async def single_cycle_process(self, sim: TestbenchContext):
+        vpn1 = 0xABCDE
+        ppn1 = 0x1ABCD
+        vpn2 = 0x12345
+        ppn2 = 0x23456
+        asid = 3
+        permissions = Permissions(r=1, w=0, x=0, u=1, d=0)
+
+        # Prime the cache by causing a miss and letting the backing fill it.
+        self.backing.add_translation(vpn1, ppn1, permissions=permissions, asid=asid)
+        self.backing.add_translation(vpn2, ppn2, permissions=permissions, asid=asid)
+        sim.set(self.csr_instances.s_mode.satp_asid, asid)
+        await sim.tick()
+
+        # First access -> miss -> causes backing lookup and fills TLB
+        await self.dut.request.call(sim, vpn=vpn1, is_store=0)
+        _ = await self.dut.accept.call(sim)
+        assert len(self.backing.translated) == 1
+        await self.dut.request.call(sim, vpn=vpn2, is_store=0)
+        _ = await self.dut.accept.call(sim)
+        assert len(self.backing.translated) == 2
+
+        # Immediately perform a second access without an intervening tick.
+        # This should be serviced from the TLB in the same cycle and must
+        # not trigger another backing lookup.
+        req, cached = await CallTrigger(sim, [(self.dut.request, {"vpn": vpn1, "is_store": 0}), (self.dut.accept, {})])
+        assert req is not None
+        assert cached is not None
+        assert self.matches_lookup(cached, vpn1, asid)
+
+        # Immediately perform a third access to a different VPN, which should
+        # also hit
+        req, cached = await CallTrigger(sim, [(self.dut.request, {"vpn": vpn2, "is_store": 0}), (self.dut.accept, {})])
+        assert req is not None
+        assert cached is not None
+        assert self.matches_lookup(cached, vpn2, asid)
+
+        assert len(self.backing.translated) == 2
+
     def test_translation_is_cached(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
@@ -391,3 +431,10 @@ class TestTLBCache(TestCaseWithSimulator):
             self.add_mock(sim, self.backing.process_request())  # type: ignore
             self.add_mock(sim, self.backing.process_accept())  # type: ignore
             sim.add_testbench(self.randomized_process)
+
+    def test_single_cycle_hit(self):
+        with self.run_simulation(self.m) as sim:
+            sim.add_process(self.backing.asid_get)
+            self.add_mock(sim, self.backing.process_request())  # type: ignore
+            self.add_mock(sim, self.backing.process_accept())  # type: ignore
+            sim.add_testbench(single_cycle_process)
