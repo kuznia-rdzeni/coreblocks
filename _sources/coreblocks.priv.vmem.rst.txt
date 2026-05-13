@@ -4,6 +4,22 @@ coreblocks.priv.vmem package
 Submodules
 ----------
 
+coreblocks.priv.vmem.iface module
+---------------------------------
+
+.. automodule:: coreblocks.priv.vmem.iface
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+coreblocks.priv.vmem.tlb module
+-------------------------------
+
+.. automodule:: coreblocks.priv.vmem.tlb
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 coreblocks.priv.vmem.translation module
 ---------------------------------------
 

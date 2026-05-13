@@ -848,6 +848,29 @@ when creating an instance of a instruction) full-size values should be always us
 <section id="module-coreblocks.params.vmem_params">
 <span id="coreblocks-params-vmem-params-module"></span><h2>coreblocks.params.vmem_params module<a class="headerlink" href="#module-coreblocks.params.vmem_params" title="Link to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.params.vmem_params.TLBCacheConfiguration">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.vmem_params.</span></span><span class="sig-name descname"><span class="pre">TLBCacheConfiguration</span></span><a class="headerlink" href="#coreblocks.params.vmem_params.TLBCacheConfiguration" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.vmem_params.TLBCacheConfiguration.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">itlb_entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtlb_entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.params.vmem_params.TLBCacheConfiguration.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.vmem_params.TLBCacheConfiguration.dtlb_entries">
+<span class="sig-name descname"><span class="pre">dtlb_entries</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.params.vmem_params.TLBCacheConfiguration.dtlb_entries" title="Link to this definition"></a></dt>
+<dd><p>Number of L1d TLB entries</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.params.vmem_params.TLBCacheConfiguration.itlb_entries">
+<span class="sig-name descname"><span class="pre">itlb_entries</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">16</span></em><a class="headerlink" href="#coreblocks.params.vmem_params.TLBCacheConfiguration.itlb_entries" title="Link to this definition"></a></dt>
+<dd><p>Number of L1i TLB entries</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.params.vmem_params.VirtualMemoryParameters">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.params.vmem_params.</span></span><span class="sig-name descname"><span class="pre">VirtualMemoryParameters</span></span><a class="headerlink" href="#coreblocks.params.vmem_params.VirtualMemoryParameters" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -860,6 +883,16 @@ when creating an instance of a instruction) full-size values should be always us
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.params.vmem_params.VirtualMemoryParameters.max_physical_address_bits">
 <em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_physical_address_bits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xlen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">supported_schemes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Collection" title="(in Python v3.14)"><span class="pre">Collection</span></a><span class="p"><span class="pre">[</span></span><span class="pre">SatpMode</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#coreblocks.params.vmem_params.VirtualMemoryParameters.max_physical_address_bits" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.params.vmem_params.VirtualMemoryParameters.size_class_shift">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size_class_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xlen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_class</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#coreblocks.params.vmem_params.VirtualMemoryParameters.size_class_shift" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="coreblocks.params.vmem_params.VirtualMemoryParameters.supported_non_bare_schemes">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">supported_non_bare_schemes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Collection" title="(in Python v3.14)"><span class="pre">Collection</span></a><span class="p"><span class="pre">[</span></span><span class="pre">SatpMode</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.params.vmem_params.VirtualMemoryParameters.supported_non_bare_schemes" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -882,7 +915,7 @@ when creating an instance of a instruction) full-size values should be always us
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:53 2026-05-10.
+      <span class="lastupdated">Last updated on 15:55 2026-05-13.
       </span></p>
   </div>
 

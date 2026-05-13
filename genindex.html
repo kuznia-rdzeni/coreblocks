@@ -333,6 +333,8 @@
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.instr.UTypeInstr.__init__">(coreblocks.params.instr.UTypeInstr method)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.TLBCacheConfiguration.__init__">(coreblocks.params.vmem_params.TLBCacheConfiguration method)</a>
+</li>
         <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters.__init__">(coreblocks.params.vmem_params.VirtualMemoryParameters method)</a>
 </li>
         <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.__init__">(coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
@@ -386,6 +388,10 @@
         <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.instr_counter.CoreInstructionCounter.__init__">(coreblocks.priv.traps.instr_counter.CoreInstructionCounter method)</a>
 </li>
         <li><a href="coreblocks.priv.traps.html#coreblocks.priv.traps.interrupt_controller.InternalInterruptController.__init__">(coreblocks.priv.traps.interrupt_controller.InternalInterruptController method)</a>
+</li>
+        <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.iface.TLBBackingDevice.__init__">(coreblocks.priv.vmem.iface.TLBBackingDevice method)</a>
+</li>
+        <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.__init__">(coreblocks.priv.vmem.tlb.FullyAssociativeTLB method)</a>
 </li>
         <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslator.__init__">(coreblocks.priv.vmem.translation.AddressTranslator method)</a>
 </li>
@@ -482,6 +488,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.A7">A7 (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.iface.TLBBackingDevice.accept">accept (coreblocks.priv.vmem.iface.TLBBackingDevice attribute)</a>
+</li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface.accept_refill">accept_refill (coreblocks.cache.iface.CacheRefillerInterface attribute)</a>
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface.accept_res">accept_res (coreblocks.cache.iface.CacheInterface attribute)</a>
@@ -514,10 +522,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.alu.AluFuncUnit">AluFuncUnit (class in coreblocks.func_blocks.fu.alu)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.AMO">AMO (coreblocks.arch.isa_consts.Opcode attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.AMO">AMO (coreblocks.arch.isa_consts.Opcode attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOADD">AMOADD (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.AMOAND">AMOAND (coreblocks.arch.isa_consts.Funct7 attribute)</a>
@@ -1134,8 +1142,6 @@
         <li><a href="coreblocks.func_blocks.fu.html#module-coreblocks.func_blocks.fu.jumpbranch">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.lsu
 
@@ -1143,6 +1149,8 @@
         <li><a href="coreblocks.func_blocks.fu.lsu.html#module-coreblocks.func_blocks.fu.lsu">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     coreblocks.func_blocks.fu.lsu.dummyLsu
 
@@ -1459,6 +1467,20 @@
 </li>
       </ul></li>
       <li>
+    coreblocks.priv.vmem.iface
+
+      <ul>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.iface">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.priv.vmem.tlb
+
+      <ul>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.tlb">module</a>
+</li>
+      </ul></li>
+      <li>
     coreblocks.priv.vmem.translation
 
       <ul>
@@ -1684,6 +1706,8 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MenvcfgFieldOffsets.DTE">DTE (coreblocks.arch.csr_address.MenvcfgFieldOffsets attribute)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.TLBCacheConfiguration.dtlb_entries">dtlb_entries (coreblocks.params.vmem_params.TLBCacheConfiguration attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1816,10 +1840,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses">FPUClasses (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassMethodLayout">FPUClassMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_class)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_class.FPUClassModule">FPUClassModule (class in coreblocks.func_blocks.fu.fpu.fpu_class)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUCommonValues">FPUCommonValues (class in coreblocks.func_blocks.fu.fpu.fpu_common)</a>
@@ -1859,6 +1883,8 @@
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.fti_in_layout">fti_in_layout (coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout.fti_out_layout">fti_out_layout (coreblocks.func_blocks.fu.fpu.float_to_int.FloatToIntMethodLayout attribute)</a>
+</li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.tlb.FullyAssociativeTLB">FullyAssociativeTLB (class in coreblocks.priv.vmem.tlb)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.common.html#coreblocks.func_blocks.fu.common.rs_func_block.RSBlockComponent.func_units">func_units (coreblocks.func_blocks.fu.common.rs_func_block.RSBlockComponent attribute)</a>
 </li>
@@ -2312,10 +2338,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ACCESS_FAULT">INSTRUCTION_ACCESS_FAULT (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED">INSTRUCTION_ADDRESS_MISALIGNED (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.PMPOperationMode.INSTRUCTION_FETCH">INSTRUCTION_FETCH (coreblocks.priv.pmp.PMPOperationMode attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_PAGE_FAULT">INSTRUCTION_PAGE_FAULT (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
@@ -2367,6 +2393,8 @@
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.int_to_float.IntToFloatMethodLayout.itf_in_layout">itf_in_layout (coreblocks.func_blocks.fu.fpu.int_to_float.IntToFloatMethodLayout attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.int_to_float.IntToFloatMethodLayout.itf_out_layout">itf_out_layout (coreblocks.func_blocks.fu.fpu.int_to_float.IntToFloatMethodLayout attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.TLBCacheConfiguration.itlb_entries">itlb_entries (coreblocks.params.vmem_params.TLBCacheConfiguration attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.instr.ITypeInstr">ITypeInstr (class in coreblocks.params.instr)</a>
 </li>
@@ -2798,10 +2826,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNCAUSE">MNCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNEPC">MNEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNSCRATCH">MNSCRATCH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.MNSTATUS">MNSTATUS (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3013,6 +3041,10 @@
         <li><a href="coreblocks.priv.traps.html#module-coreblocks.priv.traps.interrupt_controller">coreblocks.priv.traps.interrupt_controller</a>
 </li>
         <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem">coreblocks.priv.vmem</a>
+</li>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.iface">coreblocks.priv.vmem.iface</a>
+</li>
+        <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.tlb">coreblocks.priv.vmem.tlb</a>
 </li>
         <li><a href="coreblocks.priv.vmem.html#module-coreblocks.priv.vmem.translation">coreblocks.priv.vmem.translation</a>
 </li>
@@ -3523,6 +3555,8 @@
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.core_configuration.CoreConfiguration.replace">replace() (coreblocks.params.core_configuration.CoreConfiguration method)</a>
 </li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.iface.TLBBackingDevice.request">request (coreblocks.priv.vmem.iface.TLBBackingDevice attribute)</a>
+</li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_read">request_read (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
 </li>
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.bus_adapter.BusMasterInterface.request_write">request_write (coreblocks.peripherals.bus_adapter.BusMasterInterface attribute)</a>
@@ -3795,10 +3829,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIMethodLayout">SIMethodLayout (class in coreblocks.func_blocks.fu.fpu.fpu_sign_injection)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIModule">SIModule (class in coreblocks.func_blocks.fu.fpu.fpu_sign_injection)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.cache.html#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller">SimpleCommonBusCacheRefiller (class in coreblocks.cache.refiller)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.SINGLE_BIT_MANIPULATION">SINGLE_BIT_MANIPULATION (coreblocks.arch.optypes.OpType attribute)</a>
@@ -3806,6 +3840,8 @@
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_sign_injection.SIOperations">SIOperations (class in coreblocks.func_blocks.fu.fpu.fpu_sign_injection)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.SIP">SIP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters.size_class_shift">size_class_shift() (coreblocks.params.vmem_params.VirtualMemoryParameters static method)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct7.SL">SL (coreblocks.arch.isa_consts.Funct7 attribute)</a>
 </li>
@@ -3921,6 +3957,8 @@
 </li>
       <li><a href="coreblocks.priv.csr.html#coreblocks.priv.csr.csr_instances.SupervisorModeCSRRegisters">SupervisorModeCSRRegisters (class in coreblocks.priv.csr.csr_instances)</a>
 </li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters.supported_non_bare_schemes">supported_non_bare_schemes (coreblocks.params.vmem_params.VirtualMemoryParameters property)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.MstatusFieldOffsets.SXL">SXL (coreblocks.arch.csr_address.MstatusFieldOffsets attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Opcode.SYSTEM">SYSTEM (coreblocks.arch.isa_consts.Opcode attribute)</a>
@@ -3953,13 +3991,17 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TDATA2">TDATA2 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TDATA3">TDATA3 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TIME">TIME (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.TIMEH">TIMEH (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.iface.TLBBackingDevice">TLBBackingDevice (class in coreblocks.priv.vmem.iface)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.TLBCacheConfiguration">TLBCacheConfiguration (class in coreblocks.params.vmem_params)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.TM">TM (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
 </li>
@@ -4328,7 +4370,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:53 2026-05-10.
+      <span class="lastupdated">Last updated on 15:55 2026-05-13.
       </span></p>
   </div>
 

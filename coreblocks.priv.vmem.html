@@ -90,6 +90,51 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
 </section>
+<section id="module-coreblocks.priv.vmem.iface">
+<span id="coreblocks-priv-vmem-iface-module"></span><h2>coreblocks.priv.vmem.iface module<a class="headerlink" href="#module-coreblocks.priv.vmem.iface" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.TLBBackingDevice">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.vmem.iface.</span></span><span class="sig-name descname"><span class="pre">TLBBackingDevice</span></span><a class="headerlink" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<p>Protocol for devices that can be used as a backing device for TLBs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.TLBBackingDevice.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.iface.TLBBackingDevice.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.TLBBackingDevice.accept">
+<span class="sig-name descname"><span class="pre">accept</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.iface.TLBBackingDevice.accept" title="Link to this definition"></a></dt>
+<dd><p>Method for accepting a translation response.
+Expected layout is <cite>AddressTranslationLayouts.tlb_accept</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.iface.TLBBackingDevice.request">
+<span class="sig-name descname"><span class="pre">request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.priv.vmem.iface.TLBBackingDevice.request" title="Link to this definition"></a></dt>
+<dd><p>Method for requesting a translation.
+Expected layout is <cite>AddressTranslationLayouts.tlb_request</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-coreblocks.priv.vmem.tlb">
+<span id="coreblocks-priv-vmem-tlb-module"></span><h2>coreblocks.priv.vmem.tlb module<a class="headerlink" href="#module-coreblocks.priv.vmem.tlb" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.FullyAssociativeTLB">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.vmem.tlb.</span></span><span class="sig-name descname"><span class="pre">FullyAssociativeTLB</span></span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TLBBackingDevice</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Fully associative TLB capable of same-cycle operations.
+Meant for L1 TLBs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.FullyAssociativeTLB.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">backing_resolver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><span class="pre">TLBBackingDevice</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">perf_name_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mmu.tlb'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.FullyAssociativeTLB.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.priv.vmem.translation">
 <span id="coreblocks-priv-vmem-translation-module"></span><h2>coreblocks.priv.vmem.translation module<a class="headerlink" href="#module-coreblocks.priv.vmem.translation" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -138,7 +183,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:53 2026-05-10.
+      <span class="lastupdated">Last updated on 15:55 2026-05-13.
       </span></p>
   </div>
 
