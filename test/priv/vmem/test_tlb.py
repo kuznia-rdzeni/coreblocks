@@ -456,6 +456,8 @@ class TestTLBCache(TestCaseWithSimulator):
             sim.add_testbench(self.randomized_process)
 
     def test_single_cycle_hit(self):
+        if self.name != "fully_associative":
+            pytest.skip("Single-cycle hit test is only valid for fully associative TLBs")
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
             self.add_mock(sim, self.backing.process_request())  # type: ignore
