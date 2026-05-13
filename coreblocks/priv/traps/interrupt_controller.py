@@ -137,6 +137,7 @@ class InternalInterruptController(Component):
         self.mip = CSRRegister(
             CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.mip_writeable, fu_read_map=mip_readmap
         )
+        self.mip_value = Signal(self.gen_params.isa.xlen)
 
         if gen_params.supervisor_mode:
             self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~self.mideleg_writeable)
@@ -224,6 +225,7 @@ class InternalInterruptController(Component):
             m.d.av_comb += [
                 mie.eq(self.mie.read(m).data),
                 mip.eq(self.mip.read(m).data | self.level_interrupts),
+                self.mip_value.eq(mip),
                 pending.eq(mie & mip),
                 interrupt_pending.eq(pending.any()),
             ]
