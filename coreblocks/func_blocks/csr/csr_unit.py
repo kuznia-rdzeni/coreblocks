@@ -175,9 +175,9 @@ class CSRUnit(FuncBlock, Elaboratable):
                                         with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
                                             m.d.comb += write_val.eq(instr.s1_val)
                                         with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
-                                            m.d.comb += write_val.eq(read_val | instr.s1_val)
+                                            m.d.comb += write_val.eq(csr.read(m).data | instr.s1_val)
                                         with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
-                                            m.d.comb += write_val.eq(read_val & (~instr.s1_val))
+                                            m.d.comb += write_val.eq(csr.read(m).data & (~instr.s1_val))
                                     with m.If(exe_side_fx):
                                         csr._fu_write(m, write_val)
 
