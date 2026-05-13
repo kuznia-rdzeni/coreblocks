@@ -69,6 +69,22 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
+        all_interrupts = Cat(
+            self.internal_report_level,
+            self.custom_report,
+            C(0, self.gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS - gen_params.interrupt_custom_count),
+        )
+        level_interrupts = []
+        new_edge_interrupts = []
+
+        for i in range(self.gen_params.isa.xlen):
+            edge = self.edge_reported_mask & (1 << i)
+            new_edge_interrupts.append(all_interrupts[i] if edge else C(0, 1))
+            level_interrupts.append(all_interrupts[i] if not edge else C(0, 1))
+
+        self.level_interrupts = Cat(*level_interrupts)
+        self.new_edge_interrupts = Cat(*new_edge_interrupts)
+
         self.m_mode_csr = m_mode_csr = self.dm.get_dependency(CSRInstancesKey()).m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
@@ -125,7 +141,7 @@ class InternalInterruptController(Component):
 
         def mip_readmap(m, arg):
             out_data = Signal(self.gen_params.isa.xlen)
-            m.d.comb += out_data.eq(arg.data | Cat(self.internal_report_level, self.custom_report))
+            m.d.comb += out_data.eq(arg | self.level_interrupts)
             return out_data
 
         # NOTE: the mip register only holds bits that are set - either edge triggered or software bits
@@ -201,17 +217,6 @@ class InternalInterruptController(Component):
         selected_pending = Signal(self.gen_params.isa.xlen)
         interrupt_pending = Signal()
 
-        new_interrupts_value = Signal(self.gen_params.isa.xlen)
-        m.d.comb += new_interrupts_value.eq(Cat(self.internal_report_level, self.custom_report))
-
-        new_edge_interrupts = Signal(self.gen_params.isa.xlen)
-        level_interrupts = Signal(self.gen_params.isa.xlen)
-        for i in range(self.gen_params.isa.xlen):
-            if self.edge_reported_mask & (1 << i):
-                m.d.comb += new_edge_interrupts[i].eq(new_interrupts_value[i])
-            else:
-                m.d.comb += level_interrupts[i].eq(new_interrupts_value[i])
-
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
         with Transaction().body(m) as assign_trans:
@@ -221,7 +226,7 @@ class InternalInterruptController(Component):
 
             m.d.av_comb += [
                 mie.eq(self.mie.read(m).data),
-                mip.eq(self.mip.read(m).data | level_interrupts),
+                mip.eq(self.mip.read(m).data | self.level_interrupts),
                 pending.eq(mie & mip),
                 interrupt_pending.eq(pending.any()),
             ]
@@ -263,7 +268,7 @@ class InternalInterruptController(Component):
         with Transaction().body(m) as mip_trans:
             mip_value = self.mip.read_comb(m).data
             new_data = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += new_data.eq(mip_value | new_edge_interrupts)
+            m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
             self.mip.write(m, {"data": new_data})
         log.error(m, ~mip_trans.run, "assert transaction running failed")
 
