@@ -437,4 +437,4 @@ class TestTLBCache(TestCaseWithSimulator):
             sim.add_process(self.backing.asid_get)
             self.add_mock(sim, self.backing.process_request())  # type: ignore
             self.add_mock(sim, self.backing.process_accept())  # type: ignore
-            sim.add_testbench(single_cycle_process)
+            sim.add_testbench(self.single_cycle_process)
