@@ -59,6 +59,9 @@ dev = [
     "filelock==3.13.1",
 ]
 
+[project.scripts]
+coreblocks = "coreblocks.gen_verilog:main"
+
 [tool.setuptools.packages.find]
 include = ["coreblocks*"]
 
