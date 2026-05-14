@@ -29,6 +29,14 @@ coreblocks.core module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.gen\_verilog module
+------------------------------
+
+.. automodule:: coreblocks.gen_verilog
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 
