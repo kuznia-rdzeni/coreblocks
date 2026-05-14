@@ -177,7 +177,8 @@ class TestTLBCache(TestCaseWithSimulator):
     name: str
 
     @pytest.fixture(autouse=True)
-    def setup_method(self):
+    def setup_method(self, name):
+        self.name = name
         self.gen_params = GenParams(
             configurations.test.replace(
                 supervisor_mode=True,
