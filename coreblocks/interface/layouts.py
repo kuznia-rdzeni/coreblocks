@@ -1,7 +1,6 @@
-from typing import Optional
 from amaranth import signed
 from amaranth.lib.data import ArrayLayout
-from amaranth.lib.enum import IntFlag, auto
+from amaranth.lib.enum import IntFlag, IntEnum, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
@@ -9,6 +8,7 @@ from transactron.utils.transactron_helpers import make_layout, extend_layout
 
 __all__ = [
     "CommonLayoutFields",
+    "AddressTranslationLayouts",
     "SchedulerLayouts",
     "ROBLayouts",
     "FetchLayouts",
@@ -25,6 +25,7 @@ __all__ = [
     "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
+    "PrivUnitLayouts",
 ]
 
 
@@ -88,6 +89,12 @@ class CommonLayoutFields:
 
         self.addr: LayoutListField = ("addr", gen_params.isa.xlen)
         """Memory address."""
+
+        self.vaddr: LayoutListField = ("vaddr", gen_params.isa.xlen)
+        """Memory address - used when both virtual and physical addresses are present."""
+
+        self.paddr: LayoutListField = ("paddr", gen_params.phys_addr_bits)
+        """Physical memory address."""
 
         self.data: LayoutListField = ("data", gen_params.isa.xlen)
         """Piece of data."""
@@ -157,6 +164,60 @@ class CommonLayoutFields:
 
         self.commit_checkpoint: LayoutListField = ("commit_checkpoint", 1)
         """New checkpoint should be made for this instruction"""
+
+
+class AddressTranslationLayouts:
+    """Layouts used by virtual-to-physical address translation methods."""
+
+    class TLBResult(IntEnum, shape=2):
+        HIT = auto()
+        PAGE_FAULT = auto()
+        ACCESS_FAULT = auto()
+
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.ppn = ("ppn", gen_params.phys_addr_bits - PAGE_SIZE_LOG)
+        self.vpn = ("vpn", gen_params.vmem_params.max_tlb_vpn_bits)
+        self.asid = ("asid", gen_params.vmem_params.asidlen)
+        self.permissions = make_layout(
+            ("r", 1),
+            ("w", 1),
+            ("x", 1),
+            ("u", 1),
+            ("d", 1),
+            ("g", 1),
+        )
+        self.size_class = ("size_class", gen_params.vmem_params.tlb_size_class_bits)
+
+        self.request = make_layout(
+            fields.addr,
+            ("is_store", 1),
+        )
+        self.accept = make_layout(
+            fields.vaddr,
+            fields.paddr,
+            ("page_fault", 1),
+            ("access_fault", 1),
+        )
+
+        self.tlb_request = make_layout(
+            self.vpn,
+            ("is_store", 1),
+        )
+        self.tlb_accept = make_layout(
+            ("result", self.TLBResult),
+            self.ppn,
+            ("permissions", self.permissions),
+            self.size_class,
+        )
+
+        self.sfence_vma = make_layout(
+            fields.vaddr,
+            self.asid,
+            ("all_vaddrs", 1),
+            ("all_asids", 1),
+        )
 
 
 class SchedulerLayouts:
@@ -259,14 +320,12 @@ class SchedulerLayouts:
             fields.tag,
         )
 
-        self.rob_allocate_out = make_layout(
+        self.rob_allocate_out = self.rs_select_in = make_layout(
             ("count", range(gen_params.frontend_superscalarity + 1)),
             ("data", ArrayLayout(self.rs_select_in_data, gen_params.frontend_superscalarity)),
         )
 
-        self.rs_select_in = self.rs_select_in_data
-
-        self.rs_select_out = make_layout(
+        self.rs_insert_in_data = make_layout(
             fields.exec_fn,
             fields.regs_p,
             fields.rob_id,
@@ -278,7 +337,10 @@ class SchedulerLayouts:
             fields.tag,
         )
 
-        self.rs_insert_in = self.rs_select_out
+        self.rs_insert_in = self.rs_select_out = make_layout(
+            ("count", range(gen_params.frontend_superscalarity + 1)),
+            ("data", ArrayLayout(self.rs_insert_in_data, gen_params.frontend_superscalarity)),
+        )
 
         self.free_rf_layout = make_layout(("ident", gen_params.phys_regs_bits))
 
@@ -371,6 +433,9 @@ class ROBLayouts:
         self.retire_count: LayoutListField = ("count", range(gen_params.retirement_superscalarity + 1))
         """Number of ROB entries to retire."""
 
+        self.done_count: LayoutListField = ("done_count", range(gen_params.retirement_superscalarity + 1))
+        """Number of done ROB entries at the beginning of the ROB."""
+
         self.peek_data = make_layout(
             self.rob_data,
             fields.rob_id,
@@ -387,7 +452,9 @@ class ROBLayouts:
         )
 
         self.peek_layout = make_layout(
-            self.retire_count, ("entries", ArrayLayout(self.peek_data, gen_params.retirement_superscalarity))
+            self.retire_count,
+            self.done_count,
+            ("entries", ArrayLayout(self.peek_data, gen_params.retirement_superscalarity)),
         )
 
         self.put_layout = make_layout(
@@ -523,7 +590,7 @@ class ICacheLayouts:
         self.fetch_block: LayoutListField = ("fetch_block", gen_params.fetch_block_bytes * 8)
         """The block of data the fetch unit operates on."""
 
-        self.issue_req = make_layout(fields.addr)
+        self.issue_req = make_layout(fields.paddr)
 
         self.accept_res = make_layout(
             self.fetch_block,
@@ -531,11 +598,11 @@ class ICacheLayouts:
         )
 
         self.start_refill = make_layout(
-            fields.addr,
+            fields.paddr,
         )
 
         self.accept_refill = make_layout(
-            fields.addr,
+            fields.paddr,
             self.fetch_block,
             fields.error,
             self.last,
@@ -545,20 +612,23 @@ class ICacheLayouts:
 class FetchLayouts:
     """Layouts used in the fetcher."""
 
-    class AccessFaultFlag(IntFlag):
+    class FaultFlag(IntFlag):
         # standard access fault when accessing instruction
         # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
         ACCESS_FAULT = auto()
+        # standard page fault when accessing instruction
+        # from beginning (exception pc = instruction pc) (fault on full instruction or first half)
+        PAGE_FAULT = auto()
         # with C extension (2-byte alignment enabled) fault condition
         # could only affect second half of 4-byte instruction.
         # Bit set if this is the case
-        ACCESS_FAULT_ON_SECOND_HALF = auto()
+        EXCEPTION_ON_SECOND_HALF = auto()
 
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.AccessFaultFlag)
-        """Instruction fetch errors. See `FetchLayouts.AccessFaultFlag` fields documentation"""
+        self.access_fault: LayoutListField = ("access_fault", FetchLayouts.FaultFlag)
+        """Instruction fetch errors. See `FetchLayouts.FaultFlag` fields documentation"""
 
         self.raw_instr = make_layout(
             fields.instr,
@@ -718,7 +788,7 @@ class LSULayouts:
 
         self.store: LayoutListField = ("store", 1)
 
-        self.issue = make_layout(fields.addr, fields.data, fields.funct3, self.store)
+        self.issue = make_layout(fields.paddr, fields.vaddr, fields.data, fields.funct3, self.store)
 
         self.issue_out = make_layout(fields.exception, fields.cause)
 
@@ -728,9 +798,7 @@ class LSULayouts:
 class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
-    def __init__(self, gen_params: GenParams, *, data_width: Optional[int] = None):
-        data_width = data_width if data_width is not None else gen_params.isa.xlen
-
+    def __init__(self, gen_params: GenParams, *, data_width: int):
         self.data: LayoutListField = ("data", data_width)
 
         self.read = make_layout(
@@ -738,14 +806,13 @@ class CSRRegisterLayouts:
             ("read", 1),
             ("written", 1),
         )
-        self.access_valid_i = make_layout(("priv_mode", PrivilegeLevel))
-
-        self.access_valid_o = make_layout(("valid", 1))
 
         self.write = make_layout(self.data)
 
-        self._fu_read = make_layout(self.data)
-        self._fu_write = make_layout(self.data)
+        self.fu_read = make_layout(self.data)
+        self.fu_write = make_layout(self.data)
+        self.fu_access_valid_i = make_layout(("priv_mode", PrivilegeLevel))
+        self.fu_access_valid_o = make_layout(("valid", 1))
 
 
 class CSRUnitLayouts:
@@ -770,6 +837,17 @@ class CSRUnitLayouts:
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=self.rs_entries, data_fields=data_fields)
 
         self.data_layout = self.rs.data_layout
+
+        self.imm_layout = make_layout(
+            ("imm", 5),
+            ("_1", gen_params.isa.xlen - 5 - 2 * gen_params.isa.reg_cnt_log),
+            ("rd", gen_params.isa.reg_cnt_log),
+            ("rs1", gen_params.isa.reg_cnt_log),
+        )
+        """Immediate layout used for CSR instructions.
+        Needed for re-encoding the instruction for xtval, when access is illegal.
+        """
+        assert self.imm_layout.size == gen_params.isa.xlen
 
 
 class ExceptionRegisterLayouts:
@@ -806,3 +884,18 @@ class CoreInstructionCounterLayouts:
         self.increment_in = [("count", range(gen_params.frontend_superscalarity + 1))]
         self.decrement_in = [("count", range(gen_params.retirement_superscalarity + 1))]
         self.decrement_out = [("empty", 1)]
+
+
+class PrivUnitLayouts:
+    """Layouts used in the control and status functional unit."""
+
+    def __init__(self, gen_params: GenParams):
+        self.sfencevma_imm_layout = make_layout(
+            ("_1", gen_params.isa.xlen - 2 * gen_params.isa.reg_cnt_log),
+            ("rs1", gen_params.isa.reg_cnt_log),
+            ("rs2", gen_params.isa.reg_cnt_log),
+        )
+        """Immediate layout used for SFENCE.VMA instruction.
+        Needed for re-encoding the instruction for xtval, when access is illegal.
+        """
+        assert self.sfencevma_imm_layout.size == gen_params.isa.xlen

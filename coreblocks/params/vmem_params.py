@@ -1,10 +1,37 @@
+from dataclasses import dataclass
 from typing import Collection
 
-from coreblocks.arch.isa_consts import SatpMode, SatpLayout
+from coreblocks.arch.isa_consts import SatpMode, SatpLayout, PAGE_SIZE_LOG
+
+__all__ = [
+    "TLBCacheConfiguration",
+    "VirtualMemoryParameters",
+]
+
+
+@dataclass(frozen=True)
+class TLBCacheConfiguration:
+    itlb_entries: int = 16
+    """Number of L1i TLB entries"""
+
+    dtlb_entries: int = 16
+    """Number of L1d TLB entries"""
 
 
 class VirtualMemoryParameters:
     """Parameters for virtual memory support."""
+
+    @staticmethod
+    def max_physical_address_bits(xlen: int, supported_schemes: Collection[SatpMode]) -> int:
+        if xlen == 32 and supported_schemes == {SatpMode.BARE}:
+            return 32  # without virtual memory only lower 32 bits of physical addresses are reachable
+
+        satp_layout = SatpLayout(xlen)
+        return satp_layout["ppn"].width + PAGE_SIZE_LOG
+
+    @staticmethod
+    def size_class_shift(xlen: int, size_class: int) -> int:
+        return SatpMode.bits_per_page_table_level(xlen) * size_class
 
     def __init__(
         self,
@@ -35,6 +62,30 @@ class VirtualMemoryParameters:
         if not self.supported_schemes <= supported_for_xlen:
             raise ValueError(f"Schemes {self.supported_schemes - supported_for_xlen} are not valid for XLEN={xlen}")
 
+        for mode in self.supported_schemes:
+            dependencies = mode.mode_dependencies()
+            if not dependencies <= self.supported_schemes:
+                raise ValueError(
+                    f"Schemes {dependencies - self.supported_schemes} are required by {mode} but not supported"
+                )
+
         self.xlen = xlen
         self.asidlen = asidlen
         self.max_asid = (1 << asidlen) - 1
+        self.page_table_level_bits = SatpMode.bits_per_page_table_level(xlen)
+        self.max_tlb_vpn_bits = max(
+            (mode.vpn_bits() for mode in self.supported_non_bare_schemes),
+            default=0,
+        )
+        self.max_tlb_size_class = max(
+            (mode.level_count() - 1 for mode in self.supported_non_bare_schemes),
+            default=0,
+        )
+        self.tlb_size_class_bits = self.max_tlb_size_class.bit_length()
+
+        # Should be True when Svade is not supported or Svadu is supported
+        self.supports_auto_a_d_management = False
+
+    @property
+    def supported_non_bare_schemes(self) -> Collection[SatpMode]:
+        return [scheme for scheme in self.supported_schemes if scheme != SatpMode.BARE]

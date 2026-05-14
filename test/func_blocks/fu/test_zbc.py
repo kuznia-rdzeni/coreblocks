@@ -2,7 +2,7 @@ from parameterized import parameterized_class
 
 from coreblocks.func_blocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.arch import Funct3, Funct7, OpType
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
@@ -46,7 +46,7 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
         ),
         (
             "recursive_full",
-            ZbcComponent(recursion_depth=test_core_config.xlen.bit_length() - 1),
+            ZbcComponent(recursion_depth=configurations.test.xlen.bit_length() - 1),
         ),
     ],
 )

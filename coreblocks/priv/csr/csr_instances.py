@@ -1,32 +1,33 @@
-from typing import Optional
-
 from amaranth import *
 from amaranth_types import ValueLike
-from transactron.core import Method, TModule, Transaction, def_method
-
 from coreblocks.arch import CSRAddress
 from coreblocks.arch.csr_address import (
     CounterEnableFieldOffsets,
     MenvcfgFieldOffsets,
     MstatusFieldOffsets,
     sstatus_field_subset,
+    PMPXCFG_WIDTH,
 )
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
-    PrivilegeLevel,
+    PAGE_SIZE_LOG,
     SatpMode,
-    TrapVectorMode,
-    XlenEncoding,
 )
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.aliased import AliasedCSR
-from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
+from coreblocks.priv.csr.double_counter import DoubleCounterCSR
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.interface.keys import CSRInstancesKey
-from transactron.utils import DependencyContext
+from typing import Optional
+from amaranth.lib import data
+from transactron.core import Transaction, TModule
+from transactron.utils import DependencyContext, logging
 
-PMPXCFG_WIDTH = 8
+
+log = logging.HardwareLogger("priv.csr.instances")
 
 
 def counteren_writable_mask(hpm_counters_count: int) -> int:
@@ -57,100 +58,6 @@ def counteren_access_filter(gen_params: GenParams, counteren_bit: int):
         return ~(machine_disallowed | supervisor_disallowed)
 
     return _filter
-
-
-class DoubleCounterCSR(Elaboratable):
-    """DoubleCounterCSR
-    Groups two `CSRRegisters` to form counter with double `isa.xlen` width.
-
-    Attributes
-    ----------
-    increment: Method
-        Increments the counter by 1. At overflow, counter value is set to 0.
-    """
-
-    def __init__(
-        self,
-        gen_params: GenParams,
-        low_addr: CSRAddress,
-        high_addr: Optional[CSRAddress] = None,
-        shadow_low_addr: Optional[CSRAddress] = None,
-        shadow_high_addr: Optional[CSRAddress] = None,
-        shadow_access_filter=None,
-    ):
-        """
-        Parameters
-        ----------
-        gen_params: GenParams
-            Core generation parameters.
-        low_addr: CSRAddress
-            Address of the CSR register representing lower part of the counter (bits `[isa.xlen-1 : 0]`).
-        high_addr: CSRAddress or None, optional
-            Address of the CSR register representing higher part of the counter (bits `[2*isa.xlen-1 : isa.xlen]`).
-            If high_addr is None or not provided, then higher CSR is not synthetised and only the width of
-            low_addr CSR is available to the counter.
-        shadow_low_addr: CSRAddress or None, optional
-            Address of the shadow CSR register for the lower part of the counter. If provided, shadow CSR is
-            synthetised with read-only access to the counter value.
-        shadow_high_addr: CSRAddress or None, optional
-            Address of the shadow CSR register for the higher part of the counter. If provided, shadow CSR is
-            synthetised with read-only access to the counter value. If high_addr is None, providing shadow_high_addr
-            will raise an error.
-        """
-        self.gen_params = gen_params
-
-        self.increment = Method()
-
-        self.register_low = CSRRegister(low_addr, gen_params)
-        self.register_high = CSRRegister(high_addr, gen_params) if high_addr is not None else None
-
-        self.shadow_low = self.shadow_high = None
-        if shadow_low_addr is not None:
-            self.shadow_low = ShadowCSR(
-                shadow_low_addr,
-                gen_params,
-                self.register_low,
-                write_mask=0,
-                access_filter=shadow_access_filter,
-            )
-        if shadow_high_addr is not None:
-            if not self.register_high:
-                raise ValueError("shadow_high_addr provided but high_addr is None")
-
-            if not shadow_low_addr:
-                raise ValueError("shadow_high_addr provided but shadow_low_addr is None")
-
-            self.shadow_high = ShadowCSR(
-                shadow_high_addr,
-                gen_params,
-                self.register_high,
-                write_mask=0,
-                access_filter=shadow_access_filter,
-            )
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        m.submodules.register_low = self.register_low
-        if self.register_high is not None:
-            m.submodules.register_high = self.register_high
-
-        @def_method(m, self.increment)
-        def _():
-            register_read = self.register_low.read(m).data
-            self.register_low.write(m, data=register_read + 1)
-
-            if self.register_high is not None:
-                with m.If(register_read == (1 << self.gen_params.isa.xlen) - 1):
-                    self.register_high.write(m, data=self.register_high.read(m).data + 1)
-
-        if self.shadow_low is not None:
-            m.submodules.shadow_low = self.shadow_low
-
-        if self.shadow_high is not None:
-            m.submodules.shadow_high = self.shadow_high
-
-        return m
 
 
 class MachineModeCSRRegisters(Elaboratable):
@@ -208,6 +115,27 @@ class MachineModeCSRRegisters(Elaboratable):
         self.pmpxcfg = []
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
         pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
+
+        def filter(_: TModule, v: Value):
+            cfg = data.View(PMPCfgLayout(), v)
+
+            # R=0, W=1 is a reserved combination (WARL): force W=0
+            filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
+
+            # When G >= 1, NA4 mode is not selectable: change to OFF
+            if gen_params.pmp_grain >= 1:
+                filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
+            else:
+                filtered_a = cfg.A
+
+            # L bit is not implemented (write-locking not supported): force to 0.
+            # TODO: Implement L bit — when L=1, writes to pmpcfg and pmpaddr should be
+            # ignored. Additionally, if entry i is locked and A=TOR, writes to pmpaddr(i-1)
+            # must also be ignored.
+            # Bits 5-6 (reserved): force to 0
+            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), C(0))
+            return C(1), filtered_v
+
         for i in range(0, pmpcfgx_cnt):
             # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
             pmpcfg_index = i * 2 if gen_params.isa.xlen == 64 else i
@@ -215,7 +143,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
             # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
             for j in range(pmpcfg_subregisters):
-                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH)
+                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter)
                 pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
                 self.pmpxcfg.append(pmpcfg_sub)
                 setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
@@ -223,8 +151,32 @@ class MachineModeCSRRegisters(Elaboratable):
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
+
         for i in range(gen_params.pmp_register_count):
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params)
+
+            def make_pmpaddr_fu_read_map(idx: int):
+                def pmpaddr_fu_read_map(_: TModule, value: Value):
+                    cfg = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value)
+                    a_field = cfg.A
+
+                    if gen_params.pmp_grain >= 2:
+                        # When G >= 2 and pmpcfgi.A[1] is set (NAPOT/NA4), then bits pmpaddri[G-2:0] read as all ones.
+                        napot_value = Cat(C(1).replicate(gen_params.pmp_grain - 1), value[gen_params.pmp_grain - 1 :])
+                    else:
+                        napot_value = value
+
+                    if gen_params.pmp_grain >= 1:
+                        # When G >= 1 and pmpcfgi.A[1] is clear (OFF/TOR), then bits pmpaddri[G-1:0] read as all zeros.
+                        tor_value = Cat(C(0, gen_params.pmp_grain), value[gen_params.pmp_grain :])
+                    else:
+                        tor_value = value
+
+                    is_napot_or_na4 = (a_field == PMPAFlagEncoding.NAPOT) | (a_field == PMPAFlagEncoding.NA4)
+                    return Mux(is_napot_or_na4, napot_value, tor_value)
+
+                return pmpaddr_fu_read_map
+
+            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, fu_read_map=make_pmpaddr_fu_read_map(i))
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
@@ -248,7 +200,7 @@ class MachineModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, CSRRegister) or isinstance(value, DoubleCounterCSR):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
                 m.submodules[name] = value
 
         with Transaction().body(m):
@@ -477,7 +429,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
                 {
                     "mode": 0,
                     "asid": -(1 << gen_params.vmem_params.asidlen),
-                    "ppn": 0,
+                    "ppn": -(1 << (gen_params.phys_addr_bits - PAGE_SIZE_LOG)),
                 }
             ).as_bits()
 
@@ -539,7 +491,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegister, DoubleCounterCSR)):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
                 m.submodules[name] = value
 
         return m
@@ -594,5 +546,12 @@ class CSRInstances(Elaboratable):
         m.submodules.time = self.time
         if self.gen_params.isa.xlen == 32:
             m.submodules.timeh = self.timeh
+
+        with Transaction().body(m):
+            priv_mode = self.m_mode.priv_mode.read(m).data
+            mprv = self.m_mode.mstatus_mprv.read(m).data
+            log.assertion(
+                m, ~mprv | (priv_mode == PrivilegeLevel.MACHINE), "MPRV should only be on when priv_mode is MACHINE"
+            )
 
         return m

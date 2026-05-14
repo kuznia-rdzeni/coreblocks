@@ -41,8 +41,16 @@ class FPUTester:
             assert resp["errors"] == int(result[num][1], 16)
 
 
-def python_to_float(p_float):
-    return struct.unpack("f", struct.pack("f", p_float))[0]
+def python_to_float(p_float: float) -> float:
+    try:
+        return struct.unpack("f", struct.pack("f", p_float))[0]
+    except OverflowError:
+        if p_float > 3.4028235e38:
+            return float("inf")
+        elif p_float < -3.4028235e38:
+            return float("-inf")
+        else:
+            raise
 
 
 class ToFloatConverter:

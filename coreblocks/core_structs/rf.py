@@ -5,7 +5,7 @@ from transactron import Methods, Transaction, def_methods, TModule
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.lib.storage import MemoryBank
 from transactron.utils.amaranth_ext.functions import popcount

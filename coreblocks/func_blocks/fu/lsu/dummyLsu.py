@@ -2,29 +2,27 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO
-from transactron.lib.logging import HardwareLogger
+from transactron.lib.connectors import FIFO, ConnectTrans
+from transactron.utils import logging
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext
-from transactron.utils.transactron_helpers import make_layout
 
 from coreblocks.arch import OpType
 from coreblocks.arch.isa_consts import ExceptionCause
-from coreblocks.frontend.decoder import *
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
-from coreblocks.func_blocks.fu.lsu.pmp import PMPChecker
+from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
     CommonBusDataKey,
     CoreStateKey,
-    CSRInstancesKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
-from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts
 from coreblocks.params import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
+from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
 
 __all__ = ["LSUDummy", "LSUComponent"]
 
@@ -49,6 +47,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         self.gen_params = gen_params
         self.fu_layouts = gen_params.get(FuncUnitLayouts)
         self.lsu_layouts = gen_params.get(LSULayouts)
+        self.translator_layouts = gen_params.get(AddressTranslationLayouts)
 
         self.dependency_manager = DependencyContext.get()
         self.report = self.dependency_manager.get_dependency(ExceptionReportKey())()
@@ -58,7 +57,7 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         self.bus = bus
 
-        self.log = HardwareLogger("backend.lsu.dummylsu")
+        self.log = logging.HardwareLogger("backend.lsu.dummylsu")
 
     def elaborate(self, platform):
         m = TModule()
@@ -74,16 +73,15 @@ class LSUDummy(FuncUnit, Elaboratable):
         rob_id_match = Signal()
         is_load = Signal()
 
-        csr = self.dependency_manager.get_dependency(CSRInstancesKey())
+        m.submodules.addr_translator = addr_translator = AddressTranslator(
+            self.gen_params, mode=AddressTranslatorMode.LSU
+        )
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
-        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, csr.m_mode)
+        m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
-        request_layout = make_layout(
-            ("data", self.fu_layouts.issue),
-            ("addr", self.gen_params.isa.xlen),
-        )
-        m.submodules.requests = requests = FIFO(request_layout, 2)
+        m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)
         m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
         m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
@@ -97,10 +95,14 @@ class LSUDummy(FuncUnit, Elaboratable):
             with m.If(~is_fence):
                 addr = Signal(self.gen_params.isa.xlen)
                 m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
-                requests.write(m, data=arg, addr=addr)
+
+                addr_translator.request(m, addr=addr, is_store=arg.exec_fn.op_type == OpType.STORE)
+                requests.write(m, arg)
             with m.Else():
                 results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
+
+        m.submodules += ConnectTrans.create(addr_translator.accept, translated.write)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
@@ -110,29 +112,39 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, ready=do_issue):
-            req = requests.read(m)
-            arg = req.data
-            addr = req.addr
+            arg = requests.read(m)
+            translated_req = translated.read(m)
+            paddr = translated_req.paddr
+            addr = translated_req.vaddr
 
-            m.d.av_comb += pma_checker.addr.eq(addr)
-            m.d.av_comb += pmp_checker.addr.eq(addr)
+            m.d.av_comb += pma_checker.paddr.eq(paddr)
+            m.d.av_comb += pmp_checker.paddr.eq(paddr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
 
-            pmp_exception = Signal()
-            pmp_cause = Signal(ExceptionCause)
+            exception = Signal()
+            cause = Signal(ExceptionCause)
 
-            with m.If(is_load & ~pmp_checker.result.r):
-                m.d.av_comb += pmp_exception.eq(1)
-                m.d.av_comb += pmp_cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
+            with m.If(translated_req.page_fault):
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(Mux(is_load, ExceptionCause.LOAD_PAGE_FAULT, ExceptionCause.STORE_PAGE_FAULT))
+            with m.Elif(translated_req.access_fault):
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(
+                    Mux(is_load, ExceptionCause.LOAD_ACCESS_FAULT, ExceptionCause.STORE_ACCESS_FAULT)
+                )
+            with m.Elif(is_load & ~pmp_checker.result.r):
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(ExceptionCause.LOAD_ACCESS_FAULT)
             with m.Elif(~is_load & ~pmp_checker.result.w):
-                m.d.av_comb += pmp_exception.eq(1)
-                m.d.av_comb += pmp_cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
+                m.d.av_comb += exception.eq(1)
+                m.d.av_comb += cause.eq(ExceptionCause.STORE_ACCESS_FAULT)
 
-            with m.If(~pmp_exception):
+            with m.If(~exception):
                 res = requester.issue(
                     m,
-                    addr=addr,
+                    paddr=paddr,
+                    vaddr=addr,
                     data=arg.s2_val,
                     funct3=arg.exec_fn.funct3,
                     store=~is_load,
@@ -144,13 +156,14 @@ class LSUDummy(FuncUnit, Elaboratable):
                     issued.write(m, arg)
             with m.Else():
                 issued_noop.write(m, arg)
-                results_noop.write(m, data=0, exception=1, cause=pmp_cause, addr=addr)
+                results_noop.write(m, data=0, exception=1, cause=cause, addr=addr)
 
         # Handles flushed instructions as a no-op.
         with Transaction().body(m, ready=flush):
-            req = requests.read(m)
+            arg = requests.read(m)
+            translated.read(m)
             results_noop.write(m, data=0, exception=0, cause=0, addr=0)
-            issued_noop.write(m, req.data)
+            issued_noop.write(m, arg)
 
         with Transaction().body(m):
             arg = Signal(self.fu_layouts.issue)
