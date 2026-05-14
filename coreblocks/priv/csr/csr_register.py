@@ -14,7 +14,7 @@ from coreblocks.interface.layouts import CSRRegisterLayouts
 from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyContext
-from transactron.utils.transactron_helpers import get_src_loc
+from transactron.utils.transactron_helpers import get_src_loc, make_layout
 
 
 class CSRRegisterBase(ABC, Elaboratable):
@@ -177,15 +177,31 @@ class CSRRegister(CSRRegisterBase):
         self.fu_access_filter = fu_access_filter if fu_access_filter else (lambda _, __: C(1))
         self.fu_write_priority = fu_write_priority
 
+        write_combined_layout = make_layout(self.csr_layouts.data)
+
         self._internal_fu_read = Method(o=self.csr_layouts.fu_read)
-        self._internal_fu_write = Method(i=self.csr_layouts.fu_write)
+        self._internal_fu_write = Method(i=write_combined_layout)
 
         self.fu_write_map = MethodMap.create(
             self._internal_fu_write,
-            i_transform=(self.csr_layouts.fu_write, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
+            i_transform=(write_combined_layout, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
         )
         self.fu_write_filter = MethodFilter.create(
             self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms["data"])[0]
+        )
+
+        def fu_write_combine_write(m, data):
+            with m.Switch(data.op_type):
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                    return {"data": data.data}
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
+                    return {"data": self.value | data.data}
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
+                    return {"data": self.value & ~data.data}
+
+        self.fu_write_combine_read = MethodMap.create(
+            self.fu_write_filter.method,
+            i_transform=(write_combined_layout, fu_write_combine_write),
         )
         self.fu_read_map = MethodMap.create(
             self._internal_fu_read,

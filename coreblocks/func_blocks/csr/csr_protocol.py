@@ -12,7 +12,6 @@ class RegisteredCSRProtocol(Protocol):
     """Protocol required to be included as a public CSR via `CSRListKey`"""
 
     _fu_read: Provided[Method]
-    read: Provided[Method]
     _fu_write: Provided[Method]
     _fu_access_valid: Provided[Method]
 

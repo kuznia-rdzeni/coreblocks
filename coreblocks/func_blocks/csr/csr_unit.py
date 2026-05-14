@@ -14,7 +14,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
     UnsafeInstructionResolvedKey,
@@ -137,6 +137,15 @@ class CSRUnit(FuncBlock, Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
+        write_type = Signal(CSRRegisterLayouts.WriteOpType)
+        with m.Switch(instr.exec_fn.funct3):
+            with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_WRITE)
+            with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_SET)
+            with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_CLEAR)
+
         exe_side_fx = Signal()
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
@@ -155,13 +164,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                         priv_valid = Signal()
                         csr_access_valid = csr._fu_access_valid(m, current_priv_mode).valid
 
-                        m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
+                        m.d.av_comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
                         with m.If(priv_valid & csr_access_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
                                 with m.If(exe_side_fx):
-                                    m.d.comb += read_val.eq(csr._fu_read(m))
+                                    m.d.av_comb += read_val.eq(csr._fu_read(m))
                                 m.d.sync += current_result.eq(read_val)
 
                             if read_only:
@@ -170,16 +179,8 @@ class CSRUnit(FuncBlock, Elaboratable):
                                     m.d.sync += exception.eq(1)
                             else:
                                 with m.If(should_write_csr & ~done):
-                                    write_val = Signal(self.gen_params.isa.xlen)
-                                    with m.Switch(instr.exec_fn.funct3):
-                                        with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
-                                            m.d.comb += write_val.eq(instr.s1_val)
-                                        with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
-                                            m.d.comb += write_val.eq(csr.read(m).data | instr.s1_val)
-                                        with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
-                                            m.d.comb += write_val.eq(csr.read(m).data & (~instr.s1_val))
                                     with m.If(exe_side_fx):
-                                        csr._fu_write(m, write_val)
+                                        csr._fu_write(m, data=instr.s1_val, op_type=write_type)
 
                         with m.Else():
                             # Missing privilege
