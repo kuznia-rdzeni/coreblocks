@@ -26,8 +26,8 @@ class Socks(Component):
     interrupts: Signal
     """ Interrupts input signal
     If `with_plic` is set to True, then it's the input to the RISC-V Platform Level Interrupt Controller module.
-    PLIC wires interrupts contexts 0 to MEI and 1 to SEI. Signal has width of `interrupt_custom_count`.
-    Note that PLIC interrupt 0 is reserved.
+    PLIC wires interrupts contexts 0 to MEI and 1 to SEI. Signal has width of `interrupt_custom_count +1`.
+    Note that PLIC interrupt 0 is reserved and bit 0 is ignored.
     If `with_plic` is set to False, `interrupts` width is 16 (number of interrupts reserved by ISA) +
     `interrupt_custom_count` and interrupts are directly wired to Hart Local Interrupt Controller.
     In both cases MTI and MSI are ignored and provided from CLINT.
@@ -39,7 +39,7 @@ class Socks(Component):
                 "wb_instr": Out(WishboneInterface(core_gen_params.wb_params).signature),
                 "wb_data": Out(WishboneInterface(core_gen_params.wb_params).signature),
                 "interrupts": In(
-                    (0 if with_plic else ISA_RESERVED_INTERRUPTS) + core_gen_params.interrupt_custom_count
+                    (1 if with_plic else ISA_RESERVED_INTERRUPTS) + core_gen_params.interrupt_custom_count
                 ),
             }
         )
@@ -50,7 +50,7 @@ class Socks(Component):
                 base_addr=PLIC_BASE,
                 wb_params=core_gen_params.wb_params,
                 interrupt_count=core_gen_params.interrupt_custom_count,
-                context_count=1,
+                context_count=2,
             )
         else:
             self.plic = None
@@ -88,7 +88,7 @@ class Socks(Component):
         m.submodules.core = self.core
 
         if self.plic:
-            m.d.comb += self.plic.interrupts.eq(self.interrupts[ISA_RESERVED_INTERRUPTS:])
+            m.d.comb += self.plic.interrupts.eq(self.interrupts)
             m.d.comb += self.core.interrupts[InterruptCauseNumber.MEI].eq(self.plic.eip[0])
             m.d.comb += self.core.interrupts[InterruptCauseNumber.SEI].eq(self.plic.eip[1])
         else:
