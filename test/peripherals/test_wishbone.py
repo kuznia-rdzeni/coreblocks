@@ -169,7 +169,7 @@ class TestWishboneMaster(TestCaseWithSimulator):
 class TestWishboneMuxer(TestCaseWithSimulator):
     def test_manual(self):
         num_slaves = 4
-        mux = WishboneMuxer(WishboneParameters(), num_slaves, Signal(num_slaves))
+        mux = WishboneMuxer(WishboneParameters(), Signal(num_slaves))
         slaves = [WishboneInterfaceWrapper(slave) for slave in mux.slaves]
         wb_master = WishboneInterfaceWrapper(mux.master_wb)
 

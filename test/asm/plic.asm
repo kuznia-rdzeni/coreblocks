@@ -214,8 +214,7 @@ bne x1, x0, fail  # no plic irqs pending
 pass:
 li x31, 0xcafe
 1:
-j 1b 
+j 1b
 
 fail:
 j fail
-
