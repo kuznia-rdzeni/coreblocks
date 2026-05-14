@@ -107,6 +107,8 @@ class _CoreConfigurationDataClass:
         Bit mask specifying if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
+    interrupt_all_interrupts_delegable: bool
+        Allow delegation of M-mode interrupts to S-mode.
     user_mode: bool
         Enable User Mode.
     supervisor_mode: bool
@@ -183,6 +185,7 @@ class _CoreConfigurationDataClass:
 
     interrupt_custom_count: int = 16
     interrupt_custom_edge_trig_mask: int = 0
+    interrupt_all_interrupts_delegable: bool = False
 
     user_mode: bool = True
     supervisor_mode: bool = True
