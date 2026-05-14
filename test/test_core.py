@@ -182,9 +182,9 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
         if self.name == "mtval":
             bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
-        if self.name == "socks_plic":
-            self.configuration = self.configuration.replace(_generate_test_hardware=True, interrupt_custom_count=4)
         socks_test = self.name.startswith("socks_")
+        if socks_test:
+            self.configuration = self.configuration.replace(_generate_test_hardware=True, interrupt_custom_count=4)
 
         self.gen_params = GenParams(self.configuration)
 
