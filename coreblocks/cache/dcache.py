@@ -5,7 +5,7 @@ from transactron import Method
 from coreblocks.params import DCacheParameters
 from coreblocks.interface.layouts import DCacheLayouts
 from transactron.lib import *
-from transactron.lib import logging
+from transactron.utils import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.cache.iface import CacheInterface
 
