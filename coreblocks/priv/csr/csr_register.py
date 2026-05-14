@@ -201,7 +201,7 @@ class CSRRegister(CSRRegisterBase):
 
         self.fu_write_combine_read = MethodMap.create(
             self.fu_write_filter.method,
-            i_transform=(write_combined_layout, fu_write_combine_write),
+            i_transform=(self.csr_layouts.fu_write, fu_write_combine_write),
         )
         self.fu_read_map = MethodMap.create(
             self._internal_fu_read,
@@ -210,7 +210,7 @@ class CSRRegister(CSRRegisterBase):
 
         # Methods required to be connected automatically by CSRUnit
         self._fu_read.provide(self.fu_read_map.method)
-        self._fu_write.provide(self.fu_write_filter.method)
+        self._fu_write.provide(self.fu_write_combine_read.method)
 
         self.value = Signal(self.width, init=init)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
@@ -271,5 +271,6 @@ class CSRRegister(CSRRegisterBase):
         m.submodules.fu_write_filter = self.fu_write_filter
         m.submodules.fu_read_map = self.fu_read_map
         m.submodules.fu_write_map = self.fu_write_map
+        m.submodules.fu_write_combine_read = self.fu_write_combine_read
 
         return m
