@@ -9,7 +9,7 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     UnsafeInstructionResolvedKey,
@@ -362,7 +362,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 exp_write_data = (write_arg & ~self.ro_mask) | (
                     (exp_write_data if exp_write_data is not None else previous_data) & self.ro_mask
                 )
-                self.dut._fu_write.call_init(sim, data=write_arg)
+                self.dut._fu_write.call_init(sim, data=write_arg, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
 
             if random.random() < 0.2:
                 fu_read = True
@@ -406,7 +406,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         for _ in range(50):
             input = random.randrange(0, 2**34)
 
-            await self.dut._fu_write.call(sim, data=input)
+            await self.dut._fu_write.call(sim, data=input, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
             output = (await self.dut._fu_read.call(sim))["data"]
 
             expected = prev_value
@@ -458,7 +458,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut.read_comb.enable(sim)
         self.dut._fu_read.enable(sim)
 
-        self.dut._fu_write.call_init(sim, data=0xFFFF)
+        self.dut._fu_write.call_init(sim, data=0xFFFF, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         while self.dut._fu_write.get_call_result(sim) is None:
             await sim.tick()
         assert self.dut.read_comb.get_call_result(sim).data == 0xFFFF
@@ -468,7 +468,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         assert self.dut._fu_read.get_call_result(sim)["data"] == 0xFFFB
         await sim.tick()
 
-        self.dut._fu_write.call_init(sim, data=0x0FFF)
+        self.dut._fu_write.call_init(sim, data=0x0FFF, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         self.dut.write.call_init(sim, data=0xAAAA)
         while self.dut._fu_write.get_call_result(sim) is None or self.dut.write.get_call_result(sim) is None:
             await sim.tick()
@@ -478,7 +478,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         await sim.tick()
 
         # single cycle
-        self.dut._fu_write.call_init(sim, data=0x0BBB)
+        self.dut._fu_write.call_init(sim, data=0x0BBB, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         while self.dut._fu_write.get_call_result(sim) is None:
             await sim.tick()
         update_val = self.dut.read_comb.get_call_result(sim).data | 0xD000
