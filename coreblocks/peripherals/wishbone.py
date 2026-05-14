@@ -11,7 +11,7 @@ from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, CIn, COut
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
-from transactron.lib import logging
+from transactron.utils import logging
 
 
 class WishboneParameters:
@@ -319,12 +319,11 @@ class WishboneMuxer(Component):
     ssel_tga: Signal
         Nuber of slave devices is determied from `ssel_tga` bit width.
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
-        to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid every time Wishbone STB
-        is asserted.
+        to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid and held every time Wishbone
+        STB is asserted.
         Note that if Pipelined Wishbone implementation is used, then before starting any new request with
-        different `ssel_tga` value, all pending request have to be finished (and `stall` cleared) and
-        there have to be  one cycle delay from previouse request (to deassert the STB signal).  Holding new
-        requests should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
+        different `ssel_tga` value, all pending request have to be finished (and `stall` cleared). Holding new requests
+        should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
 
     Attributes
     ----------
@@ -357,26 +356,24 @@ class WishboneMuxer(Component):
 
         m.d.sync += self.prev_stb.eq(self.master_wb.stb)
 
-        # choose select signal directly from input on first cycle and latched one afterwards
-        with m.If(self.master_wb.stb & ~self.prev_stb):
-            m.d.sync += self.txn_sel_r.eq(self.sselTGA)
-            m.d.comb += self.txn_sel.eq(self.sselTGA)
-        with m.Else():
-            m.d.comb += self.txn_sel.eq(self.txn_sel_r)
-
         for i in range(len(self.slaves)):
             # connect all M->S signals except stb
             # workaround for the lack of selective connecting in wiring
             for n in ["dat_w", "cyc", "lock", "adr", "we", "sel", "stb"]:
                 m.d.comb += getattr(self.slaves[i], n).eq(getattr(self.master_wb, n))
-            # use stb as select
-            m.d.comb += self.slaves[i].stb.eq(self.txn_sel[i] & self.master_wb.stb)
+
+            # note that sselTGA follows TGA (address tag) spec, it must be asserted with STB and keep its value
+            # until end of transfer (including termination cycle). It can change cycle after termination, without
+            # deasserting STB in a block request.
+
+            # use stb as a slave selector singal
+            m.d.comb += self.slaves[i].stb.eq(self.sselTGA[i] & self.master_wb.stb)
 
         # bus termination signals S->M should be ORed
         m.d.comb += self.master_wb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
         m.d.comb += self.master_wb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
         m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
-        for i in OneHotSwitchDynamic(m, self.txn_sel):
+        for i in OneHotSwitchDynamic(m, self.sselTGA):
             # mux S->M data
             # workaround for the lack of selective connecting in wiring
             for n in ["dat_r", "stall"]:

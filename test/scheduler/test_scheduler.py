@@ -21,7 +21,7 @@ from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RSLayouts, SchedulerLayouts
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.core_structs.rob import ReorderBuffer
 from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
 
@@ -103,10 +103,8 @@ class SchedulerTestCircuit(Elaboratable):
         self.scheduler.crat_tag.provide(crat.tag)
         self.scheduler.crat_active_tags.provide(crat.get_active_tags)
         self.scheduler.rob_put.provide(self.rob.put)
-        self.scheduler.rf_read_req1.provide(self.rf.read_req[0])
-        self.scheduler.rf_read_req2.provide(self.rf.read_req[1])
-        self.scheduler.rf_read_resp1.provide(self.rf.read_resp[0])
-        self.scheduler.rf_read_resp2.provide(self.rf.read_resp[1])
+        self.scheduler.rf_read_req.provide(self.rf.read_req)
+        self.scheduler.rf_read_resp.provide(self.rf.read_resp)
         for i, (rs_select, rs_insert) in enumerate(zip(self.rs_alloc, self.rs_insert)):
             self.scheduler.rs_select[i].provide(rs_select.adapter.iface)
             self.scheduler.rs_insert[i].provide(rs_insert.adapter.iface)
@@ -137,7 +135,7 @@ class TestScheduler(TestCaseWithSimulator):
     def setup_method(self):
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 func_units_config=tuple(MockedBlockComponent(optypes, rs_entries=4) for optypes in self.optype_sets),
                 allow_partial_extensions=True,
             )

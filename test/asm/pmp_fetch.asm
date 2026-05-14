@@ -16,20 +16,19 @@ _start:
     mret              # Go to user_code in user mode
 
 user_code:
-    sw x0, 0(x0)      # Store inside PMP, should succeed
-
-    li x2, 0x20000
-    lw x1, 0(x2)      # Load outside PMP, should fail
+    li x1, 0x20000
+    jalr x0, x1, 0 # Jump to address outside PMP region
     j fail
 
 trap_handler:
     csrr x1, mcause
-    li x2, 5
-    bne x1, x2, fail  # Check if it is a LOAD fault
+    li x2, 1
+    bne x1, x2, fail  # Check if it is a ACCESS fault
     j pass
 
 fail:
     j fail
 
 pass:
+    li x1, 1
     j pass

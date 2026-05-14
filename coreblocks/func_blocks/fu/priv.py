@@ -1,13 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, KW_ONLY, field
 from amaranth import *
+from amaranth.lib import data
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
-from coreblocks.arch.isa_consts import Funct12, Funct3, Opcode, PrivilegeLevel
+from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel
 
 
 from transactron import *
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
@@ -15,9 +16,10 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import FuncUnitLayouts
+from coreblocks.interface.layouts import PrivUnitLayouts
 from coreblocks.interface.keys import (
     MretKey,
+    SretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     CSRInstancesKey,
@@ -25,36 +27,44 @@ from coreblocks.interface.keys import (
     UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
+    SFenceVMAKey,
 )
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
-from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager
+from coreblocks.func_blocks.fu.common import DecoderManager, FuncUnitBase
 
 
 log = logging.HardwareLogger("backend.fu.priv")
 
 
 class PrivilegedFn(DecoderManager):
+    def __init__(self, supervisor_enable=False) -> None:
+        self.supervisor_enable = supervisor_enable
+
     @unique
     class Fn(IntFlag):
         MRET = auto()
         FENCEI = auto()
         WFI = auto()
+        SRET = auto()
+        SFENCEVMA = auto()
 
     def get_instructions(self) -> Sequence[tuple]:
-        return [(self.Fn.MRET, OpType.MRET), (self.Fn.FENCEI, OpType.FENCEI), (self.Fn.WFI, OpType.WFI)]
+        return [
+            (self.Fn.MRET, OpType.MRET),
+            (self.Fn.FENCEI, OpType.FENCEI),
+            (self.Fn.WFI, OpType.WFI),
+        ] + [
+            (self.Fn.SRET, OpType.SRET),
+            (self.Fn.SFENCEVMA, OpType.SFENCEVMA),
+        ] * self.supervisor_enable
 
 
-class PrivilegedFuncUnit(FuncUnit, Elaboratable):
-    def __init__(self, gen_params: GenParams, priv_fn=PrivilegedFn()):
-        self.gen_params = gen_params
-        self.priv_fn = priv_fn
+class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
+    def __init__(self, gen_params: GenParams, fn=PrivilegedFn()):
+        super().__init__(gen_params, fn)
 
-        self.layouts = layouts = gen_params.get(FuncUnitLayouts)
         self.dm = DependencyContext.get()
-
-        self.issue = Method(i=layouts.issue)
-        self.push_result = Method(i=layouts.push_result)
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
@@ -65,11 +75,9 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
     def elaborate(self, platform):
-        m = TModule()
+        m = super().elaborate(platform)
 
         m.submodules += [self.perf_instr]
-
-        m.submodules.decoder = decoder = self.priv_fn.get_decoder(self.gen_params)
 
         instr_valid = Signal()
         finished = Signal()
@@ -77,24 +85,36 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
         instr_rob = Signal(self.gen_params.rob_entries_bits)
         instr_pc = Signal(self.gen_params.isa.xlen)
-        instr_fn = self.priv_fn.get_function()
+        instr_fn = self.fn.get_function()
+
+        instr_imm = Signal(self.gen_params.isa.xlen)
+        instr_s1_val = Signal(self.gen_params.isa.xlen)
+        instr_s2_val = Signal(self.gen_params.isa.xlen)
 
         mret = self.dm.get_dependency(MretKey())
+        sret = self.dm.get_optional_dependency(SretKey())
         async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
         wfi_resume = self.dm.get_dependency(WaitForInterruptResumeKey())
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
+        sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
-        @def_method(m, self.issue, ready=~instr_valid)
+        if sfence_vma is not None:
+            for name, unifier in sfence_vma[1].items():
+                m.submodules[name] = unifier
+
+        @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
-            m.d.comb += decoder.exec_fn.eq(arg.exec_fn)
             m.d.sync += [
                 instr_valid.eq(1),
                 instr_rob.eq(arg.rob_id),
                 instr_pc.eq(arg.pc),
-                instr_fn.eq(decoder.decode_fn),
+                instr_fn.eq(arg.decode_fn),
+                instr_s1_val.eq(arg.s1_val),
+                instr_s2_val.eq(arg.s2_val),
+                instr_imm.eq(arg.imm),
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):
@@ -106,16 +126,48 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
             priv_data = priv_mode.read(m).data
 
             illegal_mret = (instr_fn == PrivilegedFn.Fn.MRET) & (priv_data != PrivilegeLevel.MACHINE)
-            # future todo: WFI should be illegal in U-Mode only if S-Mode is supported
-            illegal_wfi = (
-                (instr_fn == PrivilegedFn.Fn.WFI)
-                & (priv_data == PrivilegeLevel.USER)
-                & csr.m_mode.mstatus_tw.read(m).data
+
+            if self.fn.supervisor_enable:
+                illegal_sret = (instr_fn == PrivilegedFn.Fn.SRET) & (
+                    (priv_data == PrivilegeLevel.USER)
+                    | ((priv_data == PrivilegeLevel.SUPERVISOR) & csr.m_mode.mstatus_tsr.read(m).data)
+                )
+            else:
+                illegal_sret = 0
+
+            if self.fn.supervisor_enable:
+                illegal_sfencevma = (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & (
+                    (priv_data == PrivilegeLevel.USER)
+                    | ((priv_data == PrivilegeLevel.SUPERVISOR) & csr.m_mode.mstatus_tvm.read(m).data)
+                )
+            else:
+                illegal_sfencevma = 0
+
+            illegal_wfi = (instr_fn == PrivilegedFn.Fn.WFI) & (
+                ((priv_data == PrivilegeLevel.USER) if self.gen_params.supervisor_mode else 0)
+                | ((priv_data < PrivilegeLevel.MACHINE) & (csr.m_mode.mstatus_tw.read(m).data))
             )
 
             with condition(m, nonblocking=True) as branch:
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
                     mret(m)
+                if self.fn.supervisor_enable:
+                    assert sret is not None
+                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
+                        sret(m)
+
+                    if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
+                        with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
+
+                            sfence_vma[0](
+                                m,
+                                vaddr=instr_s1_val,
+                                asid=instr_s2_val[: self.gen_params.vmem_params.asidlen],
+                                all_vaddrs=imm_view.rs1 == 0,
+                                all_asids=imm_view.rs2 == 0,
+                            )
+
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
                 with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
@@ -123,7 +175,7 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                     # when interrupt is enabled in xie, but disabled via global mstatus.xIE
                     m.d.sync += finished.eq(wfi_resume)
 
-            m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret)
+            m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret | illegal_sret | illegal_sfencevma)
 
         with Transaction().body(m, ready=instr_valid & finished):
             m.d.sync += instr_valid.eq(0)
@@ -134,7 +186,13 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
             with OneHotSwitch(m, instr_fn) as OneHotCase:
                 with OneHotCase(PrivilegedFn.Fn.MRET):
                     m.d.av_comb += ret_pc.eq(csr.m_mode.mepc.read(m).data)
-                # FENCE.I and WFI can't be compressed, so the next instruction is always pc+4
+                if self.fn.supervisor_enable:
+                    with OneHotCase(PrivilegedFn.Fn.SRET):
+                        m.d.av_comb += ret_pc.eq(csr.s_mode.sepc.read(m).data)
+                # SFENCE.VMA, FENCE.I and WFI can't be compressed, so next PC is always pc+4
+                if self.fn.supervisor_enable:
+                    with OneHotCase(PrivilegedFn.Fn.SFENCEVMA):
+                        m.d.av_comb += ret_pc.eq(instr_pc + 4)
                 with OneHotCase(PrivilegedFn.Fn.FENCEI):
                     m.d.av_comb += ret_pc.eq(instr_pc + 4)
                 with OneHotCase(PrivilegedFn.Fn.WFI):
@@ -154,10 +212,21 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
                 m.d.av_comb += instr[7:12].eq(0)
                 m.d.av_comb += instr[12:15].eq(Funct3.PRIV)
                 m.d.av_comb += instr[15:20].eq(0)
-                m.d.av_comb += instr[20:32].eq(Mux(instr_fn == PrivilegedFn.Fn.MRET, Funct12.WFI, Funct12.MRET))
-                log.error(
-                    m, (instr_fn != PrivilegedFn.Fn.MRET) & (instr_fn != PrivilegedFn.Fn.WFI), "missing Funct12 case"
-                )
+                with m.Switch(instr_fn):
+                    with m.Case(PrivilegedFn.Fn.MRET):
+                        m.d.av_comb += instr[20:32].eq(Funct12.MRET)
+                    with m.Case(PrivilegedFn.Fn.WFI):
+                        m.d.av_comb += instr[20:32].eq(Funct12.WFI)
+                    if self.fn.supervisor_enable:
+                        with m.Case(PrivilegedFn.Fn.SRET):
+                            m.d.av_comb += instr[20:32].eq(Funct12.SRET)
+                        with m.Case(PrivilegedFn.Fn.SFENCEVMA):
+                            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
+                            m.d.av_comb += instr[15:20].eq(imm_view.rs1)
+                            m.d.av_comb += instr[20:25].eq(imm_view.rs2)
+                            m.d.av_comb += instr[25:32].eq(Funct7.SFENCEVMA)
+                    with m.Default():
+                        log.error(m, True, "missing Funct12 case")
 
                 self.exception_report(
                     m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr
@@ -192,7 +261,14 @@ class PrivilegedFuncUnit(FuncUnit, Elaboratable):
 
 @dataclass(frozen=True)
 class PrivilegedUnitComponent(FunctionalComponentParams):
-    decoder_manager: PrivilegedFn = PrivilegedFn()
+    _: KW_ONLY
+    supervisor_enable: bool = False
+    decoder_manager: PrivilegedFn = field(init=False)
+
+    def get_decoder_manager(self):
+        return PrivilegedFn(supervisor_enable=self.supervisor_enable)
 
     def get_module(self, gen_params: GenParams) -> FuncUnit:
+        assert self.supervisor_enable == gen_params.supervisor_mode
+
         return PrivilegedFuncUnit(gen_params, self.decoder_manager)

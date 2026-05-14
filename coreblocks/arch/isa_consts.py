@@ -16,6 +16,10 @@ __all__ = [
     "PrivilegeLevel",
     "InterruptCauseNumber",
     "XlenEncoding",
+    "PMPAFlagEncoding",
+    "PMPCfgLayout",
+    "PAGE_SIZE",
+    "PAGE_SIZE_LOG",
 ]
 
 
@@ -228,15 +232,55 @@ class SatpMode(IntEnum, shape=4):
     SV57 = 10
     SV64 = 11
 
-    @classmethod
-    def valid_modes(cls, xlen: int) -> Set["SatpMode"]:
+    @staticmethod
+    def valid_modes(xlen: int) -> Set["SatpMode"]:
         match xlen:
             case 32:
-                return frozenset({cls.BARE, cls.SV32})
+                return frozenset({SatpMode.BARE, SatpMode.SV32})
             case 64:
-                return frozenset({cls.BARE, cls.SV39, cls.SV48, cls.SV57, cls.SV64})
+                return frozenset({SatpMode.BARE, SatpMode.SV39, SatpMode.SV48, SatpMode.SV57, SatpMode.SV64})
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP mode encoding: {xlen}")
+
+    @staticmethod
+    def bits_per_page_table_level(xlen: int) -> int:
+        """Number of virtual address bits translated at each page table level for a given XLEN."""
+        return 10 if xlen == 32 else 9
+
+    def vpn_bits(self) -> int:
+        """Number of bits required to represent the specified SatpMode's virtual addresses"""
+        if self == SatpMode.BARE:
+            raise ValueError("BARE mode does not use VPNs")
+
+        xlen = 32 if self in SatpMode.valid_modes(32) else 64
+        return SatpMode.bits_per_page_table_level(xlen) * self.level_count()
+
+    def mode_dependencies(self) -> Set["SatpMode"]:
+        match self:
+            case SatpMode.BARE | SatpMode.SV32 | SatpMode.SV39:
+                return frozenset()
+            case SatpMode.SV48:
+                return frozenset({SatpMode.SV39})
+            case SatpMode.SV57:
+                return frozenset({SatpMode.SV48})
+            case _:
+                raise ValueError(f"Unsupported SATP mode: {self}")
+
+    def level_count(self) -> int:
+        """Number of page table levels for a given SATP mode."""
+        match self:
+            case SatpMode.BARE:
+                return 0
+            case SatpMode.SV32:
+                return 2
+            case SatpMode.SV39:
+                return 3
+            case SatpMode.SV48:
+                return 4
+            case SatpMode.SV57:
+                return 5
+            case _:
+                raise ValueError(f"Unsupported SATP mode: {self}")
 
 
 class SatpLayout(StructLayout):
@@ -264,3 +308,12 @@ class SatpLayout(StructLayout):
                 )
             case _:
                 raise ValueError(f"Unsupported XLEN for SATP layout: {xlen}")
+
+
+class PMPCfgLayout(StructLayout):
+    def __init__(self):
+        super().__init__({"R": 1, "W": 1, "X": 1, "A": 2, "reserved": 2, "L": 1})
+
+
+PAGE_SIZE_LOG = 12
+PAGE_SIZE = 1 << PAGE_SIZE_LOG

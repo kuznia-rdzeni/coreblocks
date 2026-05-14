@@ -18,12 +18,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-            python-version: '3.11'
+            python-version: '3.13'
 
       - name: Install Coreblocks dependencies
         run: |
@@ -37,7 +37,7 @@ jobs:
           . venv/bin/activate
           PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 ./scripts/gen_verilog.py --verbose --config full
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: "verilog-full-core"
           path: |
@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get submodules HEAD hash
         working-directory: .
@@ -93,7 +93,7 @@ jobs:
 
       - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
         name: Checkout with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -127,7 +127,7 @@ jobs:
 
       - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
         name: Upload compiled and reference tests artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: "riscof-tests"
           path: |
@@ -140,10 +140,10 @@ jobs:
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-riscof-tests, build-core ]
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get submodules HEAD hash
         run: |
@@ -153,7 +153,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-            python-version: '3.11'
+            python-version: '3.13'
 
       - name: Install Coreblocks dependencies
         run: |
@@ -162,7 +162,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install ".[dev]"
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         name: Download full verilog core
         with:
           name: "verilog-full-core"
@@ -204,7 +204,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get submodules HEAD hash
         run: |
@@ -229,7 +229,7 @@ jobs:
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         name: Checkout with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -238,7 +238,7 @@ jobs:
 
       - if: ${{ steps.cache-regression.outputs.cache-hit != 'true' }}
         name: Upload riscv-tests
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           path: test/external/riscv-tests
 
@@ -250,7 +250,7 @@ jobs:
     needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get submodules HEAD hash
         run: |
@@ -260,7 +260,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install dependencies
         run: |
@@ -269,7 +269,7 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install ".[dev]"
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         name: Download full verilog core
         with:
           name: "verilog-full-core"
@@ -304,15 +304,15 @@ jobs:
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
@@ -338,12 +338,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
           cache: 'pip'
           cache-dependency-path: |
             pyproject.toml
