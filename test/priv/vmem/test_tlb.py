@@ -2,7 +2,6 @@ import random
 from typing import Optional
 
 from attr import dataclass
-from parameterized import parameterized_class
 
 from amaranth import *
 
@@ -167,7 +166,7 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
         return m
 
 
-@parameterized_class(
+@pytest.mark.parametrize(
     ("name",),
     [
         ("fully_associative",),
