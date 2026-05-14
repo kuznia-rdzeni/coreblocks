@@ -191,13 +191,15 @@ class CSRRegister(CSRRegisterBase):
         )
 
         def fu_write_combine_write(m, data):
+            new_data = Signal.like(data.data)
             with m.Switch(data.op_type):
                 with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
-                    return {"data": data.data}
+                    m.d.comb += new_data.eq(data.data)
                 with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
-                    return {"data": self.value | data.data}
+                    m.d.comb += new_data.eq(self.value | data.data)
                 with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
-                    return {"data": self.value & ~data.data}
+                    m.d.comb += new_data.eq(self.value & ~data.data)
+            return {"data": new_data}
 
         self.fu_write_combine_read = MethodMap.create(
             self.fu_write_filter.method,
