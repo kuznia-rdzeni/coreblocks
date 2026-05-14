@@ -4,7 +4,7 @@ from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.params import GenParams
 from coreblocks.arch import ExceptionCause
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.lib import Adapter
 from transactron.utils import ModuleConnector
 
@@ -28,7 +28,7 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
         return False
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(2)
 
         self.cycles = 256

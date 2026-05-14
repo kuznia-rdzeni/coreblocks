@@ -4,7 +4,9 @@ __pycache__/
 *$py.class
 
 # Package files
-*.egg_info/
+*.egg-info/
+build/
+*.lock
 
 # Environments
 .env

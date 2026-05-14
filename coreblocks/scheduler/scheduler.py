@@ -4,7 +4,7 @@ from amaranth import *
 
 from transactron import Method, Methods, Required, Transaction, TModule
 from transactron.lib import Connect, Pipe, WideFifo
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.utils import OneHotSwitchDynamic, assign, AssignType
 from transactron.utils.dependencies import DependencyContext

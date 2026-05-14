@@ -24,7 +24,7 @@ from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.arch import *
 from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.interface.layouts import ICacheLayouts, FetchLayouts
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
@@ -59,7 +59,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.with_rvc = with_rvc
         self.pc = 0
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 start_pc=self.pc,
                 compressed=with_rvc,
                 fetch_block_bytes_log=fetch_block_log,
@@ -507,7 +507,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(
-            test_core_config.replace(compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log)
+            configurations.test.replace(compressed=self.with_rvc, fetch_block_bytes_log=self.fetch_block_log)
         )
 
         self.m = SimpleTestCircuit(PredictionChecker(self.gen_params))
