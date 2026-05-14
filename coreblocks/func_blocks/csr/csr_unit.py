@@ -7,7 +7,6 @@ from transactron import Method, Methods, def_method, def_methods, Transaction, T
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
-from transactron.lib.simultaneous import condition
 
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
@@ -148,13 +147,11 @@ class CSRUnit(FuncBlock, Elaboratable):
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
-            # Use condition() as a workaround for kuznia-rdzeni/transactron#10, as _fu_(read|write) methods
-            # are called multiple times, as some CSRs are aliased call other CSR's _fu_* methods.
-            with condition(m) as branch:
+            with m.Switch(instr.csr):
                 for csr_number, csr in self.regfile.items():
                     priv_level_required, read_only = self._csr_access_privilege(csr_number)
 
-                    with branch(instr.csr == csr_number):
+                    with m.Case(csr_number):
                         priv_valid = Signal()
                         csr_access_valid = csr._fu_access_valid(m, current_priv_mode).valid
 
@@ -188,7 +185,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                             # Missing privilege
                             m.d.sync += exception.eq(1)
 
-                with branch():
+                with m.Default():
                     # Invalid CSR number
                     m.d.sync += exception.eq(1)
 

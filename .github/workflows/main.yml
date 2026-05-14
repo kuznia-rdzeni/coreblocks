@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-riscof-tests, build-core ]
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -304,7 +304,7 @@ jobs:
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v6

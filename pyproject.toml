@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "coreblocks"
 dynamic = ["version"]
 description = "RISC-V out-of-order core for education and research purposes"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -17,11 +17,11 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "amaranth==0.5.8",
-    "amaranth-stubs==0.1.2",
+    "amaranth~=0.5.8",
+    "amaranth-stubs~=0.5.0.0",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron==0.6.1",
+    "transactron==0.7.0",
 ]
 
 [project.urls]
@@ -32,27 +32,31 @@ Issues = "https://github.com/kuznia-rdzeni/coreblocks/issues"
 
 [project.optional-dependencies]
 dev = [
-    "black==24.4.2",
-    "docutils==0.15.2",
-    "flake8==7.0.0",
-    "pep8-naming==0.13.3",
-    "markupsafe==2.0.1",
-    "myst-parser==0.18.0",
-    "numpydoc==1.5.0",
-    "parameterized==0.8.1",
-    "pre-commit==2.16.0",
+    # Linting
     "pyright==1.1.393",
-    "Sphinx==5.1.1",
-    "sphinx-rtd-theme==1.0.0",
-    "sphinxcontrib-mermaid==0.8.1",
-    "cocotb==1.9.2",
-    "cocotb-bus==0.2.1",
+    "flake8==7.0.0",
+    "black==24.4.2",
+    # Testing
     "pytest==8.0.0",
     "pytest-xdist==3.5.0",
+    "hypothesis==6.99.6",
+    "parameterized==0.8.1",
+    "cocotb==1.9.2",
+    "cocotb-bus==0.2.1",
+    "docutils==0.21.2",
+    "markupsafe==2.0.1",
+    # Documentation
+    "pep8-naming==0.13.3",
+    "Sphinx==8.2.3",
+    "sphinx-rtd-theme==3.0.2",
+    "myst-parser==4.0.1",
+    "numpydoc==1.5.0",
+    "sphinxcontrib-mermaid==0.8.1",
+    # Other
+    "pre-commit==2.16.0",
     "pyelftools==0.29",
     "tabulate==0.9.0",
     "filelock==3.13.1",
-    "hypothesis==6.99.6",
 ]
 
 [project.scripts]

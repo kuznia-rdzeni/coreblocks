@@ -5,7 +5,7 @@ from functools import reduce
 from amaranth import *
 
 
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import popcount, DependencyContext, MethodStruct

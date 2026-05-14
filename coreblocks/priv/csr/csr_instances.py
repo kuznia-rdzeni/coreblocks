@@ -10,6 +10,7 @@ from coreblocks.arch.csr_address import (
 )
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
+    PAGE_SIZE_LOG,
     SatpMode,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
@@ -23,8 +24,7 @@ from coreblocks.interface.keys import CSRInstancesKey
 from typing import Optional
 from amaranth.lib import data
 from transactron.core import Transaction, TModule
-from transactron.utils import DependencyContext
-from transactron.lib import logging
+from transactron.utils import DependencyContext, logging
 
 
 log = logging.HardwareLogger("priv.csr.instances")
@@ -429,7 +429,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
                 {
                     "mode": 0,
                     "asid": -(1 << gen_params.vmem_params.asidlen),
-                    "ppn": 0,
+                    "ppn": -(1 << (gen_params.phys_addr_bits - PAGE_SIZE_LOG)),
                 }
             ).as_bits()
 
