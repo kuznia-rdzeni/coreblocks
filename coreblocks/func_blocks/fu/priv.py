@@ -98,12 +98,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
-        sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
-
-        if sfence_vma is not None:
-            for name, unifier in sfence_vma[1].items():
-                m.submodules[name] = unifier
 
         @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
@@ -153,10 +148,13 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     mret(m)
                 if self.fn.supervisor_enable:
                     assert sret is not None
+                    sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
                     with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
                         sret(m)
 
                     if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
+                        for name, unifier in sfence_vma[1].items():
+                            m.submodules[name] = unifier
                         with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
 

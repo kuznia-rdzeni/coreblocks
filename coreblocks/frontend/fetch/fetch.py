@@ -78,13 +78,14 @@ class FetchUnit(Elaboratable):
             tags=range(self.gen_params.fetch_width + 1),
         )
 
+        self.addr_translator = AddressTranslator(self.gen_params, mode=AddressTranslatorMode.INSTRUCTION)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.addr_translator = addr_translator = AddressTranslator(
-            self.gen_params, mode=AddressTranslatorMode.INSTRUCTION
-        )
         m.submodules += [self.perf_fetch_utilization]
+
+        m.submodules.addr_translator = self.addr_translator
 
         fetch_width = self.gen_params.fetch_width
         fields = self.gen_params.get(CommonLayoutFields)
@@ -152,10 +153,10 @@ class FetchUnit(Elaboratable):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
 
-            addr_translator.request(m, addr=pc, is_store=0)
+            self.addr_translator.request(m, addr=pc, is_store=0)
 
         with Transaction().body(m):
-            translated = addr_translator.accept(m)
+            translated = self.addr_translator.accept(m)
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)

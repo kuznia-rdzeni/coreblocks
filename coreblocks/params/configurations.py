@@ -1,5 +1,6 @@
 from coreblocks.arch.isa import Extension
 from coreblocks.params.core_configuration import CoreConfiguration
+from coreblocks.arch.isa_consts import SatpMode
 
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from coreblocks.func_blocks.fu.common.fifo_rs import FifoRS
@@ -42,6 +43,7 @@ tiny = CoreConfiguration(
     icache_enable=False,
     user_mode=False,
     supervisor_mode=False,
+    supported_vm_schemes=(SatpMode.BARE,),
     pmp_grain_log=2,
 )
 
@@ -123,6 +125,7 @@ test = CoreConfiguration(
     phys_regs_bits=7,
     interrupt_custom_count=2,
     interrupt_custom_edge_trig_mask=0b01,
+    supported_vm_schemes=(SatpMode.BARE,),
     _implied_extensions=Extension.I,
     _generate_test_hardware=True,
 )

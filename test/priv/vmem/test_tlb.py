@@ -2,6 +2,7 @@ import random
 from typing import Optional
 
 from attr import dataclass
+from parameterized import parameterized_class
 
 from amaranth import *
 
@@ -26,7 +27,7 @@ from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.priv.vmem.iface import TLBBackingDevice
-from coreblocks.priv.vmem.tlb import FullyAssociativeTLB
+from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 
 
 @dataclass(frozen=True)
@@ -166,7 +167,16 @@ class MockTLBBackingDevice(TLBBackingDevice, Elaboratable):
         return m
 
 
+@parameterized_class(
+    ("name",),
+    [
+        ("fully_associative",),
+        ("set_associative",),
+    ],
+)
 class TestTLBCache(TestCaseWithSimulator):
+    name: str
+
     @pytest.fixture(autouse=True)
     def setup_method(self):
         self.gen_params = GenParams(
@@ -182,7 +192,20 @@ class TestTLBCache(TestCaseWithSimulator):
 
         self.backing = MockTLBBackingDevice(self.gen_params)
 
-        self.dut = SimpleTestCircuit(FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing))
+        match self.name:
+            case "fully_associative":
+                dut = FullyAssociativeTLB(self.gen_params, entries=16, backing_resolver=self.backing)
+            case "set_associative":
+                dut = SetAssociativeTLB(
+                    self.gen_params,
+                    ways=4,
+                    entries=16,
+                    backing_resolver=self.backing,
+                )
+            case _:
+                assert False, f"{self.name}: Invalid TLB type"
+
+        self.dut = SimpleTestCircuit(dut)
 
         sfence_vma, _ = DependencyContext.get().get_dependency(SFenceVMAKey())
         self.sfence_vma = TestbenchIO(AdapterTrans.create(sfence_vma))
@@ -433,6 +456,8 @@ class TestTLBCache(TestCaseWithSimulator):
             sim.add_testbench(self.randomized_process)
 
     def test_single_cycle_hit(self):
+        if self.name != "fully_associative":
+            pytest.skip("Single-cycle hit test is only valid for fully associative TLBs")
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
             self.add_mock(sim, self.backing.process_request())  # type: ignore
