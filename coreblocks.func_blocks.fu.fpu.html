@@ -945,6 +945,120 @@ Returns result as
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.func_blocks.fu.fpu.fpu_qsf">
+<span id="coreblocks-func-blocks-fu-fpu-fpu-qsf-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_qsf module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_qsf" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFMethodLayout">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_qsf.</span></span><span class="sig-name descname"><span class="pre">QSFMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFMethodLayout" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Quotient selection function module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>qsf_params: QSFParams</strong></dt><dd><p>Parameters of QSF</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">qsf_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams" title="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams"><span class="pre">QSFParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFMethodLayout.__init__" title="Link to this definition"></a></dt>
+<dd><p>residual - bits of residual
+divisor - bits of divisor
+q - one digit of quotient</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_qsf.</span></span><span class="sig-name descname"><span class="pre">QSFModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFModule" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module for quotient selection function
+This module returns one quotient digit, based on bits residual and divisor.
+The exact implementations depends on radix and set of digits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>qsf_params: QSFParams</strong></dt><dd><p>Params for QSF</p>
+</dd>
+<dt><strong>intervals: list[int]</strong></dt><dd><p>List of intervals for QSF</p>
+</dd>
+<dt><strong>bounds: list[list[int]]</strong></dt><dd><p>List of bounds for each intervals</p>
+</dd>
+<dt><strong>digits: list[tuple[int,int]]</strong></dt><dd><p>Set of possible values of our quotients</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>qsf_request: Method</strong></dt><dd><p>Transactional method for initiating quotient selection.
+Takes ‘qsf_in_layout’ as argument
+Returns result as ‘qsf_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">qsf_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams" title="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams"><span class="pre">QSFParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFModule.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_qsf.</span></span><span class="sig-name descname"><span class="pre">QSFParams</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Quotient selection function parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>residual_width: int</strong></dt><dd><p>Number of bits of residual used in QSF</p>
+</dd>
+<dt><strong>divisor_width: int</strong></dt><dd><p>Number of bits of divisor used in QSF</p>
+</dd>
+<dt><strong>q_bits: int</strong></dt><dd><p>Number of bits of quotient (log2(Radix))</p>
+</dd>
+<dt><strong>qsf_table: QSFTable</strong></dt><dd><p>Table for QSF</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">divisor_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">qsf_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable" title="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable"><span class="pre">QSFTable</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.fpu_qsf.</span></span><span class="sig-name descname"><span class="pre">QSFTable</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">intervals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.bounds">
+<span class="sig-name descname"><span class="pre">bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.bounds" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.digits">
+<span class="sig-name descname"><span class="pre">digits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.digits" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.intervals">
+<span class="sig-name descname"><span class="pre">intervals</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFTable.intervals" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.func_blocks.fu.fpu.fpu_rounding_module">
 <span id="coreblocks-func-blocks-fu-fpu-fpu-rounding-module-module"></span><h2>coreblocks.func_blocks.fu.fpu.fpu_rounding_module module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.fpu_rounding_module" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -1225,6 +1339,93 @@ Returns shift amount as ‘predict_out_layout’</p>
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.func_blocks.fu.fpu.otfc">
+<span id="coreblocks-func-blocks-fu-fpu-otfc-module"></span><h2>coreblocks.func_blocks.fu.fpu.otfc module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.otfc" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCMethodLayout">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfc.</span></span><span class="sig-name descname"><span class="pre">OTFCMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCMethodLayout" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>On-the-fly conversion function module layouts for methods</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>otfc_params: OTFCParams</strong></dt><dd><p>Parameters of OTFC</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">otfc_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCParams" title="coreblocks.func_blocks.fu.fpu.otfc.OTFCParams"><span class="pre">OTFCParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCMethodLayout.__init__" title="Link to this definition"></a></dt>
+<dd><p>sign - sign of quotient
+q - bits of one quotient digit
+shift - last shift before returning result, mostly needed in case of zero remainder termination
+result - result of conversion</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfc.</span></span><span class="sig-name descname"><span class="pre">OTFCModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCModule" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module for on-the-fly conversion
+This module performs on-the-fly-conversion for SRT radix 4 with redundant set where a = 2.
+Algorithm works by keeping two registers, one assuming next digit is nonnegative and the
+other one otherwise, to deal with carry propagation.
+Algorithm taken from “Digital arithmetic” by Miloš D. Ercegovac and Tomás Lang.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>otfc_params: OTFCParams</strong></dt><dd><p>Params for OTFC</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>otfc_add_digit: Method</strong></dt><dd><p>Transactional method for adding one digit to result
+Takes ‘otfc_add_digit_in_layout’ as argument</p>
+</dd>
+<dt><strong>otfc_reset: Method</strong></dt><dd><p>Transactional method for reseting state of OTFC</p>
+</dd>
+<dt><strong>otfc_result</strong></dt><dd><p>Transactinal method for returning result
+Takes ‘otfc_result_in_layout as argument’
+Returns result as ‘otfc_result_out_layout’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">otfc_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCParams" title="coreblocks.func_blocks.fu.fpu.otfc.OTFCParams"><span class="pre">OTFCParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCModule.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.otfc.</span></span><span class="sig-name descname"><span class="pre">OTFCParams</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCParams" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>On-the-fly conversion function parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>result_width: int</strong></dt><dd><p>Number of bits of result</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.otfc.OTFCParams.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.otfc.OTFCParams.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-coreblocks.func_blocks.fu.fpu.qsf_tables">
+<span id="coreblocks-func-blocks-fu-fpu-qsf-tables-module"></span><h2>coreblocks.func_blocks.fu.fpu.qsf_tables module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.qsf_tables" title="Link to this heading"></a></h2>
+</section>
 <section id="module-coreblocks.func_blocks.fu.fpu">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu" title="Link to this heading"></a></h2>
 </section>
@@ -1242,7 +1443,7 @@ Returns shift amount as ‘predict_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:10 2026-05-15.
+      <span class="lastupdated">Last updated on 12:29 2026-05-15.
       </span></p>
   </div>
 

@@ -76,6 +76,14 @@ coreblocks.func\_blocks.fu.fpu.fpu\_mul module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.func\_blocks.fu.fpu.fpu\_qsf module
+----------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.fpu_qsf
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 coreblocks.func\_blocks.fu.fpu.fpu\_rounding\_module module
 -----------------------------------------------------------
 
@@ -104,6 +112,22 @@ coreblocks.func\_blocks.fu.fpu.lza module
 -----------------------------------------
 
 .. automodule:: coreblocks.func_blocks.fu.fpu.lza
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+coreblocks.func\_blocks.fu.fpu.otfc module
+------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.otfc
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+coreblocks.func\_blocks.fu.fpu.qsf\_tables module
+-------------------------------------------------
+
+.. automodule:: coreblocks.func_blocks.fu.fpu.qsf_tables
    :members:
    :show-inheritance:
    :undoc-members:
