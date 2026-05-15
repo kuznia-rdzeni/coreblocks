@@ -67,7 +67,8 @@ small_linux = CoreConfiguration(
         ),
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
         CSRBlockComponent(),
-    )
+    ),
+    interrupt_custom_count=15,
 )
 
 # Core configuration with all supported components
@@ -114,6 +115,7 @@ full = CoreConfiguration(
     frontend_superscalarity=2,
     announcement_superscalarity=2,
     retirement_superscalarity=2,
+    interrupt_custom_count=15,
 )
 
 # Core configuration used in internal testbenches
