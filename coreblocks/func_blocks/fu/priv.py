@@ -102,8 +102,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
 
         if sfence_vma is not None:
-            for name, unifier in sfence_vma[1].items():
-                m.submodules[name] = unifier
+            m.submodules += sfence_vma[1]
 
         @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
