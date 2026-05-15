@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778849917590,
+  "lastUpdate": 1778849920227,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -46098,6 +46098,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 16815,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1350,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1368,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4794,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9b6deca7eb98ee23be67fed66305d0a634ec61ec",
+          "message": "On-the-fly conversion and quotient selection function (#858)",
+          "timestamp": "2026-05-15T14:28:22+02:00",
+          "tree_id": "25f8fcac562e83471779e4a478946e9e8dd004f9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9b6deca7eb98ee23be67fed66305d0a634ec61ec"
+        },
+        "date": 1778849919399,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.65,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16696,
             "unit": "LUT4"
           },
           {
