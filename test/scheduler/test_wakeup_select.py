@@ -7,13 +7,15 @@ from enum import Enum
 from inspect import isclass
 import random
 
+from transactron.utils import NameIntDict
+
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
 from coreblocks.func_blocks.fu.common.rs_func_block import RSBlockComponent
 from transactron import *
 from coreblocks.scheduler.wakeup_select import *
 
-from transactron.testing import NameIntDict, SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
 from transactron.testing.functions import data_const_to_dict
 
 

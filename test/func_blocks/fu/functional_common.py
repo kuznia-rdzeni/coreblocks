@@ -19,14 +19,13 @@ from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
 from transactron.testing import (
-    NameIntDict,
     TestbenchIO,
     TestCaseWithSimulator,
     SimpleTestCircuit,
     ProcessContext,
     TestbenchContext,
 )
-from transactron.utils import ModuleConnector
+from transactron.utils import ModuleConnector, NameIntDict
 
 
 class FunctionalTestCircuit(Elaboratable):
