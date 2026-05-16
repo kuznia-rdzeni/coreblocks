@@ -798,6 +798,11 @@ class LSULayouts:
 class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
+    class WriteOpType(IntEnum):
+        CSR_WRITE = auto()
+        CSR_SET = auto()
+        CSR_CLEAR = auto()
+
     def __init__(self, gen_params: GenParams, *, data_width: int):
         self.data: LayoutListField = ("data", data_width)
 
@@ -810,7 +815,7 @@ class CSRRegisterLayouts:
         self.write = make_layout(self.data)
 
         self.fu_read = make_layout(self.data)
-        self.fu_write = make_layout(self.data)
+        self.fu_write = make_layout(self.data, ("op_type", CSRRegisterLayouts.WriteOpType))
         self.fu_access_valid_i = make_layout(("priv_mode", PrivilegeLevel))
         self.fu_access_valid_o = make_layout(("valid", 1))
 
