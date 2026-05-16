@@ -4,6 +4,7 @@ from amaranth.utils import ceil_log2, exact_log2
 
 from coreblocks.arch.isa import ISA, gen_isa_string
 from .icache_params import ICacheParameters
+from .dcache_params import DCacheParameters
 from .vmem_params import VirtualMemoryParameters
 from .fu_params import extensions_supported
 from ..peripherals.wishbone import WishboneParameters
@@ -71,6 +72,14 @@ class GenParams(DependentCache):
             num_of_sets_bits=cfg.icache_sets_bits,
             line_bytes_log=cfg.icache_line_bytes_log,
             enable=cfg.icache_enable,
+        )
+        self.dcache_params = DCacheParameters(
+            addr_width=self.phys_addr_bits,
+            word_width=self.isa.xlen,
+            num_of_ways=cfg.dcache_ways,
+            num_of_sets_bits=cfg.dcache_sets_bits,
+            line_bytes_log=cfg.dcache_line_bytes_log,
+            enable=cfg.dcache_enable,
         )
 
         self.debug_signals_enabled = cfg.debug_signals
