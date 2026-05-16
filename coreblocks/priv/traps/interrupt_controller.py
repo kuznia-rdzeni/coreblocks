@@ -3,7 +3,7 @@ from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.arch.isa_consts import ExceptionCause
-from coreblocks.interface.layouts import InternalInterruptControllerLayouts
+from coreblocks.interface.layouts import CSRRegisterLayouts, InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.params.genparams import GenParams
@@ -131,11 +131,31 @@ class InternalInterruptController(Component):
             m.d.comb += out_data.eq(arg | self.level_interrupts)
             return out_data
 
+        def mip_write_combine(m, data, op_type, read_val):
+            new_data = Signal(self.gen_params.isa.xlen)
+            # Only software bits participate in the write logic - use the value of the register for CSRRS/CSRRC
+            # rather than what happens normally - using the returned value to the software.
+            old_data = self.mip.read(m).data
+
+            with m.Switch(op_type):
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                    m.d.comb += new_data.eq(data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
+                    m.d.comb += new_data.eq(old_data | data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
+                    m.d.comb += new_data.eq(old_data & ~data)
+            return new_data
+
         # NOTE: the mip register only holds bits that are set - either edge triggered or software bits
-        # if a bit is both software and level triggered (e.g. STIP), the software will read it as an OR of the two,
+        # if a bit is both software and level triggered (e.g. SEIP), the software will read it as an OR of the two,
         # but the level value will not be participating in the CSRRS/CSRRC logic.
         self.mip = CSRRegister(
-            CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.mip_writeable, fu_read_map=mip_readmap
+            CSRAddress.MIP,
+            gen_params,
+            fu_write_priority=False,
+            ro_bits=~self.mip_writeable,
+            fu_read_map=mip_readmap,
+            fu_write_combine=mip_write_combine,
         )
         self.mip_value = Signal(self.gen_params.isa.xlen)
 

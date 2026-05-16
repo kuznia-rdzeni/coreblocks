@@ -128,6 +128,7 @@ class CSRRegister(CSRRegisterBase):
         fu_write_filtermap: Optional[Callable[[TModule, Value], tuple[ValueLike, ValueLike]]] = None,
         fu_read_map: Optional[Callable[[TModule, Value], ValueLike]] = None,
         fu_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        fu_write_combine: Optional[Callable[[TModule, Value, Value, Value], ValueLike]] = None,
         src_loc: int | SrcLoc = 0,
     ):
         """
@@ -160,6 +161,9 @@ class CSRRegister(CSRRegisterBase):
         fu_access_filter: function (TModule, Value) -> ValueLike
             Filter on CSR accesses from instructions.
             Returned value indicates if access should be considered legal.
+        fu_write_combine: function (TModule, Value, Value, Value) -> ValueLike
+            Combine function for CSR instruction writes. Takes the input from CSR* instruction, the mode
+            (CSRRegisterLayouts.WriteOpType) and the value returned the CSR* instruction (_fu_read).
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
@@ -171,12 +175,23 @@ class CSRRegister(CSRRegisterBase):
 
         super().__init__(gen_params, csr_number, width, get_src_loc(src_loc))
 
+        def fu_write_combine_default(m: TModule, data: Value, mode: Value, read_val: Value):
+            new_data = Signal(self.width)
+            with m.Switch(mode):
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                    m.d.comb += new_data.eq(data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
+                    m.d.comb += new_data.eq(read_val | data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
+                    m.d.comb += new_data.eq(read_val & ~data)
+            return new_data
+
         self.ro_bits = ro_bits
         fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
         fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
+        fu_write_combine = fu_write_combine if fu_write_combine else fu_write_combine_default
         self.fu_access_filter = fu_access_filter if fu_access_filter else (lambda _, __: C(1))
         self.fu_write_priority = fu_write_priority
-
         write_combined_layout = make_layout(self.csr_layouts.data)
 
         self._internal_fu_read = Method(o=self.csr_layouts.fu_read)
@@ -189,21 +204,14 @@ class CSRRegister(CSRRegisterBase):
         self.fu_write_filter = MethodFilter.create(
             self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms["data"])[0]
         )
-
-        def fu_write_combine_write(m, data):
-            new_data = Signal.like(data.data)
-            with m.Switch(data.op_type):
-                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
-                    m.d.comb += new_data.eq(data.data)
-                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
-                    m.d.comb += new_data.eq(self.value | data.data)
-                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
-                    m.d.comb += new_data.eq(self.value & ~data.data)
-            return {"data": new_data}
-
-        self.fu_write_combine_read = MethodMap.create(
+        self.fu_write_combine_map = MethodMap.create(
             self.fu_write_filter.method,
-            i_transform=(self.csr_layouts.fu_write, fu_write_combine_write),
+            i_transform=(
+                self.csr_layouts.fu_write,
+                lambda tm, ms: {
+                    "data": fu_write_combine(tm, ms["data"], ms["op_type"], self.fu_read_map.method.data_out.data)
+                },
+            ),
         )
         self.fu_read_map = MethodMap.create(
             self._internal_fu_read,
@@ -212,7 +220,7 @@ class CSRRegister(CSRRegisterBase):
 
         # Methods required to be connected automatically by CSRUnit
         self._fu_read.provide(self.fu_read_map.method)
-        self._fu_write.provide(self.fu_write_combine_read.method)
+        self._fu_write.provide(self.fu_write_combine_map.method)
 
         self.value = Signal(self.width, init=init)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
@@ -273,6 +281,6 @@ class CSRRegister(CSRRegisterBase):
         m.submodules.fu_write_filter = self.fu_write_filter
         m.submodules.fu_read_map = self.fu_read_map
         m.submodules.fu_write_map = self.fu_write_map
-        m.submodules.fu_write_combine_read = self.fu_write_combine_read
+        m.submodules.fu_write_combine_map = self.fu_write_combine_map
 
         return m
