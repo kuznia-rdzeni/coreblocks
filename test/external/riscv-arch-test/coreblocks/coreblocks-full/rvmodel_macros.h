@@ -82,9 +82,8 @@
 
 #define RVMODEL_MSIP_ADDRESS (CLINT_BASE_ADDRESS + 0x0)
 
-#define RVMODEL_SET_MEXT_INT(_R1, _R2)
-
-#define RVMODEL_CLR_MEXT_INT(_R1, _R2)
+#define RVMODEL_SET_MEXT_INT(_R1, _R2) nop;
+#define RVMODEL_CLR_MEXT_INT(_R1, _R2) nop;
 
 #define RVMODEL_SET_MSW_INT(_R1, _R2) \
   li _R1, 1; \
@@ -97,9 +96,9 @@
 
 ##### Supervisor Interrupts #####
 
-#define RVMODEL_SET_SEXT_INT(_R1, _R2)
-#define RVMODEL_CLR_SEXT_INT(_R1, _R2)
-#define RVMODEL_SET_SSW_INT(_R1, _R2)
-#define RVMODEL_CLR_SSW_INT(_R1, _R2)
+#define RVMODEL_SET_SEXT_INT(_R1, _R2) nop;
+#define RVMODEL_CLR_SEXT_INT(_R1, _R2) nop;
+#define RVMODEL_SET_SSW_INT(_R1, _R2) nop;
+#define RVMODEL_CLR_SSW_INT(_R1, _R2) nop;
 
 #endif // _RVMODEL_MACROS_H
