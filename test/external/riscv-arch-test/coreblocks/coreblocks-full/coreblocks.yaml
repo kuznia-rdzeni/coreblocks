@@ -39,7 +39,7 @@ params:
   LRSC_FAIL_ON_NON_EXACT_LRSC: false
 
   # B params
-  MUTABLE_MISA_B: true
+  MUTABLE_MISA_B: false
 
   # C params
   MUTABLE_MISA_C: false
