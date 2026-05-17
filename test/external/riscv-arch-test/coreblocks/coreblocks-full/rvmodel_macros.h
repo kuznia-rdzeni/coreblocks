@@ -62,7 +62,7 @@
 
 ##### Access Fault #####
 
-#define RVMODEL_ACCESS_FAULT_ADDRESS 0xFFFFFFFF
+#define RVMODEL_ACCESS_FAULT_ADDRESS 0x00000000
 
 ##### Interrupt Latency #####
 

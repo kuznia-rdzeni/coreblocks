@@ -25,7 +25,7 @@
 `define LARGEST_PROGRAM     32'h00001000
 
 // Define relevant addresses
-`define RVMODEL_ACCESS_FAULT_ADDRESS 64'hFFFFFFFF
+`define RVMODEL_ACCESS_FAULT_ADDRESS 64'h00000000
 `define CLINT_BASE 64'hE1000000
 
 //define extra supported extensions to collect full coverage in Privileged files
@@ -38,5 +38,6 @@
 `define ZCB_SUPPORTED
 `define ZAAMO_SUPPORTED
 `define ZALRSC_SUPPORTED
+`define ZICNTR_SUPPORTED
 
 `define TIME_CSR_IMPLEMENTED

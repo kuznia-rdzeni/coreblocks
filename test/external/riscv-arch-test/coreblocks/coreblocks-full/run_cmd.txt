@@ -1,1 +1,0 @@
-bash -c "echo "trying to run $@"; exit 1"
