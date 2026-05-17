@@ -31,25 +31,31 @@ implemented_extensions:
 
 params:
   # A params
+  MUTABLE_MISA_A: false
   MISALIGNED_AMO: false
-  LRSC_RESERVATION_STRATEGY: "reserve exactly enough to cover the access" # XLEN size reservation
+  LRSC_RESERVATION_STRATEGY: "reserve exactly enough to cover the access"
   LRSC_FAIL_ON_VA_SYNONYM: false
   LRSC_MISALIGNED_BEHAVIOR: "always raise access fault"
-  LRSC_FAIL_ON_NON_EXACT_LRSC: true
-  MUTABLE_MISA_A: false
-  # M params
-  MUTABLE_MISA_M: false
+  LRSC_FAIL_ON_NON_EXACT_LRSC: false
+
+  # B params
+  MUTABLE_MISA_B: true
+
   # C params
   MUTABLE_MISA_C: false
-  # B params
-  MUTABLE_MISA_B: false
+
+  # M params
+  MUTABLE_MISA_M: false
+
   # Zicntr params
   TIME_CSR_IMPLEMENTED: true
+
   # U params
   MUTABLE_MISA_U: false
   U_MODE_ENDIANNESS: little
   UXLEN: [32]
   TRAP_ON_ECALL_FROM_U: true
+
   # S params
   MUTABLE_MISA_S: false
   ASID_WIDTH: 0
@@ -113,6 +119,7 @@ params:
   MSTATUS_VS_LEGAL_VALUES: [0]
   MSTATUS_FS_LEGAL_VALUES: [0]
   MSTATUS_TVM_IMPLEMENTED: true
+
   # Sm params
   MXLEN: 32
   PRECISE_SYNCHRONOUS_EXCEPTIONS: true
@@ -122,8 +129,8 @@ params:
   ARCH_ID_VALUE: 44
   MIMPID_IMPLEMENTED: true
   IMP_ID_VALUE: 0
-  VENDOR_ID_BANK: 0x0
-  VENDOR_ID_OFFSET: 0x0
+  VENDOR_ID_BANK: 0
+  VENDOR_ID_OFFSET: 0
   MISALIGNED_LDST: false
   MISALIGNED_LDST_EXCEPTION_PRIORITY: high
   TRAP_ON_ILLEGAL_WLRL: false
@@ -147,15 +154,15 @@ params:
   MTVEC_ACCESS: rw
   MTVEC_MODES: [0, 1]
   MTVEC_BASE_ALIGNMENT_DIRECT: 4
-  MTVEC_BASE_ALIGNMENT_VECTORED: 64
+  MTVEC_BASE_ALIGNMENT_VECTORED: 4
   MTVEC_ILLEGAL_WRITE_BEHAVIOR: retain
   NUM_PMP_ENTRIES: 16
-  PMP_GRANULARITY: 3  # pmp_grain_log - 2
+  PMP_GRANULARITY: 2
   HPM_COUNTER_EN:
     [
-      true,
-      true,
-      true,
+      false,
+      false,
+      false,
       false,
       false,
       false,
