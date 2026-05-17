@@ -109,7 +109,9 @@ params:
   STVEC_MODE_VECTORED: true
   SATP_MODE_BARE: true
   TRAP_ON_ECALL_FROM_S: true
+  TRAP_ON_SFENCE_VMA_WHEN_SATP_MODE_IS_READ_ONLY: false
   MSTATUS_VS_LEGAL_VALUES: [0]
+  MSTATUS_FS_LEGAL_VALUES: [0]
   MSTATUS_TVM_IMPLEMENTED: true
   # Sm params
   MXLEN: 32
@@ -138,7 +140,7 @@ params:
   REPORT_ENCODING_IN_MTVAL_ON_ILLEGAL_INSTRUCTION: true
   MTVAL_WIDTH: 32
   CONFIG_PTR_ADDRESS: 0
-  PMA_GRANULARITY: 0
+  PMA_GRANULARITY: 2
   PHYS_ADDR_WIDTH: 32
   M_MODE_ENDIANNESS: little
   MISA_CSR_IMPLEMENTED: true
@@ -151,9 +153,9 @@ params:
   PMP_GRANULARITY: 3  # pmp_grain_log - 2
   HPM_COUNTER_EN:
     [
-      false,
-      false,
-      false,
+      true,
+      true,
+      true,
       false,
       false,
       false,
@@ -184,7 +186,6 @@ params:
       false,
       false,
     ]
-  HPM_EVENTS: [0]
   COUNTINHIBIT_EN:
     [
       false,
