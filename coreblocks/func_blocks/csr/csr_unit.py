@@ -169,8 +169,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                         with m.If(priv_valid & csr_access_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
-                                with m.If(exe_side_fx):
-                                    m.d.av_comb += read_val.eq(csr._fu_read(m))
+                                m.d.av_comb += read_val.eq(csr._fu_read(m))
                                 m.d.sync += current_result.eq(read_val)
 
                             if read_only:
@@ -179,8 +178,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                                     m.d.sync += exception.eq(1)
                             else:
                                 with m.If(should_write_csr & ~done):
-                                    with m.If(exe_side_fx):
-                                        csr._fu_write(m, data=instr.s1_val, op_type=write_type)
+                                    csr._fu_write(m, data=instr.s1_val, op_type=write_type)
 
                         with m.Else():
                             # Missing privilege
@@ -190,6 +188,9 @@ class CSRUnit(FuncBlock, Elaboratable):
                     # Invalid CSR number
                     m.d.sync += exception.eq(1)
 
+            m.d.sync += done.eq(1)
+
+        with Transaction().body(m, ready=(ready_to_process & ~exe_side_fx)):
             m.d.sync += done.eq(1)
 
         @def_method(m, self.select, ~reserved)

@@ -230,8 +230,6 @@ class Retirement(Elaboratable):
                             # Not using default condition, because we want to block if branch is not ready
                             flush_instr(0, rob_entry)
 
-                            m.d.comb += core_flushing.eq(1)
-
                     validate_transaction.schedule_before(retire_transaction)
 
             with m.State("TRAP_FLUSH"):
@@ -261,8 +259,6 @@ class Retirement(Elaboratable):
 
                     with m.If(core_empty):
                         m.next = "TRAP_RESUME"
-
-                m.d.comb += core_flushing.eq(1)
 
             with m.State("TRAP_RESUME"):
                 with Transaction().body(m):
@@ -307,26 +303,35 @@ class Retirement(Elaboratable):
 
                     m.next = "NORMAL"
 
-        # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
-
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
             return {"flushing": core_flushing}
 
-        rob_id_val = Signal(self.gen_params.rob_entries_bits)
+        # Run precommit on first not-done instr, if exception not encountered
+        precommit_rob_id = Signal(self.gen_params.rob_entries_bits)
+        exc_prefixes = Array(
+            [
+                Cat(rob_entries.entries[j].exception for j in range(i)).any()
+                for i in range(self.gen_params.retirement_superscalarity + 1)
+            ]
+        )
+        m.d.top_comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + rob_entries.done_count)
+
+        # Disable executing any side effects from instructions in core when it is flushed
+        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
+        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[rob_entries.done_count])
 
         # The argument is only used in argument validation, it is not needed in the method body.
         # A dummy combiner is provided.
         @def_method(
             m,
             self.precommit,
-            validate_arguments=lambda rob_id: rob_id == rob_id_val,
+            ready=~core_flushing,
+            validate_arguments=lambda rob_id: rob_id == precommit_rob_id,
             nonexclusive=True,
             combiner=lambda m, args, runs: 0,
         )
         def _(rob_id):
-            m.d.top_comb += rob_id_val.eq(self.rob_peek(m).entries[0].rob_id)
             return {"side_fx": side_fx}
 
         return m
