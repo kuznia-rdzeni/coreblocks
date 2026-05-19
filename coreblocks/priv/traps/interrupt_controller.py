@@ -3,7 +3,7 @@ from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.arch.isa_consts import ExceptionCause
-from coreblocks.interface.layouts import InternalInterruptControllerLayouts
+from coreblocks.interface.layouts import CSRRegisterLayouts, InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.params.genparams import GenParams
@@ -69,6 +69,9 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
+        self.level_interrupts = Signal(self.gen_params.isa.xlen)
+        self.new_edge_interrupts = Signal(self.gen_params.isa.xlen)
+
         self.m_mode_csr = m_mode_csr = self.dm.get_dependency(CSRInstancesKey()).m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
@@ -93,12 +96,8 @@ class InternalInterruptController(Component):
             # mip_stip_no_stimecmp_acc
             # mip_ssip_acc
             # mip_seip_acc
-            # FIXME: SEI should be writeable, but with special semantics - mip_seip_rdcsr, mip_seip_wrcsr
-            # currently marking SEI as non-writeable
             self.mip_writeable |= (
-                (1 << InterruptCauseNumber.STI)
-                | (1 << InterruptCauseNumber.SSI)
-                # | (1 << InterruptCauseNumber.SEI)
+                (1 << InterruptCauseNumber.STI) | (1 << InterruptCauseNumber.SSI) | (1 << InterruptCauseNumber.SEI)
             )
 
         self.mideleg_writeable = (
@@ -126,7 +125,39 @@ class InternalInterruptController(Component):
             assert self.sip_writeable & ~self.mip_writeable == 0
 
         self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~self.mie_writeable)
-        self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.mip_writeable)
+
+        def mip_readmap(m, arg):
+            out_data = Signal(self.gen_params.isa.xlen)
+            m.d.comb += out_data.eq(arg | self.level_interrupts)
+            return out_data
+
+        def mip_write_combine(m, data, op_type, read_val):
+            new_data = Signal(self.gen_params.isa.xlen)
+            # Only software bits participate in the write logic - use the value of the register for CSRRS/CSRRC
+            # rather than what happens normally - using the returned value to the software.
+            old_data = self.mip.read(m).data
+
+            with m.Switch(op_type):
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                    m.d.comb += new_data.eq(data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
+                    m.d.comb += new_data.eq(old_data | data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
+                    m.d.comb += new_data.eq(old_data & ~data)
+            return new_data
+
+        # NOTE: the mip register only holds bits that are set - either edge triggered or software bits
+        # if a bit is both software and level triggered (e.g. SEIP), the software will read it as an OR of the two,
+        # but the level value will not be participating in the CSRRS/CSRRC logic.
+        self.mip = CSRRegister(
+            CSRAddress.MIP,
+            gen_params,
+            fu_write_priority=False,
+            ro_bits=~self.mip_writeable,
+            fu_read_map=mip_readmap,
+            fu_write_combine=mip_write_combine,
+        )
+        self.mip_value = Signal(self.gen_params.isa.xlen)
 
         if gen_params.supervisor_mode:
             self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~self.mideleg_writeable)
@@ -194,6 +225,16 @@ class InternalInterruptController(Component):
         selected_pending = Signal(self.gen_params.isa.xlen)
         interrupt_pending = Signal()
 
+        all_interrupts = Cat(
+            self.internal_report_level,
+            self.custom_report,
+        )
+        for i in range(ISA_RESERVED_INTERRUPTS + self.gen_params.interrupt_custom_count):
+            if self.edge_reported_mask & (1 << i):
+                m.d.comb += self.new_edge_interrupts[i].eq(all_interrupts[i])
+            else:
+                m.d.comb += self.level_interrupts[i].eq(all_interrupts[i])
+
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
         with Transaction().body(m) as assign_trans:
@@ -203,7 +244,8 @@ class InternalInterruptController(Component):
 
             m.d.av_comb += [
                 mie.eq(self.mie.read(m).data),
-                mip.eq(self.mip.read(m).data),
+                mip.eq(self.mip.read(m).data | self.level_interrupts),
+                self.mip_value.eq(mip),
                 pending.eq(mie & mip),
                 interrupt_pending.eq(pending.any()),
             ]
@@ -242,24 +284,10 @@ class InternalInterruptController(Component):
         # WFI is independent of global mstatus.xIE and mideleg
         m.d.comb += self.wfi_resume.eq(interrupt_pending)
 
-        new_interrupts_value = Signal(self.gen_params.isa.xlen)
-        m.d.comb += new_interrupts_value.eq(Cat(self.internal_report_level, self.custom_report))
-
         with Transaction().body(m) as mip_trans:
             mip_value = self.mip.read_comb(m).data
             new_data = Signal(self.gen_params.isa.xlen)
-
-            for i in range(self.gen_params.isa.xlen):
-                if self.edge_reported_mask & (1 << i):
-                    # edge-triggered bit
-                    m.d.av_comb += new_data[i].eq(mip_value[i] | new_interrupts_value[i])
-                elif self.mip_writeable & (1 << i):
-                    # software-bit
-                    m.d.av_comb += new_data[i].eq(mip_value[i])
-                else:
-                    # level-triggered bit
-                    m.d.av_comb += new_data[i].eq(new_interrupts_value[i])
-
+            m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
             self.mip.write(m, {"data": new_data})
         log.error(m, ~mip_trans.run, "assert transaction running failed")
 

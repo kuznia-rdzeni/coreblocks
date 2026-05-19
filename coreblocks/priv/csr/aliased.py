@@ -47,9 +47,9 @@ class AliasedCSR(CSRRegisterBase):
         self.elaborated = True
 
         @def_method(m, self._fu_write)
-        def _(data: Value):
+        def _(data: Value, op_type: Value):
             for start, csr in self.fields:
-                csr._fu_write(m, data[start : start + csr.width])
+                csr._fu_write(m, data=data[start : start + csr.width], op_type=op_type)
 
         @def_method(m, self._fu_read)
         def _() -> Value:
