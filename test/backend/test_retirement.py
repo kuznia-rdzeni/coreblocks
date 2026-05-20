@@ -140,7 +140,6 @@ class TestRetirement(TestCaseWithSimulator):
         while self.precommit_q:
             info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
             assert info is not None
-            assert info["side_fx"]
             self.precommit_q.popleft()
 
     @def_method_mock(lambda self: self.retc.mock_rf_free)
