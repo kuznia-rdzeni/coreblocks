@@ -17,6 +17,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
+    CoreStateKey,
     UnsafeInstructionResolvedKey,
     CSRInstancesKey,
     InstructionPrecommitKey,
@@ -146,13 +147,10 @@ class CSRUnit(FuncBlock, Elaboratable):
             with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
                 m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_CLEAR)
 
-        exe_side_fx = Signal()
-
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, ready=(ready_to_process & ~done)):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, instr.rob_id)
-            m.d.top_comb += exe_side_fx.eq(info.side_fx)
+            precommit(m, instr.rob_id)
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
@@ -190,9 +188,6 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += done.eq(1)
 
-        with Transaction().body(m, ready=(ready_to_process & ~exe_side_fx)):
-            m.d.sync += done.eq(1)
-
         @def_method(m, self.select, ~reserved)
         def _():
             m.d.sync += reserved.eq(1)
@@ -213,7 +208,10 @@ class CSRUnit(FuncBlock, Elaboratable):
                 m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        @def_method(m, self.get_result, done)
+        with Transaction().body(m):
+            core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
+
+        @def_method(m, self.get_result, done | (ready_to_process & core_state.flushing))
         def _():
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
@@ -256,7 +254,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += exception.eq(0)
 
-            with m.If(exe_side_fx & ~exception & ~interrupt):
+            with m.If(~core_state.flushing & ~exception & ~interrupt):
                 # CSR instructions are never compressed, PC+4 is always next instruction
                 resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 

@@ -1,6 +1,10 @@
     li x15, 5 # this many instructions will raise an exception
     la x6, exception_handler
     csrw mtvec, x6 # set-up handler
+    # perform a forward jump to trigger flushing
+    j next
+    nop
+next:
     # test read-only CSRs
     csrw mvendorid, 1
     csrw marchid, 1
