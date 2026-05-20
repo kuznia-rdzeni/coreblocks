@@ -2,7 +2,8 @@
     la x6, exception_handler
     csrw mtvec, x6 # set-up handler
     # perform a forward jump to trigger flushing
-    j next
+    mv x7, x6
+    beq x6, x7, next
     nop
 next:
     # test read-only CSRs
