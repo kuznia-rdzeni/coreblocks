@@ -152,7 +152,8 @@ class PlicPeriph(Component, SocksPeripheral):
         with m.If(claim_complete_for_context.claim & ~claim_response.set):
             claimed_interrupt = Signal(range(self.interrupt_count))
             context_interrupts = per_context_selected_priority_pendings[claim_complete_for_context.context]
-            m.d.comb += claimed_interrupt.eq(count_trailing_zeros(context_interrupts | 1))
+            with m.If(context_interrupts.any()):
+                m.d.comb += claimed_interrupt.eq(count_trailing_zeros(context_interrupts))
 
             m.d.sync += [
                 claim_response.value.eq(claimed_interrupt),
@@ -164,8 +165,9 @@ class PlicPeriph(Component, SocksPeripheral):
             m.d.comb += self.bus.err.eq(0)
 
         with m.If(claim_complete_for_context.complete):
+            wants_claim = Signal(self.interrupt_count)
+            m.d.comb += wants_claim.bit_select(claim_complete_for_context.complete_interrupt, 1).eq(1)
             # ignore completion for disabled interrupts in current context
-            wants_claim = 1 << claim_complete_for_context.complete_interrupt
             m.d.comb += processing_to_disable.eq(wants_claim & enable[claim_complete_for_context.context])
             m.d.comb += self.bus.ack.eq(1)
             m.d.comb += self.bus.err.eq(0)
