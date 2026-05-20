@@ -1,5 +1,7 @@
-from amaranth import *
+from collections.abc import Callable
 from typing import Optional
+from amaranth import *
+from amaranth_types import ValueLike
 
 from transactron.core import Method, TModule
 from transactron.utils import get_src_loc
@@ -27,7 +29,7 @@ class DoubleShadowCSR(Elaboratable):
         high_addr: Optional[CSRAddress] = None,
         shadow_low_addr: Optional[CSRAddress] = None,
         shadow_high_addr: Optional[CSRAddress] = None,
-        shadow_access_filter=None,
+        shadow_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
     ):
         """
         Parameters
@@ -45,6 +47,8 @@ class DoubleShadowCSR(Elaboratable):
             Address of the shadow CSR register for the higher part of the CSR. If provided, shadow CSR is
             synthetised with read-only access to the CSR value. If `shadow_low_addr` is provided,
             `shadow_high_addr` also should be provided.
+        shadow_access_filter: Callable, optional
+            Provides `access_filter` for additional shadow CSRs.
         """
         assert (low_addr is None) == (high_addr is None)
         assert (shadow_low_addr is None) == (shadow_high_addr is None)

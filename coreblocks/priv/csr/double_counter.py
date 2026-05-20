@@ -1,5 +1,7 @@
-from amaranth import *
+from collections.abc import Callable
 from typing import Optional
+from amaranth import *
+from amaranth_types import ValueLike
 
 from transactron.core import Method, TModule, def_method
 
@@ -27,7 +29,7 @@ class DoubleCounterCSR(Elaboratable):
         high_addr: Optional[CSRAddress] = None,
         shadow_low_addr: Optional[CSRAddress] = None,
         shadow_high_addr: Optional[CSRAddress] = None,
-        shadow_access_filter=None,
+        shadow_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
     ):
         """
         Parameters
@@ -45,6 +47,8 @@ class DoubleCounterCSR(Elaboratable):
             Address of the shadow CSR register for the higher part of the counter. If provided, shadow CSR is
             synthetised with read-only access to the counter value. If `shadow_low_addr` is provided,
             `shadow_high_addr` also should be provided.
+        shadow_access_filter: Callable, optional
+            Provides `access_filter` for additional shadow CSRs.
         """
         self.increment = Method()
         self.register = CSRRegister(None, gen_params, width=64)
