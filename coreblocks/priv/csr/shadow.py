@@ -33,13 +33,19 @@ class ShadowCSR(CSRRegisterBase):
         gen_params: GenParams,
         shadowed: CSRRegisterBase,
         *,
+        width: Optional[int] = None,
+        offset: Optional[int] = None,
         mask: Optional[ValueLike | Method] = None,
         read_mask: Optional[ValueLike | Method] = None,
         write_mask: Optional[ValueLike | Method] = None,
         access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
         src_loc: int | SrcLoc = 0,
     ):
-        super().__init__(gen_params, csr_number, width=shadowed.width, src_loc=get_src_loc(src_loc))
+        width = shadowed.width if width is None else width
+        self.offset = offset = 0 if offset is None else offset
+        assert self.offset < shadowed.width, "Offset larger than shadowed CSR width"
+        assert self.offset + width <= shadowed.width, "Shadowed wihdow outside of CSR"
+        super().__init__(gen_params, csr_number, width=width, src_loc=get_src_loc(src_loc))
 
         if mask is not None:
             assert (
@@ -78,16 +84,18 @@ class ShadowCSR(CSRRegisterBase):
 
         @def_method(m, self._fu_write)
         def _(data: Value, op_type: Value):
-            shadow_data = Signal.like(data)
+            shadow_data = Signal.like(self.shadowed.value)
             with m.If(op_type == CSRRegisterLayouts.WriteOpType.CSR_WRITE):
-                m.d.av_comb += shadow_data.eq((data & write_mask) | (self.shadowed.read(m).data & ~write_mask))
+                m.d.av_comb += shadow_data.eq(
+                    ((data & write_mask) << self.offset) | (self.shadowed.read(m).data & ~(write_mask << self.offset))
+                )
             with m.Else():
-                m.d.av_comb += shadow_data.eq(data & write_mask)
+                m.d.av_comb += shadow_data.eq((data & write_mask) << self.offset)
             return self.shadowed._fu_write(m, data=shadow_data, op_type=op_type)
 
         @def_method(m, self._fu_read)
         def _() -> Value:
-            return self.shadowed._fu_read(m).data & read_mask
+            return (self.shadowed._fu_read(m).data >> self.offset) & read_mask
 
         @def_method(m, self.write)
         def _(data: Value):
@@ -100,7 +108,7 @@ class ShadowCSR(CSRRegisterBase):
         def _():
             result = self.shadowed.read(m)
             return {
-                "data": result.data & read_mask,
+                "data": (result.data >> self.offset) & read_mask,
                 "read": result.read,
                 "written": result.written,
             }
@@ -109,7 +117,7 @@ class ShadowCSR(CSRRegisterBase):
         def _():
             result = self.shadowed.read_comb(m)
             return {
-                "data": result.data & read_mask,
+                "data": (result.data >> self.offset) & read_mask,
                 "read": result.read,
                 "written": result.written,
             }

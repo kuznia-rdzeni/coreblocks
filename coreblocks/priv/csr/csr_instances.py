@@ -106,9 +106,9 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mcycle = DoubleCounterCSR(
             gen_params,
             CSRAddress.MCYCLE,
-            CSRAddress.MCYCLEH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.MCYCLEH,
             CSRAddress.CYCLE,
-            CSRAddress.CYCLEH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.CYCLEH,
             shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.CY),
         )
 
