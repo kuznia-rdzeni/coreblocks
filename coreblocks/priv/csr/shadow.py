@@ -101,7 +101,7 @@ class ShadowCSR(CSRRegisterBase):
         def _(data: Value):
             self.shadowed.write(
                 m,
-                data=(data & write_mask) | (self.shadowed.read(m).data & ~write_mask),
+                data=((data & write_mask) << self.offset) | (self.shadowed.read(m).data & ~(write_mask << self.offset)),
             )
 
         @def_method(m, self.read, nonexclusive=True)
