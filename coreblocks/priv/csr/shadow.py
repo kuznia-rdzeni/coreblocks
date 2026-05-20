@@ -44,7 +44,7 @@ class ShadowCSR(CSRRegisterBase):
         width = shadowed.width if width is None else width
         self.offset = offset = 0 if offset is None else offset
         assert self.offset < shadowed.width, "Offset larger than shadowed CSR width"
-        assert self.offset + width <= shadowed.width, "Shadowed wihdow outside of CSR"
+        assert self.offset + width <= shadowed.width, "Shadowed window outside of CSR"
         super().__init__(gen_params, csr_number, width=width, src_loc=get_src_loc(src_loc))
 
         if mask is not None:
