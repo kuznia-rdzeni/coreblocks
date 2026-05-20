@@ -25,8 +25,8 @@ li x1, 0b10
 li x16, 0xe2002000
 sw x1, (x16)
 
-li x16, 0xe2200004 # claim reg ctx 0
-lw x1, (x16)
+li x16, 0xe2200000 # claim reg ctx 0
+lw x1, 0x4(x16)
 bne x1, x0, fail
 
 li x16, 0xe2001000 # plic pending reg

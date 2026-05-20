@@ -317,10 +317,10 @@ class WishboneMuxer(Component):
     wb_params: WishboneParameters
         Parameters for bus generation.
     ssel_tga: Signal
-        Nuber of slave devices is determied from `ssel_tga` bit width.
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid and held every time Wishbone
         STB is asserted.
+        Number of create slabve interfaces is determied from `ssel_tga` bit width.
         Note that if Pipelined Wishbone implementation is used, then before starting any new request with
         different `ssel_tga` value, all pending request have to be finished (and `stall` cleared). Holding new requests
         should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.

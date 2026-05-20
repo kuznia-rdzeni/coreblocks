@@ -3,6 +3,8 @@ from amaranth.lib.data import StructLayout
 from amaranth.lib.wiring import Component, In, Out
 
 from transactron.utils import assign
+from transactron.utils.logging import HardwareLogger
+from transactron.utils.amaranth_ext.functions import count_trailing_zeros
 
 from coreblocks.peripherals.wishbone import WishboneInterface, WishboneParameters
 from coreblocks.socks.peripheral import (
@@ -11,6 +13,10 @@ from coreblocks.socks.peripheral import (
     gen_memory_mapped_register,
     is_perpiheral_request,
 )
+
+__all__ = [
+    "PlicPeriph",
+]
 
 MIN_PRIORITY = 1
 
@@ -25,6 +31,8 @@ OFFSET_CONTEXT_REGS = 0x200000
 CONTEXT_REGS_SIZE = 0x001000
 OFFSET_CONTEXT_PRIORITY_TRESHOLD = 0x0
 OFFSET_CONTEXT_INTERRUPT_CLAIM = 0x4
+
+log = HardwareLogger("socks.plic")
 
 
 class PlicPeriph(Component, SocksPeripheral):
@@ -79,6 +87,8 @@ class PlicPeriph(Component, SocksPeripheral):
         m.d.sync += pending.eq((pending & ~pending_to_disable) | pending_to_enable)
         m.d.sync += processing.eq((processing & ~processing_to_disable) | pending_to_enable)
 
+        log.assertion(m, ~self.interrupts[0], "Reserved interrupt 0 tiggered")
+
         # Step 2: Set context EIPs if conditions match
 
         pending_per_priority = Array([Signal(self.interrupt_count) for _ in range(self.priority_count)])
@@ -110,7 +120,7 @@ class PlicPeriph(Component, SocksPeripheral):
                     "context": range(self.context_count),
                     "claim": 1,
                     "complete": 1,
-                    "complete_interrupt": range(self.interrupt_count),
+                    "complete_interrupt": self.bus.dat_w.shape().width,
                 }
             )
         )
@@ -128,9 +138,9 @@ class PlicPeriph(Component, SocksPeripheral):
                         "context": context,
                         "claim": ~self.bus.we,
                         "complete": self.bus.we,
+                        "complete_interrupt": self.bus.dat_w,
                     },
                 )
-                m.d.comb += claim_complete_for_context.complete_interrupt.eq(self.bus.dat_w)  # truncate
 
         # write registered value from previous cycle (cut comb paths on bus)
         with m.If(claim_response.set):
@@ -141,22 +151,22 @@ class PlicPeriph(Component, SocksPeripheral):
 
         with m.If(claim_complete_for_context.claim & ~claim_response.set):
             claimed_interrupt = Signal(range(self.interrupt_count))
-            for interrupt in reversed(range(self.interrupt_count)):
-                with m.If(per_context_selected_priority_pendings[claim_complete_for_context.context][interrupt]):
-                    m.d.comb += claimed_interrupt.eq(interrupt)
+            context_interrupts = per_context_selected_priority_pendings[claim_complete_for_context.context]
+            m.d.comb += claimed_interrupt.eq(count_trailing_zeros(context_interrupts | 1))
 
-            m.d.sync += [claim_response.value.eq(claimed_interrupt), claim_response.set.eq(1)]
-            with m.If(claimed_interrupt.any()):
-                m.d.comb += pending_to_disable.bit_select(claimed_interrupt, 1).eq(1)
+            m.d.sync += [
+                claim_response.value.eq(claimed_interrupt),
+                claim_response.set.eq(1),
+            ]
+            m.d.comb += pending_to_disable.bit_select(claimed_interrupt, 1).eq(1)
+
             m.d.comb += self.bus.ack.eq(0)
             m.d.comb += self.bus.err.eq(0)
 
         with m.If(claim_complete_for_context.complete):
             # ignore completion for disabled interrupts in current context
-            with m.If(
-                enable[claim_complete_for_context.context].bit_select(claim_complete_for_context.complete_interrupt, 1)
-            ):
-                m.d.comb += processing_to_disable.bit_select(claim_complete_for_context.complete_interrupt, 1).eq(1)
+            wants_claim = 1 << claim_complete_for_context.complete_interrupt
+            m.d.comb += processing_to_disable.eq(wants_claim & enable[claim_complete_for_context.context])
             m.d.comb += self.bus.ack.eq(1)
             m.d.comb += self.bus.err.eq(0)
 
