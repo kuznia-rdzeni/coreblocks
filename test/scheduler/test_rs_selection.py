@@ -130,9 +130,9 @@ class TestRSSelect(TestCaseWithSimulator):
 
         self.gen_instrs(100, _rs1_optypes.union(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            self.add_mock(sim, self.create_instr_input_process())
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
+            sim.add_mock(self.create_instr_input_process())
+            sim.add_mock(self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
+            sim.add_mock(self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs1(self):
@@ -143,8 +143,8 @@ class TestRSSelect(TestCaseWithSimulator):
 
         self.gen_instrs(100, _rs1_optypes.intersection(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            self.add_mock(sim, self.create_instr_input_process())
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
+            sim.add_mock(self.create_instr_input_process())
+            sim.add_mock(self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_only_rs2(self):
@@ -155,8 +155,8 @@ class TestRSSelect(TestCaseWithSimulator):
 
         self.gen_instrs(100, _rs1_optypes.intersection(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=1500) as sim:
-            self.add_mock(sim, self.create_instr_input_process())
-            self.add_mock(sim, self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
+            sim.add_mock(self.create_instr_input_process())
+            sim.add_mock(self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes))
             sim.add_testbench(self.create_output_process(100))
 
     def test_delays(self):
@@ -167,13 +167,11 @@ class TestRSSelect(TestCaseWithSimulator):
 
         self.gen_instrs(300, _rs1_optypes.union(_rs2_optypes))
         with self.run_simulation(self.m, max_cycles=5000) as sim:
-            self.add_mock(sim, self.create_instr_input_process(enable_prob=0.3))
-            self.add_mock(
-                sim,
+            sim.add_mock(self.create_instr_input_process(enable_prob=0.3))
+            sim.add_mock(
                 self.create_rs_alloc_process(self.m.rs_select[0], rs_id=0, rs_optypes=_rs1_optypes, enable_prob=0.1),
             )
-            self.add_mock(
-                sim,
+            sim.add_mock(
                 self.create_rs_alloc_process(self.m.rs_select[1], rs_id=1, rs_optypes=_rs2_optypes, enable_prob=0.1),
             )
             sim.add_testbench(self.create_output_process(300, random_wait=12))

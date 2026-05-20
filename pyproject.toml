@@ -21,7 +21,7 @@ dependencies = [
     "amaranth-stubs~=0.5.0.0",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron==0.7.0",
+    "transactron~=0.8.0",
 ]
 
 [project.urls]
