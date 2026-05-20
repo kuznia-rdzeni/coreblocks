@@ -25,7 +25,9 @@ from coreblocks.interface.keys import (
     CSRInstancesKey,
     InstructionPrecommitKey,
 )
-from coreblocks.priv.csr.csr_instances import CSRAddress, DoubleCounterCSR, counteren_access_filter
+from coreblocks.priv.csr.csr_instances import CSRAddress, counteren_access_filter
+from coreblocks.priv.csr.csr_register import CSRRegister
+from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
 from coreblocks.arch.isa_consts import TrapVectorMode
 
 
@@ -65,8 +67,11 @@ class Retirement(Elaboratable):
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
-        self.instret_csr = DoubleCounterCSR(
+        self._done_count = Signal(range(gen_params.retirement_superscalarity + 1))
+        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self._done_count)
+        self.instret_shadow = DoubleShadowCSR(
             gen_params,
+            self.instret_csr,
             CSRAddress.MINSTRET,
             CSRAddress.MINSTRETH,
             CSRAddress.INSTRET,
@@ -98,6 +103,7 @@ class Retirement(Elaboratable):
         m_csr = csr_instances.m_mode
         s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
         m.submodules.instret_csr = self.instret_csr
+        m.submodules.instret_shadow = self.instret_shadow
 
         def free_phys_reg(i: int, rp_dst: Value):
             # mark reg in Register File as free
@@ -113,7 +119,7 @@ class Retirement(Elaboratable):
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(0, rat_out.old_rp_dst)
 
-            self.instret_csr.increment(m)
+            self.instret_csr.write(m, data=self.instret_csr.read(m).data + 1)
             self.perf_instr_ret.incr(m)
 
         def flush_instr(i: int, rob_entry: View):
@@ -313,7 +319,8 @@ class Retirement(Elaboratable):
                 for i in range(self.gen_params.retirement_superscalarity + 1)
             ]
         )
-        m.d.top_comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + rob_entries.done_count)
+        m.d.comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + rob_entries.done_count)
+        m.d.comb += self._done_count.eq(rob_entries.done_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[rob_entries.done_count])
