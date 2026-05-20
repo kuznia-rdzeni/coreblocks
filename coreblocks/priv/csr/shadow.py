@@ -9,6 +9,7 @@ from transactron.core.sugar import def_method
 from transactron.core.tmodule import TModule
 from transactron.utils import get_src_loc, logging
 
+from coreblocks.interface.layouts import CSRRegisterLayouts
 from coreblocks.params.genparams import GenParams
 from coreblocks.priv.csr.csr_register import CSRRegisterBase
 
@@ -76,11 +77,13 @@ class ShadowCSR(CSRRegisterBase):
         m.d.comb += self.value.eq(self.shadowed.value & read_mask)
 
         @def_method(m, self._fu_write)
-        def _(data: Value):
-            return self.shadowed._fu_write(
-                m,
-                data=(data & write_mask) | (self.shadowed.read(m).data & ~write_mask),
-            )
+        def _(data: Value, op_type: Value):
+            shadow_data = Signal.like(data)
+            with m.If(op_type == CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                m.d.av_comb += shadow_data.eq((data & write_mask) | (self.shadowed.read(m).data & ~write_mask))
+            with m.Else():
+                m.d.av_comb += shadow_data.eq(data & write_mask)
+            return self.shadowed._fu_write(m, data=shadow_data, op_type=op_type)
 
         @def_method(m, self._fu_read)
         def _() -> Value:
