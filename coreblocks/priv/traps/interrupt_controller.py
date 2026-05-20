@@ -3,7 +3,7 @@ from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
 from coreblocks.arch.isa_consts import ExceptionCause
-from coreblocks.interface.layouts import InternalInterruptControllerLayouts
+from coreblocks.interface.layouts import CSRRegisterLayouts, InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.shadow import ShadowCSR
 from coreblocks.params.genparams import GenParams
@@ -19,6 +19,7 @@ from transactron.core import Method, TModule, def_method
 from transactron.core.transaction import Transaction
 from transactron.utils import logging
 from transactron.utils.dependencies import DependencyContext
+from transactron.lib.transformers import MethodMap
 
 log = logging.HardwareLogger("core.interrupt_controller")
 
@@ -68,6 +69,9 @@ class InternalInterruptController(Component):
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
 
+        self.level_interrupts = Signal(self.gen_params.isa.xlen)
+        self.new_edge_interrupts = Signal(self.gen_params.isa.xlen)
+
         self.m_mode_csr = m_mode_csr = self.dm.get_dependency(CSRInstancesKey()).m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
@@ -76,27 +80,87 @@ class InternalInterruptController(Component):
         self.mstatus_spie = m_mode_csr.mstatus_spie
         self.mstatus_spp = m_mode_csr.mstatus_spp
 
-        smode_interrupts = (
+        self.mie_writeable = (
+            (1 << InterruptCauseNumber.MSI)
+            | (1 << InterruptCauseNumber.MTI)
+            | (1 << InterruptCauseNumber.MEI)
+            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+        )
+
+        # mip_meip_rdonly
+        # mip_mtip_rdonly
+        # mip_msip_rdonly
+        self.mip_writeable = self.edge_reported_mask
+
+        if gen_params.supervisor_mode:
+            # mip_stip_no_stimecmp_acc
+            # mip_ssip_acc
+            # mip_seip_acc
+            self.mip_writeable |= (
+                (1 << InterruptCauseNumber.STI) | (1 << InterruptCauseNumber.SSI) | (1 << InterruptCauseNumber.SEI)
+            )
+
+        self.mideleg_writeable = (
             (1 << InterruptCauseNumber.SSI)
             | (1 << InterruptCauseNumber.STI)
             | (1 << InterruptCauseNumber.SEI)
             | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
         )
 
-        mie_writeable = (
-            (1 << InterruptCauseNumber.MSI)
-            | (1 << InterruptCauseNumber.MTI)
-            | (1 << InterruptCauseNumber.MEI)
-            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+        if gen_params.interrupt_all_interrupts_delegable:
+            self.mideleg_writeable |= self.mie_writeable
+
+        # sip_stip_acc
+        # sip_seip_acc
+        # sip_ssip_acc
+        self.sip_writeable = (self.mideleg_writeable & self.edge_reported_mask) | (1 << InterruptCauseNumber.SSI)
+
+        if gen_params.supervisor_mode:
+            self.mie_writeable |= self.mideleg_writeable
+
+        assert self.mip_writeable & ~self.mie_writeable == 0
+        assert self.sip_writeable & ~self.mideleg_writeable == 0
+
+        if gen_params.supervisor_mode:
+            assert self.sip_writeable & ~self.mip_writeable == 0
+
+        self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~self.mie_writeable)
+
+        def mip_readmap(m, arg):
+            out_data = Signal(self.gen_params.isa.xlen)
+            m.d.comb += out_data.eq(arg | self.level_interrupts)
+            return out_data
+
+        def mip_write_combine(m, data, op_type, read_val):
+            new_data = Signal(self.gen_params.isa.xlen)
+            # Only software bits participate in the write logic - use the value of the register for CSRRS/CSRRC
+            # rather than what happens normally - using the returned value to the software.
+            old_data = self.mip.read(m).data
+
+            with m.Switch(op_type):
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                    m.d.comb += new_data.eq(data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
+                    m.d.comb += new_data.eq(old_data | data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
+                    m.d.comb += new_data.eq(old_data & ~data)
+            return new_data
+
+        # NOTE: the mip register only holds bits that are set - either edge triggered or software bits
+        # if a bit is both software and level triggered (e.g. SEIP), the software will read it as an OR of the two,
+        # but the level value will not be participating in the CSRRS/CSRRC logic.
+        self.mip = CSRRegister(
+            CSRAddress.MIP,
+            gen_params,
+            fu_write_priority=False,
+            ro_bits=~self.mip_writeable,
+            fu_read_map=mip_readmap,
+            fu_write_combine=mip_write_combine,
         )
-        if gen_params.supervisor_mode:
-            mie_writeable |= smode_interrupts
-
-        self.mie = CSRRegister(CSRAddress.MIE, gen_params, ro_bits=~mie_writeable)
-        self.mip = CSRRegister(CSRAddress.MIP, gen_params, fu_write_priority=False, ro_bits=~self.edge_reported_mask)
+        self.mip_value = Signal(self.gen_params.isa.xlen)
 
         if gen_params.supervisor_mode:
-            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~smode_interrupts)
+            self.mideleg = CSRRegister(CSRAddress.MIDELEG, gen_params, ro_bits=~self.mideleg_writeable)
 
             smode_delegable = ExceptionCause.smode_delegable_mask(gen_params.isa.xlen)
 
@@ -106,7 +170,21 @@ class InternalInterruptController(Component):
                 self.medelegh = CSRRegister(CSRAddress.MEDELEGH, gen_params, ro_bits=~(smode_delegable >> 32))
 
             self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=self.mideleg.read)
-            self.sip = ShadowCSR(CSRAddress.SIP, gen_params, self.mip, mask=self.mideleg.read)
+
+            def sip_write_mask_transform(m, arg):
+                return {"data": arg.data & self.sip_writeable}
+
+            self.sip_write_mask = MethodMap.create(
+                self.mideleg.read,
+                o_transform=([("data", self.gen_params.isa.xlen)], sip_write_mask_transform),
+            )
+            self.sip = ShadowCSR(
+                CSRAddress.SIP,
+                gen_params,
+                self.mip,
+                read_mask=self.mideleg.read,
+                write_mask=self.sip_write_mask.method,
+            )
 
         self.interrupt_insert = Signal()
         self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
@@ -134,7 +212,7 @@ class InternalInterruptController(Component):
         m.submodules += [self.mie, self.mip]
 
         if self.gen_params.supervisor_mode:
-            m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg]
+            m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg, self.sip_write_mask]
             if self.medelegh is not None:
                 m.submodules += [self.medelegh]
 
@@ -147,6 +225,16 @@ class InternalInterruptController(Component):
         selected_pending = Signal(self.gen_params.isa.xlen)
         interrupt_pending = Signal()
 
+        all_interrupts = Cat(
+            self.internal_report_level,
+            self.custom_report,
+        )
+        for i in range(ISA_RESERVED_INTERRUPTS + self.gen_params.interrupt_custom_count):
+            if self.edge_reported_mask & (1 << i):
+                m.d.comb += self.new_edge_interrupts[i].eq(all_interrupts[i])
+            else:
+                m.d.comb += self.level_interrupts[i].eq(all_interrupts[i])
+
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
         with Transaction().body(m) as assign_trans:
@@ -156,7 +244,8 @@ class InternalInterruptController(Component):
 
             m.d.av_comb += [
                 mie.eq(self.mie.read(m).data),
-                mip.eq(self.mip.read(m).data),
+                mip.eq(self.mip.read(m).data | self.level_interrupts),
+                self.mip_value.eq(mip),
                 pending.eq(mie & mip),
                 interrupt_pending.eq(pending.any()),
             ]
@@ -195,27 +284,11 @@ class InternalInterruptController(Component):
         # WFI is independent of global mstatus.xIE and mideleg
         m.d.comb += self.wfi_resume.eq(interrupt_pending)
 
-        edge_report_interrupt = Signal(self.gen_params.isa.xlen)
-        level_report_interrupt = Signal(self.gen_params.isa.xlen)
-        m.d.comb += edge_report_interrupt.eq((self.custom_report << ISA_RESERVED_INTERRUPTS) & self.edge_reported_mask)
-        m.d.comb += level_report_interrupt.eq(
-            ((self.custom_report << ISA_RESERVED_INTERRUPTS) & ~self.edge_reported_mask) | self.internal_report_level
-        )
-
         with Transaction().body(m) as mip_trans:
-            # 1. Get MIP CSR write from instruction or previous value
             mip_value = self.mip.read_comb(m).data
-
-            # 2. Apply new egde interrupts (after the FU read-modify-write cycle)
-            # This is not standardised by the spec, but makes sense to enforce independent
-            # order and don't miss interrupts that happen in the cycle of FU write
-            mip_value |= edge_report_interrupt
-
-            # 3. Mask with FU read-only level reported interrupts
-            mip_value &= self.edge_reported_mask
-            mip_value |= level_report_interrupt & ~self.edge_reported_mask
-
-            self.mip.write(m, {"data": mip_value})
+            new_data = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
+            self.mip.write(m, {"data": new_data})
         log.error(m, ~mip_trans.run, "assert transaction running failed")
 
         @def_method(m, self.mret)

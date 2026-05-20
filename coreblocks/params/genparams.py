@@ -120,6 +120,7 @@ class GenParams(DependentCache):
 
         self.interrupt_custom_count = cfg.interrupt_custom_count
         self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask
+        self.interrupt_all_interrupts_delegable = cfg.interrupt_all_interrupts_delegable
 
         self.user_mode = cfg.user_mode
         self.supervisor_mode = cfg.supervisor_mode
