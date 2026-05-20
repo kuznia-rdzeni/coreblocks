@@ -86,7 +86,7 @@ class Retirement(Elaboratable):
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        self.precommit = Method(i=layouts.precommit_in, o=layouts.precommit_out)
+        self.precommit = Method(i=layouts.precommit_in)
         self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
 
     def elaborate(self, platform):
@@ -98,8 +98,6 @@ class Retirement(Elaboratable):
         m_csr = csr_instances.m_mode
         s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
         m.submodules.instret_csr = self.instret_csr
-
-        side_fx = Signal(init=1)
 
         def free_phys_reg(i: int, rp_dst: Value):
             # mark reg in Register File as free
@@ -318,7 +316,6 @@ class Retirement(Elaboratable):
         m.d.top_comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + rob_entries.done_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += side_fx.eq(~fsm.ongoing("TRAP_FLUSH"))
         m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[rob_entries.done_count])
 
         # The argument is only used in argument validation, it is not needed in the method body.
@@ -332,6 +329,6 @@ class Retirement(Elaboratable):
             combiner=lambda m, args, runs: 0,
         )
         def _(rob_id):
-            return {"side_fx": side_fx}
+            return
 
         return m
