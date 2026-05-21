@@ -24,6 +24,7 @@ from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUComponent
 from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.csr.csr_unit import CSRBlockComponent
 from coreblocks.arch.isa_consts import SatpMode
+from coreblocks.params.vmem_params import TLBCacheConfiguration
 
 __all__ = [
     "CoreConfiguration",
@@ -106,6 +107,8 @@ class _CoreConfigurationDataClass:
         Bit mask specifying if interrupt should be edge or level triggered. If nth bit is set to 1, interrupt
         with id 16+n will be considered as edge triggered and clearable via `mip`. In other case bit `mip` is
         read-only and directly connected to input signal (implementation must provide clearing method)
+    interrupt_all_interrupts_delegable: bool
+        Allow delegation of M-mode interrupts to S-mode.
     user_mode: bool
         Enable User Mode.
     supervisor_mode: bool
@@ -119,6 +122,9 @@ class _CoreConfigurationDataClass:
         SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
+    tlb_config: TLBCacheConfiguration
+        Grouped TLB configuration for L1I TLB, L1D TLB, and shared L2 TLB - only applicable when SV* modes
+        are supported.
     pmp_register_count: int
         Number of Physical Memory Protection CSR entries. Valid values are: 0, 16, and 64.
     pmp_grain_log: int
@@ -179,6 +185,7 @@ class _CoreConfigurationDataClass:
 
     interrupt_custom_count: int = 16
     interrupt_custom_edge_trig_mask: int = 0
+    interrupt_all_interrupts_delegable: bool = False
 
     user_mode: bool = True
     supervisor_mode: bool = True
@@ -187,6 +194,8 @@ class _CoreConfigurationDataClass:
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
     phys_addr_bits: int | None = None
     hpm_counters_count: int = 0
+
+    tlb_config: TLBCacheConfiguration = TLBCacheConfiguration()
 
     pmp_register_count: int = 0
     pmp_grain_log: int = 5

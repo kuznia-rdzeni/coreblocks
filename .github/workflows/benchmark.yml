@@ -126,7 +126,7 @@ jobs:
       - name: Generate Verilog
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 ./scripts/gen_verilog.py --verbose --config full
+          PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 python3 -m coreblocks.gen_verilog --verbose --config full
 
       - uses: actions/download-artifact@v8
         with:

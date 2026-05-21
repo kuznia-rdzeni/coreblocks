@@ -21,7 +21,7 @@ dependencies = [
     "amaranth-stubs~=0.5.0.0",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron==0.7.0",
+    "transactron~=0.8.0",
 ]
 
 [project.urls]
@@ -58,6 +58,9 @@ dev = [
     "tabulate==0.9.0",
     "filelock==3.13.1",
 ]
+
+[project.scripts]
+coreblocks = "coreblocks.gen_verilog:main"
 
 [tool.setuptools.packages.find]
 include = ["coreblocks*"]

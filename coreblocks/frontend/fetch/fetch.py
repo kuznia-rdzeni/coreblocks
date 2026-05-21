@@ -152,7 +152,7 @@ class FetchUnit(Elaboratable):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
 
-            addr_translator.request(m, addr=pc)
+            addr_translator.request(m, addr=pc, is_store=0)
 
         with Transaction().body(m):
             translated = addr_translator.accept(m)

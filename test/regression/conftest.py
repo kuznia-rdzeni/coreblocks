@@ -20,9 +20,12 @@ def load_regression_tests() -> list[str]:
             print("Couldn't build regression tests")
         all_tests = set(get_all_test_names())
 
-    exclude = {"rv32ui-ma_data", "rv32ua-lrsc"}
+    exclude = {"rv32ui-ma_data", "rv32ua-lrsc", "rv32mi-breakpoint", "rv32si-dirty", "rv32mi-instret_overflow"}
     # rv32ui-ma_data - misaligned data access in unsupported (this is implementation defined - compatible with spec)
     # rv32ua-lrsc - does 1024 loads in test - too much cycles for current infrastructure
+    # rv32mi-breakpoint requires debug spec
+    # rv32si-dirty requires MMU
+    # rv32mi-instret_overflow until #937 is solved
 
     return sorted(list(all_tests - exclude))
 

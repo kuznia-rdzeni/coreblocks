@@ -7,7 +7,6 @@ from transactron import Method, Methods, def_method, def_methods, Transaction, T
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
-from transactron.lib.simultaneous import condition
 
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
@@ -15,7 +14,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     CSRListKey,
     UnsafeInstructionResolvedKey,
@@ -138,6 +137,15 @@ class CSRUnit(FuncBlock, Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
+        write_type = Signal(CSRRegisterLayouts.WriteOpType)
+        with m.Switch(instr.exec_fn.funct3):
+            with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_WRITE)
+            with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_SET)
+            with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_CLEAR)
+
         exe_side_fx = Signal()
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
@@ -148,23 +156,21 @@ class CSRUnit(FuncBlock, Elaboratable):
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
-            # Use condition() as a workaround for kuznia-rdzeni/transactron#10, as _fu_(read|write) methods
-            # are called multiple times, as some CSRs are aliased call other CSR's _fu_* methods.
-            with condition(m) as branch:
+            with m.Switch(instr.csr):
                 for csr_number, csr in self.regfile.items():
                     priv_level_required, read_only = self._csr_access_privilege(csr_number)
 
-                    with branch(instr.csr == csr_number):
+                    with m.Case(csr_number):
                         priv_valid = Signal()
                         csr_access_valid = csr._fu_access_valid(m, current_priv_mode).valid
 
-                        m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
+                        m.d.av_comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
                         with m.If(priv_valid & csr_access_valid):
                             read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
                                 with m.If(exe_side_fx):
-                                    m.d.comb += read_val.eq(csr._fu_read(m))
+                                    m.d.av_comb += read_val.eq(csr._fu_read(m))
                                 m.d.sync += current_result.eq(read_val)
 
                             if read_only:
@@ -173,22 +179,14 @@ class CSRUnit(FuncBlock, Elaboratable):
                                     m.d.sync += exception.eq(1)
                             else:
                                 with m.If(should_write_csr & ~done):
-                                    write_val = Signal(self.gen_params.isa.xlen)
-                                    with m.Switch(instr.exec_fn.funct3):
-                                        with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
-                                            m.d.comb += write_val.eq(instr.s1_val)
-                                        with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
-                                            m.d.comb += write_val.eq(read_val | instr.s1_val)
-                                        with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
-                                            m.d.comb += write_val.eq(read_val & (~instr.s1_val))
                                     with m.If(exe_side_fx):
-                                        csr._fu_write(m, write_val)
+                                        csr._fu_write(m, data=instr.s1_val, op_type=write_type)
 
                         with m.Else():
                             # Missing privilege
                             m.d.sync += exception.eq(1)
 
-                with branch():
+                with m.Default():
                     # Invalid CSR number
                     m.d.sync += exception.eq(1)
 

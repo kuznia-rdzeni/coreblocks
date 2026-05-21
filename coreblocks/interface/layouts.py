@@ -1,6 +1,6 @@
 from amaranth import signed
 from amaranth.lib.data import ArrayLayout
-from amaranth.lib.enum import IntFlag, auto
+from amaranth.lib.enum import IntFlag, IntEnum, auto
 from coreblocks.params import GenParams
 from coreblocks.arch import *
 from transactron.utils import LayoutList, LayoutListField, layout_subset
@@ -169,16 +169,54 @@ class CommonLayoutFields:
 class AddressTranslationLayouts:
     """Layouts used by virtual-to-physical address translation methods."""
 
+    class TLBResult(IntEnum, shape=2):
+        HIT = auto()
+        PAGE_FAULT = auto()
+        ACCESS_FAULT = auto()
+
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.request = make_layout(fields.addr)
+        self.ppn = ("ppn", gen_params.phys_addr_bits - PAGE_SIZE_LOG)
+        self.vpn = ("vpn", gen_params.vmem_params.max_tlb_vpn_bits)
+        self.asid = ("asid", gen_params.vmem_params.asidlen)
+        self.permissions = make_layout(
+            ("r", 1),
+            ("w", 1),
+            ("x", 1),
+            ("u", 1),
+            ("d", 1),
+            ("g", 1),
+        )
+        self.size_class = ("size_class", gen_params.vmem_params.tlb_size_class_bits)
 
+        self.request = make_layout(
+            fields.addr,
+            ("is_store", 1),
+        )
         self.accept = make_layout(
             fields.vaddr,
             fields.paddr,
             ("page_fault", 1),
             ("access_fault", 1),
+        )
+
+        self.tlb_request = make_layout(
+            self.vpn,
+            ("is_store", 1),
+        )
+        self.tlb_accept = make_layout(
+            ("result", self.TLBResult),
+            self.ppn,
+            ("permissions", self.permissions),
+            self.size_class,
+        )
+
+        self.sfence_vma = make_layout(
+            fields.vaddr,
+            self.asid,
+            ("all_vaddrs", 1),
+            ("all_asids", 1),
         )
 
 
@@ -760,6 +798,11 @@ class LSULayouts:
 class CSRRegisterLayouts:
     """Layouts used in the control and status registers."""
 
+    class WriteOpType(IntEnum):
+        CSR_WRITE = auto()
+        CSR_SET = auto()
+        CSR_CLEAR = auto()
+
     def __init__(self, gen_params: GenParams, *, data_width: int):
         self.data: LayoutListField = ("data", data_width)
 
@@ -772,7 +815,7 @@ class CSRRegisterLayouts:
         self.write = make_layout(self.data)
 
         self.fu_read = make_layout(self.data)
-        self.fu_write = make_layout(self.data)
+        self.fu_write = make_layout(self.data, ("op_type", CSRRegisterLayouts.WriteOpType))
         self.fu_access_valid_i = make_layout(("priv_mode", PrivilegeLevel))
         self.fu_access_valid_o = make_layout(("valid", 1))
 
