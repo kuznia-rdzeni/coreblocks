@@ -22,7 +22,7 @@ log = logging.HardwareLogger("priv.csr.shadow")
 class ShadowCSR(CSRRegisterBase):
     """CSR shadow register.
 
-    Exposes an instruction-visible CSR number that reads/writes another CSR.
+    Creates a CSR which is backed by another CSR - reads and writes are forwarded to it.
     Optional bit masks can restrict visible read bits and writable bits for both instruction-visible access and
     internal CSR logic.
     """
@@ -41,10 +41,22 @@ class ShadowCSR(CSRRegisterBase):
         access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
         src_loc: int | SrcLoc = 0,
     ):
-        width = shadowed.width if width is None else width
         self.offset = offset = 0 if offset is None else offset
-        assert self.offset < shadowed.width, "Offset larger than shadowed CSR width"
-        assert self.offset + width <= shadowed.width, "Shadowed window outside of CSR"
+
+        if width is None:
+            if csr_number is not None:
+                width = gen_params.isa.xlen
+            elif self.offset == 0:
+                width = shadowed.width
+            else:
+                raise ValueError("width must be specified for non-public shadow CSR with offset")
+
+        if self.offset < 0 or self.offset >= shadowed.width:
+            raise ValueError(f"Invalid offset value {self.offset}")
+
+        if width < 0 or self.offset + width > shadowed.width:
+            raise ValueError(f"Invalid width value {self.value}")
+
         super().__init__(gen_params, csr_number, width=width, src_loc=get_src_loc(src_loc))
 
         if mask is not None:
