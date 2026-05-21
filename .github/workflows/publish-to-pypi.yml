@@ -1,0 +1,111 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - 'v**'
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+        persist-credentials: false
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+    - name: Omit local version for Test PyPI upload
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      run: echo SETUPTOOLS_SCM_OVERRIDES_FOR_COREBLOCKS='{local_scheme="no-local-version"}' >> $GITHUB_ENV
+    - name: Install pypa/build
+      run: python3 -m pip install build --user
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    if: ${{ github.repository == 'kuznia-rdzeni/coreblocks' && github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') && !contains(github.event.ref, 'dev') }}
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/coreblocks
+    permissions:
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-testpypi:
+    name: Publish to TestPyPI
+    if: ${{ github.repository == 'kuznia-rdzeni/coreblocks' && github.event_name == 'push' && github.event.ref == 'refs/heads/master' }}
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/coreblocks
+    permissions:
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
+        repository-url: https://test.pypi.org/legacy/
+
+  github-release:
+    name: Github Release
+    needs:
+    - publish-to-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Determine release metadata
+      id: metadata
+      env:
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        echo name=${REF_NAME/v/} >>$GITHUB_OUTPUT
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes ""
+    - name: Upload to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run:
+        gh release upload "$GITHUB_REF_NAME" dist/** --repo "$GITHUB_REPOSITORY"
+
