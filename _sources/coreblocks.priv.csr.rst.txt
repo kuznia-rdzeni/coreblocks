@@ -36,6 +36,14 @@ coreblocks.priv.csr.double\_counter module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.priv.csr.double\_shadow module
+-----------------------------------------
+
+.. automodule:: coreblocks.priv.csr.double_shadow
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 coreblocks.priv.csr.shadow module
 ---------------------------------
 
