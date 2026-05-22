@@ -165,10 +165,8 @@ class CSRUnit(FuncBlock, Elaboratable):
                         m.d.av_comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
                         with m.If(priv_valid & csr_access_valid):
-                            read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
-                                m.d.av_comb += read_val.eq(csr._fu_read(m))
-                                m.d.sync += current_result.eq(read_val)
+                                m.d.sync += current_result.eq(csr._fu_read(m))
 
                             if read_only:
                                 with m.If(should_write_csr):
