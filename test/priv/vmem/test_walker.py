@@ -307,6 +307,6 @@ class TestPageTableWalker(TestCaseWithSimulator):
 
     def test_random_translations(self):
         with self.run_simulation(self.m) as sim:
-            self.add_mock(sim, self.bus_read_req_proc())  # type: ignore
-            self.add_mock(sim, self.bus_read_resp_proc())  # type: ignore
+            sim.add_mock(self.bus_read_req_proc())
+            sim.add_mock(self.bus_read_resp_proc())
             sim.add_testbench(self.random_translations_process)
