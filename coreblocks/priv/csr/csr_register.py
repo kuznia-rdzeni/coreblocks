@@ -56,7 +56,7 @@ class CSRRegisterBase(ABC, Elaboratable):
             Address of this CSR Register.
             If `None` is given, CSR is virtual - not registerable to `CSRUnit`.
             Otherwise it's registered under provided address to `CSRUnit` using `CSRListKey`.
-        width: Optional[int]
+        width: int
             Bit width of CSR register.
         src_loc: SrcLoc
             CSR location in source code for error reporting.
