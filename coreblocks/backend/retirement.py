@@ -68,9 +68,9 @@ class Retirement(Elaboratable):
         self.instret_csr = DoubleCounterCSR(
             gen_params,
             CSRAddress.MINSTRET,
-            CSRAddress.MINSTRETH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.MINSTRETH,
             CSRAddress.INSTRET,
-            CSRAddress.INSTRETH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.INSTRETH,
             shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.IR),
         )
         self.perf_instr_ret = HwCounter("backend.retirement.retired_instr", "Number of retired instructions")

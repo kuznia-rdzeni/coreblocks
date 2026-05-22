@@ -1,3 +1,4 @@
+from amaranth import Elaboratable
 from coreblocks.peripherals.axi_lite import *
 from transactron import Method, def_method, TModule
 from transactron.lib import AdapterTrans

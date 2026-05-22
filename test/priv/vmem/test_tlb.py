@@ -444,15 +444,15 @@ class TestTLBCache(TestCaseWithSimulator):
     def test_translation_is_cached(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            self.add_mock(sim, self.backing.process_request())  # type: ignore
-            self.add_mock(sim, self.backing.process_accept())  # type: ignore
+            sim.add_mock(self.backing.process_request())
+            sim.add_mock(self.backing.process_accept())
             sim.add_testbench(self.translation_is_cached_process)
 
     def test_randomized(self):
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            self.add_mock(sim, self.backing.process_request())  # type: ignore
-            self.add_mock(sim, self.backing.process_accept())  # type: ignore
+            sim.add_mock(self.backing.process_request())
+            sim.add_mock(self.backing.process_accept())
             sim.add_testbench(self.randomized_process)
 
     def test_single_cycle_hit(self):
@@ -460,6 +460,6 @@ class TestTLBCache(TestCaseWithSimulator):
             pytest.skip("Single-cycle hit test is only valid for fully associative TLBs")
         with self.run_simulation(self.m) as sim:
             sim.add_process(self.backing.asid_get)
-            self.add_mock(sim, self.backing.process_request())  # type: ignore
-            self.add_mock(sim, self.backing.process_accept())  # type: ignore
+            sim.add_mock(self.backing.process_request())
+            sim.add_mock(self.backing.process_accept())
             sim.add_testbench(self.single_cycle_process)

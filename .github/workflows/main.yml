@@ -293,7 +293,7 @@ jobs:
       - name: Run tests
         run: |
           . venv/bin/activate
-          scripts/run_tests.py -a regression
+          scripts/run_tests.py -a regression -v
 
       - name: Check regression with pysim
         run: |

@@ -110,7 +110,7 @@ class SchedulerTestCircuit(Elaboratable):
             self.scheduler.rs_insert[i].provide(rs_insert.adapter.iface)
 
         rollback, rollback_unifiers = dm.get_dependency(RollbackKey())
-        m.submodules.rollback_unifiers = ModuleConnector(**rollback_unifiers)
+        m.submodules.rollback_unifiers = ModuleConnector(*rollback_unifiers)
         m.submodules.rollback = self.rollback = TestbenchIO(AdapterTrans.create(rollback))
 
         return m
@@ -398,7 +398,7 @@ class TestScheduler(TestCaseWithSimulator):
                 sim.add_testbench(
                     self.make_output_process(io=self.m.rs_insert[i], output_queues=[self.expected_rs_entry_queue[i]])
                 )
-                self.add_mock(sim, rs_alloc_process(self.m.rs_alloc[i], i))
+                sim.add_mock(rs_alloc_process(self.m.rs_alloc[i], i))
             sim.add_testbench(self.make_queue_process(io=self.m.rob_done, input_queues=[self.free_ROB_entries_queue]))
             sim.add_testbench(self.make_queue_process(io=self.m.free_rf_inp, input_queues=[self.free_regs_queue]))
             sim.add_testbench(instr_input_process)

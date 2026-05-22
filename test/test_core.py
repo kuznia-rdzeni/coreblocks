@@ -288,12 +288,12 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             early_interrupt = random.random() < 0.4
             if early_interrupt:
                 # wait until interrupts are cleared, so it won't be missed
-                await sim.tick().until(self.m.core.interrupt_controller.mip.value == 0)
+                await sim.tick().until(self.m.core.interrupt_controller.mip_value == 0)
                 assert self.get_arch_reg_val(sim, 30) == int_count
 
                 int_count += await do_interrupt()
             else:
-                await sim.tick().until(self.m.core.interrupt_controller.mip.value == 0)
+                await sim.tick().until(self.m.core.interrupt_controller.mip_value == 0)
                 assert self.get_arch_reg_val(sim, 30) == int_count
 
             handler_count += 1
