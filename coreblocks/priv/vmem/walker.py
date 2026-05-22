@@ -137,10 +137,10 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
         pte_bytes = pte_layout.as_shape().width // 8
 
         assert (pte_bytes << bits_per_level) == PAGE_SIZE
-        assert pte_layout.as_shape().width == self.gen_params.isa.xlen
+        assert pte_layout.as_shape().width == self.bus.params.data_width
         offset_bits = exact_log2(pte_bytes)
 
-        max_levels = max(SatpMode.level_count(mode) for mode in self.gen_params.vmem_params.supported_non_bare_schemes)
+        max_levels = max(mode.level_count() for mode in self.gen_params.vmem_params.supported_non_bare_schemes)
 
         walk_level = Signal(range(max_levels))
         walk_vpn = Signal(self.gen_params.vmem_params.max_tlb_vpn_bits)
@@ -233,7 +233,7 @@ class PageTableWalker(TLBBackingDevice, Elaboratable):
             with m.Switch(csr.s_mode.satp_mode):
                 for mode in self.gen_params.vmem_params.supported_non_bare_schemes:
                     with m.Case(mode):
-                        m.d.sync += walk_level.eq(SatpMode.level_count(mode) - 1)
+                        m.d.sync += walk_level.eq(mode.level_count() - 1)
                 with m.Default():
                     log.error(m, 1, "Unsupported SATP mode in page table walker")
                     m.d.sync += walk_level.eq(0)
