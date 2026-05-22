@@ -155,7 +155,10 @@ class Retirement(Elaboratable):
             m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
             m.d.av_comb += retire_count.eq(count_trailing_zeros(safe_mask))
 
-            m.d.av_comb += no_trap_count.eq(count_trailing_zeros(Cat(entry.exception for entry in rob_entries.entries)))
+            m.d.av_comb += no_trap_count.eq(
+                count_trailing_zeros(Cat(entry.exception for entry in rob_entries.entries))
+                | (-1 << rob_entries.done_count)
+            )
             m.d.av_comb += exception.eq(no_trap_count < retire_count)
 
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
@@ -318,11 +321,17 @@ class Retirement(Elaboratable):
 
         # Run precommit on first not-done instr, if exception not encountered
         precommit_rob_id = Signal(self.gen_params.rob_entries_bits)
+        exc_prefixes = Array(
+            [
+                Cat(rob_entries.entries[j].exception for j in range(i)).any()
+                for i in range(self.gen_params.retirement_superscalarity + 1)
+            ]
+        )
         m.d.comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + rob_entries.done_count)
         m.d.comb += self._done_count.eq(rob_entries.done_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exception)
+        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[rob_entries.done_count])
 
         # The argument is only used in argument validation, it is not needed in the method body.
         # A dummy combiner is provided.
