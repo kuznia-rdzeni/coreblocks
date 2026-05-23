@@ -28,6 +28,14 @@ coreblocks.priv.vmem.translation module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.priv.vmem.walker module
+----------------------------------
+
+.. automodule:: coreblocks.priv.vmem.walker
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 
