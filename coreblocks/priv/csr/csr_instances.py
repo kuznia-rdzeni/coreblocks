@@ -198,14 +198,14 @@ class MachineModeCSRRegisters(Elaboratable):
             is_implemented = i < gen_params.hpm_counters_count + 3
             counter = DoubleCounterCSR(
                 gen_params,
-                low_addr=getattr(CSRAddress, f"MHPMCOUNTER{i}"),
-                high_addr=getattr(CSRAddress, f"MHPMCOUNTER{i}H"),
-                shadow_low_addr=getattr(CSRAddress, f"HPMCOUNTER{i}"),
-                shadow_high_addr=getattr(CSRAddress, f"HPMCOUNTER{i}H"),
+                low_addr=CSRAddress[f"MHPMCOUNTER{i}"],
+                high_addr=CSRAddress[f"MHPMCOUNTER{i}H"],
+                shadow_low_addr=CSRAddress[f"HPMCOUNTER{i}"],
+                shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"],
                 shadow_access_filter=counteren_access_filter(gen_params, i),
                 read_only_zero=not is_implemented,
             )
-            event = CSRRegister(getattr(CSRAddress, f"MHPMEVENT{i}"), gen_params, ro_bits=0 if is_implemented else ~0)
+            event = CSRRegister(CSRAddress[f"MHPMEVENT{i}"], gen_params, ro_bits=0 if is_implemented else ~0)
             setattr(self, f"mhpmevent{i}", event)
             setattr(self, f"mhpmcounter{i}", counter)
 
