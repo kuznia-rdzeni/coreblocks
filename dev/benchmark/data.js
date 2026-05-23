@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779360512479,
+  "lastUpdate": 1779573933279,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -22613,6 +22613,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/752962e743f22a27fbd2f01e0e6956a116e4ffe8"
         },
         "date": 1779360497386,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4310548345625105,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5544192447280725,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3821075915511284,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6529039609007227,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3609059761135394,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30483586342368985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3308119011598588,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.44964532430803467,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4ffec07b983b9629c5d32f2727997db20ff319d1",
+          "message": "[MMU 3/3] Implement page table walker (#948)",
+          "timestamp": "2026-05-23T23:33:25+02:00",
+          "tree_id": "1e85fc051e924c52076e2c997eb201fd88931e05",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4ffec07b983b9629c5d32f2727997db20ff319d1"
+        },
+        "date": 1779573923405,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
