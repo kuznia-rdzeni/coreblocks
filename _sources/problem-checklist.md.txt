@@ -8,6 +8,8 @@ If something doesn't work and you're puzzled as to why - go through this checkli
 
 3. Make sure all Amaranth statements are added to some domain.
 
-4. Check if your code doesn't have any combinational loops - especially if your simulation hangs.
+4. Check if your code doesn't have any combinational loops - especially if your simulation hangs. Tracing with Verilator may help in complex cases.
+
+5. Make sure you are not copying Signal object instances instead of creating new ones - easy to make mistake: `[Signal(...)] * 42` should be `[Signal(...) for _ in range(42)]`.
 
 Please extend this list if you spot yourself doing an easy-to-fix mistake.

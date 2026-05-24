@@ -89,7 +89,8 @@
 <li><p>Make sure that you use <code class="docutils literal notranslate"><span class="pre">await</span></code> when calling async functions in tests - e.g. <code class="docutils literal notranslate"><span class="pre">TestbenchIO</span></code> functions.</p></li>
 <li><p>Make sure you don’t do <code class="docutils literal notranslate"><span class="pre">.eq</span></code> on two structures with different layouts. Use <code class="docutils literal notranslate"><span class="pre">assign</span></code> from <code class="docutils literal notranslate"><span class="pre">transactron.utils</span></code> instead.</p></li>
 <li><p>Make sure all Amaranth statements are added to some domain.</p></li>
-<li><p>Check if your code doesn’t have any combinational loops - especially if your simulation hangs.</p></li>
+<li><p>Check if your code doesn’t have any combinational loops - especially if your simulation hangs. Tracing with Verilator may help in complex cases.</p></li>
+<li><p>Make sure you are not copying Signal object instances instead of creating new ones - easy to make mistake: <code class="docutils literal notranslate"><span class="pre">[Signal(...)]</span> <span class="pre">*</span> <span class="pre">42</span></code> should be <code class="docutils literal notranslate"><span class="pre">[Signal(...)</span> <span class="pre">for</span> <span class="pre">_</span> <span class="pre">in</span> <span class="pre">range(42)]</span></code>.</p></li>
 </ol>
 <p>Please extend this list if you spot yourself doing an easy-to-fix mistake.</p>
 </section>
@@ -106,7 +107,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:45 2026-05-24.
+      <span class="lastupdated">Last updated on 14:34 2026-05-24.
       </span></p>
   </div>
 

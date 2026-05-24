@@ -591,11 +591,10 @@ are not specified, then they’re inferred from <cite>wb_params</cite>: <cite>da
 <dd class="field-odd"><dl class="simple">
 <dt><strong>wb_params: WishboneParameters</strong></dt><dd><p>Parameters for bus generation.</p>
 </dd>
-<dt><strong>num_slaves: int</strong></dt><dd><p>Number of slave devices to multiplex.</p>
-</dd>
 <dt><strong>ssel_tga: Signal</strong></dt><dd><p>Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
 to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid and held every time Wishbone
 STB is asserted.
+Number of create slabve interfaces is determied from <cite>ssel_tga</cite> bit width.
 Note that if Pipelined Wishbone implementation is used, then before starting any new request with
 different <cite>ssel_tga</cite> value, all pending request have to be finished (and <cite>stall</cite> cleared). Holding new requests
 should be implemented in block that controlls <cite>ssel_tga</cite> signal, before the Wishbone Master.</p>
@@ -613,7 +612,7 @@ should be implemented in block that controlls <cite>ssel_tga</cite> signal, befo
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.wishbone.WishboneMuxer.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_slaves</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssel_tga</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Signal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMuxer.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wb_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneParameters" title="coreblocks.peripherals.wishbone.WishboneParameters"><span class="pre">WishboneParameters</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssel_tga</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Signal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.wishbone.WishboneMuxer.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -670,7 +669,7 @@ should be implemented in block that controlls <cite>ssel_tga</cite> signal, befo
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:45 2026-05-24.
+      <span class="lastupdated">Last updated on 14:34 2026-05-24.
       </span></p>
   </div>
 
