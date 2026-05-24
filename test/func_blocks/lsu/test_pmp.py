@@ -411,7 +411,7 @@ class TestPMPDirect(TestCaseWithSimulator):
             await test_napot_mode_forces_low_bits(sim)
             await test_na4_filtered_to_off(sim)
             await test_reserved_rw_combination(sim)
-            await test_l_bit_forced_zero(sim)
+            await test_l_bit_locks(sim)
             await test_reserved_bits_forced_zero(sim)
             await test_mode_switch_changes_readback(sim)
             await test_per_entry_cfg_independence(sim)
