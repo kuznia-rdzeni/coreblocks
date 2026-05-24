@@ -67,8 +67,4 @@ Coreblocks project is financially supported by [NGI0 Commons Fund](https://nlnet
 
 Contact us at [Coreforge Foundation](https://kuznia-rdzeni.org) if you want to support development of Coreforge projects!
 
-## License
-
-Copyright © 2022-2025, University of Wrocław.
-
-This project is [three-clause BSD](https://github.com/kuznia-rdzeni/coreblocks/blob/master/LICENSE) licensed.
+This project is [three-clause BSD licensed](https://github.com/kuznia-rdzeni/coreblocks/blob/master/LICENSE).
