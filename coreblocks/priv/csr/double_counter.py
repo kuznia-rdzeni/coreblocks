@@ -30,6 +30,7 @@ class DoubleCounterCSR(Elaboratable):
         shadow_low_addr: Optional[CSRAddress] = None,
         shadow_high_addr: Optional[CSRAddress] = None,
         shadow_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        read_only_zero: bool = False,
     ):
         """
         Parameters
@@ -49,12 +50,16 @@ class DoubleCounterCSR(Elaboratable):
             `shadow_high_addr` also should be provided.
         shadow_access_filter: Callable, optional
             Provides `access_filter` for additional shadow CSRs.
+        read_only_zero: bool
+            If True, the increment is no-op and the counter always reads as zero.
         """
         self.increment = Method()
-        self.register = CSRRegister(None, gen_params, width=64)
+        self.register = CSRRegister(None, gen_params, width=64, ro_bits=~0 if read_only_zero else 0)
         self.shadow = DoubleShadowCSR(
             gen_params, self.register, low_addr, high_addr, shadow_low_addr, shadow_high_addr, shadow_access_filter
         )
+
+        self.read_only_zero = read_only_zero
 
     def elaborate(self, platform):
         m = TModule()
@@ -64,6 +69,9 @@ class DoubleCounterCSR(Elaboratable):
 
         @def_method(m, self.increment)
         def _():
+            if self.read_only_zero:
+                return
+
             register_read = self.register.read(m).data
             self.register.write(m, data=register_read + 1)
 

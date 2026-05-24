@@ -51,6 +51,9 @@ class CoreTestElaboratable(Elaboratable):
         self.core = Core(gen_params=self.gen_params)
         self.top = Socks(self.core, self.gen_params) if self.with_socks else self.core
 
+        if self.with_socks:
+            m.d.comb += self.top.interrupts.eq(self.core.csr_instances.csr_coreblocks_test.value)
+
         if self.gen_params.interrupt_custom_count == 2:
             self.interrupt_level = Signal()
             self.interrupt_edge = Signal()
@@ -155,6 +158,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, configurations.full),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, configurations.full),
         ("socks_clint", "socks_clint.asm", 1200, {2: 5, 8: 1}, configurations.basic),
+        ("socks_plic", "plic.asm", 1000, {31: 0xCAFE}, configurations.basic),
         ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, configurations.full),
         ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, configurations.full),
         ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, configurations.full),
@@ -174,13 +178,15 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
             assert self.get_arch_reg_val(sim, reg_id) == val
 
     def test_asm_source(self):
-        self.gen_params = GenParams(self.configuration)
-
         bin_src = self.prepare_source(self.source_file)
 
         if self.name == "mtval":
             bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
         socks_test = self.name.startswith("socks_")
+        if socks_test:
+            self.configuration = self.configuration.replace(_generate_test_hardware=True, interrupt_custom_count=4)
+
+        self.gen_params = GenParams(self.configuration)
 
         self.m = CoreTestElaboratable(
             self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"], with_socks=socks_test
