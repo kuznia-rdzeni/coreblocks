@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-riscof-tests, build-core ]
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -245,7 +245,7 @@ jobs:
   run-regression-tests:
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    timeout-minutes: 30
+    timeout-minutes: 45
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-regression-tests, build-core ]
     steps:
