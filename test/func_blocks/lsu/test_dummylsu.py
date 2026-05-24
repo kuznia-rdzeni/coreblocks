@@ -83,7 +83,6 @@ class DummyLSUTestCircuit(Elaboratable):
         m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
                 i=layouts.precommit_in,
-                o=layouts.precommit_out,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
@@ -257,7 +256,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
         def precommiter(rob_id):
-            return {"side_fx": 1}
+            return {}
 
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
@@ -327,7 +326,7 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
         def precommiter(rob_id):
-            return {"side_fx": 1}
+            return {}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.one_instr_test)
@@ -427,7 +426,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
     def precommiter(self, rob_id):
-        return {"side_fx": 1}
+        return {}
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -473,7 +472,7 @@ class TestDummyLSUFence(TestCaseWithSimulator):
 
         @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
         def precommiter(rob_id):
-            return {"side_fx": 1}
+            return {}
 
         pending_req = False
 

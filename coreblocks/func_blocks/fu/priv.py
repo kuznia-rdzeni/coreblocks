@@ -18,6 +18,7 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
 from coreblocks.interface.layouts import PrivUnitLayouts
 from coreblocks.interface.keys import (
+    CoreStateKey,
     MretKey,
     SretKey,
     AsyncInterruptInsertSignalKey,
@@ -118,9 +119,9 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         with Transaction().body(m, ready=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, instr_rob)
+            precommit(m, instr_rob)
             m.d.sync += finished.eq(1)
-            self.perf_instr.incr(m, instr_fn, enable_call=info.side_fx)
+            self.perf_instr.incr(m, instr_fn)
 
             priv_data = priv_mode.read(m).data
 
@@ -148,15 +149,15 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             )
 
             with condition(m, nonblocking=True) as branch:
-                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
+                with branch((instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
                     mret(m)
                 if self.fn.supervisor_enable:
                     assert sret is not None
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
+                    with branch((instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
                         sret(m)
 
                     if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
-                        with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                        with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
 
                             sfence_vma[0](
@@ -167,16 +168,19 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                                 all_asids=imm_view.rs2 == 0,
                             )
 
-                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
+                with branch((instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
-                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
+                with branch((instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
                     # async_interrupt_active implies wfi_resume. WFI should continue normal execution
                     # when interrupt is enabled in xie, but disabled via global mstatus.xIE
                     m.d.sync += finished.eq(wfi_resume)
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret | illegal_sret | illegal_sfencevma)
 
-        with Transaction().body(m, ready=instr_valid & finished):
+        with Transaction().body(m):
+            core_state = self.dm.get_dependency(CoreStateKey())(m)
+
+        with Transaction().body(m, ready=instr_valid & (finished | core_state.flushing)):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
@@ -242,7 +246,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 self.exception_report(
                     m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
                 )
-            with m.Else():
+            with m.Elif(~core_state.flushing):
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
                 resume_core(m, pc=ret_pc)

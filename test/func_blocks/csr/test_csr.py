@@ -12,6 +12,7 @@ from coreblocks.params import configurations
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
+    CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
     InstructionPrecommitKey,
@@ -36,16 +37,19 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
                 i=self.gen_params.get(RetirementLayouts).precommit_in,
-                o=self.gen_params.get(RetirementLayouts).precommit_out,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
+        )
+        m.submodules.core_state = self.core_state = TestbenchIO(
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
         DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -87,7 +91,15 @@ class CSRUnitTestCircuit(Elaboratable):
         return m
 
 
-class TestCSRUnit(TestCaseWithSimulator):
+class TestCSRUnitBase(TestCaseWithSimulator):
+    dut: CSRUnitTestCircuit
+
+    @def_method_mock(lambda self: self.dut.core_state)
+    def core_state_mock(self):
+        return {"flushing": 0}
+
+
+class TestCSRUnit(TestCSRUnitBase):
     def gen_expected_out(self, sim: TestbenchContext, op: Funct3, rd: int, rs1: int, operand_val: int, csr: int):
         exp_read = {"rp_dst": rd, "result": sim.get(self.dut.csr[csr].value)}
         rs1_val = {"rp_s1": rs1, "value": operand_val}
@@ -161,7 +173,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             # TODO: this is a hack, a real method mock should be used
             for _, r in self.dut.precommit.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)  # TODO: sensible precommit handling
+            self.dut.precommit.call_init(sim)  # TODO: sensible precommit handling
 
             await self.random_wait_geom(sim)
             res, resume_res = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.fetch_resume).until_done()
@@ -255,7 +267,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             # TODO: this is a hack, a real method mock should be used
             for _, r in self.dut.precommit.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)
+            self.dut.precommit.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
@@ -311,7 +323,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             await self.random_wait_geom(sim)
             for _, r in self.dut.precommit.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)
+            self.dut.precommit.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()

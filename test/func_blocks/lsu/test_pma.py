@@ -63,7 +63,6 @@ class PMAIndirectTestCircuit(Elaboratable):
         m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
                 i=layouts.precommit_in,
-                o=layouts.precommit_out,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
@@ -141,7 +140,7 @@ class TestPMAIndirect(TestCaseWithSimulator):
             enable=lambda: self.precommit_enabled,
         )
         def precommiter(rob_id):
-            return {"side_fx": 1}
+            return {}
 
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
