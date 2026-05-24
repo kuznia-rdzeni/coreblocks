@@ -126,9 +126,6 @@ class CommonLayoutFields:
         self.error: LayoutListField = ("error", 1)
         """Request ended with an error."""
 
-        self.side_fx: LayoutListField = ("side_fx", 1)
-        """Side effects are enabled."""
-
         self.rvc: LayoutListField = ("rvc", 1)
         """Instruction is a compressed (two-byte) one."""
 
@@ -527,8 +524,6 @@ class RetirementLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.precommit_in = make_layout(fields.rob_id)
-
-        self.precommit_out = make_layout(fields.side_fx)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """
