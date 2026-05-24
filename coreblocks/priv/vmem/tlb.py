@@ -385,19 +385,16 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         with Transaction(name="TLBLookup").body(m, ready=~slow_path):
             req = request_pipe.peek(m)
 
-            valid_vec = Signal(self.ways)
-            m.d.av_comb += valid_vec.eq(cam.valid_match & cam.addr_match & (cam.asid_match | cam.global_match))
-
             found_entry = Signal(TLBEntry(self.gen_params))
 
             for way in range(self.ways):
-                with m.If(valid_vec[way]):
+                with m.If(cam.full_match[way]):
                     m.d.av_comb += found_entry.eq(cam.ways_data[way])
 
             miss = Signal()
             ask_backing = Signal()
 
-            m.d.av_comb += miss.eq(~valid_vec.any())
+            m.d.av_comb += miss.eq(~cam.full_match.any())
 
             if self.gen_params.vmem_params.supports_auto_a_d_management:
                 if ~miss & req.is_store & ~found_entry.permissions.d:
@@ -512,7 +509,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         self.sfence_vma.add_conflict(self.request, Priority.LEFT)
 
-        with Transaction(name="flush").body(m, ready=flushing & ~slow_path):
+        with Transaction(name="flush").body(m, ready=flushing & ~slow_path & ~request_pipe.read.ready):
             with m.If(~flush_fetched):
                 m.d.comb += set_rd.addr.eq(flush_set)
                 m.d.comb += set_rd.en.eq(1)
