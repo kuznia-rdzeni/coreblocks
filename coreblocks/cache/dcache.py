@@ -16,6 +16,9 @@ log = logging.HardwareLogger("backend.dcache")
 
 class DCacheBypass(Elaboratable, DCacheInterface):
     def __init__(self, layouts: DCacheLayouts, params: DCacheParameters, bus_master: BusMasterInterface):
+        if bus_master.params.granularity != 8:
+            raise ValueError("Granularity for data cache bus has to be 8")
+
         self.layouts = layouts
         self.params = params
         self.bus_master = bus_master
