@@ -388,7 +388,7 @@ class TestPMPDirect(TestCaseWithSimulator):
             assert result == expected, f"WARL R=0,W=1: expected 0x{expected:x}, got 0x{result:x}"
 
         async def test_l_bit_locks(sim: TestbenchContext):
-            # L bit is not implemented: writes should be forced to 0
+            # locking an entry should prevent any further modifications
             cfg_with_l = make_cfg(r=1, w=1, x=1, a=PMPAFlagEncoding.TOR, lock=1)
             cfg_write = make_cfg(r=0, w=0, x=0, a=PMPAFlagEncoding.TOR, lock=0)
             await pmpcfg0_write.call(sim, data=cfg_with_l)
