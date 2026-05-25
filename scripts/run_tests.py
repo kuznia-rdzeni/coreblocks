@@ -20,6 +20,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-s", "--no-capture", action="store_true", help="Don't capture output")
     parser.add_argument("-a", "--all", action="store_true", default=False, help="Run all tests")
+    parser.add_argument("--arch-tests", action="store_true", default=False, help="Run riscv-arch-tests instead of riscv-tests")
     parser.add_argument(
         "-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend for regression tests"
     )
@@ -50,8 +51,13 @@ def main():
     if args.jobs and not args.list and not args.no_capture:
         # To list tests we can not use xdist, because it doesn't support forwarding of stdout from workers.
         pytest_arguments += ["-n", str(args.jobs)]
+    # If --all is requested, enable the primary regression suite. If --arch-tests
+    # is also requested, enable the arch regression suite as well. If only
+    # --arch-tests is given (without --all), enable only the arch suite.
     if args.all:
         pytest_arguments.append("--coreblocks-regression")
+    if args.arch_tests:
+        pytest_arguments.append("--coreblocks-arch-regression")
     if args.verbose:
         pytest_arguments.append("--verbose")
     if args.backend:

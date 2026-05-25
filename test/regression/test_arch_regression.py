@@ -1,3 +1,8 @@
+from typing import Literal
+from pathlib import Path
+from filelock import FileLock
+
+import pytest
 import argparse
 import asyncio
 import os
@@ -5,9 +10,6 @@ import re
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
-
-from filelock import FileLock
 
 try:
     from cocotb import runner as cocotb_runner
@@ -30,7 +32,8 @@ from .pysim import PySimulation
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
-ARCH_TEST_ELF_DIR = REPO_ROOT / "test" / "external" / "riscv-arch-test" / "elfs"
+ARCH_TEST_DIR = REPO_ROOT / "test" / "external" / "riscv-arch-test"
+ARCH_TEST_ELF_DIR = ARCH_TEST_DIR / "elfs"
 
 VERILOG_LOCK_FILE = BUILD_ROOT / "verilog.lock"
 VERILOG_STAMP = BUILD_ROOT / "verilog.built"
@@ -57,10 +60,14 @@ BUILD_ARGS = [
 
 ZIFENCEI_PATTERN = re.compile("zifencei", re.IGNORECASE)
 
+END_TEST_ADDRESS = 0xF0000000
+CONSOLE_ADDRESS = 0xF0001000
+ACCESS_FAULT_ADDRESS = 0x00000010
+
 
 class EndTestMMIO(MemorySegment):
     def __init__(self, on_finish):
-        super().__init__(range(0xF0000000, 0xF0000008), SegmentFlags.WRITE)
+        super().__init__(range(END_TEST_ADDRESS, END_TEST_ADDRESS + 8), SegmentFlags.WRITE)
         self.on_finish = on_finish
         self.written_value = 0
 
@@ -80,7 +87,7 @@ class EndTestMMIO(MemorySegment):
 
 class ConsoleMMIO(MemorySegment):
     def __init__(self):
-        super().__init__(range(0xF0001000, 0xF0001008), SegmentFlags.WRITE)
+        super().__init__(range(CONSOLE_ADDRESS, CONSOLE_ADDRESS + 8), SegmentFlags.WRITE)
 
     def read(self, req: ReadRequest) -> ReadReply:
         return ReadReply()
@@ -99,7 +106,7 @@ class ConsoleMMIO(MemorySegment):
 
 class AccessFaultAddressMMIO(MemorySegment):
     def __init__(self):
-        super().__init__(range(0x10, 0x18), SegmentFlags.READ | SegmentFlags.WRITE | SegmentFlags.EXECUTABLE)
+        super().__init__(range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 8), SegmentFlags.READ | SegmentFlags.WRITE | SegmentFlags.EXECUTABLE)
 
     def read(self, req: ReadRequest) -> ReadReply:
         return ReadReply(status=ReplyStatus.ERROR)
@@ -151,7 +158,9 @@ def _set_transactron_env_defaults() -> None:
 
 def discover_arch_test_elves() -> list[Path]:
     if not ARCH_TEST_ELF_DIR.exists():
-        return []
+        res = subprocess.run(["make", "-C", str(ARCH_TEST_DIR)], check=True)
+        if res.returncode != 0:
+            raise RuntimeError("Couldn't build arch regression tests")
     return sorted(path.resolve() for path in ARCH_TEST_ELF_DIR.rglob("*.elf"))
 
 
@@ -280,6 +289,25 @@ def run_arch_test_elf_with_pysim(
         if traces_file_prefix is not None:
             traces_file = traces_file_prefix + "_".join(Path(elf_path).parts)
         asyncio.run(run_arch_elf(PySimulation(traces_file=traces_file), elf_path.resolve(), timeout_cycles=timeout_cycles))
+
+
+@pytest.fixture
+def sim_backend(request: pytest.FixtureRequest):
+    return request.config.getoption("coreblocks_backend")
+
+
+@pytest.fixture
+def traces_enabled(request: pytest.FixtureRequest):
+    return request.config.getoption("coreblocks_traces")
+
+
+def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+    path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
+    if sim_backend == "cocotb":
+        run_arch_test_elf_with_cocotb([path], traces=traces_enabled)
+    elif sim_backend == "pysim":
+        traces_file_prefix = ARCH_REGRESSION_TESTS_PREFIX if traces_enabled else None
+        run_arch_test_elf_with_pysim([path], traces_file_prefix=traces_file_prefix)
 
 
 def main():
