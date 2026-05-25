@@ -116,25 +116,26 @@ class MachineModeCSRRegisters(Elaboratable):
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
         pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
 
-        def filter(_: TModule, v: Value):
-            cfg = data.View(PMPCfgLayout(), v)
+        def make_pmp_filtermap(idx: int):
+            def pmp_filtermap(_: TModule, v: Value):
+                cfg = data.View(PMPCfgLayout(), v)
+                old_value = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value)
 
-            # R=0, W=1 is a reserved combination (WARL): force W=0
-            filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
+                # R=0, W=1 is a reserved combination (WARL): force W=0
+                filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
 
-            # When G >= 1, NA4 mode is not selectable: change to OFF
-            if gen_params.pmp_grain >= 1:
-                filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
-            else:
-                filtered_a = cfg.A
+                # When G >= 1, NA4 mode is not selectable: change to OFF
+                if gen_params.pmp_grain >= 1:
+                    filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
+                else:
+                    filtered_a = cfg.A
 
-            # L bit is not implemented (write-locking not supported): force to 0.
-            # TODO: Implement L bit — when L=1, writes to pmpcfg and pmpaddr should be
-            # ignored. Additionally, if entry i is locked and A=TOR, writes to pmpaddr(i-1)
-            # must also be ignored.
-            # Bits 5-6 (reserved): force to 0
-            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), C(0))
-            return C(1), filtered_v
+                # On illegal rwx encodings, clear permissions
+                # Bits 5-6 (reserved): force to 0
+                filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), cfg.L)
+                return ~old_value.L, filtered_v
+
+            return pmp_filtermap
 
         for i in range(0, pmpcfgx_cnt):
             # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
@@ -143,16 +144,34 @@ class MachineModeCSRRegisters(Elaboratable):
 
             # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
             for j in range(pmpcfg_subregisters):
-                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter)
+                pmp_reg_idx = i * pmpcfg_subregisters + j
+                pmpcfg_sub = CSRRegister(
+                    None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=make_pmp_filtermap(pmp_reg_idx)
+                )
                 pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
                 self.pmpxcfg.append(pmpcfg_sub)
-                setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
+                setattr(self, f"pmp{pmp_reg_idx}cfg", pmpcfg_sub)
 
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
 
         for i in range(gen_params.pmp_register_count):
+
+            def make_pmpaddr_filtermap(idx: int):
+                def pmp_filtermap(_: TModule, value: Value):
+                    # do not allow writes to pmpaddr when either current pmpcfg is locked, or
+                    # next pmpcfg is locked and its A field is TOR
+                    current_locked = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value).L
+                    if idx + 1 < len(self.pmpxcfg):
+                        next_cfg = data.View(PMPCfgLayout(), self.pmpxcfg[idx + 1].value)
+                        next_locked_tor = next_cfg.L & (next_cfg.A == PMPAFlagEncoding.TOR)
+                    else:
+                        next_locked_tor = 0
+
+                    return ~(current_locked | next_locked_tor), value
+
+                return pmp_filtermap
 
             def make_pmpaddr_fu_read_map(idx: int):
                 def pmpaddr_fu_read_map(_: TModule, value: Value):
@@ -176,7 +195,12 @@ class MachineModeCSRRegisters(Elaboratable):
 
                 return pmpaddr_fu_read_map
 
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, fu_read_map=make_pmpaddr_fu_read_map(i))
+            reg = CSRRegister(
+                getattr(CSRAddress, f"PMPADDR{i}"),
+                gen_params,
+                fu_write_filtermap=make_pmpaddr_filtermap(i),
+                fu_read_map=make_pmpaddr_fu_read_map(i),
+            )
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
