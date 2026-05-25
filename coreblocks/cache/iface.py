@@ -4,12 +4,12 @@ from transactron import Method
 
 from amaranth_types import HasElaborate
 
-__all__ = ["CacheInterface", "CacheRefillerInterface"]
+__all__ = ["ICacheInterface", "DCacheInterface", "CacheRefillerInterface"]
 
 
-class CacheInterface(HasElaborate, Protocol):
+class ICacheInterface(HasElaborate, Protocol):
     """
-    Cache Interface.
+    Instruction Cache Interface.
 
     Parameters
     ----------
@@ -23,6 +23,31 @@ class CacheInterface(HasElaborate, Protocol):
 
     issue_req: Method
     accept_res: Method
+    flush: Method
+
+
+class DCacheInterface(HasElaborate, Protocol):
+    """
+    Data Cache Interface.
+
+    Parameters
+    ----------
+    issue_read : Method
+        Issues a cache read request.
+    issue_store : Method
+        Issues a cache store request.
+    accept_read : Method
+        Accepts the result of a previously issued read request.
+    accept_store : Method
+        Accepts the result of a previously issued store request.
+    flush : Method
+        Flushes the whole cache.
+    """
+
+    issue_read: Method
+    issue_store: Method
+    accept_read: Method
+    accept_store: Method
     flush: Method
 
 

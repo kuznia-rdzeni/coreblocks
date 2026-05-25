@@ -5,7 +5,7 @@ from transactron.lib.simultaneous import condition
 from transactron.utils import logging
 from transactron.lib import BasicFifo
 
-from coreblocks.cache.iface import CacheInterface
+from coreblocks.cache.iface import DCacheInterface
 from coreblocks.params import *
 from coreblocks.arch import Funct3, ExceptionCause
 from coreblocks.interface.layouts import CommonLayoutFields, LSULayouts
@@ -24,13 +24,13 @@ class LSURequester(Elaboratable):
         Retrieves a result from the bus.
     """
 
-    def __init__(self, gen_params: GenParams, cache: CacheInterface, depth: int = 4) -> None:
+    def __init__(self, gen_params: GenParams, cache: DCacheInterface, depth: int = 4) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Parameters to be used during processor generation.
-        cache : CacheInterface
+        cache : DCacheInterface
             An instance of the data cache for interfacing with the memory.
         depth : int
             Number of requests which can be send to memory, before it provides first response. Describe
@@ -137,8 +137,10 @@ class LSURequester(Elaboratable):
             )
 
             with condition(m, nonblocking=True) as branch:
-                with branch(aligned):
-                    self.cache.issue_req(m, paddr=paddr, data=bus_data, byte_mask=bytes_mask, store=store)
+                with branch(aligned & ~store):
+                    self.cache.issue_read(m, paddr=paddr, byte_mask=bytes_mask)
+                with branch(aligned & store):
+                    self.cache.issue_store(m, paddr=paddr, data=bus_data, byte_mask=bytes_mask)
 
             with m.If(aligned):
                 args_fifo.write(m, paddr=paddr, vaddr=vaddr, funct3=funct3, store=store)
@@ -160,12 +162,20 @@ class LSURequester(Elaboratable):
             request_args = args_fifo.read(m)
             self.log.debug(m, 1, "accept data=0x{:08x} exception={} cause={}", data, exception, cause)
 
-            fetched = self.cache.accept_res(m)
-            m.d.comb += err.eq(fetched.error)
-            with m.If(~request_args.store):
-                m.d.comb += data.eq(
-                    self.postprocess_load_data(m, request_args.funct3, fetched.data, request_args.paddr)
-                )
+            with condition(m) as branch:
+                with branch(request_args.store):
+                    res_store = self.cache.accept_store(m)
+                    m.d.comb += err.eq(res_store.error)
+                with branch(~request_args.store):
+                    res_read = self.cache.accept_read(m)
+                    m.d.comb += [
+                        err.eq(res_read.error),
+                        data.eq(
+                            self.postprocess_load_data(
+                                m, request_args.funct3, res_read.data, request_args.paddr
+                            )
+                        ),
+                    ]
 
             with m.If(err):
                 m.d.av_comb += exception.eq(1)

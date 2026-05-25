@@ -7,54 +7,47 @@ from coreblocks.interface.layouts import DCacheLayouts
 from transactron.lib import *
 from transactron.utils import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
-from coreblocks.cache.iface import CacheInterface
+from coreblocks.cache.iface import DCacheInterface
 
 __all__ = ["DCacheBypass"]
 
 log = logging.HardwareLogger("backend.dcache")
 
 
-class DCacheBypass(Elaboratable, CacheInterface):
+class DCacheBypass(Elaboratable, DCacheInterface):
     def __init__(self, layouts: DCacheLayouts, params: DCacheParameters, bus_master: BusMasterInterface):
         self.layouts = layouts
         self.params = params
         self.bus_master = bus_master
 
-        self.issue_req = Method(i=layouts.issue_req)
-        self.accept_res = Method(o=layouts.accept_res)
+        self.issue_read = Method(i=layouts.issue_read)
+        self.issue_store = Method(i=layouts.issue_store)
+        self.accept_read = Method(o=layouts.accept_read)
+        self.accept_store = Method(o=layouts.accept_store)
         self.flush = Method()
 
     def elaborate(self, platform):
         m = TModule()
 
-        is_last_store = Signal()
+        word_shift = exact_log2(self.params.word_width_bytes)
 
-        @def_method(m, self.issue_req)
-        def _(paddr: Value, data: Value, byte_mask: Value, store: Value):
-            bus_addr = paddr >> exact_log2(self.params.word_width_bytes)
+        @def_method(m, self.issue_read)
+        def _(paddr: Value, byte_mask: Value):
+            self.bus_master.request_read(m, addr=paddr >> word_shift, sel=byte_mask)
 
-            with condition(m) as branch:
-                with branch(store):
-                    self.bus_master.request_write(m, addr=bus_addr, data=data, sel=byte_mask)
-                with branch():
-                    self.bus_master.request_read(m, addr=bus_addr, sel=byte_mask)
+        @def_method(m, self.issue_store)
+        def _(paddr: Value, data: Value, byte_mask: Value):
+            self.bus_master.request_write(m, addr=paddr >> word_shift, data=data, sel=byte_mask)
 
-            m.d.sync += is_last_store.eq(store)
-
-        @def_method(m, self.accept_res)
+        @def_method(m, self.accept_read)
         def _():
-            data = Signal(self.params.word_width)
-            err = Signal()
+            res = self.bus_master.get_read_response(m)
+            return {"data": res.data, "error": res.err}
 
-            with condition(m) as branch:
-                with branch(is_last_store):
-                    res = self.bus_master.get_write_response(m)
-                    m.d.comb += err.eq(res.err)
-                with branch():
-                    res = self.bus_master.get_read_response(m)
-                    m.d.comb += [err.eq(res.err), data.eq(res.data)]
-
-            return {"data": data, "error": err}
+        @def_method(m, self.accept_store)
+        def _():
+            res = self.bus_master.get_write_response(m)
+            return {"error": res.err}
 
         @def_method(m, self.flush)
         def _():

@@ -611,24 +611,29 @@ class DCacheLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.store: LayoutListField = ("store", 1)
-        """Request is a store operation."""
-
         self.byte_mask: LayoutListField = ("byte_mask", gen_params.isa.xlen // 8)
         """Byte-enable mask for stores. Each bit corresponds to one byte of the word."""
 
         self.last: LayoutListField = ("last", 1)
         """Last word in a cache line burst transfer."""
 
-        self.issue_req = make_layout(
+        self.issue_read = make_layout(
+            fields.paddr,
+            self.byte_mask,
+        )
+
+        self.issue_store = make_layout(
             fields.paddr,
             fields.data,
             self.byte_mask,
-            self.store,
         )
 
-        self.accept_res = make_layout(
+        self.accept_read = make_layout(
             fields.data,
+            fields.error,
+        )
+
+        self.accept_store = make_layout(
             fields.error,
         )
 
