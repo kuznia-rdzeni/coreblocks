@@ -170,11 +170,7 @@ class LSURequester(Elaboratable):
                     res_read = self.cache.accept_read(m)
                     m.d.comb += [
                         err.eq(res_read.error),
-                        data.eq(
-                            self.postprocess_load_data(
-                                m, request_args.funct3, res_read.data, request_args.paddr
-                            )
-                        ),
+                        data.eq(self.postprocess_load_data(m, request_args.funct3, res_read.data, request_args.paddr)),
                     ]
 
             with m.If(err):
