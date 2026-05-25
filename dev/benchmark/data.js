@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779652626216,
+  "lastUpdate": 1779720780121,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -22805,6 +22805,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ed83ac8e1fdac2001696fb0e2f6953c8f14d9ccd"
         },
         "date": 1779652613761,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4614225829499819,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.587177069044353,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3867682244221525,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6602286164761529,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3704661418050008,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32127744283926746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3546014401822429,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45810483356714704,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "27c21e4ce1e8fe43bb5ab6844e0b377a1930d646",
+          "message": "Update LICENSE (#969)",
+          "timestamp": "2026-05-25T16:11:36+02:00",
+          "tree_id": "73c938d36141bc3aa0fbe7d4e832ee8c439df65c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/27c21e4ce1e8fe43bb5ab6844e0b377a1930d646"
+        },
+        "date": 1779720769253,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
