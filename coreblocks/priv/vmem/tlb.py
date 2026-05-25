@@ -485,21 +485,24 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             self.perf_latency.stop(m)
             return fwd.read(m)
 
+        # the flush after reset will start with garbage data in the CAM, but we do not care, as
+        # it is a full flush and will invalidate all entries from the first set. Following set flushes
+        # will have correct data
         flush_vpn = Signal(vpn_bits)
-        flush_asid = Signal(asid_bits)
         flush_all_vaddrs = Signal(init=1)
         flush_all_asids = Signal(init=1)
         flush_set = Signal(set_index_bits)
         flush_size_class = Signal(self.gen_params.vmem_params.tlb_size_class_bits)
         flush_fetched = Signal()
 
-        @def_method(m, self.sfence_vma, ready=~flushing)
+        @def_method(m, self.sfence_vma, ready=~flushing & ~request_pipe.read.ready & ~slow_path)
         def _(vaddr, asid, all_vaddrs, all_asids):
             self.perf_flushes.incr(m)
 
             m.d.sync += flushing.eq(1)
+            m.d.sync += cam.checked_asid.eq(asid)
+            m.d.sync += cam.checked_vpn.eq(vaddr >> PAGE_SIZE_LOG)
             m.d.sync += flush_vpn.eq(vaddr >> PAGE_SIZE_LOG)
-            m.d.sync += flush_asid.eq(asid)
             m.d.sync += flush_all_vaddrs.eq(all_vaddrs)
             m.d.sync += flush_all_asids.eq(all_asids)
 
@@ -507,44 +510,39 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.sync += flush_fetched.eq(0)
             m.d.sync += flush_size_class.eq(0)
 
+            m.d.comb += set_rd.addr.eq(flush_set)
+            m.d.comb += set_rd.en.eq(1)
+
         self.sfence_vma.add_conflict(self.request, Priority.LEFT)
 
-        with Transaction(name="flush").body(m, ready=flushing & ~slow_path & ~request_pipe.read.ready):
-            with m.If(~flush_fetched):
-                m.d.comb += set_rd.addr.eq(flush_set)
-                m.d.comb += set_rd.en.eq(1)
-                m.d.sync += cam.checked_asid.eq(flush_asid)
-                m.d.sync += cam.checked_vpn.eq(flush_vpn)
+        with m.If(flushing):
+            m.d.comb += set_wr.data.eq(set_rd.data)
+            for way in range(self.ways):
+                with m.If((flush_all_asids | cam.asid_match[way]) & (flush_all_vaddrs | cam.addr_match[way])):
+                    m.d.comb += set_wr.data[way].valid.eq(0)
 
-                m.d.sync += flush_fetched.eq(1)
+            m.d.comb += set_wr.addr.eq(flush_set)
+            m.d.comb += set_wr.en.eq(1)
+
+            next_flush_set = Signal(set_index_bits)
+            flush_done = Signal()
+
+            with m.If(flush_all_vaddrs):
+                m.d.av_comb += next_flush_set.eq(flush_set + 1)
+                m.d.av_comb += flush_done.eq(flush_set == self.sets - 1)
             with m.Else():
-                m.d.comb += set_wr.data.eq(set_rd.data)
-                for way in range(self.ways):
-                    with m.If((flush_all_asids | cam.asid_match[way]) & (flush_all_vaddrs | cam.addr_match[way])):
-                        m.d.comb += set_wr.data[way].valid.eq(0)
+                m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
+                m.d.sync += flush_size_class.eq(flush_size_class + 1)
 
-                m.d.comb += set_wr.addr.eq(flush_set)
-                m.d.comb += set_wr.en.eq(1)
+                with m.If(flush_size_class == self.gen_params.vmem_params.max_tlb_size_class):
+                    m.d.av_comb += flush_done.eq(1)
 
-                next_flush_set = Signal(set_index_bits)
-                flush_done = Signal()
+            m.d.sync += flush_set.eq(next_flush_set)
 
-                with m.If(flush_all_vaddrs):
-                    m.d.av_comb += next_flush_set.eq(flush_set + 1)
-                    m.d.av_comb += flush_done.eq(flush_set == self.sets - 1)
-                with m.Else():
-                    m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
-                    m.d.sync += flush_size_class.eq(flush_size_class + 1)
+            m.d.comb += set_rd.addr.eq(next_flush_set)
+            m.d.comb += set_rd.en.eq(1)
 
-                    with m.If(flush_size_class == self.gen_params.vmem_params.max_tlb_size_class):
-                        m.d.av_comb += flush_done.eq(1)
-
-                m.d.sync += flush_set.eq(next_flush_set)
-
-                m.d.comb += set_rd.addr.eq(next_flush_set)
-                m.d.comb += set_rd.en.eq(1)
-
-                with m.If(flush_done):
-                    m.d.sync += flushing.eq(0)
+            with m.If(flush_done):
+                m.d.sync += flushing.eq(0)
 
         return m
