@@ -368,7 +368,8 @@ jobs:
 
   build-arch-regression-tests:
     name: Build arch regression tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
     timeout-minutes: 20
     steps:
       - name: Checkout
