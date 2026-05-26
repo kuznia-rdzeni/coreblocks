@@ -28,7 +28,6 @@ from .memory import (
     WriteRequest,
     load_segments_from_elf,
 )
-from .pysim import PySimulation
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
@@ -277,20 +276,6 @@ def run_arch_test_elf_with_cocotb(elf_paths: list[Path], *, traces: bool = False
         assert fails == 0
 
 
-def run_arch_test_elf_with_pysim(
-    elf_paths: list[Path],
-    timeout_cycles: int = 2_000_000,
-    *,
-    traces_file_prefix: str | None = None,
-):
-    _set_transactron_env_defaults()
-    for elf_path in elf_paths:
-        traces_file = None
-        if traces_file_prefix is not None:
-            traces_file = traces_file_prefix + "_".join(Path(elf_path).parts)
-        asyncio.run(run_arch_elf(PySimulation(traces_file=traces_file), elf_path.resolve(), timeout_cycles=timeout_cycles))
-
-
 @pytest.fixture
 def sim_backend(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_backend")
@@ -302,28 +287,26 @@ def traces_enabled(request: pytest.FixtureRequest):
 
 
 def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+    # TODO: add pysim support
+    if sim_backend != "cocotb":
+        raise NotImplementedError("Only cocotb backend is supported for arch regression tests")
+
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
-    if sim_backend == "cocotb":
-        run_arch_test_elf_with_cocotb([path], traces=traces_enabled)
-    elif sim_backend == "pysim":
-        traces_file_prefix = ARCH_REGRESSION_TESTS_PREFIX if traces_enabled else None
-        run_arch_test_elf_with_pysim([path], traces_file_prefix=traces_file_prefix)
+    run_arch_test_elf_with_cocotb([path], traces=traces_enabled)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run a single Coreblocks arch-test ELF")
     parser.add_argument("elf_path", type=Path, nargs="*", help="Paths to the ELF file to execute")
-    parser.add_argument("--backend", choices=["pysim", "cocotb"], default="pysim", help="Simulation backend")
+    parser.add_argument("--backend", choices=["cocotb"], default="cocotb", help="Simulation backend")
     parser.add_argument("--timeout-cycles", type=int, default=2_000_000, help="Maximum simulated cycles")
     parser.add_argument("--traces", action="store_true", help="Enable cocotb trace generation")
     args = parser.parse_args()
 
     elf_paths = [path.resolve() for path in args.elf_path]
 
-    if args.backend == "pysim":
-        run_arch_test_elf_with_pysim(elf_paths, args.timeout_cycles)
-    else:
-        run_arch_test_elf_with_cocotb(elf_paths, traces=args.traces)
+    # TODO: add pysim support
+    run_arch_test_elf_with_cocotb(elf_paths, traces=args.traces)
 
 
 if __name__ == "__main__":
