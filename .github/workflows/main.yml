@@ -310,18 +310,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ".[dev]"
-
       - name: Cache arch regression cocotb build
         id: cache-arch-regression-cocotb
         uses: actions/cache@v4
@@ -339,6 +327,20 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
           lookup-only: true
+
+      - name: Set up Python
+        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
 
       - name: Build arch regression cocotb module
         if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
@@ -366,8 +368,8 @@ jobs:
 
   build-arch-regression-tests:
     name: Build arch regression tests (riscv-arch-test - the real one)
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
+    runs-on: ubuntu-latest
+    container: ghcr.io/risc/act4-build:sha-4cd41d2bc9c6b827d89ef38cde1620e2a3e26f6a
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -408,13 +410,6 @@ jobs:
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Trust riscv-arch-test with mise
         run: mise trust test/external/riscv-arch-test/.mise.toml
-
-      - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
-        name: Install sail v0.11
-        run: |
-          mkdir -p /opt/sail
-          curl --location --fail "https://github.com/riscv/sail-riscv/releases/download/0.11/sail-riscv-Linux-x86_64.tar.gz" \
-            | tar xz --directory=/opt/sail --strip-components=1
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Build arch regression tests
