@@ -1,7 +1,7 @@
 from typing import Literal
 from pathlib import Path
 from filelock import FileLock
-
+from cocotb import runner as cocotb_runner
 import pytest
 import argparse
 import os
@@ -9,11 +9,6 @@ import re
 import subprocess
 import sys
 import tempfile
-
-try:
-    from cocotb import runner as cocotb_runner
-except ImportError:
-    cocotb_runner = None
 
 from .conftest import arch_tests_dir
 from .memory import (
@@ -29,9 +24,7 @@ from .memory import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
-ARCH_TEST_DIR = REPO_ROOT / "test" / "external" / "riscv-arch-test"
-ARCH_TEST_ELF_DIR = ARCH_TEST_DIR / "elfs"
+BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build" / "riscv-arch-test"
 
 VERILOG_LOCK_FILE = BUILD_ROOT / "verilog.lock"
 VERILOG_STAMP = BUILD_ROOT / "verilog.built"
@@ -157,18 +150,7 @@ def _set_transactron_env_defaults() -> None:
         os.environ["MAKEFLAGS"] = makeflags + f" -j{num_cpus}"
 
 
-def discover_arch_test_elves() -> list[Path]:
-    if not ARCH_TEST_ELF_DIR.exists():
-        res = subprocess.run(["make", "-C", str(ARCH_TEST_DIR)], check=True)
-        if res.returncode != 0:
-            raise RuntimeError("Couldn't build arch regression tests")
-    return sorted(path.resolve() for path in ARCH_TEST_ELF_DIR.rglob("*.elf"))
-
-
 def cocotb_get_runner(config: ArchTestConfig):
-    if cocotb_runner is None:
-        raise RuntimeError("cocotb not found")
-
     runner = cocotb_runner.get_runner(config.simulator)
     runner.build(
         sources=[str(CORE_V)],
@@ -273,7 +255,6 @@ def run_arch_test_elf_with_cocotb(elf_paths: list[Path], *, traces: bool = False
             results_xml=str(results_file.name),
         )
 
-        assert cocotb_runner is not None
         _, fails = cocotb_runner.get_results(Path(results_file.name))
         assert fails == 0
 
