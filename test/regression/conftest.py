@@ -17,10 +17,7 @@ def get_all_arch_test_names() -> list[str]:
     if not arch_tests_dir.exists():
         return []
 
-    return sorted(
-        path.relative_to(arch_tests_dir).with_suffix("").as_posix()
-        for path in arch_tests_dir.rglob("*.elf")
-    )
+    return sorted(path.relative_to(arch_tests_dir).with_suffix("").as_posix() for path in arch_tests_dir.rglob("*.elf"))
 
 
 def load_regression_tests() -> list[str]:

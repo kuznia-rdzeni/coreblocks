@@ -105,7 +105,10 @@ class ConsoleMMIO(MemorySegment):
 
 class AccessFaultAddressMMIO(MemorySegment):
     def __init__(self):
-        super().__init__(range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 8), SegmentFlags.READ | SegmentFlags.WRITE | SegmentFlags.EXECUTABLE)
+        super().__init__(
+            range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 8),
+            SegmentFlags.READ | SegmentFlags.WRITE | SegmentFlags.EXECUTABLE,
+        )
 
     def read(self, req: ReadRequest) -> ReadReply:
         return ReadReply(status=ReplyStatus.ERROR)
