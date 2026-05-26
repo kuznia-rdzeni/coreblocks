@@ -122,16 +122,16 @@ def main():
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
-    if "COREBLOCKS_CORECONFIG_FILE" in os.environ:
-        config_file = SourceFileLoader("configfile", os.environ["COREBLOCKS_CORECONFIG_FILE"]).load_module()
+    if "COREBLOCKS_OVERRIDE_CORECONFIG_FILE" in os.environ:
+        config_file = SourceFileLoader("configfile", os.environ["COREBLOCKS_OVERRIDE_CORECONFIG_FILE"]).load_module()
         print("Overriding --configfile with an environment variable")
     elif args.configfile:
         config_file = SourceFileLoader("configfile", args.configfile).load_module()
     else:
         config_file = configurations
 
-    if "COREBLOCKS_CORECONFIG" in os.environ:
-        config_name = os.environ["COREBLOCKS_CORECONFIG"]
+    if "COREBLOCKS_OVERRIDE_CORECONFIG" in os.environ:
+        config_name = os.environ["COREBLOCKS_OVERRIDE_CORECONFIG"]
         print("Overriding --config with an environment variable")
     else:
         config_name = args.config
