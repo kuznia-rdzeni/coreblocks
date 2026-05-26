@@ -302,7 +302,7 @@ jobs:
 
 
   build-arch-regression-module-cocotb:
-    name: Run regression tests (riscv-tests)
+    name: Run regression tests (riscv-arch-test - the real one)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 45
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
@@ -367,7 +367,7 @@ jobs:
 
 
   build-arch-regression-tests:
-    name: Build arch regression tests
+    name: Build arch regression tests (riscv-arch-test - the real one)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
     timeout-minutes: 20
@@ -432,7 +432,7 @@ jobs:
 
 
   run-arch-regression-tests:
-    name: Run arch regression tests
+    name: Run arch regression tests (riscv-arch-test - the real one)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     timeout-minutes: 60
