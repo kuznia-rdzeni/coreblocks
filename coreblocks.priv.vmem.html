@@ -134,6 +134,17 @@ Meant for L1 TLBs.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.SetAssociativeTLB">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.vmem.tlb.</span></span><span class="sig-name descname"><span class="pre">SetAssociativeTLB</span></span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">TLBBackingDevice</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.vmem.tlb.SetAssociativeTLB.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ways</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">backing_resolver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.vmem.iface.TLBBackingDevice" title="coreblocks.priv.vmem.iface.TLBBackingDevice"><span class="pre">TLBBackingDevice</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">perf_name_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mmu.tlb'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.vmem.tlb.SetAssociativeTLB.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-coreblocks.priv.vmem.translation">
 <span id="coreblocks-priv-vmem-translation-module"></span><h2>coreblocks.priv.vmem.translation module<a class="headerlink" href="#module-coreblocks.priv.vmem.translation" title="Link to this heading"></a></h2>
@@ -208,7 +219,7 @@ to the current SATP configuration.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 15:13 2026-05-26.
+      <span class="lastupdated">Last updated on 18:12 2026-05-26.
       </span></p>
   </div>
 
