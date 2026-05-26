@@ -302,13 +302,25 @@ jobs:
 
 
   build-arch-regression-module-cocotb:
-    name: Run regression tests (riscv-arch-test - the real one)
+    name: Build arch regression test cocotb module (riscv-arch-test - the real one)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 45
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
 
       - name: Cache arch regression cocotb build
         id: cache-arch-regression-cocotb
@@ -327,20 +339,6 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
           lookup-only: true
-
-      - name: Set up Python
-        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ".[dev]"
 
       - name: Build arch regression cocotb module
         if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
