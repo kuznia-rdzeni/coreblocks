@@ -4,7 +4,6 @@ from filelock import FileLock
 
 import pytest
 import argparse
-import asyncio
 import os
 import re
 import subprocess
