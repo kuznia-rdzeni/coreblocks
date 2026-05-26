@@ -413,7 +413,10 @@ jobs:
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Install sail v0.11
-        run: curl --location --fail "https://github.com/riscv/sail-riscv/releases/download/0.11/sail-riscv-Linux-x86_64.tar.gz" | tar xz --directory=/opt/sail --strip-components=1
+        run: |
+          mkdir -p /opt/sail
+          curl --location --fail "https://github.com/riscv/sail-riscv/releases/download/0.11/sail-riscv-Linux-x86_64.tar.gz" \
+            | tar xz --directory=/opt/sail --strip-components=1
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Build arch regression tests
