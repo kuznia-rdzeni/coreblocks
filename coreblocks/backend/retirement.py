@@ -13,7 +13,6 @@ from coreblocks.interface.layouts import (
 )
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
-from transactron.lib.simultaneous import condition
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
 
