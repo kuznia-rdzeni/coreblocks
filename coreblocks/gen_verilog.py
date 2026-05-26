@@ -122,12 +122,24 @@ def main():
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
 
-    configfile = SourceFileLoader("configfile", args.configfile).load_module() if args.configfile else configurations
+    if "COREBLOCKS_OVERRIDE_CORECONFIG_FILE" in os.environ:
+        config_file = SourceFileLoader("configfile", os.environ["COREBLOCKS_OVERRIDE_CORECONFIG_FILE"]).load_module()
+        print("Overriding --configfile with an environment variable")
+    elif args.configfile:
+        config_file = SourceFileLoader("configfile", args.configfile).load_module()
+    else:
+        config_file = configurations
 
-    if args.config not in dir(configfile):
-        raise KeyError(f"Unknown config '{args.config}'")
+    if "COREBLOCKS_OVERRIDE_CORECONFIG" in os.environ:
+        config_name = os.environ["COREBLOCKS_OVERRIDE_CORECONFIG"]
+        print("Overriding --config with an environment variable")
+    else:
+        config_name = args.config
 
-    config = getattr(configfile, args.config)
+    if config_name not in dir(config_file):
+        raise KeyError(f"Unknown config '{config_name}'")
+
+    config = getattr(config_file, config_name)
     assert isinstance(config, CoreConfiguration)
 
     if args.strip_debug:
@@ -138,7 +150,7 @@ def main():
 
     sim_params = (parse_logging_level(args.sim_logs_level), args.sim_logs_filter) if args.sim_logs else None
 
-    print(f"Coreblocks {version('coreblocks')}, {args.config} core configuration, generating verilog to {args.output}")
+    print(f"Coreblocks {version('coreblocks')}, {config_name} core configuration, generating verilog to {args.output}")
 
     gen_verilog(
         config,
