@@ -323,7 +323,7 @@ jobs:
           path: |
             test/regression/cocotb/build/riscv-arch-test/**
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/coreblocks/**',
+              '/__w/coreblocks/coreblocks/coreblocks/**',
               '**/test/regression/test_arch_regression.py',
               '**/pyproject.toml',
               '**/docker/riscv-toolchain.Dockerfile',
@@ -360,7 +360,7 @@ jobs:
           path: |
             test/regression/cocotb/build/riscv-arch-test/**
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/coreblocks/**',
+              '/__w/coreblocks/coreblocks/coreblocks/**',
               '**/test/regression/test_arch_regression.py',
               '**/pyproject.toml',
               '**/docker/riscv-toolchain.Dockerfile',
@@ -439,6 +439,10 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
 
+      - name: Upload riscv-arch-test tests
+        uses: actions/upload-artifact@v7
+        with:
+          path: test/external/riscv-arch-test/elfs
 
   run-arch-regression-tests:
     name: Run arch regression tests (riscv-arch-test - the real one)
@@ -450,21 +454,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Fix git safe directory
+      - name: Get submodules HEAD hash
         working-directory: .
-        run: git config --global --add safe.directory /__w/coreblocks/coreblocks
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
         run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ".[dev]"
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
 
       - name: Restore arch regression cocotb build cache
         uses: actions/cache@v4
@@ -474,7 +468,7 @@ jobs:
           path: |
             test/regression/cocotb/build/riscv-arch-test/**
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/coreblocks/**',
+              '/__w/coreblocks/coreblocks/coreblocks/**',
               '**/test/regression/test_arch_regression.py',
               '**/pyproject.toml',
               '**/docker/riscv-toolchain.Dockerfile',
@@ -496,6 +490,18 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
           fail-on-cache-miss: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
 
       - name: Run arch regression tests
         run: |
