@@ -452,6 +452,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Fix git safe directory
+        working-directory: .
+        run: git config --global --add safe.directory /__w/coreblocks/coreblocks
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
