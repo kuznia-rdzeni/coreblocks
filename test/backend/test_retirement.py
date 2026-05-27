@@ -1,3 +1,4 @@
+from amaranth import *
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import CSRInstances
 

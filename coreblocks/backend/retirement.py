@@ -30,6 +30,9 @@ from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
 from coreblocks.arch.isa_consts import TrapVectorMode
 
 
+__all__ = ["Retirement"]
+
+
 class Retirement(Elaboratable):
     def __init__(
         self,
@@ -156,7 +159,7 @@ class Retirement(Elaboratable):
             m.d.av_comb += retire_count.eq(count_trailing_zeros(safe_mask))
 
             m.d.av_comb += no_trap_count.eq(
-                count_trailing_zeros(Cat(entry.exception for entry in rob_entries.entries)) | safe_mask
+                count_trailing_zeros(Cat(entry.exception for entry in rob_entries.entries) | safe_mask)
             )
             m.d.av_comb += exception.eq(no_trap_count < retire_count)
 
@@ -177,7 +180,7 @@ class Retirement(Elaboratable):
 
                     core_empty = self.instr_decrement(m, count=retire_count)
 
-                    commit = Signal()
+                    commit_trapping = Signal()
 
                     with m.If(exception):
                         self.perf_trap_latency.start(m)
@@ -193,7 +196,7 @@ class Retirement(Elaboratable):
                             # The PC field is set to address of instruction to resume from interrupt (e.g. for jumps
                             # it is a jump result).
                             # Instruction that reported interrupt is the last one that is committed.
-                            m.d.av_comb += commit.eq(1)
+                            m.d.av_comb += commit_trapping.eq(1)
 
                             # Set MSB - the Interrupt bit
                             m.d.av_comb += cause_entry.eq(
@@ -201,7 +204,7 @@ class Retirement(Elaboratable):
                             )
                         with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
                             # Branch misprediction - commit jump, flush core and continue from correct pc.
-                            m.d.av_comb += commit.eq(1)
+                            m.d.av_comb += commit_trapping.eq(1)
                             # Do not modify trap related CSRs
                             m.d.av_comb += arch_trap.eq(0)
 
@@ -211,7 +214,7 @@ class Retirement(Elaboratable):
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
                             # Value of ExceptionCauseRegister pc field is the instruction address.
-                            m.d.av_comb += commit.eq(0)
+                            m.d.av_comb += commit_trapping.eq(0)
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
@@ -240,16 +243,14 @@ class Retirement(Elaboratable):
                         with m.Else():
                             m.next = "TRAP_FLUSH"
 
-                    with m.Else():
-                        # Normally retire all non-trap instructions
-                        m.d.av_comb += commit.eq(1)
-
                     self.instret_csr.write(
-                        m, data=self.instret_csr.read(m).data + Mux(exception, no_trap_count + commit, retire_count)
+                        m,
+                        data=self.instret_csr.read(m).data
+                        + Mux(exception, no_trap_count + commit_trapping, retire_count),
                     )
 
                     for i in range(self.gen_params.retirement_superscalarity):
-                        with m.If(i - commit < no_trap_count):
+                        with m.If(i - commit_trapping < no_trap_count):
                             retire_instr(i, rob_entries.entries[i])
                         with m.Elif(i < retire_count):
                             flush_instr(i, rob_entries.entries[i])
