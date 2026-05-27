@@ -252,9 +252,6 @@ class CheckpointRAT(Elaboratable):
             with m.If(active_renames[k].valid):
                 m.d.sync += self.frat[active_renames[k].rl_dst].eq(active_renames[k].rp_dst)
 
-        for rename in self.rename:
-            for flush_restore in self.flush_restore:
-                flush_restore.add_conflict(rename, Priority.RIGHT)
         # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
         # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 

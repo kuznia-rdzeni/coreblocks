@@ -176,6 +176,10 @@ class TestRetirement(TestCaseWithSimulator):
     def mock_checkpoint_get_active_tags(self):
         return {"active_tags": -1}
 
+    @def_method_mock(lambda self: self.retc.mock_c_rat_restore)
+    def mock_c_rat_restore(self):
+        pass
+
     @def_method_mock(lambda self: self.retc.mock_checkpoint_tag_free)
     def mock_checkpoint_tag_free(self):
         pass
