@@ -374,6 +374,11 @@ jobs:
       options: --user root
     timeout-minutes: 20
     steps:
+      - name: Add required tools for github CI
+        run: |
+          apt-get update
+          apt-get install -y git tar gzip curl ca-certificates
+
       - name: Checkout
         uses: actions/checkout@v6
 
