@@ -45,7 +45,6 @@ BUILD_ARGS = [
     "-Wno-UNSIGNED",
     "-Wno-CMPCONST",
     "-Wno-LITENDIAN",
-    "-Wno-ALWNEVER",
     "-Wno-UNOPTFLAT",
 ]
 
