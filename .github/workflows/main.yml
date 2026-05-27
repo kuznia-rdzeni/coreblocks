@@ -377,7 +377,7 @@ jobs:
       - name: Add required tools for github CI
         run: |
           apt-get update
-          apt-get install -y git tar gzip curl ca-certificates
+          apt-get install -y git tar gzip curl ca-certificates build-essential libgmp-dev
 
       - name: Checkout
         uses: actions/checkout@v6
