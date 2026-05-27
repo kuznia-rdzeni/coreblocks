@@ -310,6 +310,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Fix git safe directory
+        working-directory: .
+        run: git config --global --add safe.directory /__w/coreblocks/coreblocks
+
       - name: Cache arch regression cocotb build
         id: cache-arch-regression-cocotb
         uses: actions/cache@v4
