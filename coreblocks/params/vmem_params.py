@@ -11,10 +11,10 @@ __all__ = [
 
 @dataclass(frozen=True)
 class TLBCacheConfiguration:
-    itlb_entries: int = 16
+    itlb_entries: int = 8
     """Number of L1i TLB entries"""
 
-    dtlb_entries: int = 16
+    dtlb_entries: int = 8
     """Number of L1d TLB entries"""
 
     l2tlb_entries: int = 128
