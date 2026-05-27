@@ -1,11 +1,15 @@
 from amaranth import *
+from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
 from transactron.lib import FIFO, Adapter
+from transactron.core import TModule
+from transactron.utils import DependencyContext
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
+from coreblocks.interface.keys import CSRInstancesKey, InstructionPrecommitKey
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
