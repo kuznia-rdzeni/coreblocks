@@ -57,10 +57,15 @@ class RRAT(Elaboratable):
         @def_methods(m, self.commit, ready=lambda _: initialized)
         def _(i: int, rp_dst: Value, rl_dst: Value):
             self.entries.write[i](m, addr=rl_dst, data=rp_dst)
-            return {"old_rp_dst": self.entries.read[i](m, addr=rl_dst).data}
+            return {"old_rp_dst": self.peek[i](m, rl_dst)}
 
         @def_methods(m, self.peek, ready=lambda _: initialized)
         def _(i: int, rl_dst: Value):
-            return self.entries.read[i](m, addr=rl_dst).data
+            old_rp_dst = Signal(self.gen_params.phys_regs_bits)
+            m.d.av_comb += old_rp_dst.eq(self.entries.read[i](m, addr=rl_dst).data)
+            for j in range(i):
+                with m.If(self.commit[j].run & (self.commit[j].data_in.rl_dst == rl_dst)):
+                    m.d.av_comb += old_rp_dst.eq(self.commit[j].data_in.rp_dst)
+            return old_rp_dst
 
         return m
