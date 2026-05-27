@@ -329,7 +329,6 @@ jobs:
               '**/docker/riscv-toolchain.Dockerfile',
               '**/.github/workflows/main.yml'
             ) }}
-          lookup-only: true
 
       - name: Set up Python
         if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
@@ -350,23 +349,6 @@ jobs:
         run: |
           . venv/bin/activate
           python -m test.regression.test_arch_regression --backend cocotb
-
-      - name: Save arch regression cocotb build cache
-        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v4
-        env:
-          cache-name: cache-arch-regression-cocotb
-        with:
-          path: |
-            test/regression/cocotb/build/riscv-arch-test/**
-          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '/__w/coreblocks/coreblocks/coreblocks/**',
-              '**/test/regression/test_arch_regression.py',
-              '**/pyproject.toml',
-              '**/docker/riscv-toolchain.Dockerfile',
-              '**/.github/workflows/main.yml'
-            ) }}
-
 
   build-arch-regression-tests:
     name: Build arch regression tests (riscv-arch-test - the real one)
@@ -404,7 +386,6 @@ jobs:
               '**/.gitmodules-hash',
               '**/.github/workflows/main.yml'
             ) }}
-          lookup-only: true
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Checkout with submodules
@@ -413,31 +394,12 @@ jobs:
           submodules: recursive
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
-        name: Set up mise
-        uses: jdx/mise-action@v4
-
-      - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Trust riscv-arch-test with mise
         run: mise trust test/external/riscv-arch-test/.mise.toml
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Build arch regression tests
-        run: PATH=/opt/sail/bin:$PATH make -C test/external/riscv-arch-test -j $(nproc)
-
-      - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
-        name: Save arch regression tests cache
-        uses: actions/cache/save@v4
-        env:
-          cache-name: cache-arch-regression-tests
-        with:
-          path: |
-            test/external/riscv-arch-test/elfs/**/*.elf
-          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscv-arch-test/Makefile',
-              '**/test/external/riscv-arch-test/coreblocks/**',
-              '**/.gitmodules-hash',
-              '**/.github/workflows/main.yml'
-            ) }}
+        run: make -C test/external/riscv-arch-test -j $(nproc)
 
       - name: Upload riscv-arch-test tests
         uses: actions/upload-artifact@v7
