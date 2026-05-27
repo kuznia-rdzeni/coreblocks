@@ -475,7 +475,6 @@ jobs:
             test/regression/cocotb/build/riscv-arch-test/**
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
               '**/coreblocks/**',
-              '**/test/regression/cocotb/**',
               '**/test/regression/test_arch_regression.py',
               '**/pyproject.toml',
               '**/docker/riscv-toolchain.Dockerfile',
