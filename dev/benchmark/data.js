@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779987758895,
+  "lastUpdate": 1779987761415,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -47228,6 +47228,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 16312,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1360,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1368,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4763,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d3773558a7adb57a4733ed15d569e970096ee8f",
+          "message": "Increase timeout for performance benchmarks to 60 minutes (#972)",
+          "timestamp": "2026-05-28T18:18:33+02:00",
+          "tree_id": "9c73895fd6b9c0177bef641a3e449d142267f146",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d3773558a7adb57a4733ed15d569e970096ee8f"
+        },
+        "date": 1779987760602,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.3,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15804,
             "unit": "LUT4"
           },
           {
