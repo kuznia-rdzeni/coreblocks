@@ -3,7 +3,7 @@ from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
-from transactron.utils import DependencyContext, mod_incr, HardwareLogger
+from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
 from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -95,6 +95,8 @@ class TLBCAM(Elaboratable):
         self.replace_candidate = Signal(range(ways))
         self.next_replacement_rr_index = Signal.like(self.replacement_rr_index)
 
+        self.matched_entry = Signal(TLBEntry(gen_params))
+
     def elaborate(self, platform):
         m = TModule()
 
@@ -130,6 +132,13 @@ class TLBCAM(Elaboratable):
                 m.d.comb += self.replace_candidate.eq(way)
 
         m.d.comb += self.next_replacement_rr_index.eq(mod_incr(self.replacement_rr_index, self.ways))
+
+        first_full_match_one_hot = Signal(self.ways)
+        m.d.comb += first_full_match_one_hot.eq(self.full_match & (~self.full_match + 1))
+        m.d.comb += self.matched_entry.eq(or_value([
+            self.ways_data[way].as_value() & first_full_match_one_hot[way].replicate(self.matched_entry.as_value().shape().width)
+            for way in range(self.ways)
+        ]))
 
         return m
 
@@ -214,17 +223,11 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
             self.perf_loads.incr(m)
             self.perf_latency.start(m)
 
-            found_entry = Signal(TLBEntry(self.gen_params))
-
-            for way in range(self.entries):
-                with m.If(cam.full_match[way]):
-                    m.d.av_comb += found_entry.eq(cam.ways_data[way])
-
             ask_backing = Signal()
             with m.If(~cam.full_match.any()):
                 m.d.av_comb += ask_backing.eq(1)
             if self.gen_params.vmem_params.supports_auto_a_d_management:
-                with m.Elif(is_store & ~found_entry.permissions.d):
+                with m.Elif(is_store & ~cam.matched_entry.permissions.d):
                     # We have found an entry, but it doesn't have the dirty bit set
                     # Ask the backing resolver to set it (Svade semantic)
                     m.d.av_comb += ask_backing.eq(1)
@@ -239,9 +242,9 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                 fwd.write(
                     m,
                     result=AddressTranslationLayouts.TLBResult.HIT,
-                    permissions=found_entry.permissions,
-                    ppn=found_entry.ppn,
-                    size_class=found_entry.size_class,
+                    permissions=cam.matched_entry.permissions,
+                    ppn=cam.matched_entry.ppn,
+                    size_class=cam.matched_entry.size_class,
                 )
 
         m.submodules += ConnectTrans.create(slow_fwd.read, self.backing_resolver.request)
@@ -391,19 +394,13 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         with Transaction(name="TLBLookup").body(m, ready=~slow_path):
             req = request_pipe.peek(m)
 
-            found_entry = Signal(TLBEntry(self.gen_params))
-
-            for way in range(self.ways):
-                with m.If(cam.full_match[way]):
-                    m.d.av_comb += found_entry.eq(cam.ways_data[way])
-
             miss = Signal()
             ask_backing = Signal()
 
             m.d.av_comb += miss.eq(~cam.full_match.any())
 
             if self.gen_params.vmem_params.supports_auto_a_d_management:
-                if ~miss & req.is_store & ~found_entry.permissions.d:
+                if ~miss & req.is_store & ~cam.matched_entry.permissions.d:
                     m.d.av_comb += ask_backing.eq(1)
 
             max_class = self.gen_params.vmem_params.max_tlb_size_class
@@ -428,9 +425,9 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                 fwd.write(
                     m,
                     result=AddressTranslationLayouts.TLBResult.HIT,
-                    permissions=found_entry.permissions,
-                    ppn=found_entry.ppn,
-                    size_class=found_entry.size_class,
+                    permissions=cam.matched_entry.permissions,
+                    ppn=cam.matched_entry.ppn,
+                    size_class=cam.matched_entry.size_class,
                 )
 
         refill_set_idx = Signal(set_index_bits)
