@@ -135,10 +135,15 @@ class TLBCAM(Elaboratable):
 
         first_full_match_one_hot = Signal(self.ways)
         m.d.comb += first_full_match_one_hot.eq(self.full_match & (~self.full_match + 1))
-        m.d.comb += self.matched_entry.eq(or_value([
-            self.ways_data[way].as_value() & first_full_match_one_hot[way].replicate(self.matched_entry.as_value().shape().width)
-            for way in range(self.ways)
-        ]))
+        m.d.comb += self.matched_entry.eq(
+            or_value(
+                [
+                    self.ways_data[way].as_value()
+                    & first_full_match_one_hot[way].replicate(self.matched_entry.as_value().shape().width)
+                    for way in range(self.ways)
+                ]
+            )
+        )
 
         return m
 
