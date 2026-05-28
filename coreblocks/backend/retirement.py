@@ -177,7 +177,7 @@ class Retirement(Elaboratable):
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
-                with Transaction().body(m, ready=retire_valid):
+                with Transaction(name="Retirement_NORMAL").body(m, ready=retire_valid):
                     self.rob_retire(m, count=retire_count)
 
                     with m.If((tag_incr_mask & ~(-1 << retire_count)).any()):
@@ -261,7 +261,7 @@ class Retirement(Elaboratable):
                             flush_instr(i, rob_entries.entries[i])
 
             with m.State("TRAP_FLUSH"):
-                with Transaction().body(m):
+                with Transaction(name="Retirement_FLUSH").body(m):
                     # Flush entire core
                     self.rob_retire(m, count=retire_count)
 
@@ -278,7 +278,7 @@ class Retirement(Elaboratable):
                         m.next = "TRAP_RESUME"
 
             with m.State("TRAP_RESUME"):
-                with Transaction().body(m):
+                with Transaction(name="Retirement_RESUME").body(m):
                     # Resume core operation
                     self.perf_trap_latency.stop(m)
 
