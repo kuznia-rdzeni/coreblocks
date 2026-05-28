@@ -219,21 +219,18 @@ class FetchUnit(Elaboratable):
             # The index (in instructions) of the first instruction that we should process.
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
-            # Conditionally read from icache or mark fault
+            # Conditionally read from icache
             cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
             access_fault = Signal(FetchLayouts.FaultFlag)
 
-            with condition(m) as branch:
-                with branch(fetch_request.page_fault | fetch_request.access_fault):
-                    with m.If(fetch_request.page_fault):
-                        m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)
-                    with m.Else():
-                        m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.ACCESS_FAULT)
-                    m.d.av_comb += cache_resp.fetch_block.eq(0)
-                    m.d.av_comb += cache_resp.error.eq(0)
-                with branch():
+            with condition(m, nonblocking=True) as branch:
+                with branch(~fetch_request.page_fault & ~fetch_request.access_fault):
                     m.d.av_comb += cache_resp.eq(self.icache.accept_res(m))
-                    m.d.av_comb += access_fault.eq(Mux(cache_resp.error, FetchLayouts.FaultFlag.ACCESS_FAULT, 0))
+
+            with m.If(fetch_request.page_fault):
+                m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)
+            with m.Elif(fetch_request.access_fault | cache_resp.error):
+                m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.ACCESS_FAULT)
 
             #
             # Expand compressed instructions from the fetch block.
