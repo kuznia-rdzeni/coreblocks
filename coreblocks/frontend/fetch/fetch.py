@@ -1,7 +1,7 @@
 from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from transactron.lib import BasicFifo, ConnectTrans, WideFifo, Semaphore, Pipe
+from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
