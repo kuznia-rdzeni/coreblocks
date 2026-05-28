@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779831720291,
+  "lastUpdate": 1779987758895,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -22933,6 +22933,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a4c605ab9368c7216cd40a35cf7023aa87905974"
         },
         "date": 1779831704484,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4614225829499819,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.587177069044353,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3867965257096026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6602286164761529,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3704661418050008,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32127744283926746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3548617685129731,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45810483356714704,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7d3773558a7adb57a4733ed15d569e970096ee8f",
+          "message": "Increase timeout for performance benchmarks to 60 minutes (#972)",
+          "timestamp": "2026-05-28T18:18:33+02:00",
+          "tree_id": "9c73895fd6b9c0177bef641a3e449d142267f146",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d3773558a7adb57a4733ed15d569e970096ee8f"
+        },
+        "date": 1779987747642,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
