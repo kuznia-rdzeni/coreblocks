@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import count_trailing_zeros
+from transactron.utils import count_trailing_zeros, or_value
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionRegisterLayouts,
@@ -158,16 +158,21 @@ class Retirement(Elaboratable):
             m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
             m.d.av_comb += retire_count.eq(count_trailing_zeros(safe_mask))
 
-            m.d.av_comb += no_trap_count.eq(
-                count_trailing_zeros(Cat(entry.exception for entry in rob_entries.entries) | safe_mask)
-            )
+            exception_bits = Signal(self.gen_params.retirement_superscalarity)
+            m.d.av_comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries))
+            m.d.av_comb += no_trap_count.eq(count_trailing_zeros(exception_bits | safe_mask))
             m.d.av_comb += exception.eq(no_trap_count < retire_count)
 
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
             ecr_entry = self.exception_cause_get(m)
+            exception_one_hot = Signal.like(exception_bits)
+            m.d.av_comb += exception_one_hot.eq(exception_bits & (~exception_bits + 1))
+            exception_rob_id = or_value(
+                rob_entry.rob_id & exception_one_hot[i].replicate(rob_entry.rob_id.shape().width)
+                for i, rob_entry in enumerate(rob_entries.entries)
+            )
             m.d.av_comb += retire_valid.eq(
-                ~exception
-                | (exception & ecr_entry.valid & (ecr_entry.rob_id == rob_entries.entries[no_trap_count].rob_id))
+                ~exception | (exception & ecr_entry.valid & (ecr_entry.rob_id == exception_rob_id))
             )
 
         with m.FSM("NORMAL") as fsm:
