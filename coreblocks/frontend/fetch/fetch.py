@@ -155,15 +155,8 @@ class FetchUnit(Elaboratable):
 
             self.addr_translator.request(m, addr=pc, is_store=0)
 
-        if self.gen_params.vmem_params.supported_non_bare_schemes:
-            m.submodules.addr_translator_pipe = addr_translator_pipe = Pipe(self.addr_translator.accept.layout_out)
-            translated_get = addr_translator_pipe.read
-            m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_pipe.write)
-        else:
-            translated_get = self.addr_translator.accept
-
         with Transaction().body(m):
-            translated = translated_get(m)
+            translated = self.addr_translator.accept(m)
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
