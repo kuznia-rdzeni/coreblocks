@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780049895781,
+  "lastUpdate": 1780049897591,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -64197,6 +64197,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 50831,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3528,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2632,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 10161,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "52679877+kambrch@users.noreply.github.com",
+            "name": "Kamil Andrzej Bruchal",
+            "username": "kambrch"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "63b9b9e61fe2f0b925e215c44eaa952817cf076c",
+          "message": "test: fix pytest hook order so count runs after -k/-m (#753) (#973)",
+          "timestamp": "2026-05-29T11:35:24+02:00",
+          "tree_id": "93931d2fc9357d7196eabe436f3654947ea98907",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/63b9b9e61fe2f0b925e215c44eaa952817cf076c"
+        },
+        "date": 1780049897192,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.13,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 49508,
             "unit": "LUT4"
           },
           {
