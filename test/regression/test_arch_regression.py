@@ -235,18 +235,18 @@ def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
         assert len(list(tree.iter("failure"))) == 0
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def sim_backend(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_backend")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
 @pytest.fixture(scope="session")
-def verilate_arch_model(worker_id, request: pytest.FixtureRequest):
+def verilate_arch_model(worker_id, traces_enabled, request: pytest.FixtureRequest):
     """
     Fixture to prevent races when building the cocotb/Verilator model for
     arch-regression. It runs only in distributed, cocotb mode and executes a
@@ -260,7 +260,7 @@ def verilate_arch_model(worker_id, request: pytest.FixtureRequest):
     counter_path = "_coreblocks_arch_regression.counter"
     # perform locked build and increment the counter so teardown can know when
     # to remove the lock files
-    build_cocotb_module_under_lock(traces=request.config.getoption("coreblocks_traces"), increment_counter=True)
+    build_cocotb_module_under_lock(traces=traces_enabled, increment_counter=True)
     yield
     # Session teardown
     deferred_remove = False
@@ -277,7 +277,9 @@ def verilate_arch_model(worker_id, request: pytest.FixtureRequest):
         os.remove(counter_path)
 
 
-def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model):
+def test_entrypoint(
+    arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
+):
     # TODO: add pysim support
     if sim_backend != "cocotb":
         raise NotImplementedError("Only cocotb backend is supported for arch regression tests")
