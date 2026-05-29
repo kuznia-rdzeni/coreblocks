@@ -13,4 +13,6 @@ from test.regression.test_arch_regression import run_arch_elf  # noqa: E402
 @cocotb.test
 async def do_test(dut):
     test_name = os.environ["TESTNAME"]
+    if test_name == "SKIP":
+        return
     await run_arch_elf(CocotbSimulation(dut), test_name)

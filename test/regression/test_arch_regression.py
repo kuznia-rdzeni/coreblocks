@@ -1,7 +1,6 @@
 from typing import Literal
 from pathlib import Path
 from filelock import FileLock
-from cocotb import runner as cocotb_runner
 import pytest
 import argparse
 import os
@@ -9,6 +8,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as eT
+import json
 
 from .conftest import arch_tests_dir
 from .memory import (
@@ -25,34 +26,23 @@ from .memory import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build" / "riscv-arch-test"
+TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
 
 VERILOG_LOCK_FILE = BUILD_ROOT / "verilog.lock"
 VERILOG_STAMP = BUILD_ROOT / "verilog.built"
 VERILOG_ROOT = BUILD_ROOT / "verilog"
 
+COCOTB_ROOT = BUILD_ROOT / "cocotb"
+COCOTB_BUILT_STAMP = COCOTB_ROOT / "built.stamp"
+
 CORE_V = VERILOG_ROOT / "core.v"
 CORE_V_JSON = VERILOG_ROOT / "core.v.json"
-
-COCOTB_ELF_ENTRYPOINT = "arch_elf_entrypoint"
-COCOTB_TEST_DIR = REPO_ROOT / "test" / "regression" / "cocotb"
-ARCH_REGRESSION_TESTS_PREFIX = "test.regression.arch."
-
-BUILD_ARGS = [
-    "-Wno-CASEINCOMPLETE",
-    "-Wno-CASEOVERLAP",
-    "-Wno-WIDTHEXPAND",
-    "-Wno-WIDTHTRUNC",
-    "-Wno-UNSIGNED",
-    "-Wno-CMPCONST",
-    "-Wno-LITENDIAN",
-    "-Wno-UNOPTFLAT",
-]
-
-ZIFENCEI_PATTERN = re.compile("zifencei", re.IGNORECASE)
 
 END_TEST_ADDRESS = 0xF0000000
 CONSOLE_ADDRESS = 0xF0001000
 ACCESS_FAULT_ADDRESS = 0x00000010
+
+ZIFENCEI_PATTERN = re.compile(r"zifencei")
 
 
 class EndTestMMIO(MemorySegment):
@@ -108,92 +98,23 @@ class AccessFaultAddressMMIO(MemorySegment):
         return WriteReply(status=ReplyStatus.ERROR)
 
 
-class ArchTestConfig:
-    simulator: str
-    traces: bool
+def get_arg_list(test_name: str, result_path: str, traces: bool = False) -> list[str]:
+    arglist = ["make", "-C", str(TEST_ROOT), "-f", "arch_test.Makefile"]
+    arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
+    arglist += [f"VERILOG_SOURCES={CORE_V}"]
+    arglist += [f"TESTNAME={test_name}"]
+    if result_path:
+        arglist += [f"COCOTB_RESULTS_FILE={result_path}"]
 
-    def __init__(self, traces: bool, simulator: str | None = None):
-        self.traces = traces
-        self.simulator = simulator or os.getenv("SIM", "verilator")
+    if traces:
+        arglist += ["TRACES=1"]
 
-    def config_name(self) -> str:
-        name = self.simulator
-        if self.traces:
-            name += "_traces"
-        return name
-
-    def build_dir(self) -> Path:
-        return BUILD_ROOT / self.config_name()
-
-    def lock_file(self) -> Path:
-        return BUILD_ROOT / f"{self.config_name()}.lock"
-
-    def built_stamp(self) -> Path:
-        return BUILD_ROOT / f"{self.config_name()}.built"
-
-    def extra_args(self) -> list[str]:
-        args = []
-        if self.traces:
-            args.append("--trace-fst")
-            args.append("--trace-structs")
-        return args
+    return arglist
 
 
 def _set_transactron_env_defaults() -> None:
     os.environ.setdefault("__TRANSACTRON_LOG_LEVEL", "WARNING")
     os.environ.setdefault("__TRANSACTRON_LOG_FILTER", ".*")
-
-    makeflags = os.environ.get("MAKEFLAGS", "")
-    if "-j" not in makeflags and "--jobs" not in makeflags:
-        num_cpus = os.cpu_count() or 1
-        os.environ["MAKEFLAGS"] = makeflags + f" -j{num_cpus}"
-
-
-def cocotb_get_runner(config: ArchTestConfig):
-    runner = cocotb_runner.get_runner(config.simulator)
-    runner.build(
-        sources=[str(CORE_V)],
-        build_dir=config.build_dir(),
-        build_args=BUILD_ARGS + config.extra_args(),
-        hdl_toplevel="top",
-    )
-    return runner
-
-
-def ensure_arch_test_cocotb_build(config: ArchTestConfig) -> None:
-    _set_transactron_env_defaults()
-
-    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
-
-    if not VERILOG_STAMP.exists():
-        with FileLock(VERILOG_LOCK_FILE):
-            if not VERILOG_STAMP.exists():
-                VERILOG_ROOT.mkdir(parents=True, exist_ok=True)
-                command = [
-                    sys.executable,
-                    "-m",
-                    "coreblocks.gen_verilog",
-                    "--config",
-                    "full",
-                    "--reset-pc",
-                    "0x80000000",
-                    "--with-socks",
-                    "-o",
-                    str(CORE_V),
-                ]
-                subprocess.run(command, check=True, cwd=REPO_ROOT)
-                VERILOG_STAMP.write_text("built\n")
-
-    if config.built_stamp().exists():
-        return
-
-    with FileLock(config.lock_file()):
-        if config.built_stamp().exists():
-            return
-
-        config.build_dir().mkdir(parents=True, exist_ok=True)
-        _ = cocotb_get_runner(config)
-        config.built_stamp().write_text("built\n")
 
 
 def build_memory_model(elf_path: str | Path, stop_callback, **kwargs) -> tuple[CoreMemoryModel, EndTestMMIO]:
@@ -207,9 +128,7 @@ def build_memory_model(elf_path: str | Path, stop_callback, **kwargs) -> tuple[C
 
 
 async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 2_000_000):
-    os.environ.setdefault("__TRANSACTRON_LOG_LEVEL", "WARNING")
-    os.environ.setdefault("__TRANSACTRON_LOG_FILTER", ".*")
-
+    _set_transactron_env_defaults()
     elf_path = Path(elf_path).resolve()
 
     mem_model, endtest = build_memory_model(
@@ -229,33 +148,91 @@ async def run_test(sim_backend, test_name: str):
     await run_arch_elf(sim_backend, elf_path, timeout_cycles=2_000_000)
 
 
-def run_arch_test_elf_with_cocotb(elf_paths: list[Path], *, traces: bool = False):
-    config = ArchTestConfig(traces=traces)
+def ensure_arch_test_cocotb_build():
     _set_transactron_env_defaults()
-    ensure_arch_test_cocotb_build(config)
-    runner = cocotb_get_runner(config)
+
+    VERILOG_ROOT.mkdir(parents=True, exist_ok=True)
+
+    if VERILOG_STAMP.exists():
+        return
+
+    with FileLock(VERILOG_LOCK_FILE):
+        if VERILOG_STAMP.exists():
+            return
+
+        command = [
+            sys.executable,
+            "-m",
+            "coreblocks.gen_verilog",
+            "--config",
+            "full",
+            "--reset-pc",
+            "0x80000000",
+            "--with-socks",
+            "-o",
+            str(CORE_V),
+        ]
+        subprocess.run(command, check=True, cwd=REPO_ROOT)
+        VERILOG_STAMP.write_text("built\n")
+
+
+def build_cocotb_module_under_lock(traces: bool, increment_counter: bool = False) -> None:
+    """
+    Acquire a file lock, ensure Verilog sources are generated, and run the
+    cocotb Makefile once (TESTNAME=SKIP) to build the cocotb/python module.
+
+    If `increment_counter` is True, a counter file will be incremented so that
+    callers (pytest fixture) can perform a coordinated teardown.
+    """
+    lock_path = "_coreblocks_arch_regression.lock"
+    counter_path = "_coreblocks_arch_regression.counter"
+
+    # Ensure the Verilog sources are present
+    ensure_arch_test_cocotb_build()
+
+    with FileLock(lock_path):
+        # If the cocotb build stamp exists, nothing to do. Otherwise run
+        # the Makefile to build the cocotb module.
+        COCOTB_BUILT_STAMP.parent.mkdir(parents=True, exist_ok=True)
+
+        if not COCOTB_BUILT_STAMP.exists():
+            tmp_result_file = tempfile.NamedTemporaryFile("r")
+            arglist = get_arg_list("SKIP", tmp_result_file.name, traces=traces)
+            res = subprocess.run(arglist)
+            if res.returncode != 0:
+                raise RuntimeError("Arch test cocotb make build failed")
+
+            tree = eT.parse(tmp_result_file.name)
+            if len(list(tree.iter("failure"))) != 0:
+                raise RuntimeError("Arch test cocotb make build failed with test failure")
+
+            COCOTB_BUILT_STAMP.write_text("built\n")
+
+        # Always increment counter if requested (workers coordination)
+        if increment_counter:
+            if os.path.exists(counter_path):
+                with open(counter_path, "r") as counter_file:
+                    c = json.load(counter_file)
+            else:
+                c = 0
+            with open(counter_path, "w") as counter_file:
+                json.dump(c + 1, counter_file)
+
+
+def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
+    build_cocotb_module_under_lock(traces=traces)
+
+    my_env = dict(os.environ)
+    my_env["PATH"] = str(TEST_ROOT) + ":" + my_env.get("PATH", "")
 
     for elf_path in elf_paths:
-        elf_path = elf_path.resolve()
-        extra_env = {
-            "TESTNAME": str(elf_path),
-            "_COREBLOCKS_GEN_INFO": str(CORE_V_JSON),
-        }
+        tmp_result_file = tempfile.NamedTemporaryFile("r")
+        arglist = get_arg_list(str(elf_path.resolve()), tmp_result_file.name, traces=traces)
+        res = subprocess.run(arglist, env=my_env)
+        assert res.returncode == 0
 
-        results_file = tempfile.NamedTemporaryFile(suffix=".xml", prefix="cocotb_results_", delete=False)
-
-        runner.test(
-            test_module=COCOTB_ELF_ENTRYPOINT,
-            hdl_toplevel="top",
-            build_dir=config.build_dir(),
-            test_dir=COCOTB_TEST_DIR,
-            extra_env=extra_env,
-            test_args=config.extra_args(),
-            results_xml=str(results_file.name),
-        )
-
-        _, fails = cocotb_runner.get_results(Path(results_file.name))
-        assert fails == 0
+        tree = eT.parse(tmp_result_file.name)
+        assert len(list(tree.iter("failure"))) == 0
 
 
 @pytest.fixture
@@ -268,13 +245,45 @@ def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
-def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+@pytest.fixture(scope="session")
+def verilate_arch_model(worker_id, request: pytest.FixtureRequest):
+    """
+    Fixture to prevent races when building the cocotb/Verilator model for
+    arch-regression. It runs only in distributed, cocotb mode and executes a
+    'SKIP' run via the arch Makefile to ensure the cocotb module is built.
+    """
+    if request.session.config.getoption("coreblocks_backend") != "cocotb" or worker_id == "master":
+        yield None
+        return
+
+    lock_path = "_coreblocks_arch_regression.lock"
+    counter_path = "_coreblocks_arch_regression.counter"
+    # perform locked build and increment the counter so teardown can know when
+    # to remove the lock files
+    build_cocotb_module_under_lock(traces=request.config.getoption("coreblocks_traces"), increment_counter=True)
+    yield
+    # Session teardown
+    deferred_remove = False
+    with FileLock(lock_path):
+        with open(counter_path, "r") as counter_file:
+            c = json.load(counter_file)
+        if c == 1:
+            deferred_remove = True
+        else:
+            with open(counter_path, "w") as counter_file:
+                json.dump(c - 1, counter_file)
+    if deferred_remove:
+        os.remove(lock_path)
+        os.remove(counter_path)
+
+
+def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model):
     # TODO: add pysim support
     if sim_backend != "cocotb":
         raise NotImplementedError("Only cocotb backend is supported for arch regression tests")
 
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
-    run_arch_test_elf_with_cocotb([path], traces=traces_enabled)
+    regression_body_with_cocotb([path], traces=traces_enabled)
 
 
 def main():
@@ -288,7 +297,7 @@ def main():
     elf_paths = [path.resolve() for path in args.elf_path]
 
     # TODO: add pysim support
-    run_arch_test_elf_with_cocotb(elf_paths, traces=args.traces)
+    regression_body_with_cocotb(elf_paths, traces=args.traces)
 
 
 if __name__ == "__main__":

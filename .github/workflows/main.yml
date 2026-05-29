@@ -353,6 +353,7 @@ jobs:
       - name: Upload arch regression cocotb module build
         uses: actions/upload-artifact@v7
         with:
+          name: "riscv-arch-test-cocotb-module"
           path: test/regression/cocotb/build/riscv-arch-test
 
   build-arch-regression-tests:
@@ -409,6 +410,7 @@ jobs:
       - name: Upload riscv-arch-test tests
         uses: actions/upload-artifact@v7
         with:
+          name: "riscv-arch-test-elfs"
           path: test/external/riscv-arch-test/elfs
 
   run-arch-regression-tests:
@@ -474,7 +476,6 @@ jobs:
         run: |
           . venv/bin/activate
           ./scripts/run_tests.py --arch-tests -v -b cocotb regression
-
 
   unit-test:
     name: Run unit tests
