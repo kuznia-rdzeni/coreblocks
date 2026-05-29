@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779987763860,
+  "lastUpdate": 1780049894010,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -22997,6 +22997,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7d3773558a7adb57a4733ed15d569e970096ee8f"
         },
         "date": 1779987747642,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4614225829499819,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.587177069044353,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3867965257096026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6602286164761529,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3704661418050008,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32127744283926746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3548617685129731,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45810483356714704,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "52679877+kambrch@users.noreply.github.com",
+            "name": "Kamil Andrzej Bruchal",
+            "username": "kambrch"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "63b9b9e61fe2f0b925e215c44eaa952817cf076c",
+          "message": "test: fix pytest hook order so count runs after -k/-m (#753) (#973)",
+          "timestamp": "2026-05-29T11:35:24+02:00",
+          "tree_id": "93931d2fc9357d7196eabe436f3654947ea98907",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/63b9b9e61fe2f0b925e215c44eaa952817cf076c"
+        },
+        "date": 1780049884733,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
