@@ -350,11 +350,16 @@ jobs:
           . venv/bin/activate
           python -m test.regression.test_arch_regression --backend cocotb
 
+      - name: Upload arch regression cocotb module build
+        uses: actions/upload-artifact@v7
+        with:
+          path: test/regression/cocotb/build/riscv-arch-test
+
   build-arch-regression-tests:
     name: Build arch regression tests (riscv-arch-test - the real one)
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/riscv/act4-build:sha-4cd41d2bc9c6b827d89ef38cde1620e2a3e26f6a
+      image: ghcr.io/riscv/act4-build:sha-b16f90769d554d9dd42fa71fe9ba64054a4b7964
       options: --user root
     timeout-minutes: 20
     steps:
