@@ -207,7 +207,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.submodules.cam = cam = TLBCAM(self.gen_params, self.entries)
         m.d.comb += cam.ways_data.eq(entries)
 
-        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.fwd = fwd = Pipe(self.layout.tlb_accept)
         m.submodules.slow_fwd = slow_fwd = Forwarder(self.layout.tlb_request)
 
         request_in_flight = Signal()
