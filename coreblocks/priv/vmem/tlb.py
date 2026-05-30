@@ -75,6 +75,9 @@ class TLBCAM(Elaboratable):
     next_replacement_rr_index: Signal
     """Value of replacement_rr_index after replacement."""
 
+    matched_entry: View
+    """The entry matching the current lookup (using full_match)"""
+
     def __init__(self, gen_params: GenParams, ways: int):
         self.gen_params = gen_params
         self.ways = ways
@@ -137,11 +140,7 @@ class TLBCAM(Elaboratable):
         m.d.comb += first_full_match_one_hot.eq(self.full_match & (~self.full_match + 1))
         m.d.comb += self.matched_entry.eq(
             or_value(
-                [
-                    self.ways_data[way].as_value()
-                    & first_full_match_one_hot[way].replicate(self.matched_entry.as_value().shape().width)
-                    for way in range(self.ways)
-                ]
+                [Mux(first_full_match_one_hot[way], self.ways_data[way].as_value(), 0) for way in range(self.ways)]
             )
         )
 
