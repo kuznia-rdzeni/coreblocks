@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.enum import Enum, unique, auto
 
 from transactron import Method, TModule, def_method, Transaction
-from transactron.lib import Forwarder, condition
+from transactron.lib import Forwarder, condition, BasicFifo, ConnectTrans
 from transactron.utils import DependencyContext, make_layout, HardwareLogger
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE_LOG
@@ -72,6 +72,11 @@ class AddressTranslator(Elaboratable):
         if self.tlb is not None:
             m.submodules.tlb = self.tlb
 
+            m.submodules.tlb_request = tlb_request = BasicFifo(self.layouts.request, depth=2)
+            m.submodules += ConnectTrans.create(self.tlb.request, tlb_request.read)
+        else:
+            tlb_request = None
+
         csr = self.dm.get_dependency(CSRInstancesKey())
 
         effective_priv_mode = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
@@ -126,7 +131,8 @@ class AddressTranslator(Elaboratable):
 
             if self.tlb is not None:
                 with m.If((effective_satp_mode != SatpMode.BARE) & ~vpn_invalid):
-                    self.tlb.request(
+                    assert tlb_request is not None
+                    tlb_request.write(
                         m,
                         vpn=vpn,
                         is_store=is_store,

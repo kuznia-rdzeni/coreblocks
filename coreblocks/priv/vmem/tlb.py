@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
-from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans, BasicFifo
+from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
 
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -208,7 +208,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.submodules.cam = cam = TLBCAM(self.gen_params, self.entries)
         m.d.comb += cam.ways_data.eq(entries)
 
-        m.submodules.fwd = fwd = BasicFifo(self.layout.tlb_accept, depth=2)
+        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
         m.submodules.slow_fwd = slow_fwd = Forwarder(self.layout.tlb_request)
 
         request_in_flight = Signal()
