@@ -40,7 +40,7 @@ CORE_V_JSON = VERILOG_ROOT / "core.v.json"
 
 END_TEST_ADDRESS = 0xF0000000
 CONSOLE_ADDRESS = 0xF0001000
-ACCESS_FAULT_ADDRESS = 0x00000010
+ACCESS_FAULT_ADDRESS = 0x00000000
 
 ZIFENCEI_PATTERN = re.compile(r"zifencei")
 
@@ -87,7 +87,7 @@ class ConsoleMMIO(MemorySegment):
 class AccessFaultAddressMMIO(MemorySegment):
     def __init__(self):
         super().__init__(
-            range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 8),
+            range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 128),
             SegmentFlags.READ | SegmentFlags.WRITE | SegmentFlags.EXECUTABLE,
         )
 
