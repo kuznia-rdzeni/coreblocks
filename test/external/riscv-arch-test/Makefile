@@ -20,13 +20,15 @@ ARCH_TEST_EXCLUDE_FAILING += InterruptsSm InterruptsS InterruptsU
 ARCH_TEST_EXCLUDE_FAILING += ExceptionsZaamo
 # sail does not support reservations sets > 12 bits
 ARCH_TEST_EXCLUDE_FAILING += ExceptionsZalrsc
+# don't know
+ARCH_TEST_EXCLUDE_FAILING += SsstrictU
 
 ARCH_TEST_EXCLUDE_TIMEOUT += U
 ARCH_TEST_EXCLUDE_TIMEOUT += ExceptionsS
 # PMPSm does not compile
 ARCH_TEST_EXCLUDE_TIMEOUT += PMPS PMPU PMPZca PMPZaamo PMPZalrsc
 # "SsstrictS" does not compile
-ARCH_TEST_EXCLUDE_TIMEOUT += SsstrictSm SsstrictU
+ARCH_TEST_EXCLUDE_TIMEOUT += SsstrictSm
 
 EXCLUDE_EXTENSIONS_SET = $(ARCH_TEST_NOT_COMPILING) $(ARCH_TEST_EXCLUDE_FAILING) $(ARCH_TEST_EXCLUDE_TIMEOUT)
 EXCLUDE_EXTENSIONS = $(shell echo "$(EXCLUDE_EXTENSIONS_SET)" | tr ' ' ',')
