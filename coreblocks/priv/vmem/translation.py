@@ -74,8 +74,12 @@ class AddressTranslator(Elaboratable):
 
             m.submodules.tlb_request = tlb_request = BasicFifo(self.tlb.request.layout_in, depth=2)
             m.submodules += ConnectTrans.create(self.tlb.request, tlb_request.read)
+
+            m.submodules.tlb_accept = tlb_accept = BasicFifo(self.tlb.accept.layout_out, depth=2)
+            m.submodules += ConnectTrans.create(tlb_accept.write, self.tlb.accept)
         else:
             tlb_request = None
+            tlb_accept = None
 
         csr = self.dm.get_dependency(CSRInstancesKey())
 
@@ -169,7 +173,8 @@ class AddressTranslator(Elaboratable):
             if self.tlb is not None:
                 with condition(m, nonblocking=True) as branch:
                     with branch((effective_satp_mode != SatpMode.BARE) & ~data.vpn_invalid):
-                        m.d.av_comb += tlb_data.eq(self.tlb.accept(m))
+                        assert tlb_accept is not None
+                        m.d.av_comb += tlb_data.eq(tlb_accept.read(m))
 
             with m.If(effective_satp_mode == SatpMode.BARE):
                 m.d.av_comb += ppn.eq(vpn)
