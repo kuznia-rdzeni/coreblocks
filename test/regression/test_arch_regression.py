@@ -32,8 +32,7 @@ VERILOG_LOCK_FILE = BUILD_ROOT / "verilog.lock"
 VERILOG_STAMP = BUILD_ROOT / "verilog.built"
 VERILOG_ROOT = BUILD_ROOT / "verilog"
 
-COCOTB_ROOT = BUILD_ROOT / "cocotb"
-COCOTB_BUILT_STAMP = COCOTB_ROOT / "built.stamp"
+BUILT_LOCK_FILE = BUILD_ROOT / "cocotb.lock"
 
 CORE_V = VERILOG_ROOT / "core.v"
 CORE_V_JSON = VERILOG_ROOT / "core.v.json"
@@ -181,48 +180,20 @@ def ensure_arch_test_cocotb_build():
         VERILOG_STAMP.write_text("built\n")
 
 
-def build_cocotb_module_under_lock(traces: bool, increment_counter: bool = False) -> None:
-    """
-    Acquire a file lock, ensure Verilog sources are generated, and run the
-    cocotb Makefile once (TESTNAME=SKIP) to build the cocotb/python module.
-
-    If `increment_counter` is True, a counter file will be incremented so that
-    callers (pytest fixture) can perform a coordinated teardown.
-    """
-    lock_path = "_coreblocks_arch_regression.lock"
-    counter_path = "_coreblocks_arch_regression.counter"
-
+def build_cocotb_module_under_lock(traces: bool) -> None:
     # Ensure the Verilog sources are present
     ensure_arch_test_cocotb_build()
 
-    with FileLock(lock_path):
-        # If the cocotb build stamp exists, nothing to do. Otherwise run
-        # the Makefile to build the cocotb module.
-        COCOTB_BUILT_STAMP.parent.mkdir(parents=True, exist_ok=True)
+    with FileLock(BUILT_LOCK_FILE):
+        tmp_result_file = tempfile.NamedTemporaryFile("r")
+        arglist = get_arg_list("SKIP", tmp_result_file.name, traces=traces)
+        res = subprocess.run(arglist)
+        if res.returncode != 0:
+            raise RuntimeError("Arch test cocotb make build failed")
 
-        if not COCOTB_BUILT_STAMP.exists():
-            tmp_result_file = tempfile.NamedTemporaryFile("r")
-            arglist = get_arg_list("SKIP", tmp_result_file.name, traces=traces)
-            res = subprocess.run(arglist)
-            if res.returncode != 0:
-                raise RuntimeError("Arch test cocotb make build failed")
-
-            tree = eT.parse(tmp_result_file.name)
-            if len(list(tree.iter("failure"))) != 0:
-                raise RuntimeError("Arch test cocotb make build failed with test failure")
-
-            COCOTB_BUILT_STAMP.write_text("built\n")
-
-        # Always increment counter if requested (workers coordination)
-        if increment_counter:
-            if os.path.exists(counter_path):
-                with open(counter_path, "r") as counter_file:
-                    c = json.load(counter_file)
-            else:
-                c = 0
-            with open(counter_path, "w") as counter_file:
-                json.dump(c + 1, counter_file)
-
+        tree = eT.parse(tmp_result_file.name)
+        if len(list(tree.iter("failure"))) != 0:
+            raise RuntimeError("Arch test cocotb make build failed with test failure")
 
 def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
     build_cocotb_module_under_lock(traces=traces)
@@ -251,13 +222,13 @@ def traces_enabled(request: pytest.FixtureRequest):
 
 
 @pytest.fixture(scope="session")
-def verilate_arch_model(worker_id, traces_enabled, request: pytest.FixtureRequest):
+def verilate_arch_model(worker_id, sim_backend, traces_enabled, request: pytest.FixtureRequest):
     """
     Fixture to prevent races when building the cocotb/Verilator model for
     arch-regression. It runs only in distributed, cocotb mode and executes a
     'SKIP' run via the arch Makefile to ensure the cocotb module is built.
     """
-    if request.session.config.getoption("coreblocks_backend") != "cocotb" or worker_id == "master":
+    if sim_backend != "cocotb" or worker_id == "master":
         yield None
         return
 
@@ -265,22 +236,8 @@ def verilate_arch_model(worker_id, traces_enabled, request: pytest.FixtureReques
     counter_path = "_coreblocks_arch_regression.counter"
     # perform locked build and increment the counter so teardown can know when
     # to remove the lock files
-    build_cocotb_module_under_lock(traces=traces_enabled, increment_counter=True)
+    build_cocotb_module_under_lock(traces=traces_enabled)
     yield
-    # Session teardown
-    deferred_remove = False
-    with FileLock(lock_path):
-        with open(counter_path, "r") as counter_file:
-            c = json.load(counter_file)
-        if c == 1:
-            deferred_remove = True
-        else:
-            with open(counter_path, "w") as counter_file:
-                json.dump(c - 1, counter_file)
-    if deferred_remove:
-        os.remove(lock_path)
-        os.remove(counter_path)
-
 
 def test_entrypoint(
     arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
