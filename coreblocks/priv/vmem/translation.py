@@ -72,7 +72,7 @@ class AddressTranslator(Elaboratable):
         if self.tlb is not None:
             m.submodules.tlb = self.tlb
 
-            m.submodules.tlb_request = tlb_request = BasicFifo(self.layouts.request, depth=2)
+            m.submodules.tlb_request = tlb_request = BasicFifo(self.tlb.request.layout_in, depth=2)
             m.submodules += ConnectTrans.create(self.tlb.request, tlb_request.read)
         else:
             tlb_request = None
