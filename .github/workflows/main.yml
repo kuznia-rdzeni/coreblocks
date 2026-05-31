@@ -300,63 +300,7 @@ jobs:
           . venv/bin/activate
           ./scripts/run_tests.py -c 1 -a -b pysim regression
 
-
-  build-arch-regression-module-cocotb:
-    name: Build arch regression test cocotb module (riscv-arch-test - the real one)
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    timeout-minutes: 45
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Fix git safe directory
-        working-directory: .
-        run: git config --global --add safe.directory /__w/coreblocks/coreblocks
-
-      - name: Cache arch regression cocotb build
-        id: cache-arch-regression-cocotb
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-arch-regression-cocotb
-        with:
-          path: |
-            test/regression/cocotb/build/riscv-arch-test/**
-          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '/__w/coreblocks/coreblocks/coreblocks/**',
-              '**/test/regression/test_arch_regression.py',
-              '**/pyproject.toml',
-              '**/docker/riscv-toolchain.Dockerfile',
-              '**/.github/workflows/main.yml'
-            ) }}
-
-      - name: Set up Python
-        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ".[dev]"
-
-      - name: Build arch regression cocotb module
-        if: ${{ steps.cache-arch-regression-cocotb.outputs.cache-hit != 'true' }}
-        run: |
-          . venv/bin/activate
-          python -m test.regression.test_arch_regression --backend cocotb
-
-      - name: Upload arch regression cocotb module build
-        uses: actions/upload-artifact@v7
-        with:
-          name: "riscv-arch-test-cocotb-module"
-          path: test/regression/cocotb/build/riscv-arch-test
-
-  build-arch-regression-tests:
+    build-arch-regression-tests:
     name: Build arch regression tests (riscv-arch-test - the real one)
     runs-on: ubuntu-latest
     container:
@@ -428,22 +372,6 @@ jobs:
         run: |
           git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
-
-      - name: Restore arch regression cocotb build cache
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-arch-regression-cocotb
-        with:
-          path: |
-            test/regression/cocotb/build/riscv-arch-test/**
-          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '/__w/coreblocks/coreblocks/coreblocks/**',
-              '**/test/regression/test_arch_regression.py',
-              '**/pyproject.toml',
-              '**/docker/riscv-toolchain.Dockerfile',
-              '**/.github/workflows/main.yml'
-            ) }}
-          fail-on-cache-miss: true
 
       - name: Restore arch regression tests cache
         uses: actions/cache@v4
