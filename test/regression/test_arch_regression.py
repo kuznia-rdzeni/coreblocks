@@ -131,11 +131,12 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
     _set_transactron_env_defaults()
     elf_path = Path(elf_path).resolve()
 
+    # Tests use self-modifying code for CSR access in lower privilege modes (see CSR_ACCESS)
     mem_model, endtest = build_memory_model(
         elf_path,
         sim_backend.stop,
         disable_write_protection=ZIFENCEI_PATTERN.search(elf_path.name) is not None,
-        force_executable=True,
+        force_executable=True
     )
 
     result = await sim_backend.run(mem_model, timeout_cycles=timeout_cycles)
@@ -145,7 +146,10 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
 
 
 async def run_test(sim_backend, test_name: str):
-    elf_path = arch_tests_dir.joinpath(test_name + ".elf")
+    elf_path = Path(arch_tests_dir) / f"{test_name}.elf"
+    elf_path = elf_path.resolve()
+    if not elf_path.exists():
+        raise FileNotFoundError(f"ELF file not found for test {test_name}: {elf_path}")
     await run_arch_elf(sim_backend, elf_path, timeout_cycles=2_000_000)
 
 
