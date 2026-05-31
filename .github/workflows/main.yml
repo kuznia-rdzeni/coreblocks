@@ -300,7 +300,7 @@ jobs:
           . venv/bin/activate
           ./scripts/run_tests.py -c 1 -a -b pysim regression
 
-    build-arch-regression-tests:
+  build-arch-regression-tests:
     name: Build arch regression tests (riscv-arch-test - the real one)
     runs-on: ubuntu-latest
     container:
