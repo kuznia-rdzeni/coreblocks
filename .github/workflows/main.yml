@@ -362,7 +362,7 @@ jobs:
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     timeout-minutes: 180
-    needs: [ build-arch-regression-module-cocotb, build-arch-regression-tests ]
+    needs: [ build-arch-regression-tests ]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
