@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
-from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
+from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, condition
 
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -101,6 +101,12 @@ class TLBCAM(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        # entry matches size-class IIF all parts match up to the size class.
+        bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
+        size_class_part_ranges = []
+        for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
+            size_class_part_ranges.append((bits_per_level * sz_class, bits_per_level * (sz_class + 1)))
+
         for way in range(self.ways):
             m.d.comb += self.valid_match[way].eq(self.ways_data[way].valid)
             m.d.comb += self.global_match[way].eq(self.ways_data[way].permissions.g)
@@ -108,15 +114,18 @@ class TLBCAM(Elaboratable):
                 ~self.global_match[way] & (self.ways_data[way].asid == self.checked_asid)
             )
 
-            # Address matches if the specified suffix on VPN matches based on size class
-            bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
-            with m.Switch(self.ways_data[way].size_class):
-                for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
-                    with m.Case(sz_class):
-                        match_bits = bits_per_level * sz_class
-                        m.d.comb += self.addr_match[way].eq(
-                            self.checked_vpn[match_bits:] == self.ways_data[way].vpn[match_bits:]
-                        )
+            match_bits = Signal(self.gen_params.vmem_params.tlb_size_class_bits + 1)
+
+            for sz_class, (start_bit, end_bit) in enumerate(size_class_part_ranges):
+                m.d.comb += match_bits[sz_class].eq(
+                    self.checked_vpn[start_bit:end_bit] == self.ways_data[way].vpn[start_bit:end_bit]
+                )
+
+            required_match_mask = Signal(self.gen_params.vmem_params.tlb_size_class_bits + 1)
+            for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
+                m.d.comb += required_match_mask[sz_class].eq(sz_class <= self.ways_data[way].size_class)
+
+            m.d.comb += self.addr_match[way].eq((match_bits | ~required_match_mask).all())
 
         m.d.comb += self.full_match.eq(self.valid_match & self.addr_match & (self.asid_match | self.global_match))
 
@@ -209,7 +218,6 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.d.comb += cam.ways_data.eq(entries)
 
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
-        m.submodules.slow_fwd = slow_fwd = Forwarder(self.layout.tlb_request)
 
         request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
@@ -238,22 +246,21 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     # Ask the backing resolver to set it (Svade semantic)
                     m.d.av_comb += ask_backing.eq(1)
 
-            with m.If(ask_backing):
-                m.d.sync += request_in_flight.eq(1)
-                m.d.sync += requested_vpn.eq(vpn)
-                self.perf_misses.incr(m)
-                slow_fwd.write(m, vpn=vpn, is_store=is_store)
-            with m.Else():
-                self.perf_hits.incr(m)
-                fwd.write(
-                    m,
-                    result=AddressTranslationLayouts.TLBResult.HIT,
-                    permissions=cam.matched_entry.permissions,
-                    ppn=cam.matched_entry.ppn,
-                    size_class=cam.matched_entry.size_class,
-                )
-
-        m.submodules += ConnectTrans.create(slow_fwd.read, self.backing_resolver.request)
+            with condition(m) as branch:
+                with branch(ask_backing):
+                    self.perf_misses.incr(m)
+                    m.d.sync += request_in_flight.eq(1)
+                    m.d.sync += requested_vpn.eq(vpn)
+                    self.backing_resolver.request(m, vpn=vpn, is_store=is_store)
+                with branch():
+                    self.perf_hits.incr(m)
+                    fwd.write(
+                        m,
+                        result=AddressTranslationLayouts.TLBResult.HIT,
+                        permissions=cam.matched_entry.permissions,
+                        ppn=cam.matched_entry.ppn,
+                        size_class=cam.matched_entry.size_class,
+                    )
 
         # Slow path - refill from backing resolver
         with Transaction().body(m, ready=request_in_flight):
