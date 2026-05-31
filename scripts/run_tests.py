@@ -53,11 +53,10 @@ def main():
     if args.jobs and not args.list and not args.no_capture:
         # To list tests we can not use xdist, because it doesn't support forwarding of stdout from workers.
         pytest_arguments += ["-n", str(args.jobs)]
-    # If --all is requested, enable the primary regression suite. If --arch-tests
-    # is also requested, enable the arch regression suite as well. If only
-    # --arch-tests is given (without --all), enable only the arch suite.
+    # If --all is requested, enable the primary regression suite.
     if args.all:
         pytest_arguments.append("--coreblocks-regression")
+    # If --arch-tests is given, enable the arch suite.
     if args.arch_tests:
         pytest_arguments.append("--coreblocks-arch-regression")
     if args.verbose:
