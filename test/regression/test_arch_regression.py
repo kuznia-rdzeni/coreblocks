@@ -9,7 +9,6 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as eT
-import json
 
 from .conftest import arch_tests_dir
 from .memory import (
@@ -195,6 +194,7 @@ def build_cocotb_module_under_lock(traces: bool) -> None:
         if len(list(tree.iter("failure"))) != 0:
             raise RuntimeError("Arch test cocotb make build failed with test failure")
 
+
 def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
     build_cocotb_module_under_lock(traces=traces)
 
@@ -232,12 +232,9 @@ def verilate_arch_model(worker_id, sim_backend, traces_enabled, request: pytest.
         yield None
         return
 
-    lock_path = "_coreblocks_arch_regression.lock"
-    counter_path = "_coreblocks_arch_regression.counter"
-    # perform locked build and increment the counter so teardown can know when
-    # to remove the lock files
     build_cocotb_module_under_lock(traces=traces_enabled)
     yield
+
 
 def test_entrypoint(
     arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
