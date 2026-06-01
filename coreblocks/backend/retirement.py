@@ -161,19 +161,16 @@ class Retirement(Elaboratable):
             exception_bits = Signal(self.gen_params.retirement_superscalarity)
             m.d.av_comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries))
             m.d.av_comb += no_trap_count.eq(count_trailing_zeros(exception_bits | safe_mask))
-            m.d.av_comb += exception.eq(no_trap_count < retire_count)
+            m.d.av_comb += exception.eq(no_trap_count != retire_count)
 
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
             ecr_entry = self.exception_cause_get(m)
             exception_one_hot = Signal.like(exception_bits)
             m.d.av_comb += exception_one_hot.eq(exception_bits & (~exception_bits + 1))
             exception_rob_id = or_value(
-                rob_entry.rob_id & exception_one_hot[i].replicate(rob_entry.rob_id.shape().width)
-                for i, rob_entry in enumerate(rob_entries.entries)
+                Mux(exception_one_hot[i], rob_entry.rob_id, 0) for i, rob_entry in enumerate(rob_entries.entries)
             )
-            m.d.av_comb += retire_valid.eq(
-                ~exception | (exception & ecr_entry.valid & (ecr_entry.rob_id == exception_rob_id))
-            )
+            m.d.av_comb += retire_valid.eq(Mux(exception, ecr_entry.valid & (ecr_entry.rob_id == exception_rob_id), 1))
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
