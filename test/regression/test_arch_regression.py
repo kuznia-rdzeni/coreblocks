@@ -8,9 +8,11 @@ import re
 import subprocess
 import sys
 import tempfile
+import asyncio
 import xml.etree.ElementTree as eT
 
 from .conftest import arch_tests_dir
+from .pysim import PySimulation
 from .memory import (
     CoreMemoryModel,
     MemorySegment,
@@ -36,10 +38,13 @@ BUILT_LOCK_FILE = BUILD_ROOT / "cocotb.lock"
 CORE_V = VERILOG_ROOT / "core.v"
 CORE_V_JSON = VERILOG_ROOT / "core.v.json"
 
+REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
+
 END_TEST_ADDRESS = 0xF0000000
 CONSOLE_ADDRESS = 0xF0001000
 ACCESS_FAULT_ADDRESS = 0x00000000
 
+START_PC = 0x80000000
 ZIFENCEI_PATTERN = re.compile(r"zifencei")
 
 
@@ -211,6 +216,17 @@ def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
         assert len(list(tree.iter("failure"))) == 0
 
 
+def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
+    _set_transactron_env_defaults()
+    for elf_path in elf_paths:
+        traces_file = None
+        if traces:
+            traces_file = REGRESSION_ARCH_TESTS_PREFIX + elf_path.stem
+
+        pysim = PySimulation(reset_pc=START_PC, with_socks=True, traces_file=traces_file)
+        asyncio.run(run_arch_elf(pysim, elf_path, timeout_cycles=2_000_000))
+
+
 @pytest.fixture(scope="session")
 def sim_backend(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_backend")
@@ -239,26 +255,30 @@ def verilate_arch_model(worker_id, sim_backend, traces_enabled, request: pytest.
 def test_entrypoint(
     arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
 ):
-    # TODO: add pysim support
-    if sim_backend != "cocotb":
-        raise NotImplementedError("Only cocotb backend is supported for arch regression tests")
-
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
-    regression_body_with_cocotb([path], traces=traces_enabled)
+    if not path.exists():
+        raise FileNotFoundError(f"ELF file not found for test {arch_test_name}: {path}")
+
+    if sim_backend == "pysim":
+        regression_body_with_pysim([path], traces=traces_enabled)
+    elif sim_backend == "cocotb":
+        regression_body_with_cocotb([path], traces=traces_enabled)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run a single Coreblocks arch-test ELF")
     parser.add_argument("elf_path", type=Path, nargs="*", help="Paths to the ELF file to execute")
-    parser.add_argument("--backend", choices=["cocotb"], default="cocotb", help="Simulation backend")
+    parser.add_argument("--backend", choices=["cocotb", "pysim"], default="cocotb", help="Simulation backend")
     parser.add_argument("--timeout-cycles", type=int, default=2_000_000, help="Maximum simulated cycles")
     parser.add_argument("--traces", action="store_true", help="Enable cocotb trace generation")
     args = parser.parse_args()
 
     elf_paths = [path.resolve() for path in args.elf_path]
 
-    # TODO: add pysim support
-    regression_body_with_cocotb(elf_paths, traces=args.traces)
+    if args.backend == "cocotb":
+        regression_body_with_cocotb(elf_paths, traces=args.traces)
+    elif args.backend == "pysim":
+        regression_body_with_pysim(elf_paths, traces=args.traces)
 
 
 if __name__ == "__main__":

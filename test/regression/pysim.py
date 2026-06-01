@@ -24,16 +24,21 @@ from transactron.lib.metrics import HardwareMetricsManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
 from coreblocks.core import Core
+from coreblocks.socks.socks import Socks
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
 
 
 class PySimulation(SimulationBackend):
-    def __init__(self, traces_file: Optional[str] = None):
-        self.gp = GenParams(configurations.full)
+    def __init__(self, traces_file: Optional[str] = None, with_socks: bool = False, reset_pc: Optional[int] = None):
+        conf = configurations.full
+        if reset_pc is not None:
+            conf = conf.replace(start_pc=reset_pc)
+        self.gp = GenParams(conf)
         self.running = False
         self.cycle_cnt = 0
         self.traces_file = traces_file
+        self.with_socks = with_socks
 
         self.log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
@@ -129,6 +134,9 @@ class PySimulation(SimulationBackend):
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
         with DependencyContext(DependencyManager()):
             core = Core(gen_params=self.gp)
+
+            if self.with_socks:
+                core = Socks(core, core_gen_params=self.gp)
 
             wb_instr_ctrl = WishboneInterfaceWrapper(core.wb_instr)
             wb_data_ctrl = WishboneInterfaceWrapper(core.wb_data)
