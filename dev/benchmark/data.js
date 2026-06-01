@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780049897591,
+  "lastUpdate": 1780315358679,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -23061,6 +23061,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/63b9b9e61fe2f0b925e215c44eaa952817cf076c"
         },
         "date": 1780049884733,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4614225829499819,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.587177069044353,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3867965257096026,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6602286164761529,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3704661418050008,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32127744283926746,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3548617685129731,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45810483356714704,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6535b98022c262e1b83aa5b5b59a4ca2a8360c75",
+          "message": "Increase timeout for unit tests to 150 minutes (#976)\n\nWhat the hell.",
+          "timestamp": "2026-06-01T13:19:29+02:00",
+          "tree_id": "25cc1a0a93676a590f363a996bba16369a85200a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6535b98022c262e1b83aa5b5b59a4ca2a8360c75"
+        },
+        "date": 1780315349878,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
