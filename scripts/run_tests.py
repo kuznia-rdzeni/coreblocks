@@ -21,7 +21,7 @@ def main():
     parser.add_argument("-s", "--no-capture", action="store_true", help="Don't capture output")
     parser.add_argument("-a", "--all", action="store_true", default=False, help="Run all tests")
     parser.add_argument(
-        "--arch-tests", action="store_true", default=False, help="Run riscv-arch-tests instead of riscv-tests"
+        "--arch-tests", action="store_true", default=False, help="Run riscv-arch-tests"
     )
     parser.add_argument(
         "-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend for regression tests"
