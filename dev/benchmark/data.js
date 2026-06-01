@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780315358679,
+  "lastUpdate": 1780315360669,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -47459,6 +47459,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 1360,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1368,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4763,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6535b98022c262e1b83aa5b5b59a4ca2a8360c75",
+          "message": "Increase timeout for unit tests to 150 minutes (#976)\n\nWhat the hell.",
+          "timestamp": "2026-06-01T13:19:29+02:00",
+          "tree_id": "25cc1a0a93676a590f363a996bba16369a85200a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6535b98022c262e1b83aa5b5b59a4ca2a8360c75"
+        },
+        "date": 1780315360250,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 48.26,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 15957,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1328,
             "unit": "LUT"
           },
           {
