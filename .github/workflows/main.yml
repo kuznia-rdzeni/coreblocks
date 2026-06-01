@@ -148,7 +148,7 @@ jobs:
           ./scripts/run_tests.py -c 1 -a -b pysim regression
 
   build-arch-regression-tests:
-    name: Build arch regression tests (riscv-arch-test - the real one)
+    name: Build arch regression tests (riscv-arch-test)
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/riscv/act4-build:sha-b16f90769d554d9dd42fa71fe9ba64054a4b7964
@@ -205,7 +205,7 @@ jobs:
           path: test/external/riscv-arch-test/elfs
 
   run-arch-regression-tests:
-    name: Run arch regression tests (riscv-arch-test - the real one)
+    name: Run arch regression tests (riscv-arch-test)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     timeout-minutes: 180
