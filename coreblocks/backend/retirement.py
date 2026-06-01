@@ -148,6 +148,7 @@ class Retirement(Elaboratable):
         no_trap_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
         safe_mask = Signal.like(tag_incr_mask)
+        free_checkpoint = Signal()
 
         with Transaction().body(m):
             rob_entries = self.rob_peek(m)
@@ -157,6 +158,9 @@ class Retirement(Elaboratable):
             m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
             m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
             m.d.av_comb += retire_count.eq(count_trailing_zeros(safe_mask))
+            m.d.av_comb += free_checkpoint.eq(
+                safe_mask != (tag_incr_mask | (-1 << rob_entries.done_count))[: len(safe_mask)]
+            )
 
             exception_bits = Signal(self.gen_params.retirement_superscalarity)
             m.d.av_comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries))
@@ -177,7 +181,7 @@ class Retirement(Elaboratable):
                 with Transaction(name="Retirement_NORMAL").body(m, ready=retire_valid):
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If((tag_incr_mask & ~(-1 << retire_count)).any()):
+                    with m.If(free_checkpoint):
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
@@ -262,7 +266,7 @@ class Retirement(Elaboratable):
                     # Flush entire core
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If((tag_incr_mask & ~(-1 << retire_count)).any()):
+                    with m.If(free_checkpoint):
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
