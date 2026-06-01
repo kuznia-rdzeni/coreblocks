@@ -97,10 +97,10 @@
                     WishboneMaster_WishboneMaster[&quot;WishboneMaster&quot;]
                     WishboneMaster_request[&quot;request&quot;]
                     subgraph Forwarder[&quot;result Forwarder&quot;]
-                        Forwarder_write[&quot;write&quot;]
+                        Forwarder_clear[&quot;clear&quot;]
                         Forwarder_peek[&quot;peek&quot;]
                         Forwarder_read[&quot;read&quot;]
-                        Forwarder_clear[&quot;clear&quot;]
+                        Forwarder_write[&quot;write&quot;]
                     end
                 end
                 subgraph WishboneMaster1[&quot;wb_master_data WishboneMaster&quot;]
@@ -866,8 +866,8 @@
                                     CSRRegister25__fu_access_valid[&quot;_fu_access_valid&quot;]
                                     CSRRegister25__internal_fu_read[&quot;_internal_fu_read&quot;]
                                     CSRRegister25_read[&quot;read&quot;]
-                                    CSRRegister25_write[&quot;write&quot;]
                                     CSRRegister25_read_comb[&quot;read_comb&quot;]
+                                    CSRRegister25_write[&quot;write&quot;]
                                     subgraph MethodMap75[&quot;fu_write_map MethodMap&quot;]
                                         MethodMap75_method[&quot;method&quot;]
                                     end
@@ -1901,8 +1901,8 @@
                                             ShadowCSR53__fu_access_valid[&quot;_fu_access_valid&quot;]
                                             ShadowCSR53_read[&quot;read&quot;]
                                             ShadowCSR53_write[&quot;write&quot;]
-                                            ShadowCSR53__fu_write[&quot;_fu_write&quot;]
                                             ShadowCSR53_read_comb[&quot;read_comb&quot;]
+                                            ShadowCSR53__fu_write[&quot;_fu_write&quot;]
                                         end
                                         subgraph ShadowCSR54[&quot;shadow_low ShadowCSR&quot;]
                                             ShadowCSR54__fu_read[&quot;_fu_read&quot;]
@@ -2832,8 +2832,8 @@
                                             ShadowCSR102__fu_access_valid[&quot;_fu_access_valid&quot;]
                                             ShadowCSR102_read[&quot;read&quot;]
                                             ShadowCSR102__fu_read[&quot;_fu_read&quot;]
-                                            ShadowCSR102__fu_write[&quot;_fu_write&quot;]
                                             ShadowCSR102_read_comb[&quot;read_comb&quot;]
+                                            ShadowCSR102__fu_write[&quot;_fu_write&quot;]
                                             ShadowCSR102_write[&quot;write&quot;]
                                         end
                                         subgraph ShadowCSR103[&quot;shadow_high ShadowCSR&quot;]
@@ -2949,8 +2949,8 @@
                                         CSRRegister81__fu_access_valid[&quot;_fu_access_valid&quot;]
                                         CSRRegister81__internal_fu_read[&quot;_internal_fu_read&quot;]
                                         CSRRegister81__internal_fu_write[&quot;_internal_fu_write&quot;]
-                                        CSRRegister81_write[&quot;write&quot;]
                                         CSRRegister81_read_comb[&quot;read_comb&quot;]
+                                        CSRRegister81_write[&quot;write&quot;]
                                         CSRRegister81_read[&quot;read&quot;]
                                         subgraph MethodMap243[&quot;fu_write_map MethodMap&quot;]
                                             MethodMap243_method[&quot;method&quot;]
@@ -3267,17 +3267,17 @@
                     end
                 end
                 subgraph Retirement[&quot;retirement Retirement&quot;]
-                    Retirement_Retirement[&quot;Retirement&quot;]
-                    Retirement_Retirement1[&quot;Retirement&quot;]
+                    Retirement_Retirement_RESUME[&quot;Retirement_RESUME&quot;]
+                    Retirement_Retirement_FLUSH[&quot;Retirement_FLUSH&quot;]
                     Retirement_core_state[&quot;core_state&quot;]
-                    Retirement_Retirement2[&quot;Retirement&quot;]
+                    Retirement_Retirement_NORMAL[&quot;Retirement_NORMAL&quot;]
                     Retirement_precommit[&quot;precommit&quot;]
-                    Retirement_Retirement3[&quot;Retirement&quot;]
+                    Retirement_Retirement[&quot;Retirement&quot;]
                     subgraph CSRRegister86[&quot;instret_csr CSRRegister&quot;]
-                        CSRRegister86__fu_access_valid[&quot;_fu_access_valid&quot;]
+                        CSRRegister86_read_comb[&quot;read_comb&quot;]
                         CSRRegister86__internal_fu_read[&quot;_internal_fu_read&quot;]
                         CSRRegister86_write[&quot;write&quot;]
-                        CSRRegister86_read_comb[&quot;read_comb&quot;]
+                        CSRRegister86__fu_access_valid[&quot;_fu_access_valid&quot;]
                         CSRRegister86_read[&quot;read&quot;]
                         CSRRegister86__internal_fu_write[&quot;_internal_fu_write&quot;]
                         subgraph MethodMap258[&quot;fu_write_map MethodMap&quot;]
@@ -3649,8 +3649,8 @@
                                 subgraph BasicFifo9[&quot;args_fifo BasicFifo&quot;]
                                     BasicFifo9_write[&quot;write&quot;]
                                     BasicFifo9_peek[&quot;peek&quot;]
-                                    BasicFifo9_read[&quot;read&quot;]
                                     BasicFifo9_clear[&quot;clear&quot;]
+                                    BasicFifo9_read[&quot;read&quot;]
                                     subgraph CircularAllocator9[&quot;allocator CircularAllocator&quot;]
                                         CircularAllocator9_clear[&quot;clear&quot;]
                                         CircularAllocator9_free[&quot;free&quot;]
@@ -3771,8 +3771,8 @@
                             ShadowCSR124__fu_access_valid[&quot;_fu_access_valid&quot;]
                             ShadowCSR124_read[&quot;read&quot;]
                             ShadowCSR124_write[&quot;write&quot;]
-                            ShadowCSR124_read_comb[&quot;read_comb&quot;]
                             ShadowCSR124__fu_write[&quot;_fu_write&quot;]
+                            ShadowCSR124_read_comb[&quot;read_comb&quot;]
                         end
                         subgraph AliasedCSR5[&quot;senvcfg AliasedCSR&quot;]
                             AliasedCSR5__fu_write[&quot;_fu_write&quot;]
@@ -4201,33 +4201,33 @@
             end
         end
         subgraph TransactionManager[&quot;transaction_manager TransactionManager&quot;]
-            TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy[&quot;LSUDummy_cond1_ConnectTrans_LSUDummy&quot;]
-            TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit[&quot;ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit&quot;]
-            TransactionManager_DivUnit_ConnectTrans[&quot;DivUnit_ConnectTrans&quot;]
-            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond0&quot;]
-            TransactionManager_InstructionTagger_tag_cond0[&quot;InstructionTagger_tag_cond0&quot;]
-            TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0[&quot;Fetch_Stage2_Fetch_Stage2_cond0&quot;]
-            TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation[&quot;Renaming_commit_checkpoint_cond1_ROBAllocation&quot;]
-            TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy[&quot;ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy&quot;]
-            TransactionManager_LSUDummy_issue_cond0[&quot;LSUDummy_issue_cond0&quot;]
-            TransactionManager__resume_from_unsafe_cond0_ConnectTrans[&quot;_resume_from_unsafe_cond0_ConnectTrans&quot;]
-            TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy[&quot;ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy&quot;]
-            TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1[&quot;Fetch_Stage2_Fetch_Stage2_cond1&quot;]
-            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond2&quot;]
-            TransactionManager_MulUnit_ConnectTrans[&quot;MulUnit_ConnectTrans&quot;]
-            TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0[&quot;Renaming_ROBAllocation_commit_checkpoint_cond0&quot;]
-            TransactionManager__resume_from_unsafe_cond1_ConnectTrans[&quot;_resume_from_unsafe_cond1_ConnectTrans&quot;]
-            TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1[&quot;Fetch_Stage1_cond0_Fetch_Stage1&quot;]
+            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond3&quot;]
             TransactionManager_JumpBranchFuncUnit_ConnectTrans[&quot;JumpBranchFuncUnit_ConnectTrans&quot;]
-            TransactionManager_LSUDummy_issue_cond1[&quot;LSUDummy_issue_cond1&quot;]
-            TransactionManager_RollbackTagger_DecodeStage[&quot;RollbackTagger_DecodeStage&quot;]
+            TransactionManager_InstructionTagger_tag_cond1[&quot;InstructionTagger_tag_cond1&quot;]
+            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond1&quot;]
+            TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0[&quot;Renaming_ROBAllocation_commit_checkpoint_cond0&quot;]
+            TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy[&quot;LSUDummy_cond1_ConnectTrans_LSUDummy&quot;]
             TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit[&quot;ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit&quot;]
+            TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation[&quot;Renaming_commit_checkpoint_cond1_ROBAllocation&quot;]
+            TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1[&quot;Fetch_Stage2_Fetch_Stage2_cond1&quot;]
+            TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit[&quot;_resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit&quot;]
+            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond2&quot;]
             TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond4&quot;]
             TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1[&quot;Fetch_Stage1_cond1_Fetch_Stage1&quot;]
+            TransactionManager_DivUnit_ConnectTrans[&quot;DivUnit_ConnectTrans&quot;]
+            TransactionManager_RollbackTagger_DecodeStage[&quot;RollbackTagger_DecodeStage&quot;]
+            TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy[&quot;ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy&quot;]
+            TransactionManager_LSUDummy_issue_cond1[&quot;LSUDummy_issue_cond1&quot;]
+            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond0&quot;]
+            TransactionManager__resume_from_unsafe_cond0_ConnectTrans[&quot;_resume_from_unsafe_cond0_ConnectTrans&quot;]
+            TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0[&quot;Fetch_Stage2_Fetch_Stage2_cond0&quot;]
+            TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1[&quot;Fetch_Stage1_cond0_Fetch_Stage1&quot;]
+            TransactionManager__resume_from_unsafe_cond1_ConnectTrans[&quot;_resume_from_unsafe_cond1_ConnectTrans&quot;]
+            TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy[&quot;ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy&quot;]
+            TransactionManager_MulUnit_ConnectTrans[&quot;MulUnit_ConnectTrans&quot;]
             TransactionManager_LSUDummy_issue_cond2[&quot;LSUDummy_issue_cond2&quot;]
-            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond3&quot;]
-            TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1[&quot;PrivilegedFuncUnit_PrivilegedFuncUnit_cond1&quot;]
-            TransactionManager_InstructionTagger_tag_cond1[&quot;InstructionTagger_tag_cond1&quot;]
+            TransactionManager_InstructionTagger_tag_cond0[&quot;InstructionTagger_tag_cond0&quot;]
+            TransactionManager_LSUDummy_issue_cond0[&quot;LSUDummy_issue_cond0&quot;]
         end
     end
 Core_Core --&gt; RegAllocation_RegAllocation
@@ -4237,8 +4237,8 @@ WishboneMaster_WishboneMaster --&gt; Forwarder_write
 Forwarder_read --&gt; SimpleCommonBusCacheRefiller_SimpleCommonBusCacheRefiller
 WishboneMaster1_result --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 WishboneMaster1_result --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
-TransactionManager_LSUDummy_issue_cond1 --&gt; WishboneMaster1_request
 TransactionManager_LSUDummy_issue_cond0 --&gt; WishboneMaster1_request
+TransactionManager_LSUDummy_issue_cond1 --&gt; WishboneMaster1_request
 WishboneMaster1_WishboneMaster --&gt; Forwarder1_write
 Forwarder1_read --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 Forwarder1_read --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
@@ -4258,12 +4258,12 @@ TransactionManager_LSUDummy_issue_cond1 --&gt; Serializer1_serialize_in0
 Serializer1_serialize_out0 --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
 TransactionManager_LSUDummy_issue_cond0 --&gt; Serializer1_serialize_in1
 Serializer1_serialize_out1 --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
-TransactionManager_LSUDummy_issue_cond1 --&gt; BasicFifo1_write
 TransactionManager_LSUDummy_issue_cond0 --&gt; BasicFifo1_write
+TransactionManager_LSUDummy_issue_cond1 --&gt; BasicFifo1_write
 BasicFifo1_read --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 BasicFifo1_read --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
-CircularAllocator1_alloc --&gt; TransactionManager_LSUDummy_issue_cond1
 CircularAllocator1_alloc --&gt; TransactionManager_LSUDummy_issue_cond0
+CircularAllocator1_alloc --&gt; TransactionManager_LSUDummy_issue_cond1
 CircularAllocator1_free --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 CircularAllocator1_free --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
 WakeupSelect2_WakeupSelect &lt;--&gt; CoreFrontend_target_pred_req
@@ -4293,9 +4293,9 @@ ICache_MemRead --&gt; Forwarder3_write
 Forwarder3_read --&gt; TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1
 FetchAddressUnit_read --&gt; CoreFrontend_FetchRequest
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --&gt; FetchAddressUnit_ifu_redirect
-Retirement_Retirement --&gt; FetchAddressUnit_backend_redirect
-TransactionManager__resume_from_unsafe_cond0_ConnectTrans --&gt; FetchAddressUnit_backend_redirect
+Retirement_Retirement_RESUME --&gt; FetchAddressUnit_backend_redirect
 TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit --&gt; FetchAddressUnit_backend_redirect
+TransactionManager__resume_from_unsafe_cond0_ConnectTrans --&gt; FetchAddressUnit_backend_redirect
 CoreFrontend_FetchRequest --&gt; FetchUnit_fetch_request
 ConnectTrans_ConnectTrans &lt;--&gt; FetchUnit_flush
 ConnectTrans1_ConnectTrans &lt;--&gt; FetchUnit_flush
@@ -4315,18 +4315,18 @@ ConnectTrans2_ConnectTrans &lt;--&gt; WideFifo_clear
 ConnectTrans11_ConnectTrans &lt;--&gt; WideFifo_clear
 ConnectTrans13_ConnectTrans &lt;--&gt; WideFifo_clear
 FetchUnit_FetchUnit --&gt; BasicFifo4_write
-BasicFifo4_read --&gt; TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1
 BasicFifo4_read --&gt; TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1
+BasicFifo4_read --&gt; TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1
 CircularAllocator4_alloc --&gt; FetchUnit_FetchUnit
-CircularAllocator4_free --&gt; TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1
 CircularAllocator4_free --&gt; TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1
+CircularAllocator4_free --&gt; TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1
 CoreFrontend_FetchRequest &lt;--&gt; Semaphore_acquire
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 &lt;--&gt; Semaphore_release
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 &lt;--&gt; Semaphore_release
 Pipe_read --&gt; TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0
 Pipe_read --&gt; TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1
-TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1 --&gt; Pipe_write
 TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1 --&gt; Pipe_write
+TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1 --&gt; Pipe_write
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --&gt; Predecoder_predecode
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 --&gt; Predecoder_predecode
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 --&gt; PredictionChecker_check
@@ -4356,11 +4356,11 @@ ConnectTrans2_ConnectTrans &lt;--&gt; Pipe1_clear
 ConnectTrans11_ConnectTrans &lt;--&gt; Pipe1_clear
 ConnectTrans13_ConnectTrans &lt;--&gt; Pipe1_clear
 CoreFrontend_FetchRequest &lt;--&gt; StallController_stall_guard
+TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit --&gt; StallController__resume_from_unsafe
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit --&gt; StallController__resume_from_unsafe
 TransactionManager__resume_from_unsafe_cond0_ConnectTrans --&gt; StallController__resume_from_unsafe
 TransactionManager__resume_from_unsafe_cond1_ConnectTrans --&gt; StallController__resume_from_unsafe
-TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit --&gt; StallController__resume_from_unsafe
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit --&gt; StallController__resume_from_unsafe
-Retirement_Retirement --&gt; StallController_resume_from_exception
+Retirement_Retirement_RESUME --&gt; StallController_resume_from_exception
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 &lt;--&gt; StallController_stall_unsafe
 ConnectTrans_ConnectTrans &lt;--&gt; StallController_stall_exception
 ConnectTrans1_ConnectTrans &lt;--&gt; StallController_stall_exception
@@ -4368,20 +4368,20 @@ ConnectTrans2_ConnectTrans &lt;--&gt; StallController_stall_exception
 ConnectTrans11_ConnectTrans &lt;--&gt; StallController_stall_exception
 ConnectTrans13_ConnectTrans &lt;--&gt; StallController_stall_exception
 PriorityEncoderAllocator_alloc0 --&gt; RegAllocation_RegAllocation
-Retirement_Retirement2 --&gt; PriorityEncoderAllocator_free0
-Retirement_Retirement1 --&gt; PriorityEncoderAllocator_free0
+Retirement_Retirement_NORMAL --&gt; PriorityEncoderAllocator_free0
+Retirement_Retirement_FLUSH --&gt; PriorityEncoderAllocator_free0
 CheckpointRAT_allocate_tag --&gt; TransactionManager_InstructionTagger_tag_cond0
 CheckpointRAT_allocate_checkpoint --&gt; TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; CheckpointRAT_commit_checkpoint
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; CheckpointRAT_commit_checkpoint
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; CheckpointRAT_rename0
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; CheckpointRAT_commit_checkpoint
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; CheckpointRAT_rename0
-Retirement_Retirement2 --&gt; CheckpointRAT_flush_restore0
-Retirement_Retirement1 --&gt; CheckpointRAT_flush_restore0
-TransactionManager_InstructionTagger_tag_cond1 &lt;--&gt; CheckpointRAT_tag
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; CheckpointRAT_rename0
+Retirement_Retirement_NORMAL --&gt; CheckpointRAT_flush_restore0
+Retirement_Retirement_FLUSH --&gt; CheckpointRAT_flush_restore0
 TransactionManager_InstructionTagger_tag_cond0 &lt;--&gt; CheckpointRAT_tag
-Retirement_Retirement2 &lt;--&gt; CheckpointRAT_free_tag
-Retirement_Retirement1 &lt;--&gt; CheckpointRAT_free_tag
+TransactionManager_InstructionTagger_tag_cond1 &lt;--&gt; CheckpointRAT_tag
+Retirement_Retirement_NORMAL &lt;--&gt; CheckpointRAT_free_tag
+Retirement_Retirement_FLUSH &lt;--&gt; CheckpointRAT_free_tag
 CheckpointRAT_get_active_tags --&gt; RSInsertion_RSInsertion
 MemoryBank_read_resp0 --&gt; CheckpointRAT_CheckpointRAT2
 CheckpointRAT_CheckpointRAT --&gt; MemoryBank_read_req0
@@ -4390,13 +4390,13 @@ MemoryBank1_read_resp0 --&gt; CheckpointRAT_CheckpointRAT
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; MemoryBank1_write0
 Pipe2_read --&gt; CheckpointRAT_CheckpointRAT1
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; Pipe2_write
-Retirement_Retirement2 --&gt; RRAT_commit0
-RRAT_peek0 --&gt; Retirement_Retirement2
-RRAT_peek0 --&gt; Retirement_Retirement1
-AsyncMemoryBank_read0 --&gt; Retirement_Retirement2
-AsyncMemoryBank_read0 --&gt; Retirement_Retirement1
+Retirement_Retirement_NORMAL --&gt; RRAT_commit0
+RRAT_peek0 --&gt; Retirement_Retirement_NORMAL
+RRAT_peek0 --&gt; Retirement_Retirement_FLUSH
+AsyncMemoryBank_read0 --&gt; Retirement_Retirement_NORMAL
+AsyncMemoryBank_read0 --&gt; Retirement_Retirement_FLUSH
 RRAT_RRAT --&gt; AsyncMemoryBank_write0
-Retirement_Retirement2 --&gt; AsyncMemoryBank_write0
+Retirement_Retirement_NORMAL --&gt; AsyncMemoryBank_write0
 RSSelection_RSSelection_0_0 --&gt; RegisterFile_read_req0
 RSSelection_RSSelection_0_1 --&gt; RegisterFile_read_req0
 RSSelection_RSSelection_0_2 --&gt; RegisterFile_read_req0
@@ -4412,8 +4412,8 @@ ConnectTrans15_ConnectTrans --&gt; RegisterFile_write0
 ConnectTrans16_ConnectTrans --&gt; RegisterFile_write0
 TransactionManager__resume_from_unsafe_cond0_ConnectTrans --&gt; RegisterFile_write0
 TransactionManager__resume_from_unsafe_cond1_ConnectTrans --&gt; RegisterFile_write0
-Retirement_Retirement2 --&gt; RegisterFile_free0
-Retirement_Retirement1 --&gt; RegisterFile_free0
+Retirement_Retirement_NORMAL --&gt; RegisterFile_free0
+Retirement_Retirement_FLUSH --&gt; RegisterFile_free0
 MemoryBank2_read_resp0 --&gt; RSInsertion_tr
 MemoryBank2_read_resp1 --&gt; RSInsertion_tr
 RSSelection_RSSelection_0_0 --&gt; MemoryBank2_read_req0
@@ -4429,13 +4429,11 @@ ConnectTrans15_ConnectTrans --&gt; MemoryBank2_write0
 ConnectTrans16_ConnectTrans --&gt; MemoryBank2_write0
 TransactionManager__resume_from_unsafe_cond0_ConnectTrans --&gt; MemoryBank2_write0
 TransactionManager__resume_from_unsafe_cond1_ConnectTrans --&gt; MemoryBank2_write0
-ReorderBuffer_peek --&gt; Retirement_Retirement3
-ReorderBuffer_peek --&gt; Retirement_Retirement2
-ReorderBuffer_peek --&gt; Retirement_Retirement1
-Retirement_Retirement2 --&gt; ReorderBuffer_retire
-Retirement_Retirement1 --&gt; ReorderBuffer_retire
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; ReorderBuffer_put
+ReorderBuffer_peek --&gt; Retirement_Retirement
+Retirement_Retirement_NORMAL --&gt; ReorderBuffer_retire
+Retirement_Retirement_FLUSH --&gt; ReorderBuffer_retire
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; ReorderBuffer_put
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; ReorderBuffer_put
 ConnectTrans14_ConnectTrans --&gt; ReorderBuffer_mark_done0
 ConnectTrans15_ConnectTrans --&gt; ReorderBuffer_mark_done0
 ConnectTrans16_ConnectTrans --&gt; ReorderBuffer_mark_done0
@@ -4446,10 +4444,10 @@ ReorderBuffer_get_indices --&gt; ConnectTrans1_ConnectTrans
 ReorderBuffer_get_indices --&gt; ConnectTrans2_ConnectTrans
 ReorderBuffer_get_indices --&gt; ConnectTrans11_ConnectTrans
 ReorderBuffer_get_indices --&gt; ConnectTrans13_ConnectTrans
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; WideFifo1_write
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; WideFifo1_write
-WideFifo1_read --&gt; Retirement_Retirement2
-WideFifo1_read --&gt; Retirement_Retirement1
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; WideFifo1_write
+WideFifo1_read --&gt; Retirement_Retirement_NORMAL
+WideFifo1_read --&gt; Retirement_Retirement_FLUSH
 WideFifo1_peek --&gt; ReorderBuffer_ReorderBuffer
 CSRRegister__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister__fu_access_valid
@@ -4486,9 +4484,9 @@ CSRUnit_CSRUnit1 --&gt; AliasedCSR2__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; AliasedCSR3__fu_write
 AliasedCSR3__fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; AliasedCSR3__fu_access_valid
-Retirement_Retirement2 --&gt; CSRRegister6_write
+Retirement_Retirement_NORMAL --&gt; CSRRegister6_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister6__internal_fu_write
-CSRRegister6_read --&gt; Retirement_Retirement
+CSRRegister6_read --&gt; Retirement_Retirement_RESUME
 CSRRegister6__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister6__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter6_method
@@ -4506,17 +4504,17 @@ CSRUnit_CSRUnit1 --&gt; MethodMap22_method
 CSRUnit_CSRUnit1 --&gt; AliasedCSR4__fu_write
 AliasedCSR4__fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; AliasedCSR4__fu_access_valid
-Retirement_Retirement2 --&gt; CSRRegister8_write
+Retirement_Retirement_NORMAL --&gt; CSRRegister8_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister8__internal_fu_write
 CSRRegister8_read --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit
-CSRRegister8_read --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit
+CSRRegister8_read --&gt; TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit
 CSRRegister8__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister8__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter8_method
 MethodMap26_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap24_method
 CSRUnit_CSRUnit1 --&gt; MethodMap25_method
-Retirement_Retirement2 --&gt; CSRRegister9_write
+Retirement_Retirement_NORMAL --&gt; CSRRegister9_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister9__internal_fu_write
 CSRRegister9__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister9__fu_access_valid
@@ -4557,15 +4555,15 @@ CSRRegister12_read --&gt; AddressTranslator_AddressTranslator
 CSRRegister12_read --&gt; CSRInstances_CSRInstances
 CSRRegister12_read --&gt; InternalInterruptController_InternalInterruptController2
 CSRRegister12_read --&gt; InternalInterruptController_InternalInterruptController
-CSRRegister12_read --&gt; Retirement_Retirement2
+CSRRegister12_read --&gt; Retirement_Retirement_NORMAL
 CSRRegister12_read --&gt; WakeupSelect3_WakeupSelect
 CSRRegister12_read --&gt; AddressTranslator1_AddressTranslator
 CSRRegister12_read --&gt; CSRUnit_CSRUnit1
-CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
 CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
 CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4
-CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
-CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister12_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
 InternalInterruptController_InternalInterruptController --&gt; CSRRegister13_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister13__internal_fu_write
 CSRRegister13_read --&gt; InternalInterruptController_InternalInterruptController2
@@ -4631,11 +4629,11 @@ CSRUnit_CSRUnit1 --&gt; MethodMap54_method
 CSRUnit_CSRUnit1 --&gt; MethodMap55_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister19__internal_fu_write
 CSRRegister19_read --&gt; CSRUnit_CSRUnit1
-CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
 CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
 CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4
-CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
-CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister19_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
 CSRRegister19__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister19__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter19_method
@@ -4644,11 +4642,11 @@ CSRUnit_CSRUnit1 --&gt; MethodMap57_method
 CSRUnit_CSRUnit1 --&gt; MethodMap58_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister20__internal_fu_write
 CSRRegister20_read --&gt; CSRUnit_CSRUnit1
-CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
 CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
 CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4
-CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
-CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister20_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
 CSRRegister20__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister20__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter20_method
@@ -4688,11 +4686,11 @@ CSRUnit_CSRUnit1 --&gt; MethodMap69_method
 CSRUnit_CSRUnit1 --&gt; MethodMap70_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister24__internal_fu_write
 CSRRegister24_read --&gt; CSRUnit_CSRUnit1
-CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
+CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
 CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2
 CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4
-CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3
-CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
+CSRRegister24_read --&gt; TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
 CSRRegister24__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister24__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter24_method
@@ -4707,7 +4705,7 @@ MethodMap77_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap75_method
 CSRUnit_CSRUnit1 --&gt; MethodMap76_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister26__internal_fu_write
-CSRRegister26_read --&gt; Retirement_Retirement
+CSRRegister26_read --&gt; Retirement_Retirement_RESUME
 CSRRegister26__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister26__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter26_method
@@ -4715,7 +4713,7 @@ MethodMap80_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap78_method
 CSRUnit_CSRUnit1 --&gt; MethodMap79_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister27__internal_fu_write
-CSRRegister27_read --&gt; Retirement_Retirement
+CSRRegister27_read --&gt; Retirement_Retirement_RESUME
 CSRRegister27__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister27__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter27_method
@@ -5460,9 +5458,9 @@ CSRUnit_CSRUnit1 --&gt; ShadowCSR124__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; AliasedCSR5__fu_write
 AliasedCSR5__fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; AliasedCSR5__fu_access_valid
-Retirement_Retirement2 --&gt; CSRRegister88_write
+Retirement_Retirement_NORMAL --&gt; CSRRegister88_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister88__internal_fu_write
-CSRRegister88_read --&gt; Retirement_Retirement
+CSRRegister88_read --&gt; Retirement_Retirement_RESUME
 CSRRegister88__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister88__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter88_method
@@ -5472,17 +5470,17 @@ CSRUnit_CSRUnit1 --&gt; MethodMap265_method
 CSRUnit_CSRUnit1 --&gt; AliasedCSR6__fu_write
 AliasedCSR6__fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; AliasedCSR6__fu_access_valid
-Retirement_Retirement2 --&gt; CSRRegister89_write
+Retirement_Retirement_NORMAL --&gt; CSRRegister89_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister89__internal_fu_write
 CSRRegister89_read --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit
-CSRRegister89_read --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit
+CSRRegister89_read --&gt; TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit
 CSRRegister89__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister89__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter89_method
 MethodMap269_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap267_method
 CSRUnit_CSRUnit1 --&gt; MethodMap268_method
-Retirement_Retirement2 --&gt; CSRRegister90_write
+Retirement_Retirement_NORMAL --&gt; CSRRegister90_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister90__internal_fu_write
 CSRRegister90__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister90__fu_access_valid
@@ -5513,7 +5511,7 @@ MethodMap281_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap279_method
 CSRUnit_CSRUnit1 --&gt; MethodMap280_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister94__internal_fu_write
-CSRRegister94_read --&gt; Retirement_Retirement
+CSRRegister94_read --&gt; Retirement_Retirement_RESUME
 CSRRegister94__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister94__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter94_method
@@ -5521,7 +5519,7 @@ MethodMap284_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap282_method
 CSRUnit_CSRUnit1 --&gt; MethodMap283_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister95__internal_fu_write
-CSRRegister95_read --&gt; Retirement_Retirement
+CSRRegister95_read --&gt; Retirement_Retirement_RESUME
 CSRRegister95__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister95__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter95_method
@@ -5536,8 +5534,8 @@ CSRUnit_CSRUnit1 --&gt; CSRRegister97__fu_access_valid
 MethodMap293_method --&gt; CSRUnit_CSRUnit1
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 &lt;--&gt; InternalInterruptController_mret
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 &lt;--&gt; InternalInterruptController_sret
-Retirement_Retirement2 --&gt; InternalInterruptController_entry
-InternalInterruptController_interrupt_cause --&gt; Retirement_Retirement2
+Retirement_Retirement_NORMAL --&gt; InternalInterruptController_entry
+InternalInterruptController_interrupt_cause --&gt; Retirement_Retirement_NORMAL
 CSRUnit_CSRUnit1 --&gt; CSRRegister98__internal_fu_write
 CSRRegister98_read --&gt; InternalInterruptController_InternalInterruptController2
 CSRRegister98_read --&gt; CSRUnit_CSRUnit1
@@ -5570,7 +5568,7 @@ CSRRegister100_read --&gt; ShadowCSR125_ShadowCSR
 CSRRegister100_read --&gt; ShadowCSR125_ShadowCSR1
 CSRRegister100_read --&gt; ShadowCSR126_ShadowCSR
 CSRRegister100_read --&gt; ShadowCSR126_ShadowCSR1
-CSRRegister100_read --&gt; Retirement_Retirement2
+CSRRegister100_read --&gt; Retirement_Retirement_NORMAL
 CSRRegister100__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister100__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter100_method
@@ -5578,7 +5576,7 @@ MethodMap302_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap300_method
 CSRUnit_CSRUnit1 --&gt; MethodMap301_method
 CSRUnit_CSRUnit1 --&gt; CSRRegister101__internal_fu_write
-CSRRegister101_read --&gt; Retirement_Retirement2
+CSRRegister101_read --&gt; Retirement_Retirement_NORMAL
 CSRRegister101__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister101__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter101_method
@@ -5587,7 +5585,7 @@ CSRUnit_CSRUnit1 --&gt; MethodMap303_method
 CSRUnit_CSRUnit1 --&gt; MethodMap304_method
 MethodMap309_method --&gt; ShadowCSR126_ShadowCSR
 CSRUnit_CSRUnit1 --&gt; CSRRegister102__internal_fu_write
-CSRRegister102_read --&gt; Retirement_Retirement2
+CSRRegister102_read --&gt; Retirement_Retirement_NORMAL
 CSRRegister102__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister102__fu_access_valid
 CSRUnit_CSRUnit1 --&gt; MethodFilter102_method
@@ -5595,21 +5593,21 @@ MethodMap308_method --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; MethodMap306_method
 CSRUnit_CSRUnit1 --&gt; MethodMap307_method
 RegAllocation_RegAllocation --&gt; CoreInstructionCounter_increment
-Retirement_Retirement2 &lt;--&gt; CoreInstructionCounter_decrement
-Retirement_Retirement1 &lt;--&gt; CoreInstructionCounter_decrement
-Pipe3_read --&gt; TransactionManager_InstructionTagger_tag_cond1
+Retirement_Retirement_NORMAL &lt;--&gt; CoreInstructionCounter_decrement
+Retirement_Retirement_FLUSH &lt;--&gt; CoreInstructionCounter_decrement
 Pipe3_read --&gt; TransactionManager_InstructionTagger_tag_cond0
+Pipe3_read --&gt; TransactionManager_InstructionTagger_tag_cond1
 RegAllocation_RegAllocation --&gt; Pipe3_write
-Pipe4_read --&gt; TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation
 Pipe4_read --&gt; TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0
-TransactionManager_InstructionTagger_tag_cond1 --&gt; Pipe4_write
+Pipe4_read --&gt; TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation
 TransactionManager_InstructionTagger_tag_cond0 --&gt; Pipe4_write
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; Connect6_write
+TransactionManager_InstructionTagger_tag_cond1 --&gt; Pipe4_write
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; Connect6_write
-Connect6_read --&gt; TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; Connect6_write
 Connect6_read --&gt; TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; WideFifo2_write
+Connect6_read --&gt; TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 --&gt; WideFifo2_write
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation --&gt; WideFifo2_write
 WideFifo2_read --&gt; RSSelection_RSSelection
 WideFifo2_peek --&gt; RSSelection_RSSelection
 Pipe5_read --&gt; RSInsertion_RSInsertion
@@ -5619,9 +5617,9 @@ ConnectTrans1_ConnectTrans --&gt; ExceptionInformationRegister_report
 ConnectTrans2_ConnectTrans --&gt; ExceptionInformationRegister_report
 ConnectTrans11_ConnectTrans --&gt; ExceptionInformationRegister_report
 ConnectTrans13_ConnectTrans --&gt; ExceptionInformationRegister_report
-ExceptionInformationRegister_get --&gt; Retirement_Retirement3
-ExceptionInformationRegister_get --&gt; Retirement_Retirement2
-Retirement_Retirement &lt;--&gt; ExceptionInformationRegister_clear
+ExceptionInformationRegister_get --&gt; Retirement_Retirement
+ExceptionInformationRegister_get --&gt; Retirement_Retirement_NORMAL
+Retirement_Retirement_RESUME &lt;--&gt; ExceptionInformationRegister_clear
 ConnectTrans14_ConnectTrans --&gt; ResultAnnouncement_push_result
 ConnectTrans15_ConnectTrans --&gt; ResultAnnouncement_push_result
 ConnectTrans16_ConnectTrans --&gt; ResultAnnouncement_push_result
@@ -5633,14 +5631,14 @@ Retirement_core_state --&gt; LSUDummy_LSUDummy
 Retirement_core_state --&gt; CSRUnit_CSRUnit
 LSUDummy_LSUDummy3 --&gt; Retirement_precommit
 CSRUnit_CSRUnit1 --&gt; Retirement_precommit
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 --&gt; Retirement_precommit
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 --&gt; Retirement_precommit
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 --&gt; Retirement_precommit
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 --&gt; Retirement_precommit
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4 --&gt; Retirement_precommit
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 --&gt; Retirement_precommit
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 --&gt; Retirement_precommit
-Retirement_Retirement2 --&gt; CSRRegister86_write
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 --&gt; Retirement_precommit
+Retirement_Retirement_NORMAL --&gt; CSRRegister86_write
 CSRUnit_CSRUnit1 --&gt; CSRRegister86__internal_fu_write
-CSRRegister86_read --&gt; Retirement_Retirement2
+CSRRegister86_read --&gt; Retirement_Retirement_NORMAL
 CSRRegister86_read --&gt; CSRUnit_CSRUnit1
 CSRRegister86__internal_fu_read --&gt; CSRUnit_CSRUnit1
 CSRUnit_CSRUnit1 --&gt; CSRRegister86__fu_access_valid
@@ -5700,42 +5698,42 @@ CircularAllocator5_alloc --&gt; WakeupSelect2_WakeupSelect
 CircularAllocator5_free --&gt; TransactionManager_JumpBranchFuncUnit_ConnectTrans
 TransactionManager_JumpBranchFuncUnit_ConnectTrans --&gt; BasicFifo6_write
 BasicFifo6_read --&gt; ConnectTrans_ConnectTrans
-Retirement_Retirement &lt;--&gt; BasicFifo6_clear
+Retirement_Retirement_RESUME &lt;--&gt; BasicFifo6_clear
 CircularAllocator6_alloc --&gt; TransactionManager_JumpBranchFuncUnit_ConnectTrans
 CircularAllocator6_free --&gt; ConnectTrans_ConnectTrans
-Retirement_Retirement &lt;--&gt; CircularAllocator6_clear
+Retirement_Retirement_RESUME &lt;--&gt; CircularAllocator6_clear
 TransactionManager_JumpBranchFuncUnit_ConnectTrans --&gt; Connect1_write
 Connect1_read --&gt; TransactionManager_JumpBranchFuncUnit_ConnectTrans
 WakeupSelect3_WakeupSelect --&gt; ExceptionFuncUnit_issue
 WakeupSelect3_WakeupSelect --&gt; ExceptionFuncUnit_issue_decoded
 WakeupSelect3_WakeupSelect --&gt; BasicFifo7_write
 BasicFifo7_read --&gt; ConnectTrans1_ConnectTrans
-Retirement_Retirement &lt;--&gt; BasicFifo7_clear
+Retirement_Retirement_RESUME &lt;--&gt; BasicFifo7_clear
 CircularAllocator7_alloc --&gt; WakeupSelect3_WakeupSelect
 CircularAllocator7_free --&gt; ConnectTrans1_ConnectTrans
-Retirement_Retirement &lt;--&gt; CircularAllocator7_clear
+Retirement_Retirement_RESUME &lt;--&gt; CircularAllocator7_clear
 WakeupSelect3_WakeupSelect --&gt; FIFO3_write
 FIFO3_read --&gt; ConnectTrans6_ConnectTrans
 WakeupSelect4_WakeupSelect --&gt; PrivilegedFuncUnit_issue
 WakeupSelect4_WakeupSelect --&gt; PrivilegedFuncUnit_issue_decoded
 TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit --&gt; BasicFifo8_write
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit --&gt; BasicFifo8_write
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit --&gt; BasicFifo8_write
 BasicFifo8_read --&gt; ConnectTrans2_ConnectTrans
-Retirement_Retirement &lt;--&gt; BasicFifo8_clear
+Retirement_Retirement_RESUME &lt;--&gt; BasicFifo8_clear
 CircularAllocator8_alloc --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit
-CircularAllocator8_alloc --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit
+CircularAllocator8_alloc --&gt; TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit
 CircularAllocator8_free --&gt; ConnectTrans2_ConnectTrans
-Retirement_Retirement &lt;--&gt; CircularAllocator8_clear
+Retirement_Retirement_RESUME &lt;--&gt; CircularAllocator8_clear
 TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit --&gt; Connect2_write
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit --&gt; Connect2_write
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit --&gt; Connect2_write
 Connect2_read --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit
-Connect2_read --&gt; TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit
+Connect2_read --&gt; TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit
 ConnectTrans3_ConnectTrans --&gt; Forwarder5_write
 ConnectTrans4_ConnectTrans --&gt; Forwarder5_write
 ConnectTrans6_ConnectTrans --&gt; Forwarder5_write
-TransactionManager_JumpBranchFuncUnit_ConnectTrans --&gt; Forwarder5_write
 TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit --&gt; Forwarder5_write
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit --&gt; Forwarder5_write
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit --&gt; Forwarder5_write
+TransactionManager_JumpBranchFuncUnit_ConnectTrans --&gt; Forwarder5_write
 Forwarder5_read --&gt; ConnectTrans14_ConnectTrans
 RS1_select --&gt; RSSelection_RSSelection_0_1
 ConnectTrans14_ConnectTrans --&gt; RS1_update0
@@ -5772,8 +5770,8 @@ WakeupSelect6_WakeupSelect --&gt; LongDivider_issue
 LongDivider_accept --&gt; TransactionManager_DivUnit_ConnectTrans
 TransactionManager_DivUnit_ConnectTrans --&gt; Connect4_write
 Connect4_read --&gt; TransactionManager_DivUnit_ConnectTrans
-TransactionManager_MulUnit_ConnectTrans --&gt; Forwarder6_write
 TransactionManager_DivUnit_ConnectTrans --&gt; Forwarder6_write
+TransactionManager_MulUnit_ConnectTrans --&gt; Forwarder6_write
 Forwarder6_read --&gt; ConnectTrans15_ConnectTrans
 FifoRS_order --&gt; FifoRS_FifoRS1
 FifoRS_alloc --&gt; RSSelection_RSSelection_0_2
@@ -5792,67 +5790,67 @@ WakeupSelect7_WakeupSelect --&gt; AddressTranslator1_request
 AddressTranslator1_accept --&gt; ConnectTrans10_ConnectTrans
 WakeupSelect7_WakeupSelect --&gt; Forwarder7_write
 Forwarder7_read --&gt; ConnectTrans10_ConnectTrans
-TransactionManager_LSUDummy_issue_cond1 --&gt; LSURequester_issue
 TransactionManager_LSUDummy_issue_cond0 --&gt; LSURequester_issue
 TransactionManager_LSUDummy_issue_cond2 --&gt; LSURequester_issue
+TransactionManager_LSUDummy_issue_cond1 --&gt; LSURequester_issue
 LSURequester_accept --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 LSURequester_accept --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
-TransactionManager_LSUDummy_issue_cond1 --&gt; BasicFifo9_write
 TransactionManager_LSUDummy_issue_cond0 --&gt; BasicFifo9_write
 TransactionManager_LSUDummy_issue_cond2 --&gt; BasicFifo9_write
+TransactionManager_LSUDummy_issue_cond1 --&gt; BasicFifo9_write
 BasicFifo9_read --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 BasicFifo9_read --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
-CircularAllocator9_alloc --&gt; TransactionManager_LSUDummy_issue_cond1
 CircularAllocator9_alloc --&gt; TransactionManager_LSUDummy_issue_cond0
 CircularAllocator9_alloc --&gt; TransactionManager_LSUDummy_issue_cond2
+CircularAllocator9_alloc --&gt; TransactionManager_LSUDummy_issue_cond1
 CircularAllocator9_free --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 CircularAllocator9_free --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
 WakeupSelect7_WakeupSelect --&gt; FIFO6_write
 FIFO6_read --&gt; LSUDummy_LSUDummy4
-FIFO6_read --&gt; TransactionManager_LSUDummy_issue_cond1
 FIFO6_read --&gt; TransactionManager_LSUDummy_issue_cond0
 FIFO6_read --&gt; TransactionManager_LSUDummy_issue_cond2
+FIFO6_read --&gt; TransactionManager_LSUDummy_issue_cond1
 ConnectTrans10_ConnectTrans --&gt; FIFO7_write
 FIFO7_read --&gt; LSUDummy_LSUDummy4
-FIFO7_read --&gt; TransactionManager_LSUDummy_issue_cond1
 FIFO7_read --&gt; TransactionManager_LSUDummy_issue_cond0
 FIFO7_read --&gt; TransactionManager_LSUDummy_issue_cond2
+FIFO7_read --&gt; TransactionManager_LSUDummy_issue_cond1
 LSUDummy_LSUDummy4 --&gt; FIFO8_write
 WakeupSelect7_WakeupSelect --&gt; FIFO8_write
-TransactionManager_LSUDummy_issue_cond1 --&gt; FIFO8_write
 TransactionManager_LSUDummy_issue_cond0 --&gt; FIFO8_write
 TransactionManager_LSUDummy_issue_cond2 --&gt; FIFO8_write
+TransactionManager_LSUDummy_issue_cond1 --&gt; FIFO8_write
 FIFO8_read --&gt; TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy
-TransactionManager_LSUDummy_issue_cond1 --&gt; FIFO9_write
 TransactionManager_LSUDummy_issue_cond0 --&gt; FIFO9_write
 TransactionManager_LSUDummy_issue_cond2 --&gt; FIFO9_write
+TransactionManager_LSUDummy_issue_cond1 --&gt; FIFO9_write
 FIFO9_read --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 FIFO9_read --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
 LSUDummy_LSUDummy4 --&gt; FIFO10_write
 WakeupSelect7_WakeupSelect --&gt; FIFO10_write
-TransactionManager_LSUDummy_issue_cond1 --&gt; FIFO10_write
 TransactionManager_LSUDummy_issue_cond0 --&gt; FIFO10_write
 TransactionManager_LSUDummy_issue_cond2 --&gt; FIFO10_write
+TransactionManager_LSUDummy_issue_cond1 --&gt; FIFO10_write
 FIFO10_read --&gt; TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy
-TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy --&gt; BasicFifo10_write
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy --&gt; BasicFifo10_write
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy --&gt; BasicFifo10_write
+TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy --&gt; BasicFifo10_write
 BasicFifo10_read --&gt; ConnectTrans11_ConnectTrans
-Retirement_Retirement &lt;--&gt; BasicFifo10_clear
-CircularAllocator10_alloc --&gt; TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy
+Retirement_Retirement_RESUME &lt;--&gt; BasicFifo10_clear
 CircularAllocator10_alloc --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 CircularAllocator10_alloc --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
+CircularAllocator10_alloc --&gt; TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy
 CircularAllocator10_free --&gt; ConnectTrans11_ConnectTrans
-Retirement_Retirement &lt;--&gt; CircularAllocator10_clear
-TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy --&gt; Connect5_write
+Retirement_Retirement_RESUME &lt;--&gt; CircularAllocator10_clear
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy --&gt; Connect5_write
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy --&gt; Connect5_write
-Connect5_read --&gt; TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy
+TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy --&gt; Connect5_write
 Connect5_read --&gt; TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy
 Connect5_read --&gt; TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy
-TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy --&gt; Forwarder8_write
+Connect5_read --&gt; TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy --&gt; Forwarder8_write
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy --&gt; Forwarder8_write
+TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy --&gt; Forwarder8_write
 Forwarder8_read --&gt; ConnectTrans16_ConnectTrans
 RSSelection_RSSelection_0_3 &lt;--&gt; CSRUnit_select
 RSInsertion_RSInsertion --&gt; CSRUnit_insert
@@ -5866,11 +5864,11 @@ CSRUnit_get_result --&gt; TransactionManager__resume_from_unsafe_cond1_ConnectTr
 TransactionManager__resume_from_unsafe_cond0_ConnectTrans --&gt; BasicFifo11_write
 TransactionManager__resume_from_unsafe_cond1_ConnectTrans --&gt; BasicFifo11_write
 BasicFifo11_read --&gt; ConnectTrans13_ConnectTrans
-Retirement_Retirement &lt;--&gt; BasicFifo11_clear
+Retirement_Retirement_RESUME &lt;--&gt; BasicFifo11_clear
 CircularAllocator11_alloc --&gt; TransactionManager__resume_from_unsafe_cond0_ConnectTrans
 CircularAllocator11_alloc --&gt; TransactionManager__resume_from_unsafe_cond1_ConnectTrans
 CircularAllocator11_free --&gt; ConnectTrans13_ConnectTrans
-Retirement_Retirement &lt;--&gt; CircularAllocator11_clear
+Retirement_Retirement_RESUME &lt;--&gt; CircularAllocator11_clear
 ConnectTrans14_ConnectTrans --&gt; MethodProduct_method
 ConnectTrans15_ConnectTrans --&gt; MethodProduct_method
 ConnectTrans16_ConnectTrans --&gt; MethodProduct_method
@@ -5886,59 +5884,59 @@ TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 &lt;--&gt; Privil
 TransactionManager_DivUnit_ConnectTrans &lt;--&gt; DivUnit_DivUnit
 TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1 &lt;--&gt; FetchUnit_Fetch_Stage1_cond0
 TransactionManager_LSUDummy_issue_cond0 &lt;--&gt; LSURequester_issue_cond0
-TransactionManager_LSUDummy_issue_cond1 &lt;--&gt; LSUDummy_LSUDummy2
 TransactionManager_LSUDummy_issue_cond0 &lt;--&gt; LSUDummy_LSUDummy2
 TransactionManager_LSUDummy_issue_cond2 &lt;--&gt; LSUDummy_LSUDummy2
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation &lt;--&gt; ROBAllocation_ROBAllocation
-TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 &lt;--&gt; ROBAllocation_ROBAllocation
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit_cond4
+TransactionManager_LSUDummy_issue_cond1 &lt;--&gt; LSUDummy_LSUDummy2
 TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1 &lt;--&gt; FetchUnit_Fetch_Stage1_cond1
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
+TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 &lt;--&gt; ROBAllocation_ROBAllocation
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation &lt;--&gt; ROBAllocation_ROBAllocation
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit_cond4
+TransactionManager_InstructionTagger_tag_cond0 &lt;--&gt; InstructionTagger_InstructionTagger
+TransactionManager_InstructionTagger_tag_cond1 &lt;--&gt; InstructionTagger_InstructionTagger
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond2 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond4 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond3 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
-TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
-TransactionManager_InstructionTagger_tag_cond1 &lt;--&gt; InstructionTagger_InstructionTagger
-TransactionManager_InstructionTagger_tag_cond0 &lt;--&gt; InstructionTagger_InstructionTagger
+TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit2
 TransactionManager_InstructionTagger_tag_cond0 &lt;--&gt; CheckpointRAT_tag_cond0
 TransactionManager_LSUDummy_issue_cond1 &lt;--&gt; LSURequester_issue_cond1
-TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation &lt;--&gt; Renaming_Renaming
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 &lt;--&gt; Renaming_Renaming
+TransactionManager_Renaming_commit_checkpoint_cond1_ROBAllocation &lt;--&gt; Renaming_Renaming
 TransactionManager_InstructionTagger_tag_cond1 &lt;--&gt; CheckpointRAT_tag_cond1
-TransactionManager__resume_from_unsafe_cond0_ConnectTrans &lt;--&gt; StallController__resume_from_unsafe_cond0
 TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit &lt;--&gt; StallController__resume_from_unsafe_cond0
-TransactionManager__resume_from_unsafe_cond0_ConnectTrans &lt;--&gt; ConnectTrans17_ConnectTrans
-TransactionManager__resume_from_unsafe_cond1_ConnectTrans &lt;--&gt; ConnectTrans17_ConnectTrans
-TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy &lt;--&gt; LSUDummy_LSUDummy1
+TransactionManager__resume_from_unsafe_cond0_ConnectTrans &lt;--&gt; StallController__resume_from_unsafe_cond0
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy &lt;--&gt; LSUDummy_LSUDummy1
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy &lt;--&gt; LSUDummy_LSUDummy1
-TransactionManager_MulUnit_ConnectTrans &lt;--&gt; MulUnit_MulUnit
-TransactionManager_RollbackTagger_DecodeStage &lt;--&gt; DecodeStage_DecodeStage
+TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy &lt;--&gt; LSUDummy_LSUDummy1
+TransactionManager__resume_from_unsafe_cond0_ConnectTrans &lt;--&gt; ConnectTrans17_ConnectTrans
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans &lt;--&gt; ConnectTrans17_ConnectTrans
 TransactionManager_Fetch_Stage2_Fetch_Stage2_cond0 &lt;--&gt; FetchUnit_Fetch_Stage2_cond0
+TransactionManager_RollbackTagger_DecodeStage &lt;--&gt; DecodeStage_DecodeStage
+TransactionManager_MulUnit_ConnectTrans &lt;--&gt; MulUnit_MulUnit
 TransactionManager_JumpBranchFuncUnit_ConnectTrans &lt;--&gt; ConnectTrans5_ConnectTrans
 TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit1
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit1
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit1
 TransactionManager_LSUDummy_issue_cond2 &lt;--&gt; LSURequester_issue_cond2
 TransactionManager_MulUnit_ConnectTrans &lt;--&gt; ConnectTrans8_ConnectTrans
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond0 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit_cond0
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy &lt;--&gt; LSURequester_accept_cond0
+TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 &lt;--&gt; FetchUnit_Fetch_Stage2_cond1
+TransactionManager_RollbackTagger_DecodeStage &lt;--&gt; RollbackTagger_RollbackTagger
+TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit &lt;--&gt; ConnectTrans7_ConnectTrans
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit &lt;--&gt; ConnectTrans7_ConnectTrans
+TransactionManager__resume_from_unsafe_cond1_ConnectTrans_PrivilegedFuncUnit &lt;--&gt; StallController__resume_from_unsafe_cond1
 TransactionManager__resume_from_unsafe_cond1_ConnectTrans &lt;--&gt; StallController__resume_from_unsafe_cond1
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit &lt;--&gt; StallController__resume_from_unsafe_cond1
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy &lt;--&gt; LSUDummy_LSUDummy_cond0
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy &lt;--&gt; LSUDummy_LSUDummy_cond0
-TransactionManager_RollbackTagger_DecodeStage &lt;--&gt; RollbackTagger_RollbackTagger
 TransactionManager_DivUnit_ConnectTrans &lt;--&gt; ConnectTrans9_ConnectTrans
-TransactionManager_Fetch_Stage2_Fetch_Stage2_cond1 &lt;--&gt; FetchUnit_Fetch_Stage2_cond1
-TransactionManager_ConnectTrans__resume_from_unsafe_cond0_PrivilegedFuncUnit &lt;--&gt; ConnectTrans7_ConnectTrans
-TransactionManager_ConnectTrans__resume_from_unsafe_cond1_PrivilegedFuncUnit &lt;--&gt; ConnectTrans7_ConnectTrans
 TransactionManager_Renaming_ROBAllocation_commit_checkpoint_cond0 &lt;--&gt; CheckpointRAT_commit_checkpoint_cond0
-TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1 &lt;--&gt; FetchUnit_Fetch_Stage1
 TransactionManager_Fetch_Stage1_cond1_Fetch_Stage1 &lt;--&gt; FetchUnit_Fetch_Stage1
+TransactionManager_Fetch_Stage1_cond0_Fetch_Stage1 &lt;--&gt; FetchUnit_Fetch_Stage1
 TransactionManager_PrivilegedFuncUnit_PrivilegedFuncUnit_cond1 &lt;--&gt; PrivilegedFuncUnit_PrivilegedFuncUnit_cond1
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy &lt;--&gt; LSURequester_accept_cond1
-TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy &lt;--&gt; ConnectTrans12_ConnectTrans
 TransactionManager_ConnectTrans_accept_cond0_LSUDummy_cond0_LSUDummy &lt;--&gt; ConnectTrans12_ConnectTrans
 TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy &lt;--&gt; ConnectTrans12_ConnectTrans
+TransactionManager_LSUDummy_cond1_ConnectTrans_LSUDummy &lt;--&gt; ConnectTrans12_ConnectTrans
         </div></div>
 </div>
 </section>
@@ -5955,7 +5953,7 @@ TransactionManager_ConnectTrans_accept_cond1_LSUDummy_cond0_LSUDummy &lt;--&gt; 
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 11:20 2026-06-01.
+      <span class="lastupdated">Last updated on 13:09 2026-06-01.
       </span></p>
   </div>
 
