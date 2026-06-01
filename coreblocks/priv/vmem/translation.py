@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.enum import Enum, unique, auto
 
 from transactron import Method, TModule, def_method, Transaction
-from transactron.lib import Forwarder, condition, BasicFifo, ConnectTrans
+from transactron.lib import condition, BasicFifo, ConnectTrans
 from transactron.utils import DependencyContext, make_layout, HardwareLogger
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE_LOG
@@ -67,7 +67,7 @@ class AddressTranslator(Elaboratable):
             ("vpn_invalid", 1),
             ("is_store", 1),
         )
-        m.submodules.resp_fwd = resp_fwd = Forwarder(fwd_layout)
+        m.submodules.resp_fwd = resp_fwd = BasicFifo(fwd_layout, depth=2)
 
         if self.tlb is not None:
             m.submodules.tlb = self.tlb
