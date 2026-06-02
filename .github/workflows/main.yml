@@ -264,7 +264,6 @@ jobs:
       - name: Get submodules HEAD hash
         working-directory: .
         run: |
-          git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
 
       - name: Restore arch regression tests cache
