@@ -238,7 +238,6 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
           fail-on-cache-miss: true
-          lookup-only: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
