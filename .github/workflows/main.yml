@@ -206,6 +206,7 @@ jobs:
 
   run-arch-regression-tests:
     strategy:
+      fail-fast: false
       matrix:
         config: [cocotb, pysim]
     name: Run arch regression tests (riscv-arch-test)
@@ -257,7 +258,7 @@ jobs:
           if [ "${{ matrix.config }}" = "cocotb" ]; then
             ./scripts/run_tests.py --arch-tests -v -b cocotb regression
           else
-            ./scripts/run_tests.py --arch-tests -v -b pysim 'regression.*I-add' -c 1
+            ./scripts/run_tests.py --arch-tests -v -b pysim -c 1 -j 0 'regression.*not'
           fi
 
   unit-test:
