@@ -234,6 +234,7 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
           fail-on-cache-miss: true
+          lookup-only: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -254,7 +255,8 @@ jobs:
 
   run-arch-regression-tests-pysim:
     name: Run arch regression tests - pysim (riscv-arch-test)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     timeout-minutes: 180
     needs: [ build-arch-regression-tests ]
     steps:
@@ -264,6 +266,7 @@ jobs:
       - name: Get submodules HEAD hash
         working-directory: .
         run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
           git submodule > .gitmodules-hash
 
       - name: Restore arch regression tests cache
@@ -280,6 +283,7 @@ jobs:
               '**/.github/workflows/main.yml'
             ) }}
           fail-on-cache-miss: true
+          lookup-only: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
