@@ -141,7 +141,7 @@ class CoreMemoryModel:
 
 
 def load_segment(
-    segment: Segment, *, disable_write_protection: bool = False, force_executable: bool = False
+    segment: Segment, *, do_workarounds: bool = True, disable_write_protection: bool = False, force_executable: bool = False
 ) -> RandomAccessMemory:
     paddr = segment.header["p_paddr"]
     memsz = segment.header["p_memsz"]
@@ -163,29 +163,30 @@ def load_segment(
     if flags_raw & P_FLAGS.PF_X or force_executable:
         flags |= SegmentFlags.EXECUTABLE
 
-    config = CoreConfiguration()
-    if flags & SegmentFlags.EXECUTABLE:
-        # align instruction section to full icache lines
-        align_bits = config.icache_line_bytes_log
-        # workaround for fetching/stalling issue
-        extend_end = 2**config.icache_line_bytes_log
-    else:
-        align_bits = 0
-        extend_end = 0
+    if do_workarounds:
+        config = CoreConfiguration()
+        if flags & SegmentFlags.EXECUTABLE:
+            # align instruction section to full icache lines
+            align_bits = config.icache_line_bytes_log
+            # workaround for fetching/stalling issue
+            extend_end = 2**config.icache_line_bytes_log
+        else:
+            align_bits = 0
+            extend_end = 0
 
-    align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
-    align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end + extend_end
+        align_data_front = seg_start - align_down_to_power_of_two(seg_start, align_bits)
+        align_data_back = align_to_power_of_two(seg_end, align_bits) - seg_end + extend_end
 
-    data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
+        data = b"\x00" * align_data_front + data + b"\x00" * align_data_back
 
-    seg_start = align_down_to_power_of_two(seg_start, align_bits)
-    seg_end = align_to_power_of_two(seg_end, align_bits) + extend_end
+        seg_start = align_down_to_power_of_two(seg_start, align_bits)
+        seg_end = align_to_power_of_two(seg_end, align_bits) + extend_end
 
     return RandomAccessMemory(range(seg_start, seg_end), flags, data)
 
 
 def load_segments_from_elf(
-    file_path: str, *, disable_write_protection: bool = False, force_executable: bool = False
+    file_path: str, *, do_workarounds: bool = True, disable_write_protection: bool = False, force_executable: bool = False
 ) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
@@ -196,7 +197,7 @@ def load_segments_from_elf(
                 continue
             segments.append(
                 load_segment(
-                    segment, disable_write_protection=disable_write_protection, force_executable=force_executable
+                    segment, do_workarounds=do_workarounds, disable_write_protection=disable_write_protection, force_executable=force_executable
                 )
             )
 
