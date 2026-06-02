@@ -252,6 +252,53 @@ jobs:
           . venv/bin/activate
           ./scripts/run_tests.py --arch-tests -v -b cocotb regression
 
+  run-arch-regression-tests-pysim:
+    name: Run arch regression tests (riscv-arch-test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    needs: [ build-arch-regression-tests ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Get submodules HEAD hash
+        working-directory: .
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - name: Restore arch regression tests cache
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-arch-regression-tests
+        with:
+          path: |
+            test/external/riscv-arch-test/elfs/**/*.elf
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscv-arch-test/Makefile',
+              '**/test/external/riscv-arch-test/coreblocks/**',
+              '**/.gitmodules-hash',
+              '**/.github/workflows/main.yml'
+            ) }}
+          fail-on-cache-miss: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
+
+      - name: Check regression with pysim
+        run: |
+          . venv/bin/activate
+          ./scripts/run_tests.py -c 1 --arch-tests -v -b pysim 'regression.*I-add'
+
   unit-test:
     name: Run unit tests
     runs-on: ubuntu-latest
