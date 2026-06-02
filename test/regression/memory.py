@@ -141,7 +141,11 @@ class CoreMemoryModel:
 
 
 def load_segment(
-    segment: Segment, *, do_workarounds: bool = True, disable_write_protection: bool = False, force_executable: bool = False
+    segment: Segment,
+    *,
+    do_workarounds: bool = True,
+    disable_write_protection: bool = False,
+    force_executable: bool = False,
 ) -> RandomAccessMemory:
     paddr = segment.header["p_paddr"]
     memsz = segment.header["p_memsz"]
@@ -186,7 +190,11 @@ def load_segment(
 
 
 def load_segments_from_elf(
-    file_path: str, *, do_workarounds: bool = True, disable_write_protection: bool = False, force_executable: bool = False
+    file_path: str,
+    *,
+    do_workarounds: bool = True,
+    disable_write_protection: bool = False,
+    force_executable: bool = False,
 ) -> list[RandomAccessMemory]:
     segments: list[RandomAccessMemory] = []
 
@@ -197,7 +205,10 @@ def load_segments_from_elf(
                 continue
             segments.append(
                 load_segment(
-                    segment, do_workarounds=do_workarounds, disable_write_protection=disable_write_protection, force_executable=force_executable
+                    segment,
+                    do_workarounds=do_workarounds,
+                    disable_write_protection=disable_write_protection,
+                    force_executable=force_executable,
                 )
             )
 
