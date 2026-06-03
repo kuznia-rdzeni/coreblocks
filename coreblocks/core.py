@@ -173,7 +173,7 @@ class Core(Component):
 
         for i, announcement_set in enumerate(self.gen_params.announcement_config):
             m.submodules[f"announcement_connector_{i}"] = CrossbarConnectTrans.create(
-                [self.func_blocks_unifier.get_result[i] for i in announcement_set], announce_result
+                [self.func_blocks_unifier.get_result[i] for i in announcement_set], announce_result[i]
             )
 
         m.submodules.retirement = retirement = self.retirement
