@@ -70,21 +70,28 @@ class EndTestMMIO(MemorySegment):
 class ConsoleMMIO(MemorySegment):
     def __init__(self):
         super().__init__(range(CONSOLE_ADDRESS, CONSOLE_ADDRESS + 8), SegmentFlags.WRITE)
+        self.buffer = bytearray()
 
     def read(self, req: ReadRequest) -> ReadReply:
         return ReadReply()
 
     def write(self, req: WriteRequest) -> WriteReply:
-        # print("!" * 40)
         data = int(req.data)
         data_bytes = data.to_bytes(req.byte_count, "little", signed=False)
         output = bytes(data_bytes[index] for index in range(req.byte_count) if (req.byte_sel >> index) & 1)
         if not output:
             output = data_bytes
 
-        sys.stdout.buffer.write(output)
-        sys.stdout.buffer.flush()
+        self.buffer.extend(output)
+
+        while b"\n" in self.buffer:
+            line, _, self.buffer = self.buffer.partition(b"\n")
+            print(line.decode(errors="replace"))
+
         return WriteReply()
+
+    def __del__(self):
+        print(self.buffer.decode(errors="replace"), end="")
 
 
 class AccessFaultAddressMMIO(MemorySegment):
