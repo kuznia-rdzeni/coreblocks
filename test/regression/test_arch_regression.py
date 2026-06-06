@@ -4,7 +4,6 @@ from filelock import FileLock
 import pytest
 import argparse
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -43,9 +42,9 @@ REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
 END_TEST_ADDRESS = 0xF0000000
 CONSOLE_ADDRESS = 0xF0001000
 ACCESS_FAULT_ADDRESS = 0x00000000
+INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
 
 START_PC = 0x80000000
-ZIFENCEI_PATTERN = re.compile(r"zifencei")
 
 
 class EndTestMMIO(MemorySegment):
@@ -76,6 +75,7 @@ class ConsoleMMIO(MemorySegment):
         return ReadReply()
 
     def write(self, req: WriteRequest) -> WriteReply:
+        # print("!" * 40)
         data = int(req.data)
         data_bytes = data.to_bytes(req.byte_count, "little", signed=False)
         output = bytes(data_bytes[index] for index in range(req.byte_count) if (req.byte_sel >> index) & 1)
@@ -101,6 +101,28 @@ class AccessFaultAddressMMIO(MemorySegment):
         return WriteReply(status=ReplyStatus.ERROR)
 
 
+class InterruptGeneratorMMIO(MemorySegment):
+    def __init__(self):
+        super().__init__(
+            range(INTERRUPT_GENERATOR_ADDRESS, INTERRUPT_GENERATOR_ADDRESS + 4),
+            SegmentFlags.WRITE,
+        )
+        self.value = 0
+
+    def read(self, req: ReadRequest) -> ReadReply:
+        return ReadReply()
+
+    def write(self, req: WriteRequest) -> WriteReply:
+        op_mask = req.data & ~(1 << 31)
+
+        if req.data & (1 << 31):
+            self.value |= op_mask
+        else:
+            self.value &= ~op_mask
+
+        return WriteReply()
+
+
 def get_arg_list(test_name: str, result_path: str, traces: bool = False) -> list[str]:
     arglist = ["make", "-C", str(TEST_ROOT), "-f", "arch_test.Makefile"]
     arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
@@ -120,14 +142,16 @@ def _set_transactron_env_defaults() -> None:
     os.environ.setdefault("__TRANSACTRON_LOG_FILTER", ".*")
 
 
-def build_memory_model(elf_path: str | Path, stop_callback, **kwargs) -> tuple[CoreMemoryModel, EndTestMMIO]:
+def build_memory_model(elf_path: str | Path, stop_callback, **kwargs):
     segments = []
     segments.extend(load_segments_from_elf(str(elf_path), **kwargs))
     segments.append(ConsoleMMIO())
     segments.append(AccessFaultAddressMMIO())
+    int_generator = InterruptGeneratorMMIO()
+    segments.append(int_generator)
     endtest = EndTestMMIO(stop_callback)
     segments.append(endtest)
-    return CoreMemoryModel(segments), endtest
+    return CoreMemoryModel(segments), endtest, int_generator
 
 
 async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 2_000_000):
@@ -135,13 +159,15 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
     elf_path = Path(elf_path).resolve()
 
     # Tests use self-modifying code for CSR access in lower privilege modes (see CSR_ACCESS)
-    mem_model, endtest = build_memory_model(
+    mem_model, endtest, int_generator = build_memory_model(
         elf_path,
         sim_backend.stop,
         do_workarounds=False,
     )
 
-    result = await sim_backend.run(mem_model, timeout_cycles=timeout_cycles)
+    result = await sim_backend.run(
+        mem_model, timeout_cycles=timeout_cycles, get_interrupt_value=lambda: int_generator.value
+    )
 
     assert result.success
     assert endtest.written_value == 1
@@ -174,7 +200,7 @@ def ensure_arch_test_cocotb_build():
             "--config",
             "full",
             "--reset-pc",
-            "0x80000000",
+            f"0x{START_PC:x}",
             "--with-socks",
             "-o",
             str(CORE_V),

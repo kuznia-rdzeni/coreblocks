@@ -13,8 +13,8 @@ ARCH_TEST_EXCLUDE_FAILING += S
 ARCH_TEST_EXCLUDE_FAILING += Zifencei
 # assumes satp.PPN is writeable
 ARCH_TEST_EXCLUDE_FAILING += Sv
-# don't know
-ARCH_TEST_EXCLUDE_FAILING += InterruptsSm InterruptsS InterruptsU
+# SSW set/clear implemented in rvmodel_macros.h
+ARCH_TEST_EXCLUDE_FAILING += InterruptsS InterruptsU
 # amo* causes load exceptions - kuznia-rdzeni/coreblocks#960
 ARCH_TEST_EXCLUDE_FAILING += ExceptionsZaamo
 # sail does not support reservations sets > 12 bits
@@ -24,7 +24,6 @@ ARCH_TEST_EXCLUDE_FAILING += SsstrictSm
 
 ARCH_TEST_EXCLUDE_TIMEOUT += U
 ARCH_TEST_EXCLUDE_TIMEOUT += ExceptionsS
-# PMPSm does not compile
 ARCH_TEST_EXCLUDE_TIMEOUT += PMPS PMPU PMPZca PMPZaamo PMPZalrsc
 ARCH_TEST_EXCLUDE_TIMEOUT += SsstrictS SsstrictU
 

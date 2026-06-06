@@ -82,6 +82,8 @@ class RandomAccessMemory(MemorySegment):
             raise ValueError("Data length must be equal to the length of the address range")
 
     def read(self, req: ReadRequest) -> ReadReply:
+        if self.flags & SegmentFlags.EXECUTABLE:
+            pass  # print("Executing from address %x" % (self.address_range.start + req.addr))
         return ReadReply(data=int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
 
     def write(self, req: WriteRequest) -> WriteReply:

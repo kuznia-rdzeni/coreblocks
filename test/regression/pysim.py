@@ -18,6 +18,7 @@ from transactron.testing import (
     make_logging_process,
     parse_logging_level,
     TestbenchContext,
+    ProcessContext,
 )
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
@@ -131,7 +132,12 @@ class PySimulation(SimulationBackend):
 
         logging.info(str)
 
-    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
+    async def run(
+        self,
+        mem_model: CoreMemoryModel,
+        timeout_cycles: int = 5000,
+        get_interrupt_value: Optional[Callable[[], int]] = None,
+    ) -> SimulationExecutionResult:
         with DependencyContext(DependencyManager()):
             core = Core(gen_params=self.gp)
 
@@ -145,6 +151,15 @@ class PySimulation(SimulationBackend):
             self.cycle_cnt = 0
 
             sim = PysimSimulator(core, max_cycles=timeout_cycles, traces_file=self.traces_file)
+            if get_interrupt_value is not None:
+
+                async def interrupt_generator_process(sim: ProcessContext):
+                    while True:
+                        sim.set(core.interrupts, get_interrupt_value())
+                        await sim.tick()
+
+                sim.add_process(interrupt_generator_process)
+
             sim.add_testbench(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True), background=True)
             sim.add_testbench(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False), background=True)
 
