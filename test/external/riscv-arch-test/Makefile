@@ -13,7 +13,7 @@ ARCH_TEST_EXCLUDE_FAILING += S
 ARCH_TEST_EXCLUDE_FAILING += Zifencei
 # assumes satp.PPN is writeable
 ARCH_TEST_EXCLUDE_FAILING += Sv
-# SSW set/clear implemented in rvmodel_macros.h
+# don't know
 ARCH_TEST_EXCLUDE_FAILING += InterruptsS InterruptsU
 # amo* causes load exceptions - kuznia-rdzeni/coreblocks#960
 ARCH_TEST_EXCLUDE_FAILING += ExceptionsZaamo
