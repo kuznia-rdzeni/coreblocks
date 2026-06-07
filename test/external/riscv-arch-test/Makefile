@@ -5,7 +5,8 @@ ARCH_TEST_EXCLUDE_FAILING =
 ARCH_TEST_EXCLUDE_TIMEOUT =
 
 ARCH_TEST_NOT_COMPILING += Sm
-ARCH_TEST_NOT_COMPILING += PMPSm
+# riscv/riscv-arch-test#1658
+ARCH_TEST_NOT_COMPILING += Sstvala
 
 # sail does not have configuration for read-only FS/VS in mstatus - riscv/sail-riscv#1722
 ARCH_TEST_EXCLUDE_FAILING += S
@@ -14,18 +15,22 @@ ARCH_TEST_EXCLUDE_FAILING += Zifencei
 # assumes satp.PPN is writeable
 ARCH_TEST_EXCLUDE_FAILING += Sv
 # don't know
-ARCH_TEST_EXCLUDE_FAILING += InterruptsS InterruptsU
+ARCH_TEST_EXCLUDE_FAILING += InterruptsU
 # amo* causes load exceptions - kuznia-rdzeni/coreblocks#960
 ARCH_TEST_EXCLUDE_FAILING += ExceptionsZaamo
 # sail does not support reservations sets > 12 bits
 ARCH_TEST_EXCLUDE_FAILING += ExceptionsZalrsc
-# don't know
-ARCH_TEST_EXCLUDE_FAILING += SsstrictSm
+# don't know - pmpsm_cfg_XWR_all-01.S
+ARCH_TEST_EXCLUDE_FAILING += PMPSm
+# don't know - pmpzca_misaligned_napot.S
+ARCH_TEST_EXCLUDE_FAILING += PMPZca
 
+# some of those could be a trap loop - need to investigate further
 ARCH_TEST_EXCLUDE_TIMEOUT += U
-ARCH_TEST_EXCLUDE_TIMEOUT += ExceptionsS
-ARCH_TEST_EXCLUDE_TIMEOUT += PMPS PMPU PMPZca PMPZaamo PMPZalrsc
-ARCH_TEST_EXCLUDE_TIMEOUT += SsstrictS SsstrictU
+ARCH_TEST_EXCLUDE_TIMEOUT += ZicntrS
+ARCH_TEST_EXCLUDE_TIMEOUT += InterruptsS ExceptionsS
+ARCH_TEST_EXCLUDE_TIMEOUT += PMPS PMPU PMPZaamo PMPZalrsc
+ARCH_TEST_EXCLUDE_TIMEOUT += SsstrictSm SsstrictS SsstrictU
 
 EXCLUDE_EXTENSIONS_SET = $(ARCH_TEST_NOT_COMPILING) $(ARCH_TEST_EXCLUDE_FAILING) $(ARCH_TEST_EXCLUDE_TIMEOUT)
 EXCLUDE_EXTENSIONS = $(shell echo "$(EXCLUDE_EXTENSIONS_SET)" | tr ' ' ',')

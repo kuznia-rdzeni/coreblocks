@@ -403,7 +403,7 @@
       "supported": false
     },
     "Zihpm": {
-      "supported": false
+      "supported": true
     },
     "Zimop": {
       "supported": false
@@ -509,7 +509,7 @@
       "supported": false
     },
     "Zkt": {
-      "supported": false
+      "supported": true
     },
     "Zhinx": {
       "supported": false
