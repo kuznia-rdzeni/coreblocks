@@ -5,8 +5,6 @@ ARCH_TEST_EXCLUDE_FAILING =
 ARCH_TEST_EXCLUDE_TIMEOUT =
 
 ARCH_TEST_NOT_COMPILING += Sm
-# riscv/riscv-arch-test#1658
-ARCH_TEST_NOT_COMPILING += Sstvala
 
 # sail does not have configuration for read-only FS/VS in mstatus - riscv/sail-riscv#1722
 ARCH_TEST_EXCLUDE_FAILING += S
