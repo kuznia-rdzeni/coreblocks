@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
-from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, condition
+from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, condition, BasicFifo, ConnectTrans
 
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -218,6 +218,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.d.comb += cam.ways_data.eq(entries)
 
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        m.submodules.backing_fifo = backing_fifo = BasicFifo(self.layout.tlb_request, depth=1)
 
         request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
@@ -251,7 +252,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     self.perf_misses.incr(m)
                     m.d.sync += request_in_flight.eq(1)
                     m.d.sync += requested_vpn.eq(vpn)
-                    self.backing_resolver.request(m, vpn=vpn, is_store=is_store)
+                    backing_fifo.write(m, vpn=vpn, is_store=is_store)
                 with branch():
                     self.perf_hits.incr(m)
                     fwd.write(
@@ -261,6 +262,8 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                         ppn=cam.matched_entry.ppn,
                         size_class=cam.matched_entry.size_class,
                     )
+
+        m.submodules += ConnectTrans.create(backing_fifo.read, self.backing_resolver.request)
 
         # Slow path - refill from backing resolver
         with Transaction().body(m, ready=request_in_flight):
