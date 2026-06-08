@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
-from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, condition, BasicFifo, ConnectTrans
+from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, BasicFifo, ConnectTrans
 
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -121,11 +121,12 @@ class TLBCAM(Elaboratable):
                     self.checked_vpn[start_bit:end_bit] == self.ways_data[way].vpn[start_bit:end_bit]
                 )
 
-            required_match_mask = Signal(self.gen_params.vmem_params.tlb_size_class_bits + 1)
-            for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
-                m.d.comb += required_match_mask[sz_class].eq(sz_class <= self.ways_data[way].size_class)
+            # highest size class part must always match
+            match_mask = Signal(self.gen_params.vmem_params.tlb_size_class_bits)
+            for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class):
+                m.d.comb += match_mask[sz_class].eq(sz_class > self.ways_data[way].size_class)
 
-            m.d.comb += self.addr_match[way].eq((match_bits | ~required_match_mask).all())
+            m.d.comb += self.addr_match[way].eq((match_bits | match_mask).all())
 
         m.d.comb += self.full_match.eq(self.valid_match & self.addr_match & (self.asid_match | self.global_match))
 
@@ -146,13 +147,7 @@ class TLBCAM(Elaboratable):
         first_full_match_one_hot = Signal(self.ways)
         m.d.comb += first_full_match_one_hot.eq(self.full_match & (~self.full_match + 1))
         m.d.comb += self.matched_entry.eq(
-            or_value(
-                [
-                    self.ways_data[way].as_value()
-                    & first_full_match_one_hot[way].replicate(self.matched_entry.as_value().shape().width)
-                    for way in range(self.ways)
-                ]
-            )
+            or_value([Mux(first_full_match_one_hot[way], self.ways_data[way], 0) for way in range(self.ways)])
         )
 
         return m
@@ -247,21 +242,20 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
                     # Ask the backing resolver to set it (Svade semantic)
                     m.d.av_comb += ask_backing.eq(1)
 
-            with condition(m) as branch:
-                with branch(ask_backing):
-                    self.perf_misses.incr(m)
-                    m.d.sync += request_in_flight.eq(1)
-                    m.d.sync += requested_vpn.eq(vpn)
-                    backing_fifo.write(m, vpn=vpn, is_store=is_store)
-                with branch():
-                    self.perf_hits.incr(m)
-                    fwd.write(
-                        m,
-                        result=AddressTranslationLayouts.TLBResult.HIT,
-                        permissions=cam.matched_entry.permissions,
-                        ppn=cam.matched_entry.ppn,
-                        size_class=cam.matched_entry.size_class,
-                    )
+            with m.If(ask_backing):
+                self.perf_misses.incr(m)
+                m.d.sync += request_in_flight.eq(1)
+                m.d.sync += requested_vpn.eq(vpn)
+                backing_fifo.write(m, vpn=vpn, is_store=is_store)
+            with m.Else():
+                self.perf_hits.incr(m)
+                fwd.write(
+                    m,
+                    result=AddressTranslationLayouts.TLBResult.HIT,
+                    permissions=cam.matched_entry.permissions,
+                    ppn=cam.matched_entry.ppn,
+                    size_class=cam.matched_entry.size_class,
+                )
 
         m.submodules += ConnectTrans.create(backing_fifo.read, self.backing_resolver.request)
 
