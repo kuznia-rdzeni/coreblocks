@@ -10,8 +10,6 @@ ARCH_TEST_NOT_COMPILING += Sm
 ARCH_TEST_EXCLUDE_FAILING += S
 # hits assertion in rf
 ARCH_TEST_EXCLUDE_FAILING += Zifencei
-# assumes satp.PPN is writeable
-ARCH_TEST_EXCLUDE_FAILING += Sv
 # don't know
 ARCH_TEST_EXCLUDE_FAILING += InterruptsU
 # amo* causes load exceptions - kuznia-rdzeni/coreblocks#960
