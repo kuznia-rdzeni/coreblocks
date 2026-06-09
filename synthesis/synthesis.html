@@ -66,6 +66,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#regression-tests-manual-execution">Regression tests manual execution</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#risc-v-architectural-certification-tests">RISC-V Architectural Certification Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#building-act4-binaries">Building ACT4 binaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#preparing-for-running-act4-tests">Preparing for running ACT4 tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-act4-tests-using-act4-runner">Running ACT4 tests using ACT4 runner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-act4-tests-using-pytest">Running ACT4 tests using pytest</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../components/icache.html">Instruction Cache</a></li>
@@ -254,6 +261,70 @@ pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quo
 </div>
 </section>
 </section>
+<section id="risc-v-architectural-certification-tests">
+<h2>RISC-V Architectural Certification Tests<a class="headerlink" href="#risc-v-architectural-certification-tests" title="Link to this heading"></a></h2>
+<p>RISC-V architectural certification tests are a set of tests that check whether the core is compliant with the RISC-V specification. They are similar to regression tests, but they are more comprehensive and cover more edge cases. They are provided by the <a class="reference external" href="https://github.com/riscv/riscv-arch-tests">riscv-arch-tests</a> repository.</p>
+<p>The UDB configuration of the full configuration of the core is present in test/external/riscv-arch-test/coreblocks/coreblocks-full/coreblocks.yaml.</p>
+<p>From it and other files in the same directory, the ACT4 framework generates self-checking ELF binaries, which are then executed on the simulated core.</p>
+<section id="building-act4-binaries">
+<h3>Building ACT4 binaries<a class="headerlink" href="#building-act4-binaries" title="Link to this heading"></a></h3>
+<p>Coreblocks project provides a configuration for which the tests pass.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="o">=</span><span class="m">1</span><span class="w"> </span>https://github.com/kuznia-rdzeni/coreblocks.git
+<span class="nb">cd</span><span class="w"> </span>coreblocks
+git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive
+<span class="nb">cd</span><span class="w"> </span>..
+sudo<span class="w"> </span>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/riscv/act4-build:latest
+sudo<span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>./coreblocks:/coreblocks<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>--user<span class="w"> </span>root<span class="w"> </span>ghcr.io/riscv/act4-build:latest
+<span class="nb">cd</span><span class="w"> </span>/coreblocks/test/external/riscv-arch-test
+make<span class="w"> </span>-j<span class="k">$(</span>nproc<span class="k">)</span>
+<span class="nb">exit</span>
+</pre></div>
+</div>
+<p>This puts the generated ELF binaries in the <code class="docutils literal notranslate"><span class="pre">./test/external/riscv-arch-test/elfs</span></code> directory, which is shared with the host, so the binaries survive after the docker container is closed.</p>
+</section>
+<section id="preparing-for-running-act4-tests">
+<h3>Preparing for running ACT4 tests<a class="headerlink" href="#preparing-for-running-act4-tests" title="Link to this heading"></a></h3>
+<p>Following steps require the verilator to be set up correctly, so please build environment for running in following way:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/kuznia-rdzeni/verilator:latest
+sudo<span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>./coreblocks:/coreblocks<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>ghcr.io/kuznia-rdzeni/verilator:latest
+apt<span class="w"> </span>update
+apt<span class="w"> </span>install<span class="w"> </span>python3.13-venv
+python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+.<span class="w"> </span>venv/bin/activate
+python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+<span class="nb">cd</span><span class="w"> </span>coreblocks
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="running-act4-tests-using-act4-runner">
+<h3>Running ACT4 tests using ACT4 runner<a class="headerlink" href="#running-act4-tests-using-act4-runner" title="Link to this heading"></a></h3>
+<p>ACT4 framework provides a runner used for certification of RISC-V cores. For it to work one can call test_arch_regression script to run a test binary on the simulated core. The script will check the test result and print the error message if the test has failed.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>test.regression.test_arch_regression<span class="w"> </span>--backend<span class="w"> </span>cocotb<span class="w"> </span><span class="s2">&quot;&lt;elf_filename&gt;&quot;</span>
+</pre></div>
+</div>
+<p>To run all of the tests in the directory, you can use the ACT4 runner script.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>./test/external/riscv-arch-test/riscv-arch-test/run_tests.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;python -m test.regression.test_arch_regression --backend cocotb&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>./test/external/riscv-arch-test/elfs
+</pre></div>
+</div>
+<p>This will generate the summary of the run in <code class="docutils literal notranslate"><span class="pre">./test/external/riscv-arch-test/summary.log</span></code> file and the detailed log for each test in <code class="docutils literal notranslate"><span class="pre">./test/external/riscv-arch-test/logs</span></code> directory.</p>
+<p>For more information please see <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">./test/external/riscv-arch-test/riscv-arch-test/run_tests.py</span> <span class="pre">--help</span></code>.</p>
+<p>Please note that the runner has a defualt timeout of 300 seconds and the verilation step can take a long time, so it is recommended perform core compilation
+before running ACT4’s run_tests script. To do that, you can run the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>test.regression.test_arch_regression<span class="w"> </span>--backend<span class="w"> </span>cocotb
+</pre></div>
+</div>
+</section>
+<section id="running-act4-tests-using-pytest">
+<h3>Running ACT4 tests using pytest<a class="headerlink" href="#running-act4-tests-using-pytest" title="Link to this heading"></a></h3>
+<p>Alternatively, you can run built ACT4 tests using pytest. To do that, you can use the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/run_tests.py<span class="w"> </span>--arch-tests<span class="w"> </span>regression
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
 
@@ -268,7 +339,7 @@ pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quo
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:09 2026-06-01.
+      <span class="lastupdated">Last updated on 06:40 2026-06-09.
       </span></p>
   </div>
 
