@@ -9,6 +9,7 @@ from transactron.utils import DependencyContext
 
 from coreblocks.arch import OpType
 from coreblocks.arch.isa_consts import ExceptionCause
+from coreblocks.cache.dcache import DCacheBypass
 from coreblocks.func_blocks.fu.lsu.lsu_requester import LSURequester
 from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
@@ -19,7 +20,7 @@ from coreblocks.interface.keys import (
     ExceptionReportKey,
     InstructionPrecommitKey,
 )
-from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts, DCacheLayouts
 from coreblocks.params import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
@@ -78,7 +79,10 @@ class LSUDummy(FuncUnit, Elaboratable):
         )
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
-        m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
+        m.submodules.dcache = dcache = DCacheBypass(
+            self.gen_params.get(DCacheLayouts), self.gen_params.dcache_params, self.bus
+        )
+        m.submodules.requester = requester = LSURequester(self.gen_params, dcache)
 
         m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
         m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)

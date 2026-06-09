@@ -21,7 +21,7 @@ from transactron.testing import (
 )
 
 from coreblocks.frontend.fetch.fetch import FetchUnit, PredictionChecker
-from coreblocks.cache.iface import CacheInterface
+from coreblocks.cache.iface import ICacheInterface
 from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.params import configurations
@@ -30,7 +30,7 @@ from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
 
-class MockedICache(Elaboratable, CacheInterface):
+class MockedICache(Elaboratable, ICacheInterface):
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
