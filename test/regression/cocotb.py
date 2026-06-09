@@ -223,7 +223,12 @@ class CocotbSimulation(SimulationBackend):
 
             await clock_edge_event  # type: ignore
 
-    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
+    async def run(
+        self,
+        mem_model: CoreMemoryModel,
+        timeout_cycles: int = 5000,
+        get_interrupt_value: Optional[Callable[[], int]] = None,
+    ) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
 
@@ -236,6 +241,15 @@ class CocotbSimulation(SimulationBackend):
 
         data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
+
+        if get_interrupt_value is not None:
+
+            async def interrupt_generator_process():
+                while True:
+                    self.dut.interrupts.value = get_interrupt_value()
+                    await RisingEdge(self.dut.clk)
+
+            cocotb.start_soon(interrupt_generator_process())
 
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
