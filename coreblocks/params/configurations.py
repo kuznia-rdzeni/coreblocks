@@ -76,8 +76,8 @@ full = CoreConfiguration(
     func_units_config=(
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
-                ShiftUnitComponent(zbb_enable=True),
+                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True, result_fifo=False),
+                ShiftUnitComponent(zbb_enable=True, result_fifo=False),
                 ZbcComponent(),
                 ZbkxComponent(),
                 ZbsComponent(),
@@ -86,8 +86,8 @@ full = CoreConfiguration(
         ),
         RSBlockComponent(
             [
-                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True),
-                ShiftUnitComponent(zbb_enable=True),
+                ALUComponent(zba_enable=True, zbb_enable=True, zicond_enable=True, result_fifo=False),
+                ShiftUnitComponent(zbb_enable=True, result_fifo=False),
                 ZbcComponent(),
                 ZbkxComponent(),
                 ZbsComponent(),
@@ -107,13 +107,14 @@ full = CoreConfiguration(
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
     ),
+    announcement_config=[[0], [1], [2, 3, 4]],
     compressed=True,
     zcb=True,
     fetch_block_bytes_log=4,
     instr_buffer_size=16,
     pmp_register_count=16,
     frontend_superscalarity=2,
-    announcement_superscalarity=2,
+    announcement_superscalarity=3,
     retirement_superscalarity=2,
     interrupt_custom_count=15,
 )
