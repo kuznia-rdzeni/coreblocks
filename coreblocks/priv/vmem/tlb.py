@@ -260,7 +260,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.submodules += ConnectTrans.create(backing_fifo.read, self.backing_resolver.request)
 
         # Slow path - refill from backing resolver
-        with Transaction().body(m, ready=request_in_flight):
+        with Transaction().body(m, ready=request_in_flight & backing_fifo.write.ready):
             resp = self.backing_resolver.accept(m)
             m.d.sync += request_in_flight.eq(0)
 
