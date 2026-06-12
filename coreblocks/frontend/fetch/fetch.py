@@ -1,7 +1,7 @@
 from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe
+from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
@@ -155,8 +155,13 @@ class FetchUnit(Elaboratable):
 
             self.addr_translator.request(m, addr=pc, is_store=0)
 
+        m.submodules.addr_translator_accept_pipe = addr_translator_accept_pipe = Pipe(
+            self.addr_translator.accept.layout_out
+        )
+        m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
+
         with Transaction().body(m):
-            translated = self.addr_translator.accept(m)
+            translated = addr_translator_accept_pipe.read(m)
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
