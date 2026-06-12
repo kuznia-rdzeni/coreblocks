@@ -4,7 +4,7 @@ import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
-from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, BasicFifo, ConnectTrans
+from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
 
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -205,7 +205,7 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         asid_bits = self.gen_params.vmem_params.asidlen
 
         current_asid = Signal(asid_bits)
-        m.d.comb += current_asid.eq(csr.s_mode.satp_asid)
+        m.d.av_comb += current_asid.eq(csr.s_mode.satp_asid)
 
         entries = Signal(ArrayLayout(TLBEntry(self.gen_params), self.entries))
 
@@ -213,87 +213,93 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         m.d.comb += cam.ways_data.eq(entries)
 
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
-        m.submodules.backing_fifo = backing_fifo = BasicFifo(self.layout.tlb_request, depth=1)
+        m.submodules.backing_pipe = backing_pipe = Pipe(self.layout.tlb_request)
+        m.submodules += ConnectTrans.create(backing_pipe.read, self.backing_resolver.request)
 
-        request_in_flight = Signal()
         requested_vpn = Signal(vpn_bits)
 
-        with m.If(self.sfence_vma.run):
-            m.d.comb += cam.checked_asid.eq(self.sfence_vma.data_in.asid)
-            m.d.comb += cam.checked_vpn.eq(self.sfence_vma.data_in.vaddr >> PAGE_SIZE_LOG)
-        with m.Elif(request_in_flight):
-            m.d.comb += cam.checked_asid.eq(current_asid)
-            m.d.comb += cam.checked_vpn.eq(requested_vpn)
-        with m.Else():
-            m.d.comb += cam.checked_asid.eq(current_asid)
-            m.d.comb += cam.checked_vpn.eq(self.request.data_in.vpn)
+        m.submodules.flush_pipe = flush_pipe = Pipe(self.layout.sfence_vma)
+        self.sfence_vma.provide(flush_pipe.write)
 
-        @def_method(m, self.request, ready=~request_in_flight)
-        def _(vpn, is_store):
-            self.perf_loads.incr(m)
-            self.perf_latency.start(m)
+        with m.FSM():
+            with m.State("IDLE"):
+                with m.If(self.sfence_vma.run | flush_pipe.read.ready):
+                    m.next = "FLUSH"  # overwritten later if needed
 
-            ask_backing = Signal()
-            with m.If(~cam.full_match.any()):
-                m.d.av_comb += ask_backing.eq(1)
-            if self.gen_params.vmem_params.supports_auto_a_d_management:
-                with m.Elif(is_store & ~cam.matched_entry.permissions.d):
-                    # We have found an entry, but it doesn't have the dirty bit set
-                    # Ask the backing resolver to set it (Svade semantic)
-                    m.d.av_comb += ask_backing.eq(1)
+                @def_method(m, self.request, ready=~flush_pipe.read.ready)
+                def _(vpn, is_store):
+                    m.d.av_comb += cam.checked_vpn.eq(vpn)
+                    m.d.av_comb += cam.checked_asid.eq(current_asid)
+                    m.d.sync += requested_vpn.eq(vpn)
 
-            with m.If(ask_backing):
-                self.perf_misses.incr(m)
-                m.d.sync += request_in_flight.eq(1)
-                m.d.sync += requested_vpn.eq(vpn)
-                backing_fifo.write(m, vpn=vpn, is_store=is_store)
-            with m.Else():
-                self.perf_hits.incr(m)
-                fwd.write(
-                    m,
-                    result=AddressTranslationLayouts.TLBResult.HIT,
-                    permissions=cam.matched_entry.permissions,
-                    ppn=cam.matched_entry.ppn,
-                    size_class=cam.matched_entry.size_class,
-                )
+                    self.perf_loads.incr(m)
+                    self.perf_latency.start(m)
 
-        m.submodules += ConnectTrans.create(backing_fifo.read, self.backing_resolver.request)
+                    ask_backing = Signal()
+                    with m.If(~cam.full_match.any()):
+                        m.d.av_comb += ask_backing.eq(1)
+                    if self.gen_params.vmem_params.supports_auto_a_d_management:
+                        with m.Elif(is_store & ~cam.matched_entry.permissions.d):
+                            # We have found an entry, but it doesn't have the dirty bit set
+                            # Ask the backing resolver to set it (Svade semantic)
+                            m.d.av_comb += ask_backing.eq(1)
 
-        # Slow path - refill from backing resolver
-        with Transaction().body(m, ready=request_in_flight & backing_fifo.write.ready):
-            resp = self.backing_resolver.accept(m)
-            m.d.sync += request_in_flight.eq(0)
+                    with m.If(ask_backing):
+                        self.perf_misses.incr(m)
+                        m.next = "REFILL"
+                        backing_pipe.write(m, vpn=vpn, is_store=is_store)
+                    with m.Else():
+                        self.perf_hits.incr(m)
+                        fwd.write(
+                            m,
+                            result=AddressTranslationLayouts.TLBResult.HIT,
+                            permissions=cam.matched_entry.permissions,
+                            ppn=cam.matched_entry.ppn,
+                            size_class=cam.matched_entry.size_class,
+                        )
 
-            fwd.write(m, resp)
+            with m.State("REFILL"):
+                # Slow path - refill from backing resolver
+                with Transaction().body(m, ready=~backing_pipe.read.ready):
+                    m.d.av_comb += cam.checked_vpn.eq(requested_vpn)
+                    m.d.av_comb += cam.checked_asid.eq(current_asid)
 
-            new_entry = Signal(TLBEntry(self.gen_params))
-            m.d.av_comb += [
-                new_entry.valid.eq(1),
-                new_entry.asid.eq(current_asid),
-                new_entry.vpn.eq(requested_vpn),
-                new_entry.ppn.eq(resp.ppn),
-                new_entry.size_class.eq(resp.size_class),
-                new_entry.permissions.eq(resp.permissions),
-            ]
+                    resp = self.backing_resolver.accept(m)
+                    m.next = "IDLE"
 
-            with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
-                m.d.sync += cam.replacement_rr_index.eq(cam.next_replacement_rr_index)
-                m.d.sync += entries[cam.replace_candidate].eq(new_entry)
+                    fwd.write(m, resp)
+
+                    new_entry = Signal(TLBEntry(self.gen_params))
+                    m.d.top_comb += [
+                        new_entry.valid.eq(1),
+                        new_entry.asid.eq(current_asid),
+                        new_entry.vpn.eq(requested_vpn),
+                        new_entry.ppn.eq(resp.ppn),
+                        new_entry.size_class.eq(resp.size_class),
+                        new_entry.permissions.eq(resp.permissions),
+                    ]
+
+                    with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
+                        m.d.sync += cam.replacement_rr_index.eq(cam.next_replacement_rr_index)
+                        m.d.sync += entries[cam.replace_candidate].eq(new_entry)
+            with m.State("FLUSH"):
+                with Transaction(name="TLBFlush").body(m):
+                    self.perf_flushes.incr(m)
+
+                    req = flush_pipe.read(m)
+                    m.d.av_comb += cam.checked_asid.eq(req.asid)
+                    m.d.av_comb += cam.checked_vpn.eq(req.vaddr >> PAGE_SIZE_LOG)
+
+                    for way in range(self.entries):
+                        with m.If((req.all_asids | cam.asid_match[way]) & (req.all_vaddrs | cam.addr_match[way])):
+                            m.d.sync += entries[way].valid.eq(0)
+
+                    m.next = "IDLE"
 
         @def_method(m, self.accept)
         def _():
             self.perf_latency.stop(m)
             return fwd.read(m)
-
-        @def_method(m, self.sfence_vma, ready=~request_in_flight)
-        def _(vaddr, asid, all_vaddrs, all_asids):
-            self.perf_flushes.incr(m)
-
-            for way in range(self.entries):
-                with m.If((all_asids | cam.asid_match[way]) & (all_vaddrs | cam.addr_match[way])):
-                    m.d.sync += entries[way].valid.eq(0)
-
-        self.sfence_vma.add_conflict(self.request, Priority.LEFT)
 
         return m
 
@@ -473,7 +479,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     m.d.sync += slow_path.eq(0)
 
                     new_entry = Signal(TLBEntry(self.gen_params))
-                    m.d.av_comb += [
+                    m.d.top_comb += [
                         new_entry.valid.eq(1),
                         new_entry.asid.eq(current_asid),
                         new_entry.vpn.eq(req.vpn),
@@ -484,12 +490,13 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
                     m.d.comb += rd_wr.data.eq(cam.next_replacement_rr_index)
                     m.d.comb += rd_wr.addr.eq(refill_set_idx)
-                    m.d.comb += rd_wr.en.eq(1)
-
+                    m.d.comb += set_wr.addr.eq(refill_set_idx)
                     m.d.comb += set_wr.data.eq(set_rd.data)
                     m.d.comb += set_wr.data[cam.replace_candidate].eq(new_entry)
-                    m.d.comb += set_wr.addr.eq(refill_set_idx)
-                    m.d.comb += set_wr.en.eq(1)
+
+                    with m.If(refill_response.result == AddressTranslationLayouts.TLBResult.HIT):
+                        m.d.comb += rd_wr.en.eq(1)
+                        m.d.comb += set_wr.en.eq(1)
 
                     m.next = "IDLE"
 
@@ -541,14 +548,14 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             flush_done = Signal()
 
             with m.If(flush_all_vaddrs):
-                m.d.av_comb += next_flush_set.eq(flush_set + 1)
-                m.d.av_comb += flush_done.eq(flush_set == self.sets - 1)
+                m.d.comb += next_flush_set.eq(flush_set + 1)
+                m.d.comb += flush_done.eq(flush_set == self.sets - 1)
             with m.Else():
-                m.d.av_comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
+                m.d.comb += next_flush_set.eq(vpn_to_set_idx(flush_vpn, flush_size_class + 1))
                 m.d.sync += flush_size_class.eq(flush_size_class + 1)
 
                 with m.If(flush_size_class == self.gen_params.vmem_params.max_tlb_size_class):
-                    m.d.av_comb += flush_done.eq(1)
+                    m.d.comb += flush_done.eq(1)
 
             m.d.sync += flush_set.eq(next_flush_set)
 
