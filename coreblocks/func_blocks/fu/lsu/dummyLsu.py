@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO, ConnectTrans
+from transactron.lib.connectors import FIFO, ConnectTrans, Forwarder
 from transactron.utils import logging
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext
@@ -59,6 +59,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         self.log = logging.HardwareLogger("backend.lsu.dummylsu")
 
+        self.addr_translator = AddressTranslator(self.gen_params, mode=AddressTranslatorMode.LSU)
+
     def elaborate(self, platform):
         m = TModule()
         flush = Signal()  # exception handling, requests are not issued
@@ -73,14 +75,13 @@ class LSUDummy(FuncUnit, Elaboratable):
         rob_id_match = Signal()
         is_load = Signal()
 
-        m.submodules.addr_translator = addr_translator = AddressTranslator(
-            self.gen_params, mode=AddressTranslatorMode.LSU
-        )
+        m.submodules.addr_translator = self.addr_translator
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.translator_in_fwd = translator_in_fwd = Forwarder(self.translator_layouts.request)
         m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)
         m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
@@ -92,17 +93,18 @@ class LSUDummy(FuncUnit, Elaboratable):
                 m, 1, "issue rob_id={} funct3={} op_type={}", arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type
             )
             is_fence = arg.exec_fn.op_type == OpType.FENCE
-            with m.If(~is_fence):
-                addr = Signal(self.gen_params.isa.xlen)
-                m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
+            addr = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
 
-                addr_translator.request(m, addr=addr, is_store=arg.exec_fn.op_type == OpType.STORE)
+            with m.If(~is_fence):
+                translator_in_fwd.write(m, addr=addr, is_store=arg.exec_fn.op_type == OpType.STORE)
                 requests.write(m, arg)
             with m.Else():
                 results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
 
-        m.submodules += ConnectTrans.create(addr_translator.accept, translated.write)
+        m.submodules += ConnectTrans.create(translator_in_fwd.read, self.addr_translator.request)
+        m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.

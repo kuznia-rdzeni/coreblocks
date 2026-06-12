@@ -1,7 +1,7 @@
 from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe
+from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
@@ -78,13 +78,14 @@ class FetchUnit(Elaboratable):
             tags=range(self.gen_params.fetch_width + 1),
         )
 
+        self.addr_translator = AddressTranslator(self.gen_params, mode=AddressTranslatorMode.INSTRUCTION)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.addr_translator = addr_translator = AddressTranslator(
-            self.gen_params, mode=AddressTranslatorMode.INSTRUCTION
-        )
         m.submodules += [self.perf_fetch_utilization]
+
+        m.submodules.addr_translator = self.addr_translator
 
         fetch_width = self.gen_params.fetch_width
         fields = self.gen_params.get(CommonLayoutFields)
@@ -152,10 +153,15 @@ class FetchUnit(Elaboratable):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
 
-            addr_translator.request(m, addr=pc, is_store=0)
+            self.addr_translator.request(m, addr=pc, is_store=0)
+
+        m.submodules.addr_translator_accept_pipe = addr_translator_accept_pipe = Pipe(
+            self.addr_translator.accept.layout_out
+        )
+        m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
 
         with Transaction().body(m):
-            translated = addr_translator.accept(m)
+            translated = addr_translator_accept_pipe.read(m)
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
@@ -211,21 +217,18 @@ class FetchUnit(Elaboratable):
             # The index (in instructions) of the first instruction that we should process.
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
-            # Conditionally read from icache or mark fault
+            # Conditionally read from icache
             cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
             access_fault = Signal(FetchLayouts.FaultFlag)
 
-            with condition(m) as branch:
-                with branch(fetch_request.page_fault | fetch_request.access_fault):
-                    with m.If(fetch_request.page_fault):
-                        m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)
-                    with m.Else():
-                        m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.ACCESS_FAULT)
-                    m.d.av_comb += cache_resp.fetch_block.eq(0)
-                    m.d.av_comb += cache_resp.error.eq(0)
-                with branch():
+            with condition(m, nonblocking=True) as branch:
+                with branch(~fetch_request.page_fault & ~fetch_request.access_fault):
                     m.d.av_comb += cache_resp.eq(self.icache.accept_res(m))
-                    m.d.av_comb += access_fault.eq(Mux(cache_resp.error, FetchLayouts.FaultFlag.ACCESS_FAULT, 0))
+
+            with m.If(fetch_request.page_fault):
+                m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.PAGE_FAULT)
+            with m.Elif(fetch_request.access_fault | cache_resp.error):
+                m.d.av_comb += access_fault.eq(FetchLayouts.FaultFlag.ACCESS_FAULT)
 
             #
             # Expand compressed instructions from the fetch block.
