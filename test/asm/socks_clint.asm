@@ -52,10 +52,12 @@ t2c:
 
 fail:
     sw x0, (x0)
+    csrw 0x8fe, 0x12
     j fail
 
 pass:
     li x8, 1
+    csrw 0x8fe, 0x10
     j pass
 
 trap_handler:

@@ -13,8 +13,10 @@ _start:
 loop:
     wfi
     beq x2, x3, loop
-infloop:
-    j infloop
+
+pass:
+    csrw 0x8fe, 0x10
+    j pass
 
 handler:
     addi x30, x30, 1

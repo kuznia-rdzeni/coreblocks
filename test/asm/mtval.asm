@@ -29,6 +29,7 @@ c9: # mtval=0 mcause=ENVIRONMENT_CALL_FROM_M
     ecall
 
 pass:
+    csrw 0x8fe, 0x10
     j pass
 
 
@@ -55,6 +56,7 @@ handler: # test each case. test case number = in x8>>2
     mret
 
 fail:
+    csrw 0x8fe, 0x12
     j fail
 
 # it is legal - C is enabled in core, but can't be enabled in toolchain to keep 4-byte nops

@@ -20,8 +20,9 @@ next:
     # test writable CSRs
     csrw mscratch, 4
     csrr x6, mscratch
-infloop:
-    j infloop
+pass:
+    csrw 0x8fe, 0x10
+    j pass
 
 exception_handler:
    addi x15, x15, -1 # count exceptions
