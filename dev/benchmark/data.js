@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780989797381,
+  "lastUpdate": 1781807655299,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -23253,6 +23253,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/810cbe8ec2b64252a3039efa4ebfb122a38905bb"
         },
         "date": 1780989781978,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4622148573846208,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6049315471809216,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.39054303657185074,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6612913022351797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.37048039774039127,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3249217707422576,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3598816591234154,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4614989293361884,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f6a1a77771473260d0acd5881c69d2aaf86e3947",
+          "message": "fix pmp in fetcher (#983)",
+          "timestamp": "2026-06-18T19:50:39+02:00",
+          "tree_id": "6c198e970ceb29b70ec033ba968eaada4bafebf1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f6a1a77771473260d0acd5881c69d2aaf86e3947"
+        },
+        "date": 1781807646138,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
