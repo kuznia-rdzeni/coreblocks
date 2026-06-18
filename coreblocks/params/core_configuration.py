@@ -192,7 +192,7 @@ class _CoreConfigurationDataClass:
 
     asidlen: int = 0
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE, SatpMode.SV32)
-    phys_addr_bits: int | None = 32
+    phys_addr_bits: int | None = None
     hpm_counters_count: int = 0
 
     tlb_config: TLBCacheConfiguration = TLBCacheConfiguration()

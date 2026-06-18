@@ -217,7 +217,7 @@ class FetchUnit(Elaboratable):
             # The index (in instructions) of the first instruction that we should process.
             fetch_block_offset = params.fb_instr_idx(fetch_request.pc)
 
-            # Conditionally read from icache
+            # Conditionally read from icache or mark fault
             cache_resp = Signal(self.gen_params.get(ICacheLayouts).accept_res)
             access_fault = Signal(FetchLayouts.FaultFlag)
 

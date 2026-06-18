@@ -3,7 +3,7 @@ from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
-from transactron.utils import DependencyContext, mod_incr, HardwareLogger, or_value
+from transactron.utils import DependencyContext, mod_incr, or_value
 from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
 
 
@@ -18,9 +18,6 @@ __all__ = [
     "FullyAssociativeTLB",
     "SetAssociativeTLB",
 ]
-
-
-log = HardwareLogger("mmu.tlb")
 
 
 class TLBEntry(StructLayout):

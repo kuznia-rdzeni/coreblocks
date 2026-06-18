@@ -127,8 +127,6 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
     Expected layout is `AddressTranslationLayouts.sfence_vma`.
     """
 
-    pass
-
 
 @dataclass(frozen=True)
 class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
