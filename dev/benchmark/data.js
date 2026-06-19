@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1781807659353,
+  "lastUpdate": 1781857797574,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -23317,6 +23317,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f6a1a77771473260d0acd5881c69d2aaf86e3947"
         },
         "date": 1781807646138,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4622148573846208,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6049315471809216,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.39054303657185074,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6612913022351797,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.37048039774039127,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3249217707422576,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3598816591234154,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4614989293361884,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "coreblocks@syscall.moe",
+            "name": "Jo Seaton",
+            "username": "jseaton"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0a989d7094df9acff968b62a0c88d62e47f0536",
+          "message": "Add and use test exit CSR for asm tests (#981)",
+          "timestamp": "2026-06-19T09:46:07+02:00",
+          "tree_id": "3696be11ccc07776fa3aa023157beb2e78650b18",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d0a989d7094df9acff968b62a0c88d62e47f0536"
+        },
+        "date": 1781857788607,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
