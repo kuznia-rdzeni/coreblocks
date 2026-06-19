@@ -3,5 +3,7 @@ rdinstret x1
 nop
 nop
 rdinstret x2
-end:
-j end
+
+pass:
+csrw 0x8fe, 0x10
+j pass

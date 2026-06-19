@@ -79,9 +79,11 @@ s_mode_main:
 
 success:
     la x10, 1
+    csrw 0x8fe, 0x10
     j success
 
 fail:
+    csrw 0x8fe, 0x12
     j fail
 
 .section .data
