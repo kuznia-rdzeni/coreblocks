@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1781857799490,
+  "lastUpdate": 1781857801356,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -65012,6 +65012,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 3528,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2600,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 10353,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "coreblocks@syscall.moe",
+            "name": "Jo Seaton",
+            "username": "jseaton"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0a989d7094df9acff968b62a0c88d62e47f0536",
+          "message": "Add and use test exit CSR for asm tests (#981)",
+          "timestamp": "2026-06-19T09:46:07+02:00",
+          "tree_id": "3696be11ccc07776fa3aa023157beb2e78650b18",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d0a989d7094df9acff968b62a0c88d62e47f0536"
+        },
+        "date": 1781857800980,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.99,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 51969,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3496,
             "unit": "LUT"
           },
           {
