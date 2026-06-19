@@ -37,6 +37,8 @@ implemented_extensions:
   - { name: Svbare, version: "= 1.0.0" }
   - { name: Sv32, version: "= 1.0.0" }
   - { name: Svade, version: "= 1.0.0" }
+  - { name: Svvptc, version: "= 1.0.0" }
+  - { name: Ssccptr, version: "= 1.0.0" }
   - { name: Zkt, version: "= 1.0.0" }  # data independent execution latency
 
 params:
