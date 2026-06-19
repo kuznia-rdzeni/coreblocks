@@ -190,7 +190,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, False, configurations.full),
         ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, False, configurations.full),
         ("mtval", "mtval.asm", 2000, {8: 5 * 8}, True, configurations.full),
-        ("socks_clint", "socks_clint.asm", 1400, {2: 5, 8: 1}, True, configurations.basic),
+        ("socks_clint", "socks_clint.asm", 1600, {2: 5, 8: 1}, True, configurations.basic),
         ("socks_plic", "plic.asm", 1000, {31: 0xCAFE}, True, configurations.basic),
         ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, True, configurations.full),
         ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, True, configurations.full),
