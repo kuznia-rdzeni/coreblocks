@@ -418,6 +418,9 @@ class ROBLayouts:
         self.done: LayoutListField = ("done", 1)
         """Instruction has executed, but is not committed yet."""
 
+        self.pure: LayoutListField = ("pure", 1)
+        """Instruction cannot raise an exception."""
+
         self.start: LayoutListField = ("start", gen_params.rob_entries_bits)
         """Index of the first (the earliest) entry in the reorder buffer."""
 
@@ -430,13 +433,17 @@ class ROBLayouts:
         self.retire_count: LayoutListField = ("count", range(gen_params.retirement_superscalarity + 1))
         """Number of ROB entries to retire."""
 
-        self.done_count: LayoutListField = ("done_count", range(gen_params.retirement_superscalarity + 1))
-        """Number of done ROB entries at the beginning of the ROB."""
-
         self.peek_data = make_layout(
             self.rob_data,
             fields.rob_id,
             fields.exception,
+            self.done,
+            self.pure,
+        )
+
+        self.put_data = make_layout(
+            self.rob_data,
+            self.pure,
         )
 
         self.id_layout = make_layout(fields.rob_id)
@@ -450,12 +457,11 @@ class ROBLayouts:
 
         self.peek_layout = make_layout(
             self.retire_count,
-            self.done_count,
             ("entries", ArrayLayout(self.peek_data, gen_params.retirement_superscalarity)),
         )
 
         self.put_layout = make_layout(
-            self.put_count, ("entries", ArrayLayout(self.data_layout, gen_params.frontend_superscalarity))
+            self.put_count, ("entries", ArrayLayout(self.put_data, gen_params.frontend_superscalarity))
         )
 
         self.put_out_layout = make_layout(("entries", ArrayLayout(self.id_layout, gen_params.frontend_superscalarity)))

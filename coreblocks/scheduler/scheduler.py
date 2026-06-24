@@ -11,7 +11,7 @@ from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, RSFullDataLayout, SchedulerLayouts
 from coreblocks.params import GenParams
-from coreblocks.arch.optypes import OpType
+from coreblocks.arch.optypes import OpType, impure_optypes
 from coreblocks.interface.keys import CoreStateKey
 
 __all__ = ["Scheduler"]
@@ -219,9 +219,12 @@ class ROBAllocation(Elaboratable):
                 count=instrs.count,
                 entries=[
                     {
-                        "rl_dst": instr.regs_l.rl_dst,
-                        "rp_dst": instr.regs_p.rp_dst,
-                        "tag_increment": instr.tag_increment,
+                        "rob_data": {
+                            "rl_dst": instr.regs_l.rl_dst,
+                            "rp_dst": instr.regs_p.rp_dst,
+                            "tag_increment": instr.tag_increment,
+                        },
+                        "pure": ~Cat(instr.exec_fn.op_type == op_type for op_type in impure_optypes).any(),
                     }
                     for instr in instrs.data
                 ],

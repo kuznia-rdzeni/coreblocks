@@ -5,7 +5,6 @@ from transactron import Method, Methods, Transaction, def_method, TModule, def_m
 from transactron.lib.fifo import WideFifo
 from transactron.utils import logging
 from transactron.lib.metrics import *
-from transactron.utils import count_trailing_zeros
 from coreblocks.interface.layouts import ROBLayouts
 from coreblocks.params import GenParams
 
@@ -57,6 +56,7 @@ class ReorderBuffer(Elaboratable):
         self.peek = Method(o=layouts.peek_layout)
         self.retire = Method(i=layouts.retire_layout)
         self.done = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
+        self.pure = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.exception = Array(Signal() for _ in range(2**self.params.rob_entries_bits))
         self.data = WideFifo(
             shape=layouts.data_layout,
@@ -105,8 +105,10 @@ class ReorderBuffer(Elaboratable):
         end_idx = Value.cast(self.data.write_idx)
 
         start_idx_plus = [Signal.like(start_idx) for _ in range(self.params.retirement_superscalarity)]
+        end_idx_plus = [Signal.like(end_idx) for _ in range(self.params.retirement_superscalarity)]
         for i in range(len(start_idx_plus)):
             m.d.comb += start_idx_plus[i].eq(start_idx + i)
+            m.d.comb += end_idx_plus[i].eq(end_idx + i)
 
         m.submodules.data = self.data
 
@@ -122,12 +124,11 @@ class ReorderBuffer(Elaboratable):
                         "rob_data": peek_ret.data[i],
                         "rob_id": start_idx_plus[i],
                         "exception": self.exception[start_idx_plus[i]],
+                        "done": self.done[start_idx_plus[i]],
+                        "pure": self.pure[start_idx_plus[i]],
                     }
                 )
-            done_count = count_trailing_zeros(
-                Cat(~self.done[start_idx_plus[i]] for i in range(self.params.retirement_superscalarity))
-            )
-            return {"count": peek_ret.count, "done_count": done_count, "entries": entries}
+            return {"count": peek_ret.count, "entries": entries}
 
         @def_method(m, self.retire, ready=self.done[start_idx])
         def _(count: int):
@@ -147,7 +148,10 @@ class ReorderBuffer(Elaboratable):
         def _(count: int, entries):
             self.perf_rob_wait_time.start(m, count=count)
             self.perf_rob_put_count.incr(m, tag=count)
-            self.data.write(m, count=count, data=entries)
+            self.data.write(m, count=count, data=[entry.rob_data for entry in entries])
+            for i in range(self.params.retirement_superscalarity):
+                with m.If(i < count):
+                    m.d.sync += self.pure[end_idx_plus[i]].eq(entries[i].pure)
             entries = []
             for i in range(self.params.frontend_superscalarity):
                 rob_id = (end_idx + i)[: len(end_idx)]
@@ -161,7 +165,14 @@ class ReorderBuffer(Elaboratable):
         def _(k: int, rob_id: Value, exception):
             log.assertion(m, ~self.done[rob_id], "mark_done called on already done ROB entry {}", rob_id)
             m.d.sync += self.done[rob_id].eq(1)
+            m.d.sync += self.pure[rob_id].eq(1)
             m.d.sync += self.exception[rob_id].eq(exception)
+            log.error(
+                m,
+                exception & self.pure[rob_id],
+                "pure instruction caused an exception at ROB id {}",
+                rob_id,
+            )
 
         @def_method(m, self.get_indices, nonexclusive=True)
         def _():

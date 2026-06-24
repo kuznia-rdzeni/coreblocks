@@ -7,6 +7,7 @@ from .isa import Extension, extension_implications, extension_only_implies
 
 __all__ = [
     "OpType",
+    "impure_optypes",
     "CfiType",
 ]
 
@@ -17,25 +18,34 @@ class OpType(IntEnum):
     Enum of operation types. Do not confuse with Opcode.
     """
 
-    UNKNOWN = auto()  # needs to be first
-    ARITHMETIC = auto()
-    COMPARE = auto()
-    LOGIC = auto()
-    SHIFT = auto()
-    AUIPC = auto()
+    # needs to be first
+    UNKNOWN = auto()
+    # impure optypes - can cause side effects (including exceptions)
     JAL = auto()
     JALR = auto()
     BRANCH = auto()
     LOAD = auto()
     STORE = auto()
-    FENCE = auto()
+    ATOMIC_MEMORY_OP = auto()
+    ATOMIC_LR_SC = auto()
     ECALL = auto()
     EBREAK = auto()
     MRET = auto()
+    SRET = auto()
     WFI = auto()
-    FENCEI = auto()
+    SFENCEVMA = auto()
     CSR_REG = auto()
     CSR_IMM = auto()
+    #: Internal Coreblocks OpType, specifying that instruction caused Exception before FU execution
+    EXCEPTION = auto()
+    # pure optypes - never cause side effects
+    ARITHMETIC = auto()
+    COMPARE = auto()
+    LOGIC = auto()
+    SHIFT = auto()
+    AUIPC = auto()
+    FENCE = auto()
+    FENCEI = auto()
     MUL = auto()
     DIV_REM = auto()
     SINGLE_BIT_MANIPULATION = auto()
@@ -49,13 +59,10 @@ class OpType(IntEnum):
     UNARY_BIT_MANIPULATION_5 = auto()
     CROSSBAR_PERMUTATION = auto()
     CLMUL = auto()
-    SRET = auto()
-    SFENCEVMA = auto()
     CZERO = auto()
-    ATOMIC_MEMORY_OP = auto()
-    ATOMIC_LR_SC = auto()
-    #: Internal Coreblocks OpType, specifying that instruction caused Exception before FU execution
-    EXCEPTION = auto()
+
+
+impure_optypes = frozenset(optype for optype in range(OpType.JAL, OpType.ARITHMETIC))
 
 
 @unique
