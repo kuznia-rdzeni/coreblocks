@@ -339,7 +339,7 @@ class Retirement(Elaboratable):
         m.d.comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + self.pure_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[self.pure_count])
+        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[done_count])
 
         # The argument is only used in argument validation, it is not needed in the method body.
         # A dummy combiner is provided.
