@@ -98,12 +98,6 @@ class TLBCAM(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        # entry matches size-class IIF all parts match up to the size class.
-        bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
-        size_class_part_ranges = []
-        for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
-            size_class_part_ranges.append((bits_per_level * sz_class, bits_per_level * (sz_class + 1)))
-
         for way in range(self.ways):
             m.d.comb += self.valid_match[way].eq(self.ways_data[way].valid)
             m.d.comb += self.global_match[way].eq(self.ways_data[way].permissions.g)
@@ -111,19 +105,15 @@ class TLBCAM(Elaboratable):
                 ~self.global_match[way] & (self.ways_data[way].asid == self.checked_asid)
             )
 
-            match_bits = Signal(self.gen_params.vmem_params.tlb_size_class_bits + 1)
-
-            for sz_class, (start_bit, end_bit) in enumerate(size_class_part_ranges):
-                m.d.comb += match_bits[sz_class].eq(
-                    self.checked_vpn[start_bit:end_bit] == self.ways_data[way].vpn[start_bit:end_bit]
-                )
-
-            # highest size class part must always match
-            match_mask = Signal(self.gen_params.vmem_params.tlb_size_class_bits)
-            for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class):
-                m.d.comb += match_mask[sz_class].eq(sz_class > self.ways_data[way].size_class)
-
-            m.d.comb += self.addr_match[way].eq((match_bits | match_mask).all())
+            # Address matches if the specified suffix on VPN matches based on size class
+            bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
+            with m.Switch(self.ways_data[way].size_class):
+            for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
+                with m.Case(sz_class):
+                    match_bits = bits_per_level * sz_class
+                    m.d.comb += self.addr_match[way].eq(
+                        self.checked_vpn[match_bits:] == self.ways_data[way].vpn[match_bits:]
+                    )
 
         m.d.comb += self.full_match.eq(self.valid_match & self.addr_match & (self.asid_match | self.global_match))
 
