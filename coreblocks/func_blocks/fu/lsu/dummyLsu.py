@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO, ConnectTrans, Forwarder, Pipe
+from transactron.lib.connectors import FIFO, ConnectTrans, Pipe
 from transactron.utils import logging
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext
