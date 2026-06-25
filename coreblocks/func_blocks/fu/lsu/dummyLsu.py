@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO, ConnectTrans, Forwarder
+from transactron.lib.connectors import FIFO, ConnectTrans, Forwarder, Pipe
 from transactron.utils import logging
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext
@@ -81,7 +81,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
-        m.submodules.translator_in_fwd = translator_in_fwd = Forwarder(self.translator_layouts.request)
+        m.submodules.translator_in = translator_in = Pipe(self.translator_layouts.request)
         m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)
         m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
@@ -97,13 +97,13 @@ class LSUDummy(FuncUnit, Elaboratable):
             m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
 
             with m.If(~is_fence):
-                translator_in_fwd.write(m, addr=addr, is_store=arg.exec_fn.op_type == OpType.STORE)
+                translator_in.write(m, addr=addr, is_store=arg.exec_fn.op_type == OpType.STORE)
                 requests.write(m, arg)
             with m.Else():
                 results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
 
-        m.submodules += ConnectTrans.create(translator_in_fwd.read, self.addr_translator.request)
+        m.submodules += ConnectTrans.create(translator_in.read, self.addr_translator.request)
         m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
