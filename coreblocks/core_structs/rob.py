@@ -165,7 +165,7 @@ class ReorderBuffer(Elaboratable):
         def _(k: int, rob_id: Value, exception):
             log.assertion(m, ~self.done[rob_id], "mark_done called on already done ROB entry {}", rob_id)
             m.d.sync += self.done[rob_id].eq(1)
-            m.d.sync += self.pure[rob_id].eq(1)
+            m.d.sync += self.pure[rob_id].eq(~exception)
             m.d.sync += self.exception[rob_id].eq(exception)
             log.error(
                 m,
