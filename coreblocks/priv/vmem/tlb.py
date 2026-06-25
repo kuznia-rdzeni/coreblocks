@@ -108,12 +108,12 @@ class TLBCAM(Elaboratable):
             # Address matches if the specified suffix on VPN matches based on size class
             bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
             with m.Switch(self.ways_data[way].size_class):
-            for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
-                with m.Case(sz_class):
-                    match_bits = bits_per_level * sz_class
-                    m.d.comb += self.addr_match[way].eq(
-                        self.checked_vpn[match_bits:] == self.ways_data[way].vpn[match_bits:]
-                    )
+                for sz_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
+                    with m.Case(sz_class):
+                        match_bits = bits_per_level * sz_class
+                        m.d.comb += self.addr_match[way].eq(
+                            self.checked_vpn[match_bits:] == self.ways_data[way].vpn[match_bits:]
+                        )
 
         m.d.comb += self.full_match.eq(self.valid_match & self.addr_match & (self.asid_match | self.global_match))
 
