@@ -529,7 +529,10 @@ class RetirementLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.precommit_in = make_layout(fields.rob_id)
+        self.require_done: LayoutListField = ("require_done", 1)
+        """Don't run if there exist earlier not done instructions in ROB"""
+
+        self.precommit_in = make_layout(fields.rob_id, self.require_done)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """

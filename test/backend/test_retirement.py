@@ -145,7 +145,7 @@ class TestRetirement(TestCaseWithSimulator):
         # wait until R-RAT clears itself after reset
         await self.tick(sim, self.gen_params.isa.reg_cnt)
         while self.precommit_q:
-            info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0])
+            info = await self.retc.precommit_adapter.call_try(sim, rob_id=self.precommit_q[0], require_done=1)
             assert info is not None
             self.precommit_q.popleft()
 

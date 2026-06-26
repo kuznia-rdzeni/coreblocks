@@ -347,11 +347,12 @@ class Retirement(Elaboratable):
             m,
             self.precommit,
             ready=~core_flushing,
-            validate_arguments=lambda rob_id: rob_id == precommit_rob_id,
+            validate_arguments=lambda rob_id, require_done: (rob_id == precommit_rob_id)
+            & (~require_done | (self.pure_count == done_count)),
             nonexclusive=True,
-            combiner=lambda m, args, runs: 0,
+            combiner=lambda m, args, runs: {"rob_id": 0, "require_done": 0},
         )
-        def _(rob_id):
+        def _(rob_id, require_done):
             return
 
         return m

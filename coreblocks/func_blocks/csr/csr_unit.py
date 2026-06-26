@@ -150,7 +150,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, ready=(ready_to_process & ~done)):
             precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            precommit(m, instr.rob_id)
+            precommit(m, rob_id=instr.rob_id, require_done=1)
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
