@@ -104,7 +104,9 @@ class TestRetirement(TestCaseWithSimulator):
                 self.rf_free_q.append(rat_state[rl])
                 rat_state[rl] = rp
                 self.rat_map_q.append({"rl_dst": rl, "rp_dst": rp})
-                self.submit_q.append({"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id, "exception": 0})
+                self.submit_q.append(
+                    {"rob_data": {"rl_dst": rl, "rp_dst": rp}, "rob_id": rob_id, "exception": 0, "done": 1, "pure": 1}
+                )
                 self.precommit_q.append(rob_id)
             # note: overwriting with the same rp or having duplicate nonzero rps in rat shouldn't happen in reality
             # (and the retirement code doesn't have any special behaviour to handle these cases), but in this simple
@@ -118,7 +120,7 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
     def peek_process(self):
-        return {"count": 1, "done_count": 1, "entries": [self.submit_q[0]]}
+        return {"count": 1, "entries": [self.submit_q[0]]}
 
     async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
