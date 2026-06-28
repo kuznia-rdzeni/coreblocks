@@ -84,7 +84,7 @@ ignore = []
 reportMissingImports = true
 reportMissingTypeStubs = false
 reportWildcardImportFromLibrary = false
-pythonVersion = "3.11"
+pythonVersion = "3.13"
 pythonPlatform = "Linux"
 
 [tool.pytest.ini_options]
