@@ -55,7 +55,7 @@ class StallController(Elaboratable):
         self.resume_from_exception = Method(i=layouts.resume)
         self._resume_from_unsafe = Method(i=layouts.resume)
 
-        self.redirect_frontend = Method(i=layouts.redirect)
+        self.redirect_frontend = Method(i=layouts.frontend_redirect)
 
         DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
 
@@ -87,7 +87,7 @@ class StallController(Elaboratable):
             with condition(m, nonblocking=True) as branch:
                 with branch(~stalled_exception):
                     log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
-                    self.redirect_frontend(m, pc=pc)
+                    self.redirect_frontend(m, pc=pc, from_unsafe=1)
 
         @def_method(m, self.resume_from_exception)
         def _(pc):
@@ -95,7 +95,7 @@ class StallController(Elaboratable):
             m.d.sync += stalled_exception.eq(0)
 
             log.info(m, True, "Resuming from exception new_pc=0x{:x}", pc)
-            self.redirect_frontend(m, pc=pc)
+            self.redirect_frontend(m, pc=pc, from_unsafe=0)
 
         @def_method(m, self.stall_unsafe)
         def _():

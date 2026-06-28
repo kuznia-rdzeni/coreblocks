@@ -33,13 +33,13 @@ __all__ = [
 
 
 class FTQPtrLayout(CircularBufferPointer.Layout):
-    def __init__(self, gp: GenParams):
-        super().__init__(size_log=gp.ftq_size_log)
+    def __init__(self, gen_params: GenParams):
+        super().__init__(size_log=gen_params.ftq_size_log)
 
 
 class FTQPtr(CircularBufferPointer):
-    def __init__(self, target=None, *, gp: GenParams, **kwargs):
-        super().__init__(layout=FTQPtrLayout(gp), target=target, **kwargs)
+    def __init__(self, target=None, *, gen_params: GenParams, **kwargs):
+        super().__init__(layout=FTQPtrLayout(gen_params), target=target, **kwargs)
 
 
 class CommonLayoutFields:
@@ -692,6 +692,7 @@ class FetchLayouts:
         self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
         self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), ("redirect_target", gen_params.isa.xlen))
         self.redirect = make_layout(fields.pc)
+        self.frontend_redirect = make_layout(fields.pc, ("from_unsafe", 1))
         self.resume = make_layout(fields.pc)
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))

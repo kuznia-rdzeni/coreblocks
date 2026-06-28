@@ -2,8 +2,7 @@ from amaranth import *
 
 from transactron.core import *
 from transactron.utils.transactron_helpers import make_layout
-from transactron.utils import logging
-from transactron.lib.connectors import Pipe
+from transactron.utils import logging, MethodLayout
 
 from coreblocks.params import *
 from coreblocks.frontend import FrontendParams
@@ -11,6 +10,41 @@ from coreblocks.interface.layouts import CommonLayoutFields
 from coreblocks.interface.layouts import BranchPredictionLayouts
 
 log = logging.HardwareLogger("frontend.bpu")
+
+
+class _Pipe(Elaboratable):
+    # TODO: 'clear' method of Pipe creates conflicts with other methods. This blocking behavior is not
+    # needed there and creates a lot of unnecessary logic and delays. Remove this once the clear method
+    # is non-blocking
+
+    def __init__(self, layout: MethodLayout):
+        self.read = Method(o=layout)
+        self.write = Method(i=layout)
+        self.clear = Method()
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        reg = Signal.like(self.read.data_out)
+        reg_valid = Signal()
+
+        self.read.schedule_before(self.write)  # to avoid combinational loops
+
+        @def_method(m, self.read, ready=reg_valid)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+            return reg
+
+        @def_method(m, self.write, ready=~reg_valid | self.read.run)
+        def _(arg):
+            m.d.sync += reg.eq(arg)
+            m.d.sync += reg_valid.eq(1)
+
+        @def_method(m, self.clear)
+        def _():
+            m.d.sync += reg_valid.eq(0)
+
+        return m
 
 
 class BranchPredictionUnit(Elaboratable):
@@ -32,9 +66,7 @@ class BranchPredictionUnit(Elaboratable):
         fparams = self.gen_params.get(FrontendParams)
         fields = self.gen_params.get(CommonLayoutFields)
 
-        # TODO: 'clear' method of Pipe creates conflicts with other methods. This blocking behavior is not
-        # needed here and creates a lot of unnecessary logic and delays
-        m.submodules.pipe = pipe = Pipe(layout=make_layout(fields.pc, fields.ftq_ptr))
+        m.submodules.pipe = pipe = _Pipe(layout=make_layout(fields.pc, fields.ftq_ptr))
 
         @def_method(m, self.request)
         def _(pc, ftq_ptr):

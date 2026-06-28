@@ -180,7 +180,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
 @parameterized_class(
     ("name", "source_file", "cycle_count", "expected_regvals", "exit_csr", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 550, {2: 2971215073}, True, configurations.basic),
+        ("fibonacci", "fibonacci.asm", 500, {2: 2971215073}, True, configurations.basic),
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, False, configurations.basic),
         ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, False, configurations.tiny),
         ("csr", "csr.asm", 200, {1: 1, 2: 4}, True, configurations.full),

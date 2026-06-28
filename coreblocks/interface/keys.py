@@ -30,6 +30,7 @@ __all__ = [
     "FlushICacheKey",
     "SFenceVMAKey",
     "L1TLBBackingDeviceKey",
+    "FTQCommitEntry",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]

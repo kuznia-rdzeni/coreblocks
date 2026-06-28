@@ -94,7 +94,7 @@ class FTQMemoryWrapper(Elaboratable):
 
         self.write_layout = make_layout(fields.ftq_ptr, ("data", self.layout))
 
-        self.read_ptr_next = FTQPtr(gp=self.gen_params)
+        self.read_ptr_next = FTQPtr(gen_params=self.gen_params)
         self.read_data = Signal(self.layout)
 
         self.write = Method(i=self.write_layout)
@@ -177,7 +177,7 @@ class FetchTargetQueue(Elaboratable):
         ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
         self.commit = Method(i=ftq_layouts.commit)
         self.resolve = Method(i=ftq_layouts.branch_resolve)
-        self.backend_redirect = Method(i=ifu_layouts.redirect)
+        self.backend_redirect = Method(i=ifu_layouts.frontend_redirect)
 
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
         self.dep_manager.add_dependency(FTQCommitEntry(), self.commit)
@@ -192,11 +192,11 @@ class FetchTargetQueue(Elaboratable):
         m.submodules.pc_mem = pc_mem = FTQMemoryWrapper(gen_params=self.gen_params, layout=make_layout(fields.pc))
 
         # Three pointers in the queue.
-        alloc_ptr = FTQPtr(gp=self.gen_params)
-        fetch_ptr = FTQPtr(gp=self.gen_params)
-        commit_ptr = FTQPtr(gp=self.gen_params)
+        alloc_ptr = FTQPtr(gen_params=self.gen_params)
+        fetch_ptr = FTQPtr(gen_params=self.gen_params)
+        commit_ptr = FTQPtr(gen_params=self.gen_params)
 
-        fetch_ptr_next = FTQPtr(gp=self.gen_params)
+        fetch_ptr_next = FTQPtr(gen_params=self.gen_params)
         m.d.sync += fetch_ptr.eq(fetch_ptr_next)
         m.d.comb += fetch_ptr_next.eq(fetch_ptr)
         m.d.comb += pc_mem.read_ptr_next.eq(fetch_ptr_next)
@@ -244,19 +244,20 @@ class FetchTargetQueue(Elaboratable):
             redirect,
             redirect_target,
         ):
-            ftq_ptr_plus_one = FTQPtr(gp=self.gen_params)
-            m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gp=self.gen_params) + 1)
+            ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
             self.bpu_flush(m)
 
+            m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
+            m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
+
             with m.If(redirect):
                 fetch_address_unit.ifu_redirect(m, pc=redirect_target)
-                m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
-                m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
 
         @def_method(m, self.commit)
         def _(ftq_ptr):
-            ftq_ptr_casted = FTQPtr(ftq_ptr, gp=self.gen_params)
+            ftq_ptr_casted = FTQPtr(ftq_ptr, gen_params=self.gen_params)
             # With superscalar retirement, multiple FTQ entries can be committed per cycle,
             # so only check that commit advances monotonically
             log.assertion(
@@ -268,13 +269,21 @@ class FetchTargetQueue(Elaboratable):
             m.d.sync += commit_ptr.eq(ftq_ptr)
 
         @def_method(m, self.backend_redirect)
-        def _(pc):
-            commit_ptr_plus_one = FTQPtr(gp=self.gen_params)
-            m.d.av_comb += commit_ptr_plus_one.eq(FTQPtr(commit_ptr, gp=self.gen_params) + 1)
+        def _(pc, from_unsafe):
+            commit_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += commit_ptr_plus_one.eq(FTQPtr(commit_ptr, gen_params=self.gen_params) + 1)
 
             fetch_address_unit.backend_redirect(m, pc=pc)
-            m.d.sync += alloc_ptr.eq(commit_ptr_plus_one)
-            m.d.sync += fetch_ptr.eq(commit_ptr_plus_one)
+
+            # An unsafe instruction (e.g. a CSR access) is not squashed - it keeps its FTQ entry
+            # and is committed normally. Its resume is signalled before it retires, so `commit_ptr`
+            # is stale here and must not be used. The alloc/fetch pointers were already rewound to
+            # just past the unsafe instruction when the fetch unit wrote it back (`ifu_redirect`).
+            # For an exception/backend redirect the whole pipeline is squashed, so we restart
+            # allocation right after the last committed entry.
+            with m.If(~from_unsafe):
+                m.d.sync += alloc_ptr.eq(commit_ptr_plus_one)
+                m.d.sync += fetch_ptr.eq(commit_ptr_plus_one)
 
         @def_method(m, self.jump_target_req)
         def _():
