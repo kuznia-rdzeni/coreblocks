@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782680035495,
+  "lastUpdate": 1782680038038,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -48132,6 +48132,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 16906,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1328,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1368,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 4763,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "154345790+kalinf@users.noreply.github.com",
+            "name": "Kalina Filus",
+            "username": "kalinf"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5cca69eff3d6d46673d683dca08ab722ac7a42bc",
+          "message": "python 3.13 in docs (#989)",
+          "timestamp": "2026-06-28T22:11:17+02:00",
+          "tree_id": "312e268412e6d9b603ed039ac30d397ecd4cc95e",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5cca69eff3d6d46673d683dca08ab722ac7a42bc"
+        },
+        "date": 1782680037253,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 51.63,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 16327,
             "unit": "LUT4"
           },
           {
