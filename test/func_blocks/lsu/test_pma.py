@@ -136,10 +136,10 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
         @def_method_mock(
             lambda: self.test_module.precommit,
-            validate_arguments=lambda rob_id: rob_id == 1,
+            validate_arguments=lambda rob_id, require_done: rob_id == 1,
             enable=lambda: self.precommit_enabled,
         )
-        def precommiter(rob_id):
+        def precommiter(rob_id, require_done):
             return {}
 
         @def_method_mock(lambda: self.test_module.core_state)

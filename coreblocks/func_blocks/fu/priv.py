@@ -119,7 +119,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         with Transaction().body(m, ready=instr_valid & ~finished):
             precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            precommit(m, instr_rob)
+            precommit(m, rob_id=instr_rob, require_done=0)
             m.d.sync += finished.eq(1)
             self.perf_instr.incr(m, instr_fn)
 
