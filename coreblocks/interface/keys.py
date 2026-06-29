@@ -30,7 +30,7 @@ __all__ = [
     "FlushICacheKey",
     "SFenceVMAKey",
     "L1TLBBackingDeviceKey",
-    "FTQCommitEntry",
+    "FTQCommitKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -135,8 +135,8 @@ class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
 
 
 @dataclass(frozen=True)
-class FTQCommitEntry(SimpleKey[Method]):
-    pass
+class FTQCommitKey(SimpleKey[Method]):
+    """Method called when the retirement unit commits an instruction."""
 
 
 @dataclass(frozen=True)

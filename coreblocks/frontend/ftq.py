@@ -16,7 +16,7 @@ from coreblocks.interface.layouts import (
     FTQPtr,
     FetchTargetQueueLayouts,
 )
-from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitEntry
+from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
 
 
@@ -66,7 +66,7 @@ class FetchTargetQueue(Elaboratable):
     """
 
     stall_guard: Required[Method]
-    """Ready only while the pipeline is unlocked; stalls FTQ alloc and fetch when locked (e.g. during a flush)."""
+    """Blocks only while the pipeline is stalled (e.g. during a flush)."""
     ifu_request: Required[Method]
     """Issue a fetch request to the instruction fetch unit for the given PC and FTQ pointer."""
     bpu_request: Required[Method]
@@ -122,7 +122,7 @@ class FetchTargetQueue(Elaboratable):
         self.backend_redirect = Method(i=ifu_layouts.frontend_redirect)
 
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
-        self.dep_manager.add_dependency(FTQCommitEntry(), self.commit)
+        self.dep_manager.add_dependency(FTQCommitKey(), self.commit)
 
     def elaborate(self, platform):
         m = TModule()

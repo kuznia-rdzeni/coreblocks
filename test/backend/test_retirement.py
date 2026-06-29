@@ -10,7 +10,7 @@ from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
 from coreblocks.interface.layouts import FetchTargetQueueLayouts
-from coreblocks.interface.keys import CSRInstancesKey, InstructionPrecommitKey, FTQCommitEntry
+from coreblocks.interface.keys import CSRInstancesKey, InstructionPrecommitKey, FTQCommitKey
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -36,7 +36,7 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.ftq_commit = self.ftq_commit = TestbenchIO(
             Adapter(i=self.gen_params.get(FetchTargetQueueLayouts).commit)
         )
-        DependencyContext.get().add_dependency(FTQCommitEntry(), self.ftq_commit.adapter.iface)
+        DependencyContext.get().add_dependency(FTQCommitKey(), self.ftq_commit.adapter.iface)
 
         m.submodules.retirement = self.retirement = Retirement(self.gen_params)
 

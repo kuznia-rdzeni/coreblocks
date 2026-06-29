@@ -19,7 +19,7 @@ from transactron.lib.metrics import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey, FTQCommitEntry
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey, FTQCommitKey
 from coreblocks.priv.csr.csr_instances import CSRAddress, counteren_access_filter
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
@@ -107,7 +107,7 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
         m.submodules.instret_shadow = self.instret_shadow
 
-        ftq_commit = self.dependency_manager.get_dependency(FTQCommitEntry())
+        ftq_commit = self.dependency_manager.get_dependency(FTQCommitKey())
 
         def free_phys_reg(i: int, rp_dst: Value):
             # mark reg in Register File as free
