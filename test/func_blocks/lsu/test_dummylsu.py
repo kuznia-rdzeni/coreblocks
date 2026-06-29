@@ -254,8 +254,8 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             def eff():
                 assert arg == self.exception_queue.pop()
 
-        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
-        def precommiter(rob_id):
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id, require_done: True)
+        def precommiter(rob_id, require_done):
             return {}
 
         @def_method_mock(lambda: self.test_module.core_state)
@@ -324,8 +324,8 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             def eff():
                 assert False
 
-        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
-        def precommiter(rob_id):
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id, require_done: True)
+        def precommiter(rob_id, require_done):
             return {}
 
         with self.run_simulation(self.test_module) as sim:
@@ -421,11 +421,11 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             await self.random_wait(sim, self.max_wait)
             self.precommit_data.pop()  # retire
 
-    def precommit_validate(self, rob_id):
+    def precommit_validate(self, rob_id, require_done):
         return len(self.precommit_data) > 0 and rob_id == self.precommit_data[-1]
 
     @def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
-    def precommiter(self, rob_id):
+    def precommiter(self, rob_id, require_done):
         return {}
 
     def test(self):
@@ -470,8 +470,8 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             def eff():
                 assert False
 
-        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
-        def precommiter(rob_id):
+        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id, require_done: True)
+        def precommiter(rob_id, require_done):
             return {}
 
         pending_req = False
