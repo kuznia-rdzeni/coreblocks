@@ -29,6 +29,7 @@ def mk_test(
         "imm": imm,
         "pc": 0,
         "csr": csr,
+        "ftq_ptr": {"ptr": 0, "parity": 0},
     }
 
 

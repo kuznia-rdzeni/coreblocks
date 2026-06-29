@@ -139,11 +139,11 @@ class CoreFrontend(Elaboratable):
 
         self.ftq.bpu_request.provide(self.bpu.request)
         self.ftq.bpu_flush.provide(self.bpu.flush)
-        self.ftq.stall_lock.provide(self.stall_ctrl.stall_guard)
+        self.ftq.stall_guard.provide(self.stall_ctrl.stall_guard)
         self.bpu.write_prediction.provide(self.ftq.bpu_response)
 
         self.ftq.ifu_request.provide(self.fetch.fetch_request)
-        self.fetch.fetch_writeback.provide(self.ftq.ifu_redirect)
+        self.fetch.fetch_writeback.provide(self.ftq.ifu_writeback)
         self.stall_ctrl.redirect_frontend.provide(self.ftq.backend_redirect)
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)

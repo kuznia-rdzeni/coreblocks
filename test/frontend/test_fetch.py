@@ -190,7 +190,7 @@ class TestFetchUnit(TestCaseWithSimulator):
             return self.output_q[0]
 
     @def_method_mock(lambda self: self.fetch.stall_unsafe)
-    def stall_lock_unsafe(self):
+    def stall_guard_unsafe(self):
         pass
 
     @def_method_mock(lambda self: self.fetch.fetch_writeback)

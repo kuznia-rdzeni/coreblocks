@@ -26,8 +26,8 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
 
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
 
-    @def_method_mock(lambda self: self.ftq.stall_lock)
-    def stall_lock_mock(self):
+    @def_method_mock(lambda self: self.ftq.stall_guard)
+    def stall_guard_mock(self):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_flush)
@@ -84,25 +84,25 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
-    def test_ifu_redirect_triggers_bpu_flush(self):
+    def test_ifu_writeback_triggers_bpu_flush(self):
         async def proc(sim: TestbenchContext):
             for _ in range(5):
                 await sim.tick()
             flush_count_before = self.bpu_flush_count
-            await self.ftq.ifu_redirect.call(sim, ftq_ptr={"ptr": 0, "parity": 0}, redirect=1, redirect_target=0x200)
+            await self.ftq.ifu_writeback.call(sim, ftq_ptr={"ptr": 0, "parity": 0}, redirect=1, redirect_target=0x200)
             assert self.bpu_flush_count > flush_count_before
 
         with self.run_simulation(self.ftq) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
-    def test_ifu_redirect_restarts_fetch_from_new_pc(self):
-        # ifu_redirect calls FAU.ifu_redirect which sets the new PC directly,
+    def test_ifu_writeback_restarts_fetch_from_new_pc(self):
+        # ifu_writeback calls FAU.ifu_redirect which sets the new PC directly,
         # so the next alloc uses redirect_pc without needing a BPU response.
         redirect_pc = 0x200
 
         async def proc(sim: TestbenchContext):
-            await self.ftq.ifu_redirect.call(
+            await self.ftq.ifu_writeback.call(
                 sim, ftq_ptr={"ptr": 0, "parity": 0}, redirect=1, redirect_target=redirect_pc
             )
             for _ in range(5):
@@ -137,8 +137,8 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
 
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
 
-    @def_method_mock(lambda self: self.ftq.stall_lock)
-    def stall_lock_mock(self):
+    @def_method_mock(lambda self: self.ftq.stall_guard)
+    def stall_guard_mock(self):
         pass
 
     @def_method_mock(lambda self: self.ftq.bpu_flush)

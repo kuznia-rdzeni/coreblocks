@@ -5,7 +5,15 @@ from amaranth import *
 
 
 class CircularBufferPointer(data.View):
+    """A pointer into a power-of-two-sized circular buffer, with an extra parity (wrap) bit.
+
+    The ``parity`` bit toggles on every wrap-around, distinguishing a full buffer from an
+    empty one and making ordering comparisons well-defined across the wrap point.
+    """
+
     class Layout(data.StructLayout):
+        """Layout of a circular buffer pointer: a ``size_log``-bit index plus a 1-bit parity."""
+
         def __init__(self, size_log: int):
             super().__init__(
                 {

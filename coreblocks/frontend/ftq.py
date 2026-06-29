@@ -17,71 +17,10 @@ from coreblocks.interface.layouts import (
     FetchTargetQueueLayouts,
 )
 from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitEntry
+from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
+
 
 log = logging.HardwareLogger("frontend.ftq")
-
-
-class FetchAddressUnit(Elaboratable):
-    """
-    Owns the speculative fetch program counter and arbitrates all frontend redirects.
-    It selects the next fetch PC based on reset, backend redirects, IFU redirects, and branch prediction results.
-    """
-
-    write: Provided[Method]
-    """Supply the next fetch PC (e.g. from a BPU prediction). Requires the current PC to have been consumed."""
-    read: Provided[Method]
-    """Consume the current fetch PC. Blocks until a valid PC is available."""
-    ifu_redirect: Provided[Method]
-    """Redirect the fetch PC after a misprediction detected by the IFU."""
-    backend_redirect: Provided[Method]
-    """Redirect the fetch PC after a misprediction resolved by the backend."""
-
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-
-        layouts = self.gen_params.get(FetchLayouts)
-        fields = self.gen_params.get(CommonLayoutFields)
-
-        self.write = Method(i=make_layout(fields.pc))
-        self.read = Method(o=layouts.fetch_request)
-        self.ifu_redirect = Method(i=layouts.redirect)
-        self.backend_redirect = Method(i=layouts.redirect)
-
-    def elaborate(self, platform):
-        m = TModule()
-
-        next_fetch_addr = Signal(self.gen_params.isa.xlen, init=self.gen_params.start_pc)
-        next_fetch_addr_v = Signal(init=1)
-
-        next_fetch_addr_fwd = Signal.like(self.read.data_out)
-
-        self.write.schedule_before(self.read)  # to avoid combinational loops
-
-        @def_method(m, self.write, ready=~next_fetch_addr_v)
-        def _(pc):
-            m.d.av_comb += next_fetch_addr_fwd.eq(pc)
-            m.d.sync += next_fetch_addr.eq(pc)
-            m.d.sync += next_fetch_addr_v.eq(1)
-
-        with m.If(next_fetch_addr_v):
-            m.d.av_comb += next_fetch_addr_fwd.eq(next_fetch_addr)  # write method is not ready
-
-        @def_method(m, self.read, ready=next_fetch_addr_v | self.write.run)
-        def _():
-            m.d.sync += next_fetch_addr_v.eq(0)
-            return next_fetch_addr_fwd
-
-        @def_method(m, self.ifu_redirect)
-        def _(pc):
-            m.d.sync += next_fetch_addr.eq(pc)
-            m.d.sync += next_fetch_addr_v.eq(1)
-
-        @def_method(m, self.backend_redirect)
-        def _(pc):
-            m.d.sync += next_fetch_addr.eq(pc)
-            m.d.sync += next_fetch_addr_v.eq(1)
-
-        return m
 
 
 class FTQMemoryWrapper(Elaboratable):
@@ -126,8 +65,8 @@ class FetchTargetQueue(Elaboratable):
     ``commit`` and the buffer stalls allocation when full.
     """
 
-    stall_lock: Required[Method]
-    """Stalls the FTQ alloc and fetch when the pipeline is locked (e.g. during a flush)."""
+    stall_guard: Required[Method]
+    """Ready only while the pipeline is unlocked; stalls FTQ alloc and fetch when locked (e.g. during a flush)."""
     ifu_request: Required[Method]
     """Issue a fetch request to the instruction fetch unit for the given PC and FTQ pointer."""
     bpu_request: Required[Method]
@@ -135,8 +74,11 @@ class FetchTargetQueue(Elaboratable):
     bpu_flush: Required[Method]
     """Flush pending branch prediction requests (called on any redirect)."""
 
-    ifu_redirect: Provided[Method]
-    """Handle an IFU-detected misprediction: flush the BPU and optionally redirect fetch to a new PC."""
+    ifu_writeback: Provided[Method]
+    """
+    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
+    redirect fetch to a new PC.
+    """
     bpu_response: Provided[Method]
     """Accept a branch prediction result and supply the predicted next PC to the FAU."""
     jump_target_req: Provided[Method]
@@ -158,11 +100,11 @@ class FetchTargetQueue(Elaboratable):
 
         self.dep_manager = DependencyContext.get()
 
-        self.stall_lock = Method()
+        self.stall_guard = Method()
 
         ifu_layouts = self.gen_params.get(FetchLayouts)
         self.ifu_request = Method(i=ifu_layouts.fetch_request)
-        self.ifu_redirect = Method(i=ifu_layouts.fetch_writeback)
+        self.ifu_writeback = Method(i=ifu_layouts.fetch_writeback)
 
         bpu_layouts = self.gen_params.get(BranchPredictionLayouts)
         self.bpu_request = Method(i=bpu_layouts.request)
@@ -207,7 +149,7 @@ class FetchTargetQueue(Elaboratable):
         with Transaction(name="FTQ_Alloc").body(
             m, ready=~FTQPtr.queue_full(alloc_ptr, commit_ptr)
         ) as ftq_alloc_transaction:
-            self.stall_lock(m)
+            self.stall_guard(m)
 
             ret = fetch_address_unit.read(m)
 
@@ -224,7 +166,7 @@ class FetchTargetQueue(Elaboratable):
         with Transaction(name="FTQ_Send_Fetch_Requests").body(
             m, ready=early_fetch | (fetch_ptr < alloc_ptr)
         ) as send_fetch_req_transaction:
-            self.stall_lock(m)
+            self.stall_guard(m)
 
             fetch_pc = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += fetch_pc.eq(Mux(early_fetch, alloc_fetch_bypass, pc_mem.read_data))
@@ -238,7 +180,7 @@ class FetchTargetQueue(Elaboratable):
         def _(pc, ftq_ptr):
             fetch_address_unit.write(m, pc=pc)
 
-        @def_method(m, self.ifu_redirect)
+        @def_method(m, self.ifu_writeback)
         def _(
             ftq_ptr,
             redirect,
@@ -278,7 +220,7 @@ class FetchTargetQueue(Elaboratable):
             # An unsafe instruction (e.g. a CSR access) is not squashed - it keeps its FTQ entry
             # and is committed normally. Its resume is signalled before it retires, so `commit_ptr`
             # is stale here and must not be used. The alloc/fetch pointers were already rewound to
-            # just past the unsafe instruction when the fetch unit wrote it back (`ifu_redirect`).
+            # just past the unsafe instruction when the fetch unit wrote it back (`ifu_writeback`).
             # For an exception/backend redirect the whole pipeline is squashed, so we restart
             # allocation right after the last committed entry.
             with m.If(~from_unsafe):
