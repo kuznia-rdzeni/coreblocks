@@ -9,7 +9,7 @@ from transactron.utils import DependencyContext
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
-from coreblocks.interface.keys import CSRInstancesKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CSRInstancesKey, SideFxGuardKey
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -72,7 +72,7 @@ class RetirementTestCircuit(Elaboratable):
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))
 
-        precommit = DependencyContext.get().get_dependency(InstructionPrecommitKey())
+        precommit = DependencyContext.get().get_dependency(SideFxGuardKey())
         m.submodules.precommit_adapter = self.precommit_adapter = TestbenchIO(AdapterTrans.create(precommit))
 
         return m

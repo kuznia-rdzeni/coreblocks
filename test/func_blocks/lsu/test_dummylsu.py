@@ -11,7 +11,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
@@ -82,12 +82,12 @@ class DummyLSUTestCircuit(Elaboratable):
         layouts = self.gen.get(RetirementLayouts)
         m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
-                i=layouts.precommit_in,
+                i=layouts.side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.precommit.adapter.iface)
 
         m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)

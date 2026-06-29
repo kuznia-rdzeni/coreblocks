@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "CommonBusDataKey",
-    "InstructionPrecommitKey",
+    "SideFxGuardKey",
     "BranchVerifyKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
@@ -41,7 +41,7 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(SimpleKey[Method]):
+class SideFxGuardKey(SimpleKey[Method]):
     pass
 
 

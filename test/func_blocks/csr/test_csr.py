@@ -15,7 +15,7 @@ from coreblocks.interface.keys import (
     CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     CSRInstancesKey,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel
@@ -36,7 +36,7 @@ class CSRUnitTestCircuit(Elaboratable):
 
         m.submodules.precommit = self.precommit = TestbenchIO(
             Adapter(
-                i=self.gen_params.get(RetirementLayouts).precommit_in,
+                i=self.gen_params.get(RetirementLayouts).side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
@@ -47,7 +47,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.precommit.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 

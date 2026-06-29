@@ -532,7 +532,7 @@ class RetirementLayouts:
         self.require_done: LayoutListField = ("require_done", 1)
         """Don't run if there exist earlier not done instructions in ROB"""
 
-        self.precommit_in = make_layout(fields.rob_id, self.require_done)
+        self.side_fx_guard_in = make_layout(fields.rob_id, self.require_done)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """
