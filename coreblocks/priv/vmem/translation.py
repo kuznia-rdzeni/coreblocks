@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.enum import Enum, unique, auto
 
 from transactron import Method, TModule, def_method, Transaction
-from transactron.lib import condition, Forwarder
+from transactron.lib import Forwarder, condition
 from transactron.utils import DependencyContext, make_layout, HardwareLogger
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE_LOG

@@ -131,7 +131,9 @@ class TLBCAM(Elaboratable):
         m.d.comb += self.next_replacement_rr_index.eq(mod_incr(self.replacement_rr_index, self.ways))
 
         m.d.comb += self.matched_entry.eq(
-            one_hot_mux(self.full_match, [self.ways_data[way] for way in range(self.ways)], priority=True, assert_one_hot=False)
+            one_hot_mux(
+                self.full_match, [self.ways_data[way] for way in range(self.ways)], priority=True, assert_one_hot=False
+            )
         )
 
         return m
