@@ -116,7 +116,7 @@ class PMPChecker(Elaboratable):
 
             entry_matches.append(entry_match)
 
-        selected = OneHotMux.create(m, [(match, cfg) for match, cfg in zip(entry_matches, cfgs)], priority=True)
+        selected = OneHotMux.create(m, zip(entry_matches, cfgs), priority=True)
 
         with m.If((effective_priv_mode != PrivilegeLevel.MACHINE) | selected.L):
             m.d.comb += assign(self.result, {"r": selected.R, "w": selected.W, "x": selected.X})
