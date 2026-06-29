@@ -3,9 +3,8 @@ from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
 from transactron import Method, TModule, def_method, Priority, Transaction
-from transactron.utils import DependencyContext, mod_incr, or_value
+from transactron.utils import DependencyContext, mod_incr, one_hot_mux
 from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
-
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
@@ -131,10 +130,8 @@ class TLBCAM(Elaboratable):
 
         m.d.comb += self.next_replacement_rr_index.eq(mod_incr(self.replacement_rr_index, self.ways))
 
-        first_full_match_one_hot = Signal(self.ways)
-        m.d.comb += first_full_match_one_hot.eq(self.full_match & (~self.full_match + 1))
         m.d.comb += self.matched_entry.eq(
-            or_value([Mux(first_full_match_one_hot[way], self.ways_data[way], 0) for way in range(self.ways)])
+            one_hot_mux(self.full_match, self.ways_data, priority=True, assert_one_hot=False)
         )
 
         return m
