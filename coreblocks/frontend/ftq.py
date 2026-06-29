@@ -66,7 +66,7 @@ class FetchTargetQueue(Elaboratable):
     """
 
     stall_guard: Required[Method]
-    """Ready only while the pipeline is unlocked; stalls FTQ alloc and fetch when locked (e.g. during a flush)."""
+    """Blocks only while the pipeline is stalled (e.g. during a flush)."""
     ifu_request: Required[Method]
     """Issue a fetch request to the instruction fetch unit for the given PC and FTQ pointer."""
     bpu_request: Required[Method]
