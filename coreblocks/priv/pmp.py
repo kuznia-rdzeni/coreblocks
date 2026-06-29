@@ -3,7 +3,7 @@ from amaranth.lib import data
 from amaranth.lib.enum import Enum, auto, unique
 from amaranth_types import HasElaborate
 from transactron.core import TModule
-from transactron.utils import DependencyContext, assign
+from transactron.utils import DependencyContext, OneHotMux, assign
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
 from coreblocks.interface.keys import CSRInstancesKey
@@ -78,9 +78,9 @@ class PMPChecker(Elaboratable):
         with m.If(effective_priv_mode == PrivilegeLevel.MACHINE):
             m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
 
-        entry_matches = []
-        cfgs = []
-        addr_vals = []
+        entry_matches: list[Value] = []
+        cfgs: list[data.View] = []
+        addr_vals: list[Value] = []
 
         for i in range(n):
             cfg_val = data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value)
@@ -116,20 +116,9 @@ class PMPChecker(Elaboratable):
 
             entry_matches.append(entry_match)
 
-        matches = Cat(entry_matches)
-        one_hot = matches & (~matches + 1)
+        selected = OneHotMux.create(m, [(match, cfg) for match, cfg in zip(entry_matches, cfgs)], priority=True)
 
-        r_bits = Cat(cfg.R for cfg in cfgs)
-        w_bits = Cat(cfg.W for cfg in cfgs)
-        x_bits = Cat(cfg.X for cfg in cfgs)
-        l_bits = Cat(cfg.L for cfg in cfgs)
-
-        selected_r = (one_hot & r_bits).any()
-        selected_w = (one_hot & w_bits).any()
-        selected_x = (one_hot & x_bits).any()
-        selected_l = (one_hot & l_bits).any()
-
-        with m.If(matches.any() & ((effective_priv_mode != PrivilegeLevel.MACHINE) | selected_l)):
-            m.d.comb += assign(self.result, {"r": selected_r, "w": selected_w, "x": selected_x})
+        with m.If((effective_priv_mode != PrivilegeLevel.MACHINE) | selected.L):
+            m.d.comb += assign(self.result, {"r": selected.R, "w": selected.W, "x": selected.X})
 
         return m
