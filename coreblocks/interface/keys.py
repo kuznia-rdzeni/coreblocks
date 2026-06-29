@@ -127,6 +127,18 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
     Expected layout is `AddressTranslationLayouts.sfence_vma`.
     """
 
+    pass
+
+
+@dataclass(frozen=True)
+class SFenceVMABusyKey(ListKey[Signal]):
+    """
+    Collects information about if SFENCE.VMA is not yet finished in any component.
+    Used to implement visibility semantics after SFENCE.VMA.
+    """
+
+    pass
+
 
 @dataclass(frozen=True)
 class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):

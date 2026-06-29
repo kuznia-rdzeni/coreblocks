@@ -27,7 +27,7 @@ from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.scheduler.scheduler import Scheduler
 from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
-from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter, WishboneMasterRequestResponseSerializer
+from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.priv.vmem.tlb import SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
@@ -60,22 +60,17 @@ class Core(Component):
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
-        if self.gen_params.vmem_params.supported_non_bare_schemes:
-            self.wb_master_data_serializer = WishboneMasterRequestResponseSerializer(self.wb_master_data, port_count=2)
-            self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data_serializer.ports[0])
-            self.bus_master_ptw_adapter = WishboneMasterAdapter(self.wb_master_data_serializer.ports[1])
-        else:
-            self.wb_master_data_serializer = None
-            self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
-            self.bus_master_ptw_adapter = None
+        self.bus_master_data_adapter = WishboneMasterAdapter(
+            self.wb_master_data,
+            port_count=2 if self.gen_params.vmem_params.supported_non_bare_schemes else 1,
+        )
 
-        self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+        self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter.get_port(0))
 
         self.ptw = None
         self.l2_tlb = None
         if self.gen_params.vmem_params.supported_non_bare_schemes:
-            assert self.bus_master_ptw_adapter is not None
-            self.ptw = PageTableWalker(self.gen_params, bus=self.bus_master_ptw_adapter)
+            self.ptw = PageTableWalker(self.gen_params, bus=self.bus_master_data_adapter.get_port(1))
             self.l2_tlb = SetAssociativeTLB(
                 self.gen_params,
                 entries=self.gen_params.tlb_config.l2tlb_entries,
@@ -85,7 +80,7 @@ class Core(Component):
             )
             self.dm.add_dependency(L1TLBBackingDeviceKey(), self.l2_tlb)
 
-        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
+        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter.get_port(0))
 
         self.rf_allocator = PriorityEncoderAllocator(
             gen_params.phys_regs,
@@ -144,12 +139,8 @@ class Core(Component):
         m.submodules.bus_master_instr_adapter = self.bus_master_instr_adapter
         m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
         if self.gen_params.vmem_params.supported_non_bare_schemes:
-            assert self.l2_tlb is not None
             assert self.ptw is not None
-            assert self.bus_master_ptw_adapter is not None
-            assert self.wb_master_data_serializer is not None
-            m.submodules.wb_master_data_serializer = self.wb_master_data_serializer
-            m.submodules.bus_master_ptw_adapter = self.bus_master_ptw_adapter
+            assert self.l2_tlb is not None
             m.submodules.ptw = self.ptw
             m.submodules.l2_tlb = self.l2_tlb
 

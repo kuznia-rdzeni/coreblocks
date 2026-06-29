@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
-from transactron import Method, TModule, def_method, Priority, Transaction
+from transactron import Method, Methods, TModule, def_method, def_methods, Priority, Transaction
 from transactron.utils import DependencyContext, mod_incr, OneHotMux
 from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
 
@@ -72,7 +72,7 @@ class TLBCAM(Elaboratable):
     next_replacement_rr_index: Signal
     """Value of replacement_rr_index after replacement."""
 
-    def __init__(self, gen_params: GenParams, ways: int):
+    def __init__(self, gen_params: GenParams, ways: int, ports: int = 1):
         self.gen_params = gen_params
         self.ways = ways
         self.layout = gen_params.get(AddressTranslationLayouts)
@@ -139,7 +139,7 @@ class TLBCAM(Elaboratable):
         return m
 
 
-class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
+class FullyAssociativeTLB(Elaboratable):
     """Fully associative TLB capable of same-cycle operations.
     Meant for L1 TLBs.
     """
@@ -149,30 +149,35 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
         gen_params: GenParams,
         *,
         entries: int,
+        ports: int,
         backing_resolver: TLBBackingDevice,
         perf_name_prefix: str = "mmu.tlb",
     ):
         if entries <= 0:
             raise ValueError("entries must be positive")
 
+        if ports <= 0:
+            raise ValueError("the number of ports of TLB must be positive")
+
         self.gen_params = gen_params
         self.entries = entries
+        self.ports = ports
         self.backing_resolver = backing_resolver
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.perf_name_prefix = perf_name_prefix
 
-        self.request = Method(i=self.layout.tlb_request)
-        self.accept = Method(o=self.layout.tlb_accept)
+        self.request = Methods(ports, i=self.layout.tlb_request)
+        self.accept = Methods(ports, o=self.layout.tlb_accept)
 
         self.sfence_vma = Method(i=self.layout.sfence_vma)
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
-        self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB")
-        self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
-        self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
-        self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
-        self.perf_latency = FIFOLatencyMeasurer(f"{self.perf_name_prefix}.latency", slots_number=2, max_latency=500)
+        self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB", ways=self.ports)
+        self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits", ways=self.ports)
+        self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses", ways=self.ports)
+        self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes", ways=self.ports)
+        self.perf_latency = FIFOLatencyMeasurer(f"{self.perf_name_prefix}.latency", slots_number=2, max_latency=500, ways=self.ports)
 
     def elaborate(self, platform):
         m = TModule()
@@ -195,10 +200,50 @@ class FullyAssociativeTLB(TLBBackingDevice, Elaboratable):
 
         entries = Signal(ArrayLayout(TLBEntry(self.gen_params), self.entries))
 
-        m.submodules.cam = cam = TLBCAM(self.gen_params, self.entries)
-        m.d.comb += cam.ways_data.eq(entries)
+        # comparator for each port and one for both flush (sfence.vma) and refill operations 
+        cams = []
+        for port in range(self.ports + 1):
+            cam = TLBCAM(self.gen_params, self.entries)
+            m.submodules[f"cam_{port}"] = cam
+            m.d.comb += cam.ways_data.eq(entries)
+            cams.append(cam)
 
-        m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
+        result_fwds = []
+        for port in range(self.ports):
+            result_fwd = Forwarder(self.layout.tlb_accept)
+            m.submodules[f"fwd_{port}"] = result_fwd
+            result_fwds.append(result_fwd)
+
+        @def_methods(m, self.request)
+        def _(port, vpn, is_store):
+            m.d.av_comb += cams[port].checked_vpn.eq(vpn)
+            m.d.av_comb += cams[port].checked_asid.eq(current_asid)
+
+            self.perf_loads.incr(m)
+            self.perf_latency.start(m)
+
+            ask_backing = Signal()
+            with m.If(~cams[port].full_match.any()):
+                m.d.av_comb += ask_backing.eq(1)
+            if self.gen_params.vmem_params.supports_auto_a_d_management:
+                with m.Elif(is_store & ~cams[port].matched_entry.permissions.d):
+                    # We have found an entry, but it doesn't have the dirty bit set
+                    # Ask the backing resolver to set it (Svade semantic)
+                    m.d.av_comb += ask_backing.eq(1)
+
+            with m.If(ask_backing):
+                self.perf_misses.incr(m)
+                backing_pipe.write(m, vpn=vpn, is_store=is_store)
+            with m.Else():
+                self.perf_hits.incr(m)
+                result_fwds[port].write(
+                    m,
+                    result=AddressTranslationLayouts.TLBResult.HIT,
+                    permissions=cams[port].matched_entry.permissions,
+                    ppn=cams[port].matched_entry.ppn,
+                    size_class=cams[port].matched_entry.size_class,
+                )
+
         m.submodules.backing_pipe = backing_pipe = Pipe(self.layout.tlb_request)
         m.submodules += ConnectTrans.create(backing_pipe.read, self.backing_resolver.request)
 
