@@ -377,7 +377,7 @@ class WishboneMuxer(Component):
         # workaround for the lack of selective connecting in wiring
         for n in ["dat_r", "stall"]:
             m.d.comb += getattr(self.master_wb, n).eq(
-                OneHotMux.create(m, [(i, getattr(self.slaves[i], n)) for i in range(len(self.slaves))])
+                OneHotMux.create(m, [(self.sselTGA[i], getattr(self.slaves[i], n)) for i in range(len(self.slaves))])
             )
         return m
 
