@@ -172,7 +172,9 @@ class Renaming(Elaboratable):
                         rp_dst=instr.regs_p.rp_dst,
                     )
 
-                m.d.av_comb += assign(instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
+                m.d.av_comb += assign(
+                    instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment", "ftq_ptr"}
+                )
                 m.d.av_comb += assign(instr_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
                 m.d.av_comb += instr_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
                 m.d.av_comb += instr_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
@@ -223,6 +225,7 @@ class ROBAllocation(Elaboratable):
                             "rl_dst": instr.regs_l.rl_dst,
                             "rp_dst": instr.regs_p.rp_dst,
                             "tag_increment": instr.tag_increment,
+                            "ftq_ptr": instr.ftq_ptr,
                         },
                         "pure": ~Cat(instr.exec_fn.op_type == op_type for op_type in impure_optypes).any(),
                     }

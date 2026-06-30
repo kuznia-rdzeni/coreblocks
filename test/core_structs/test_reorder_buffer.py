@@ -25,7 +25,17 @@ class TestReorderBuffer(TestCaseWithSimulator):
             for k in range(count):
                 log_reg = self.rand.randint(0, self.log_regs - 1)
                 phys_reg = self.regs_left_queue.popleft()
-                entries.append({"rob_data": {"rl_dst": log_reg, "rp_dst": phys_reg, "tag_increment": 0}, "pure": 0})
+                entries.append(
+                    {
+                        "rob_data": {
+                            "rl_dst": log_reg,
+                            "rp_dst": phys_reg,
+                            "tag_increment": 0,
+                            "ftq_ptr": {"ptr": 0, "parity": 0},
+                        },
+                        "pure": 0,
+                    }
+                )
             rob_ids = (await self.m.put.call(sim, count=count, entries=entries)).entries
             for k in range(count):
                 self.to_execute_list.append((rob_ids[k].rob_id, entries[k]["rob_data"]["rp_dst"]))
