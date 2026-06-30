@@ -29,7 +29,8 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "SFenceVMAKey",
-    "L1TLBBackingDeviceKey",
+    "InstructionAddressTranslatorBackingDeviceKey",
+    "DataAddressTranslatorBackingDeviceKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -133,17 +134,30 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
 @dataclass(frozen=True)
 class SFenceVMABusyKey(ListKey[Signal]):
     """
-    Collects information about if SFENCE.VMA is not yet finished in any component.
-    Used to implement visibility semantics after SFENCE.VMA.
+    Collects information about if TLB flush is in progress.
+    Used to implement visibility semantics after SFENCE.VMA and SFENCE.INVAL.IR.
     """
 
     pass
 
 
 @dataclass(frozen=True)
-class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
-    """Used to provide a component that can be used as a backing device for the L1 TLB."""
+class TLBRefillInProgressKey(ListKey[Signal]):
+    """
+    Collects information about if TLB refill is in progress.
+    Used to implement visibility semantics after SFENCE.VMA and SFENCE.W.INVAL.
+    """
 
+    pass
+
+
+@dataclass(frozen=True)
+class InstructionAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
+    pass
+
+
+@dataclass(frozen=True)
+class DataAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
     pass
 
 

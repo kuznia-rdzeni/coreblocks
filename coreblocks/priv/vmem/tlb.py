@@ -2,13 +2,22 @@ from amaranth import *
 from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
+from attr import dataclass
 from transactron import Method, Methods, TModule, def_method, def_methods, Priority, Transaction
-from transactron.utils import DependencyContext, mod_incr, OneHotMux
-from transactron.lib import Forwarder, Pipe, HwCounter, FIFOLatencyMeasurer, ConnectTrans
+from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux
+from transactron.lib import (
+    BasicFifo,
+    Forwarder,
+    Pipe,
+    HwCounter,
+    FIFOLatencyMeasurer,
+    Serializer,
+    condition,
+)
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
-from coreblocks.interface.keys import SFenceVMAKey, CSRInstancesKey
+from coreblocks.interface.keys import SFenceVMABusyKey, SFenceVMAKey, CSRInstancesKey, TLBRefillInProgressKey
 from coreblocks.params import GenParams
 
 from coreblocks.priv.vmem.iface import TLBBackingDevice
@@ -173,11 +182,38 @@ class FullyAssociativeTLB(Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
+        self.sfence_busy = Signal()
+        self.refill_in_progress = Signal()
+        self.dm.add_dependency(SFenceVMABusyKey(), self.sfence_busy)
+        self.dm.add_dependency(TLBRefillInProgressKey(), self.refill_in_progress)
+
         self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB", ways=self.ports)
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits", ways=self.ports)
         self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses", ways=self.ports)
         self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes", ways=self.ports)
-        self.perf_latency = FIFOLatencyMeasurer(f"{self.perf_name_prefix}.latency", slots_number=2, max_latency=500, ways=self.ports)
+        self.perf_latency = FIFOLatencyMeasurer(
+            f"{self.perf_name_prefix}.latency", slots_number=2, max_latency=500, ways=self.ports
+        )
+
+        self.ports_allocated = 0
+
+    def get_port(self) -> TLBBackingDevice:
+        """Returns a TLBBackingDevice from a specific port."""
+        if self.ports_allocated >= self.ports:
+            raise ValueError(f"No available ports for TLB with {self.ports} ports")
+
+        port = self.ports_allocated
+        self.ports_allocated += 1
+
+        @dataclass(frozen=True)
+        class _Port(TLBBackingDevice):
+            request: Method
+            accept: Method
+
+        return _Port(
+            request=self.request[port],
+            accept=self.accept[port],
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -200,148 +236,150 @@ class FullyAssociativeTLB(Elaboratable):
 
         entries = Signal(ArrayLayout(TLBEntry(self.gen_params), self.entries))
 
-        # comparator for each port and one for both flush (sfence.vma) and refill operations 
-        cams = []
-        for port in range(self.ports + 1):
-            cam = TLBCAM(self.gen_params, self.entries)
-            m.submodules[f"cam_{port}"] = cam
-            m.d.comb += cam.ways_data.eq(entries)
-            cams.append(cam)
+        m.submodules.refill_flush_cam = refill_flush_cam = TLBCAM(self.gen_params, self.entries)
+        m.d.comb += refill_flush_cam.ways_data.eq(entries)
 
-        result_fwds = []
-        for port in range(self.ports):
-            result_fwd = Forwarder(self.layout.tlb_accept)
-            m.submodules[f"fwd_{port}"] = result_fwd
-            result_fwds.append(result_fwd)
+        m.submodules.flush_queue = flush_queue = BasicFifo(self.layout.sfence_vma, depth=2)
+        self.sfence_vma.provide(flush_queue.write)
 
-        @def_methods(m, self.request)
-        def _(port, vpn, is_store):
-            m.d.av_comb += cams[port].checked_vpn.eq(vpn)
-            m.d.av_comb += cams[port].checked_asid.eq(current_asid)
+        m.submodules.refill_info = refill_info = BasicFifo([("vpn", vpn_bits)], depth=1)
 
-            self.perf_loads.incr(m)
-            self.perf_latency.start(m)
+        refill_ret = Signal(self.layout.tlb_accept)
 
+        with m.If(refill_info.level != 0):
+            m.d.comb += self.refill_in_progress.eq(1)
+
+            with Transaction(name="AcceptRefill").body(m) as accept_refill:
+                req_data = refill_info.read(m)
+                m.d.av_comb += refill_flush_cam.checked_vpn.eq(req_data.vpn)
+                m.d.av_comb += refill_flush_cam.checked_asid.eq(current_asid)
+
+                resp = self.backing_resolver.accept(m)
+                m.d.av_comb += refill_ret.eq(resp)
+
+                with m.If(cond=resp.result == AddressTranslationLayouts.TLBResult.HIT):
+                    m.d.sync += refill_flush_cam.replacement_rr_index.eq(refill_flush_cam.next_replacement_rr_index)
+                    m.d.sync += assign(
+                        entries[refill_flush_cam.replace_candidate],
+                        {
+                            "valid": 1,
+                            "asid": current_asid,
+                            "vpn": req_data.vpn,
+                            "ppn": resp.ppn,
+                            "size_class": resp.size_class,
+                            "permissions": resp.permissions,
+                        },
+                    )
+
+        with m.Else():
+
+            with Transaction(name="Flush").body(m):
+                self.perf_flushes.incr(m)
+
+                req = flush_queue.read(m)
+                m.d.av_comb += refill_flush_cam.checked_asid.eq(req.asid)
+                m.d.av_comb += refill_flush_cam.checked_vpn.eq(req.vaddr >> PAGE_SIZE_LOG)
+
+                for way in range(self.entries):
+                    with m.If(
+                        (req.all_asids | refill_flush_cam.asid_match[way])
+                        & (req.all_vaddrs | refill_flush_cam.addr_match[way])
+                    ):
+                        m.d.sync += entries[way].valid.eq(0)
+
+        def do_query(cam, is_store):
             ask_backing = Signal()
-            with m.If(~cams[port].full_match.any()):
+            with m.If(~cam.full_match.any()):
                 m.d.av_comb += ask_backing.eq(1)
             if self.gen_params.vmem_params.supports_auto_a_d_management:
-                with m.Elif(is_store & ~cams[port].matched_entry.permissions.d):
+                with m.Elif(is_store & ~cam.matched_entry.permissions.d):
                     # We have found an entry, but it doesn't have the dirty bit set
                     # Ask the backing resolver to set it (Svade semantic)
                     m.d.av_comb += ask_backing.eq(1)
 
-            with m.If(ask_backing):
-                self.perf_misses.incr(m)
-                backing_pipe.write(m, vpn=vpn, is_store=is_store)
-            with m.Else():
-                self.perf_hits.incr(m)
-                result_fwds[port].write(
-                    m,
-                    result=AddressTranslationLayouts.TLBResult.HIT,
-                    permissions=cams[port].matched_entry.permissions,
-                    ppn=cams[port].matched_entry.ppn,
-                    size_class=cams[port].matched_entry.size_class,
-                )
+            ret = {
+                "result": AddressTranslationLayouts.TLBResult.HIT,
+                "permissions": cam.matched_entry.permissions,
+                "ppn": cam.matched_entry.ppn,
+                "size_class": cam.matched_entry.size_class,
+            }
 
-        m.submodules.backing_pipe = backing_pipe = Pipe(self.layout.tlb_request)
-        m.submodules += ConnectTrans.create(backing_pipe.read, self.backing_resolver.request)
+            return ask_backing, ret
 
-        requested_vpn = Signal(vpn_bits)
+        for port in range(self.ports):
+            cam = TLBCAM(self.gen_params, self.entries)
+            m.d.comb += cam.ways_data.eq(entries)
 
-        m.submodules.flush_pipe = flush_pipe = Pipe(self.layout.sfence_vma)
-        self.sfence_vma.provide(flush_pipe.write)
+            result_fwd = Forwarder(self.layout.tlb_accept)
+            m.submodules[f"result_fwd_{port}"] = result_fwd
+            m.submodules[f"cam_{port}"] = cam
 
-        with m.FSM():
-            with m.State("IDLE"):
-                with m.If(self.sfence_vma.run | flush_pipe.read.ready):
-                    m.next = "FLUSH"  # overwritten later if needed
+            slow_path = Signal()
+            vpn_req = Signal(vpn_bits)
+            is_store_req = Signal()
 
-                @def_method(m, self.request, ready=~flush_pipe.read.ready)
+            with m.If(~slow_path):
+
+                @def_method(m, self.request[port])
                 def _(vpn, is_store):
-                    m.d.av_comb += cam.checked_vpn.eq(vpn)
-                    m.d.av_comb += cam.checked_asid.eq(current_asid)
-                    m.d.sync += requested_vpn.eq(vpn)
-
                     self.perf_loads.incr(m)
                     self.perf_latency.start(m)
 
-                    ask_backing = Signal()
-                    with m.If(~cam.full_match.any()):
-                        m.d.av_comb += ask_backing.eq(1)
-                    if self.gen_params.vmem_params.supports_auto_a_d_management:
-                        with m.Elif(is_store & ~cam.matched_entry.permissions.d):
-                            # We have found an entry, but it doesn't have the dirty bit set
-                            # Ask the backing resolver to set it (Svade semantic)
-                            m.d.av_comb += ask_backing.eq(1)
+                    m.d.av_comb += cam.checked_vpn.eq(vpn)
+                    m.d.av_comb += cam.checked_asid.eq(current_asid)
+                    ask_backing, ret = do_query(cam, is_store)
 
                     with m.If(ask_backing):
-                        self.perf_misses.incr(m)
-                        m.next = "REFILL"
-                        backing_pipe.write(m, vpn=vpn, is_store=is_store)
+                        self.perf_misses.incr[port](m)
+                        m.d.sync += [
+                            slow_path.eq(1),
+                            vpn_req.eq(vpn),
+                            is_store_req.eq(is_store),
+                        ]
                     with m.Else():
-                        self.perf_hits.incr(m)
-                        fwd.write(
-                            m,
-                            result=AddressTranslationLayouts.TLBResult.HIT,
-                            permissions=cam.matched_entry.permissions,
-                            ppn=cam.matched_entry.ppn,
-                            size_class=cam.matched_entry.size_class,
-                        )
+                        self.perf_hits.incr[port](m)
+                        result_fwd.write(m, ret)
 
-            with m.State("REFILL"):
-                # Slow path - refill from backing resolver
-                with Transaction().body(m, ready=~backing_pipe.read.ready):
-                    m.d.av_comb += cam.checked_vpn.eq(requested_vpn)
+            with m.Else():
+
+                with Transaction(name=f"AsyncResolve_{port}").body(m) as t:
+                    m.d.av_comb += cam.checked_vpn.eq(vpn_req)
                     m.d.av_comb += cam.checked_asid.eq(current_asid)
 
-                    resp = self.backing_resolver.accept(m)
-                    m.next = "IDLE"
+                    ask_backing, ret = do_query(cam, is_store_req)
 
-                    fwd.write(m, resp)
+                    with condition(m) as branch:
+                        with branch(~ask_backing):
+                            result_fwd.write(m, ret)
+                            m.d.sync += slow_path.eq(0)
+                        with branch((refill_info.head.vpn == vpn_req) & accept_refill.run):
+                            # fast path - hit from current refill
+                            result_fwd.write(m, refill_ret)
+                            m.d.sync += slow_path.eq(0)
+                        with branch(ask_backing & (flush_queue.level == 0)):
+                            self.backing_resolver.request(m, vpn=vpn_req, is_store=is_store_req)
+                            refill_info.write(m, vpn=vpn_req)
 
-                    new_entry = Signal(TLBEntry(self.gen_params))
-                    m.d.top_comb += [
-                        new_entry.valid.eq(1),
-                        new_entry.asid.eq(current_asid),
-                        new_entry.vpn.eq(requested_vpn),
-                        new_entry.ppn.eq(resp.ppn),
-                        new_entry.size_class.eq(resp.size_class),
-                        new_entry.permissions.eq(resp.permissions),
-                    ]
+                accept_refill.schedule_before(t)
 
-                    with m.If(resp.result == AddressTranslationLayouts.TLBResult.HIT):
-                        m.d.sync += cam.replacement_rr_index.eq(cam.next_replacement_rr_index)
-                        m.d.sync += entries[cam.replace_candidate].eq(new_entry)
-            with m.State("FLUSH"):
-                with Transaction(name="TLBFlush").body(m):
-                    self.perf_flushes.incr(m)
+            @def_method(m, self.accept[port])
+            def _():
+                self.perf_latency.stop[port](m)
+                return result_fwd.read(m)
 
-                    req = flush_pipe.read(m)
-                    m.d.av_comb += cam.checked_asid.eq(req.asid)
-                    m.d.av_comb += cam.checked_vpn.eq(req.vaddr >> PAGE_SIZE_LOG)
-
-                    for way in range(self.entries):
-                        with m.If((req.all_asids | cam.asid_match[way]) & (req.all_vaddrs | cam.addr_match[way])):
-                            m.d.sync += entries[way].valid.eq(0)
-
-                    m.next = "IDLE"
-
-        @def_method(m, self.accept)
-        def _():
-            self.perf_latency.stop(m)
-            return fwd.read(m)
+        m.d.comb += self.sfence_busy.eq(flush_queue.level != 0)
 
         return m
 
 
-class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
+class SetAssociativeTLB(Elaboratable):
     def __init__(
         self,
         gen_params: GenParams,
         *,
         entries: int,
         ways: int,
+        ports: int,
         backing_resolver: TLBBackingDevice,
         perf_name_prefix: str = "mmu.tlb",
     ):
@@ -356,21 +394,45 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         self.entries = entries
         self.ways = ways
         self.sets = entries // ways
+        self.ports = ports
         self.backing_resolver = backing_resolver
         self.layout = gen_params.get(AddressTranslationLayouts)
         self.perf_name_prefix = perf_name_prefix
 
-        self.request = Method(i=self.layout.tlb_request)
-        self.accept = Method(o=self.layout.tlb_accept)
+        self.request = Methods(ports, i=self.layout.tlb_request)
+        self.accept = Methods(ports, o=self.layout.tlb_accept)
         self.sfence_vma = Method(i=self.layout.sfence_vma)
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
+
+        self.refill_in_progress = Signal()
+        self.dm.add_dependency(TLBRefillInProgressKey(), self.refill_in_progress)
 
         self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB")
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
         self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
         self.perf_flushes = HwCounter(f"{self.perf_name_prefix}.flushes")
         self.perf_latency = FIFOLatencyMeasurer(f"{self.perf_name_prefix}.latency", slots_number=2, max_latency=500)
+
+        self.ports_allocated = 0
+
+    def get_port(self) -> TLBBackingDevice:
+        """Returns a TLBBackingDevice from a specific port."""
+        if self.ports_allocated >= self.ports:
+            raise ValueError(f"No available ports for TLB with {self.ports} ports")
+
+        port = self.ports_allocated
+        self.ports_allocated += 1
+
+        @dataclass(frozen=True)
+        class _Port(TLBBackingDevice):
+            request: Method
+            accept: Method
+
+        return _Port(
+            request=self.request[port],
+            accept=self.accept[port],
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -419,7 +481,20 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
             return vpn.word_select(size_class, bits_per_level)
 
-        @def_method(m, self.request, ready=~flushing)
+        request = Method(i=self.layout.tlb_request)
+        accept = Method(o=self.layout.tlb_accept)
+
+        m.submodules.port_serializer = port_serializer = Serializer(
+            port_count=self.ports,
+            serialized_req_method=request,
+            serialized_resp_method=accept,
+        )
+
+        for port in range(self.ports):
+            self.request[port].provide(port_serializer.serialize_in[port])
+            self.accept[port].provide(port_serializer.serialize_out[port])
+
+        @def_method(m, request, ready=~flushing)
         def _(vpn, is_store):
             self.perf_loads.incr(m)
             self.perf_latency.start(m)
@@ -436,9 +511,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             request_pipe.write(m, vpn=vpn, is_store=is_store)
 
-        slow_path = Signal()
-
-        with Transaction(name="TLBLookup").body(m, ready=~slow_path):
+        with Transaction(name="TLBLookup").body(m, ready=~self.refill_in_progress):
             req = request_pipe.peek(m)
 
             miss = Signal()
@@ -456,7 +529,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             with m.If(ask_backing):
                 self.perf_misses.incr(m)
-                m.d.sync += slow_path.eq(1)
+                m.d.sync += self.refill_in_progress.eq(1)
                 self.backing_resolver.request(m, vpn=req.vpn, is_store=req.is_store)
             with m.Elif(miss & (requested_class < max_class)):
                 set_idx = vpn_to_set_idx(req.vpn, requested_class + 1)
@@ -500,14 +573,14 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
                     with m.Else():
                         request_pipe.read(m)
                         fwd.write(m, resp)
-                        m.d.sync += slow_path.eq(0)
+                        m.d.sync += self.refill_in_progress.eq(0)
 
             with m.State("REFILL"):
                 with Transaction().body(m):
                     req = request_pipe.read(m)
 
                     fwd.write(m, refill_response)
-                    m.d.sync += slow_path.eq(0)
+                    m.d.sync += self.refill_in_progress.eq(0)
 
                     new_entry = Signal(TLBEntry(self.gen_params))
                     m.d.top_comb += [
@@ -531,7 +604,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
                     m.next = "IDLE"
 
-        @def_method(m, self.accept)
+        @def_method(m, accept)
         def _():
             self.perf_latency.stop(m)
             return fwd.read(m)
@@ -546,7 +619,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
         flush_size_class = Signal(self.gen_params.vmem_params.tlb_size_class_bits)
         flush_fetched = Signal()
 
-        @def_method(m, self.sfence_vma, ready=~flushing & ~request_pipe.read.ready & ~slow_path)
+        @def_method(m, self.sfence_vma, ready=~flushing & ~request_pipe.read.ready & ~self.refill_in_progress)
         def _(vaddr, asid, all_vaddrs, all_asids):
             self.perf_flushes.incr(m)
 
@@ -564,7 +637,7 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
             m.d.comb += set_rd.addr.eq(flush_set)
             m.d.comb += set_rd.en.eq(1)
 
-        self.sfence_vma.add_conflict(self.request, Priority.LEFT)
+        self.sfence_vma.add_conflict(request, Priority.LEFT)
 
         with m.If(flushing):
             m.d.comb += set_wr.data.eq(set_rd.data)
@@ -595,5 +668,8 @@ class SetAssociativeTLB(TLBBackingDevice, Elaboratable):
 
             with m.If(flush_done):
                 m.d.sync += flushing.eq(0)
+
+        # SAFETY: As module fully blocks requests after getting a flush request, there is no need to expose the `sfence_busy` signal,
+        # as all later requests are guaranteed to see the flush.
 
         return m
