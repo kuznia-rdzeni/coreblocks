@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782812772422,
+  "lastUpdate": 1782860257219,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -23800,6 +23800,70 @@ window.BENCHMARK_DATA = {
           {
             "name": "statemate",
             "value": 0.3549920760697306,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45756666477948255,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9b95b5329a76bb80c48d59f2facd8184e1711c65",
+          "message": "Implement initial Fetch Target Queue (FTQ) (#869)",
+          "timestamp": "2026-07-01T00:20:17+02:00",
+          "tree_id": "03d376e2ace2cd753d1c3a0d372f1693236d9454",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9b95b5329a76bb80c48d59f2facd8184e1711c65"
+        },
+        "date": 1782860247412,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.46230613525922687,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6049226420927117,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.38434691562690865,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6607695575650907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36910549157324907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32061003711986197,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3549852153914539,
             "unit": "Instructions Per Cycle"
           },
           {
