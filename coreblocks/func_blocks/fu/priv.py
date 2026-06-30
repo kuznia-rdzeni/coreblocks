@@ -24,7 +24,7 @@ from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     CSRInstancesKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
@@ -69,7 +69,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
-            "Number of instructions precommited with side effects by the privilege unit",
+            "Number of instructions executed by the privilege unit",
             tags=PrivilegedFn.Fn,
         )
 
@@ -118,8 +118,8 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):
-            precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            precommit(m, rob_id=instr_rob, require_done=0)
+            side_fx_guard = self.dm.get_dependency(SideFxGuardKey())
+            side_fx_guard(m, rob_id=instr_rob, require_done=0)
             m.d.sync += finished.eq(1)
             self.perf_instr.incr(m, instr_fn)
 
@@ -237,7 +237,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
-                # mret() method is called from precommit() that was executed at least one cycle earlier (because
+                # mret() method is called (on side effect time) at least one cycle earlier (because
                 # of finished condition). If calling mret() caused interrupt to be active, it is already represented
                 # by updated async_interrupt_active signal.
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
