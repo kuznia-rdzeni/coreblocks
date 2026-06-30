@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782773850073,
+  "lastUpdate": 1782812767490,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -23701,6 +23701,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/1f8c4a1b24ca45ca8ffedfacdfae035340ea4896"
         },
         "date": 1782773836734,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.46230613525922687,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6049226420927117,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3844223846405585,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6607695575650907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36910549157324907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32061003711986197,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3549920760697306,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45756666477948255,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0df50700e8e0d860462196a486bcdd5178662e5f",
+          "message": "Precommit -> Side fx guard (#991)",
+          "timestamp": "2026-06-30T10:59:46+02:00",
+          "tree_id": "210ab6de89d6dc3bad913ca83254d5f741e494f9",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0df50700e8e0d860462196a486bcdd5178662e5f"
+        },
+        "date": 1782812756126,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
