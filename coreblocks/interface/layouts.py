@@ -363,6 +363,9 @@ class RATLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
+        self.rat_array = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
+        """The RAT array shape."""
+
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 

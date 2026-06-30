@@ -69,10 +69,9 @@ class CheckpointRAT(Elaboratable):
         # Checkpoint count = 1 is not currently possible because of how retirement freeing works
         assert gen_params.checkpoint_count > 1
 
-        self.frat_layout = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
-        self.frat = Signal(self.frat_layout)
-
         layouts = gen_params.get(RATLayouts)
+        self.frat = Signal(layouts.rat_array)
+
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
         self.commit_checkpoint = Method(i=layouts.crat_commit_checkpoint_in)
         self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
@@ -104,7 +103,7 @@ class CheckpointRAT(Elaboratable):
         active_tags = Signal(2**self.gen_params.tag_bits, init=1)
         checkpointed_tags = Signal(2**self.gen_params.tag_bits, init=0)
 
-        storage = MemoryBank(shape=self.frat_layout, depth=self.gen_params.checkpoint_count)
+        storage = MemoryBank(shape=self.frat.shape(), depth=self.gen_params.checkpoint_count)
         tag_map = MemoryBank(
             shape=range(self.gen_params.checkpoint_count),
             depth=2**self.gen_params.tag_bits,
