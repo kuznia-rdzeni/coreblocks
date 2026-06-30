@@ -1,0 +1,21 @@
+coreblocks.frontend.bpu package
+===============================
+
+Submodules
+----------
+
+coreblocks.frontend.bpu.bpu module
+----------------------------------
+
+.. automodule:: coreblocks.frontend.bpu.bpu
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.frontend.bpu
+   :members:
+   :show-inheritance:
+   :undoc-members:

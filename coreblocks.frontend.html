@@ -21,7 +21,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="coreblocks.frontend.decoder package" href="coreblocks.frontend.decoder.html" />
+    <link rel="next" title="coreblocks.frontend.bpu package" href="coreblocks.frontend.bpu.html" />
     <link rel="prev" title="coreblocks.core_structs package" href="coreblocks.core_structs.html" /> 
 </head>
 
@@ -90,6 +90,21 @@
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="coreblocks.frontend.bpu.html">coreblocks.frontend.bpu package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.bpu.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">coreblocks.frontend.bpu.bpu module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.__init__"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.flush"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.flush</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.request"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.request</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.write_prediction"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.write_prediction</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu">Module contents</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.frontend.decoder.html">coreblocks.frontend.decoder package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.decoder.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.decoder.html#module-coreblocks.frontend.decoder.decode_stage">coreblocks.frontend.decoder.decode_stage module</a><ul>
@@ -169,6 +184,46 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
 </section>
+<section id="module-coreblocks.frontend.fetch_addr_unit">
+<span id="coreblocks-frontend-fetch-addr-unit-module"></span><h2>coreblocks.frontend.fetch_addr_unit module<a class="headerlink" href="#module-coreblocks.frontend.fetch_addr_unit" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.fetch_addr_unit.</span></span><span class="sig-name descname"><span class="pre">FetchAddressUnit</span></span><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Owns the speculative fetch program counter and arbitrates all frontend redirects.
+It selects the next fetch PC based on reset, backend redirects, IFU redirects, and branch prediction results.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.backend_redirect">
+<span class="sig-name descname"><span class="pre">backend_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.backend_redirect" title="Link to this definition"></a></dt>
+<dd><p>Redirect the fetch PC after a misprediction resolved by the backend.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.ifu_redirect">
+<span class="sig-name descname"><span class="pre">ifu_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.ifu_redirect" title="Link to this definition"></a></dt>
+<dd><p>Redirect the fetch PC after a misprediction detected by the IFU.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.read">
+<span class="sig-name descname"><span class="pre">read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.read" title="Link to this definition"></a></dt>
+<dd><p>Consume the current fetch PC. Blocks until a valid PC is available.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.write">
+<span class="sig-name descname"><span class="pre">write</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.write" title="Link to this definition"></a></dt>
+<dd><p>Supply the next fetch PC (e.g. from a BPU prediction). Requires the current PC to have been consumed.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.frontend.frontend">
 <span id="coreblocks-frontend-frontend-module"></span><h2>coreblocks.frontend.frontend module<a class="headerlink" href="#module-coreblocks.frontend.frontend" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -198,34 +253,6 @@
 <span class="sig-name descname"><span class="pre">stall</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.CoreFrontend.stall" title="Link to this definition"></a></dt>
 <dd><p>Stall and flush the frontend.</p>
 </dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.frontend.</span></span><span class="sig-name descname"><span class="pre">FetchAddressUnit</span></span><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>This module owns the speculative fetch program counter and arbitrates all frontend redirects.
-It selects the next fetch PC based on reset, backend redirects, IFU redirects, and branch prediction results.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.__init__" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.beckend_redirect">
-<span class="sig-name descname"><span class="pre">beckend_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.beckend_redirect" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.ifu_redirect">
-<span class="sig-name descname"><span class="pre">ifu_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.ifu_redirect" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.frontend.FetchAddressUnit.read">
-<span class="sig-name descname"><span class="pre">read</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.frontend.FetchAddressUnit.read" title="Link to this definition"></a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -294,6 +321,102 @@ but this is needed to differentiate from instructions that left <cite>Frontend</
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.frontend.ftq">
+<span id="coreblocks-frontend-ftq-module"></span><h2>coreblocks.frontend.ftq module<a class="headerlink" href="#module-coreblocks.frontend.ftq" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FTQMemoryWrapper">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.ftq.</span></span><span class="sig-name descname"><span class="pre">FTQMemoryWrapper</span></span><a class="headerlink" href="#coreblocks.frontend.ftq.FTQMemoryWrapper" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FTQMemoryWrapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.Layout" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">Layout</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.ftq.FTQMemoryWrapper.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.ftq.</span></span><span class="sig-name descname"><span class="pre">FetchTargetQueue</span></span><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Tracks speculative fetch targets in a circular buffer indexed by FTQ pointer.
+Each entry represents one fetch block: the FTQ allocates an entry per fetch, sends the PC to
+both the IFU and BPU, and advances the fetch pointer. Entries are freed at retirement via
+<code class="docutils literal notranslate"><span class="pre">commit</span></code> and the buffer stalls allocation when full.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.backend_redirect">
+<span class="sig-name descname"><span class="pre">backend_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.backend_redirect" title="Link to this definition"></a></dt>
+<dd><p>Handle a backend misprediction: reset alloc/fetch pointers to commit+1 and redirect the FAU.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.bpu_flush">
+<span class="sig-name descname"><span class="pre">bpu_flush</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.bpu_flush" title="Link to this definition"></a></dt>
+<dd><p>Flush pending branch prediction requests (called on any redirect).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.bpu_request">
+<span class="sig-name descname"><span class="pre">bpu_request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.bpu_request" title="Link to this definition"></a></dt>
+<dd><p>Request a branch prediction for the given PC and FTQ pointer.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.bpu_response">
+<span class="sig-name descname"><span class="pre">bpu_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.bpu_response" title="Link to this definition"></a></dt>
+<dd><p>Accept a branch prediction result and supply the predicted next PC to the FAU.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.commit">
+<span class="sig-name descname"><span class="pre">commit</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.commit" title="Link to this definition"></a></dt>
+<dd><p>Retire an FTQ entry, advancing the commit pointer and freeing the slot.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.ifu_request">
+<span class="sig-name descname"><span class="pre">ifu_request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.ifu_request" title="Link to this definition"></a></dt>
+<dd><p>Issue a fetch request to the instruction fetch unit for the given PC and FTQ pointer.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.ifu_writeback">
+<span class="sig-name descname"><span class="pre">ifu_writeback</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.ifu_writeback" title="Link to this definition"></a></dt>
+<dd><p>Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
+redirect fetch to a new PC.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.jump_target_req">
+<span class="sig-name descname"><span class="pre">jump_target_req</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.jump_target_req" title="Link to this definition"></a></dt>
+<dd><p>Request the predicted jump target for a given FTQ entry (stub).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.jump_target_resp">
+<span class="sig-name descname"><span class="pre">jump_target_resp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.jump_target_resp" title="Link to this definition"></a></dt>
+<dd><p>Return the predicted jump target for a given FTQ entry (stub).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.resolve">
+<span class="sig-name descname"><span class="pre">resolve</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.resolve" title="Link to this definition"></a></dt>
+<dd><p>Record branch resolution information for a committed FTQ entry (stub).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.stall_guard">
+<span class="sig-name descname"><span class="pre">stall_guard</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.stall_guard" title="Link to this definition"></a></dt>
+<dd><p>Blocks only while the pipeline is stalled (e.g. during a flush).</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.frontend.stall_controller">
 <span id="coreblocks-frontend-stall-controller-module"></span><h2>coreblocks.frontend.stall_controller module<a class="headerlink" href="#module-coreblocks.frontend.stall_controller" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -352,14 +475,14 @@ difficult to handle side effects) instruction was just fetched.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="coreblocks.core_structs.html" class="btn btn-neutral float-left" title="coreblocks.core_structs package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="coreblocks.frontend.decoder.html" class="btn btn-neutral float-right" title="coreblocks.frontend.decoder package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="coreblocks.frontend.bpu.html" class="btn btn-neutral float-right" title="coreblocks.frontend.bpu package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 09:00 2026-06-30.
+      <span class="lastupdated">Last updated on 22:21 2026-06-30.
       </span></p>
   </div>
 

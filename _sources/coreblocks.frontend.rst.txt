@@ -7,11 +7,20 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   coreblocks.frontend.bpu
    coreblocks.frontend.decoder
    coreblocks.frontend.fetch
 
 Submodules
 ----------
+
+coreblocks.frontend.fetch\_addr\_unit module
+--------------------------------------------
+
+.. automodule:: coreblocks.frontend.fetch_addr_unit
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 coreblocks.frontend.frontend module
 -----------------------------------
@@ -25,6 +34,14 @@ coreblocks.frontend.frontend\_params module
 -------------------------------------------
 
 .. automodule:: coreblocks.frontend.frontend_params
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+coreblocks.frontend.ftq module
+------------------------------
+
+.. automodule:: coreblocks.frontend.ftq
    :members:
    :show-inheritance:
    :undoc-members:
