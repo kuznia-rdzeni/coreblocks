@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 __all__ = [
     "CommonBusDataKey",
     "SideFxGuardKey",
-    "BranchVerifyKey",
+    "BranchResolveKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
@@ -30,6 +30,7 @@ __all__ = [
     "FlushICacheKey",
     "SFenceVMAKey",
     "L1TLBBackingDeviceKey",
+    "FTQCommitKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -46,7 +47,7 @@ class SideFxGuardKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
+class BranchResolveKey(SimpleKey[Method]):
     pass
 
 
@@ -132,7 +133,10 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
 class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
     """Used to provide a component that can be used as a backing device for the L1 TLB."""
 
-    pass
+
+@dataclass(frozen=True)
+class FTQCommitKey(SimpleKey[Method]):
+    """Method called when the retirement unit commits an instruction."""
 
 
 @dataclass(frozen=True)
