@@ -1,8 +1,9 @@
+from dataclasses import dataclass
+
 from amaranth import *
 from amaranth.lib.data import StructLayout, ArrayLayout, View
 import amaranth.lib.memory as memory
 
-from attr import dataclass
 from transactron import Method, Methods, TModule, def_method, Priority, Transaction
 from transactron.utils import DependencyContext, assign, mod_incr, OneHotMux
 from transactron.lib import (
