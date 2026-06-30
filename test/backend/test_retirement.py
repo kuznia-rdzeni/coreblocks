@@ -134,8 +134,7 @@ class TestRetirement(TestCaseWithSimulator):
             curr_map = self.rat_map_q.popleft()
             wait_cycles = 0
             # this test waits for next rat pair to be correctly set and will timeout if that assignment fails
-            # TODO: abstract memories don't implement MemoryData, but standard lib.Memory used in tests
-            while sim.get(self.retc.rat.entries.mem.data[curr_map["rl_dst"]]) != curr_map["rp_dst"]:  # type: ignore
+            while sim.get(self.retc.rat.entries[curr_map["rl_dst"]]) != curr_map["rp_dst"]:  # type: ignore
                 wait_cycles += 1
                 if wait_cycles >= self.cycles + 10:
                     assert False, "RAT entry was not updated"
