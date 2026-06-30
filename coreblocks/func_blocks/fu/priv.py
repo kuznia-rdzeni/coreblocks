@@ -158,6 +158,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
                     if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
                         with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            # FIXME: actually use the new SFenceVMABusyKey and TLBRefillInProgressKey
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
 
                             sfence_vma[0](
