@@ -73,7 +73,9 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))
 
         side_fx_guard = DependencyContext.get().get_dependency(SideFxGuardKey())
-        m.submodules.side_fx_guard_adapter = self.side_fx_guard_adapter = TestbenchIO(AdapterTrans.create(side_fx_guard))
+        m.submodules.side_fx_guard_adapter = self.side_fx_guard_adapter = TestbenchIO(
+            AdapterTrans.create(side_fx_guard)
+        )
 
         return m
 
