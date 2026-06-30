@@ -67,7 +67,7 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(self.retirement.checkpoint_get_active_tags)
         )
         m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
-            Adapter.create(self.retirement.c_rat_restore[0])
+            Adapter.create(self.retirement.c_rat_restore)
         )
 
         m.submodules.free_rf_fifo_adapter = self.free_rf_adapter = TestbenchIO(AdapterTrans.create(self.free_rf.read))

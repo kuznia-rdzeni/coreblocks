@@ -363,8 +363,11 @@ class RATLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.rat_array = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
+        self.entries_shape = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
         """The RAT array shape."""
+
+        self.entries: LayoutListField = ("entries", self.entries_shape)
+        """The RAT entries."""
 
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
@@ -386,8 +389,7 @@ class RATLayouts:
         self.rrat_commit_in = make_layout(fields.rl_dst, fields.rp_dst)
         self.rrat_commit_out = make_layout(self.old_rp_dst)
 
-        self.rrat_peek_in = make_layout(fields.rl_dst)
-        self.rrat_peek_out = self.rrat_commit_out
+        self.rrat_peek_out = make_layout(self.entries)
 
         self.rollback_in = make_layout(fields.tag)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
@@ -400,7 +402,7 @@ class RATLayouts:
         self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
         self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
 
-        self.crat_flush_restore = make_layout(fields.rl_dst, fields.rp_dst)
+        self.crat_flush_restore_in = make_layout(self.entries)
 
 
 class ROBLayouts:
