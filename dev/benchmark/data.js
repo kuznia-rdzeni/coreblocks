@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782860259141,
+  "lastUpdate": 1782860260968,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -66156,6 +66156,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 10481,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9b95b5329a76bb80c48d59f2facd8184e1711c65",
+          "message": "Implement initial Fetch Target Queue (FTQ) (#869)",
+          "timestamp": "2026-07-01T00:20:17+02:00",
+          "tree_id": "03d376e2ace2cd753d1c3a0d372f1693236d9454",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9b95b5329a76bb80c48d59f2facd8184e1711c65"
+        },
+        "date": 1782860260513,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 39.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 58254,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3552,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2776,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 10568,
             "unit": "LUT"
           }
         ]
