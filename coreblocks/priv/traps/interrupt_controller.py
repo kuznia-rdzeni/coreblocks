@@ -333,7 +333,7 @@ class InternalInterruptController(Component):
             log.info(m, True, "Interrupt handler entry to {}", target_priv)
             return {"target_priv": target_priv}
 
-        # mret/sret/entry conflicts cannot happen in real conditions - xret is called under precommit
+        # mret/sret/entry conflicts cannot happen in real conditions - xret is called under side fx guard
         # this is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
         with Transaction().body(m):
             with m.If(self.entry.run):
