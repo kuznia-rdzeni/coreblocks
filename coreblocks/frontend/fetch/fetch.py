@@ -9,7 +9,7 @@ from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
-from coreblocks.cache.iface import CacheInterface
+from coreblocks.cache.iface import ICacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 
@@ -50,14 +50,14 @@ class FetchUnit(Elaboratable):
     stall_unsafe: Required[Method]
     """Called when an unsafe instruction is fetched."""
 
-    def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
+    def __init__(self, gen_params: GenParams, icache: ICacheInterface) -> None:
         """
         Parameters
         ----------
         gen_params : GenParams
             Instance of GenParams with parameters which should be used to generate
             fetch unit.
-        icache : CacheInterface
+        icache : ICacheInterface
             Instruction Cache
         """
         self.gen_params = gen_params

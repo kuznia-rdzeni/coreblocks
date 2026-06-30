@@ -14,7 +14,7 @@ from transactron.utils import OneHotMux, assign, logging
 from transactron.lib import *
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
-from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
+from coreblocks.cache.iface import ICacheInterface, CacheRefillerInterface
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
@@ -25,7 +25,7 @@ __all__ = [
 log = logging.HardwareLogger("frontend.icache")
 
 
-class ICacheBypass(Elaboratable, CacheInterface):
+class ICacheBypass(Elaboratable, ICacheInterface):
     def __init__(self, layouts: ICacheLayouts, params: ICacheParameters, bus_master: BusMasterInterface) -> None:
         self.params = params
         self.bus_master = bus_master
@@ -66,7 +66,7 @@ class ICacheBypass(Elaboratable, CacheInterface):
         return m
 
 
-class ICache(Elaboratable, CacheInterface):
+class ICache(Elaboratable, ICacheInterface):
     """A simple set-associative instruction cache.
 
     The replacement policy is a pseudo random scheme. Every time a line is trashed,
