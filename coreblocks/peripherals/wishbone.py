@@ -7,7 +7,7 @@ import operator
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
-from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
+from transactron.utils import OneHotMux, assign, RoundRobin
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, CIn, COut
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
@@ -373,11 +373,12 @@ class WishboneMuxer(Component):
         m.d.comb += self.master_wb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
         m.d.comb += self.master_wb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
         m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
-        for i in OneHotSwitchDynamic(m, self.sselTGA):
-            # mux S->M data
-            # workaround for the lack of selective connecting in wiring
-            for n in ["dat_r", "stall"]:
-                m.d.comb += getattr(self.master_wb, n).eq(getattr(self.slaves[i], n))
+        # mux S->M data
+        # workaround for the lack of selective connecting in wiring
+        for n in ["dat_r", "stall"]:
+            m.d.comb += getattr(self.master_wb, n).eq(
+                OneHotMux.create(m, [(self.sselTGA[i], getattr(self.slaves[i], n)) for i in range(len(self.slaves))])
+            )
         return m
 
 

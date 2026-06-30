@@ -19,7 +19,12 @@ from transactron.lib.metrics import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, InstructionPrecommitKey, FTQCommitKey
+from coreblocks.interface.keys import (
+    CoreStateKey,
+    CSRInstancesKey,
+    SideFxGuardKey,
+    FTQCommitKey,
+)
 from coreblocks.priv.csr.csr_instances import CSRAddress, counteren_access_filter
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
@@ -93,8 +98,8 @@ class Retirement(Elaboratable):
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        self.precommit = Method(i=layouts.precommit_in)
-        self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
+        self.side_fx_guard = Method(i=layouts.side_fx_guard_in)
+        self.dependency_manager.add_dependency(SideFxGuardKey(), self.side_fx_guard)
 
     def elaborate(self, platform):
         m = TModule()
@@ -331,16 +336,16 @@ class Retirement(Elaboratable):
         def _():
             return {"flushing": core_flushing}
 
-        # Run precommit on first not-done instr, if exception not encountered
+        # Run side fx on first non-pure instr, if exception not encountered
         m.d.comb += self.pure_count.eq(count_trailing_zeros(Cat(~entry.pure for entry in rob_entries.entries)))
-        precommit_rob_id = Signal(self.gen_params.rob_entries_bits)
+        side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
             [
                 Cat(rob_entries.entries[j].exception for j in range(i)).any()
                 for i in range(self.gen_params.retirement_superscalarity + 1)
             ]
         )
-        m.d.comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + self.pure_count)
+        m.d.comb += side_fx_rob_id.eq(rob_entries.entries[0].rob_id + self.pure_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
         m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[done_count])
@@ -349,9 +354,9 @@ class Retirement(Elaboratable):
         # A dummy combiner is provided.
         @def_method(
             m,
-            self.precommit,
+            self.side_fx_guard,
             ready=~core_flushing,
-            validate_arguments=lambda rob_id, require_done: (rob_id == precommit_rob_id)
+            validate_arguments=lambda rob_id, require_done: (rob_id == side_fx_rob_id)
             & (~require_done | (self.pure_count == done_count)),
             nonexclusive=True,
             combiner=lambda m, args, runs: {"rob_id": 0, "require_done": 0},
