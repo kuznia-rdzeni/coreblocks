@@ -164,7 +164,8 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                         with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma & ~sfence_vma_step):
                             # [SFENCE.W.INVAL] - make all current data/refills visible to flushes, so:
                             # - wait for side effects
-                            # - by the TLB construction, all flushes are linearized after the refills - all later flushes will see the new data.
+                            # - by the TLB construction, all flushes are linearized after the refills,
+                            #   so all later flushes will see the new data.
 
                             # [SINVAL.VMA] - flush the TLB
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
