@@ -22,7 +22,8 @@ from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import (
     CoreStateKey,
     CSRInstancesKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
+    FTQCommitKey,
 )
 from coreblocks.priv.csr.csr_instances import CSRAddress, counteren_access_filter
 from coreblocks.priv.csr.csr_register import CSRRegister
@@ -69,8 +70,8 @@ class Retirement(Elaboratable):
         self.checkpoint_tag_free = Method()
         self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
-        self._done_count = Signal(range(gen_params.retirement_superscalarity + 1))
-        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self._done_count)
+        self.pure_count = Signal(range(gen_params.retirement_superscalarity + 1))
+        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_count)
         self.instret_shadow = DoubleShadowCSR(
             gen_params,
             self.instret_csr,
@@ -97,8 +98,8 @@ class Retirement(Elaboratable):
         self.core_state = Method(o=self.gen_params.get(RetirementLayouts).core_state)
         self.dependency_manager.add_dependency(CoreStateKey(), self.core_state)
 
-        self.precommit = Method(i=layouts.precommit_in)
-        self.dependency_manager.add_dependency(InstructionPrecommitKey(), self.precommit)
+        self.side_fx_guard = Method(i=layouts.side_fx_guard_in)
+        self.dependency_manager.add_dependency(SideFxGuardKey(), self.side_fx_guard)
 
     def elaborate(self, platform):
         m = TModule()
@@ -110,6 +111,8 @@ class Retirement(Elaboratable):
         s_csr = csr_instances.s_mode if self.gen_params.supervisor_mode else None
         m.submodules.instret_csr = self.instret_csr
         m.submodules.instret_shadow = self.instret_shadow
+
+        ftq_commit = self.dependency_manager.get_dependency(FTQCommitKey())
 
         def free_phys_reg(i: int, rp_dst: Value):
             # mark reg in Register File as free
@@ -145,9 +148,11 @@ class Retirement(Elaboratable):
         trap_target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
 
         retire_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
-        no_trap_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
+        no_trap_count = Signal.like(retire_count)
+        done_count = Signal.like(retire_count)
         tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
         safe_mask = Signal.like(tag_incr_mask)
+        done_mask = Signal.like(tag_incr_mask)
         free_checkpoint = Signal()
 
         with Transaction().body(m):
@@ -156,11 +161,11 @@ class Retirement(Elaboratable):
             # CRAT can currently deallocate at most one tag per cycle, this logic reduces the retire rate
             # TODO: improve
             m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
-            m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << rob_entries.done_count))
+            m.d.av_comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
+            m.d.av_comb += done_count.eq(count_trailing_zeros(~done_mask))
+            m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << done_count))
             m.d.av_comb += retire_count.eq(count_trailing_zeros(safe_mask))
-            m.d.av_comb += free_checkpoint.eq(
-                safe_mask != (tag_incr_mask | (-1 << rob_entries.done_count))[: len(safe_mask)]
-            )
+            m.d.av_comb += free_checkpoint.eq(safe_mask != (tag_incr_mask | (-1 << done_count))[: len(safe_mask)])
 
             exception_bits = Signal(self.gen_params.retirement_superscalarity)
             m.d.av_comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries))
@@ -255,11 +260,17 @@ class Retirement(Elaboratable):
                         + Mux(exception, no_trap_count + commit_trapping, retire_count),
                     )
 
+                    last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
                     for i in range(self.gen_params.retirement_superscalarity):
                         with m.If(i - commit_trapping < no_trap_count):
                             retire_instr(i, rob_entries.entries[i])
+                            m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
                         with m.Elif(i < retire_count):
                             flush_instr(i, rob_entries.entries[i])
+
+                    # Commit the FTQ entry for the last retired instruction this cycle.
+                    with m.If(no_trap_count.bool() | commit_trapping):
+                        ftq_commit(m, ftq_ptr=last_commit_ftq_ptr)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction(name="Retirement_FLUSH").body(m):
@@ -325,31 +336,32 @@ class Retirement(Elaboratable):
         def _():
             return {"flushing": core_flushing}
 
-        # Run precommit on first not-done instr, if exception not encountered
-        precommit_rob_id = Signal(self.gen_params.rob_entries_bits)
+        # Run side fx on first non-pure instr, if exception not encountered
+        m.d.comb += self.pure_count.eq(count_trailing_zeros(Cat(~entry.pure for entry in rob_entries.entries)))
+        side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
             [
                 Cat(rob_entries.entries[j].exception for j in range(i)).any()
                 for i in range(self.gen_params.retirement_superscalarity + 1)
             ]
         )
-        m.d.comb += precommit_rob_id.eq(rob_entries.entries[0].rob_id + rob_entries.done_count)
-        m.d.comb += self._done_count.eq(rob_entries.done_count)
+        m.d.comb += side_fx_rob_id.eq(rob_entries.entries[0].rob_id + self.pure_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[rob_entries.done_count])
+        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[done_count])
 
         # The argument is only used in argument validation, it is not needed in the method body.
         # A dummy combiner is provided.
         @def_method(
             m,
-            self.precommit,
+            self.side_fx_guard,
             ready=~core_flushing,
-            validate_arguments=lambda rob_id: rob_id == precommit_rob_id,
+            validate_arguments=lambda rob_id, require_done: (rob_id == side_fx_rob_id)
+            & (~require_done | (self.pure_count == done_count)),
             nonexclusive=True,
-            combiner=lambda m, args, runs: 0,
+            combiner=lambda m, args, runs: {"rob_id": 0, "require_done": 0},
         )
-        def _(rob_id):
+        def _(rob_id, require_done):
             return
 
         return m

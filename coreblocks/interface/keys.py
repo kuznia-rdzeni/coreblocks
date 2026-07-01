@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
 __all__ = [
     "CommonBusDataKey",
-    "InstructionPrecommitKey",
-    "BranchVerifyKey",
+    "SideFxGuardKey",
+    "BranchResolveKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
@@ -32,6 +32,7 @@ __all__ = [
     "SFenceVMABusyKey",
     "InstructionAddressTranslatorBackingDeviceKey",
     "DataAddressTranslatorBackingDeviceKey",
+    "FTQCommitKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -43,12 +44,12 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(SimpleKey[Method]):
+class SideFxGuardKey(SimpleKey[Method]):
     pass
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
+class BranchResolveKey(SimpleKey[Method]):
     pass
 
 
@@ -150,6 +151,11 @@ class InstructionAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBa
 @dataclass(frozen=True)
 class DataAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
     pass
+
+
+@dataclass(frozen=True)
+class FTQCommitKey(SimpleKey[Method]):
+    """Method called when the retirement unit commits an instruction."""
 
 
 @dataclass(frozen=True)

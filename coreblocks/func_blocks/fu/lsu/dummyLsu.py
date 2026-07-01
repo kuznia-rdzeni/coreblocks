@@ -17,7 +17,7 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
     CoreStateKey,
     ExceptionReportKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
 )
 from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts
 from coreblocks.params import *
@@ -192,8 +192,8 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
 
         with Transaction().body(m):
-            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            precommit(m, request_rob_id)
+            side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
+            side_fx_guard(m, rob_id=request_rob_id, require_done=0)
             m.d.comb += rob_id_match.eq(1)
 
         return m
