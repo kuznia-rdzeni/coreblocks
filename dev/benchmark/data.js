@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782860260968,
+  "lastUpdate": 1782896129577,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -23829,6 +23829,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9b95b5329a76bb80c48d59f2facd8184e1711c65"
         },
         "date": 1782860247412,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.46230613525922687,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6049226420927117,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.38434691562690865,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6607695575650907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.36910549157324907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.32061003711986197,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3549852153914539,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.45756666477948255,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e706966b7a15a2917e4e8fb5ad2a962c1b27e9fb",
+          "message": "Towards fast flush - single cycle RAT overwrite (#993)",
+          "timestamp": "2026-07-01T10:06:28+02:00",
+          "tree_id": "18645ccea1c2dd78d556d1ed1511f7043505bfad",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e706966b7a15a2917e4e8fb5ad2a962c1b27e9fb"
+        },
+        "date": 1782896118918,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
