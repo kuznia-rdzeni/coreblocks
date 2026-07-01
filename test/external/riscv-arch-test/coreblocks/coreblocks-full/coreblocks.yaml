@@ -35,6 +35,10 @@ implemented_extensions:
   - { name: Sstvecv, version: "= 1.0.0" }
   - { name: Ssu32xl, version: "= 1.0.0" }
   - { name: Svbare, version: "= 1.0.0" }
+  - { name: Sv32, version: "= 1.0.0" }
+  - { name: Svade, version: "= 1.0.0" }
+  - { name: Svvptc, version: "= 1.0.0" }
+  - { name: Ssccptr, version: "= 1.0.0" }
   - { name: Zkt, version: "= 1.0.0" }  # data independent execution latency
 
 params:
@@ -66,7 +70,7 @@ params:
 
   # S params
   MUTABLE_MISA_S: false
-  ASID_WIDTH: 0
+  ASID_WIDTH: 9
   S_MODE_ENDIANNESS: little
   SXLEN: [32]
   REPORT_VA_IN_MTVAL_ON_LOAD_PAGE_FAULT: true
@@ -123,7 +127,6 @@ params:
   STVEC_MODE_VECTORED: true
   SATP_MODE_BARE: true
   TRAP_ON_ECALL_FROM_S: true
-  TRAP_ON_SFENCE_VMA_WHEN_SATP_MODE_IS_READ_ONLY: false
   MSTATUS_VS_LEGAL_VALUES: [0]
   MSTATUS_FS_LEGAL_VALUES: [0]
   MSTATUS_TVM_IMPLEMENTED: true
@@ -156,7 +159,7 @@ params:
   MTVAL_WIDTH: 32
   CONFIG_PTR_ADDRESS: 0
   PMA_GRANULARITY: 12
-  PHYS_ADDR_WIDTH: 32
+  PHYS_ADDR_WIDTH: 34
   M_MODE_ENDIANNESS: little
   MISA_CSR_IMPLEMENTED: true
   MTVEC_ACCESS: rw

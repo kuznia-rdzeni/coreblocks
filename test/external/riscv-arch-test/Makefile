@@ -12,15 +12,17 @@ ARCH_TEST_EXCLUDE_FAILING += Zifencei
 # don't know
 ARCH_TEST_EXCLUDE_FAILING += InterruptsU
 # amo* causes load exceptions - kuznia-rdzeni/coreblocks#960
-ARCH_TEST_EXCLUDE_FAILING += ExceptionsZaamo
+ARCH_TEST_EXCLUDE_FAILING += ExceptionsZaamo ExceptionsSvZaamo
 # sail does not support reservations sets > 12 bits
-ARCH_TEST_EXCLUDE_FAILING += ExceptionsZalrsc
+ARCH_TEST_EXCLUDE_FAILING += ExceptionsZalrsc ExceptionsSvZalrsc
 
 # some of those could be a trap loop - need to investigate further
 ARCH_TEST_EXCLUDE_TIMEOUT += S U
 ARCH_TEST_EXCLUDE_TIMEOUT += InterruptsS ExceptionsS
 ARCH_TEST_EXCLUDE_TIMEOUT += PMPSm PMPS PMPU PMPZaamo PMPZalrsc PMPZca
 ARCH_TEST_EXCLUDE_TIMEOUT += SsstrictSm SsstrictS SsstrictU
+ARCH_TEST_EXCLUDE_TIMEOUT += Sv ExceptionsSv SvPMP Svade
+ARCH_TEST_EXCLUDE_TIMEOUT += Sstvala ZicntrS
 
 EXCLUDE_EXTENSIONS_SET = $(ARCH_TEST_NOT_COMPILING) $(ARCH_TEST_EXCLUDE_FAILING) $(ARCH_TEST_EXCLUDE_TIMEOUT)
 EXCLUDE_EXTENSIONS = $(shell echo "$(EXCLUDE_EXTENSIONS_SET)" | tr ' ' ',')

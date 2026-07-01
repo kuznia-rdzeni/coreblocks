@@ -651,7 +651,7 @@
       "supported": true
     },
     "Svade": {
-      "supported": false
+      "supported": true
     },
     "Svadu": {
       "supported": false
@@ -688,7 +688,7 @@
       "sfence_vma_illegal_if_svbare_only": false
     },
     "Sv32": {
-      "supported": false
+      "supported": true
     },
     "Sv39": {
       "supported": false
@@ -718,7 +718,7 @@
       "supported": false
     },
     "Svvptc": {
-      "supported": false
+      "supported": true
     }
   }
 }

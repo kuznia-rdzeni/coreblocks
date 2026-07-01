@@ -6,11 +6,13 @@ from transactron.lib import Forwarder, condition
 from transactron.utils import DependencyContext, make_layout, HardwareLogger
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, SatpMode, PAGE_SIZE_LOG
-from coreblocks.interface.keys import CSRInstancesKey, L1TLBBackingDeviceKey
+from coreblocks.interface.keys import (
+    CSRInstancesKey,
+    InstructionAddressTranslatorBackingDeviceKey,
+    DataAddressTranslatorBackingDeviceKey,
+)
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams
-
-from coreblocks.priv.vmem.tlb import FullyAssociativeTLB
 
 
 __all__ = ["AddressTranslator", "AddressTranslatorMode"]
@@ -43,19 +45,6 @@ class AddressTranslator(Elaboratable):
 
         self.dm = DependencyContext.get()
 
-        self.tlb = None
-        if gen_params.vmem_params.supported_non_bare_schemes:
-            self.tlb = FullyAssociativeTLB(
-                gen_params,
-                entries=(
-                    gen_params.tlb_config.itlb_entries
-                    if mode == AddressTranslatorMode.INSTRUCTION
-                    else gen_params.tlb_config.dtlb_entries
-                ),
-                backing_resolver=self.dm.get_dependency(L1TLBBackingDeviceKey()),
-                perf_name_prefix=("mmu.itlb" if mode == AddressTranslatorMode.INSTRUCTION else "mmu.dtlb"),
-            )
-
     def elaborate(self, platform):
         m = TModule()
 
@@ -69,8 +58,13 @@ class AddressTranslator(Elaboratable):
         )
         m.submodules.resp_fwd = resp_fwd = Forwarder(fwd_layout)
 
-        if self.tlb is not None:
-            m.submodules.tlb = self.tlb
+        tlb = None
+        if self.gen_params.vmem_params.supported_non_bare_schemes:
+            match self.mode:
+                case AddressTranslatorMode.LSU:
+                    tlb = self.dm.get_dependency(DataAddressTranslatorBackingDeviceKey())()
+                case AddressTranslatorMode.INSTRUCTION:
+                    tlb = self.dm.get_dependency(InstructionAddressTranslatorBackingDeviceKey())()
 
         csr = self.dm.get_dependency(CSRInstancesKey())
 
@@ -124,9 +118,9 @@ class AddressTranslator(Elaboratable):
                     with m.Case(vm_mode):
                         m.d.av_comb += vpn_invalid.eq(vpn[vm_vpn_len - 1 :].any() & ~vpn[vm_vpn_len - 1 :].all())
 
-            if self.tlb is not None:
+            if tlb is not None:
                 with m.If((effective_satp_mode != SatpMode.BARE) & ~vpn_invalid):
-                    self.tlb.request(
+                    tlb.request(
                         m,
                         vpn=vpn,
                         is_store=is_store,
@@ -142,10 +136,6 @@ class AddressTranslator(Elaboratable):
 
         @def_method(m, self.accept)
         def _():
-            ppn = Signal(self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)
-            page_fault = Signal()
-            access_fault = Signal()
-
             data = resp_fwd.read(m)
             tlb_data = Signal(self.layouts.tlb_accept)
 
@@ -154,34 +144,32 @@ class AddressTranslator(Elaboratable):
 
             m.d.av_comb += Cat(poffset, vpn).eq(data.vaddr)
 
-            with m.If(data.access_fault):
-                m.d.av_comb += access_fault.eq(1)
+            tlb_ppn = Signal(self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)
+            tlb_page_fault = Signal()
+            tlb_access_fault = Signal()
 
-            with m.If(data.vpn_invalid):
-                m.d.av_comb += page_fault.eq(1)
-
-            if self.tlb is not None:
+            if tlb is not None:
                 with condition(m, nonblocking=True) as branch:
                     with branch((effective_satp_mode != SatpMode.BARE) & ~data.vpn_invalid):
-                        m.d.av_comb += tlb_data.eq(self.tlb.accept(m))
+                        m.d.av_comb += tlb_data.eq(tlb.accept(m))
 
-            with m.If(effective_satp_mode == SatpMode.BARE):
-                m.d.av_comb += ppn.eq(vpn)
-            with m.Else():
-                with m.Switch(tlb_data.result):
-                    with m.Case(AddressTranslationLayouts.TLBResult.HIT):
-                        pass
-                    with m.Case(AddressTranslationLayouts.TLBResult.PAGE_FAULT):
-                        m.d.av_comb += page_fault.eq(1)
-                    with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):
-                        m.d.av_comb += access_fault.eq(1)
+                with m.If(data.vpn_invalid):
+                    m.d.av_comb += tlb_page_fault.eq(1)
 
                 # apply lower bits from VPN if we have hit a superpage
                 with m.Switch(tlb_data.size_class):
                     for size_class in range(self.gen_params.vmem_params.max_tlb_size_class + 1):
                         level_bits = bits_per_level * size_class
                         with m.Case(size_class):
-                            m.d.av_comb += ppn.eq(Cat(vpn[:level_bits], tlb_data.ppn[level_bits:]))
+                            m.d.av_comb += tlb_ppn.eq(Cat(vpn[:level_bits], tlb_data.ppn[level_bits:]))
+
+                with m.Switch(tlb_data.result):
+                    with m.Case(AddressTranslationLayouts.TLBResult.HIT):
+                        pass
+                    with m.Case(AddressTranslationLayouts.TLBResult.PAGE_FAULT):
+                        m.d.av_comb += tlb_page_fault.eq(1)
+                    with m.Case(AddressTranslationLayouts.TLBResult.ACCESS_FAULT):
+                        m.d.av_comb += tlb_access_fault.eq(1)
 
                 # check RWX permissions
                 match self.mode:
@@ -189,14 +177,14 @@ class AddressTranslator(Elaboratable):
                         log.assertion(m, ~data.is_store, "Instruction fetch cannot be a store")
 
                         with m.If(~tlb_data.permissions.x):
-                            m.d.av_comb += page_fault.eq(1)
+                            m.d.av_comb += tlb_page_fault.eq(1)
                     case AddressTranslatorMode.LSU:
                         with m.If(data.is_store):
                             with m.If(~tlb_data.permissions.w | ~tlb_data.permissions.d):
-                                m.d.av_comb += page_fault.eq(1)
+                                m.d.av_comb += tlb_page_fault.eq(1)
                         with m.Else():
                             with m.If(~tlb_data.permissions.r & ~(mxr & tlb_data.permissions.x)):
-                                m.d.av_comb += page_fault.eq(1)
+                                m.d.av_comb += tlb_page_fault.eq(1)
 
                 # check U/S permissions
                 is_user = effective_priv_mode == PrivilegeLevel.USER
@@ -204,14 +192,27 @@ class AddressTranslator(Elaboratable):
                     case AddressTranslatorMode.INSTRUCTION:
                         # SUM does not affect instruction fetches
                         with m.If(is_user != tlb_data.permissions.u):
-                            m.d.av_comb += page_fault.eq(1)
+                            m.d.av_comb += tlb_page_fault.eq(1)
                     case AddressTranslatorMode.LSU:
                         with m.If(is_user):
                             with m.If(~tlb_data.permissions.u):
-                                m.d.av_comb += page_fault.eq(1)
+                                m.d.av_comb += tlb_page_fault.eq(1)
                         with m.Else():
                             with m.If(tlb_data.permissions.u & ~sum_):
-                                m.d.av_comb += page_fault.eq(1)
+                                m.d.av_comb += tlb_page_fault.eq(1)
+
+            ppn = Signal(self.gen_params.phys_addr_bits - PAGE_SIZE_LOG)
+            page_fault = Signal()
+            access_fault = Signal()
+
+            with m.If(effective_satp_mode == SatpMode.BARE):
+                m.d.av_comb += ppn.eq(vpn)
+                m.d.av_comb += access_fault.eq(data.access_fault)
+                m.d.av_comb += page_fault.eq(0)
+            with m.Else():
+                m.d.av_comb += ppn.eq(tlb_ppn)
+                m.d.av_comb += page_fault.eq(tlb_page_fault)
+                m.d.av_comb += access_fault.eq(tlb_access_fault)
 
             return {
                 "vaddr": data.vaddr,
