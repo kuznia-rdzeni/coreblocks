@@ -279,7 +279,7 @@ Output layout is <cite>write_response_layout</cite>.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.bus_adapter.</span></span><span class="sig-name descname"><span class="pre">BusMasterInterface</span></span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">HasElaborate</span></code>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Protocol" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></a></p>
 <p>An interface of a common bus.</p>
 <p>The bus interface is the preferred way to gain access to a specific bus.
 It simplifies interchangeability of buses on the core configuration level.</p>
@@ -299,6 +299,11 @@ It simplifies interchangeability of buses on the core configuration level.</p>
 </dl>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response">
 <span class="sig-name descname"><span class="pre">get_read_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Method</span></em><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface.get_read_response" title="Link to this definition"></a></dt>
@@ -329,13 +334,15 @@ It simplifies interchangeability of buses on the core configuration level.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.WishboneMasterAdapter">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.peripherals.bus_adapter.</span></span><span class="sig-name descname"><span class="pre">WishboneMasterAdapter</span></span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code>, <a class="reference internal" href="#coreblocks.peripherals.bus_adapter.BusMasterInterface" title="coreblocks.peripherals.bus_adapter.BusMasterInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">BusMasterInterface</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>An adapter for Wishbone master.</p>
-<p>The adapter module is for use in places where BusMasterInterface is expected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>bus: WishboneMaster</strong></dt><dd><p>Specific Wishbone master module which is to be adapted.</p>
+</dd>
+<dt><strong>port_count: int</strong></dt><dd><p>Number of ports to be created for the bus adapter. Each port will have its own set
+of methods for read and write requests and responses. The default value is 1.</p>
 </dd>
 </dl>
 </dd>
@@ -345,28 +352,15 @@ It simplifies interchangeability of buses on the core configuration level.</p>
 </dd>
 <dt><strong>method_layouts: CommonBusMasterMethodLayout</strong></dt><dd><p>Layouts of common bus master methods.</p>
 </dd>
-<dt><strong>request_read: Method</strong></dt><dd><p>Transactional method for initiating a read request.
-It is ready if the <cite>request</cite> method of the underlying Wishbone master is ready.
-Input layout is <cite>request_read_layout</cite>.</p>
-</dd>
-<dt><strong>request_write: Method</strong></dt><dd><p>Transactional method for initiating a write request.
-It is ready if the <cite>request</cite> method of the underlying Wishbone master is ready.
-Input layout is <cite>request_write_layout</cite>.</p>
-</dd>
-<dt><strong>get_read_response: Method</strong></dt><dd><p>Transactional method for reading a response of a read action.
-It is ready if the <cite>result</cite> method of the underlying Wishbone master is ready.
-Output layout is <cite>read_response_layout</cite>.</p>
-</dd>
-<dt><strong>get_write_response: Method</strong></dt><dd><p>Transactional method for reading a response of a write action.
-It is ready if the <cite>result</cite> method of the underlying Wishbone master is ready.
-Output layout is <cite>write_response_layout</cite>.</p>
+<dt><strong>ports: list[BusMasterInterface]</strong></dt><dd><p>List of bus master interfaces for each port. Each interface contains methods for read and write requests
+and responses. The number of interfaces is equal to <cite>port_count</cite>.</p>
 </dd>
 </dl>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><span class="pre">WishboneMaster</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.peripherals.wishbone.WishboneMaster" title="coreblocks.peripherals.wishbone.WishboneMaster"><span class="pre">WishboneMaster</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.peripherals.bus_adapter.WishboneMasterAdapter.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -669,7 +663,7 @@ should be implemented in block that controlls <cite>ssel_tga</cite> signal, befo
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 08:07 2026-07-01.
+      <span class="lastupdated">Last updated on 21:36 2026-07-01.
       </span></p>
   </div>
 
