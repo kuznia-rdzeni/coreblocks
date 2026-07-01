@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782896132027,
+  "lastUpdate": 1782896134252,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -66318,6 +66318,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 10568,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e706966b7a15a2917e4e8fb5ad2a962c1b27e9fb",
+          "message": "Towards fast flush - single cycle RAT overwrite (#993)",
+          "timestamp": "2026-07-01T10:06:28+02:00",
+          "tree_id": "18645ccea1c2dd78d556d1ed1511f7043505bfad",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e706966b7a15a2917e4e8fb5ad2a962c1b27e9fb"
+        },
+        "date": 1782896133475,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.57,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 55423,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 3546,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2776,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 10562,
             "unit": "LUT"
           }
         ]
