@@ -20,7 +20,6 @@ from coreblocks.interface.layouts import PrivUnitLayouts
 from coreblocks.interface.keys import (
     CoreStateKey,
     MretKey,
-    SFenceVMABusyKey,
     SretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
@@ -101,10 +100,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
         sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
-        sfence_vma_busy = Cat(self.dm.get_dependency(SFenceVMABusyKey())).any()
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
-
-        sfence_vma_step = Signal()
 
         if sfence_vma is not None:
             m.submodules += sfence_vma[1]
@@ -161,9 +157,9 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                         sret(m)
 
                     if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
-                        with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma & ~sfence_vma_step):
+                        with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
                             # [SFENCE.W.INVAL] - make all current data/refills visible to flushes, so:
-                            # - wait for side effects
+                            # - wait for side effects - side_fx_guard
                             # - by the TLB construction, all flushes are linearized after the refills,
                             #   so all later flushes will see the new data.
 
@@ -178,14 +174,10 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                                 all_asids=imm_view.rs2 == 0,
                             )
 
-                            m.d.sync += sfence_vma_step.eq(1)
-                            m.d.sync += finished.eq(0)
-
-                        with branch(sfence_vma_step):
-                            # [SFENCE.INVAL.IR] - wait for flush to be visible to later requests
-                            m.d.sync += finished.eq(~sfence_vma_busy)
-                            with m.If(~sfence_vma_busy):
-                                m.d.sync += sfence_vma_step.eq(0)
+                            # [SFENCE.INVAL.IR] - make sure all later translations see the previous flushes, so:
+                            # - stall the fetcher
+                            # - by the TLB construction, all translations are linearized after the flushes,
+                            #   so all later translations will see the flushes.
 
                 with branch((instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
