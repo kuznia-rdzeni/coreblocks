@@ -21,7 +21,7 @@ from transactron.testing import (
 )
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
-from coreblocks.interface.keys import CSRInstancesKey, SFenceVMABusyKey, SFenceVMAKey, TLBRefillInProgressKey
+from coreblocks.interface.keys import CSRInstancesKey, SFenceVMABusyKey, SFenceVMAKey
 from coreblocks.interface.layouts import AddressTranslationLayouts
 from coreblocks.params import GenParams, configurations
 from coreblocks.priv.csr.csr_instances import CSRInstances
@@ -247,16 +247,18 @@ class TestTLBCache(TestCaseWithSimulator):
         return any(entry_matches(e) for e in self.backing.lookup(vpn, asid))
 
     async def do_sfence_vma(self, sim: TestbenchContext, vaddr: int, asid: int, all_vaddrs: int, all_asids: int):
-        refill_in_progress = Cat(DependencyContext.get().get_dependency(TLBRefillInProgressKey())).any()
         sfence_busy = Cat(DependencyContext.get().get_dependency(SFenceVMABusyKey())).any()
 
-        # SFENCE.VMA has three components - wait for the memory to be visible to next flushes
-        await sim.tick().until(~refill_in_progress)
+        # SFENCE.VMA has three components:
 
-        # flush the TLB
+        # [SFENCE.W.INVAL] wait for the memory to be visible to next flushes:
+        # - wait for all writes to be visible
+        # - by the construction, all flushes are linearized after the refills - all later flushes will see the new data.
+
+        # [SINVAL.VMA] flush the TLB
         await self.sfence_vma.call(sim, vaddr=vaddr, asid=asid, all_vaddrs=all_vaddrs, all_asids=all_asids)
 
-        # make sure all later request see the state after the flush
+        # [SFENCE.INVAL.IR] make sure all later request see the state after the flush
         await sim.tick().until(~sfence_busy)
 
     async def translation_is_cached_process(self, sim: TestbenchContext):

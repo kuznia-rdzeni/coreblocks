@@ -29,6 +29,7 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "SFenceVMAKey",
+    "SFenceVMABusyKey",
     "InstructionAddressTranslatorBackingDeviceKey",
     "DataAddressTranslatorBackingDeviceKey",
     "RollbackKey",
@@ -136,16 +137,6 @@ class SFenceVMABusyKey(ListKey[Signal]):
     """
     Collects information about if TLB flush is in progress.
     Used to implement visibility semantics after SFENCE.VMA and SFENCE.INVAL.IR.
-    """
-
-    pass
-
-
-@dataclass(frozen=True)
-class TLBRefillInProgressKey(ListKey[Signal]):
-    """
-    Collects information about if TLB refill is in progress.
-    Used to implement visibility semantics after SFENCE.VMA and SFENCE.W.INVAL.
     """
 
     pass

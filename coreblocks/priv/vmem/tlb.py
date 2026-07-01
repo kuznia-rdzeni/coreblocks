@@ -18,7 +18,7 @@ from transactron.lib import (
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
 from coreblocks.interface.layouts import AddressTranslationLayouts
-from coreblocks.interface.keys import SFenceVMABusyKey, SFenceVMAKey, CSRInstancesKey, TLBRefillInProgressKey
+from coreblocks.interface.keys import SFenceVMABusyKey, SFenceVMAKey, CSRInstancesKey
 from coreblocks.params import GenParams
 
 from coreblocks.priv.vmem.iface import TLBBackingDevice
@@ -184,9 +184,7 @@ class FullyAssociativeTLB(Elaboratable):
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
         self.sfence_busy = Signal()
-        self.refill_in_progress = Signal()
         self.dm.add_dependency(SFenceVMABusyKey(), self.sfence_busy)
-        self.dm.add_dependency(TLBRefillInProgressKey(), self.refill_in_progress)
 
         self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB", ways=self.ports)
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits", ways=self.ports)
@@ -248,7 +246,6 @@ class FullyAssociativeTLB(Elaboratable):
         refill_ret = Signal(self.layout.tlb_accept)
 
         with m.If(refill_info.level != 0):
-            m.d.comb += self.refill_in_progress.eq(1)
 
             with Transaction(name="AcceptRefill").body(m) as accept_refill:
                 req_data = refill_info.read(m)
@@ -406,9 +403,6 @@ class SetAssociativeTLB(Elaboratable):
         self.dm = DependencyContext.get()
         self.dm.add_dependency(SFenceVMAKey(), self.sfence_vma)
 
-        self.refill_in_progress = Signal()
-        self.dm.add_dependency(TLBRefillInProgressKey(), self.refill_in_progress)
-
         self.perf_loads = HwCounter(f"{self.perf_name_prefix}.loads", "Number of requests to the TLB")
         self.perf_hits = HwCounter(f"{self.perf_name_prefix}.hits")
         self.perf_misses = HwCounter(f"{self.perf_name_prefix}.misses")
@@ -472,6 +466,7 @@ class SetAssociativeTLB(Elaboratable):
         m.submodules.fwd = fwd = Forwarder(self.layout.tlb_accept)
 
         flushing = Signal(init=1)
+        refill_in_progress = Signal()
 
         m.submodules.request_pipe = request_pipe = Pipe(self.layout.tlb_request)
 
@@ -512,7 +507,7 @@ class SetAssociativeTLB(Elaboratable):
 
             request_pipe.write(m, vpn=vpn, is_store=is_store)
 
-        with Transaction(name="TLBLookup").body(m, ready=~self.refill_in_progress):
+        with Transaction(name="TLBLookup").body(m, ready=~refill_in_progress):
             req = request_pipe.peek(m)
 
             miss = Signal()
@@ -530,7 +525,7 @@ class SetAssociativeTLB(Elaboratable):
 
             with m.If(ask_backing):
                 self.perf_misses.incr(m)
-                m.d.sync += self.refill_in_progress.eq(1)
+                m.d.sync += refill_in_progress.eq(1)
                 self.backing_resolver.request(m, vpn=req.vpn, is_store=req.is_store)
             with m.Elif(miss & (requested_class < max_class)):
                 set_idx = vpn_to_set_idx(req.vpn, requested_class + 1)
@@ -574,14 +569,14 @@ class SetAssociativeTLB(Elaboratable):
                     with m.Else():
                         request_pipe.read(m)
                         fwd.write(m, resp)
-                        m.d.sync += self.refill_in_progress.eq(0)
+                        m.d.sync += refill_in_progress.eq(0)
 
             with m.State("REFILL"):
                 with Transaction().body(m):
                     req = request_pipe.read(m)
 
                     fwd.write(m, refill_response)
-                    m.d.sync += self.refill_in_progress.eq(0)
+                    m.d.sync += refill_in_progress.eq(0)
 
                     new_entry = Signal(TLBEntry(self.gen_params))
                     m.d.top_comb += [
@@ -620,7 +615,7 @@ class SetAssociativeTLB(Elaboratable):
         flush_size_class = Signal(self.gen_params.vmem_params.tlb_size_class_bits)
         flush_fetched = Signal()
 
-        @def_method(m, self.sfence_vma, ready=~flushing & ~request_pipe.read.ready & ~self.refill_in_progress)
+        @def_method(m, self.sfence_vma, ready=~flushing & ~request_pipe.read.ready & ~refill_in_progress)
         def _(vaddr, asid, all_vaddrs, all_asids):
             self.perf_flushes.incr(m)
 
