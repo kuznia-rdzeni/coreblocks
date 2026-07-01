@@ -13,6 +13,7 @@ from transactron.lib import (
     HwCounter,
     FIFOLatencyMeasurer,
     Serializer,
+    Semaphore,
 )
 
 from coreblocks.arch.isa_consts import PAGE_SIZE_LOG, SatpMode
@@ -235,7 +236,7 @@ class FullyAssociativeTLB(Elaboratable):
         m.submodules.flush_queue = flush_queue = BasicFifo(self.layout.sfence_vma, depth=2)
         self.sfence_vma.provide(flush_queue.write)
 
-        m.submodules.refill_info = refill_info = BasicFifo([("vpn", vpn_bits)], depth=1)
+        m.submodules.refill_semaphore = refill_semaphore = Semaphore(1)
 
         refill_ret = Signal(self.layout.tlb_accept)
 
@@ -258,8 +259,6 @@ class FullyAssociativeTLB(Elaboratable):
 
             return ask_backing, ret
 
-        port_slow = Signal(self.ports)
-
         for port in range(self.ports):
             cam = TLBCAM(self.gen_params, self.entries)
             m.d.comb += cam.ways_data.eq(entries)
@@ -273,10 +272,49 @@ class FullyAssociativeTLB(Elaboratable):
             vpn_req = Signal(vpn_bits)
             is_store_req = Signal()
 
-            m.d.comb += port_slow[port].eq(slow_path | (flush_queue.level != 0))
-            first_slow = port_slow[port] & ~port_slow[:port].any()
+            handling_refill = Signal()
 
-            with m.If(~port_slow[port]):
+            with m.If(handling_refill):
+                with Transaction(name=f"Refill_{port}").body(m):
+                    refill_semaphore.release(m)
+
+                    m.d.av_comb += cam.checked_vpn.eq(vpn_req)
+                    m.d.av_comb += cam.checked_asid.eq(current_asid)
+
+                    resp = self.backing_resolver.accept(m)
+                    m.d.av_comb += refill_ret.eq(resp)
+                    result_fwd.write(m, resp)
+                    m.d.sync += slow_path.eq(0)
+                    m.d.sync += handling_refill.eq(0)
+
+                    with m.If(cond=resp.result == AddressTranslationLayouts.TLBResult.HIT):
+                        m.d.sync += replacement_rr_index.eq(cam.next_replacement_rr_index)
+                        m.d.sync += assign(
+                            entries[cam.replace_candidate],
+                            {
+                                "valid": 1,
+                                "asid": current_asid,
+                                "vpn": vpn_req,
+                                "ppn": resp.ppn,
+                                "size_class": resp.size_class,
+                                "permissions": resp.permissions,
+                            },
+                        )
+
+            with m.Elif(flush_queue.level != 0):
+                if port == 0:
+                    with Transaction(name="Flush").body(m, ready=refill_semaphore.acquire_ready):
+                        self.perf_flushes.incr(m)
+
+                        req = flush_queue.read(m)
+                        m.d.av_comb += cam.checked_asid.eq(req.asid)
+                        m.d.av_comb += cam.checked_vpn.eq(req.vaddr >> PAGE_SIZE_LOG)
+
+                        for way in range(self.entries):
+                            with m.If((req.all_asids | cam.asid_match[way]) & (req.all_vaddrs | cam.addr_match[way])):
+                                m.d.sync += entries[way].eq(0)
+
+            with m.Elif(~slow_path):
 
                 @def_method(m, self.request[port])
                 def _(vpn, is_store):
@@ -298,43 +336,6 @@ class FullyAssociativeTLB(Elaboratable):
                         self.perf_hits.incr[port](m)
                         result_fwd.write(m, ret)
 
-            with m.Elif(first_slow & refill_info.read.ready):
-                with Transaction(name=f"Refill_{port}").body(m):
-                    req_data = refill_info.read(m)
-                    m.d.av_comb += cam.checked_vpn.eq(req_data.vpn)
-                    m.d.av_comb += cam.checked_asid.eq(current_asid)
-
-                    resp = self.backing_resolver.accept(m)
-                    m.d.av_comb += refill_ret.eq(resp)
-                    result_fwd.write(m, resp)
-
-                    with m.If(cond=resp.result == AddressTranslationLayouts.TLBResult.HIT):
-                        m.d.sync += replacement_rr_index.eq(cam.next_replacement_rr_index)
-                        m.d.sync += assign(
-                            entries[cam.replace_candidate],
-                            {
-                                "valid": 1,
-                                "asid": current_asid,
-                                "vpn": req_data.vpn,
-                                "ppn": resp.ppn,
-                                "size_class": resp.size_class,
-                                "permissions": resp.permissions,
-                            },
-                        )
-
-            with m.Elif(first_slow & (flush_queue.level != 0)):
-
-                with Transaction(name=f"Flush_{port}").body(m):
-                    self.perf_flushes.incr(m)
-
-                    req = flush_queue.read(m)
-                    m.d.av_comb += cam.checked_asid.eq(req.asid)
-                    m.d.av_comb += cam.checked_vpn.eq(req.vaddr >> PAGE_SIZE_LOG)
-
-                    for way in range(self.entries):
-                        with m.If((req.all_asids | cam.asid_match[way]) & (req.all_vaddrs | cam.addr_match[way])):
-                            m.d.sync += entries[way].eq(0)
-
             with m.Else():
                 m.d.av_comb += cam.checked_vpn.eq(vpn_req)
                 m.d.av_comb += cam.checked_asid.eq(current_asid)
@@ -343,11 +344,13 @@ class FullyAssociativeTLB(Elaboratable):
 
                 with m.If(ask_backing):
                     with Transaction(name=f"RequestRefill_{port}").body(m):
+                        refill_semaphore.acquire(m)
                         self.backing_resolver.request(m, vpn=vpn_req, is_store=is_store_req)
-                        refill_info.write(m, vpn=vpn_req)
+                        m.d.sync += handling_refill.eq(1)
                 with m.Else():
                     with Transaction(name=f"AsyncResolve_{port}").body(m):
                         result_fwd.write(m, ret)
+                        m.d.sync += slow_path.eq(0)
 
             @def_method(m, self.accept[port])
             def _():
