@@ -3,7 +3,7 @@ import random
 
 from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.testing import CallTrigger, SimpleTestCircuit, TestCaseWithSimulator, TestbenchContext
 
 
@@ -46,7 +46,7 @@ class TestResultAnnouncement(TestCaseWithSimulator):
             await self.random_wait_geom(sim, 0.5)
 
     def test_result_announcement(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.m = SimpleTestCircuit(ResultAnnouncement(gen_params=self.gen_params))
         self.queue = deque()
         self.num_cases = 100

@@ -2,6 +2,7 @@ from coreblocks.func_blocks.fu.exception import ExceptionUnitFn, ExceptionUnitCo
 from coreblocks.arch import ExceptionCause, Funct3
 from coreblocks.arch import OpType
 
+from coreblocks.interface.layouts import FetchLayouts
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
@@ -24,6 +25,8 @@ class TestExceptionUnit(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
         cause = None
         mtval = 0
 
+        at_second_half = (i_imm & FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF) != 0
+
         match fn:
             case ExceptionUnitFn.Fn.EBREAK | ExceptionUnitFn.Fn.BREAKPOINT:
                 cause = ExceptionCause.BREAKPOINT
@@ -32,10 +35,10 @@ class TestExceptionUnit(FunctionalUnitTestCase[ExceptionUnitFn.Fn]):
                 cause = ExceptionCause.ENVIRONMENT_CALL_FROM_M
             case ExceptionUnitFn.Fn.INSTR_ACCESS_FAULT:
                 cause = ExceptionCause.INSTRUCTION_ACCESS_FAULT
-                mtval = pc
+                mtval = pc + (2 if at_second_half else 0)
             case ExceptionUnitFn.Fn.INSTR_PAGE_FAULT:
                 cause = ExceptionCause.INSTRUCTION_PAGE_FAULT
-                mtval = pc
+                mtval = pc + (2 if at_second_half else 0)
             case ExceptionUnitFn.Fn.ILLEGAL_INSTRUCTION:
                 cause = ExceptionCause.ILLEGAL_INSTRUCTION
                 mtval = i_imm  # in case of illegal instruction, raw instr bits are passed in imm field

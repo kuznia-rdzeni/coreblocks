@@ -3,18 +3,19 @@ import random
 
 from transactron.lib import Adapter
 from transactron.core.tmodule import TModule
-from coreblocks.func_blocks.csr.csr import CSRUnit
+from coreblocks.func_blocks.csr.csr_unit import CSRUnit
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
-from coreblocks.arch import Funct3, ExceptionCause, OpType
-from coreblocks.params.configurations import test_core_config
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts
+from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
+from coreblocks.params import configurations
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
+    CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     CSRInstancesKey,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel
@@ -33,19 +34,22 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.precommit = self.precommit = TestbenchIO(
+        m.submodules.side_fx_guard = self.side_fx_guard = TestbenchIO(
             Adapter(
-                i=self.gen_params.get(RetirementLayouts).precommit_in,
-                o=self.gen_params.get(RetirementLayouts).precommit_out,
+                i=self.gen_params.get(RetirementLayouts).side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
+        m.submodules.core_state = self.core_state = TestbenchIO(
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
+        )
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -58,6 +62,13 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.priv_io = self.priv_io = TestbenchIO(
             AdapterTrans.create(self.csr_instances.m_mode.priv_mode.write)
         )
+        m.submodules.mcounteren_io = self.mcounteren_io = TestbenchIO(
+            AdapterTrans.create(self.csr_instances.m_mode.mcounteren.write)
+        )
+        if self.gen_params.supervisor_mode:
+            m.submodules.scounteren_io = self.scounteren_io = TestbenchIO(
+                AdapterTrans.create(self.csr_instances.s_mode.scounteren.write)
+            )
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
         DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self.fetch_resume.adapter.iface)
@@ -80,7 +91,15 @@ class CSRUnitTestCircuit(Elaboratable):
         return m
 
 
-class TestCSRUnit(TestCaseWithSimulator):
+class TestCSRUnitBase(TestCaseWithSimulator):
+    dut: CSRUnitTestCircuit
+
+    @def_method_mock(lambda self: self.dut.core_state)
+    def core_state_mock(self):
+        return {"flushing": 0}
+
+
+class TestCSRUnit(TestCSRUnitBase):
     def gen_expected_out(self, sim: TestbenchContext, op: Funct3, rd: int, rs1: int, operand_val: int, csr: int):
         exp_read = {"rp_dst": rd, "result": sim.get(self.dut.csr[csr].value)}
         rs1_val = {"rp_s1": rs1, "value": operand_val}
@@ -152,13 +171,13 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)  # TODO: sensible precommit handling
+            self.dut.side_fx_guard.call_init(sim)  # TODO: sensible side_fx_guard handling
 
             await self.random_wait_geom(sim)
             res, resume_res = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.fetch_resume).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res is not None and resume_res is not None
             assert res.rp_dst == op["exp"]["exp_read"]["rp_dst"]
@@ -168,7 +187,7 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert res.exception == 0
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(8)
 
         self.cycles = 256
@@ -183,6 +202,37 @@ class TestCSRUnit(TestCaseWithSimulator):
         0xCC0,  # read_only
         0xFFF,  # nonexistent
         0x7FE,  # missing priv
+    ]
+
+    counteren_exception_cases = [
+        {
+            "priv": PrivilegeLevel.SUPERVISOR,
+            "csr": CSRAddress.CYCLE,
+            "mcounteren": 0b000,
+            "scounteren": 0b111,
+            "expect_exception": True,
+        },
+        {
+            "priv": PrivilegeLevel.USER,
+            "csr": CSRAddress.TIME,
+            "mcounteren": 0b010,
+            "scounteren": 0b000,
+            "expect_exception": True,
+        },
+        {
+            "priv": PrivilegeLevel.USER,
+            "csr": CSRAddress.CYCLE,
+            "mcounteren": 0b001,
+            "scounteren": 0b001,
+            "expect_exception": False,
+        },
+        {
+            "priv": PrivilegeLevel.MACHINE,
+            "csr": CSRAddress.CYCLE,
+            "mcounteren": 0b000,
+            "scounteren": 0b000,
+            "expect_exception": False,
+        },
     ]
 
     async def process_exception_test(self, sim: TestbenchContext):
@@ -215,13 +265,13 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)
+            self.dut.side_fx_guard.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res["exception"] == 1
             assert report is not None
@@ -230,13 +280,74 @@ class TestCSRUnit(TestCaseWithSimulator):
             assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
 
     def test_exception(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(9)
 
         self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
 
         with self.run_simulation(self.dut) as sim:
             sim.add_testbench(self.process_exception_test)
+
+    async def process_counteren_access_test(self, sim: TestbenchContext):
+        self.dut.fetch_resume.enable(sim)
+        self.dut.exception_report.enable(sim)
+
+        for idx, case in enumerate(self.counteren_exception_cases):
+            await self.dut.priv_io.call(sim, data=case["priv"])
+            await self.dut.mcounteren_io.call(sim, data=case["mcounteren"])
+            if self.gen_params.supervisor_mode:
+                await self.dut.scounteren_io.call(sim, data=case["scounteren"])
+
+            await self.random_wait_geom(sim)
+            await self.dut.select.call(sim)
+
+            rob_id = idx + 100
+            await self.dut.insert.call(
+                sim,
+                rs_data={
+                    "exec_fn": {
+                        "op_type": OpType.CSR_REG,
+                        "funct3": Funct3.CSRRS,
+                        "funct7": 0,
+                    },
+                    "rp_s1": 0,
+                    "rp_s1_reg": 0,
+                    "s1_val": 0,
+                    "rp_dst": 2,
+                    "imm": 0,
+                    "csr": case["csr"],
+                    "rob_id": rob_id,
+                },
+            )
+
+            await self.random_wait_geom(sim)
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
+                sim.set(r, 1)
+            self.dut.side_fx_guard.call_init(sim)
+
+            await self.random_wait_geom(sim)
+            res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
+            self.dut.side_fx_guard.disable(sim)
+
+            assert res is not None
+            assert res.exception == int(case["expect_exception"])
+
+            if case["expect_exception"]:
+                assert report is not None
+                report_dict = data_const_to_dict(report)
+                report_dict.pop("mtval")
+                assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
+            else:
+                assert report is None
+
+    def test_counteren_access(self):
+        self.gen_params = GenParams(configurations.test.replace(supervisor_mode=True, user_mode=True))
+        random.seed(10)
+
+        self.dut = CSRUnitTestCircuit(self.gen_params, 0, only_legal=False)
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(self.process_counteren_access_test)
 
 
 class TestCSRRegister(TestCaseWithSimulator):
@@ -263,7 +374,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 exp_write_data = (write_arg & ~self.ro_mask) | (
                     (exp_write_data if exp_write_data is not None else previous_data) & self.ro_mask
                 )
-                self.dut._fu_write.call_init(sim, data=write_arg)
+                self.dut._fu_write.call_init(sim, data=write_arg, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
 
             if random.random() < 0.2:
                 fu_read = True
@@ -291,7 +402,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             self.dut.write.disable(sim)
 
     def test_randomized(self):
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         random.seed(42)
 
         self.cycles = 200
@@ -307,7 +418,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         for _ in range(50):
             input = random.randrange(0, 2**34)
 
-            await self.dut._fu_write.call(sim, data=input)
+            await self.dut._fu_write.call(sim, data=input, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
             output = (await self.dut._fu_read.call(sim))["data"]
 
             expected = prev_value
@@ -326,7 +437,7 @@ class TestCSRRegister(TestCaseWithSimulator):
             prev_value = output
 
     def test_filtermap(self):
-        gen_params = GenParams(test_core_config)
+        gen_params = GenParams(configurations.test)
 
         def write_filtermap(m: TModule, v: Value):
             res = Signal(34)
@@ -359,7 +470,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut.read_comb.enable(sim)
         self.dut._fu_read.enable(sim)
 
-        self.dut._fu_write.call_init(sim, data=0xFFFF)
+        self.dut._fu_write.call_init(sim, data=0xFFFF, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         while self.dut._fu_write.get_call_result(sim) is None:
             await sim.tick()
         assert self.dut.read_comb.get_call_result(sim).data == 0xFFFF
@@ -369,7 +480,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         assert self.dut._fu_read.get_call_result(sim)["data"] == 0xFFFB
         await sim.tick()
 
-        self.dut._fu_write.call_init(sim, data=0x0FFF)
+        self.dut._fu_write.call_init(sim, data=0x0FFF, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         self.dut.write.call_init(sim, data=0xAAAA)
         while self.dut._fu_write.get_call_result(sim) is None or self.dut.write.get_call_result(sim) is None:
             await sim.tick()
@@ -379,7 +490,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         await sim.tick()
 
         # single cycle
-        self.dut._fu_write.call_init(sim, data=0x0BBB)
+        self.dut._fu_write.call_init(sim, data=0x0BBB, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         while self.dut._fu_write.get_call_result(sim) is None:
             await sim.tick()
         update_val = self.dut.read_comb.get_call_result(sim).data | 0xD000
@@ -390,7 +501,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         assert self.dut._fu_read.get_call_result(sim).data == 0xDBBB
 
     def test_comb(self):
-        gen_params = GenParams(test_core_config)
+        gen_params = GenParams(configurations.test)
 
         random.seed(4326)
 

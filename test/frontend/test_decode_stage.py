@@ -10,7 +10,7 @@ from transactron.testing import (
 from coreblocks.frontend.decoder.decode_stage import Decode
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType, Funct3, Funct7
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 
 def mk_test(
@@ -29,6 +29,7 @@ def mk_test(
         "imm": imm,
         "pc": 0,
         "csr": csr,
+        "ftq_ptr": {"ptr": 0, "parity": 0},
     }
 
 
@@ -47,7 +48,7 @@ tests = [
 class TestDecode(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
     def setup(self, fixture_initialize_testing_env):
-        self.gen_params = GenParams(test_core_config.replace(start_pc=24))
+        self.gen_params = GenParams(configurations.test.replace(start_pc=24))
 
         self.decode = Decode(self.gen_params, lambda m: ())
 
@@ -61,7 +62,9 @@ class TestDecode(TestCaseWithSimulator):
                 data["csr"] = decoded.csr
             if data["imm"] is None:
                 data["imm"] = decoded.imm
-            assert data_const_to_dict(decoded) == data
+            decoded_data = data_const_to_dict(decoded)
+            for key in data.keys():
+                assert decoded_data[key] == data[key]
 
     def test(self):
         with self.run_simulation(self.m) as sim:

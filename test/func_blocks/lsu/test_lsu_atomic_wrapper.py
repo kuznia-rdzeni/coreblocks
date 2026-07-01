@@ -12,7 +12,7 @@ from coreblocks.arch.optypes import OpType
 from coreblocks.func_blocks.fu.lsu.lsu_atomic_wrapper import LSUAtomicWrapper
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.layouts import FuncUnitLayouts
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.params.genparams import GenParams
 
 
@@ -40,7 +40,7 @@ class TestLSUAtomicWrapper(TestCaseWithSimulator):
     def setup(self, fixture_initialize_testing_env):
         random.seed(1258)
         self.inst_cnt = 255
-        self.gen_params = GenParams(test_core_config.replace(rob_entries_bits=ceil_log2(self.inst_cnt)))
+        self.gen_params = GenParams(configurations.test.replace(rob_entries_bits=ceil_log2(self.inst_cnt)))
         self.lsu = FuncUnitMock(self.gen_params)
         self.dut = SimpleTestCircuit(LSUAtomicWrapper(self.gen_params, self.lsu))
 

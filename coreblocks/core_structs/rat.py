@@ -1,6 +1,5 @@
 from amaranth import *
-from transactron import Method, Transaction, def_method, TModule
-from transactron.lib.storage import AsyncMemoryBank
+from transactron import Method, Methods, def_method, TModule, def_methods
 from coreblocks.interface.layouts import RATLayouts
 from coreblocks.params import GenParams
 
@@ -31,31 +30,28 @@ class RRAT(Elaboratable):
     def __init__(self, *, gen_params: GenParams):
         self.gen_params = gen_params
 
-        self.entries = AsyncMemoryBank(shape=self.gen_params.phys_regs_bits, depth=self.gen_params.isa.reg_cnt)
-
         layouts = gen_params.get(RATLayouts)
-        self.commit = Method(i=layouts.rrat_commit_in, o=layouts.rrat_commit_out)
-        self.peek = Method(i=layouts.rrat_peek_in, o=layouts.rrat_peek_out)
+        self.entries = Signal(layouts.entries_shape)
+
+        self.commit = Methods(gen_params.retirement_superscalarity, i=layouts.rrat_commit_in, o=layouts.rrat_commit_out)
+        self.peek = Method(o=layouts.rrat_peek_out)
 
     def elaborate(self, platform):
         m = TModule()
-        m.submodules.entries = self.entries
 
-        initialized = Signal()
-        rl_idx = Signal(range(self.gen_params.isa.reg_cnt))
-        with Transaction().body(m, ready=~initialized):
-            self.entries.write(m, addr=rl_idx, data=0)
-            m.d.sync += rl_idx.eq(rl_idx + 1)
-            with m.If(rl_idx == self.gen_params.isa.reg_cnt - 1):
-                m.d.sync += initialized.eq(1)
+        @def_methods(m, self.commit)
+        def _(i: int, rp_dst: Value, rl_dst: Value):
+            m.d.sync += self.entries[rl_dst].eq(rp_dst)
 
-        @def_method(m, self.commit, ready=initialized)
-        def _(rp_dst: Value, rl_dst: Value):
-            self.entries.write(m, addr=rl_dst, data=rp_dst)
-            return {"old_rp_dst": self.entries.read(m, addr=rl_dst).data}
+            old_rp_dst = Signal(self.gen_params.phys_regs_bits)
+            m.d.av_comb += old_rp_dst.eq(self.entries[rl_dst])
+            for j in range(i):
+                with m.If(self.commit[j].run & (self.commit[j].data_in.rl_dst == rl_dst)):
+                    m.d.av_comb += old_rp_dst.eq(self.commit[j].data_in.rp_dst)
+            return {"old_rp_dst": old_rp_dst}
 
-        @def_method(m, self.peek, ready=initialized)
-        def _(rl_dst: Value):
-            return self.entries.read(m, addr=rl_dst).data
+        @def_method(m, self.peek, nonexclusive=True)
+        def _():
+            return {"entries": self.entries}
 
         return m

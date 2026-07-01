@@ -6,7 +6,7 @@ from enum import Enum
 
 from coreblocks.arch import OpType
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from transactron.testing import CallTrigger, MethodMock, TestCaseWithSimulator, def_method_mock
 
 from test.scheduler.test_scheduler import SchedulerTestCircuit, MockedBlockComponent
@@ -16,7 +16,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
     @pytest.mark.parametrize("tag_bits, checkpoint_count", [(2, 3), (5, 8)])
     def test_randomized(self, tag_bits: int, checkpoint_count: int):
         gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 func_units_config=(
                     MockedBlockComponent({OpType.ARITHMETIC}, rs_entries=4),
                     MockedBlockComponent({OpType.BRANCH}, rs_entries=4),

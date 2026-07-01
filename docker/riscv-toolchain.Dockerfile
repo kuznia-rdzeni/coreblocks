@@ -6,7 +6,7 @@ RUN apt-get update && \
     autoconf automake autotools-dev curl python3 python3-venv python3-pip bc lsb-release \
     libmpc-dev libmpfr-dev libgmp-dev gawk build-essential \
     bison flex texinfo gperf libtool patchutils zlib1g-dev device-tree-compiler \
-    libexpat-dev ninja-build git ca-certificates python-is-python3 \ 
+    libexpat-dev ninja-build git ca-certificates python-is-python3 \
     libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
     rm -rf /var/lib/apt/lists/*
 

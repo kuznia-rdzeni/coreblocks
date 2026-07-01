@@ -16,13 +16,13 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from coreblocks.params.genparams import GenParams  # noqa: E402
 from transactron.graph import TracingFragment  # noqa: E402
 from test.test_core import CoreTestElaboratable  # noqa: E402
-from coreblocks.params.configurations import basic_core_config  # noqa: E402
+from coreblocks.params import configurations  # noqa: E402
 from transactron.core import TransactronContextElaboratable  # noqa: E402
 from transactron.core.keys import TransactionManagerKey  # noqa: E402
 from transactron.utils import DependencyManager, DependencyContext  # noqa: E402
 
 with DependencyContext(DependencyManager()):
-    gp = GenParams(basic_core_config)
+    gp = GenParams(configurations.basic.replace(debug_signals=False))
     elaboratable = CoreTestElaboratable(gp)
     tm = TransactronContextElaboratable(elaboratable)
     fragment = TracingFragment.get(tm, platform=None).prepare()

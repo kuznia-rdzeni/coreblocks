@@ -1,0 +1,7 @@
+name: coreblocks-full-clang
+compiler_exe: clang
+objdump_exe: llvm-objdump
+ref_model_exe: sail_riscv_sim
+udb_config: coreblocks.yaml
+linker_script: link.ld
+dut_include_dir: .

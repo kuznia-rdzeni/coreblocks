@@ -4,9 +4,9 @@ from amaranth import *
 from transactron.lib import Adapter, AdapterTrans
 from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
@@ -18,7 +18,7 @@ from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 class TestPMADirect(TestCaseWithSimulator):
     async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for i in range(region.start, region.end + 1):
-            sim.set(self.test_module.addr, i)
+            sim.set(self.test_module.paddr, i)
             mmio = sim.get(self.test_module.result.mmio)
             assert mmio == region.mmio
 
@@ -35,7 +35,7 @@ class TestPMADirect(TestCaseWithSimulator):
             PMARegion(0x121, 0x130, False),
         ]
 
-        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.gen_params = GenParams(configurations.test.replace(pma=self.pma_regions))
         self.test_module = PMAChecker(self.gen_params)
 
         with self.run_simulation(self.test_module) as sim:
@@ -60,15 +60,14 @@ class PMAIndirectTestCircuit(Elaboratable):
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
-        m.submodules.precommit = self.precommit = TestbenchIO(
+        m.submodules.side_fx_guard = self.side_fx_guard = TestbenchIO(
             Adapter(
-                i=layouts.precommit_in,
-                o=layouts.precommit_out,
+                i=layouts.side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
 
         m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
@@ -98,14 +97,14 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
     async def verify_region(self, sim: TestbenchContext, region: PMARegion):
         for addr in range(region.start, region.end + 1):
-            self.precommit_enabled = False
+            self.side_fx_guard_enabled = False
             instr = self.get_instr(addr)
             await self.test_module.issue.call(sim, instr)
             if region.mmio is True:
                 for i in range(10):  # 10 cycles is more than enough
                     ret = await self.test_module.bus_master_adapter.request_read_mock.call_try(sim)
                     assert ret is None
-            self.precommit_enabled = True
+            self.side_fx_guard_enabled = True
             await self.test_module.bus_master_adapter.request_read_mock.call(sim)
             _, v = (
                 await CallTrigger(sim)
@@ -125,9 +124,9 @@ class TestPMAIndirect(TestCaseWithSimulator):
             PMARegion(0x10, 0x1F, False),
             PMARegion(0x20, 0x2F, True),
         ]
-        self.gen_params = GenParams(test_core_config.replace(pma=self.pma_regions))
+        self.gen_params = GenParams(configurations.test.replace(pma=self.pma_regions))
         self.test_module = PMAIndirectTestCircuit(self.gen_params)
-        self.precommit_enabled = False
+        self.side_fx_guard_enabled = False
 
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
@@ -136,12 +135,12 @@ class TestPMAIndirect(TestCaseWithSimulator):
                 assert False
 
         @def_method_mock(
-            lambda: self.test_module.precommit,
-            validate_arguments=lambda rob_id: rob_id == 1,
-            enable=lambda: self.precommit_enabled,
+            lambda: self.test_module.side_fx_guard,
+            validate_arguments=lambda rob_id, require_done: rob_id == 1,
+            enable=lambda: self.side_fx_guard_enabled,
         )
-        def precommiter(rob_id):
-            return {"side_fx": 1}
+        def side_fx_guarder(rob_id, require_done):
+            return {}
 
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():

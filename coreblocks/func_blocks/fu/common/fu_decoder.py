@@ -9,6 +9,9 @@ from enum import IntFlag
 from coreblocks.arch.optypes import OpType
 
 
+__all__ = ["Decoder", "DecoderManager"]
+
+
 class Decoder(Elaboratable):
     """
     Module responsible for instruction decoding.

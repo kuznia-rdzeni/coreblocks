@@ -3,7 +3,7 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, Testbe
 
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from collections import deque
 from random import Random, randrange
@@ -25,10 +25,20 @@ class TestReorderBuffer(TestCaseWithSimulator):
             for k in range(count):
                 log_reg = self.rand.randint(0, self.log_regs - 1)
                 phys_reg = self.regs_left_queue.popleft()
-                entries.append({"rl_dst": log_reg, "rp_dst": phys_reg, "tag_increment": 0})
+                entries.append(
+                    {
+                        "rob_data": {
+                            "rl_dst": log_reg,
+                            "rp_dst": phys_reg,
+                            "tag_increment": 0,
+                            "ftq_ptr": {"ptr": 0, "parity": 0},
+                        },
+                        "pure": 0,
+                    }
+                )
             rob_ids = (await self.m.put.call(sim, count=count, entries=entries)).entries
             for k in range(count):
-                self.to_execute_list.append((rob_ids[k].rob_id, entries[k]["rp_dst"]))
+                self.to_execute_list.append((rob_ids[k].rob_id, entries[k]["rob_data"]["rp_dst"]))
                 self.retire_queue.append((entries[k], rob_ids[k].rob_id))
         self.finished = True
 
@@ -50,15 +60,16 @@ class TestReorderBuffer(TestCaseWithSimulator):
         self.m.peek.call_init(sim)
         while self.retire_queue or not self.finished:
             await sim.delay(1e-12)  # ensure executed_set is updated
-            if not self.retire_queue or self.retire_queue[0][0]["rp_dst"] not in self.executed_set:
+            if not self.retire_queue or self.retire_queue[0][0]["rob_data"]["rp_dst"] not in self.executed_set:
                 res = await self.m.retire.call_try(sim)
                 assert res is None  # transaction should not be ready if there is nothing to retire
             else:
                 results = self.m.peek.get_call_result(sim)
-                count = randrange(1, results.count + 1)
-                count = (
-                    [self.retire_queue[i][0]["rp_dst"] in self.executed_set for i in range(count)] + [False]
+                done_count = (
+                    [self.retire_queue[i][0]["rob_data"]["rp_dst"] in self.executed_set for i in range(results.count)]
+                    + [False]
                 ).index(False)
+                count = min(done_count, randrange(1, results.count + 1))
                 regs, rob_id_exp = zip(*(self.retire_queue.popleft() for _ in range(count)))
                 await self.m.retire.call(sim, count=count)
                 for k in range(count):
@@ -67,14 +78,14 @@ class TestReorderBuffer(TestCaseWithSimulator):
                     assert phys_reg in self.executed_set
                     self.executed_set.remove(phys_reg)
 
-                    assert data_const_to_dict(results.entries[k].rob_data) == regs[k]
+                    assert data_const_to_dict(results.entries[k].rob_data) == regs[k]["rob_data"]
                     self.regs_left_queue.append(phys_reg)
 
     def test_single(self, mark_done_ports: int, frontend_superscalarity: int, retirement_superscalarity: int):
         self.rand = Random(0)
         self.test_steps = 2000
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 phys_regs_bits=5,
                 rob_entries_bits=6,
                 frontend_superscalarity=frontend_superscalarity,
@@ -107,7 +118,11 @@ class TestFullDoneCase(TestCaseWithSimulator):
             log_reg = self.rand.randrange(self.log_regs)
             phys_reg = self.rand.randrange(self.phys_regs)
             rob_id = (
-                (await self.m.put.call(sim, count=1, entries=[{"rl_dst": log_reg, "rp_dst": phys_reg}]))
+                (
+                    await self.m.put.call(
+                        sim, count=1, entries=[{"rob_data": {"rl_dst": log_reg, "rp_dst": phys_reg}, "pure": 0}]
+                    )
+                )
                 .entries[0]
                 .rob_id
             )
@@ -136,7 +151,7 @@ class TestFullDoneCase(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
 
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
         self.test_steps = 2**self.gen_params.rob_entries_bits
         m = SimpleTestCircuit(ReorderBuffer(self.gen_params, mark_done_ports=1))
         self.m = m

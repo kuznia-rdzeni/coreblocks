@@ -1,14 +1,14 @@
+"""
+Algorithm - multi-cycle array divider
+Method described here: https://yuhei1-horibe.medium.com/designing-divider-213fbd32beb2
+"""
+
 from amaranth import *
 
 from coreblocks.params import GenParams
 from transactron import *
 from transactron.core import def_method
 from coreblocks.func_blocks.fu.division.common import DividerBase
-
-"""
-Algorithm - multi-cycle array divider
-Method described here: https://yuhei1-horibe.medium.com/designing-divider-213fbd32beb2
-"""
 
 
 class RecursiveDivison(Elaboratable):

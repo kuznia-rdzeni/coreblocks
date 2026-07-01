@@ -6,14 +6,14 @@ from amaranth.lib.data import ArrayLayout
 from amaranth.utils import ceil_log2
 from amaranth_types import ValueLike
 from transactron import Method, Methods, Transaction, def_method, TModule, def_methods
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.allocators import PreservedOrderAllocator
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
-from transactron.utils import RecordDict
+from transactron.utils import ReturnDict
 from transactron.utils.assign import assign, AssignType
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
@@ -93,7 +93,7 @@ class RSBase(Elaboratable):
             ready_lists.append(self.data_ready & op_vector)
 
         @def_method(m, self.select)
-        def _() -> RecordDict:
+        def _() -> ReturnDict:
             selected_id = alloc(m).ident
             self.log.debug(m, True, "selected entry {}", selected_id)
             return {"rs_entry_id": selected_id}
@@ -151,7 +151,7 @@ class RSBase(Elaboratable):
             self.order = order(m).order  # always ready!
 
         @def_method(m, self.take)
-        def _(rs_entry_id: Value) -> RecordDict:
+        def _(rs_entry_id: Value) -> ReturnDict:
             actual_rs_entry_id = Signal.like(rs_entry_id)
             m.d.av_comb += actual_rs_entry_id.eq(self.order[rs_entry_id])
             record = self.data[actual_rs_entry_id]
@@ -168,7 +168,7 @@ class RSBase(Elaboratable):
             reordered_list = Cat(tk_ready_list.bit_select(self.order[i], 1) for i in range(self.rs_entries))
 
             @def_method(m, get_ready_list, ready=tk_ready_list.any(), nonexclusive=True)
-            def _() -> RecordDict:
+            def _() -> ReturnDict:
                 return {"ready_list": reordered_list}
 
         if self.perf_num_full.metrics_enabled():

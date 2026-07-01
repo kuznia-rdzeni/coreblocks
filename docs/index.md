@@ -9,8 +9,6 @@ home.md
 assumptions.md
 development-environment.md
 scheduler/overview.md
-shared-structs/implementation/rs-impl.md
-shared-structs/rs.md
 current-graph.md
 problem-checklist.md
 synthesis/synthesis.md

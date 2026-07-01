@@ -2,10 +2,12 @@ from transactron.testing import TestCaseWithSimulator, SimpleTestCircuit, Testbe
 
 from coreblocks.core_structs.rat import FRAT, RRAT
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from collections import deque
 from random import Random
+
+import pytest
 
 
 class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
@@ -36,7 +38,7 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
     def test_single(self):
         self.rand = Random(0)
         self.test_steps = 2000
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
+        self.gen_params = GenParams(configurations.test.replace(phys_regs_bits=5, rob_entries_bits=6))
         m = SimpleTestCircuit(FRAT(gen_params=self.gen_params))
         self.m = m
 
@@ -51,31 +53,42 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
             sim.add_testbench(self.do_rename)
 
 
+@pytest.mark.parametrize("ports", [1, 2, 4])
 class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
-    def gen_input(self):
-        for _ in range(self.test_steps):
-            rl = self.rand.randrange(self.gen_params.isa.reg_cnt)
-            rp = self.rand.randrange(1, 2**self.gen_params.phys_regs_bits) if rl != 0 else 0
+    async def copy_entries(self, sim: TestbenchContext):
+        while True:
+            await sim.tick()
+            self.expected_entries_copy = self.expected_entries[:]
 
-            self.to_execute_list.append({"rl": rl, "rp": rp})
+    async def clear_chosen(self, sim: TestbenchContext):
+        while True:
+            self.chosen = set()
+            await sim.tick()
 
-    async def do_commit(self, sim: TestbenchContext):
-        # wait until R-RAT clears itself after reset
-        await self.tick(sim, self.gen_params.isa.reg_cnt)
-        for _ in range(self.test_steps):
-            to_execute = self.to_execute_list.pop()
-            if self.rand.randrange(2):
-                peek_res = await self.m.peek.call(sim, rl_dst=to_execute["rl"])
-                assert peek_res.old_rp_dst == self.expected_entries[to_execute["rl"]]
-            res = await self.m.commit.call(sim, rl_dst=to_execute["rl"], rp_dst=to_execute["rp"])
-            assert res.old_rp_dst == self.expected_entries[to_execute["rl"]]
+    def do_commit(self, i: int):
+        async def tb(sim: TestbenchContext):
+            for _ in range(self.test_steps):
+                rl = self.rand.choice(list(set(range(self.gen_params.isa.reg_cnt)) - self.chosen))
+                rp = self.rand.randrange(1, 2**self.gen_params.phys_regs_bits) if rl != 0 else 0
+                self.chosen.add(rl)
 
-            self.expected_entries[to_execute["rl"]] = to_execute["rp"]
+                if self.rand.randrange(2):
+                    peek_res = await self.m.peek.call(sim)
+                    assert list(peek_res.entries) == self.expected_entries_copy
+                else:
+                    res = await self.m.commit[i].call(sim, rl_dst=rl, rp_dst=rp)
+                    assert res.old_rp_dst == self.expected_entries[rl]
 
-    def test_single(self):
+                    self.expected_entries[rl] = rp
+
+        return tb
+
+    def test_single(self, ports: int):
         self.rand = Random(0)
         self.test_steps = 2000
-        self.gen_params = GenParams(test_core_config.replace(phys_regs_bits=5, rob_entries_bits=6))
+        self.gen_params = GenParams(
+            configurations.test.replace(phys_regs_bits=5, rob_entries_bits=6, retirement_superscalarity=ports)
+        )
         m = SimpleTestCircuit(RRAT(gen_params=self.gen_params))
         self.m = m
 
@@ -84,7 +97,10 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
 
         self.to_execute_list = deque()
         self.expected_entries = [0 for _ in range(self.log_regs)]
+        self.chosen = set()
 
-        self.gen_input()
         with self.run_simulation(m) as sim:
-            sim.add_testbench(self.do_commit)
+            sim.add_testbench(self.copy_entries, background=True)
+            for i in range(ports):
+                sim.add_testbench(self.do_commit(i))
+            sim.add_testbench(self.clear_chosen, background=True)

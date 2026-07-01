@@ -6,14 +6,14 @@ from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, Testbe
 from coreblocks.func_blocks.fu.common.fu_decoder import DecoderManager, Decoder
 from coreblocks.arch import OpType, Funct3, Funct7
 from coreblocks.params import GenParams
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from enum import IntFlag, auto
 
 
 class TestFuDecoder(TestCaseWithSimulator):
     def setup_method(self) -> None:
-        self.gen_params = GenParams(test_core_config)
+        self.gen_params = GenParams(configurations.test)
 
     # calculates expected decoder output
     def expected_results(self, instructions: Sequence[tuple], op_type_dependent: bool, inp: dict[str, int]) -> int:

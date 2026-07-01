@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.lib.wiring import Component, flipped, connect, In, Out
+from transactron import Transaction
 from transactron.lib.allocators import PriorityEncoderAllocator
 
 from transactron.utils.dependencies import DependencyContext
@@ -18,6 +19,7 @@ from coreblocks.core_structs.crat import CheckpointRAT
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.core_structs.rob import ReorderBuffer
 from coreblocks.core_structs.rf import RegisterFile
+from coreblocks.func_blocks.instruction_metrics import InstructionMetrics
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.frontend.frontend import CoreFrontend
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
@@ -26,7 +28,7 @@ from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
-from transactron.lib.metrics import HwMetricsEnabledKey
+from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
 
 __all__ = ["Core"]
 
@@ -61,16 +63,19 @@ class Core(Component):
         self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
 
         self.rf_allocator = PriorityEncoderAllocator(
-            gen_params.phys_regs, gen_params.frontend_superscalarity, init=2**gen_params.phys_regs - 2
+            gen_params.phys_regs,
+            gen_params.frontend_superscalarity,
+            gen_params.retirement_superscalarity,
+            init=2**gen_params.phys_regs - 2,
         )
 
         self.CRAT = CheckpointRAT(gen_params=self.gen_params)
         self.RRAT = RRAT(gen_params=self.gen_params)
         self.RF = RegisterFile(
             gen_params=self.gen_params,
-            read_ports=2,
+            read_ports=2 * self.gen_params.frontend_superscalarity,
             write_ports=self.gen_params.announcement_superscalarity,
-            free_ports=1,
+            free_ports=self.gen_params.retirement_superscalarity,
         )
         self.ROB = ReorderBuffer(
             gen_params=self.gen_params, mark_done_ports=self.gen_params.announcement_superscalarity
@@ -94,8 +99,16 @@ class Core(Component):
 
         self.interrupt_controller = InternalInterruptController(self.gen_params)
 
+        self.announcement_counter = TaggedCounter(
+            "backend.announcement.announcement_count",
+            "Number of instruction results announced in one cycle",
+            tags=range(gen_params.announcement_superscalarity + 1),
+        )
+
     def elaborate(self, platform):
         m = TModule()
+
+        m.submodules += [self.announcement_counter]
 
         connect(m.top_module, flipped(self.wb_instr), self.wb_master_instr.wb_master)
         connect(m.top_module, flipped(self.wb_data), self.wb_master_data.wb_master)
@@ -121,6 +134,8 @@ class Core(Component):
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
+        m.submodules.instruction_metrics = InstructionMetrics()
+
         get_instr = Method.like(self.frontend.consume_instr)
 
         @def_method(m, get_instr)
@@ -137,10 +152,8 @@ class Core(Component):
         scheduler.crat_tag.provide(crat.tag)
         scheduler.crat_active_tags.provide(crat.get_active_tags)
         scheduler.rob_put.provide(rob.put)
-        scheduler.rf_read_req1.provide(rf.read_req[0])
-        scheduler.rf_read_req2.provide(rf.read_req[1])
-        scheduler.rf_read_resp1.provide(rf.read_resp[0])
-        scheduler.rf_read_resp2.provide(rf.read_resp[1])
+        scheduler.rf_read_req.provide(rf.read_req)
+        scheduler.rf_read_resp.provide(rf.read_resp)
         for i, block in enumerate(self.func_blocks_unifier.rs_blocks):
             scheduler.rs_select[i].provide(block.select)
             scheduler.rs_insert[i].provide(block.insert)
@@ -155,6 +168,9 @@ class Core(Component):
             announcement.rf_write_val.provide(self.RF.write[i])
             announce_result.append(announcement.push_result)
 
+        with Transaction().body(m):
+            self.announcement_counter.incr(m, tag=sum(method.run for method in announce_result))
+
         m.submodules.announcement_connector = CrossbarConnectTrans.create(
             self.func_blocks_unifier.get_result, announce_result
         )
@@ -164,8 +180,8 @@ class Core(Component):
         retirement.rob_retire.provide(rob.retire)
         retirement.r_rat_commit.provide(rrat.commit)
         retirement.r_rat_peek.provide(rrat.peek)
-        retirement.free_rf_put.provide(rf_allocator.free[0])
-        retirement.rf_free.provide(rf.free[0])
+        retirement.free_rf_put.provide(rf_allocator.free)
+        retirement.rf_free.provide(rf.free)
         retirement.exception_cause_get.provide(self.exception_information_register.get)
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)

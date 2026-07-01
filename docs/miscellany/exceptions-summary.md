@@ -19,8 +19,8 @@ These two works present a survey of the topic of interrupts as a time of writing
 
 ## Interrupt handling in old PCs
 
-- CDC 6600 - interrupt handling is done by inserting a jump instruction into the interrupt handler 
-- IBM360 - stop fetching and wait for all fetched instructions to be committed, then jump to interrupt handler 
+- CDC 6600 - interrupt handling is done by inserting a jump instruction into the interrupt handler
+- IBM360 - stop fetching and wait for all fetched instructions to be committed, then jump to interrupt handler
 - CRAY-1 - similar to IBM360, but here latency can be even bigger due to vector instructions
 
 ## Interrupt Handling for Out-of-Order Execution Processors
@@ -36,27 +36,27 @@ After restoring the context, all instructions from IW will be restarted so that 
 
 The idea of IW is similar to that of ROB, but there are few differences:
 - ROB is not a part of the context
-- ROB removes instructions in-order, IW allows to remove instructions out-of-order 
+- ROB removes instructions in-order, IW allows to remove instructions out-of-order
 - Tags in IW are one-hot-encoded, which will in current implementation cause big overhead.
 
 So in its original form, IW is unfeasible for our processor, because it would require to double a job. Additionally,
 this context of the ROB size will have to be stored on each entry to the interrupt handler, which can be costly
-operations. But: 
-- maybe it is possible to reduce cost of IW saving by cooperation of CPU and OS? 
+operations. But:
+- maybe it is possible to reduce cost of IW saving by cooperation of CPU and OS?
 - maybe cost of restoring IW is smaller than cost of re-fetching and scheduling one more time for old instructions?
 
-Some interesting ideas from the paper: 
+Some interesting ideas from the paper:
 - they propose NRP (No Return Point) implementation - a point in the pipeline after which an instruction can be removed,
     it should allow instructions which are ending to save its results and remove itself from IW, to don't waste cycles on
     context restore for executing this instruction one more time, NRP can be implemented for different interrupts and
-    instructions in different places to allow different interrupt latency 
+    instructions in different places to allow different interrupt latency
 - for vector instructions IW remember how many elements are left to be processed, so after this context restore allows
     to restore vector operation in the middle of the vector
 
 
 ## In-Line Interrupt Handling for Software-Managed TLBs
 
-> In-Line Interrupt Handling for Software-Managed TLBs 
+> In-Line Interrupt Handling for Software-Managed TLBs
 > Aamer Jaleel and Bruce Jacob, 2001
 
 In that time, ROB was already a standard, so there was "classic" interrupt handling procedure. But in that time
@@ -68,11 +68,11 @@ instructions).
 The main idea is to not flush the whole pipeline on an interrupt, but instead to inline a handler code between
 instructions of the user space program. They observed that the most important problem is that there can not be enough
 resources to execute the interrupt handler without flushing the pipeline (e.g. in case when ROB is full there can be
-live-lock). 
-- they assume that interrupt handler has known length 
-- they check if ROB, RS and RF have enough free resources to inline handler 
-- if the handler can be inlined, they do that, else they flush the pipeline 
-- in fly instruction return instruction is swapped to NOP and excepted instruction is reexecuted 
+live-lock).
+- they assume that interrupt handler has known length
+- they check if ROB, RS and RF have enough free resources to inline handler
+- if the handler can be inlined, they do that, else they flush the pipeline
+- in fly instruction return instruction is swapped to NOP and excepted instruction is reexecuted
 - each executed instruction has one connected bit indicating the privilege level
 
 They use some properties of the Alpha and MIPS architectures where they have interrupts vectors so the OS can insert
@@ -81,10 +81,10 @@ tendency to have one interrupt handler in OS, which next decides which handling 
 the handler longer, so it can be hard to make inlining (e.g. for risk V in Linux the first step is to save
 each of general purpose registers, so on the start we have already 32 instructions in handler)
 
-Ideas from the paper: 
-- Pipelines don't have to be flushed 
+Ideas from the paper:
+- Pipelines don't have to be flushed
 - Additional HW resources reserved for only privileged mode can allow to execute privileged instruction without boring
-  with stopping user space program 
+  with stopping user space program
 - Interrupts and exceptions can be treated as branches and can be speculated
 
 
@@ -105,9 +105,9 @@ Present overview for all main structures to handle exceptions, so:
 > iGPU: Exception Support and Speculative Execution on GPUs Jaikrishnan Menon, Marc de Kruijf, Karthikeyan
 > Sankaralingam, 2012
 
-They try to introduce exceptions to GPU. To do that, they observe that: 
-- it is possible to find points where it is low number of live registers (e.g., boundaries of kernels) 
-- GPU execution has no side effects, so it can be safely rewritten 
+They try to introduce exceptions to GPU. To do that, they observe that:
+- it is possible to find points where it is low number of live registers (e.g., boundaries of kernels)
+- GPU execution has no side effects, so it can be safely rewritten
 - GPU program can be recompiled in runtime
 
 They introduce to the GPU program regions and subregions. Regions are parts of code which start at the beginning and end
@@ -122,16 +122,16 @@ dynamically recompiled and split into two regions to prevent live-locks.
 
 ## Efficient Exception Handling Support for GPUs
 
-> Efficient Exception Handling Support for GPUs 
+> Efficient Exception Handling Support for GPUs
 > Ivan Tanasic, Isaac Gelado, Marc Jorda, Eduard Ayguade, Nacho Navarro, 2017
 
 One more time it is analysed the problem of precise interrupts for GPU. They observe that the only problematic
 instructions are those related to memory access. All other instructions are guaranteed to end successfully or they kill
-the program. This time there is more hardware modification and there are presented three propositions: 
+the program. This time there is more hardware modification and there are presented three propositions:
 - stall warp until previous global load is solved - on GPU it is not so problematic because usually there is a lot of
-    other warp which wait to be executed.  
+    other warp which wait to be executed.
 - save instructions which can fail (global loads) to next reply them, input registers are not allowed to be
-    modified until this instruction don't claim that it doesn't fail 
+    modified until this instruction don't claim that it doesn't fail
 - operand logging - replay queue + storing operations
 
 

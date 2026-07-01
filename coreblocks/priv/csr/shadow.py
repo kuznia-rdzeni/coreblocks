@@ -1,0 +1,141 @@
+from typing import Optional, Callable
+
+from amaranth import *
+from amaranth import ValueLike
+from amaranth_types import SrcLoc
+from transactron.core.method import Method
+from transactron.core.transaction import Transaction
+from transactron.core.sugar import def_method
+from transactron.core.tmodule import TModule
+from transactron.utils import get_src_loc, logging
+
+from coreblocks.interface.layouts import CSRRegisterLayouts
+from coreblocks.params.genparams import GenParams
+from coreblocks.priv.csr.csr_register import CSRRegisterBase
+
+__all__ = ["ShadowCSR"]
+
+
+log = logging.HardwareLogger("priv.csr.shadow")
+
+
+class ShadowCSR(CSRRegisterBase):
+    """CSR shadow register.
+
+    Creates a CSR which is backed by another CSR - reads and writes are forwarded to it.
+    Optional bit masks can restrict visible read bits and writable bits for both instruction-visible access and
+    internal CSR logic.
+    """
+
+    def __init__(
+        self,
+        csr_number: Optional[int],
+        gen_params: GenParams,
+        shadowed: CSRRegisterBase,
+        *,
+        width: Optional[int] = None,
+        offset: Optional[int] = None,
+        mask: Optional[ValueLike | Method] = None,
+        read_mask: Optional[ValueLike | Method] = None,
+        write_mask: Optional[ValueLike | Method] = None,
+        access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        src_loc: int | SrcLoc = 0,
+    ):
+        self.offset = offset = 0 if offset is None else offset
+
+        if width is None:
+            if csr_number is not None:
+                width = gen_params.isa.xlen
+            elif self.offset == 0:
+                width = shadowed.width
+            else:
+                raise ValueError("width must be specified for non-public shadow CSR with offset")
+
+        if self.offset < 0 or self.offset >= shadowed.width:
+            raise ValueError(f"Invalid offset value {self.offset}")
+
+        if width < 0 or self.offset + width > shadowed.width:
+            raise ValueError(f"Invalid width value {self.value}")
+
+        super().__init__(gen_params, csr_number, width=width, src_loc=get_src_loc(src_loc))
+
+        if mask is not None:
+            assert (
+                read_mask is None and write_mask is None
+            ), "Cannot specify both full mask and separate read/write masks"
+            read_mask = write_mask = mask
+
+        self.shadowed = shadowed
+
+        full_mask = (1 << self.width) - 1
+        self.read_mask: ValueLike | Method = full_mask if read_mask is None else read_mask
+        self.write_mask: ValueLike | Method = full_mask if write_mask is None else write_mask
+        self.access_filter = access_filter if access_filter is not None else (lambda _, __: C(1))
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        write_mask = Signal.like(self.value)
+        read_mask = Signal.like(self.value)
+
+        if isinstance(self.write_mask, Method):
+            with Transaction().body(m) as t:
+                m.d.comb += write_mask.eq(self.write_mask(m).data)
+            log.error(m, ~t.run, "assert transaction running failed")
+        else:
+            m.d.comb += write_mask.eq(self.write_mask)
+
+        if isinstance(self.read_mask, Method):
+            with Transaction().body(m) as t:
+                m.d.comb += read_mask.eq(self.read_mask(m).data)
+            log.error(m, ~t.run, "assert transaction running failed")
+        else:
+            m.d.comb += read_mask.eq(self.read_mask)
+
+        m.d.comb += self.value.eq(self.shadowed.value & read_mask)
+
+        @def_method(m, self._fu_write)
+        def _(data: Value, op_type: Value):
+            shadow_data = Signal.like(self.shadowed.value)
+            with m.If(op_type == CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                m.d.av_comb += shadow_data.eq(
+                    ((data & write_mask) << self.offset) | (self.shadowed.read(m).data & ~(write_mask << self.offset))
+                )
+            with m.Else():
+                m.d.av_comb += shadow_data.eq((data & write_mask) << self.offset)
+            return self.shadowed._fu_write(m, data=shadow_data, op_type=op_type)
+
+        @def_method(m, self._fu_read)
+        def _() -> Value:
+            return (self.shadowed._fu_read(m).data >> self.offset) & read_mask
+
+        @def_method(m, self.write)
+        def _(data: Value):
+            self.shadowed.write(
+                m,
+                data=((data & write_mask) << self.offset) | (self.shadowed.read(m).data & ~(write_mask << self.offset)),
+            )
+
+        @def_method(m, self.read, nonexclusive=True)
+        def _():
+            result = self.shadowed.read(m)
+            return {
+                "data": (result.data >> self.offset) & read_mask,
+                "read": result.read,
+                "written": result.written,
+            }
+
+        @def_method(m, self.read_comb, nonexclusive=True)
+        def _():
+            result = self.shadowed.read_comb(m)
+            return {
+                "data": (result.data >> self.offset) & read_mask,
+                "read": result.read,
+                "written": result.written,
+            }
+
+        @def_method(m, self._fu_access_valid)
+        def _(priv_mode):
+            return {"valid": self.access_filter(m, priv_mode) & self.shadowed._fu_access_valid(m, priv_mode).valid}
+
+        return m

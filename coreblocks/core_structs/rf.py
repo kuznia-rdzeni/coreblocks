@@ -5,7 +5,7 @@ from transactron import Methods, Transaction, def_methods, TModule
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.lib.storage import MemoryBank
 from transactron.utils.amaranth_ext.functions import popcount
@@ -99,7 +99,7 @@ class RegisterFile(Elaboratable):
 
         # It is assumed that two simultaneous write calls never write the same physical register.
         for k1, m1 in enumerate(self.write):
-            for k2, m2 in enumerate(self.write[k1 + 1 :]):
+            for k2, m2 in enumerate(self.write[k1 + 1 :], k1 + 1):
                 log.error(
                     m,
                     m1.run & m2.run & (m1.data_in.reg_id == m2.data_in.reg_id) & (m1.data_in.reg_id != 0),
@@ -111,7 +111,7 @@ class RegisterFile(Elaboratable):
 
         # It is assumed that two simultaneous free calls never free the same physical register.
         for k1, m1 in enumerate(self.free):
-            for k2, m2 in enumerate(self.free[k1 + 1 :]):
+            for k2, m2 in enumerate(self.free[k1 + 1 :], k1 + 1):
                 log.error(
                     m,
                     m1.run & m2.run & (m1.data_in.reg_id == m2.data_in.reg_id) & (m1.data_in.reg_id != 0),

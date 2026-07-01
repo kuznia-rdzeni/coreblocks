@@ -6,7 +6,7 @@ from amaranth_types import ValueLike
 from coreblocks.frontend.decoder.rvc import InstrDecompress
 from coreblocks.arch import *
 from coreblocks.params import *
-from coreblocks.params.configurations import test_core_config
+from coreblocks.params import configurations
 
 from transactron.testing import TestCaseWithSimulator, TestbenchContext
 
@@ -278,7 +278,7 @@ class TestInstrDecompress(TestCaseWithSimulator):
 
     def test(self):
         self.gen_params = GenParams(
-            test_core_config.replace(compressed=True, xlen=self.isa_xlen, fetch_block_bytes_log=3)
+            configurations.test.replace(compressed=True, xlen=self.isa_xlen, fetch_block_bytes_log=3)
         )
         self.m = InstrDecompress(self.gen_params)
 
@@ -366,7 +366,7 @@ class TestInstrDecompressZcb(TestCaseWithSimulator):
 
     def test(self):
         self.gen_params = GenParams(
-            test_core_config.replace(
+            configurations.test.replace(
                 xlen=self.isa_xlen,
                 fetch_block_bytes_log=3,
                 _implied_extensions=Extension.I | Extension.ZCA | Extension.ZCB | Extension.ZBB | Extension.M,

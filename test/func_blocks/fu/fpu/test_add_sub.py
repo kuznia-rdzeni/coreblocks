@@ -1,6 +1,6 @@
 from coreblocks.func_blocks.fu.fpu.fpu_add_sub import *
 from coreblocks.func_blocks.fu.fpu.fpu_common import FPUParams, RoundingModes
-from test.func_blocks.fu.fpu.fpu_test_common import FPUTester
+from test.func_blocks.fu.fpu.fpu_test_common import FPUTester, python_to_float
 from test.func_blocks.fu.fpu.add_sub_test_cases import *
 from transactron.testing import *
 from amaranth import *
@@ -21,14 +21,14 @@ class TestAddSub(TestCaseWithSimulator):
 
             for i in range(test_runs):
                 input_dict = {}
-                p_float_1 = struct.unpack("f", struct.pack("f", random.uniform(0, 3.4028235 * (10**38))))[0]
-                p_float_2 = struct.unpack("f", struct.pack("f", random.uniform(0, 3.4028235 * (10**38))))[0]
+                p_float_1 = python_to_float(random.uniform(0, 3.4028235 * (10**38)))
+                p_float_2 = python_to_float(random.uniform(0, 3.4028235 * (10**38)))
                 if i < test_runs / 2:
                     input_dict["operation"] = 0
-                    result = struct.unpack("f", struct.pack("f", p_float_1 + p_float_2))[0]
+                    result = python_to_float(p_float_1 + p_float_2)
                 else:
                     input_dict["operation"] = 1
-                    result = struct.unpack("f", struct.pack("f", p_float_1 - p_float_2))[0]
+                    result = python_to_float(p_float_1 - p_float_2)
                 hex_1 = hex(struct.unpack("<I", struct.pack("<f", p_float_1))[0])
                 hex_2 = hex(struct.unpack("<I", struct.pack("<f", p_float_2))[0])
                 hex_result = hex(struct.unpack("<I", struct.pack("<f", result))[0])

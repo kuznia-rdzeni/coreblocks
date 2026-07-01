@@ -10,9 +10,8 @@ from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
-from transactron.utils import assign, OneHotSwitchDynamic
+from transactron.utils import OneHotMux, assign, logging
 from transactron.lib import *
-from transactron.lib import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
@@ -44,11 +43,11 @@ class ICacheBypass(Elaboratable, CacheInterface):
         req_addr = Signal(self.params.addr_width)
 
         @def_method(m, self.issue_req)
-        def _(addr: Value) -> None:
-            m.d.sync += req_addr.eq(addr)
+        def _(paddr: Value) -> None:
+            m.d.sync += req_addr.eq(paddr)
             self.bus_master.request_read(
                 m,
-                addr=addr >> exact_log2(self.params.word_width_bytes),
+                addr=paddr >> exact_log2(self.params.word_width_bytes),
                 sel=C(1).replicate(self.bus_master.params.data_width // self.bus_master.params.granularity),
             )
 
@@ -198,8 +197,7 @@ class ICache(Elaboratable, CacheInterface):
                 m.d.comb += forwarding_response_now.eq(1)
                 self.perf_hits.incr(m, enable_call=tag_hit_any)
                 mem_out = Signal(self.params.fetch_block_bytes * 8)
-                for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
-                    m.d.av_comb += mem_out.eq(self.mem.data_rd_data[i])
+                m.d.av_comb += mem_out.eq(OneHotMux.create(m, zip(tag_hit, self.mem.data_rd_data)))
 
                 req_zipper.write_results(m, fetch_block=mem_out, error=refill_error_saved)
                 m.d.sync += refill_error_saved.eq(0)
@@ -212,7 +210,7 @@ class ICache(Elaboratable, CacheInterface):
                 # Align to the beginning of the cache line
                 aligned_addr = self.serialize_addr(req_addr) & ~((1 << self.params.offset_bits) - 1)
                 log.debug(m, True, "Refilling line 0x{:x}", aligned_addr)
-                self.refiller.start_refill(m, addr=aligned_addr)
+                self.refiller.start_refill(m, paddr=aligned_addr)
 
         @def_method(m, self.accept_res)
         def _():
@@ -222,11 +220,11 @@ class ICache(Elaboratable, CacheInterface):
             return output.results
 
         @def_method(m, self.issue_req, ready=accepting_requests)
-        def _(addr: Value) -> None:
+        def _(paddr: Value) -> None:
             self.perf_loads.incr(m)
             self.req_latency.start(m)
 
-            deserialized = self.deserialize_addr(addr)
+            deserialized = self.deserialize_addr(paddr)
             m.d.comb += assign(mem_read_addr, deserialized)
             m.d.sync += assign(prev_mem_read_addr, deserialized)
             req_zipper.write_args(m, deserialized)
@@ -255,7 +253,7 @@ class ICache(Elaboratable, CacheInterface):
         # Slow path - data refilling
         with Transaction().body(m):
             ret = self.refiller.accept_refill(m)
-            deserialized = self.deserialize_addr(ret.addr)
+            deserialized = self.deserialize_addr(ret.paddr)
 
             self.perf_errors.incr(m, enable_call=ret.error)
 

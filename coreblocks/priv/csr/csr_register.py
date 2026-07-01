@@ -3,8 +3,9 @@ from amaranth.lib.data import StructLayout
 from amaranth.lib.enum import Enum
 from amaranth_types import ValueLike, SrcLoc
 
-from typing import Optional
+from abc import ABC, abstractmethod
 from collections.abc import Callable
+from typing import Optional
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import CSRListKey
@@ -13,13 +14,13 @@ from coreblocks.interface.layouts import CSRRegisterLayouts
 from transactron import Method, def_method, TModule
 from transactron.lib.transformers import MethodMap, MethodFilter
 from transactron.utils.dependencies import DependencyContext
-from transactron.utils.transactron_helpers import get_src_loc
+from transactron.utils.transactron_helpers import get_src_loc, make_layout
 
 
-class CSRRegister(Elaboratable):
-    """CSR Register
-    Used to define a CSR register and specify its behaviour.
-    `CSRRegisters` are automatically assigned to `CSRListKey` dependency key, to be accessed from `CSRUnits`.
+class CSRRegisterBase(ABC, Elaboratable):
+    """RISC-V Control and Status Register base class
+    Abstract class defining basic internal CSR register interface, that all CSR variations should implement.
+    Provides constructor defining required methods and signals.
 
     Attributes
     ----------
@@ -38,6 +39,67 @@ class CSRRegister(Elaboratable):
         Method connected automatically by `CSRUnit`. Reads register value.
     _fu_write: Method
         Method connected automatically by `CSRUnit`. Updates register value. Always ready.
+    _fu_access_valid: Method
+        Method connected automatically by `CSRUnit`. Returns whether CSR access is legal for a provided privilege level,
+        or should an instruction access cause an exception.
+    value: Signal
+        Represents current value of a CSR register. Useful for debugging and traces.
+    """
+
+    def __init__(self, gen_params: GenParams, csr_number: Optional[int], width: int, src_loc: SrcLoc):
+        """
+        Parameters
+        ----------
+        gen_params: GenParams
+            Core generation parameters.
+        csr_number: Optional[int]
+            Address of this CSR Register.
+            If `None` is given, CSR is virtual - not registerable to `CSRUnit`.
+            Otherwise it's registered under provided address to `CSRUnit` using `CSRListKey`.
+        width: int
+            Bit width of CSR register.
+        src_loc: SrcLoc
+            CSR location in source code for error reporting.
+        """
+        self.gen_params = gen_params
+        self.csr_number = csr_number
+        self.width = width
+        self.src_loc = src_loc
+        self.public = csr_number is not None
+
+        self.csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
+        self.read = Method(o=self.csr_layouts.read)
+        self.read_comb = Method(o=self.csr_layouts.read)
+        self.write = Method(i=self.csr_layouts.write)
+
+        self._fu_read = Method(o=self.csr_layouts.fu_read)
+        self._fu_write = Method(i=self.csr_layouts.fu_write)
+        self._fu_access_valid = Method(i=self.csr_layouts.fu_access_valid_i, o=self.csr_layouts.fu_access_valid_o)
+
+        self.value = Signal(self.width)  # part of public CSR interface, useful for debugging
+
+        # append to global CSR list (accessible from CSRUnit)
+        if self.public:
+            if self.width != gen_params.isa.xlen:
+                raise RuntimeError(f"Width of public CSR register is different than {gen_params.isa.xlen}")
+            assert csr_number is not None
+            dm = DependencyContext.get()
+            dm.add_dependency(CSRListKey(), (csr_number, self))
+
+    @abstractmethod
+    def elaborate(self, platform):
+        raise NotImplementedError
+
+
+class CSRRegister(CSRRegisterBase):
+    """CSR Register
+    Flexible implementation of a general purpose CSR register.
+
+    Used to define a basic CSR register and specify its behaviour.
+    `CSRRegisters` with csr_number defined are automatically assigned to `CSRListKey` dependency key,
+    to be accessed from `CSRUnits`.
+
+    See `CSRRegisterBase` for class attributes.
 
     Examples
     --------
@@ -65,6 +127,8 @@ class CSRRegister(Elaboratable):
         fu_write_priority: bool = True,
         fu_write_filtermap: Optional[Callable[[TModule, Value], tuple[ValueLike, ValueLike]]] = None,
         fu_read_map: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        fu_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        fu_write_combine: Optional[Callable[[TModule, Value, Value, Value], ValueLike]] = None,
         src_loc: int | SrcLoc = 0,
     ):
         """
@@ -94,53 +158,72 @@ class CSRRegister(Elaboratable):
             performed, second is modified input data.
         fu_read_map: function (TModule, Value) -> (ValueLike)
             Map on CSR reads from instructions. Maps value returned from CSR.
+        fu_access_filter: function (TModule, Value) -> ValueLike
+            Filter on CSR accesses from instructions.
+            Returned value indicates if access should be considered legal.
+        fu_write_combine: function (TModule, Value, Value, Value) -> ValueLike
+            Combine function for CSR instruction writes. Takes the input from CSR* instruction, the mode
+            (CSRRegisterLayouts.WriteOpType) and the value returned the CSR* instruction (_fu_read).
         src_loc: int | SrcLoc
             How many stack frames deep the source location is taken from.
             Alternatively, the source location to use instead of the default.
         """
         self.gen_params = gen_params
-        self.csr_number = csr_number
-        self.width = width if width is not None else gen_params.isa.xlen
+
+        if width is None:
+            width = gen_params.isa.xlen
+
+        super().__init__(gen_params, csr_number, width, get_src_loc(src_loc))
+
+        def fu_write_combine_default(m: TModule, data: Value, mode: Value, read_val: Value):
+            new_data = Signal(self.width)
+            with m.Switch(mode):
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
+                    m.d.comb += new_data.eq(data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
+                    m.d.comb += new_data.eq(read_val | data)
+                with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
+                    m.d.comb += new_data.eq(read_val & ~data)
+            return new_data
+
         self.ro_bits = ro_bits
-        self.fu_write_priority = fu_write_priority
         fu_write_filtermap = fu_write_filtermap if fu_write_filtermap else (lambda _, ms: (C(1), ms))
         fu_read_map = fu_read_map if fu_read_map else (lambda _, ms: ms)
-        self.src_loc = get_src_loc(src_loc)
+        fu_write_combine = fu_write_combine if fu_write_combine else fu_write_combine_default
+        self.fu_access_filter = fu_access_filter if fu_access_filter else (lambda _, __: C(1))
+        self.fu_write_priority = fu_write_priority
+        write_combined_layout = make_layout(self.csr_layouts.data)
 
-        csr_layouts = gen_params.get(CSRRegisterLayouts, data_width=self.width)
+        self._internal_fu_read = Method(o=self.csr_layouts.fu_read)
+        self._internal_fu_write = Method(i=write_combined_layout)
 
-        self.read = Method(o=csr_layouts.read)
-        self.read_comb = Method(o=csr_layouts.read)
-        self.write = Method(i=csr_layouts.write)
-
-        self._internal_fu_read = Method(o=csr_layouts._fu_read)
-        self._internal_fu_write = Method(i=csr_layouts._fu_write)
         self.fu_write_map = MethodMap.create(
             self._internal_fu_write,
-            i_transform=(csr_layouts._fu_write, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
+            i_transform=(write_combined_layout, lambda tm, ms: {"data": fu_write_filtermap(tm, ms["data"])[1]}),
         )
         self.fu_write_filter = MethodFilter.create(
             self.fu_write_map.method, lambda tm, ms: fu_write_filtermap(tm, ms["data"])[0]
         )
+        self.fu_write_combine_map = MethodMap.create(
+            self.fu_write_filter.method,
+            i_transform=(
+                self.csr_layouts.fu_write,
+                lambda tm, ms: {
+                    "data": fu_write_combine(tm, ms["data"], ms["op_type"], self.fu_read_map.method.data_out.data)
+                },
+            ),
+        )
         self.fu_read_map = MethodMap.create(
             self._internal_fu_read,
-            o_transform=(csr_layouts._fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
+            o_transform=(self.csr_layouts.fu_read, lambda tm, ms: {"data": fu_read_map(tm, ms["data"])}),
         )
 
-        # Methods connected automatically by CSRUnit
-        self._fu_read = self.fu_read_map.method
-        self._fu_write = self.fu_write_filter.method
+        # Methods required to be connected automatically by CSRUnit
+        self._fu_read.provide(self.fu_read_map.method)
+        self._fu_write.provide(self.fu_write_combine_map.method)
 
         self.value = Signal(self.width, init=init)
         self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
-
-        # append to global CSR list
-        if csr_number is not None:
-            dm = DependencyContext.get()
-            dm.add_dependency(CSRListKey(), self)
-
-        if csr_number and self.width != gen_params.isa.xlen:
-            raise RuntimeError(f"Width of public CSR register is different than {gen_params.isa.xlen}")
 
     def elaborate(self, platform):
         m = TModule()
@@ -179,6 +262,10 @@ class CSRRegister(Elaboratable):
                 "written": self._internal_fu_write.run,
             }
 
+        @def_method(m, self._fu_access_valid)
+        def _(priv_mode):
+            return {"valid": self.fu_access_filter(m, priv_mode)}
+
         with m.If(fu_write_internal.active & write_internal.active):
             if self.fu_write_priority:
                 m.d.sync += self.value.eq(
@@ -194,5 +281,6 @@ class CSRRegister(Elaboratable):
         m.submodules.fu_write_filter = self.fu_write_filter
         m.submodules.fu_read_map = self.fu_read_map
         m.submodules.fu_write_map = self.fu_write_map
+        m.submodules.fu_write_combine_map = self.fu_write_combine_map
 
         return m

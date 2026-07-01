@@ -5,5 +5,7 @@ loop:
     mv x1, x2
     mv x2, x3
     bne x2, x4, loop
-infloop:
-    j infloop
+
+pass:
+    csrw 0x8fe, 0x10
+    j pass

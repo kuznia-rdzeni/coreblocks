@@ -31,7 +31,7 @@ class Decode(Elaboratable):
         m = TModule()
 
         @def_method(m, self.decode)
-        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type):
+        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type, ftq_ptr):
             m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
             m.d.top_comb += instr_decoder.instr.eq(instr)
 
@@ -54,7 +54,10 @@ class Decode(Elaboratable):
             m.d.comb += exception_override.eq(instr_decoder.illegal | access_fault.any())
             exception_funct = Signal(Funct3)
             with m.If(access_fault.any()):
-                m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
+                with m.If(access_fault & FetchLayouts.FaultFlag.PAGE_FAULT):
+                    m.d.comb += exception_funct.eq(Funct3._EINSTRPAGEFAULT)
+                with m.Else():
+                    m.d.comb += exception_funct.eq(Funct3._EINSTRACCESSFAULT)
             with m.Elif(instr_decoder.illegal):
                 self.illegal(m)
                 m.d.comb += exception_funct.eq(Funct3._EILLEGALINSTR)
@@ -90,6 +93,7 @@ class Decode(Elaboratable):
                 ),
                 "csr": instr_decoder.csr,
                 "pc": pc,
+                "ftq_ptr": ftq_ptr,
             }
 
         return m

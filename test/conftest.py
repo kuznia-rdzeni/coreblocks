@@ -7,6 +7,7 @@ import pytest
 def pytest_addoption(parser: pytest.Parser):
     group = parser.getgroup("coreblocks")
     group.addoption("--coreblocks-regression", action="store_true", help="Run also regression tests.")
+    group.addoption("--coreblocks-arch-regression", action="store_true", help="Run arch regression tests.")
     group.addoption(
         "--coreblocks-backend",
         default="cocotb",
@@ -90,6 +91,7 @@ def deselect_based_on_count(items: list[pytest.Item], config: pytest.Config) -> 
         items[:] = remaining
 
 
+@pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Config) -> None:
     deselect_based_on_flatten_name(items, config)
     deselect_based_on_count(items, config)
