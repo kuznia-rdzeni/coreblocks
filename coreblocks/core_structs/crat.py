@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.data import ArrayLayout
+from amaranth.lib.data import ArrayLayout, View
 from amaranth.utils import ceil_log2
 
 from transactron.core import *
@@ -69,14 +69,13 @@ class CheckpointRAT(Elaboratable):
         # Checkpoint count = 1 is not currently possible because of how retirement freeing works
         assert gen_params.checkpoint_count > 1
 
-        self.frat_layout = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
-        self.frat = Signal(self.frat_layout)
-
         layouts = gen_params.get(RATLayouts)
+        self.frat = Signal(layouts.entries_shape)
+
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
         self.commit_checkpoint = Method(i=layouts.crat_commit_checkpoint_in)
         self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
-        self.flush_restore = Methods(self.gen_params.retirement_superscalarity, i=layouts.crat_flush_restore)
+        self.flush_restore = Method(i=layouts.crat_flush_restore_in)
 
         self.rollback = Method(i=layouts.rollback_in)
         self.dm = DependencyContext.get()
@@ -104,7 +103,7 @@ class CheckpointRAT(Elaboratable):
         active_tags = Signal(2**self.gen_params.tag_bits, init=1)
         checkpointed_tags = Signal(2**self.gen_params.tag_bits, init=0)
 
-        storage = MemoryBank(shape=self.frat_layout, depth=self.gen_params.checkpoint_count)
+        storage = MemoryBank(shape=self.frat.shape(), depth=self.gen_params.checkpoint_count)
         tag_map = MemoryBank(
             shape=range(self.gen_params.checkpoint_count),
             depth=2**self.gen_params.tag_bits,
@@ -240,13 +239,10 @@ class CheckpointRAT(Elaboratable):
             storage.write(m, addr=checkpoint, data=self.frat)
 
         # Block until last FRAT overwrite from Rollback is finished.
-        # Retirement restores entries on hard-flushes that were not covered by checkpoints one-by-one, don't overwrite.
-        @def_methods(m, self.flush_restore, ready=lambda _: last_rollback_finished)
-        def _(i: int, rl_dst: Value, rp_dst: Value):
-            with m.If(rl_dst != 0):  # Duplicated, because otherwise causes comb loop in rename condition
-                m.d.comb += active_renames[i].valid.eq(1)
-                m.d.comb += active_renames[i].rl_dst.eq(rl_dst)
-                m.d.comb += active_renames[i].rp_dst.eq(rp_dst)
+        # Retirement restores entries on hard-flushes that were not covered by checkpoints, don't overwrite.
+        @def_method(m, self.flush_restore, ready=last_rollback_finished)
+        def _(entries: View):
+            m.d.sync += self.frat.eq(entries)
 
         for k in range(len(active_renames)):
             with m.If(active_renames[k].valid):

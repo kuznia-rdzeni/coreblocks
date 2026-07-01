@@ -55,6 +55,11 @@ class TestFrontendRegisterAliasTable(TestCaseWithSimulator):
 
 @pytest.mark.parametrize("ports", [1, 2, 4])
 class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
+    async def copy_entries(self, sim: TestbenchContext):
+        while True:
+            await sim.tick()
+            self.expected_entries_copy = self.expected_entries[:]
+
     async def clear_chosen(self, sim: TestbenchContext):
         while True:
             self.chosen = set()
@@ -62,17 +67,14 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
 
     def do_commit(self, i: int):
         async def tb(sim: TestbenchContext):
-            # wait until R-RAT clears itself after reset
-            await self.tick(sim, self.gen_params.isa.reg_cnt)
             for _ in range(self.test_steps):
-                await sim.delay(1e-12 * i)
                 rl = self.rand.choice(list(set(range(self.gen_params.isa.reg_cnt)) - self.chosen))
                 rp = self.rand.randrange(1, 2**self.gen_params.phys_regs_bits) if rl != 0 else 0
                 self.chosen.add(rl)
 
                 if self.rand.randrange(2):
-                    peek_res = await self.m.peek[i].call(sim, rl_dst=rl)
-                    assert peek_res.old_rp_dst == self.expected_entries[rl]
+                    peek_res = await self.m.peek.call(sim)
+                    assert list(peek_res.entries) == self.expected_entries_copy
                 else:
                     res = await self.m.commit[i].call(sim, rl_dst=rl, rp_dst=rp)
                     assert res.old_rp_dst == self.expected_entries[rl]
@@ -95,8 +97,10 @@ class TestRetirementRegisterAliasTable(TestCaseWithSimulator):
 
         self.to_execute_list = deque()
         self.expected_entries = [0 for _ in range(self.log_regs)]
+        self.chosen = set()
 
         with self.run_simulation(m) as sim:
+            sim.add_testbench(self.copy_entries, background=True)
             for i in range(ports):
                 sim.add_testbench(self.do_commit(i))
-                sim.add_testbench(self.clear_chosen, background=True)
+            sim.add_testbench(self.clear_chosen, background=True)

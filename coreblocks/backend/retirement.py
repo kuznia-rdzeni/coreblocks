@@ -47,18 +47,14 @@ class Retirement(Elaboratable):
             i=gen_params.get(RATLayouts).rrat_commit_in,
             o=gen_params.get(RATLayouts).rrat_commit_out,
         )
-        self.r_rat_peek = Methods(
-            gen_params.retirement_superscalarity,
-            i=gen_params.get(RATLayouts).rrat_peek_in,
+        self.r_rat_peek = Method(
             o=gen_params.get(RATLayouts).rrat_peek_out,
         )
         self.free_rf_put = Methods(gen_params.retirement_superscalarity, i=[("ident", range(gen_params.phys_regs))])
         self.rf_free = Methods(gen_params.retirement_superscalarity, i=gen_params.get(RFLayouts).rf_free)
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
-        self.c_rat_restore = Methods(
-            gen_params.retirement_superscalarity, i=gen_params.get(RATLayouts).crat_flush_restore
-        )
+        self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore_in)
         self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
         self.instr_decrement = Method(
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
@@ -131,14 +127,8 @@ class Retirement(Elaboratable):
             self.perf_instr_ret.incr[i](m)
 
         def flush_instr(i: int, rob_entry: View):
-            # get original rp_dst mapped to instruction rl_dst in R-RAT
-            rat_out = self.r_rat_peek[i](m, rl_dst=rob_entry.rob_data.rl_dst)
-
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
-
-            # restore original rl_dst->rp_dst mapping in F-RAT
-            self.c_rat_restore[i](m, rl_dst=rob_entry.rob_data.rl_dst, rp_dst=rat_out.old_rp_dst)
 
         retire_valid = Signal()
         exception = Signal()
@@ -292,6 +282,7 @@ class Retirement(Elaboratable):
             with m.State("TRAP_RESUME"):
                 with Transaction(name="Retirement_RESUME").body(m):
                     # Resume core operation
+                    self.c_rat_restore(m, entries=self.r_rat_peek(m).entries)
                     self.perf_trap_latency.stop(m)
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
