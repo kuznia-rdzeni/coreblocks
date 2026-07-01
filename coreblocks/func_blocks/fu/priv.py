@@ -183,9 +183,9 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
                         with branch(sfence_vma_step):
                             # [SFENCE.INVAL.IR] - wait for flush to be visible to later requests
+                            m.d.sync += finished.eq(~sfence_vma_busy)
                             with m.If(~sfence_vma_busy):
                                 m.d.sync += sfence_vma_step.eq(0)
-                                m.d.sync += finished.eq(1)
 
                 with branch((instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
