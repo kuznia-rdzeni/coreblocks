@@ -7,7 +7,6 @@ from transactron.lib.simultaneous import condition
 from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
-from transactron.lib import Forwarder
 from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
