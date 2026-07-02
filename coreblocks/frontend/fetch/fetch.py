@@ -384,9 +384,12 @@ class FetchUnit(Elaboratable):
             redirect_or_unsafe_idx = Signal(range(fetch_width))
 
             with m.If(predcheck_res.mispredicted & (~has_unsafe | redirect_before_unsafe)):
+                # A JALR's target cannot be computed from predecode, so instead of redirecting
+                # we stall until the backend executes it. Any other mispredict (including a
+                # fall-through resteer, where cfi_type is INVALID) has a known target
                 m.d.av_comb += [
-                    redirect.eq(predcheck_res.cfi_valid),
-                    unsafe_stall.eq(~predcheck_res.cfi_valid),
+                    redirect.eq(~CfiType.is_jalr(predcheck_res.cfi_type)),
+                    unsafe_stall.eq(CfiType.is_jalr(predcheck_res.cfi_type)),
                     redirect_or_unsafe_idx.eq(predcheck_res.cfi_idx),
                 ]
             with m.Elif(has_unsafe):
@@ -415,7 +418,6 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].instr.eq(instrs[i]),
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
-                    raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.cfi_idx == i)),
                     raw_instrs[i].access_fault.eq(s1_data.access_fault),
                     raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                     raw_instrs[i].ftq_ptr.eq(ftq_ptr),
@@ -438,13 +440,17 @@ class FetchUnit(Elaboratable):
                         self.stall_unsafe(m)
 
                     with m.If(fault_any | unsafe_stall | redirect):
-                        self.fetch_writeback(
-                            m,
-                            ftq_ptr=ftq_ptr,
-                            redirect=redirect,
-                            cfi_target=predcheck_res.cfi_target,
-                        )
                         flush()
+
+                    self.fetch_writeback(
+                        m,
+                        ftq_ptr=ftq_ptr,
+                        redirect=redirect,
+                        stall=fault_any | unsafe_stall,
+                        cfi_idx=predcheck_res.cfi_idx,
+                        cfi_type=predcheck_res.cfi_type,
+                        cfi_target=predcheck_res.cfi_target,
+                    )
 
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
@@ -668,7 +674,6 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "cfi_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
                         "cfi_idx": pd_redirect_idx,
                         "cfi_type": decoded_cfi_types[pd_redirect_idx],
                         "cfi_target": decoded_target_for_decoded_cfi,
@@ -681,7 +686,6 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "cfi_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
                         "cfi_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
                         "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
                         "cfi_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
@@ -693,7 +697,6 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "cfi_valid": 1,
                         "cfi_idx": prediction.cfi_idx,
                         "cfi_type": decoded_cfi_types[prediction.cfi_idx],
                         "cfi_target": decoded_target_for_predicted_cfi,
@@ -704,7 +707,6 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 0,
-                        "cfi_valid": prediction.cfi_target_valid,
                         "cfi_idx": prediction.cfi_idx,
                         "cfi_type": prediction.cfi_type,
                         "cfi_target": prediction.cfi_target,
