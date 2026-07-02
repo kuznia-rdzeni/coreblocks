@@ -3,13 +3,17 @@ from typing import Any
 from amaranth import *
 
 from coreblocks.arch import *
+from transactron.evlog import EventSource
 from transactron.lib.metrics import *
 from transactron import Method, Provided, Transaction, TModule, def_method
 from coreblocks.interface.layouts import DecodeLayouts, FetchLayouts, JumpBranchLayouts
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.params import GenParams
+from coreblocks.telemetry import InstrDecoded
 from .instr_decoder import InstrDecoder
 from coreblocks.params import *
+
+evlog = EventSource("frontend.decode")
 
 
 class Decode(Elaboratable):
@@ -31,7 +35,7 @@ class Decode(Elaboratable):
         m = TModule()
 
         @def_method(m, self.decode)
-        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type, ftq_ptr):
+        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type, ftq_ptr, ftq_offset):
             m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
             m.d.top_comb += instr_decoder.instr.eq(instr)
 
@@ -94,6 +98,7 @@ class Decode(Elaboratable):
                 "csr": instr_decoder.csr,
                 "pc": pc,
                 "ftq_ptr": ftq_ptr,
+                "ftq_offset": ftq_offset,
             }
 
         return m
@@ -143,6 +148,14 @@ class DecodeStage(Elaboratable):
 
         with Transaction().body(m):
             instrs = self.get_raw(m)
+
+            for i in range(self.gen_params.frontend_superscalarity):
+                evlog.emit(
+                    m,
+                    InstrDecoded.hw(ftq_ptr=instrs.data[i].ftq_ptr, ftq_offset=instrs.data[i].ftq_offset),
+                    when=i < instrs.count,
+                )
+
             self.push_decoded(
                 m,
                 {

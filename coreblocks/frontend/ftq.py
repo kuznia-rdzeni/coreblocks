@@ -2,6 +2,7 @@ from amaranth import *
 from amaranth.lib.data import Layout
 import amaranth.lib.memory as memory
 from transactron import *
+from transactron.evlog import EventSource
 from transactron.utils import make_layout, DependencyContext
 from transactron.utils import logging
 from transactron.lib.metrics import *
@@ -18,9 +19,11 @@ from coreblocks.interface.layouts import (
 )
 from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
+from coreblocks.telemetry import FetchRequest, FTQAlloc, FTQCommit, FTQRollback
 
 
 log = logging.HardwareLogger("frontend.ftq")
+evlog = EventSource("frontend.ftq")
 
 
 class FTQMemoryWrapper(Elaboratable):
@@ -156,6 +159,8 @@ class FetchTargetQueue(Elaboratable):
             self.bpu_request(m, pc=ret.pc, ftq_ptr=alloc_ptr)
             pc_mem.write(m, ftq_ptr=alloc_ptr, data=ret.pc)
 
+            evlog.emit(m, FTQAlloc.hw(ftq_ptr=alloc_ptr, pc=ret.pc))
+
             m.d.av_comb += alloc_fetch_bypass.eq(ret)
             m.d.sync += alloc_ptr.eq(alloc_ptr + 1)
 
@@ -172,6 +177,7 @@ class FetchTargetQueue(Elaboratable):
             m.d.av_comb += fetch_pc.eq(Mux(early_fetch, alloc_fetch_bypass, pc_mem.read_data))
 
             self.ifu_request(m, ftq_ptr=fetch_ptr, pc=fetch_pc)
+            evlog.emit(m, FetchRequest.hw(ftq_ptr=fetch_ptr, pc=fetch_pc))
             m.d.comb += fetch_ptr_next.eq(fetch_ptr + 1)
 
         ftq_alloc_transaction.schedule_before(send_fetch_req_transaction)
@@ -191,6 +197,8 @@ class FetchTargetQueue(Elaboratable):
 
             self.bpu_flush(m)
 
+            evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
+
             m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
             m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
 
@@ -208,6 +216,8 @@ class FetchTargetQueue(Elaboratable):
                 "FTQ entry was retired out-of-order",
             )
 
+            evlog.emit(m, FTQCommit.hw(ftq_ptr=ftq_ptr))
+
             m.d.sync += commit_ptr.eq(ftq_ptr)
 
         @def_method(m, self.backend_redirect)
@@ -224,6 +234,7 @@ class FetchTargetQueue(Elaboratable):
             # For an exception/backend redirect the whole pipeline is squashed, so we restart
             # allocation right after the last committed entry.
             with m.If(~from_unsafe):
+                evlog.emit(m, FTQRollback.hw(ftq_ptr=commit_ptr_plus_one, cause="backend_redirect"))
                 m.d.sync += alloc_ptr.eq(commit_ptr_plus_one)
                 m.d.sync += fetch_ptr.eq(commit_ptr_plus_one)
 

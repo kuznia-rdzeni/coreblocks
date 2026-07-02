@@ -147,6 +147,7 @@ def main():
     parser.add_argument("--log-level", default="WARNING", action="store", help="Level of messages to display.")
     parser.add_argument("--log-filter", default=".*", action="store", help="Regexp used to filter out logs.")
     parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
+    parser.add_argument("--evlog", action="store_true", help="Write captured event logs")
     parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
     parser.add_argument(
         "-o",
@@ -179,6 +180,9 @@ def main():
 
     if args.profile:
         os.environ["__TRANSACTRON_PROFILE"] = "1"
+
+    if args.evlog:
+        os.environ["__TRANSACTRON_EVLOG"] = "1"
 
     success = run_benchmarks(benchmarks, args.backend, args.trace)
     if not success:
