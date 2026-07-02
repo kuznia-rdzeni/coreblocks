@@ -158,6 +158,12 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
                     if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
                         with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            # [SFENCE.W.INVAL] - make all current data/refills visible to flushes, so:
+                            # - wait for side effects - side_fx_guard
+                            # - by the TLB construction, all flushes are linearized after the refills,
+                            #   so all later flushes will see the new data.
+
+                            # [SINVAL.VMA] - flush the TLB
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
 
                             sfence_vma[0](
@@ -167,6 +173,11 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                                 all_vaddrs=imm_view.rs1 == 0,
                                 all_asids=imm_view.rs2 == 0,
                             )
+
+                            # [SFENCE.INVAL.IR] - make sure all later translations see the previous flushes, so:
+                            # - stall the fetcher
+                            # - by the TLB construction, all translations are linearized after the flushes,
+                            #   so all later translations will see the flushes.
 
                 with branch((instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)

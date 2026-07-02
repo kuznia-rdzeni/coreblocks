@@ -29,7 +29,8 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "SFenceVMAKey",
-    "L1TLBBackingDeviceKey",
+    "InstructionAddressTranslatorBackingDeviceKey",
+    "DataAddressTranslatorBackingDeviceKey",
     "FTQCommitKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
@@ -128,10 +129,17 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
     Expected layout is `AddressTranslationLayouts.sfence_vma`.
     """
 
+    pass
+
 
 @dataclass(frozen=True)
-class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
-    """Used to provide a component that can be used as a backing device for the L1 TLB."""
+class InstructionAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
+    pass
+
+
+@dataclass(frozen=True)
+class DataAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
+    pass
 
 
 @dataclass(frozen=True)

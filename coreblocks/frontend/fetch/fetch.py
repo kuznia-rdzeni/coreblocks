@@ -1,13 +1,12 @@
 from math import lcm
 from amaranth import *
 from amaranth.lib.data import ArrayLayout
-from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe
+from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
-from transactron.lib import Forwarder
 from transactron import *
 
 from coreblocks.cache.iface import CacheInterface
@@ -79,13 +78,14 @@ class FetchUnit(Elaboratable):
             tags=range(self.gen_params.fetch_width + 1),
         )
 
+        self.addr_translator = AddressTranslator(self.gen_params, mode=AddressTranslatorMode.INSTRUCTION)
+
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.addr_translator = addr_translator = AddressTranslator(
-            self.gen_params, mode=AddressTranslatorMode.INSTRUCTION
-        )
         m.submodules += [self.perf_fetch_utilization]
+
+        m.submodules.addr_translator = self.addr_translator
 
         fetch_width = self.gen_params.fetch_width
         fields = self.gen_params.get(CommonLayoutFields)
@@ -148,19 +148,24 @@ class FetchUnit(Elaboratable):
             mode=PMPOperationMode.INSTRUCTION_FETCH,
         )
 
-        m.submodules.ftq_ptr_forwarder = ftq_ptr_forwarder = Forwarder(make_layout(fields.ftq_ptr))
+        m.submodules.addr_translator_accept_pipe = addr_translator_accept_pipe = Pipe(
+            self.addr_translator.accept.layout_out
+        )
+        m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
+
+        m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr))
 
         @def_method(m, self.fetch_request)
         def _(pc, ftq_ptr):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
 
-            addr_translator.request(m, addr=pc, is_store=0)
-            ftq_ptr_forwarder.write(m, ftq_ptr=ftq_ptr)
+            self.addr_translator.request(m, addr=pc, is_store=0)
+            ftq_ptr_pipe.write(m, ftq_ptr=ftq_ptr)
 
         with Transaction().body(m):
-            translated = addr_translator.accept(m)
-            ftq_ptr = ftq_ptr_forwarder.read(m).ftq_ptr
+            translated = addr_translator_accept_pipe.read(m)
+            ftq_ptr = ftq_ptr_pipe.read(m).ftq_ptr
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
