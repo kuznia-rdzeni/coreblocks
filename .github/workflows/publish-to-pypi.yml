@@ -1,0 +1,189 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - 'v**'
+  schedule:
+    # Every Sunday at 00:00 UTC
+    - cron: '14 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  weekly-tag:
+    name: Create weekly tag
+    # Only for the scheduled trigger, or a manual run against master (lets you
+    # test the tagging logic on demand without waiting for Sunday).
+    if: ${{ github.repository == 'kuznia-rdzeni/coreblocks' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.new_tag }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: master
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Determine if a new weekly tag is needed
+      id: tag
+      run: |
+        set -euo pipefail
+
+        # Format: v0.<4-digit year>.<month, no leading zero>.<day, no leading zero>
+        NEW_TAG="v$(date -u +'0.%Y.%-m.%-d')"
+
+        # Find the most recent existing weekly tag (format v0.<year>.<month>.<day>)
+        LAST_WEEKLY_TAG=$(git tag -l 'v0.*' \
+          | grep -E '^v0\.[0-9]+\.[0-9]+\.[0-9]+$' \
+          | sort -t. -k2,2n -k3,3n -k4,4n \
+          | tail -n1 || true)
+
+        echo "Last weekly tag: ${LAST_WEEKLY_TAG:-<none>}"
+        echo "Candidate new tag: $NEW_TAG"
+
+        if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+          echo "Tag $NEW_TAG already exists, skipping."
+          echo "new_tag=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if [ -n "$LAST_WEEKLY_TAG" ] && git diff --quiet "$LAST_WEEKLY_TAG" HEAD; then
+          echo "No changes since $LAST_WEEKLY_TAG, skipping tag."
+          echo "new_tag=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "Creating new weekly tag $NEW_TAG"
+        git tag "$NEW_TAG" HEAD
+        git push origin "$NEW_TAG"
+        echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build distribution
+    needs:
+    - weekly-tag
+    # `always()` bypasses the default "skip if a needed job was skipped" behavior,
+    # since weekly-tag is intentionally skipped for ordinary push events.
+    if: >
+      always() &&
+      (
+        github.event_name == 'push' ||
+        needs.weekly-tag.outputs.tag != ''
+      )
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+        persist-credentials: false
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+    - name: Omit local version for Test PyPI upload
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      run: echo SETUPTOOLS_SCM_OVERRIDES_FOR_COREBLOCKS='{local_scheme="no-local-version"}' >> $GITHUB_ENV
+    - name: Install pypa/build
+      run: python3 -m pip install build --user
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs:
+    - build
+    - weekly-tag
+    if: >
+      always() &&
+      needs.build.result == 'success' &&
+      github.repository == 'kuznia-rdzeni/coreblocks' &&
+      (
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'dev')) ||
+        needs.weekly-tag.outputs.tag != ''
+      )
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/coreblocks
+    permissions:
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-to-testpypi:
+    name: Publish to TestPyPI
+    needs:
+    - build
+    if: ${{ github.repository == 'kuznia-rdzeni/coreblocks' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/coreblocks
+    permissions:
+      id-token: write
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: true
+        repository-url: https://test.pypi.org/legacy/
+
+  github-release:
+    name: Github Release
+    needs:
+    - publish-to-pypi
+    - weekly-tag
+    if: always() && needs.publish-to-pypi.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      # The tag we're releasing: for a real `push` of a tag, that's github.ref_name;
+      # for a weekly-triggered release, it's the tag weekly-tag just created
+      # (github.ref_name would incorrectly be "master" in that case).
+      RELEASE_TAG: ${{ (github.event_name == 'push' && github.ref_name) || needs.weekly-tag.outputs.tag }}
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Determine release metadata
+      id: metadata
+      run: |
+        echo name=${RELEASE_TAG/v/} >>$GITHUB_OUTPUT
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes ""
+    - name: Upload to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run:
+        gh release upload "$RELEASE_TAG" dist/** --repo "$GITHUB_REPOSITORY"
