@@ -133,7 +133,12 @@ jobs:
     name: Publish to TestPyPI
     needs:
     - build
-    if: ${{ github.repository == 'kuznia-rdzeni/coreblocks' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: >
+      always() &&
+      needs.build.result == 'success' &&
+      github.repository == 'kuznia-rdzeni/coreblocks' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: testpypi
