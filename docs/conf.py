@@ -1,12 +1,8 @@
 import datetime
-from sphinx_rtd_theme import get_html_theme_path
 
 # -- General configuration -----------------------------------------------------
 
 general_theme = "sphinx_rtd_theme"
-
-# Documentation theme.
-theme_path = get_html_theme_path() + "/" + general_theme
 
 # Minimal Sphinx version.
 needs_sphinx = "5.1.0"

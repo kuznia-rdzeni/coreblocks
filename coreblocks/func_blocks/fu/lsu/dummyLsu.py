@@ -2,8 +2,8 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO, ConnectTrans
-from transactron.lib.logging import HardwareLogger
+from transactron.lib.connectors import FIFO, ConnectTrans, Pipe
+from transactron.utils import logging
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext
 
@@ -18,7 +18,7 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
     CoreStateKey,
     ExceptionReportKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
 )
 from coreblocks.interface.layouts import FuncUnitLayouts, LSULayouts, AddressTranslationLayouts
 from coreblocks.params import *
@@ -58,7 +58,9 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         self.bus = bus
 
-        self.log = HardwareLogger("backend.lsu.dummylsu")
+        self.log = logging.HardwareLogger("backend.lsu.dummylsu")
+
+        self.addr_translator = AddressTranslator(self.gen_params, mode=AddressTranslatorMode.LSU)
 
     def elaborate(self, platform):
         m = TModule()
@@ -70,7 +72,9 @@ class LSUDummy(FuncUnit, Elaboratable):
             core_state = self.dependency_manager.get_dependency(CoreStateKey())
             state = core_state(m)
             m.d.comb += core_flush.eq(state.flushing)
-            m.d.comb += active_tags.eq(get_active_tags(m))
+
+        with Transaction().body(m):
+            active_tags = get_active_tags(m).active_tags
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
@@ -78,14 +82,13 @@ class LSUDummy(FuncUnit, Elaboratable):
         request_side_fx = Signal()
         is_load = Signal()
 
-        m.submodules.addr_translator = addr_translator = AddressTranslator(
-            self.gen_params, mode=AddressTranslatorMode.LSU
-        )
+        m.submodules.addr_translator = self.addr_translator
         m.submodules.pma_checker = pma_checker = PMAChecker(self.gen_params)
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
         m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.translator_in = translator_in = Pipe(self.translator_layouts.request)
         m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)
         m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
         m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
@@ -97,17 +100,18 @@ class LSUDummy(FuncUnit, Elaboratable):
                 m, 1, "issue rob_id={} funct3={} op_type={}", arg.rob_id, arg.exec_fn.funct3, arg.exec_fn.op_type
             )
             is_fence = arg.exec_fn.op_type == OpType.FENCE
-            with m.If(~is_fence):
-                addr = Signal(self.gen_params.isa.xlen)
-                m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
+            addr = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += addr.eq(arg.s1_val + arg.imm)
 
-                addr_translator.request(m, addr=addr)
+            with m.If(~is_fence):
+                translator_in.write(m, addr=addr, is_store=arg.exec_fn.op_type == OpType.STORE)
                 requests.write(m, arg)
             with m.Else():
                 results_noop.write(m, data=0, exception=0, cause=0, addr=0)
                 issued_noop.write(m, arg)
 
-        m.submodules += ConnectTrans.create(addr_translator.accept, translated.write)
+        m.submodules += ConnectTrans.create(translator_in.read, self.addr_translator.request)
+        m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
@@ -115,7 +119,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         can_reorder = is_load & ~pmas["mmio"]
         want_issue = request_side_fx | can_reorder
 
-        flush_instruction = core_flush | ~active_tags.active_tags[request_tag]
+        flush_instruction = core_flush | ~active_tags[request_tag]
 
         do_issue = ~flush_instruction & want_issue
         with Transaction().body(m, ready=do_issue):
@@ -202,8 +206,9 @@ class LSUDummy(FuncUnit, Elaboratable):
             )
 
         with Transaction().body(m):
-            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            m.d.comb += request_side_fx.eq(precommit(m, rob_id=request_rob_id, tag=request_tag).side_fx)
+            side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
+            side_fx_guard(m, rob_id=request_rob_id, tag=request_tag, require_done=0)
+            m.d.comb += request_side_fx.eq(1)
 
         return m
 

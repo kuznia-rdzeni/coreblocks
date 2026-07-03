@@ -25,11 +25,11 @@ _start:
 1:
     j 1b
 
-    li x5, 0x2
+    li x5, 0x4
     li x6, 0x10
     li x4, 0xE1004000
     sb x5, 1(x4)
-    sb x6, 0(x4) # set mtimecmp = 0x210
+    sb x6, 0(x4) # set mtimecmp = 0x410
 
     li x1, 1<<7
     csrs mie, x1 # enable MTI interrupt
@@ -52,10 +52,12 @@ t2c:
 
 fail:
     sw x0, (x0)
+    csrw 0x8fe, 0x12
     j fail
 
 pass:
     li x8, 1
+    csrw 0x8fe, 0x10
     j pass
 
 trap_handler:
@@ -79,7 +81,7 @@ timer_handler_0:
     bgtz x7, timer_handler_1
 
     csrr x1, time
-    addi x1, x1, -0x210
+    addi x1, x1, -0x410
     bltz x1, fail
     addi x1, x1, -128
     bgtz x1, fail

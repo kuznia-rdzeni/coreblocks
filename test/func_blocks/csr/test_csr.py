@@ -9,12 +9,13 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts
+from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
+    CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     CSRInstancesKey,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel
@@ -33,19 +34,22 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.precommit = self.precommit = TestbenchIO(
+        m.submodules.side_fx_guard = self.side_fx_guard = TestbenchIO(
             Adapter(
-                i=self.gen_params.get(RetirementLayouts).precommit_in,
-                o=self.gen_params.get(RetirementLayouts).precommit_out,
+                i=self.gen_params.get(RetirementLayouts).side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
+        m.submodules.core_state = self.core_state = TestbenchIO(
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
+        )
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -87,7 +91,15 @@ class CSRUnitTestCircuit(Elaboratable):
         return m
 
 
-class TestCSRUnit(TestCaseWithSimulator):
+class TestCSRUnitBase(TestCaseWithSimulator):
+    dut: CSRUnitTestCircuit
+
+    @def_method_mock(lambda self: self.dut.core_state)
+    def core_state_mock(self):
+        return {"flushing": 0}
+
+
+class TestCSRUnit(TestCSRUnitBase):
     def gen_expected_out(self, sim: TestbenchContext, op: Funct3, rd: int, rs1: int, operand_val: int, csr: int):
         exp_read = {"rp_dst": rd, "result": sim.get(self.dut.csr[csr].value)}
         rs1_val = {"rp_s1": rs1, "value": operand_val}
@@ -159,13 +171,13 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)  # TODO: sensible precommit handling
+            self.dut.side_fx_guard.call_init(sim)  # TODO: sensible side_fx_guard handling
 
             await self.random_wait_geom(sim)
             res, resume_res = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.fetch_resume).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res is not None and resume_res is not None
             assert res.rp_dst == op["exp"]["exp_read"]["rp_dst"]
@@ -253,13 +265,13 @@ class TestCSRUnit(TestCaseWithSimulator):
 
             await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)
+            self.dut.side_fx_guard.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res["exception"] == 1
             assert report is not None
@@ -309,13 +321,13 @@ class TestCSRUnit(TestCaseWithSimulator):
             )
 
             await self.random_wait_geom(sim)
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim, side_fx=1)
+            self.dut.side_fx_guard.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res is not None
             assert res.exception == int(case["expect_exception"])
@@ -362,7 +374,7 @@ class TestCSRRegister(TestCaseWithSimulator):
                 exp_write_data = (write_arg & ~self.ro_mask) | (
                     (exp_write_data if exp_write_data is not None else previous_data) & self.ro_mask
                 )
-                self.dut._fu_write.call_init(sim, data=write_arg)
+                self.dut._fu_write.call_init(sim, data=write_arg, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
 
             if random.random() < 0.2:
                 fu_read = True
@@ -406,7 +418,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         for _ in range(50):
             input = random.randrange(0, 2**34)
 
-            await self.dut._fu_write.call(sim, data=input)
+            await self.dut._fu_write.call(sim, data=input, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
             output = (await self.dut._fu_read.call(sim))["data"]
 
             expected = prev_value
@@ -458,7 +470,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         self.dut.read_comb.enable(sim)
         self.dut._fu_read.enable(sim)
 
-        self.dut._fu_write.call_init(sim, data=0xFFFF)
+        self.dut._fu_write.call_init(sim, data=0xFFFF, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         while self.dut._fu_write.get_call_result(sim) is None:
             await sim.tick()
         assert self.dut.read_comb.get_call_result(sim).data == 0xFFFF
@@ -468,7 +480,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         assert self.dut._fu_read.get_call_result(sim)["data"] == 0xFFFB
         await sim.tick()
 
-        self.dut._fu_write.call_init(sim, data=0x0FFF)
+        self.dut._fu_write.call_init(sim, data=0x0FFF, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         self.dut.write.call_init(sim, data=0xAAAA)
         while self.dut._fu_write.get_call_result(sim) is None or self.dut.write.get_call_result(sim) is None:
             await sim.tick()
@@ -478,7 +490,7 @@ class TestCSRRegister(TestCaseWithSimulator):
         await sim.tick()
 
         # single cycle
-        self.dut._fu_write.call_init(sim, data=0x0BBB)
+        self.dut._fu_write.call_init(sim, data=0x0BBB, op_type=CSRRegisterLayouts.WriteOpType.CSR_WRITE)
         while self.dut._fu_write.get_call_result(sim) is None:
             await sim.tick()
         update_val = self.dut.read_comb.get_call_result(sim).data | 0xD000

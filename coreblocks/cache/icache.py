@@ -10,9 +10,8 @@ from transactron.core import def_method, Priority, TModule
 from transactron import Method, Transaction
 from coreblocks.params import ICacheParameters
 from coreblocks.interface.layouts import ICacheLayouts
-from transactron.utils import assign, OneHotSwitchDynamic
+from transactron.utils import OneHotMux, assign, logging
 from transactron.lib import *
-from transactron.lib import logging
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 from coreblocks.cache.iface import CacheInterface, CacheRefillerInterface
@@ -198,8 +197,7 @@ class ICache(Elaboratable, CacheInterface):
                 m.d.comb += forwarding_response_now.eq(1)
                 self.perf_hits.incr(m, enable_call=tag_hit_any)
                 mem_out = Signal(self.params.fetch_block_bytes * 8)
-                for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
-                    m.d.av_comb += mem_out.eq(self.mem.data_rd_data[i])
+                m.d.av_comb += mem_out.eq(OneHotMux.create(m, zip(tag_hit, self.mem.data_rd_data)))
 
                 req_zipper.write_results(m, fetch_block=mem_out, error=refill_error_saved)
                 m.d.sync += refill_error_saved.eq(0)

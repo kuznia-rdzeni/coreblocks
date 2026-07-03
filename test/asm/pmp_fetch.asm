@@ -27,8 +27,10 @@ trap_handler:
     j pass
 
 fail:
+    csrw 0x8fe, 0x12
     j fail
 
 pass:
     li x1, 1
+    csrw 0x8fe, 0x10
     j pass

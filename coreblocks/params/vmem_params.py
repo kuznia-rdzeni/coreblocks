@@ -1,6 +1,27 @@
+from dataclasses import dataclass
 from typing import Collection
 
 from coreblocks.arch.isa_consts import SatpMode, SatpLayout, PAGE_SIZE_LOG
+
+__all__ = [
+    "TLBCacheConfiguration",
+    "VirtualMemoryParameters",
+]
+
+
+@dataclass(frozen=True)
+class TLBCacheConfiguration:
+    itlb_entries: int = 16
+    """Number of L1i TLB entries"""
+
+    dtlb_entries: int = 16
+    """Number of L1d TLB entries"""
+
+    l2tlb_entries: int = 128
+    """Number of L2 TLB entries"""
+
+    l2tlb_ways: int = 8
+    """Number of L2 TLB ways (must divide l2tlb_entries)"""
 
 
 class VirtualMemoryParameters:
@@ -14,12 +35,16 @@ class VirtualMemoryParameters:
         satp_layout = SatpLayout(xlen)
         return satp_layout["ppn"].width + PAGE_SIZE_LOG
 
+    @staticmethod
+    def size_class_shift(xlen: int, size_class: int) -> int:
+        return SatpMode.bits_per_page_table_level(xlen) * size_class
+
     def __init__(
         self,
         *,
         xlen: int,
         supervisor_mode: bool = False,
-        asidlen: int = 0,
+        asidlen: int | None = None,
         supported_schemes: Collection[SatpMode] = (SatpMode.BARE,),
     ):
         self.supported_schemes = frozenset(supported_schemes)
@@ -30,12 +55,15 @@ class VirtualMemoryParameters:
         if not supervisor_mode and self.supported_schemes != {SatpMode.BARE}:
             raise ValueError("Virtual memory schemes other than BARE require supervisor mode support")
 
-        if asidlen < 0:
+        if asidlen is not None and asidlen < 0:
             raise ValueError(f"ASIDLEN must be non-negative, got {asidlen}")
 
         self.satp_layout = SatpLayout(xlen)
 
         max_asidlen = self.satp_layout["asid"].width
+        if asidlen is None:
+            asidlen = max_asidlen
+
         if asidlen > max_asidlen:
             raise ValueError(f"ASIDLEN={asidlen} exceeds maximum {max_asidlen} for XLEN={xlen}")
 
@@ -44,7 +72,7 @@ class VirtualMemoryParameters:
             raise ValueError(f"Schemes {self.supported_schemes - supported_for_xlen} are not valid for XLEN={xlen}")
 
         for mode in self.supported_schemes:
-            dependencies = SatpMode.mode_dependencies(mode)
+            dependencies = mode.mode_dependencies()
             if not dependencies <= self.supported_schemes:
                 raise ValueError(
                     f"Schemes {dependencies - self.supported_schemes} are required by {mode} but not supported"
@@ -53,3 +81,20 @@ class VirtualMemoryParameters:
         self.xlen = xlen
         self.asidlen = asidlen
         self.max_asid = (1 << asidlen) - 1
+        self.page_table_level_bits = SatpMode.bits_per_page_table_level(xlen)
+        self.max_tlb_vpn_bits = max(
+            (mode.vpn_bits() for mode in self.supported_non_bare_schemes),
+            default=0,
+        )
+        self.max_tlb_size_class = max(
+            (mode.level_count() - 1 for mode in self.supported_non_bare_schemes),
+            default=0,
+        )
+        self.tlb_size_class_bits = self.max_tlb_size_class.bit_length()
+
+        # Should be True when Svade is not supported or Svadu is supported
+        self.supports_auto_a_d_management = False
+
+    @property
+    def supported_non_bare_schemes(self) -> Collection[SatpMode]:
+        return [scheme for scheme in self.supported_schemes if scheme != SatpMode.BARE]

@@ -71,7 +71,9 @@ machine_trap:
     li x31, 0xae
 
 fail:
+    csrw 0x8fe, 0x12
     j fail
 
 pass:
+    csrw 0x8fe, 0x10
     j pass

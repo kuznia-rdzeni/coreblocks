@@ -4,30 +4,33 @@ from amaranth.lib import data
 
 from enum import IntFlag, auto, unique
 from typing import Sequence
-from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel, SatpMode
+
+from transactron.lib import ConnectTrans, Forwarder
+from coreblocks.arch.isa_consts import Funct12, Funct3, Funct7, Opcode, PrivilegeLevel
 
 
 from transactron import *
-from transactron.lib import ConnectTrans, Forwarder, logging
+from transactron.utils import logging
 from transactron.lib.metrics import TaggedCounter
 from transactron.lib.simultaneous import condition
 from transactron.utils import DependencyContext, OneHotSwitch
 
-from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
 from coreblocks.interface.layouts import PrivUnitLayouts
 from coreblocks.interface.keys import (
     ActiveTagsKey,
+    CoreStateKey,
     MretKey,
     SretKey,
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     CSRInstancesKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
+    SFenceVMAKey,
 )
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 
@@ -68,7 +71,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
-            "Number of instructions precommited with side effects by the privilege unit",
+            "Number of instructions executed by the privilege unit",
             tags=PrivilegedFn.Fn,
         )
 
@@ -99,9 +102,22 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         csr = self.dm.get_dependency(CSRInstancesKey())
         priv_mode = csr.m_mode.priv_mode
         flush_icache = self.dm.get_dependency(FlushICacheKey())
+        sfence_vma = self.dm.get_optional_dependency(SFenceVMAKey())
         resume_core = self.dm.get_dependency(UnsafeInstructionResolvedKey())
         m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
         m.submodules.resume_conn = ConnectTrans.create(resume_core_fwd.read, resume_core)
+
+        if sfence_vma is not None:
+            m.submodules += sfence_vma[1]
+
+        with Transaction().body(m):
+            core_state = self.dm.get_dependency(CoreStateKey())(m)
+
+        with Transaction().body(m):
+            active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
+
+        flush_inactive = Signal()
+        m.d.comb += flush_inactive.eq(instr_valid & ~finished & ~active_tags[instr_tag] & ~core_state.flushing)
 
         @def_method(m, self.issue_decoded, ready=~instr_valid)
         def _(arg):
@@ -117,10 +133,11 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):
-            precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, rob_id=instr_rob, tag=instr_tag)
+            side_fx_guard = self.dm.get_dependency(SideFxGuardKey())
+            side_fx_guard(m, rob_id=instr_rob, tag=instr_tag, require_done=0)
+
             m.d.sync += finished.eq(1)
-            self.perf_instr.incr(m, instr_fn, enable_call=info.side_fx)
+            self.perf_instr.incr(m, instr_fn)
 
             priv_data = priv_mode.read(m).data
 
@@ -148,26 +165,46 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             )
 
             with condition(m, nonblocking=True) as branch:
-                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
+                with branch((instr_fn == PrivilegedFn.Fn.MRET) & ~illegal_mret):
                     mret(m)
                 if self.fn.supervisor_enable:
                     assert sret is not None
-                    with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
+                    with branch((instr_fn == PrivilegedFn.Fn.SRET) & ~illegal_sret):
                         sret(m)
 
-                    # TODO: implement proper SFENCE.VMA, for BARE only - NO-OP is ok
-                    assert self.gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
+                    if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
+                        with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            # [SFENCE.W.INVAL] - make all current data/refills visible to flushes, so:
+                            # - wait for side effects - side_fx_guard
+                            # - by the TLB construction, all flushes are linearized after the refills,
+                            #   so all later flushes will see the new data.
 
-                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.FENCEI)):
+                            # [SINVAL.VMA] - flush the TLB
+                            imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
+
+                            sfence_vma[0](
+                                m,
+                                vaddr=instr_s1_val,
+                                asid=instr_s2_val[: self.gen_params.vmem_params.asidlen],
+                                all_vaddrs=imm_view.rs1 == 0,
+                                all_asids=imm_view.rs2 == 0,
+                            )
+
+                            # [SFENCE.INVAL.IR] - make sure all later translations see the previous flushes, so:
+                            # - stall the fetcher
+                            # - by the TLB construction, all translations are linearized after the flushes,
+                            #   so all later translations will see the flushes.
+
+                with branch((instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
-                with branch(info.side_fx & (instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
+                with branch((instr_fn == PrivilegedFn.Fn.WFI) & ~illegal_wfi):
                     # async_interrupt_active implies wfi_resume. WFI should continue normal execution
                     # when interrupt is enabled in xie, but disabled via global mstatus.xIE
                     m.d.sync += finished.eq(wfi_resume)
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret | illegal_sret | illegal_sfencevma)
 
-        with Transaction().body(m, ready=instr_valid & finished):
+        with Transaction().body(m, ready=instr_valid & (finished | core_state.flushing | flush_inactive)):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
@@ -224,7 +261,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
-                # mret() method is called from precommit() that was executed at least one cycle earlier (because
+                # mret() method is called (on side effect time) at least one cycle earlier (because
                 # of finished condition). If calling mret() caused interrupt to be active, it is already represented
                 # by updated async_interrupt_active signal.
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
@@ -238,11 +275,10 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     tag=instr_tag,
                     mtval=0,
                 )
-            with m.Else():
-                log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
+            with m.Elif(~core_state.flushing):
                 # Unstall the fetch
-                get_active_tags = self.dm.get_dependency(ActiveTagsKey())
-                with m.If(get_active_tags(m).active_tags[instr_tag]):
+                with m.If(active_tags[instr_tag]):
+                    log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                     resume_core_fwd.write(m, pc=ret_pc)
 
             self.push_result(

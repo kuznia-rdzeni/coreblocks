@@ -94,6 +94,9 @@ class GenParams(DependentCache):
         self.max_rs_entries_bits = ceil_log2(self.max_rs_entries)
         self.start_pc = cfg.start_pc
 
+        self.ftq_size_log = cfg.ftq_size_log
+        self.ftq_size = 2**cfg.ftq_size_log
+
         self.frontend_superscalarity = cfg.frontend_superscalarity
         self.announcement_superscalarity = cfg.announcement_superscalarity
         self.retirement_superscalarity = cfg.retirement_superscalarity
@@ -103,6 +106,7 @@ class GenParams(DependentCache):
 
         self.checkpoint_count = cfg.checkpoint_count
         self.tag_bits = cfg.tag_bits
+        self.tag_count = 2**self.tag_bits
         assert cfg.checkpoint_count < 2**cfg.tag_bits
 
         self.min_instr_width_bytes = 2 if cfg.compressed or cfg.zcb else 4
@@ -120,10 +124,24 @@ class GenParams(DependentCache):
 
         self.interrupt_custom_count = cfg.interrupt_custom_count
         self.interrupt_custom_edge_trig_mask = cfg.interrupt_custom_edge_trig_mask
+        self.interrupt_all_interrupts_delegable = cfg.interrupt_all_interrupts_delegable
 
         self.user_mode = cfg.user_mode
         self.supervisor_mode = cfg.supervisor_mode
         self.hpm_counters_count = cfg.hpm_counters_count
+
+        self.tlb_config = cfg.tlb_config
+
+        if self.tlb_config.itlb_entries <= 0:
+            raise ValueError("ITLB entries must be positive")
+        if self.tlb_config.dtlb_entries <= 0:
+            raise ValueError("DTLB entries must be positive")
+        if self.tlb_config.l2tlb_entries <= 0:
+            raise ValueError("L2 TLB entries must be positive")
+        if self.tlb_config.l2tlb_ways <= 0:
+            raise ValueError("L2 TLB ways must be positive")
+        if self.tlb_config.l2tlb_entries % self.tlb_config.l2tlb_ways != 0:
+            raise ValueError("L2 TLB entries must be divisible by L2 TLB ways")
 
         if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
             raise ValueError("HPM counters count must be in range [0, 29]")

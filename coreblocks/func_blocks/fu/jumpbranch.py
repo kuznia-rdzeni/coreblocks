@@ -8,7 +8,7 @@ from typing import Sequence
 from transactron import *
 from transactron.core import def_method
 from transactron.lib import *
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.utils import DependencyContext, from_method_layout
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
@@ -16,7 +16,7 @@ from coreblocks.interface.layouts import JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
     ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
-    BranchVerifyKey,
+    BranchResolveKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
     RollbackKey,
@@ -113,10 +113,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
     def __init__(self, gen_params: GenParams, fn=JumpBranchFn()):
         super().__init__(gen_params, fn)
 
-        self.fifo_branch_resolved = FIFO(self.gen_params.get(JumpBranchLayouts).verify_branch, 2)
-
         self.dm = DependencyContext.get()
-        self.dm.add_dependency(BranchVerifyKey(), self.fifo_branch_resolved.read)
 
         self.perf_misaligned = HwCounter(
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
@@ -138,7 +135,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         # then precommit without modifications will work fine with one cycle here more, and for next rollbacks
         # jumps could be held in this unit itself for needed cycles.
         rollback_trigger_handlers, rollback_unifiers = self.dm.get_dependency(RollbackKey())
-        m.submodules += rollback_unifiers.values()
+        m.submodules += rollback_unifiers
         m.submodules.rollback_fifo = rollback_fifo = Forwarder(rollback_trigger_handlers.layout_in)
         m.submodules.rollback_connect = ConnectTrans.create(rollback_fifo.read, rollback_trigger_handlers)
 
@@ -148,9 +145,9 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         m.submodules.unsafe_resolved_connect = ConnectTrans.create(unsafe_resolved_fwd.read, unsafe_resolved)
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
+        resolve_branch = self.dm.get_dependency(BranchResolveKey())
 
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.fn)
-        m.submodules.fifo_branch_resolved = self.fifo_branch_resolved
 
         fields = self.gen_params.get(CommonLayoutFields)
         instr_fifo_layout = make_layout(
@@ -242,7 +239,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 )  # trigger rollback and mispredicted path invalidation
 
             with m.If(~is_auipc):
-                self.fifo_branch_resolved.write(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
+                resolve_branch(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
                 log.debug(
                     m,
                     True,

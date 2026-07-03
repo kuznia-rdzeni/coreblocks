@@ -49,7 +49,7 @@ python3 -m venv venv
 . venv/bin/activate
 python3 -m pip install --upgrade pip
 pip3 install ".[dev]"
-PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --config full
+PYTHONHASHSEED=0 coreblocks --verbose --config full
 ./scripts/parse_benchmark_info.py
 cat benchmark.json
 ```
@@ -117,7 +117,7 @@ python3 -m venv venv
 python3 -m pip install --upgrade pip
 cd coreblocks
 pip3 install ".[dev]"
-PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+PYTHONHASHSEED=0 coreblocks --verbose --config full
 ./scripts/run_benchmarks.py
 ```
 
@@ -157,6 +157,83 @@ python3 -m venv venv
 python3 -m pip install --upgrade pip
 cd coreblocks
 pip3 install ".[dev]"
-PYTHONHASHSEED=0 ./scripts/gen_verilog.py --verbose --config full
+PYTHONHASHSEED=0 coreblocks --verbose --config full
 ./scripts/run_tests.py -a regression
+```
+
+## RISC-V Architectural Certification Tests
+
+RISC-V architectural certification tests are a set of tests that check whether the core is compliant with the RISC-V specification. They are similar to regression tests, but they are more comprehensive and cover more edge cases. They are provided by the [riscv-arch-tests](https://github.com/riscv/riscv-arch-tests) repository.
+
+The UDB configuration of the full configuration of the core is present in test/external/riscv-arch-test/coreblocks/coreblocks-full/coreblocks.yaml.
+
+From it and other files in the same directory, the ACT4 framework generates self-checking ELF binaries, which are then executed on the simulated core.
+
+### Building ACT4 binaries
+
+Coreblocks project provides a configuration for which the tests pass.
+
+```bash
+git clone --depth=1 https://github.com/kuznia-rdzeni/coreblocks.git
+cd coreblocks
+git submodule update --init --recursive
+cd ..
+sudo docker pull ghcr.io/riscv/act4-build:latest
+sudo docker run -v ./coreblocks:/coreblocks -it --rm --user root ghcr.io/riscv/act4-build:latest
+cd /coreblocks/test/external/riscv-arch-test
+make -j$(nproc)
+exit
+```
+
+This puts the generated ELF binaries in the `./test/external/riscv-arch-test/elfs` directory, which is shared with the host, so the binaries survive after the docker container is closed.
+
+### Preparing for running ACT4 tests
+
+Following steps require the verilator to be set up correctly, so please build environment for running in following way:
+
+```bash
+sudo docker pull ghcr.io/kuznia-rdzeni/verilator:latest
+sudo docker run -v ./coreblocks:/coreblocks -it --rm ghcr.io/kuznia-rdzeni/verilator:latest
+apt update
+apt install python3.13-venv
+python3 -m venv venv
+. venv/bin/activate
+python3 -m pip install --upgrade pip
+cd coreblocks
+pip3 install ".[dev]"
+```
+
+### Running ACT4 tests using ACT4 runner
+
+ACT4 framework provides a runner used for certification of RISC-V cores. For it to work one can call test_arch_regression script to run a test binary on the simulated core. The script will check the test result and print the error message if the test has failed.
+
+```bash
+python -m test.regression.test_arch_regression --backend cocotb "<elf_filename>"
+```
+
+To run all of the tests in the directory, you can use the ACT4 runner script.
+
+```bash
+python ./test/external/riscv-arch-test/riscv-arch-test/run_tests.py \
+  "python -m test.regression.test_arch_regression --backend cocotb" \
+  ./test/external/riscv-arch-test/elfs
+```
+
+This will generate the summary of the run in `./test/external/riscv-arch-test/summary.log` file and the detailed log for each test in `./test/external/riscv-arch-test/logs` directory.
+
+For more information please see `python ./test/external/riscv-arch-test/riscv-arch-test/run_tests.py --help`.
+
+Please note that the runner has a defualt timeout of 300 seconds and the verilation step can take a long time, so it is recommended perform core compilation
+before running ACT4's run_tests script. To do that, you can run the following command:
+
+```bash
+python -m test.regression.test_arch_regression --backend cocotb
+```
+
+### Running ACT4 tests using pytest
+
+Alternatively, you can run built ACT4 tests using pytest. To do that, you can use the following command:
+
+```bash
+./scripts/run_tests.py --arch-tests regression
 ```

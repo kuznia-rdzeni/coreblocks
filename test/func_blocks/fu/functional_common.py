@@ -19,14 +19,13 @@ from coreblocks.interface.layouts import ExceptionRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
 from transactron.testing import (
-    RecordIntDict,
     TestbenchIO,
     TestCaseWithSimulator,
     SimpleTestCircuit,
     ProcessContext,
     TestbenchContext,
 )
-from transactron.utils import ModuleConnector
+from transactron.utils import ModuleConnector, NameIntDict
 
 
 class FunctionalTestCircuit(Elaboratable):
@@ -117,9 +116,9 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)
-        self.requests = deque[RecordIntDict]()
-        self.responses = deque[RecordIntDict]()
-        self.exceptions = deque[RecordIntDict]()
+        self.requests = deque[NameIntDict]()
+        self.responses = deque[NameIntDict]()
+        self.exceptions = deque[NameIntDict]()
 
         max_int = 2**self.gen_params.isa.xlen - 1
         functions = list(self.ops.keys())

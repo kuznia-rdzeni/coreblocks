@@ -3,7 +3,7 @@ from amaranth.lib.data import ArrayLayout
 from amaranth.utils import ceil_log2
 
 from transactron.core import *
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.connectors import Pipe
 from transactron.lib.metrics import HwExpHistogram
 from transactron.lib.simultaneous import condition
@@ -69,14 +69,13 @@ class CheckpointRAT(Elaboratable):
         # Checkpoint count = 1 is not currently possible because of how retirement freeing works
         assert gen_params.checkpoint_count > 1
 
-        self.frat_layout = ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt)
-        self.frat = Signal(self.frat_layout)
-
         layouts = gen_params.get(RATLayouts)
+        self.frat = Signal(layouts.entries_shape)
+
         self.tag = Method(i=layouts.crat_tag_in, o=layouts.crat_tag_out)
         self.commit_checkpoint = Method(i=layouts.crat_commit_checkpoint_in)
         self.rename = Methods(gen_params.frontend_superscalarity, i=layouts.crat_rename_in, o=layouts.crat_rename_out)
-        self.flush_restore = Method(i=layouts.crat_flush_restore)
+        self.flush_restore = Method(i=layouts.crat_flush_restore_in)
 
         self.rollback = Method(i=layouts.rollback_in)
         self.dm = DependencyContext.get()
@@ -102,13 +101,13 @@ class CheckpointRAT(Elaboratable):
         checkpoints_tail = Signal.like(checkpoints_head)
         checkpoints_full = Signal()
 
-        active_tags = Signal(2**self.gen_params.tag_bits, init=1)
-        checkpointed_tags = Signal(2**self.gen_params.tag_bits, init=0)
+        active_tags = Signal(self.gen_params.tag_count, init=1)
+        checkpointed_tags = Signal(self.gen_params.tag_count, init=0)
 
-        storage = MemoryBank(shape=self.frat_layout, depth=self.gen_params.checkpoint_count)
+        storage = MemoryBank(shape=self.frat.shape(), depth=self.gen_params.checkpoint_count)
         tag_map = MemoryBank(
             shape=range(self.gen_params.checkpoint_count),
-            depth=2**self.gen_params.tag_bits,
+            depth=self.gen_params.tag_count,
         )
 
         rollback_just_started = Signal()
@@ -251,7 +250,7 @@ class CheckpointRAT(Elaboratable):
                 m.d.sync += self.frat[active_renames[k].rl_dst].eq(active_renames[k].rp_dst)
 
         for i in range(self.gen_params.frontend_superscalarity):
-            self.flush_restore.add_conflict(self.rename[i], Priority.RIGHT)
+            self.flush_restore.add_conflict(self.rename[i], Priority.RIGHT)  # TODO: probably not needed? remove me
         self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
 
         # -------------------------------------------
@@ -467,7 +466,7 @@ class CheckpointRAT(Elaboratable):
                     Mux(
                         tags_tail < tags_head,
                         tags_head - tags_tail,
-                        2**self.gen_params.tag_bits - tags_tail + tags_head,
+                        self.gen_params.tag_count - tags_tail + tags_head,
                     )
                 )
                 perf_tags.add(m, num_tags)

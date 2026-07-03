@@ -8,7 +8,6 @@ from transactron.lib import ConnectTrans, Forwarder
 from transactron.utils import assign
 from transactron.utils.data_repr import bits_from_int
 from transactron.utils.dependencies import DependencyContext
-from transactron.lib.simultaneous import condition
 
 from coreblocks.arch import OpType, Funct3, ExceptionCause, PrivilegeLevel
 from coreblocks.arch.isa_consts import Opcode
@@ -16,12 +15,14 @@ from coreblocks.params import GenParams
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
-from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts
+from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     CSRListKey,
+    CoreStateKey,
     UnsafeInstructionResolvedKey,
     CSRInstancesKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     ExceptionReportKey,
     AsyncInterruptInsertSignalKey,
 )
@@ -139,34 +140,35 @@ class CSRUnit(FuncBlock, Elaboratable):
             | ((instr.exec_fn.funct3 == Funct3.CSRRCI) & (instr.s1_val != 0))
         )
 
-        exe_side_fx = Signal()
+        write_type = Signal(CSRRegisterLayouts.WriteOpType)
+        with m.Switch(instr.exec_fn.funct3):
+            with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_WRITE)
+            with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_SET)
+            with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
+                m.d.av_comb += write_type.eq(CSRRegisterLayouts.WriteOpType.CSR_CLEAR)
 
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, ready=(ready_to_process & ~done)):
-            precommit = self.dependency_manager.get_dependency(InstructionPrecommitKey())
-            info = precommit(m, rob_id=instr.rob_id, tag=instr.tag)
-            m.d.top_comb += exe_side_fx.eq(info.side_fx)
+            side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
+            side_fx_guard(m, rob_id=instr.rob_id, tag=instr.tag, require_done=1)
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
-            # Use condition() as a workaround for kuznia-rdzeni/transactron#10, as _fu_(read|write) methods
-            # are called multiple times, as some CSRs are aliased call other CSR's _fu_* methods.
-            with condition(m) as branch:
+            with m.Switch(instr.csr):
                 for csr_number, csr in self.regfile.items():
                     priv_level_required, read_only = self._csr_access_privilege(csr_number)
 
-                    with branch(instr.csr == csr_number):
+                    with m.Case(csr_number):
                         priv_valid = Signal()
                         csr_access_valid = csr._fu_access_valid(m, current_priv_mode).valid
 
-                        m.d.comb += priv_valid.eq(priv_level_required <= current_priv_mode)
+                        m.d.av_comb += priv_valid.eq(priv_level_required <= current_priv_mode)
 
                         with m.If(priv_valid & csr_access_valid):
-                            read_val = Signal(self.gen_params.isa.xlen)
                             with m.If(should_read_csr & ~done):
-                                with m.If(exe_side_fx):
-                                    m.d.comb += read_val.eq(csr._fu_read(m))
-                                m.d.sync += current_result.eq(read_val)
+                                m.d.sync += current_result.eq(csr._fu_read(m))
 
                             if read_only:
                                 with m.If(should_write_csr):
@@ -174,22 +176,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                                     m.d.sync += exception.eq(1)
                             else:
                                 with m.If(should_write_csr & ~done):
-                                    write_val = Signal(self.gen_params.isa.xlen)
-                                    with m.Switch(instr.exec_fn.funct3):
-                                        with m.Case(Funct3.CSRRW, Funct3.CSRRWI):
-                                            m.d.comb += write_val.eq(instr.s1_val)
-                                        with m.Case(Funct3.CSRRS, Funct3.CSRRSI):
-                                            m.d.comb += write_val.eq(read_val | instr.s1_val)
-                                        with m.Case(Funct3.CSRRC, Funct3.CSRRCI):
-                                            m.d.comb += write_val.eq(read_val & (~instr.s1_val))
-                                    with m.If(exe_side_fx):
-                                        csr._fu_write(m, write_val)
+                                    csr._fu_write(m, data=instr.s1_val, op_type=write_type)
 
                         with m.Else():
                             # Missing privilege
                             m.d.sync += exception.eq(1)
 
-                with branch():
+                with m.Default():
                     # Invalid CSR number
                     m.d.sync += exception.eq(1)
 
@@ -215,7 +208,16 @@ class CSRUnit(FuncBlock, Elaboratable):
                 m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        @def_method(m, self.get_result, done)
+        with Transaction().body(m):
+            core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
+
+        with Transaction().body(m):
+            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
+
+        flush_inactive = Signal()
+        m.d.comb += flush_inactive.eq(ready_to_process & ~active_tags[instr.tag] & ~core_state.flushing)
+
+        @def_method(m, self.get_result, done | (ready_to_process & core_state.flushing) | flush_inactive)
         def _():
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
@@ -226,52 +228,53 @@ class CSRUnit(FuncBlock, Elaboratable):
             m.submodules.resume_fwd = resume_core_fwd = Forwarder(resume_core.layout_in)
             m.submodules.resume_conn = ConnectTrans.create(resume_core_fwd.read, resume_core)
 
-            with m.If(exception):
-                mtval = Signal(self.gen_params.isa.xlen)
-                # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise mtval must be 0)
-                imm_view = View(self.csr_layouts.imm_layout, instr.imm)
+            with m.If(~core_state.flushing & ~flush_inactive):
+                with m.If(exception):
+                    mtval = Signal(self.gen_params.isa.xlen)
+                    # re-encode the CSR instruction to speed-up missing CSR emulation (optional, otherwise mtval must be 0)
+                    imm_view = View(self.csr_layouts.imm_layout, instr.imm)
 
-                m.d.av_comb += mtval[0:2].eq(0b11)
-                m.d.av_comb += mtval[2:7].eq(Opcode.SYSTEM)
-                m.d.av_comb += mtval[7:12].eq(imm_view.rd)
-                m.d.av_comb += mtval[12:15].eq(instr.exec_fn.funct3)
-                m.d.av_comb += mtval[15:20].eq(
-                    Mux(
-                        instr.exec_fn.op_type == OpType.CSR_IMM,
-                        imm_view.imm,
-                        imm_view.rs1,
+                    m.d.av_comb += mtval[0:2].eq(0b11)
+                    m.d.av_comb += mtval[2:7].eq(Opcode.SYSTEM)
+                    m.d.av_comb += mtval[7:12].eq(imm_view.rd)
+                    m.d.av_comb += mtval[12:15].eq(instr.exec_fn.funct3)
+                    m.d.av_comb += mtval[15:20].eq(
+                        Mux(
+                            instr.exec_fn.op_type == OpType.CSR_IMM,
+                            imm_view.imm,
+                            imm_view.rs1,
+                        )
                     )
-                )
-                m.d.av_comb += mtval[20:32].eq(instr.csr)
-                self.report(
-                    m,
-                    rob_id=instr.rob_id,
-                    cause=ExceptionCause.ILLEGAL_INSTRUCTION,
-                    pc=instr.pc,
-                    tag=instr.tag,
-                    mtval=mtval,
-                )
-            with m.Elif(interrupt):
-                # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
-                # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
-                # At this time CSR operation is finished. If it caused triggering an interrupt, it would be represented
-                # by interrupt signal in this cycle.
-                # CSR instructions are never compressed, PC+4 is always next instruction
-                self.report(
-                    m,
-                    rob_id=instr.rob_id,
-                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
-                    pc=instr.pc + self.gen_params.isa.ilen_bytes,
-                    tag=instr.tag,
-                    mtval=0,
-                )
+                    m.d.av_comb += mtval[20:32].eq(instr.csr)
+                    self.report(
+                        m,
+                        rob_id=instr.rob_id,
+                        cause=ExceptionCause.ILLEGAL_INSTRUCTION,
+                        pc=instr.pc,
+                        tag=instr.tag,
+                        mtval=mtval,
+                    )
+                with m.Elif(interrupt):
+                    # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
+                    # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
+                    # At this time CSR operation is finished. If it caused triggering an interrupt, it would be represented
+                    # by interrupt signal in this cycle.
+                    # CSR instructions are never compressed, PC+4 is always next instruction
+                    self.report(
+                        m,
+                        rob_id=instr.rob_id,
+                        cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                        pc=instr.pc + self.gen_params.isa.ilen_bytes,
+                        tag=instr.tag,
+                        mtval=0,
+                    )
+
+                with m.If(~exception & ~interrupt):
+                    # CSR instructions are never compressed, PC+4 is always next instruction
+                    # exe_side_fx already checks if instruction tag is active
+                    resume_core_fwd.write(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             m.d.sync += exception.eq(0)
-
-            with m.If(exe_side_fx & ~exception & ~interrupt):
-                # CSR instructions are never compressed, PC+4 is always next instruction
-                # exe_side_fx already checks if instruction tag is active
-                resume_core_fwd.write(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,

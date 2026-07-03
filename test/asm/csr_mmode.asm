@@ -1,6 +1,11 @@
     li x15, 5 # this many instructions will raise an exception
     la x6, exception_handler
     csrw mtvec, x6 # set-up handler
+    # perform a forward jump to trigger flushing
+    mv x7, x6
+    beq x6, x7, next
+    nop
+next:
     # test read-only CSRs
     csrw mvendorid, 1
     csrw marchid, 1
@@ -15,8 +20,9 @@
     # test writable CSRs
     csrw mscratch, 4
     csrr x6, mscratch
-infloop:
-    j infloop
+pass:
+    csrw 0x8fe, 0x10
+    j pass
 
 exception_handler:
    addi x15, x15, -1 # count exceptions

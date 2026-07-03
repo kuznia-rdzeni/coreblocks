@@ -7,11 +7,11 @@ import operator
 from transactron import Method, def_method, TModule
 from transactron.core import Transaction
 from transactron.lib import AdapterTrans, BasicFifo
-from transactron.utils import OneHotSwitchDynamic, assign, RoundRobin
+from transactron.utils import OneHotMux, assign, RoundRobin
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, CIn, COut
 from transactron.lib.connectors import Forwarder
 from transactron.utils.transactron_helpers import make_layout
-from transactron.lib import logging
+from transactron.utils import logging
 
 
 class WishboneParameters:
@@ -316,12 +316,11 @@ class WishboneMuxer(Component):
     ----------
     wb_params: WishboneParameters
         Parameters for bus generation.
-    num_slaves: int
-        Number of slave devices to multiplex.
     ssel_tga: Signal
         Signal that selects the slave to connect. Signal width is the number of slaves and each bit coresponds
         to a slave. This signal is a Wishbone TGA (address tag), so it needs to be valid and held every time Wishbone
         STB is asserted.
+        Number of create slabve interfaces is determied from `ssel_tga` bit width.
         Note that if Pipelined Wishbone implementation is used, then before starting any new request with
         different `ssel_tga` value, all pending request have to be finished (and `stall` cleared). Holding new requests
         should be implemented in block that controlls `ssel_tga` signal, before the Wishbone Master.
@@ -337,19 +336,18 @@ class WishboneMuxer(Component):
     master_wb: WishboneInterface
     slaves: list[WishboneInterface]
 
-    def __init__(self, wb_params: WishboneParameters, num_slaves: int, ssel_tga: Signal):
+    def __init__(self, wb_params: WishboneParameters, ssel_tga: Signal):
+        self.num_slaves = ssel_tga.shape().width
         super().__init__(
             {
                 "master_wb": In(WishboneInterface(wb_params).signature),
-                "slaves": Out(WishboneInterface(wb_params).signature).array(num_slaves),
+                "slaves": Out(WishboneInterface(wb_params).signature).array(self.num_slaves),
             }
         )
         self.sselTGA = ssel_tga
 
-        select_bits = ssel_tga.shape().width
-        assert select_bits == num_slaves
-        self.txn_sel = Signal(select_bits)
-        self.txn_sel_r = Signal(select_bits)
+        self.txn_sel = Signal(self.num_slaves)
+        self.txn_sel_r = Signal(self.num_slaves)
 
         self.prev_stb = Signal()
 
@@ -375,11 +373,12 @@ class WishboneMuxer(Component):
         m.d.comb += self.master_wb.ack.eq(reduce(operator.or_, [self.slaves[i].ack for i in range(len(self.slaves))]))
         m.d.comb += self.master_wb.err.eq(reduce(operator.or_, [self.slaves[i].err for i in range(len(self.slaves))]))
         m.d.comb += self.master_wb.rty.eq(reduce(operator.or_, [self.slaves[i].rty for i in range(len(self.slaves))]))
-        for i in OneHotSwitchDynamic(m, self.sselTGA):
-            # mux S->M data
-            # workaround for the lack of selective connecting in wiring
-            for n in ["dat_r", "stall"]:
-                m.d.comb += getattr(self.master_wb, n).eq(getattr(self.slaves[i], n))
+        # mux S->M data
+        # workaround for the lack of selective connecting in wiring
+        for n in ["dat_r", "stall"]:
+            m.d.comb += getattr(self.master_wb, n).eq(
+                OneHotMux.create(m, [(self.sselTGA[i], getattr(self.slaves[i], n)) for i in range(len(self.slaves))])
+            )
         return m
 
 

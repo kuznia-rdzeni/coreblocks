@@ -56,7 +56,7 @@ class WakeupSelect(Elaboratable):
             m.d.av_comb += prio_encoder.i.eq(ready.ready_list)
             row = self.take_row(m, prio_encoder.o)
             issue_rec = Signal(self.gen_params.get(FuncUnitLayouts).issue)
-            m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
+            m.d.av_comb += assign(issue_rec, row, fields=AssignType.ALL)
             self.issue(m, issue_rec)
 
         return m

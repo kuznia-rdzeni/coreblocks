@@ -11,7 +11,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, InstructionPrecommitKey
+from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
@@ -80,15 +80,14 @@ class DummyLSUTestCircuit(Elaboratable):
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
-        m.submodules.precommit = self.precommit = TestbenchIO(
+        m.submodules.side_fx_guard = self.side_fx_guard = TestbenchIO(
             Adapter(
-                i=layouts.precommit_in,
-                o=layouts.precommit_out,
+                i=layouts.side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
 
         m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
@@ -255,9 +254,9 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             def eff():
                 assert arg == self.exception_queue.pop()
 
-        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
-        def precommiter(rob_id):
-            return {"side_fx": 1}
+        @def_method_mock(lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, require_done: True)
+        def side_fx_guarder(rob_id, require_done):
+            return {}
 
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
@@ -325,9 +324,9 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             def eff():
                 assert False
 
-        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
-        def precommiter(rob_id):
-            return {"side_fx": 1}
+        @def_method_mock(lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, require_done: True)
+        def side_fx_guarder(rob_id, require_done):
+            return {}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.one_instr_test)
@@ -380,7 +379,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
         self.instr_queue = deque()
         self.mem_data_queue = deque()
         self.get_result_data = deque()
-        self.precommit_data = deque()
+        self.side_fx_guard_data = deque()
         self.generate_instr(2**7, 2**7)
         self.max_wait = 8
 
@@ -410,7 +409,7 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             req = self.instr_queue.pop()
             self.get_result_data.appendleft(req["rob_id"])
             await self.test_module.issue.call(sim, req)
-            self.precommit_data.appendleft(req["rob_id"])
+            self.side_fx_guard_data.appendleft(req["rob_id"])
             await self.random_wait(sim, self.max_wait)
 
     async def get_resulter(self, sim: TestbenchContext):
@@ -420,14 +419,14 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             assert v["rob_id"] == rob_id
             assert v["rp_dst"] == 0
             await self.random_wait(sim, self.max_wait)
-            self.precommit_data.pop()  # retire
+            self.side_fx_guard_data.pop()  # retire
 
-    def precommit_validate(self, rob_id):
-        return len(self.precommit_data) > 0 and rob_id == self.precommit_data[-1]
+    def side_fx_guard_validate(self, rob_id, require_done):
+        return len(self.side_fx_guard_data) > 0 and rob_id == self.side_fx_guard_data[-1]
 
-    @def_method_mock(lambda self: self.test_module.precommit, validate_arguments=precommit_validate)
-    def precommiter(self, rob_id):
-        return {"side_fx": 1}
+    @def_method_mock(lambda self: self.test_module.side_fx_guard, validate_arguments=side_fx_guard_validate)
+    def side_fx_guarder(self, rob_id, require_done):
+        return {}
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -471,9 +470,9 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             def eff():
                 assert False
 
-        @def_method_mock(lambda: self.test_module.precommit, validate_arguments=lambda rob_id: True)
-        def precommiter(rob_id):
-            return {"side_fx": 1}
+        @def_method_mock(lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, require_done: True)
+        def side_fx_guarder(rob_id, require_done):
+            return {}
 
         pending_req = False
 

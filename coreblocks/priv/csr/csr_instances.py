@@ -10,6 +10,7 @@ from coreblocks.arch.csr_address import (
 )
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
+    PAGE_SIZE_LOG,
     SatpMode,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
@@ -23,8 +24,7 @@ from coreblocks.interface.keys import CSRInstancesKey
 from typing import Optional
 from amaranth.lib import data
 from transactron.core import Transaction, TModule
-from transactron.utils import DependencyContext
-from transactron.lib import logging
+from transactron.utils import DependencyContext, logging
 
 
 log = logging.HardwareLogger("priv.csr.instances")
@@ -106,9 +106,9 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mcycle = DoubleCounterCSR(
             gen_params,
             CSRAddress.MCYCLE,
-            CSRAddress.MCYCLEH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.MCYCLEH,
             CSRAddress.CYCLE,
-            CSRAddress.CYCLEH if gen_params.isa.xlen == 32 else None,
+            CSRAddress.CYCLEH,
             shadow_access_filter=counteren_access_filter(gen_params, CounterEnableFieldOffsets.CY),
         )
 
@@ -116,25 +116,26 @@ class MachineModeCSRRegisters(Elaboratable):
         pmpcfg_subregisters = gen_params.isa.xlen // PMPXCFG_WIDTH
         pmpcfgx_cnt = gen_params.pmp_register_count // pmpcfg_subregisters
 
-        def filter(_: TModule, v: Value):
-            cfg = data.View(PMPCfgLayout(), v)
+        def make_pmp_filtermap(idx: int):
+            def pmp_filtermap(_: TModule, v: Value):
+                cfg = data.View(PMPCfgLayout(), v)
+                old_value = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value)
 
-            # R=0, W=1 is a reserved combination (WARL): force W=0
-            filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
+                # R=0, W=1 is a reserved combination (WARL): force W=0
+                filtered_w = Mux(~cfg.R & cfg.W, 0, cfg.W)
 
-            # When G >= 1, NA4 mode is not selectable: change to OFF
-            if gen_params.pmp_grain >= 1:
-                filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
-            else:
-                filtered_a = cfg.A
+                # When G >= 1, NA4 mode is not selectable: change to OFF
+                if gen_params.pmp_grain >= 1:
+                    filtered_a = Mux(cfg.A == PMPAFlagEncoding.NA4, PMPAFlagEncoding.OFF, cfg.A)
+                else:
+                    filtered_a = cfg.A
 
-            # L bit is not implemented (write-locking not supported): force to 0.
-            # TODO: Implement L bit — when L=1, writes to pmpcfg and pmpaddr should be
-            # ignored. Additionally, if entry i is locked and A=TOR, writes to pmpaddr(i-1)
-            # must also be ignored.
-            # Bits 5-6 (reserved): force to 0
-            filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), C(0))
-            return C(1), filtered_v
+                # On illegal rwx encodings, clear permissions
+                # Bits 5-6 (reserved): force to 0
+                filtered_v = Cat(cfg.R, filtered_w, cfg.X, filtered_a, C(0, 2), cfg.L)
+                return ~old_value.L, filtered_v
+
+            return pmp_filtermap
 
         for i in range(0, pmpcfgx_cnt):
             # In RV64, odd-numbered configuration registers pmpcfg1, ... pmpcfg15 are illegal.
@@ -143,16 +144,34 @@ class MachineModeCSRRegisters(Elaboratable):
 
             # pmpcfgX CSR contains a range of pmpYcfg, pmpY+1cfg, ... fields that correspond to pmpaddrY entries
             for j in range(pmpcfg_subregisters):
-                pmpcfg_sub = CSRRegister(None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=filter)
+                pmp_reg_idx = i * pmpcfg_subregisters + j
+                pmpcfg_sub = CSRRegister(
+                    None, gen_params, width=PMPXCFG_WIDTH, fu_write_filtermap=make_pmp_filtermap(pmp_reg_idx)
+                )
                 pmpcfg.add_field(j * PMPXCFG_WIDTH, pmpcfg_sub)
                 self.pmpxcfg.append(pmpcfg_sub)
-                setattr(self, f"pmp{i*pmpcfg_subregisters+j}cfg", pmpcfg_sub)
+                setattr(self, f"pmp{pmp_reg_idx}cfg", pmpcfg_sub)
 
             setattr(self, f"pmpcfg{i}", pmpcfg)
 
         self.pmpaddrx = []
 
         for i in range(gen_params.pmp_register_count):
+
+            def make_pmpaddr_filtermap(idx: int):
+                def pmp_filtermap(_: TModule, value: Value):
+                    # do not allow writes to pmpaddr when either current pmpcfg is locked, or
+                    # next pmpcfg is locked and its A field is TOR
+                    current_locked = data.View(PMPCfgLayout(), self.pmpxcfg[idx].value).L
+                    if idx + 1 < len(self.pmpxcfg):
+                        next_cfg = data.View(PMPCfgLayout(), self.pmpxcfg[idx + 1].value)
+                        next_locked_tor = next_cfg.L & (next_cfg.A == PMPAFlagEncoding.TOR)
+                    else:
+                        next_locked_tor = 0
+
+                    return ~(current_locked | next_locked_tor), value
+
+                return pmp_filtermap
 
             def make_pmpaddr_fu_read_map(idx: int):
                 def pmpaddr_fu_read_map(_: TModule, value: Value):
@@ -176,7 +195,12 @@ class MachineModeCSRRegisters(Elaboratable):
 
                 return pmpaddr_fu_read_map
 
-            reg = CSRRegister(getattr(CSRAddress, f"PMPADDR{i}"), gen_params, fu_read_map=make_pmpaddr_fu_read_map(i))
+            reg = CSRRegister(
+                getattr(CSRAddress, f"PMPADDR{i}"),
+                gen_params,
+                fu_write_filtermap=make_pmpaddr_filtermap(i),
+                fu_read_map=make_pmpaddr_fu_read_map(i),
+            )
             self.pmpaddrx.append(reg)
             setattr(self, f"pmpaddr{i}", reg)
 
@@ -194,7 +218,20 @@ class MachineModeCSRRegisters(Elaboratable):
         self._menvcfg_fields_implementation(gen_params, self.menvcfg, self.menvcfgh)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
-        # future todo: add mhpm{counter,event} CSRs
+        for i in range(3, 32):
+            is_implemented = i < gen_params.hpm_counters_count + 3
+            counter = DoubleCounterCSR(
+                gen_params,
+                low_addr=CSRAddress[f"MHPMCOUNTER{i}"],
+                high_addr=CSRAddress[f"MHPMCOUNTER{i}H"],
+                shadow_low_addr=CSRAddress[f"HPMCOUNTER{i}"],
+                shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"],
+                shadow_access_filter=counteren_access_filter(gen_params, i),
+                read_only_zero=not is_implemented,
+            )
+            event = CSRRegister(CSRAddress[f"MHPMEVENT{i}"], gen_params, ro_bits=0 if is_implemented else ~0)
+            setattr(self, f"mhpmevent{i}", event)
+            setattr(self, f"mhpmcounter{i}", counter)
 
     def elaborate(self, platform):
         m = TModule()
@@ -429,7 +466,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
                 {
                     "mode": 0,
                     "asid": -(1 << gen_params.vmem_params.asidlen),
-                    "ppn": 0,
+                    "ppn": -(1 << (gen_params.phys_addr_bits - PAGE_SIZE_LOG)),
                 }
             ).as_bits()
 
@@ -507,6 +544,7 @@ class CSRInstances(Elaboratable):
 
         if gen_params._generate_test_hardware:
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
+            self.csr_coreblocks_test_exit = CSRRegister(CSRAddress.COREBLOCKS_TEST_EXIT_CSR, gen_params)
 
         self.time = CSRRegister(
             CSRAddress.TIME,
@@ -529,6 +567,7 @@ class CSRInstances(Elaboratable):
 
         if self.gen_params._generate_test_hardware:
             m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
+            m.submodules.csr_coreblocks_test_exit = self.csr_coreblocks_test_exit
 
         # TIME CSR is a R/O alias to Memory-Mapped `mtime` value (from clint). If `mtime` is not available,
         # then fallback to providing a cycle counter source.

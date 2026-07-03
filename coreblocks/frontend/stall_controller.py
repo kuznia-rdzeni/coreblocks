@@ -5,7 +5,7 @@ from functools import reduce
 from amaranth import *
 
 
-from transactron.lib import logging
+from transactron.utils import logging
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import popcount, DependencyContext, MethodStruct
@@ -57,7 +57,7 @@ class StallController(Elaboratable):
         self.resume_from_core_flush = Method(i=layouts.resume)
         self._resume_from_unsafe = Method(i=layouts.resume)
 
-        self.redirect_frontend = Method(i=layouts.redirect)
+        self.redirect_frontend = Method(i=layouts.frontend_redirect)
 
         self.dm = DependencyContext.get()
         self.dm.add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
@@ -110,6 +110,8 @@ class StallController(Elaboratable):
 
         @def_method(m, self._resume_from_unsafe, nonexclusive=True, combiner=resume_combiner)
         def _(pc):
+            # TODO: wait, why we pass that through forwarder everywhere, isn't it always ready?
+
             # Instructions must verify tag is active when queuing resume, inactive instructions
             # were unstalled already at rollback (don't do double rollback).
             # Resuming on instructions that will be later invalidated is fine.
@@ -120,7 +122,7 @@ class StallController(Elaboratable):
             with condition(m, nonblocking=True) as branch:
                 with branch(~stalled_exception):
                     log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
-                    self.redirect_frontend(m, pc=pc)
+                    self.redirect_frontend(m, pc=pc, from_unsafe=1)
 
         redirect_frontend = Signal()
         redirect_frontend_pc = Signal(self.gen_params.isa.xlen)
@@ -149,13 +151,13 @@ class StallController(Elaboratable):
             # Hmm, we have a rollback tagger already installed, this is all not that bad!
 
             log.info(m, stalled_unsafe, "Rollback: redirecting frontend to pc=0x{:x}", pc)
-            m.d.comb += redirect_frontend.eq(1)
+            m.d.comb += redirect_frontend.eq(1)  # how it works with FTQ?
             m.d.comb += redirect_frontend_pc.eq(pc)
 
         with Transaction().body(m, ready=redirect_frontend):
             # decouple confilct between rollbacks and resume_from_exception. (resume_from_exception happens only
-            # on empty core).
-            self.redirect_frontend(m, pc=redirect_frontend_pc)
+            # on empty core). TODO: verify if still needed
+            self.redirect_frontend(m, pc=redirect_frontend_pc, from_unsafe=0)  # from unsafe?
             self.fetch_flush(m)
 
         with Transaction().body(m):

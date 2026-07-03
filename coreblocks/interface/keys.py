@@ -11,11 +11,12 @@ from amaranth import Signal
 
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
+    from coreblocks.priv.vmem.iface import TLBBackingDevice  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
-    "InstructionPrecommitKey",
-    "BranchVerifyKey",
+    "SideFxGuardKey",
+    "BranchResolveKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
@@ -27,6 +28,10 @@ __all__ = [
     "CoreStateKey",
     "CSRListKey",
     "FlushICacheKey",
+    "SFenceVMAKey",
+    "InstructionAddressTranslatorBackingDeviceKey",
+    "DataAddressTranslatorBackingDeviceKey",
+    "FTQCommitKey",
     "RollbackKey",
     "ActiveTagsKey",
     "InstructionTaggedCounterKey",
@@ -39,12 +44,12 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(SimpleKey[Callable]):
+class SideFxGuardKey(SimpleKey[Method]):
     pass
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
+class BranchResolveKey(SimpleKey[Method]):
     pass
 
 
@@ -119,8 +124,32 @@ class FlushICacheKey(SimpleKey[Method]):
 
 
 @dataclass(frozen=True)
-class RollbackKey(UnifierKey, unifier=lambda _, targets: MethodProduct.create(targets)):  # type: ignore
-    # transactron type bug
+class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
+    """
+    Collects SFENCE.VMA handlers to invalidate translation caches.
+    Expected layout is `AddressTranslationLayouts.sfence_vma`.
+    """
+
+    pass
+
+
+@dataclass(frozen=True)
+class InstructionAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
+    pass
+
+
+@dataclass(frozen=True)
+class DataAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
+    pass
+
+
+@dataclass(frozen=True)
+class FTQCommitKey(SimpleKey[Method]):
+    """Method called when the retirement unit commits an instruction."""
+
+
+@dataclass(frozen=True)
+class RollbackKey(UnifierKey, unifier=MethodProduct.create):
     """
     Collects method that want to be notifed about tag rollback event.
     Expected layout is `RATLayouts.rollback_in`.

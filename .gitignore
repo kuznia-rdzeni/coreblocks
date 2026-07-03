@@ -5,6 +5,8 @@ __pycache__/
 
 # Package files
 *.egg-info/
+build/
+*.lock
 
 # Environments
 .env
@@ -38,6 +40,11 @@ _coreblocks_regression.counter
 /test/regression/cocotb/build
 /test/regression/cocotb/results.xml
 /test/regression/cocotb/cocotb-config.cache
+
+# riscv-arch-test
+/test/external/riscv-arch-test/elfs
+test/external/riscv-arch-test/logs
+test/external/riscv-arch-test/summary.log
 
 # riscv-tests
 test/external/riscv-tests/test-*

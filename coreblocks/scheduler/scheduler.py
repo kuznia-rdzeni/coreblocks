@@ -2,16 +2,16 @@ from collections.abc import Sequence
 
 from amaranth import *
 
+from amaranth.lib.data import View
 from transactron import Method, Methods, Required, Transaction, TModule
 from transactron.lib import Connect, Pipe, WideFifo
-from transactron.lib import logging
 from transactron.lib.metrics import TaggedCounter
-from transactron.utils import OneHotSwitchDynamic, assign, AssignType
+from transactron.utils import OneHotMux, logging, assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
 from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, RSFullDataLayout, SchedulerLayouts
 from coreblocks.params import GenParams
-from coreblocks.arch.optypes import OpType
+from coreblocks.arch.optypes import OpType, impure_optypes
 from coreblocks.interface.keys import CoreStateKey
 
 __all__ = ["Scheduler"]
@@ -172,7 +172,9 @@ class Renaming(Elaboratable):
                         rp_dst=instr.regs_p.rp_dst,
                     )
 
-                m.d.av_comb += assign(instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment"})
+                m.d.av_comb += assign(
+                    instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment", "ftq_ptr"}
+                )
                 m.d.av_comb += assign(instr_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
                 m.d.av_comb += instr_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
                 m.d.av_comb += instr_out.regs_p.rp_s1.eq(renamed_regs.rp_s1)
@@ -219,9 +221,13 @@ class ROBAllocation(Elaboratable):
                 count=instrs.count,
                 entries=[
                     {
-                        "rl_dst": instr.regs_l.rl_dst,
-                        "rp_dst": instr.regs_p.rp_dst,
-                        "tag_increment": instr.tag_increment,
+                        "rob_data": {
+                            "rl_dst": instr.regs_l.rl_dst,
+                            "rp_dst": instr.regs_p.rp_dst,
+                            "tag_increment": instr.tag_increment,
+                            "ftq_ptr": instr.ftq_ptr,
+                        },
+                        "pure": ~Cat(instr.exec_fn.op_type == op_type for op_type in impure_optypes).any(),
                     }
                     for instr in instrs.data
                 ],
@@ -387,7 +393,7 @@ class RSInsertion(Elaboratable):
             active_tags = self.crat_active_tags(m)
             rs_entry_id: list[Value] = []
             rs_selected: list[Value] = []
-            rs_datas = []
+            rs_datas: list[View] = []
 
             for i in range(self.gen_params.frontend_superscalarity):
                 instr = instrs.data[i]
@@ -435,12 +441,14 @@ class RSInsertion(Elaboratable):
                     )
                 )
 
+                matched_rs_data = OneHotMux.create(m, [(matches[i], rs_datas[i]) for i in range(len(matches))])
+                matched_entry_id = OneHotMux.create(m, [(matches[i], rs_entry_id[i]) for i in range(len(matches))])
+
                 arg = Signal.like(rs_insert.data_in)
-                for i in OneHotSwitchDynamic(m, matches):
-                    # connect only matching fields
-                    m.d.av_comb += assign(arg.rs_data, rs_datas[i], fields=AssignType.COMMON)
-                    # this assignment truncates signal width from max rs_entry_bits to target RS specific width
-                    m.d.av_comb += arg.rs_entry_id.eq(rs_entry_id[i])
+                # connect only matching fields
+                m.d.av_comb += assign(arg.rs_data, matched_rs_data, fields=AssignType.COMMON)
+                # this assignment truncates signal width from max rs_entry_bits to target RS specific width
+                m.d.av_comb += arg.rs_entry_id.eq(matched_entry_id)
 
                 with m.If(matches.any()):
                     rs_insert(m, arg)
