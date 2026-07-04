@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from amaranth.utils import ceil_log2, exact_log2
 
-from coreblocks.arch.isa import ISA, gen_isa_string
+from coreblocks.arch.isa import ISA
 from .icache_params import ICacheParameters
 from .vmem_params import VirtualMemoryParameters
 from .fu_params import extensions_supported
@@ -29,9 +29,7 @@ class GenParams(DependentCache):
             raise RuntimeError(f"Extensions {ext_partial & ~ext_full!r} are only partially supported")
 
         extensions |= cfg._implied_extensions
-        self.isa_str = gen_isa_string(extensions, cfg.xlen)
-
-        self.isa = ISA(self.isa_str)
+        self.isa = ISA(extensions, cfg.xlen)
 
         self.pma = cfg.pma
 
@@ -165,11 +163,17 @@ class GenParams(DependentCache):
             if self.pmp_grain_bytes < self.icache_params.line_size_bytes:
                 raise ValueError("PMP grain size must be >= cache line size")
 
-        self._toolchain_isa_str = gen_isa_string(extensions, cfg.xlen, skip_internal=True)
-
         self._generate_test_hardware = cfg._generate_test_hardware
 
         self.marchid = cfg.marchid
         self.mimpid = cfg.mimpid
 
         self.multiport_memory_type = cfg.multiport_memory_type
+
+    @property
+    def isa_short_str(self) -> str:
+        return self.isa.gen_str(skip_internal=True, skip_implied=True)
+
+    @property
+    def isa_str(self) -> str:
+        return self.isa.gen_str(skip_internal=True)

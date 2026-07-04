@@ -2,29 +2,29 @@ import pytest
 import unittest
 
 from coreblocks.arch.isa import Extension, ISA
+from dataclasses import dataclass
 
 
 class TestISA(unittest.TestCase):
+    @dataclass
     class ISATestEntry:
-        def __init__(self, isa_str, valid, xlen=None, reg_cnt=None, extensions=None):
-            self.isa_str = isa_str
-            self.valid = valid
-            self.xlen = xlen
-            self.reg_cnt = reg_cnt
-            self.extensions = extensions
+        exts_in: Extension
+        valid: bool
+        xlen: int | None = None
+        reg_cnt: int | None = None
+        extensions: Extension | None = None
 
     ISA_TESTS = [
-        ISATestEntry("rv32i", True, 32, 32, Extension.I),
-        ISATestEntry("RV32I", True, 32, 32, Extension.I),
+        ISATestEntry(Extension.I, True, 32, 32, Extension.I),
         ISATestEntry(
-            "rv32ima",
+            Extension.I | Extension.M | Extension.A,
             True,
             32,
             32,
             Extension.I | Extension.M | Extension.ZMMUL | Extension.A | Extension.ZAAMO | Extension.ZALRSC,
         ),
         ISATestEntry(
-            "rv32imafdc_zicsr",
+            Extension.I | Extension.M | Extension.A | Extension.F | Extension.D | Extension.C | Extension.ZICSR,
             True,
             32,
             32,
@@ -43,35 +43,42 @@ class TestISA(unittest.TestCase):
             | Extension.ZMMUL,
         ),
         ISATestEntry(
-            "rv32imf",
+            Extension.I | Extension.M | Extension.F,
             True,
             32,
             32,
             Extension.I | Extension.M | Extension.F | Extension.ZICSR | Extension.ZMMUL,
         ),
         ISATestEntry(
-            "rv32izicsr",
+            Extension.I | Extension.ZICSR,
             True,
             32,
             32,
             Extension.I | Extension.ZICSR,
         ),
         ISATestEntry(
-            "rv32imczicsr",
+            Extension.I | Extension.M | Extension.C | Extension.ZICSR,
             True,
             32,
             32,
             Extension.I | Extension.M | Extension.ZMMUL | Extension.C | Extension.ZCA | Extension.ZICSR,
         ),
         ISATestEntry(
-            "rv32i_zmmul",
+            Extension.I | Extension.ZMMUL,
             True,
             32,
             32,
             Extension.I | Extension.ZMMUL,
         ),
         ISATestEntry(
-            "rv32imafdc_zifencei_zicsr",
+            Extension.I
+            | Extension.M
+            | Extension.A
+            | Extension.F
+            | Extension.D
+            | Extension.C
+            | Extension.ZIFENCEI
+            | Extension.ZICSR,
             True,
             32,
             32,
@@ -91,49 +98,15 @@ class TestISA(unittest.TestCase):
             | Extension.ZICSR,
         ),
         ISATestEntry(
-            "rv32imafdczifencei_zicsr",
+            Extension.E | Extension.C | Extension.ZICSR,
             True,
             32,
-            32,
-            Extension.I
-            | Extension.M
-            | Extension.ZMMUL
-            | Extension.A
-            | Extension.ZAAMO
-            | Extension.ZALRSC
-            | Extension.F
-            | Extension.D
-            | Extension.C
-            | Extension.ZCA
-            | Extension.ZCF
-            | Extension.ZCD
-            | Extension.ZIFENCEI
-            | Extension.ZICSR,
+            16,
+            Extension.E | Extension.C | Extension.ZCA | Extension.ZICSR,
         ),
+        ISATestEntry(Extension.I, True, 64, 32, Extension.I),
         ISATestEntry(
-            "rv32i_m_a_f_d_c_zifencei_zicsr",
-            True,
-            32,
-            32,
-            Extension.I
-            | Extension.M
-            | Extension.ZMMUL
-            | Extension.A
-            | Extension.ZAAMO
-            | Extension.ZALRSC
-            | Extension.F
-            | Extension.D
-            | Extension.C
-            | Extension.ZCA
-            | Extension.ZCF
-            | Extension.ZCD
-            | Extension.ZIFENCEI
-            | Extension.ZICSR,
-        ),
-        ISATestEntry("rv32ec_zicsr", True, 32, 16, Extension.E | Extension.C | Extension.ZCA | Extension.ZICSR),
-        ISATestEntry("rv64i", True, 64, 32, Extension.I),
-        ISATestEntry(
-            "rv64g",
+            Extension.G,
             True,
             64,
             32,
@@ -148,19 +121,17 @@ class TestISA(unittest.TestCase):
             | Extension.ZIFENCEI
             | Extension.ZICSR,
         ),
-        ISATestEntry("rv32ie", True, 32, 32, Extension.I | Extension.E),
-        ISATestEntry("rv32", False),
-        ISATestEntry("rv64e", False),
-        ISATestEntry("rv32fdc", False),
-        ISATestEntry("rv32izicsrzmmul", False),
-        ISATestEntry("rv64imadc", False),
-        ISATestEntry("rvima", False),
-        ISATestEntry("rv42i", False),
+        ISATestEntry(Extension.I | Extension.E, True, 32, 32, Extension.I | Extension.E),
+        ISATestEntry(Extension(0), False, 32),
+        ISATestEntry(Extension.E, False, 64),
+        ISATestEntry(Extension.F | Extension.D | Extension.C, False, 32),
+        ISATestEntry(Extension.I, False, 42),
     ]
 
     def do_test(self, test):
         def _do_test():
-            isa = ISA(test.isa_str)
+            print(f"{test}")
+            isa = ISA(test.exts_in, test.xlen)
             assert isa.xlen == test.xlen
             assert isa.reg_cnt == test.reg_cnt
             assert isa.extensions == test.extensions
