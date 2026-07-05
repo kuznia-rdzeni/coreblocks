@@ -3,7 +3,7 @@ from amaranth.lib import data
 from amaranth.lib.enum import Enum, auto, unique
 from amaranth_types import HasElaborate
 from transactron.core import TModule
-from transactron.utils import DependencyContext, OneHotMux, assign
+from transactron.utils import DependencyContext, OneHotMux, assign, AssignType, make_layout
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
 from coreblocks.interface.keys import CSRInstancesKey
@@ -11,8 +11,22 @@ from coreblocks.params import *
 
 
 class PMPLayout(data.StructLayout):
+    r: Value
+    w: Value
+    x: Value
+
     def __init__(self):
         super().__init__({"r": 1, "w": 1, "x": 1})
+
+
+class PMPLayoutFull(data.StructLayout):
+    r: Value
+    w: Value
+    x: Value
+    l: Value
+
+    def __init__(self):
+        super().__init__({"r": 1, "w": 1, "x": 1, "l": 1})
 
 
 @unique
@@ -20,6 +34,137 @@ class PMPOperationMode(Enum):
     LSU = auto()
     INSTRUCTION_FETCH = auto()
     MMU = auto()
+
+
+class AreaPMPChecker(Elaboratable):
+    """
+    Implementation of physical memory protection checker that checks permissions
+    of an naturally aligned power-of-two physical address range.
+    """
+
+    paddr: Value
+    """
+    Memory address, for which PMP checks are requested. Must be aligned to the size class.
+    """
+
+    size_class: Value
+    """
+    The size class for which to check uniformity and attributes. See size_classes in constructor.
+    """
+
+    uniform: Value
+    """
+    Is the address range fully inside a single PMP entry.
+    """
+
+    matching_entry: data.View
+    """
+    Matching pmp entry RWXL fields.
+    layout: PMPLayoutFull
+    """
+
+    def __init__(self, gen_params: GenParams, size_classes: list[int]) -> None:
+        """
+        size_classes: list[int]
+            The log2 of power-of-two for which the checker can do the operations.
+            The size_class signal selects the value from these.
+        """
+        self.gen_params = gen_params
+        self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
+        self.size_classes = size_classes
+
+        self.paddr = Signal(gen_params.phys_addr_bits)
+        self.size_class = Signal(range(len(size_classes)))
+        self.uniform = Signal()
+        self.matching_entry = Signal(PMPLayoutFull())
+
+    def elaborate(self, platform) -> HasElaborate:
+        m = TModule()
+
+        grain = self.gen_params.pmp_grain
+        n = self.gen_params.pmp_register_count
+
+        if n == 0:
+            m.d.comb += self.uniform.eq(1)
+            m.d.comb += assign(self.matching_entry, {"r": 1, "w": 1, "x": 1, "l": 0})
+            return m
+
+        cfgs = [data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value) for i in range(n)]
+        addr_vals = [self.csr.pmpaddrx[i].value for i in range(n)]
+
+        size_class_masks = [(1 << max(sc - 2, grain)) - 1 for sc in self.size_classes]
+        size_class_mask = Array(size_class_masks)[self.size_class]
+
+        matches_any = Signal(n)
+        matches_all = Signal(n)
+
+        layout = make_layout(("matches_all", 1), ("entry_data", PMPLayoutFull()))
+        all_data = Signal(data.ArrayLayout(layout, n))
+
+        for i in range(n):
+            is_napot = Signal()
+            napot_mask = Signal(self.gen_params.phys_addr_bits - 2)
+            start_bit = max(0, grain - 1)
+
+            with m.Switch(cfgs[i].A):
+                with m.Case(PMPAFlagEncoding.TOR):
+                    bottom = addr_vals[i - 1][grain:] if i > 0 else 0
+                    addr_hi = (self.paddr[2:] | size_class_mask) >> grain
+                    m.d.comb += matches_any[i].eq(
+                        (bottom <= addr_hi) & (self.paddr[2 + grain :] < addr_vals[i][grain:])
+                    )
+                    m.d.comb += matches_all[i].eq(
+                        (bottom <= self.paddr[2 + grain :]) & (addr_hi < addr_vals[i][grain:])
+                    )
+                if grain == 0:
+                    with m.Case(PMPAFlagEncoding.NA4):
+                        m.d.comb += napot_mask.eq(0)
+                        m.d.comb += is_napot.eq(1)
+                with m.Case(PMPAFlagEncoding.NAPOT):
+                    m.d.comb += napot_mask[start_bit:].eq(addr_vals[i][start_bit:] ^ (addr_vals[i][start_bit:] + 1))
+                    m.d.comb += is_napot.eq(1)
+
+            m.d.comb += napot_mask[:start_bit].eq(~0)
+
+            with m.If(is_napot):
+                common_mask = size_class_mask | napot_mask
+                m.d.comb += matches_any[i].eq((self.paddr[2:] & ~common_mask) == (addr_vals[i] & ~common_mask))
+
+                # technically should be (common_mask == napot_mask) & matches_any[i], but the implication
+                # is not required for the rest of the circuit (we are only looking at first any-matching)
+                m.d.comb += matches_all[i].eq(common_mask == napot_mask)  # same as napot_mask >=
+
+            m.d.comb += assign(
+                all_data[i],
+                {
+                    "matches_all": matches_all[i],
+                    "entry_data": {
+                        "r": cfgs[i].R,
+                        "w": cfgs[i].W,
+                        "x": cfgs[i].X,
+                        "l": cfgs[i].L,
+                    },
+                },
+            )
+
+        default_input = Signal(layout)
+        m.d.comb += default_input.matches_all.eq(1)
+
+        # entry fully covers the match if all entries before the fully matching one don't match any
+        # this is the same as checking the the first any-matching entry also is fully matching
+        selected = OneHotMux.create(
+            m, [(matches_any[i], all_data[i]) for i in range(n)], priority=True, default_input=default_input
+        )
+
+        # hardcode uniform signal if we know via grain size that that is the case for size reduction
+        if all(sc <= grain + 2 for sc in self.size_classes):
+            m.d.comb += self.uniform.eq(1)
+        else:
+            m.d.comb += self.uniform.eq(selected.matches_all)
+
+        m.d.comb += self.matching_entry.eq(selected.entry_data)
+
+        return m
 
 
 class PMPChecker(Elaboratable):
@@ -35,32 +180,30 @@ class PMPChecker(Elaboratable):
     In machine mode, accesses bypass PMP by default (result = 1/1/1) unless a
     matching locked entry (L=1) is found. S/U-mode accesses default to no
     access (0/0/0) if no entry matches.
-
-    Attributes
-    ----------
-    paddr : Signal
-        Memory address, for which PMP checks are requested.
-    result : PMPLayout
-        RWX permission bits for the given address based on current PMP configuration
-        and privilege mode. Bits are set to 0 if access is denied.
     """
 
-    def __init__(self, gen_params: GenParams, *, mode: PMPOperationMode) -> None:
+    paddr: Value
+    """
+    Memory address, for which PMP checks are requested.
+    """
+
+    result: data.View
+    """
+    RWX permission bits for the given address based on current PMP configuration
+    and privilege mode. Bits are set to 0 if access is denied.
+    layout: PMPLayout
+    """
+
+    def __init__(self, gen_params: GenParams, *, mode: PMPOperationMode, access_size_log: int = 2) -> None:
         self.gen_params = gen_params
         self.mode = mode
         self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
         self.paddr = Signal(gen_params.phys_addr_bits)
         self.result = Signal(PMPLayout())
+        self.access_size_log = access_size_log
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
-
-        grain = self.gen_params.pmp_grain
-        n = self.gen_params.pmp_register_count
-
-        if n == 0:
-            m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
-            return m
 
         priv_mode = self.csr.priv_mode.value
         mprv = self.csr.mstatus_mprv.value
@@ -75,50 +218,16 @@ class PMPChecker(Elaboratable):
             case PMPOperationMode.MMU:
                 m.d.comb += effective_priv_mode.eq(PrivilegeLevel.SUPERVISOR)
 
-        with m.If(effective_priv_mode == PrivilegeLevel.MACHINE):
+        m.submodules.pmp_area_checker = pmp_area_checker = AreaPMPChecker(self.gen_params, [self.access_size_log])
+
+        m.d.comb += pmp_area_checker.paddr[2:].eq(self.paddr[2:])
+        m.d.comb += pmp_area_checker.size_class.eq(0)
+
+        with m.If(~pmp_area_checker.uniform):
+            m.d.comb += self.result.eq(PMPLayout().const({"r": 0, "w": 0, "x": 0}))
+        with m.Elif(~pmp_area_checker.matching_entry.l & (effective_priv_mode == PrivilegeLevel.MACHINE)):
             m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
-
-        entry_matches: list[Value] = []
-        cfgs: list[data.View] = []
-        addr_vals: list[Value] = []
-
-        for i in range(n):
-            cfg_val = data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value)
-            addr_val = self.csr.pmpaddrx[i].value
-            cfgs.append(cfg_val)
-            addr_vals.append(addr_val)
-
-            entry_match = Signal(name=f"match_{i}")
-
-            with m.Switch(cfg_val.A):
-                with m.Case(PMPAFlagEncoding.OFF):
-                    m.d.comb += entry_match.eq(0)
-                with m.Case(PMPAFlagEncoding.TOR):
-                    lower = addr_vals[i - 1][grain:] if i > 0 else 0
-                    m.d.comb += entry_match.eq(
-                        (self.paddr[2 + grain :] >= lower) & (self.paddr[2 + grain :] < addr_val[grain:])
-                    )
-                with m.Case(PMPAFlagEncoding.NA4):
-                    if grain == 0:
-                        m.d.comb += entry_match.eq(self.paddr[2:] == addr_val)
-                    else:
-                        m.d.comb += entry_match.eq(0)
-                with m.Case(PMPAFlagEncoding.NAPOT):
-                    # NAPOT region size is encoded by trailing ones in pmpaddr.
-                    # XOR with (pmpaddr + 1) extracts those trailing ones as a mask.
-                    # Bits below the mask define the region; bits above must match.
-                    # With grain > 0, lower bits are forced to 1 so we skip them.
-                    start_bit = max(0, grain - 1)
-                    napot_mask = addr_val[start_bit:] ^ (addr_val[start_bit:] + 1)
-                    m.d.comb += entry_match.eq(
-                        (self.paddr[2 + start_bit :] & ~napot_mask) == (addr_val[start_bit:] & ~napot_mask)
-                    )
-
-            entry_matches.append(entry_match)
-
-        selected = OneHotMux.create(m, zip(entry_matches, cfgs), priority=True)
-
-        with m.If((effective_priv_mode != PrivilegeLevel.MACHINE) | selected.L):
-            m.d.comb += assign(self.result, {"r": selected.R, "w": selected.W, "x": selected.X})
+        with m.Else():
+            m.d.comb += assign(self.result, pmp_area_checker.matching_entry, fields=AssignType.LHS)
 
         return m
