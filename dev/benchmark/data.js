@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783088386302,
+  "lastUpdate": 1783243079607,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -24085,6 +24085,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/839ed636ce8f2cc83db9d794f4d3f2a0e3716b00"
         },
         "date": 1783088372700,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4486953069382838,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6047801963294921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37129390940316226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6493506493506493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35847370537509493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060531192093885,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3432821873773525,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4457149159895584,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e1b4887175f0a2ec613ada94d4bb4b5afb99038",
+          "message": "use DoubleShadowCSR in interrupt_controller (#997)",
+          "timestamp": "2026-07-05T10:27:12+02:00",
+          "tree_id": "558f97483bbc73997040583a0338c7b1793f747d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6e1b4887175f0a2ec613ada94d4bb4b5afb99038"
+        },
+        "date": 1783243069008,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
