@@ -11,6 +11,7 @@ import subprocess
 import tabulate
 from typing import Literal
 from pathlib import Path
+import multiprocessing
 
 topdir = Path(__file__).parent.parent
 sys.path.insert(0, str(topdir))
@@ -27,7 +28,7 @@ def cd_to_topdir():
 def load_benchmarks():
     all_tests = test.regression.benchmark.get_all_benchmark_names()
     if len(all_tests) == 0:
-        res = subprocess.run(["make", "-C", "test/external/embench"])
+        res = subprocess.run(["make", "-C", "test/external/embench", "-j", str(multiprocessing.cpu_count())])
         if res.returncode != 0:
             print("Couldn't build benchmarks")
             sys.exit(1)
@@ -57,7 +58,16 @@ def load_benchmarks():
 
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "benchmark.Makefile", "--no-print-directory"]
+    arglist = [
+        "make",
+        "-C",
+        "test/regression/cocotb",
+        "-f",
+        "benchmark.Makefile",
+        "--no-print-directory",
+        "-j",
+        str(multiprocessing.cpu_count()),
+    ]
 
     test_cases = ",".join(benchmarks)
     arglist += [f"TESTCASE={test_cases}"]
