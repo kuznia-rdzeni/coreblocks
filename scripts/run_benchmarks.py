@@ -65,8 +65,6 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
         "-f",
         "benchmark.Makefile",
         "--no-print-directory",
-        "-j",
-        str(multiprocessing.cpu_count()),
     ]
 
     test_cases = ",".join(benchmarks)
