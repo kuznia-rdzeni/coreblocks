@@ -114,9 +114,10 @@ class FetchUnit(Elaboratable):
                 log.info(
                     m,
                     i < result.count,
-                    "Sending an instr to the backend pc=0x{:x} instr=0x{:x}",
+                    "Issuing an instr from frontend pc=0x{:x} instr=0x{:x}, ftq_ptr={}",
                     result.data[i].pc,
                     result.data[i].instr,
+                    result.data[i].ftq_ptr,
                 )
             self.cont(m, result)
 

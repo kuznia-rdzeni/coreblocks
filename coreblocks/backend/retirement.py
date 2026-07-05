@@ -167,7 +167,7 @@ class Retirement(Elaboratable):
         tag_suffix_active_mask = Signal.like(tag_incr_mask)
         tag_active_mask = Signal.like(tag_incr_mask)
         done_mask = Signal.like(tag_incr_mask)
-        free_checkpoint = Signal()
+        free_tag = Signal()
 
         with Transaction().body(m):
             active_tags = self.checkpoint_get_active_tags(m).active_tags
@@ -183,9 +183,9 @@ class Retirement(Elaboratable):
             limiting_instruction_mask = tag_incr_mask & (tag_incr_mask - 1) | (-1 << done_count)
             m.d.av_comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
             m.d.av_comb += retiring_mask.eq(~(-1 << retire_count))
-            m.d.av_comb += free_checkpoint.eq((tag_incr_mask & retiring_mask).any())
+            m.d.av_comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
 
-            m.d.av_comb += earliest_instruction_tag.eq(Mux(free_checkpoint, last_retired_tag + 1, last_retired_tag))
+            m.d.av_comb += earliest_instruction_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
             last_retired_tag_active = (active_tags.as_value() & (1 << last_retired_tag)).bool()
             m.d.av_comb += tag_suffix_active_mask.eq(
                 Mux(last_retired_tag_active, ~(-1 << (retire_count - 1).as_unsigned()), 0)
@@ -217,8 +217,9 @@ class Retirement(Elaboratable):
                 with Transaction(name="Retirement_NORMAL").body(m, ready=retire_valid):
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If(free_checkpoint):
+                    with m.If(free_tag):
                         self.checkpoint_tag_free(m)
+                        log.debug(m, True, "free_tag, last_retired was: {}", last_retired_tag)
                         m.d.sync += last_retired_tag.eq(last_retired_tag + 1)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
@@ -284,15 +285,14 @@ class Retirement(Elaboratable):
                     last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
                     last_commit_ftq_ptr_v = Signal()
                     for i in range(self.gen_params.retirement_superscalarity):
-                        with m.If(i - commit_trapping < no_trap_count):
 
+                        with m.If(i - commit_trapping < no_trap_count):
                             with m.If(tag_active_mask.bit_select(i, 1)):
                                 retire_instr(i, rob_entries.entries[i])
                                 m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
                                 m.d.av_comb += last_commit_ftq_ptr_v.eq(1)
                             with m.Else():
                                 retire_inactive_instr(i, rob_entries.entries[i])
-
                         with m.Elif(i < retire_count):
                             flush_instr(i, rob_entries.entries[i])
 
@@ -305,7 +305,7 @@ class Retirement(Elaboratable):
                     # Flush entire core
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If(free_checkpoint):
+                    with m.If(free_tag):
                         self.checkpoint_tag_free(m)
 
                     core_empty = self.instr_decrement(m, count=retire_count)

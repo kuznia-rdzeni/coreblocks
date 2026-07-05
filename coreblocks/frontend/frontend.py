@@ -80,7 +80,7 @@ class RollbackTagger(Elaboratable):
             m.d.av_comb += active_tags.eq(get_active_tags(m))
 
         @def_method(m, self.rollback)
-        def _(tag: Value, pc: Value):
+        def _(tag: Value, pc: Value, ftq_ptr: Value):
             with m.If(active_tags.active_tags[tag]):
                 m.d.sync += rollback_tag.eq(tag)
                 m.d.sync += rollback_tag_v.eq(1)
@@ -103,6 +103,8 @@ class CoreFrontend(Elaboratable):
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
         self.gen_params = gen_params
         self.connections = DependencyContext.get()
+
+        self.flush_frontend = Method()
 
         self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, self.gen_params.instr_buffer_size)
 
@@ -174,19 +176,18 @@ class CoreFrontend(Elaboratable):
 
         m.submodules.stall_ctrl = self.stall_ctrl
 
-        def flush_frontend():  # Fetch is flushed from stall controller
-            self.fetch.flush(m)  # ?? is the comment right?
+        @def_method(m, self.flush_frontend, nonexclusive=True)
+        def _():
+            self.fetch.flush(m)
             self.instr_buffer.clear(m)
             self.output_pipe.clear(m)
             self.bpu.flush(m)
 
         self.stall_ctrl.fetch_flush.provide(self.fetch.flush)
-
-        active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
+        # TODO: should be flush whole frontend or fetch?
 
         @def_method(m, self.rollback)
-        def _(tag, pc):
-            with m.If(active_tags(m).active_tags[tag]):
-                flush_frontend()
+        def _(tag, pc, ftq_ptr):
+            self.flush_frontend(m)
 
         return m

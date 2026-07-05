@@ -101,6 +101,7 @@ class InstructionTagger(Elaboratable):
 
             for i in range(self.gen_params.frontend_superscalarity):
                 m.d.av_comb += data_out.data[i].tag.eq(tag_out.tag)
+                log.debug(m, True, "tagged an instr ftq {} -> tag {}", data_out.data[i].ftq_ptr, data_out.data[i].tag)
 
             # Jump insn always last in group - commit_checkpoint is set there
             # Tag increment happens after jump or flush - first insn in group
@@ -425,6 +426,7 @@ class RSInsertion(Elaboratable):
                         "csr": instr.csr,
                         "pc": instr.pc,
                         "tag": instr.tag,
+                        "ftq_ptr": instr.ftq_ptr,
                     },
                 )
                 rs_datas.append(rs_data)

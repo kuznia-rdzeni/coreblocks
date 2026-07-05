@@ -138,6 +138,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         m.submodules += rollback_unifiers
         m.submodules.rollback_fifo = rollback_fifo = Forwarder(rollback_trigger_handlers.layout_in)
         m.submodules.rollback_connect = ConnectTrans.create(rollback_fifo.read, rollback_trigger_handlers)
+        # TODO: reverify or add always ready assert
 
         unsafe_resolved = self.dm.get_dependency(UnsafeInstructionResolvedKey())
         # workaround against Transactron bug calling methods under Ifs with 0 args again; wrrrrrrrrrrrrrrrrr :/
@@ -160,8 +161,11 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             ("taken", 1),
             fields.predicted_taken,
             fields.tag,
+            fields.ftq_ptr,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
+
+        get_active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
 
         with Transaction().body(m):
             instr = instr_fifo.read(m)
@@ -234,9 +238,12 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             with m.Elif(misprediction):
                 # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                rollback_fifo.write(
-                    m, tag=instr.tag, pc=jump_result
-                )  # trigger rollback and mispredicted path invalidation
+                with m.If(
+                    get_active_tags(m).active_tags[instr.tag]
+                ):  # TODO: this should be checked a cycle later at forwarder
+                    rollback_fifo.write(
+                        m, tag=instr.tag, pc=jump_result, ftq_ptr=instr.ftq_ptr
+                    )  # trigger rollback and mispredicted path invalidation
 
             with m.If(~is_auipc):
                 resolve_branch(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
@@ -283,6 +290,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 taken=jb.taken,
                 predicted_taken=funct7_info.predicted_taken,
                 tag=arg.tag,
+                ftq_ptr=arg.ftq_ptr,
             )
 
         return m

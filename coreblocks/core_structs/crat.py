@@ -342,7 +342,7 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_0 = Signal.like(active_tags, init=0)
 
         @def_method(m, self.rollback)
-        def _(tag: Value, pc: Value):
+        def _(tag: Value, pc: Value, ftq_ptr: Value):
             with m.If(active_tags & (1 << tag)):
                 tag_map.read_req(m, addr=tag)
                 m.d.sync += rollback_tag_s1.eq(tag)

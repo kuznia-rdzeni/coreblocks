@@ -336,6 +336,7 @@ class SchedulerLayouts:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.rob_allocate_out = self.rs_select_in = make_layout(
@@ -353,6 +354,7 @@ class SchedulerLayouts:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.rs_insert_in = self.rs_select_out = make_layout(
@@ -417,7 +419,7 @@ class RATLayouts:
             ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt),
         )
 
-        self.rollback_in = make_layout(fields.tag, fields.pc)
+        self.rollback_in = make_layout(fields.tag, fields.pc, fields.ftq_ptr)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
 
         self.crat_commit_checkpoint_in = make_layout(fields.tag, fields.commit_checkpoint)
@@ -536,6 +538,7 @@ class RSFullDataLayout:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,  # that's the third place of duplication
         )
 
 
@@ -587,6 +590,7 @@ class RSLayouts:
             "imm",
             "pc",
             "tag",
+            "ftq_ptr",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=rs_entries, data_fields=data_fields)
@@ -608,6 +612,7 @@ class RSLayouts:
                 "imm",
                 "pc",
                 "tag",
+                "ftq_ptr",
             },
         )
 
@@ -785,7 +790,8 @@ class FuncUnitLayouts:
             fields.imm,
             fields.pc,
             fields.tag,
-        )
+            fields.ftq_ptr,
+        )  # TODO: shouldnt it be equal to RS out?
 
         self.push_result = make_layout(
             fields.rob_id,

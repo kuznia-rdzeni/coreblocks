@@ -124,16 +124,14 @@ class StallController(Elaboratable):
                     log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
                     self.redirect_frontend(m, pc=pc, from_unsafe=1)
 
-        redirect_frontend = Signal()
-        redirect_frontend_pc = Signal(self.gen_params.isa.xlen)
-
         @def_method(m, self.resume_from_core_flush)
-        def _(pc):
+        def _(pc):  # TODO: are there some important confilcts?
             m.d.sync += stalled_unsafe.eq(0)
 
             log.info(m, True, "Resuming from core flush pc=0x{:x}", pc)
-            m.d.comb += redirect_frontend.eq(1)
-            m.d.comb += redirect_frontend_pc.eq(pc)
+
+            self.redirect_frontend(m, pc=pc, from_unsafe=0)
+            self.fetch_flush(m)
 
         @def_method(m, self.stall_unsafe)
         def _():
@@ -142,26 +140,10 @@ class StallController(Elaboratable):
             m.d.sync += stalled_unsafe.eq(1)
 
         @def_method(m, self.rollback_handler)
-        def _(tag: Signal, pc: Signal):
+        def _(tag, pc, ftq_ptr):
             # rollback invalidates prefix of instructions - always clears unsafe state
-            # full frontend is flushed on a rollback
-
             m.d.sync += stalled_unsafe.eq(0)
             log.info(m, stalled_unsafe, "Resuming from unsafe state because of rollback")
-            # Hmm, we have a rollback tagger already installed, this is all not that bad!
-
-            log.info(m, stalled_unsafe, "Rollback: redirecting frontend to pc=0x{:x}", pc)
-            m.d.comb += redirect_frontend.eq(1)  # how it works with FTQ?
-            m.d.comb += redirect_frontend_pc.eq(pc)
-
-        with Transaction().body(m, ready=redirect_frontend):
-            # decouple confilct between rollbacks and resume_from_exception. (resume_from_exception happens only
-            # on empty core). TODO: verify if still needed
-            self.redirect_frontend(m, pc=redirect_frontend_pc, from_unsafe=0)  # from unsafe?
             self.fetch_flush(m)
-
-        with Transaction().body(m):
-            log.assertion(m, self.redirect_frontend.ready)
-            log.assertion(m, self.fetch_flush.ready)
 
         return m
