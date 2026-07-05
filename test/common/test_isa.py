@@ -130,7 +130,6 @@ class TestISA(unittest.TestCase):
 
     def do_test(self, test):
         def _do_test():
-            print(f"{test}")
             isa = ISA(test.exts_in, test.xlen)
             assert isa.xlen == test.xlen
             assert isa.reg_cnt == test.reg_cnt
