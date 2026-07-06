@@ -138,9 +138,15 @@ class AreaPMPChecker(Elaboratable):
                 },
             )
 
-        default_input = Signal(layout)
-        m.d.comb += default_input.matches_all.eq(1)
-        m.d.comb += default_input.entry_data.eq(PMPLayoutFull().const({"r": 0, "w": 0, "x": 0, "l": 0}))
+        default_input = layout.const({
+            "matches_all": 1,
+            "entry_data": {
+                "r": 0,
+                "w": 0,
+                "x": 0,
+                "l": 0,
+            }
+        })
 
         # entry fully covers the match if all entries before the fully matching one don't match any bytes.
         # this is the same as checking the the first any-matching entry is also fully matching
