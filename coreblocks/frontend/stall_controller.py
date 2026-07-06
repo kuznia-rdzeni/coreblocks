@@ -75,7 +75,7 @@ class StallController(Elaboratable):
             # Make sure that there is at most one caller - there can be only one unsafe instruction
             log.assertion(m, popcount(runs) <= 1)
             m.submodules.resume_prio_encoder = resume_prio_encoder = PriorityEncoder(len(args))
-            m.d.top_comb += resume_prio_encoder.i.eq(runs)
+            m.d.comb += resume_prio_encoder.i.eq(runs)
             return Array(args)[resume_prio_encoder.o]
 
         @def_method(m, self._resume_from_unsafe, nonexclusive=True, combiner=resume_combiner)

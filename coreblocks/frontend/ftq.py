@@ -217,8 +217,8 @@ class FetchTargetQueue(Elaboratable):
 
             fetch_address_unit.backend_redirect(m, pc=pc)
 
-            m.d.sync += alloc_ptr.eq(ftq_ptr)
-            m.d.sync += fetch_ptr.eq(ftq_ptr)
+            m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
+            m.d.sync += fetch_ptr.eq(ftq_ptr_plus_one)
 
         @def_method(m, self.jump_target_req)
         def _():
