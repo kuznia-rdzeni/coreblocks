@@ -307,6 +307,8 @@ class Retirement(Elaboratable):
 
                     with m.If(free_tag):
                         self.checkpoint_tag_free(m)
+                        log.debug(m, True, "free_tag, last_retired was: {}", last_retired_tag)
+                        m.d.sync += last_retired_tag.eq(last_retired_tag + 1)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
 
