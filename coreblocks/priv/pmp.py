@@ -27,7 +27,7 @@ class PMPOperationMode(Enum):
     MMU = auto()
 
 
-class AreaPMPChecker(Elaboratable):
+class DynamicAreaPMPChecker(Elaboratable):
     """
     Implementation of physical memory protection checker that checks permissions
     of an naturally aligned power-of-two physical address range.
@@ -48,14 +48,20 @@ class AreaPMPChecker(Elaboratable):
     Is the address range fully inside a single PMP entry.
     """
 
-    matching_entry: data.View
+    result: data.View
     """
-    Matching pmp entry RWXL fields.
-    layout: PMPLayoutFull
+    RWX permission bits for the given address based on current PMP configuration
+    and privilege mode. Bits are set to 0 if access is denied.
+    layout: PMPLayout
     """
 
-    def __init__(self, gen_params: GenParams, size_classes: list[int]) -> None:
+    def __init__(self, gen_params: GenParams, *, mode: PMPOperationMode, size_classes: list[int]) -> None:
         """
+        mode: PMPOperationMode
+            Effective mode depends on `mode`:
+            - LSU: MPRV-aware (using MPP when MPRV=1 and current mode is M)
+            - INSTRUCTION_FETCH: uses only current privilege mode
+            - MMU: always behaves as supervisor mode
         size_classes: list[int]
             The log2 of power-of-two for which the checker can do the operations.
             The size_class signal selects the value from these.
@@ -63,11 +69,12 @@ class AreaPMPChecker(Elaboratable):
         self.gen_params = gen_params
         self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
         self.size_classes = size_classes
+        self.mode = mode
 
         self.paddr = Signal(gen_params.phys_addr_bits)
         self.size_class = Signal(range(len(size_classes)))
         self.uniform = Signal()
-        self.matching_entry = Signal(PMPLayoutFull())
+        self.result = Signal(PMPLayout())
 
     def elaborate(self, platform) -> HasElaborate:
         m = TModule()
@@ -77,7 +84,7 @@ class AreaPMPChecker(Elaboratable):
 
         if n == 0:
             m.d.comb += self.uniform.eq(1)
-            m.d.comb += self.matching_entry.eq(PMPLayoutFull().const({"r": 1, "w": 1, "x": 1, "l": 0}))
+            m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
             return m
 
         cfgs = [data.View(PMPCfgLayout(), self.csr.pmpxcfg[i].value) for i in range(n)]
@@ -138,15 +145,17 @@ class AreaPMPChecker(Elaboratable):
                 },
             )
 
-        default_input = layout.const({
-            "matches_all": 1,
-            "entry_data": {
-                "r": 0,
-                "w": 0,
-                "x": 0,
-                "l": 0,
+        default_input = layout.const(
+            {
+                "matches_all": 1,
+                "entry_data": {
+                    "r": 0,
+                    "w": 0,
+                    "x": 0,
+                    "l": 0,
+                },
             }
-        })
+        )
 
         # entry fully covers the match if all entries before the fully matching one don't match any bytes.
         # this is the same as checking the the first any-matching entry is also fully matching
@@ -161,49 +170,6 @@ class AreaPMPChecker(Elaboratable):
         else:
             m.d.comb += self.uniform.eq(selected.matches_all)
 
-        m.d.comb += self.matching_entry.eq(selected.entry_data)
-
-        return m
-
-
-class PMPChecker(Elaboratable):
-    """
-    Implementation of physical memory protection checker.
-    This is a combinational circuit with return value read from `result` output.
-
-    Effective mode depends on `mode`:
-    - LSU: MPRV-aware (using MPP when MPRV=1 and current mode is M)
-    - INSTRUCTION_FETCH: uses only current privilege mode
-    - MMU: always behaves as supervisor mode
-
-    In machine mode, accesses bypass PMP by default (result = 1/1/1) unless a
-    matching locked entry (L=1) is found. S/U-mode accesses default to no
-    access (0/0/0) if no entry matches.
-    """
-
-    paddr: Value
-    """
-    Memory address, for which PMP checks are requested.
-    """
-
-    result: data.View
-    """
-    RWX permission bits for the given address based on current PMP configuration
-    and privilege mode. Bits are set to 0 if access is denied.
-    layout: PMPLayout
-    """
-
-    def __init__(self, gen_params: GenParams, *, mode: PMPOperationMode, access_size_log: int = 2) -> None:
-        self.gen_params = gen_params
-        self.mode = mode
-        self.csr = DependencyContext.get().get_dependency(CSRInstancesKey()).m_mode
-        self.paddr = Signal(gen_params.phys_addr_bits)
-        self.result = Signal(PMPLayout())
-        self.access_size_log = access_size_log
-
-    def elaborate(self, platform) -> HasElaborate:
-        m = TModule()
-
         priv_mode = self.csr.priv_mode.value
         mprv = self.csr.mstatus_mprv.value
         mpp = self.csr.mstatus_mpp.value
@@ -217,16 +183,54 @@ class PMPChecker(Elaboratable):
             case PMPOperationMode.MMU:
                 m.d.comb += effective_priv_mode.eq(PrivilegeLevel.SUPERVISOR)
 
-        m.submodules.pmp_area_checker = pmp_area_checker = AreaPMPChecker(self.gen_params, [self.access_size_log])
-
-        m.d.comb += pmp_area_checker.paddr.eq(self.paddr)
-        m.d.comb += pmp_area_checker.size_class.eq(0)
-
-        with m.If(~pmp_area_checker.uniform):
+        with m.If(~self.uniform):
             m.d.comb += self.result.eq(PMPLayout().const({"r": 0, "w": 0, "x": 0}))
-        with m.Elif(~pmp_area_checker.matching_entry.l & (effective_priv_mode == PrivilegeLevel.MACHINE)):
-            m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
+        if self.mode != PMPOperationMode.MMU:
+            with m.Elif(~selected.entry_data.l & (effective_priv_mode == PrivilegeLevel.MACHINE)):
+                m.d.comb += self.result.eq(PMPLayout().const({"r": 1, "w": 1, "x": 1}))
         with m.Else():
-            m.d.comb += assign(self.result, pmp_area_checker.matching_entry, fields=AssignType.LHS)
+            m.d.comb += assign(self.result, selected.entry_data, fields=AssignType.LHS)
+
+        return m
+
+
+class PMPChecker(Elaboratable):
+    """
+    Like DynamicAreaPMPChecker, but with constant access size.
+    """
+
+    paddr: Value
+    """
+    Memory address, for which PMP checks are requested.
+    """
+
+    uniform: Value
+    """
+    Is the address range fully inside a single PMP entry.
+    """
+
+    result: data.View
+    """
+    RWX permission bits for the given address based on current PMP configuration
+    and privilege mode. Bits are set to 0 if access is denied.
+    layout: PMPLayout
+    """
+
+    def __init__(self, gen_params: GenParams, *, mode: PMPOperationMode, access_size_log: int = 2) -> None:
+        self.paddr = Signal(gen_params.phys_addr_bits)
+        self.uniform = Signal()
+        self.result = Signal(PMPLayout())
+
+        self._impl = DynamicAreaPMPChecker(gen_params, mode=mode, size_classes=[access_size_log])
+
+    def elaborate(self, platform) -> HasElaborate:
+        m = TModule()
+
+        m.submodules.impl = self._impl
+
+        m.d.comb += self._impl.paddr.eq(self.paddr)
+        m.d.comb += self._impl.size_class.eq(0)
+        m.d.comb += self.uniform.eq(self._impl.uniform)
+        m.d.comb += self.result.eq(self._impl.result)
 
         return m
