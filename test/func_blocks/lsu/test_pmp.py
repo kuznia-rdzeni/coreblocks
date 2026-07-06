@@ -10,7 +10,7 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing import TestbenchContext, TestCaseWithSimulator
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
 from transactron.utils.dependencies import DependencyContext
-from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
+from coreblocks.priv.pmp import PMPChecker, PMPOperationMode, DynamicAreaPMPChecker
 
 
 def make_cfg(*, r=0, w=0, x=0, a=0, lock=0) -> int:
@@ -47,19 +47,58 @@ class TestPMPDirect(TestCaseWithSimulator):
         mpp=PrivilegeLevel.USER,
         pmp_grain_log=2,
         icache_enable=False,
+        access_size_log=2,
     ):
         gen_params = GenParams(
             configurations.test.replace(pmp_register_count=16, pmp_grain_log=pmp_grain_log, icache_enable=icache_enable)
         )
         csr = CSRInstances(gen_params)
         DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
-        pmp = PMPChecker(gen_params, mode=pmp_mode)
+        pmp = PMPChecker(gen_params, mode=pmp_mode, access_size_log=access_size_log)
         test_module = ModuleConnector(csr_instances=csr, pmp=pmp)
 
         async def process(sim: TestbenchContext):
             sim.set(csr.m_mode.priv_mode.value, priv_mode)
             sim.set(csr.m_mode.mstatus_mprv.value, mprv)
             sim.set(csr.m_mode.mstatus_mpp.value, mpp)
+            for i, entry in enumerate(entries):
+                sim.set(csr.m_mode.pmpaddrx[i].value, entry.addr)
+                sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
+
+            for c in checks:
+                sim.set(pmp.paddr, c.addr)
+                result = sim.get(pmp.result)
+                assert result.r == c.r, f"addr=0x{c.addr:08x}: expected r={c.r}, got {result.r}"
+                assert result.w == c.w, f"addr=0x{c.addr:08x}: expected w={c.w}, got {result.w}"
+                assert result.x == c.x, f"addr=0x{c.addr:08x}: expected x={c.x}, got {result.x}"
+
+        with self.run_simulation(test_module) as sim:
+            sim.add_testbench(process)
+
+    def run_dynamic_pmp_test(
+        self,
+        entries: list[PMPEntry],
+        checks: list[PMPCheck],
+        *,
+        size_classes: list[int],
+        size_class: int,
+        priv_mode=PrivilegeLevel.USER,
+        pmp_mode=PMPOperationMode.LSU,
+        mprv=0,
+        mpp=PrivilegeLevel.USER,
+        pmp_grain_log=2,
+    ):
+        gen_params = GenParams(configurations.test.replace(pmp_register_count=16, pmp_grain_log=pmp_grain_log))
+        csr = CSRInstances(gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
+        pmp = DynamicAreaPMPChecker(gen_params, mode=pmp_mode, size_classes=size_classes)
+        test_module = ModuleConnector(csr_instances=csr, pmp=pmp)
+
+        async def process(sim: TestbenchContext):
+            sim.set(csr.m_mode.priv_mode.value, priv_mode)
+            sim.set(csr.m_mode.mstatus_mprv.value, mprv)
+            sim.set(csr.m_mode.mstatus_mpp.value, mpp)
+            sim.set(pmp.size_class, size_class)
             for i, entry in enumerate(entries):
                 sim.set(csr.m_mode.pmpaddrx[i].value, entry.addr)
                 sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
@@ -268,6 +307,51 @@ class TestPMPDirect(TestCaseWithSimulator):
                 PMPCheck(0x1FC, 0, 0, 0),
             ],
             pmp_grain_log=6,
+        )
+
+    def test_dynamic_area_checker_size_class_controls_uniformity(self):
+        entries = [
+            PMPEntry(addr=0x1000 >> 2, cfg=make_cfg(a=PMPAFlagEncoding.OFF)),
+            PMPEntry(addr=0x1010 >> 2, cfg=make_cfg(r=1, w=1, x=1, a=PMPAFlagEncoding.TOR)),
+        ]
+
+        gen_params = GenParams(configurations.test.replace(pmp_register_count=16, pmp_grain_log=2, icache_enable=False))
+        csr = CSRInstances(gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
+        pmp = DynamicAreaPMPChecker(gen_params, mode=PMPOperationMode.LSU, size_classes=[2, 5])
+        test_module = ModuleConnector(csr_instances=csr, pmp=pmp)
+
+        async def process(sim: TestbenchContext):
+            sim.set(csr.m_mode.priv_mode.value, PrivilegeLevel.USER)
+            sim.set(pmp.size_class, 0)
+            for i, entry in enumerate(entries):
+                sim.set(csr.m_mode.pmpaddrx[i].value, entry.addr)
+                sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
+
+            sim.set(pmp.paddr, 0x1000)
+            result = sim.get(pmp.result)
+            assert sim.get(pmp.uniform) == 1
+            assert result.r == 1 and result.w == 1 and result.x == 1
+
+            sim.set(pmp.size_class, 1)
+            sim.set(pmp.paddr, 0x1000)
+            result = sim.get(pmp.result)
+            assert sim.get(pmp.uniform) == 0
+            assert result.r == 0 and result.w == 0 and result.x == 0
+
+        with self.run_simulation(test_module) as sim:
+            sim.add_testbench(process)
+
+    @pytest.mark.parametrize("access_size_log, expected", [(2, (1, 1, 1)), (5, (0, 0, 0))])
+    def test_pmpchecker_access_size_log_affects_range(self, access_size_log, expected):
+        self.run_pmp_test(
+            [
+                PMPEntry(addr=0x1000 >> 2, cfg=make_cfg(a=PMPAFlagEncoding.OFF)),
+                PMPEntry(addr=0x1010 >> 2, cfg=make_cfg(r=1, w=1, x=1, a=PMPAFlagEncoding.TOR)),
+            ],
+            [PMPCheck(0x1000, *expected)],
+            pmp_grain_log=2,
+            access_size_log=access_size_log,
         )
 
     def test_pmp_grain_icache_validation_error(self):
