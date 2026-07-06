@@ -54,15 +54,15 @@ class KonataParser(EventConsumer):
 
     An instruction's lifetime starts at the fetch request for its fetch
     block. Stages:
-     - "F" from the fetch request until the instruction leaves
-       the fetch unit,
-     - "Q" while it waits in the frontend instruction queue,
-     - "D" from landing in the decode stage,
-     - "Rn" (rename) from entering the scheduler,
-     - "Ds" (dispatch) from ROB allocation (which is where the
-        instruction becomes identified by its ROB id),
-     - "Is" (issue) from being issued to a functional unit,
-     - "Cm" once execution completes.
+
+    - "F" from the fetch request until the instruction leaves the fetch unit,
+    - "Q" while it waits in the frontend instruction queue,
+    - "D" from landing in the decode stage,
+    - "Rn" (rename) from entering the scheduler,
+    - "Ds" (dispatch) from ROB allocation (which is where the
+      instruction becomes identified by its ROB id),
+    - "Is" (issue) from being issued to a functional unit,
+    - "Cm" once execution completes.
 
     The instruction terminates by retiring (`RobRetire`) or being squashed.
     Instructions still in flight when the event log ends are left unterminated.
