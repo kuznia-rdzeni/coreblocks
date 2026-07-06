@@ -209,12 +209,10 @@ class FetchTargetQueue(Elaboratable):
             log.assertion(
                 m,
                 commit_ptr <= ftq_ptr_casted,
-                "FTQ entry was retired out-of-order: previous {} commited {}",
-                commit_ptr,
-                ftq_ptr_casted,
+                "FTQ entry was retired out-of-order"# previous {} commited {}",
+          #      commit_ptr,
+           #     ftq_ptr_casted,
             )
-
-            log.debug(m, True, "FTQ commit {}", ftq_ptr_casted)
 
             m.d.sync += commit_ptr.eq(ftq_ptr)
 
@@ -235,16 +233,6 @@ class FetchTargetQueue(Elaboratable):
                 m.d.sync += alloc_ptr.eq(commit_ptr_plus_one)
                 m.d.sync += fetch_ptr.eq(commit_ptr_plus_one)
 
-            log.debug(
-                m,
-                True,
-                "backend redirect to pc {}, ftq_ptr {} {}-> {}",
-                pc,
-                fetch_ptr,
-                ~from_unsafe,
-                commit_ptr_plus_one,
-            )
-
         @def_method(m, self.rollback_handler)
         def _(tag, pc, ftq_ptr):
             rollback_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
@@ -252,7 +240,7 @@ class FetchTargetQueue(Elaboratable):
 
             fetch_address_unit.backend_redirect(m, pc=pc)
 
-            log.debug(m, True, "rollback to pc {}, ftq_ptr {} -> {}", pc, fetch_ptr, rollback_ptr_plus_one)
+            #log.debug(m, True, "rollback to pc {}, ftq_ptr {} -> {}", pc, fetch_ptr, rollback_ptr_plus_one)
 
             m.d.sync += alloc_ptr.eq(rollback_ptr_plus_one)
             m.d.sync += fetch_ptr.eq(rollback_ptr_plus_one)
