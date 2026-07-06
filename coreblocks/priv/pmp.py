@@ -11,20 +11,11 @@ from coreblocks.params import *
 
 
 class PMPLayout(data.StructLayout):
-    r: Value
-    w: Value
-    x: Value
-
     def __init__(self):
         super().__init__({"r": 1, "w": 1, "x": 1})
 
 
 class PMPLayoutFull(data.StructLayout):
-    r: Value
-    w: Value
-    x: Value
-    l: Value
-
     def __init__(self):
         super().__init__({"r": 1, "w": 1, "x": 1, "l": 1})
 
