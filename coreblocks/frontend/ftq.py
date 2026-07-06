@@ -119,7 +119,7 @@ class FetchTargetQueue(Elaboratable):
         ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
         self.commit = Method(i=ftq_layouts.commit)
         self.resolve = Method(i=ftq_layouts.branch_resolve)
-        self.backend_redirect = Method(i=ifu_layouts.frontend_redirect)
+        self.backend_redirect = Method(i=ifu_layouts.backend_redirect)
 
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
         self.dep_manager.add_dependency(FTQCommitKey(), self.commit)
@@ -211,21 +211,14 @@ class FetchTargetQueue(Elaboratable):
             m.d.sync += commit_ptr.eq(ftq_ptr)
 
         @def_method(m, self.backend_redirect)
-        def _(pc, from_unsafe):
-            commit_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
-            m.d.av_comb += commit_ptr_plus_one.eq(FTQPtr(commit_ptr, gen_params=self.gen_params) + 1)
+        def _(ftq_ptr, pc):
+            ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
             fetch_address_unit.backend_redirect(m, pc=pc)
 
-            # An unsafe instruction (e.g. a CSR access) is not squashed - it keeps its FTQ entry
-            # and is committed normally. Its resume is signalled before it retires, so `commit_ptr`
-            # is stale here and must not be used. The alloc/fetch pointers were already rewound to
-            # just past the unsafe instruction when the fetch unit wrote it back (`ifu_writeback`).
-            # For an exception/backend redirect the whole pipeline is squashed, so we restart
-            # allocation right after the last committed entry.
-            with m.If(~from_unsafe):
-                m.d.sync += alloc_ptr.eq(commit_ptr_plus_one)
-                m.d.sync += fetch_ptr.eq(commit_ptr_plus_one)
+            m.d.sync += alloc_ptr.eq(ftq_ptr)
+            m.d.sync += fetch_ptr.eq(ftq_ptr)
 
         @def_method(m, self.jump_target_req)
         def _():

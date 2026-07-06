@@ -425,6 +425,7 @@ class RSInsertion(Elaboratable):
                         "csr": instr.csr,
                         "pc": instr.pc,
                         "tag": instr.tag,
+                        "ftq_ptr": instr.ftq_ptr,
                     },
                 )
                 rs_datas.append(rs_data)
