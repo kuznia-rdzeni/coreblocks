@@ -190,7 +190,7 @@ class FetchTargetQueue(Elaboratable):
         def _(
             ftq_ptr,
             redirect,
-            redirect_target,
+            cfi_target,
         ):
             ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
             m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
@@ -203,7 +203,7 @@ class FetchTargetQueue(Elaboratable):
             m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
 
             with m.If(redirect):
-                fetch_address_unit.ifu_redirect(m, pc=redirect_target)
+                fetch_address_unit.ifu_redirect(m, pc=cfi_target)
 
         @def_method(m, self.commit)
         def _(ftq_ptr):
