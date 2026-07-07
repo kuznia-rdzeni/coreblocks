@@ -88,6 +88,9 @@ class CommonLayoutFields:
         self.ftq_ptr: LayoutListField = ("ftq_ptr", FTQPtrLayout(gen_params))
         """A pointer into the Fetch Target Queue"""
 
+        self.ftq_offset: LayoutListField = ("ftq_offset", gen_params.fetch_width_log)
+        """Offset of an instruction (counted in number of instructions) within its FTQ entry (fetch block)"""
+
         self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
         """Address of a fetch block"""
 
@@ -267,6 +270,7 @@ class SchedulerLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.reg_alloc_in = self.scheduler_in = make_layout(
@@ -285,6 +289,7 @@ class SchedulerLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.reg_alloc_out = self.instr_tag_in = make_layout(
@@ -303,6 +308,7 @@ class SchedulerLayouts:
             fields.tag_increment,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.renaming_in = self.instr_tag_out = make_layout(
@@ -320,6 +326,7 @@ class SchedulerLayouts:
             fields.tag,
             fields.tag_increment,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.renaming_out = self.rob_allocate_in = make_layout(
@@ -692,6 +699,7 @@ class FetchLayouts:
             fields.predicted_taken,
             fields.cfi_type,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.fetch_result = make_layout(
@@ -742,6 +750,7 @@ class DecodeLayouts:
             fields.csr,
             fields.pc,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.decode_result = make_layout(
@@ -760,6 +769,7 @@ class DecodeLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.tagged_decode_result = make_layout(

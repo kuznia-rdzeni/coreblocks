@@ -14,8 +14,11 @@ from coreblocks.interface.layouts import (
 )
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
+from transactron.evlog import EventSource
 from transactron.utils.dependencies import DependencyContext
 from transactron.lib.metrics import *
+
+from coreblocks.telemetry import RobFlush, RobRetire
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause, PrivilegeLevel
@@ -33,6 +36,9 @@ from coreblocks.arch.isa_consts import TrapVectorMode
 
 
 __all__ = ["Retirement"]
+
+
+evlog = EventSource("backend.retirement")
 
 
 class Retirement(Elaboratable):
@@ -125,9 +131,13 @@ class Retirement(Elaboratable):
             # free old rp_dst from overwritten R-RAT mapping
             free_phys_reg(i, rat_out.old_rp_dst)
 
+            evlog.emit(m, RobRetire.hw(rob_id=rob_entry.rob_id))
+
             self.perf_instr_ret.incr[i](m)
 
         def flush_instr(i: int, rob_entry: View):
+            evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
+
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
 
