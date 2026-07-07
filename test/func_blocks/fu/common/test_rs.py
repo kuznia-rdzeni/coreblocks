@@ -43,6 +43,7 @@ def create_data_list(gen_params: GenParams, count: int, optypes: int = 1):
             "imm": k,
             "pc": k,
             "tag": 0,
+            "ftq_ptr": {"ptr": 0, "parity": 0},
         }
         for k in range(count)
     ]

@@ -342,6 +342,7 @@ class SchedulerLayouts:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.rob_allocate_out = self.rs_select_in = make_layout(
@@ -359,6 +360,7 @@ class SchedulerLayouts:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.rs_insert_in = self.rs_select_out = make_layout(
@@ -537,6 +539,7 @@ class RSFullDataLayout:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
 
@@ -588,6 +591,7 @@ class RSLayouts:
             "imm",
             "pc",
             "tag",
+            "ftq_ptr",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=rs_entries, data_fields=data_fields)
@@ -609,6 +613,7 @@ class RSLayouts:
                 "imm",
                 "pc",
                 "tag",
+                "ftq_ptr",
             },
         )
 
@@ -705,8 +710,10 @@ class FetchLayouts:
         self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
         self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), ("redirect_target", gen_params.isa.xlen))
         self.redirect = make_layout(fields.pc)
-        self.frontend_redirect = make_layout(fields.pc, ("from_unsafe", 1))
-        self.resume = make_layout(fields.pc)
+
+        # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
+        # (or have already been) committed before the instruction the core is being redirected to.
+        self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
 
@@ -789,6 +796,7 @@ class FuncUnitLayouts:
             fields.imm,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.push_result = make_layout(
@@ -895,6 +903,7 @@ class CSRUnitLayouts:
             "csr",
             "pc",
             "tag",
+            "ftq_ptr",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=self.rs_entries, data_fields=data_fields)
