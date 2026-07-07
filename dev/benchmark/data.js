@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783431168714,
+  "lastUpdate": 1783431171205,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -67290,6 +67290,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 13390,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "32f8e773891c218a0a1dd3980368cc9085528bb6",
+          "message": "Store FTQ pointers in RS and use them when redirecting the frontend (#1004)",
+          "timestamp": "2026-07-07T14:40:22+02:00",
+          "tree_id": "e693ff18c66ab2167c54e372dc75626f714f8acd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/32f8e773891c218a0a1dd3980368cc9085528bb6"
+        },
+        "date": 1783431170455,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.96,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 63562,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4008,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3332,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13453,
             "unit": "LUT"
           }
         ]
