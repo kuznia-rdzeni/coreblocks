@@ -17,6 +17,7 @@ from coreblocks.interface.keys import (
     ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
     BranchResolveKey,
+    CoreStateKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
     RollbackKey,
@@ -191,12 +192,13 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
 
             async_interrupt_active = self.dm.get_dependency(AsyncInterruptInsertSignalKey())
 
+            core_state = self.dm.get_dependency(CoreStateKey())
             get_active_tags = self.dm.get_dependency(ActiveTagsKey())
             instr_tag_active = get_active_tags(m).active_tags[instr.tag]
 
             exception = Signal()
 
-            with m.If(~instr_tag_active):
+            with m.If(~instr_tag_active | core_state(m).flushing):
                 pass  # already inactive instructions should be ignored and not trigger any extra actions
             with m.Elif(~is_auipc & instr.taken & jmp_addr_misaligned):
                 self.perf_misaligned.incr(
@@ -233,17 +235,13 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             with m.Elif(is_jalr):
                 # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
                 # Resolve only with redirection and resume of frontend.
-                with m.If(instr_tag_active):
-                    unsafe_resolved_fwd.write(m, pc=jump_result)
+                unsafe_resolved_fwd.write(m, pc=jump_result)
             with m.Elif(misprediction):
                 # Async interrupts have priority, because both actions are done at the same time there.
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                with m.If(
-                    get_active_tags(m).active_tags[instr.tag]
-                ):  # TODO: this should be checked a cycle later at forwarder
-                    rollback_fifo.write(
-                        m, tag=instr.tag, pc=jump_result, ftq_ptr=instr.ftq_ptr
-                    )  # trigger rollback and mispredicted path invalidation
+                rollback_fifo.write(
+                    m, tag=instr.tag, pc=jump_result, ftq_ptr=instr.ftq_ptr
+                )  # trigger rollback and mispredicted path invalidation
 
             with m.If(~is_auipc):
                 resolve_branch(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)

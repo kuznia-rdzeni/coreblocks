@@ -183,7 +183,7 @@ class CoreFrontend(Elaboratable):
             self.output_pipe.clear(m)
             self.bpu.flush(m)
 
-        self.stall_ctrl.fetch_flush.provide(self.fetch.flush)
+        self.stall_ctrl.fetch_flush.provide(self.flush_frontend)
         # TODO: should be flush whole frontend or fetch?
 
         @def_method(m, self.rollback)

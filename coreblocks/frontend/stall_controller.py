@@ -131,7 +131,7 @@ class StallController(Elaboratable):
             log.info(m, True, "Resuming from core flush pc=0x{:x}", pc)
 
             self.redirect_frontend(m, pc=pc, from_unsafe=0)
-            self.fetch_flush(m)
+            self.fetch_flush(m)  # sort of workaround for now - ifq changes target a cycle after removing guard
 
         @def_method(m, self.stall_unsafe)
         def _():
@@ -144,6 +144,5 @@ class StallController(Elaboratable):
             # rollback invalidates prefix of instructions - always clears unsafe state
             m.d.sync += stalled_unsafe.eq(0)
             log.info(m, stalled_unsafe, "Resuming from unsafe state because of rollback")
-            self.fetch_flush(m)
 
         return m
