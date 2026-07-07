@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783243084322,
+  "lastUpdate": 1783411011268,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -24149,6 +24149,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6e1b4887175f0a2ec613ada94d4bb4b5afb99038"
         },
         "date": 1783243069008,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4486953069382838,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6047801963294921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37129390940316226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6493506493506493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35847370537509493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060531192093885,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3432821873773525,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4457149159895584,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cfae91c035dc40b70c471940b78538b0755f7137",
+          "message": "Add instruction pipeline visualization (#994)",
+          "timestamp": "2026-07-07T09:05:54+02:00",
+          "tree_id": "a60aee062e6b5db3e25b550dd3f60c6179e35fc0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cfae91c035dc40b70c471940b78538b0755f7137"
+        },
+        "date": 1783411001307,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
