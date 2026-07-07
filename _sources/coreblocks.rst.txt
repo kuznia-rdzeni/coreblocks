@@ -17,6 +17,7 @@ Subpackages
    coreblocks.peripherals
    coreblocks.priv
    coreblocks.scheduler
+   coreblocks.telemetry
 
 Submodules
 ----------

@@ -1,0 +1,29 @@
+coreblocks.telemetry package
+============================
+
+Submodules
+----------
+
+coreblocks.telemetry.events module
+----------------------------------
+
+.. automodule:: coreblocks.telemetry.events
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+coreblocks.telemetry.konata module
+----------------------------------
+
+.. automodule:: coreblocks.telemetry.konata
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: coreblocks.telemetry
+   :members:
+   :show-inheritance:
+   :undoc-members:
