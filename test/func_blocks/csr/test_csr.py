@@ -57,7 +57,9 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans.create(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans.create(self.dut.update[0]))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans.create(self.dut.get_result))
-        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(Adapter(i=self.gen_params.get(FetchLayouts).resume))
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(
+            Adapter(i=self.gen_params.get(FetchLayouts).backend_redirect)
+        )
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
         m.submodules.priv_io = self.priv_io = TestbenchIO(
             AdapterTrans.create(self.csr_instances.m_mode.priv_mode.write)

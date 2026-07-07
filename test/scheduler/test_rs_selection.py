@@ -63,6 +63,10 @@ class TestRSSelect(TestCaseWithSimulator):
                 "csr": csr,
                 "pc": pc,
                 "tag": 0,
+                "ftq_ptr": {
+                    "ptr": random.randrange(2**self.gen_params.ftq_size_log),
+                    "parity": random.randrange(2),
+                },
             }
 
             self.input_instrs.append(instr)
