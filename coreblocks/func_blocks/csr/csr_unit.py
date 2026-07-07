@@ -254,7 +254,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             with m.If(~core_state.flushing & ~exception & ~interrupt):
                 # CSR instructions are never compressed, PC+4 is always next instruction
-                resume_core(m, pc=instr.pc + self.gen_params.isa.ilen_bytes)
+                resume_core(m, ftq_ptr=instr.ftq_ptr, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 
             return {
                 "rob_id": instr.rob_id,

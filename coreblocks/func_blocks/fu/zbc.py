@@ -185,7 +185,7 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
             self.push_result(m, rob_id=params.rob_id, rp_dst=params.rp_dst, result=reversed_result, exception=0)
 
         @def_method(m, self.issue_decoded)
-        def _(exec_fn, decode_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag):
+        def _(exec_fn, decode_fn, imm, s1_val, s2_val, rob_id, rp_dst, pc, tag, ftq_ptr):
             i1 = s1_val
             i2 = Mux(imm, imm, s2_val)
 
