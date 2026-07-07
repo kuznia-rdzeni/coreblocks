@@ -9,6 +9,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit, FuncBlock
 from transactron.lib import FIFO, Collector, Connect
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSInterfaceLayouts, RSLayouts, FuncUnitLayouts
+from coreblocks.telemetry import func_unit_kind
 
 __all__ = ["RSFuncBlock", "RSBlockComponent"]
 
@@ -83,6 +84,7 @@ class RSFuncBlock(FuncBlock, Elaboratable):
             wakeup_select = WakeupSelect(
                 gen_params=self.gen_params,
                 rs_entries=self.rs_entries,
+                fu_kind=func_unit_kind(func_unit),
             )
             wakeup_select.get_ready.provide(self.rs.get_ready_list[n])
             wakeup_select.take_row.provide(self.rs.take)

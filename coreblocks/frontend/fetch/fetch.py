@@ -8,6 +8,7 @@ from transactron.utils import count_trailing_zeros, popcount, assign, StableSele
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
+from transactron.evlog import EventSource
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
@@ -18,8 +19,10 @@ from coreblocks.params import *
 from coreblocks.interface.layouts import *
 from coreblocks.frontend import FrontendParams
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
+from coreblocks.telemetry import InstrFetched
 
 log = logging.HardwareLogger("frontend.fetch")
+evlog = EventSource("frontend.fetch")
 
 
 class FetchUnit(Elaboratable):
@@ -416,6 +419,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].access_fault.eq(s1_data.access_fault),
                     raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                     raw_instrs[i].ftq_ptr.eq(ftq_ptr),
+                    raw_instrs[i].ftq_offset.eq(i),
                 ]
 
             if Extension.ZCA in self.gen_params.isa.extensions:
@@ -443,6 +447,18 @@ class FetchUnit(Elaboratable):
                         flush()
 
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+
+                    for i in range(fetch_width):
+                        evlog.emit(
+                            m,
+                            InstrFetched.hw(
+                                ftq_ptr=ftq_ptr,
+                                pc=raw_instrs[i].pc,
+                                instr=raw_instrs[i].instr,
+                                ftq_offset=i,
+                            ),
+                            when=fetch_mask[i],
+                        )
 
                     # Make sure this is called only once to avoid a huge mux on arguments
                     m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
