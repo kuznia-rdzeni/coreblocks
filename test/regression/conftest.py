@@ -7,6 +7,7 @@ test_dir = Path(__file__).parent.parent
 riscv_tests_dir = test_dir.joinpath("external/riscv-tests")
 arch_tests_dir = test_dir.joinpath("external/riscv-arch-test/elfs")
 profile_dir = test_dir.joinpath("__profiles__")
+evlog_dir = test_dir.joinpath("__evlogs__")
 
 
 def get_all_test_names():

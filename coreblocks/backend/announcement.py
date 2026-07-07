@@ -2,9 +2,14 @@ from amaranth import *
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import FuncUnitLayouts, RFLayouts, ROBLayouts, RSLayouts
+from coreblocks.telemetry import ExecComplete
 from transactron import Method, Provided, Required, TModule, def_method
+from transactron.evlog import EventSource
 
 __all__ = ["ResultAnnouncement"]
+
+
+evlog = EventSource("backend.announcement")
 
 
 class ResultAnnouncement(Elaboratable):
@@ -53,6 +58,8 @@ class ResultAnnouncement(Elaboratable):
         @def_method(m, self.push_result)
         def _(result, rob_id, rp_dst, exception):
             self.rob_mark_done(m, rob_id=rob_id, exception=exception)
+
+            evlog.emit(m, ExecComplete.hw(rob_id=rob_id))
 
             self.rf_write_val(m, reg_id=rp_dst, reg_val=result)
             with m.If(rp_dst != 0):
