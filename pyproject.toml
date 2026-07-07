@@ -20,7 +20,7 @@ dependencies = [
     "amaranth-stubs~=0.5.0.0",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron~=0.9.0",
+    "transactron~=0.10.0",
 ]
 license = "BSD-3-Clause"
 license-files = [ "LICENSE" ]
@@ -58,6 +58,7 @@ dev = [
     "pyelftools==0.29",
     "tabulate==0.9.0",
     "filelock==3.13.1",
+    "capstone==5.0.9",
 ]
 
 [project.scripts]

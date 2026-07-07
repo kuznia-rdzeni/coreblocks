@@ -20,6 +20,7 @@ from transactron.testing import (
     TestbenchContext,
     ProcessContext,
 )
+from transactron.testing.evlog import capture_evlog
 from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
@@ -179,6 +180,14 @@ class PySimulation(SimulationBackend):
                 profile = Profile()
                 sim.add_process(profiler_process(transaction_manager, profile))
 
+            evlog = None
+            if "__TRANSACTRON_EVLOG" in os.environ:
+                evlog, evlog_process = capture_evlog()
+                if evlog.schema.sites:
+                    sim.add_process(evlog_process)
+                else:  # the design was elaborated without the event log enabled
+                    evlog = None
+
             metric_values: dict[str, dict[str, int]] = {}
 
             def on_sim_finish(sim: TestbenchContext):
@@ -197,7 +206,7 @@ class PySimulation(SimulationBackend):
 
             self.pretty_dump_metrics(metric_values)
 
-            return SimulationExecutionResult(success, metric_values, profile)
+            return SimulationExecutionResult(success, metric_values, profile, evlog)
 
     def stop(self):
         self.running = False

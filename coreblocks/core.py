@@ -33,6 +33,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
 from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
 from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
+from transactron.evlog import EvLogEnabledKey
 
 __all__ = ["Core"]
 
@@ -56,6 +57,7 @@ class Core(Component):
         self.dm = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
             self.dm.add_dependency(HwMetricsEnabledKey(), True)
+            self.dm.add_dependency(EvLogEnabledKey(), True)
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
