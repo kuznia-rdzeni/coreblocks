@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783513866282,
+  "lastUpdate": 1783513868206,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -67599,6 +67599,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 66180,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4008,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3332,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cecb6d6c0e193c9382bacdadc363bd121aa4b9d2",
+          "message": "frontend: rename prediction-checker output fields, expose cfi_type (#1007)",
+          "timestamp": "2026-07-08T13:39:11+02:00",
+          "tree_id": "9a4dd41103ae8a1c18244373353f7ea08d1c5bfe",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cecb6d6c0e193c9382bacdadc363bd121aa4b9d2"
+        },
+        "date": 1783513867831,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.84,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 67122,
             "unit": "LUT4"
           },
           {
