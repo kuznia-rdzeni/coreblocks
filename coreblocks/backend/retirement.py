@@ -157,16 +157,18 @@ class Retirement(Elaboratable):
 
         active_tags = Signal(self.gen_params.tag_count)
         last_retired_tag = Signal(self.gen_params.tag_bits)
-        earliest_instruction_tag = Signal.like(last_retired_tag)
+        next_last_retired_tag = Signal.like(last_retired_tag)
 
         retire_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         no_trap_count = Signal.like(retire_count)
         done_count = Signal.like(retire_count)
         tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
         retiring_mask = Signal.like(tag_incr_mask)
-        tag_suffix_active_mask = Signal.like(tag_incr_mask)
+        tag_active_mask_prefix = Signal.like(tag_incr_mask)
+        tag_active_mask_suffix = Signal.like(tag_incr_mask)
         tag_active_mask = Signal.like(tag_incr_mask)
         done_mask = Signal.like(tag_incr_mask)
+        first_tag_incr_pos = Signal.like(retire_count)
         free_tag = Signal()
 
         with Transaction().body(m):
@@ -180,21 +182,21 @@ class Retirement(Elaboratable):
             m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
             m.d.av_comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
             m.d.av_comb += done_count.eq(count_trailing_zeros(~done_mask))
-            limiting_instruction_mask = tag_incr_mask & (tag_incr_mask - 1) | (-1 << done_count)
+            limiting_instruction_mask = (tag_incr_mask & (tag_incr_mask - 1)) | (-1 << done_count)
+
             m.d.av_comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
             m.d.av_comb += retiring_mask.eq(~(-1 << retire_count))
             m.d.av_comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
 
-            m.d.av_comb += earliest_instruction_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
-            last_retired_tag_active = (active_tags.as_value() & (1 << last_retired_tag)).bool()
-            m.d.av_comb += tag_suffix_active_mask.eq(
-                Mux(last_retired_tag_active, ~(-1 << (retire_count - 1).as_unsigned()), 0)
+            m.d.av_comb += first_tag_incr_pos.eq(count_trailing_zeros(tag_incr_mask | (-1 << done_count)))
+            m.d.av_comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
+            m.d.av_comb += tag_active_mask_suffix.eq(  # last retired tag until limiting incr (if exsists)
+                Mux(active_tags[last_retired_tag], ~(-1 << first_tag_incr_pos), 0)
             )
-            # all retired instructions have the same tag, apart from earliest one, that can increment it
-            earliest_instruction_tag_active = (active_tags.as_value() & (1 << earliest_instruction_tag)).bool()
-            m.d.av_comb += tag_active_mask.eq(
-                tag_suffix_active_mask | (earliest_instruction_tag_active << (retire_count - 1).as_unsigned())
+            m.d.av_comb += tag_active_mask_prefix.eq(  # the same tag from limiting bit increase up
+                -active_tags[next_last_retired_tag] << first_tag_incr_pos
             )
+            m.d.av_comb += tag_active_mask.eq(tag_active_mask_suffix | tag_active_mask_prefix)
 
             exception_bits = Signal(self.gen_params.retirement_superscalarity)
             m.d.av_comb += exception_bits.eq(
