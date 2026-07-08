@@ -97,6 +97,14 @@ class GenParams(DependentCache):
         self.ftq_size_log = cfg.ftq_size_log
         self.ftq_size = 2**cfg.ftq_size_log
 
+        self.bpu_config = cfg.bpu_config
+        if self.bpu_config.ubtb_entries_log < 1:
+            raise ValueError("Micro-BTB must have at least 2 entries")
+        if self.bpu_config.ubtb_useful_cnt_width < 1:
+            raise ValueError("Micro-BTB usefulness counter must be at least 1 bit wide")
+        if self.bpu_config.ras_entries_log < 1:
+            raise ValueError("RAS must have at least 2 entries")
+
         self.frontend_superscalarity = cfg.frontend_superscalarity
         self.announcement_superscalarity = cfg.announcement_superscalarity
         self.retirement_superscalarity = cfg.retirement_superscalarity

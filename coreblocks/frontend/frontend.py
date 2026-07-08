@@ -139,11 +139,16 @@ class CoreFrontend(Elaboratable):
 
         self.ftq.bpu_request.provide(self.bpu.request)
         self.ftq.bpu_flush.provide(self.bpu.flush)
+        self.ftq.bpu_update.provide(self.bpu.update)
         self.ftq.stall_guard.provide(self.stall_ctrl.stall_guard)
         self.bpu.write_prediction.provide(self.ftq.bpu_response)
 
         self.ftq.ifu_request.provide(self.fetch.fetch_request)
         self.fetch.fetch_writeback.provide(self.ftq.ifu_writeback)
+        self.fetch.read_prediction.provide(self.ftq.read_prediction)
+        self.fetch.check_stale.provide(self.ftq.check_stale)
+        self.fetch.ras_peek.provide(self.ftq.ras_peek)
+        self.fetch.ras_predict.provide(self.ftq.ras_predict)
         self.stall_ctrl.redirect_frontend.provide(self.ftq.backend_redirect)
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
@@ -164,6 +169,7 @@ class CoreFrontend(Elaboratable):
         @def_method(m, self.stall)
         def _():
             self.fetch.flush(m)
+            self.ftq.drain(m)
             self.instr_buffer.clear(m)
             self.output_pipe.clear(m)
             self.bpu.flush(m)

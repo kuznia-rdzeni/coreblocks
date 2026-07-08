@@ -53,6 +53,13 @@ class FetchUnit(Elaboratable):
     stall_unsafe: Required[Method]
     """Called when an unsafe instruction is fetched."""
 
+    read_prediction: Required[Method]
+
+    check_stale: Required[Methods]
+
+    ras_peek: Required[Method]
+    ras_predict: Required[Method]
+
     def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
@@ -72,6 +79,11 @@ class FetchUnit(Elaboratable):
         self.cont = Method(i=self.layouts.fetch_result)
         self.fetch_request = Method(i=self.layouts.fetch_request)
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
+        self.read_prediction = Method(i=self.layouts.read_prediction_req, o=self.layouts.bpu_prediction)
+        self.check_stale = Methods(2, i=self.layouts.check_stale_req, o=self.layouts.check_stale_resp)
+
+        self.ras_peek = Method(o=self.layouts.ras_top)
+        self.ras_predict = Method(i=self.layouts.ras_predict)
 
         self.flush = Method()
 
@@ -124,7 +136,7 @@ class FetchUnit(Elaboratable):
             self.cont(m, result)
 
         m.submodules.fetch_requests = fetch_requests = BasicFifo(
-            make_layout(fields.pc, ("access_fault", 1), ("page_fault", 1), fields.ftq_ptr),
+            make_layout(fields.pc, ("access_fault", 1), ("page_fault", 1), fields.ftq_ptr, fields.fetch_gen),
             depth=2,
         )
 
@@ -132,12 +144,6 @@ class FetchUnit(Elaboratable):
         # at a time. We start counting when sending a request to the cache and
         # stop when pushing a fetch packet out of the fetch unit.
         m.submodules.req_counter = req_counter = Semaphore(4)
-        flushing_counter = Signal.like(req_counter.count)
-
-        flush_now = Signal()
-
-        def flush():
-            m.d.comb += flush_now.eq(1)
 
         #
         # Fetch - stage 0
@@ -156,19 +162,19 @@ class FetchUnit(Elaboratable):
         )
         m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
 
-        m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr))
+        m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr, fields.fetch_gen))
 
         @def_method(m, self.fetch_request)
-        def _(pc, ftq_ptr):
+        def _(pc, ftq_ptr, fetch_gen):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
 
             self.addr_translator.request(m, addr=pc, is_store=0)
-            ftq_ptr_pipe.write(m, ftq_ptr=ftq_ptr)
+            ftq_ptr_pipe.write(m, ftq_ptr=ftq_ptr, fetch_gen=fetch_gen)
 
         with Transaction().body(m):
             translated = addr_translator_accept_pipe.read(m)
-            ftq_ptr = ftq_ptr_pipe.read(m).ftq_ptr
+            request_id = ftq_ptr_pipe.read(m)
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
@@ -182,7 +188,8 @@ class FetchUnit(Elaboratable):
                 pc=translated.vaddr,
                 access_fault=access_fault,
                 page_fault=translated.page_fault,
-                ftq_ptr=ftq_ptr,
+                ftq_ptr=request_id.ftq_ptr,
+                fetch_gen=request_id.fetch_gen,
             )
 
         #
@@ -192,11 +199,14 @@ class FetchUnit(Elaboratable):
             [
                 fields.fb_addr,
                 fields.ftq_ptr,
+                fields.fetch_gen,
                 ("instr_valid", fetch_width),
                 ("access_fault", FetchLayouts.FaultFlag),
                 ("rvc", fetch_width),
                 ("instrs", ArrayLayout(self.gen_params.isa.ilen, fetch_width)),
                 ("instr_block_cross", 1),
+                ("ends_mid_instr", 1),
+                ("last_half", 16),
             ]
         )
 
@@ -220,6 +230,8 @@ class FetchUnit(Elaboratable):
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             fetch_request = fetch_requests.read(m)
+
+            s1_stale = self.check_stale[0](m, ftq_ptr=fetch_request.ftq_ptr, fetch_gen=fetch_request.fetch_gen).stale
 
             # The address of the fetch block.
             fetch_block_addr = params.fb_addr(fetch_request.pc)
@@ -245,8 +257,6 @@ class FetchUnit(Elaboratable):
             expanded_instr = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
             is_rvc = Signal(fetch_width)
 
-            # Whether in this cycle we have a fetch block that contains
-            # an instruction that crosses a fetch boundary
             instr_block_cross = Signal()
             m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
 
@@ -288,14 +298,19 @@ class FetchUnit(Elaboratable):
                 else:
                     m.d.av_comb += instr_start[i].eq(fetch_block_offset <= i)
 
+            # This block's last slot starts a non-compressed instruction, so it spills into
+            # the next block (a cross-fetch instruction).
+            ends_mid_instr = Signal()
+
             if Extension.ZCA in self.gen_params.isa.extensions:
                 instr_position_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
-                m.d.sync += prev_half_v.eq(
-                    (flushing_counter <= 1) & ~access_fault.any() & ~is_rvc[-1] & instr_start[-1]
-                )
-                m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
-                m.d.sync += prev_half_addr.eq(fetch_block_addr)
+                m.d.av_comb += ends_mid_instr.eq(~access_fault.any() & ~is_rvc[-1] & instr_start[-1])
+
+                with m.If(~s1_stale):
+                    m.d.sync += prev_half_v.eq(ends_mid_instr)
+                    m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
+                    m.d.sync += prev_half_addr.eq(fetch_block_addr)
             else:
                 instr_position_mask = Cat(instr_start)
 
@@ -309,13 +324,12 @@ class FetchUnit(Elaboratable):
                 access_fault=access_fault,
                 rvc=is_rvc,
                 ftq_ptr=fetch_request.ftq_ptr,
+                fetch_gen=fetch_request.fetch_gen,
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
+                ends_mid_instr=ends_mid_instr,
+                last_half=cache_resp.fetch_block[-16:],
             )
-
-        # Make sure to clean the state
-        with m.If(flush_now):
-            m.d.sync += prev_half_v.eq(0)
 
         #
         # Fetch - stage 2
@@ -348,12 +362,15 @@ class FetchUnit(Elaboratable):
             # Predecode instructions
             predecoded_instr = [predecoders[i].predecode(m, instrs[i]) for i in range(fetch_width)]
 
-            # No prediction for now
-            prediction = Signal(self.layouts.bpu_prediction)
+            prediction = self.read_prediction(m, ftq_ptr=ftq_ptr)
+
+            ras_top = self.ras_peek(m)
+
+            s2_stale = self.check_stale[1](m, ftq_ptr=ftq_ptr, fetch_gen=s1_data.fetch_gen).stale
 
             # The method is guarded by the If to make sure that the metrics
-            # are updated only if not flushing.
-            with m.If(flushing_counter == 0):
+            # are updated only for live blocks.
+            with m.If(~s2_stale):
                 predcheck_res = prediction_checker.check(
                     m,
                     fb_addr=fetch_block_addr,
@@ -377,19 +394,57 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += has_unsafe.eq(~unsafe_prio_encoder.n)
 
             redirect_before_unsafe = Signal()
-            m.d.av_comb += redirect_before_unsafe.eq(predcheck_res.fb_instr_idx < unsafe_idx)
+            m.d.av_comb += redirect_before_unsafe.eq(predcheck_res.cfi_idx < unsafe_idx)
+
+            cfi_reached = Signal()
+            m.d.av_comb += cfi_reached.eq(~has_unsafe | redirect_before_unsafe)
+            exit_push = Signal()
+            exit_pop = Signal()
+            m.d.av_comb += exit_push.eq(predcheck_res.push & cfi_reached)
+            m.d.av_comb += exit_pop.eq(predcheck_res.pop & cfi_reached)
+
+            exit_pc = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += exit_pc.eq(params.pc_from_fb(fetch_block_addr, predcheck_res.cfi_idx))
+            exit_rvc = s1_data.rvc.bit_select(predcheck_res.cfi_idx, 1)
+            if Extension.ZCA in self.gen_params.isa.extensions:
+                with m.If(s1_data.instr_block_cross & (predcheck_res.cfi_idx == 0)):
+                    m.d.av_comb += exit_pc.eq(params.pc_from_fb(fetch_block_addr, predcheck_res.cfi_idx) - 2)
+            ret_addr = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += ret_addr.eq(exit_pc + Mux(exit_rvc, 2, 4))
+
+            ras_hit = Signal()
+            m.d.av_comb += ras_hit.eq(exit_pop & ras_top.valid)
+
+            ras_mistarget = Signal()
+            m.d.av_comb += ras_mistarget.eq(
+                ras_hit
+                & ~predcheck_res.mispredicted
+                & CfiType.is_jalr(prediction.cfi_type)
+                & (~prediction.cfi_target_valid | (prediction.cfi_target != ras_top.addr))
+            )
+
+            eff_cfi_valid = Signal()
+            eff_redirect_target = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += eff_cfi_valid.eq(predcheck_res.cfi_valid | ras_hit)
+            m.d.av_comb += eff_redirect_target.eq(Mux(ras_hit, ras_top.addr, predcheck_res.redirect_target))
+
+            predicted_taken = Signal()
+            m.d.av_comb += predicted_taken.eq(~predcheck_res.mispredicted & predcheck_res.cfi_valid)
+
+            effective_unsafe = Signal()
+            m.d.av_comb += effective_unsafe.eq(has_unsafe & (~predicted_taken | (unsafe_idx <= predcheck_res.cfi_idx)))
 
             redirect = Signal()
             unsafe_stall = Signal()
             redirect_or_unsafe_idx = Signal(range(fetch_width))
 
-            with m.If(predcheck_res.mispredicted & (~has_unsafe | redirect_before_unsafe)):
+            with m.If((predcheck_res.mispredicted | ras_mistarget) & (~has_unsafe | redirect_before_unsafe)):
                 m.d.av_comb += [
-                    redirect.eq(~predcheck_res.stall),
-                    unsafe_stall.eq(predcheck_res.stall),
-                    redirect_or_unsafe_idx.eq(predcheck_res.fb_instr_idx),
+                    redirect.eq(eff_cfi_valid),
+                    unsafe_stall.eq(~eff_cfi_valid),
+                    redirect_or_unsafe_idx.eq(predcheck_res.cfi_idx),
                 ]
-            with m.Elif(has_unsafe):
+            with m.Elif(effective_unsafe):
                 m.d.av_comb += [
                     unsafe_stall.eq(1),
                     redirect_or_unsafe_idx.eq(unsafe_idx),
@@ -401,6 +456,9 @@ class FetchUnit(Elaboratable):
                 # If there is an instruction that redirects or stalls the frontend, enqueue
                 # instructions only up to that instruction.
                 m.d.av_comb += valid_instr_prefix.eq((1 << (redirect_or_unsafe_idx + 1)) - 1)
+            with m.Elif(predicted_taken):
+                # A correctly predicted taken CFI ends the block at its index
+                m.d.av_comb += valid_instr_prefix.eq((1 << (predcheck_res.cfi_idx + 1)) - 1)
             with m.Else():
                 m.d.av_comb += valid_instr_prefix.eq(C(1).replicate(fetch_width))
 
@@ -415,7 +473,6 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].instr.eq(instrs[i]),
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
-                    raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.fb_instr_idx == i)),
                     raw_instrs[i].access_fault.eq(s1_data.access_fault),
                     raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                     raw_instrs[i].ftq_ptr.eq(ftq_ptr),
@@ -432,47 +489,56 @@ class FetchUnit(Elaboratable):
                             s1_data.access_fault | FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF
                         )
 
-            with condition(m) as branch:
-                with branch(flushing_counter == 0):
-                    with m.If(fault_any | unsafe_stall):
-                        self.stall_unsafe(m)
+            with m.If(~s2_stale):
+                with m.If(fault_any | unsafe_stall):
+                    self.stall_unsafe(m)
 
-                    with m.If(fault_any | unsafe_stall | redirect):
-                        self.fetch_writeback(
-                            m,
+                self.fetch_writeback(
+                    m,
+                    ftq_ptr=ftq_ptr,
+                    fetch_gen=s1_data.fetch_gen,
+                    redirect=fault_any | unsafe_stall | redirect,
+                    cfi_valid=eff_cfi_valid,
+                    cfi_idx=params.fb_instr_idx(exit_pc),
+                    cfi_type=predcheck_res.cfi_type,
+                    cfi_target=eff_redirect_target,
+                )
+
+                if Extension.ZCA in self.gen_params.isa.extensions:
+                    fallthrough_pc = params.pc_from_fb(fetch_block_addr + 1, 0)
+                    with m.If(redirect & s1_data.ends_mid_instr & (eff_redirect_target == fallthrough_pc)):
+                        m.d.sync += [
+                            prev_half_v.eq(1),
+                            prev_half.eq(s1_data.last_half),
+                            prev_half_addr.eq(fetch_block_addr),
+                        ]
+                    with m.Elif(fault_any | unsafe_stall | redirect):
+                        m.d.sync += prev_half_v.eq(0)
+
+                self.ras_predict(m, ftq_ptr=ftq_ptr, push=exit_push, pop=exit_pop, addr=ret_addr)
+
+                for i in range(fetch_width):
+                    evlog.emit(
+                        m,
+                        InstrFetched.hw(
                             ftq_ptr=ftq_ptr,
-                            redirect=redirect,
-                            redirect_target=predcheck_res.redirect_target,
-                        )
-                        flush()
+                            pc=raw_instrs[i].pc,
+                            instr=raw_instrs[i].instr,
+                            ftq_offset=i,
+                        ),
+                        when=fetch_mask[i],
+                    )
 
-                    self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+                self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
-                    for i in range(fetch_width):
-                        evlog.emit(
-                            m,
-                            InstrFetched.hw(
-                                ftq_ptr=ftq_ptr,
-                                pc=raw_instrs[i].pc,
-                                instr=raw_instrs[i].instr,
-                                ftq_offset=i,
-                            ),
-                            when=fetch_mask[i],
-                        )
-
-                    # Make sure this is called only once to avoid a huge mux on arguments
-                    m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
-                    serializer.write(m, data=aligner.outputs, count=aligner.output_cnt)
-                with branch():
-                    m.d.sync += flushing_counter.eq(flushing_counter - 1)
-
-        with m.If(flush_now):
-            m.d.sync += flushing_counter.eq(req_counter.count_next)
+                # Make sure this is called only once to avoid a huge mux on arguments
+                m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
+                serializer.write(m, data=aligner.outputs, count=aligner.output_cnt)
 
         @def_method(m, self.flush)
         def _():
-            flush()
             serializer.clear(m)
+            m.d.sync += prev_half_v.eq(0)
 
         return m
 
@@ -524,25 +590,34 @@ class Predecoder(Elaboratable):
 
             ret = Signal.like(self.predecode.data_out)
 
+            # Return-address-stack push/pop hints depend on whether rd/rs1 are link registers
+            # (x1 or x5), per the RISC-V JAL/JALR convention
+            rd_link = (rd == Registers.X1) | (rd == Registers.X5)
+            rs1_link = (rs1 == Registers.X1) | (rs1 == Registers.X5)
+
             with m.Switch(opcode):
                 with m.Case(Opcode.BRANCH):
                     m.d.av_comb += ret.cfi_type.eq(CfiType.BRANCH)
                     m.d.av_comb += ret.cfi_offset.eq(bimm)
                 with m.Case(Opcode.JAL):
-                    m.d.av_comb += ret.cfi_type.eq(
-                        Mux((rd == Registers.X1) | (rd == Registers.X5), CfiType.CALL, CfiType.JAL)
-                    )
+                    m.d.av_comb += ret.cfi_type.eq(CfiType.JAL)
                     m.d.av_comb += ret.cfi_offset.eq(jimm)
+                    # A JAL that links (rd is a link register) is a call
+                    m.d.av_comb += ret.push.eq(rd_link)
                 with m.Case(Opcode.JALR):
-                    m.d.av_comb += ret.cfi_type.eq(
-                        Mux((rs1 == Registers.X1) | (rs1 == Registers.X5), CfiType.RET, CfiType.JALR)
-                    )
+                    m.d.av_comb += ret.cfi_type.eq(CfiType.JALR)
                     m.d.av_comb += ret.cfi_offset.eq(iimm)
+                    # push if rd links; pop (return) if rs1 links, except when rd==rs1 both link
+                    # (that is a push-only call through a link register)
+                    m.d.av_comb += ret.push.eq(rd_link)
+                    m.d.av_comb += ret.pop.eq(rs1_link & ~(rd_link & (rd == rs1)))
                 with m.Default():
                     m.d.av_comb += ret.cfi_type.eq(CfiType.INVALID)
 
             with m.If(quadrant != 0b11):
                 m.d.av_comb += ret.cfi_type.eq(CfiType.INVALID)
+                m.d.av_comb += ret.push.eq(0)
+                m.d.av_comb += ret.pop.eq(0)
 
             m.d.av_comb += ret.unsafe.eq(
                 (opcode == Opcode.SYSTEM) | ((opcode == Opcode.MISC_MEM) & (funct3 == Funct3.FENCEI))
@@ -608,6 +683,8 @@ class PredictionChecker(Elaboratable):
         def _(fb_addr, instr_block_cross, instr_valid, predecoded, prediction):
             decoded_cfi_types = Array([predecoded[i].cfi_type for i in range(self.gen_params.fetch_width)])
             decoded_cfi_offsets = Array([predecoded[i].cfi_offset for i in range(self.gen_params.fetch_width)])
+            decoded_push = Array([predecoded[i].push for i in range(self.gen_params.fetch_width)])
+            decoded_pop = Array([predecoded[i].pop for i in range(self.gen_params.fetch_width)])
 
             # First find all the instructions that would redirect the fetch unit.
             decoded_redirections = Signal(self.gen_params.fetch_width)
@@ -652,8 +729,14 @@ class PredictionChecker(Elaboratable):
                 | ~CfiType.valid(prediction.cfi_type)
             )
 
+            decoded_cfi_type_at_pred = Mux(
+                instr_valid.bit_select(prediction.cfi_idx, 1),
+                decoded_cfi_types[prediction.cfi_idx],
+                CfiType.INVALID,
+            )
+
             mispredicted_cfi_type = CfiType.valid(prediction.cfi_type) & (
-                prediction.cfi_type != decoded_cfi_types[prediction.cfi_idx]
+                prediction.cfi_type != decoded_cfi_type_at_pred
             )
 
             mispredicted_cfi_target = (CfiType.is_branch(prediction.cfi_type) | CfiType.is_jal(prediction.cfi_type)) & (
@@ -662,39 +745,66 @@ class PredictionChecker(Elaboratable):
 
             ret = Signal.like(self.check.data_out)
 
+            res_cfi_idx = Signal(self.gen_params.fetch_width_log)
+
             with m.If(preceding_redirection):
                 self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx])
+                m.d.av_comb += res_cfi_idx.eq(pd_redirect_idx)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
-                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
-                        "fb_instr_idx": pd_redirect_idx,
+                        "cfi_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "cfi_idx": res_cfi_idx,
+                        "cfi_type": decoded_cfi_types[pd_redirect_idx],
                         "redirect_target": decoded_target_for_decoded_cfi,
                     },
                 )
             with m.Elif(mispredicted_cfi_type):
                 self.perf_mispredicted_cfi_type.incr(m, prediction.cfi_type)
                 fallthrough_addr = params.pc_from_fb(fb_addr + 1, 0)
+                m.d.av_comb += res_cfi_idx.eq(
+                    Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx)
+                )
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
-                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
-                        "fb_instr_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
+                        "cfi_valid": Mux(pd_redirection_enc.n, 1, ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx])),
+                        "cfi_idx": res_cfi_idx,
+                        "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
                         "redirect_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
                     },
                 )
             with m.Elif(mispredicted_cfi_target):
                 self.perf_mispredicted_cfi_target.incr(m, prediction.cfi_type)
+                m.d.av_comb += res_cfi_idx.eq(prediction.cfi_idx)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
-                        "fb_instr_idx": prediction.cfi_idx,
+                        "cfi_valid": 1,
+                        "cfi_idx": res_cfi_idx,
+                        "cfi_type": decoded_cfi_types[prediction.cfi_idx],
                         "redirect_target": decoded_target_for_predicted_cfi,
                     },
                 )
+            with m.Else():
+                m.d.av_comb += res_cfi_idx.eq(prediction.cfi_idx)
+                m.d.av_comb += assign(
+                    ret,
+                    {
+                        "mispredicted": 0,
+                        "cfi_valid": prediction.cfi_target_valid,
+                        "cfi_idx": res_cfi_idx,
+                        "cfi_type": prediction.cfi_type,
+                        "redirect_target": prediction.cfi_target,
+                    },
+                )
+
+            exit_on_path = instr_valid.bit_select(res_cfi_idx, 1)
+            m.d.av_comb += ret.push.eq(decoded_push[res_cfi_idx] & exit_on_path)
+            m.d.av_comb += ret.pop.eq(decoded_pop[res_cfi_idx] & exit_on_path)
 
             return ret
 

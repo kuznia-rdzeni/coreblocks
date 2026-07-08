@@ -91,6 +91,9 @@ class CommonLayoutFields:
         self.ftq_offset: LayoutListField = ("ftq_offset", gen_params.fetch_width_log)
         """Offset of an instruction (counted in number of instructions) within its FTQ entry (fetch block)"""
 
+        self.fetch_gen: LayoutListField = ("fetch_gen", 2)
+        """TODO"""
+
         self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
         """Address of a fetch block"""
 
@@ -147,9 +150,6 @@ class CommonLayoutFields:
 
         self.rvc: LayoutListField = ("rvc", 1)
         """Instruction is a compressed (two-byte) one."""
-
-        self.predicted_taken: LayoutListField = ("predicted_taken", 1)
-        """If the branch was predicted taken."""
 
         self.cfi_idx: LayoutListField = ("cfi_idx", gen_params.fetch_width_log)
         """An index of a CFI instruction in a fetch block."""
@@ -654,9 +654,11 @@ class ICacheLayouts:
 class BranchPredictionLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+        fetch_layouts = gen_params.get(FetchLayouts)
 
         self.request = make_layout(fields.pc, fields.ftq_ptr)
-        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr)
+        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr, ("prediction", fetch_layouts.bpu_prediction))
+        self.update = make_layout(fields.pc, fields.cfi_target, fields.cfi_idx, fields.cfi_type, ("taken", 1))
 
 
 class FetchTargetQueueLayouts:
@@ -664,7 +666,12 @@ class FetchTargetQueueLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.branch_resolve = make_layout(
-            ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
+            fields.ftq_ptr,
+            ("from_pc", gen_params.isa.xlen),
+            ("next_pc", gen_params.isa.xlen),
+            ("taken", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
         )
 
         self.commit = make_layout(fields.ftq_ptr)
@@ -696,7 +703,6 @@ class FetchLayouts:
             fields.pc,
             self.access_fault,
             fields.rvc,
-            fields.predicted_taken,
             fields.cfi_type,
             fields.ftq_ptr,
             fields.ftq_offset,
@@ -707,19 +713,39 @@ class FetchLayouts:
             ("data", ArrayLayout(self.raw_instr, gen_params.frontend_superscalarity)),
         )
 
-        self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
-        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), ("redirect_target", gen_params.isa.xlen))
+        self.fetch_request = make_layout(fields.pc, fields.ftq_ptr, fields.fetch_gen)
+        self.fetch_writeback = make_layout(
+            fields.ftq_ptr,
+            fields.fetch_gen,
+            ("redirect", 1),
+            ("cfi_valid", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
+            fields.cfi_target,
+        )
         self.redirect = make_layout(fields.pc)
 
         # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
         # (or have already been) committed before the instruction the core is being redirected to.
         self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
 
-        self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
+        self.predecoded_instr = make_layout(
+            fields.cfi_type,
+            ("cfi_offset", signed(21)),
+            ("unsafe", 1),
+            ("push", 1),
+            ("pop", 1),
+        )
 
         self.bpu_prediction = make_layout(
             fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
         )
+
+        self.read_prediction_req = make_layout(fields.ftq_ptr)
+        self.check_stale_req = make_layout(fields.ftq_ptr, fields.fetch_gen)
+        self.check_stale_resp = make_layout(("stale", 1))
+        self.ras_top = make_layout(("valid", 1), ("addr", gen_params.isa.xlen))
+        self.ras_predict = make_layout(fields.ftq_ptr, ("push", 1), ("pop", 1), ("addr", gen_params.isa.xlen))
 
         self.pred_checker_i = make_layout(
             fields.fb_addr,
@@ -731,8 +757,11 @@ class FetchLayouts:
 
         self.pred_checker_o = make_layout(
             ("mispredicted", 1),
-            ("stall", 1),
-            fields.fb_instr_idx,
+            ("cfi_valid", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
+            ("push", 1),
+            ("pop", 1),
             ("redirect_target", gen_params.isa.xlen),
         )
 
@@ -836,12 +865,11 @@ class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.predicted_jump_target_req = make_layout()
-        self.predicted_jump_target_resp = make_layout(fields.cfi_target, ("valid", 1))
+        self.predicted_jump_target_req = make_layout(fields.ftq_ptr)
+        self.predicted_jump_target_resp = make_layout(("valid", 1), fields.cfi_idx, fields.cfi_type, fields.cfi_target)
 
         self.funct7_info = make_layout(
             fields.rvc,
-            fields.predicted_taken,
         )
         """Information passed from the frontend to the jumpbranch unit. Encoded in the funct7 field."""
 

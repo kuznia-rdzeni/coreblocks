@@ -11,7 +11,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.arch import Funct3, OpType, ExceptionCause
 from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey
 
-from transactron.utils import signed_to_int, DependencyContext
+from transactron.utils import signed_to_int, DependencyContext, layout_subset
 from transactron.lib import BasicFifo
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
@@ -24,6 +24,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         layouts = gen_params.get(JumpBranchLayouts)
 
         branch_resolve_layout = gen_params.get(FetchTargetQueueLayouts).branch_resolve
+        self.branch_resolve_verify = layout_subset(branch_resolve_layout, fields={"from_pc", "next_pc"})
 
         self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
         self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
@@ -38,7 +39,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         self.push_result = Method(
             i=StructLayout(
                 gen_params.get(FuncUnitLayouts).push_result.members
-                | (branch_resolve_layout.members if not auipc_test else {})
+                | (self.branch_resolve_verify.members if not auipc_test else {})
             )
         )
 
@@ -52,12 +53,12 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         self.jb.push_result.provide(res_fifo.write)
 
         @def_method(m, self.target_pred_req)
-        def _():
+        def _(ftq_ptr):
             pass
 
         @def_method(m, self.target_pred_resp)
         def _(arg):
-            return {"valid": 0, "cfi_target": 0}
+            return {"valid": 0, "cfi_idx": 0, "cfi_type": 0, "cfi_target": 0}
 
         with Transaction().body(m):
             res = res_fifo.read(m)
@@ -72,7 +73,6 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
                 ret = ret | {
                     "next_pc": verify.next_pc,
                     "from_pc": verify.from_pc,
-                    "misprediction": verify.misprediction,
                 }
 
             self.push_result(m, ret)
@@ -131,7 +131,7 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
         exception = ExceptionCause._COREBLOCKS_MISPREDICTION
         exception_pc = next_pc
 
-    return {"result": res, "from_pc": pc, "next_pc": next_pc, "misprediction": misprediction} | (
+    return {"result": res, "from_pc": pc, "next_pc": next_pc} | (
         {"exception": exception, "exception_pc": exception_pc, "mtval": mtval} if exception is not None else {}
     )
 
