@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783497508815,
+  "lastUpdate": 1783497510481,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -67437,6 +67437,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 63562,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4008,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3332,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3c16726cf34b90ac85a5b08c07e1ca197ffcaeb2",
+          "message": "Evlog and profile for act (#1006)",
+          "timestamp": "2026-07-08T09:06:34+02:00",
+          "tree_id": "fc3486772678d2fc20dc50a3573261144005d34a",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3c16726cf34b90ac85a5b08c07e1ca197ffcaeb2"
+        },
+        "date": 1783497510126,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 43.13,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 66180,
             "unit": "LUT4"
           },
           {
