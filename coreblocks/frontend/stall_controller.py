@@ -1,6 +1,4 @@
 from typing import Sequence
-import operator
-from functools import reduce
 
 from amaranth import *
 
@@ -10,6 +8,7 @@ from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import popcount, DependencyContext, MethodStruct
 from transactron.utils.assign import AssignArg
+from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
 from coreblocks.interface.layouts import ExceptionRegisterLayouts
@@ -54,10 +53,10 @@ class StallController(Elaboratable):
 
         self.stall_unsafe = Method()
         self.stall_guard = Method()
-        self.resume_from_core_flush = Method(i=layouts.resume)
-        self._resume_from_unsafe = Method(i=layouts.resume)
+        self.resume_from_core_flush = Method(i=layouts.backend_redirect)
+        self._resume_from_unsafe = Method(i=layouts.backend_redirect)
 
-        self.redirect_frontend = Method(i=layouts.frontend_redirect)
+        self.redirect_frontend = Method(i=layouts.backend_redirect)
 
         self.dm = DependencyContext.get()
         self.dm.add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
@@ -104,12 +103,12 @@ class StallController(Elaboratable):
         def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
             # Make sure that there is at most one caller - there can be only one unsafe instruction
             log.assertion(m, popcount(runs) <= 1)
-            pcs = [Mux(runs[i], v.pc, 0) for i, v in enumerate(args)]
-
-            return {"pc": reduce(operator.or_, pcs, 0)}
+            m.submodules.resume_prio_encoder = resume_prio_encoder = PriorityEncoder(len(args))
+            m.d.comb += resume_prio_encoder.i.eq(runs)
+            return Array(args)[resume_prio_encoder.o]
 
         @def_method(m, self._resume_from_unsafe, nonexclusive=True, combiner=resume_combiner)
-        def _(pc):
+        def _(ftq_ptr, pc):
             # TODO: wait, why we pass that through forwarder everywhere, isn't it always ready?
 
             # Instructions must verify tag is active when queuing resume, inactive instructions
@@ -122,15 +121,14 @@ class StallController(Elaboratable):
             with condition(m, nonblocking=True) as branch:
                 with branch(~stalled_exception):
                     log.info(m, True, "Resuming from unsafe instruction new_pc=0x{:x}", pc)
-                    self.redirect_frontend(m, pc=pc, from_unsafe=1)
+                    self.redirect_frontend(m, ftq_ptr=ftq_ptr, pc=pc)
 
         @def_method(m, self.resume_from_core_flush)
-        def _(pc):  # TODO: are there some important confilcts?
+        def _(ftq_ptr, pc):  # TODO: are there some important confilcts?
             m.d.sync += stalled_unsafe.eq(0)
 
             log.info(m, True, "Resuming from core flush pc=0x{:x}", pc)
-
-            self.redirect_frontend(m, pc=pc, from_unsafe=0)
+            self.redirect_frontend(m, ftq_ptr=ftq_ptr, pc=pc)
             self.fetch_flush(m)  # sort of workaround for now - ifq changes target a cycle after removing guard
 
         @def_method(m, self.stall_unsafe)

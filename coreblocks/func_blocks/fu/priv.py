@@ -17,7 +17,7 @@ from transactron.utils import DependencyContext, OneHotSwitch
 
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import PrivUnitLayouts
+from coreblocks.interface.layouts import PrivUnitLayouts, FTQPtr
 from coreblocks.interface.keys import (
     ActiveTagsKey,
     CoreStateKey,
@@ -89,6 +89,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         instr_rob = Signal(self.gen_params.rob_entries_bits)
         instr_pc = Signal(self.gen_params.isa.xlen)
         instr_fn = self.fn.get_function()
+        ftq_ptr = FTQPtr(gen_params=self.gen_params)
 
         instr_tag = Signal(self.gen_params.tag_bits)
         instr_imm = Signal(self.gen_params.isa.xlen)
@@ -130,6 +131,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 instr_s1_val.eq(arg.s1_val),
                 instr_s2_val.eq(arg.s2_val),
                 instr_imm.eq(arg.imm),
+                ftq_ptr.eq(arg.ftq_ptr),
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):
@@ -279,7 +281,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 # Unstall the fetch
                 with m.If(active_tags[instr_tag]):
                     log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
-                    resume_core_fwd.write(m, pc=ret_pc)
+                    resume_core_fwd.write(m, ftq_ptr=ftq_ptr, pc=ret_pc)
 
             self.push_result(
                 m,

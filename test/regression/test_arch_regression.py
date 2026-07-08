@@ -10,7 +10,7 @@ import tempfile
 import asyncio
 import xml.etree.ElementTree as eT
 
-from .conftest import arch_tests_dir
+from .conftest import arch_tests_dir, profile_dir, evlog_dir
 from .pysim import PySimulation
 from .memory import (
     CoreMemoryModel,
@@ -176,8 +176,20 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         mem_model, timeout_cycles=timeout_cycles, get_interrupt_value=lambda: int_generator.value
     )
 
-    assert result.success
-    assert endtest.written_value == 1
+    test_name = elf_path.name
+    if result.profile is not None:
+        os.makedirs(profile_dir, exist_ok=True)
+        result.profile.encode(f"{profile_dir}/test.arch_regression.{test_name}.json")
+
+    if result.evlog is not None:
+        os.makedirs(evlog_dir, exist_ok=True)
+        result.evlog.save(f"{evlog_dir}/test.arch_regression.{test_name}.jsonl")
+
+    if not result.success:
+        raise RuntimeError("Simulation timed out")
+
+    if endtest.written_value != 1:
+        raise RuntimeError("Failing test: %d" % endtest.written_value)
 
 
 async def run_test(sim_backend, test_name: str):

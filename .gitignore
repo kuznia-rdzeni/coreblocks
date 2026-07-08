@@ -30,6 +30,7 @@ venv.bak/
 
 # Tests outputs
 test/__traces__
+test/__evlogs__
 test/__profiles__/*.json
 pytestdebug.log
 _coreblocks_regression.lock

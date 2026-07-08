@@ -9,13 +9,17 @@ from coreblocks.interface.layouts import (
     RFLayouts,
     ROBLayouts,
     RetirementLayouts,
+    FTQPtr,
 )
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
+from transactron.evlog import EventSource
 from transactron.utils import count_trailing_zeros, or_value
 from transactron.utils.dependencies import DependencyContext
 from transactron.utils.logging import HardwareLogger
 from transactron.lib.metrics import *
+
+from coreblocks.telemetry import RobFlush, RobRetire
 
 from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause, PrivilegeLevel
@@ -37,6 +41,9 @@ log = HardwareLogger("backend.retirement")
 __all__ = ["Retirement"]
 
 
+evlog = EventSource("backend.retirement")
+
+
 class Retirement(Elaboratable):
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
@@ -56,7 +63,7 @@ class Retirement(Elaboratable):
         self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore_in)
-        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).resume)
+        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).backend_redirect)
         self.instr_decrement = Method(
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
@@ -134,6 +141,8 @@ class Retirement(Elaboratable):
                 rat_out.old_rp_dst,
             )
 
+            evlog.emit(m, RobRetire.hw(rob_id=rob_entry.rob_id))
+
             self.perf_instr_ret.incr[i](m)
 
         def flush_instr(i: int, rob_entry: View):
@@ -141,19 +150,23 @@ class Retirement(Elaboratable):
             # FUTURE-TODO: restore in single cycle with bitmask from RAT
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
 
+            evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
             log.debug(m, True, "hard flushing instruction rp{}", rob_entry.rob_data.rp_dst)
 
         def retire_inactive_instr(i: int, rob_entry: View):
             # F-RAT entry was already rolled back
+
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
 
+            evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
             log.debug(m, True, "retiring rolled-back instruction, freeing rp{}", rob_entry.rob_data.rp_dst)
 
         retire_valid = Signal()
         exception = Signal()
-        core_flushing = Signal()
         trap_target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
+        core_flushing = Signal()
+        ftq_commit_ptr = FTQPtr(gen_params=self.gen_params)
 
         active_tags = Signal(self.gen_params.tag_count)
         last_retired_tag = Signal(self.gen_params.tag_bits)
@@ -301,6 +314,7 @@ class Retirement(Elaboratable):
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(last_commit_ftq_ptr_v):  # TODO: jurb: please verify
                         ftq_commit(m, ftq_ptr=last_commit_ftq_ptr)
+                        m.d.sync += ftq_commit_ptr.eq(last_commit_ftq_ptr)
 
             with m.State("TRAP_FLUSH"):
                 with Transaction(name="Retirement_FLUSH").body(m):
@@ -354,9 +368,9 @@ class Retirement(Elaboratable):
 
                     # (xtvec_base stores base[MXLEN-1:2])
                     m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
-                    self.fetch_continue(m, pc=handler_pc)
+                    self.fetch_continue(m, ftq_ptr=ftq_commit_ptr, pc=handler_pc)
 
-                    # Release pending trap state and the fetch lock
+                    # Release pending trap state - allow accepting new reports
                     self.exception_cause_clear(m)
 
                     self.perf_trap_latency.stop(m)

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
 from .memory import CoreMemoryModel
+from transactron.evlog import EventLog
 from transactron.profiler import Profile
 
 
@@ -21,6 +22,7 @@ class SimulationExecutionResult:
     success: bool
     metric_values: dict[str, dict[str, int]] = field(default_factory=dict)
     profile: Optional[Profile] = None
+    evlog: Optional[EventLog] = None
 
 
 class SimulationBackend(ABC):

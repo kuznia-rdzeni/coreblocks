@@ -2,6 +2,7 @@ from amaranth import *
 from amaranth.lib.data import Layout
 import amaranth.lib.memory as memory
 from transactron import *
+from transactron.evlog import EventSource
 from transactron.utils import make_layout, DependencyContext
 from transactron.utils import logging
 from transactron.lib.metrics import *
@@ -19,9 +20,11 @@ from coreblocks.interface.layouts import (
 )
 from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey, RollbackKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
+from coreblocks.telemetry import FetchRequest, FTQAlloc, FTQCommit, FTQRollback
 
 
 log = logging.HardwareLogger("frontend.ftq")
+evlog = EventSource("frontend.ftq")
 
 
 class FTQMemoryWrapper(Elaboratable):
@@ -120,7 +123,7 @@ class FetchTargetQueue(Elaboratable):
         ftq_layouts = self.gen_params.get(FetchTargetQueueLayouts)
         self.commit = Method(i=ftq_layouts.commit)
         self.resolve = Method(i=ftq_layouts.branch_resolve)
-        self.backend_redirect = Method(i=ifu_layouts.frontend_redirect)
+        self.backend_redirect = Method(i=ifu_layouts.backend_redirect)
 
         self.rollback_handler = Method(i=gen_params.get(RATLayouts).rollback_in)
         self.dep_manager.add_dependency(RollbackKey(), self.rollback_handler)
@@ -160,6 +163,8 @@ class FetchTargetQueue(Elaboratable):
             self.bpu_request(m, pc=ret.pc, ftq_ptr=alloc_ptr)
             pc_mem.write(m, ftq_ptr=alloc_ptr, data=ret.pc)
 
+            evlog.emit(m, FTQAlloc.hw(ftq_ptr=alloc_ptr, pc=ret.pc))
+
             m.d.av_comb += alloc_fetch_bypass.eq(ret)
             m.d.sync += alloc_ptr.eq(alloc_ptr + 1)
 
@@ -176,6 +181,7 @@ class FetchTargetQueue(Elaboratable):
             m.d.av_comb += fetch_pc.eq(Mux(early_fetch, alloc_fetch_bypass, pc_mem.read_data))
 
             self.ifu_request(m, ftq_ptr=fetch_ptr, pc=fetch_pc)
+            evlog.emit(m, FetchRequest.hw(ftq_ptr=fetch_ptr, pc=fetch_pc))
             m.d.comb += fetch_ptr_next.eq(fetch_ptr + 1)
 
         ftq_alloc_transaction.schedule_before(send_fetch_req_transaction)
@@ -188,18 +194,20 @@ class FetchTargetQueue(Elaboratable):
         def _(
             ftq_ptr,
             redirect,
-            redirect_target,
+            cfi_target,
         ):
             ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
             m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
             self.bpu_flush(m)
 
+            evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
+
             m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
             m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
 
             with m.If(redirect):
-                fetch_address_unit.ifu_redirect(m, pc=redirect_target)
+                fetch_address_unit.ifu_redirect(m, pc=cfi_target)
 
         @def_method(m, self.commit)
         def _(ftq_ptr):
@@ -209,29 +217,25 @@ class FetchTargetQueue(Elaboratable):
             log.assertion(
                 m,
                 commit_ptr <= ftq_ptr_casted,
-                "FTQ entry was retired out-of-order"# previous {} commited {}",
-          #      commit_ptr,
-           #     ftq_ptr_casted,
+                "FTQ entry was retired out-of-order",  # previous {} commited {}",
+                #      commit_ptr,
+                #     ftq_ptr_casted,
             )
+
+            evlog.emit(m, FTQCommit.hw(ftq_ptr=ftq_ptr))
 
             m.d.sync += commit_ptr.eq(ftq_ptr)
 
         @def_method(m, self.backend_redirect)
-        def _(pc, from_unsafe):
-            commit_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
-            m.d.av_comb += commit_ptr_plus_one.eq(FTQPtr(commit_ptr, gen_params=self.gen_params) + 1)
+        def _(ftq_ptr, pc):
+            ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
             fetch_address_unit.backend_redirect(m, pc=pc)
 
-            # An unsafe instruction (e.g. a CSR access) is not squashed - it keeps its FTQ entry
-            # and is committed normally. Its resume is signalled before it retires, so `commit_ptr`
-            # is stale here and must not be used. The alloc/fetch pointers were already rewound to
-            # just past the unsafe instruction when the fetch unit wrote it back (`ifu_writeback`).
-            # For an exception/backend redirect the whole pipeline is squashed, so we restart
-            # allocation right after the last committed entry.
-            with m.If(~from_unsafe):
-                m.d.sync += alloc_ptr.eq(commit_ptr_plus_one)
-                m.d.sync += fetch_ptr.eq(commit_ptr_plus_one)
+            evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="backend_redirect"))
+            m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
+            m.d.sync += fetch_ptr.eq(ftq_ptr_plus_one)
 
         @def_method(m, self.rollback_handler)
         def _(tag, pc, ftq_ptr):
@@ -240,7 +244,7 @@ class FetchTargetQueue(Elaboratable):
 
             fetch_address_unit.backend_redirect(m, pc=pc)
 
-            #log.debug(m, True, "rollback to pc {}, ftq_ptr {} -> {}", pc, fetch_ptr, rollback_ptr_plus_one)
+            # log.debug(m, True, "rollback to pc {}, ftq_ptr {} -> {}", pc, fetch_ptr, rollback_ptr_plus_one)
 
             m.d.sync += alloc_ptr.eq(rollback_ptr_plus_one)
             m.d.sync += fetch_ptr.eq(rollback_ptr_plus_one)
