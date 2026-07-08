@@ -21,19 +21,19 @@ class TestConfigurationsISAString(TestCase):
             configurations.basic,
             "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
             "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
-            "rv32imzicsr_zifencei_xintmachinemode_xintsupervisor",
+            "rv32imzicsr_zifencei",
         ),
         ISAStrTest(
             configurations.small_linux,
             "rv32imazicsr_zifencei_xintmachinemode_xintsupervisor",
             "rv32imazicsr_zifencei_xintmachinemode_xintsupervisor",
-            "rv32imazicsr_zifencei_xintmachinemode_xintsupervisor",
+            "rv32imazicsr_zifencei",
         ),
         ISAStrTest(
             configurations.full,
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
-            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
+            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx",
         ),
         ISAStrTest(configurations.tiny, "rv32e", "rv32e", "rv32e"),
         ISAStrTest(configurations.test, "rv32", "rv32", "rv32i"),
@@ -42,7 +42,7 @@ class TestConfigurationsISAString(TestCase):
     def test_isa_str_gp(self):
         for test in self.TEST_CASES:
             gp = GenParams(test.core_config)
-            assert gp.isa_str == test.gp_str
+            assert gp.isa_short_str == test.gp_str
 
     def test_isa_str_raw(self):
         for test in self.TEST_CASES:
