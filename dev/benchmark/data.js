@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783513868206,
+  "lastUpdate": 1783543487510,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -24405,6 +24405,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/cecb6d6c0e193c9382bacdadc363bd121aa4b9d2"
         },
         "date": 1783513853844,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4486953069382838,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6047801963294921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37129390940316226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6493506493506493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35847370537509493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060531192093885,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3432821873773525,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4457149159895584,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a8c6f558d34c8a97422bf9487995b1e203ef0b62",
+          "message": "Isa extensions native (#999)",
+          "timestamp": "2026-07-08T21:53:28+02:00",
+          "tree_id": "79c61ef89d7fd1c45b1e5dd2c14d1b07adc83917",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a8c6f558d34c8a97422bf9487995b1e203ef0b62"
+        },
+        "date": 1783543475963,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
