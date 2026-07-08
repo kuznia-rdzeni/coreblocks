@@ -708,7 +708,7 @@ class FetchLayouts:
         )
 
         self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
-        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), ("redirect_target", gen_params.isa.xlen))
+        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), fields.cfi_target)
         self.redirect = make_layout(fields.pc)
 
         # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
@@ -731,9 +731,10 @@ class FetchLayouts:
 
         self.pred_checker_o = make_layout(
             ("mispredicted", 1),
-            ("stall", 1),
-            fields.fb_instr_idx,
-            ("redirect_target", gen_params.isa.xlen),
+            ("cfi_valid", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
+            fields.cfi_target,
         )
 
 
