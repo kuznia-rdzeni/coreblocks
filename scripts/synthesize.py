@@ -33,12 +33,15 @@ from transactron import TransactronContextElaboratable
 from transactron.lib import Adapter, AdapterTrans
 from transactron.utils.amaranth_ext.memory import MultiportXORMemory, MultiportXORILVTMemory, MultiportOneHotILVTMemory
 from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneInterface
-from constants.ecp5_platforms import (
+from constants.platform_utils import (
     ResourceBuilder,
     append_resources,
     signature_resources,
+)
+from constants.ecp5_platforms import (
     make_ecp5_platform,
 )
+from constants.xilinx_platforms import make_xc7a200t_platform, make_xc7k480t_platform
 
 from coreblocks.params.core_configuration import CoreConfiguration
 from coreblocks.params import configurations
@@ -159,7 +162,15 @@ def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
         resource_builder, module = core(gen_params)
 
         if platform == "ecp5":
-            make_ecp5_platform(resource_builder)().build(module)
+            plat = make_ecp5_platform(resource_builder)()
+        elif platform == "xc7a200t":
+            plat = make_xc7a200t_platform(resource_builder)()
+        elif platform == "xc7k480t":
+            plat = make_xc7k480t_platform(resource_builder)()
+        else:
+            raise ValueError("Unknown platform")
+
+        plat.build(module)
 
 
 def main():
@@ -168,7 +179,7 @@ def main():
         "-p",
         "--platform",
         default="ecp5",
-        choices=["ecp5"],
+        choices=["ecp5", "xc7a200t", "xc7k480t"],
         help="Selects platform to synthesize circuit on. Default: %(default)s",
     )
 
