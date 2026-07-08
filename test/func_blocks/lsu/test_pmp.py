@@ -75,44 +75,6 @@ class TestPMPDirect(TestCaseWithSimulator):
         with self.run_simulation(test_module) as sim:
             sim.add_testbench(process)
 
-    def run_dynamic_pmp_test(
-        self,
-        entries: list[PMPEntry],
-        checks: list[PMPCheck],
-        *,
-        size_classes: list[int],
-        size_class: int,
-        priv_mode=PrivilegeLevel.USER,
-        pmp_mode=PMPOperationMode.LSU,
-        mprv=0,
-        mpp=PrivilegeLevel.USER,
-        pmp_grain_log=2,
-    ):
-        gen_params = GenParams(configurations.test.replace(pmp_register_count=16, pmp_grain_log=pmp_grain_log))
-        csr = CSRInstances(gen_params)
-        DependencyContext.get().add_dependency(CSRInstancesKey(), csr)
-        pmp = DynamicAreaPMPChecker(gen_params, mode=pmp_mode, size_classes=size_classes)
-        test_module = ModuleConnector(csr_instances=csr, pmp=pmp)
-
-        async def process(sim: TestbenchContext):
-            sim.set(csr.m_mode.priv_mode.value, priv_mode)
-            sim.set(csr.m_mode.mstatus_mprv.value, mprv)
-            sim.set(csr.m_mode.mstatus_mpp.value, mpp)
-            sim.set(pmp.size_class, size_class)
-            for i, entry in enumerate(entries):
-                sim.set(csr.m_mode.pmpaddrx[i].value, entry.addr)
-                sim.set(csr.m_mode.pmpxcfg[i].value, entry.cfg)
-
-            for c in checks:
-                sim.set(pmp.paddr, c.addr)
-                result = sim.get(pmp.result)
-                assert result.r == c.r, f"addr=0x{c.addr:08x}: expected r={c.r}, got {result.r}"
-                assert result.w == c.w, f"addr=0x{c.addr:08x}: expected w={c.w}, got {result.w}"
-                assert result.x == c.x, f"addr=0x{c.addr:08x}: expected x={c.x}, got {result.x}"
-
-        with self.run_simulation(test_module) as sim:
-            sim.add_testbench(process)
-
     @pytest.mark.parametrize("pmp_grain_log", [2, 3, 4])
     def test_mmode_no_entries(self, pmp_grain_log):
         self.run_pmp_test(
