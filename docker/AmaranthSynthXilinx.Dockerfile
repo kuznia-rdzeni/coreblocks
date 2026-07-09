@@ -25,4 +25,3 @@ RUN nix registry add openxc7 github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c1
     nix build openxc7\#nextpnr-xilinx.spartan7 -o /nix/var/nix/gcroots/spartan7-chipdb && \
     nix build openxc7\#nextpnr-xilinx.zynq7 -o /nix/var/nix/gcroots/zynq7-chipdb && \
     nix-store --gc
-
