@@ -16,8 +16,13 @@ ENV \
     NIX_PATH=/nix/var/nix/profiles/per-user/root/channels
 
 # Install openXC7 toolchain
-RUN nix profile install github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c10f03beb81d8f8e468a\#nextpnr-xilinx && \
-nix profile install github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c10f03beb81d8f8e468a\#prjxray && \
-nix profile install github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c10f03beb81d8f8e468a\#fasm && \
-    nix-store --gc 
+RUN nix registry add openxc7 github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c10f03beb81d8f8e468a && \
+    nix profile add openxc7\#nextpnr-xilinx && \
+    nix profile add openxc7\#prjxray && \
+    nix profile add openxc7\#fasm && \
+    nix build openxc7\#nextpnr-xilinx.artix7 -o /nix/var/nix/gcroots/artix7-chipdb && \
+    nix build openxc7\#nextpnr-xilinx.kintex7 -o /nix/var/nix/gcroots/kintex7-chipdb && \
+    nix build openxc7\#nextpnr-xilinx.spartan7 -o /nix/var/nix/gcroots/spartan7-chipdb && \
+    nix build openxc7\#nextpnr-xilinx.zynq7 -o /nix/var/nix/gcroots/zynq7-chipdb && \
+    nix-store --gc
 
