@@ -110,7 +110,7 @@ def make_xc7a200t_platform(resource_builder: ResourceBuilder):
     pins = PinManager(xc7a200t_fbg676_pins)
 
     class XC7A200TPlatform(XilinxPlatform):
-        device = "xc7k480t"
+        device = "xc7a200t"
         package = "fbg676"
         speed = "2"
         default_clk = "clk"
