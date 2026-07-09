@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783624096616,
+  "lastUpdate": 1783624099093,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -68085,6 +68085,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 67789,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4008,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3332,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13453,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4102498d3ce2e1bda03f21886ed0695851e08dbd",
+          "message": "implement area checking pmp (#1000)",
+          "timestamp": "2026-07-09T20:14:54+02:00",
+          "tree_id": "9fc2b04043a280262d7ea37f89f0a1edb0a2836d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4102498d3ce2e1bda03f21886ed0695851e08dbd"
+        },
+        "date": 1783624098427,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.57,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 69137,
             "unit": "LUT4"
           },
           {
