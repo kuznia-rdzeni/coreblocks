@@ -20,7 +20,7 @@ jobs:
           - platform: ecp5
             container: ecp5-2025.01.31
           - platform: xc7a200t
-            container: xilinx-2026-07.09
+            container: xilinx-2026.07.09
     name: Run synthesis benchmarks
     if: >
       github.ref == 'refs/heads/master' ||
