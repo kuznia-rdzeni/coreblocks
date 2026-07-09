@@ -57,6 +57,13 @@ jobs:
       - name: Synthesize
         run: |
           . venv/bin/activate
+          if [[ "${{ matrix.container }}" == xilinx* ]]; then
+            export NEXTPNR_DIR=`nix eval --raw openxc7#nextpnr-xilinx.outPath`
+            export DB_DIR=$NEXTPNR_DIR/share/nextpnr/external/prjxray-db
+            if [[ "${{ matrix.platform }}" == xc7a200t ]]; then
+              export CHIPDB_DIR=`nix eval --raw openxc7#nextpnr-xilinx-chipdb.artix7.outPath`
+            fi
+          fi
           PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }} --platform ${{ matrix.platform }}
 
       - name: Print synthesis information
