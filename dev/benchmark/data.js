@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783543491577,
+  "lastUpdate": 1783595022793,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -24469,6 +24469,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a8c6f558d34c8a97422bf9487995b1e203ef0b62"
         },
         "date": 1783543475963,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4486953069382838,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6047801963294921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37129390940316226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6493506493506493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35847370537509493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060531192093885,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3432821873773525,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4457149159895584,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0d831d14d1a620fb66aa6966ee5eee1985e5803d",
+          "message": "Stall ctrl OneHotMux (#1010)",
+          "timestamp": "2026-07-09T12:13:03+02:00",
+          "tree_id": "d8d962061d7ad9a6a54cec08e00e16fb697e58f3",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0d831d14d1a620fb66aa6966ee5eee1985e5803d"
+        },
+        "date": 1783595011850,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
