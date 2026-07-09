@@ -15,6 +15,12 @@ jobs:
     strategy:
       matrix:
         config: [basic, full]
+        platform: [ecp5, xc7a200t]
+        include:
+          - platform: ecp5
+            container: ecp5-2025.01.31
+          - platform: xc7a200t
+            container: xilinx-2026-07.09
     name: Run synthesis benchmarks
     if: >
       github.ref == 'refs/heads/master' ||
@@ -27,7 +33,7 @@ jobs:
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2025.01.31
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:${{ matrix.container }}
     steps:
       - uses: actions/checkout@v6
 
@@ -51,7 +57,7 @@ jobs:
       - name: Synthesize
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }}
+          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }} --platform ${{ matrix.platform }}
 
       - name: Print synthesis information
         run: cat ./build/top.tim
@@ -59,13 +65,13 @@ jobs:
       - name: Collect Benchmark information
         run: |
           . venv/bin/activate
-          ./scripts/parse_benchmark_info.py -o synth-benchmark-${{ matrix.config }}.json
-          cat ./synth-benchmark-${{ matrix.config }}.json
+          ./scripts/parse_benchmark_info.py -o synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
+          cat ./synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
 
       - uses: actions/upload-artifact@v7
         with:
-          name: synth_benchmark_results-${{ matrix.config }}
-          path: synth-benchmark-${{ matrix.config }}.json
+          name: synth_benchmark_results-${{ matrix.config }}-${{ matrix.platform }}
+          path: synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
 
 
   build-perf-benchmarks:
