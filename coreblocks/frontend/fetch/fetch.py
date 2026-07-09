@@ -8,6 +8,7 @@ from transactron.utils import count_trailing_zeros, popcount, assign, StableSele
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
+from transactron.evlog import EventSource
 
 from coreblocks.cache.iface import CacheInterface
 from coreblocks.frontend.decoder.rvc import InstrDecompress, is_instr_compressed
@@ -18,8 +19,10 @@ from coreblocks.params import *
 from coreblocks.interface.layouts import *
 from coreblocks.frontend import FrontendParams
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
+from coreblocks.telemetry import InstrFetched
 
 log = logging.HardwareLogger("frontend.fetch")
+evlog = EventSource("frontend.fetch")
 
 
 class FetchUnit(Elaboratable):
@@ -374,7 +377,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += has_unsafe.eq(~unsafe_prio_encoder.n)
 
             redirect_before_unsafe = Signal()
-            m.d.av_comb += redirect_before_unsafe.eq(predcheck_res.fb_instr_idx < unsafe_idx)
+            m.d.av_comb += redirect_before_unsafe.eq(predcheck_res.cfi_idx < unsafe_idx)
 
             redirect = Signal()
             unsafe_stall = Signal()
@@ -382,9 +385,9 @@ class FetchUnit(Elaboratable):
 
             with m.If(predcheck_res.mispredicted & (~has_unsafe | redirect_before_unsafe)):
                 m.d.av_comb += [
-                    redirect.eq(~predcheck_res.stall),
-                    unsafe_stall.eq(predcheck_res.stall),
-                    redirect_or_unsafe_idx.eq(predcheck_res.fb_instr_idx),
+                    redirect.eq(predcheck_res.cfi_valid),
+                    unsafe_stall.eq(~predcheck_res.cfi_valid),
+                    redirect_or_unsafe_idx.eq(predcheck_res.cfi_idx),
                 ]
             with m.Elif(has_unsafe):
                 m.d.av_comb += [
@@ -412,10 +415,11 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].instr.eq(instrs[i]),
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
-                    raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.fb_instr_idx == i)),
+                    raw_instrs[i].predicted_taken.eq(redirect & (predcheck_res.cfi_idx == i)),
                     raw_instrs[i].access_fault.eq(s1_data.access_fault),
                     raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                     raw_instrs[i].ftq_ptr.eq(ftq_ptr),
+                    raw_instrs[i].ftq_offset.eq(i),
                 ]
 
             if Extension.ZCA in self.gen_params.isa.extensions:
@@ -438,11 +442,23 @@ class FetchUnit(Elaboratable):
                             m,
                             ftq_ptr=ftq_ptr,
                             redirect=redirect,
-                            redirect_target=predcheck_res.redirect_target,
+                            cfi_target=predcheck_res.cfi_target,
                         )
                         flush()
 
                     self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+
+                    for i in range(fetch_width):
+                        evlog.emit(
+                            m,
+                            InstrFetched.hw(
+                                ftq_ptr=ftq_ptr,
+                                pc=raw_instrs[i].pc,
+                                instr=raw_instrs[i].instr,
+                                ftq_offset=i,
+                            ),
+                            when=fetch_mask[i],
+                        )
 
                     # Make sure this is called only once to avoid a huge mux on arguments
                     m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
@@ -652,9 +668,10 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
-                        "fb_instr_idx": pd_redirect_idx,
-                        "redirect_target": decoded_target_for_decoded_cfi,
+                        "cfi_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "cfi_idx": pd_redirect_idx,
+                        "cfi_type": decoded_cfi_types[pd_redirect_idx],
+                        "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
             with m.Elif(mispredicted_cfi_type):
@@ -664,9 +681,10 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "stall": CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
-                        "fb_instr_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
-                        "redirect_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
+                        "cfi_valid": ~CfiType.is_jalr(decoded_cfi_types[pd_redirect_idx]),
+                        "cfi_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
+                        "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
+                        "cfi_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
                     },
                 )
             with m.Elif(mispredicted_cfi_target):
@@ -675,8 +693,21 @@ class PredictionChecker(Elaboratable):
                     ret,
                     {
                         "mispredicted": 1,
-                        "fb_instr_idx": prediction.cfi_idx,
-                        "redirect_target": decoded_target_for_predicted_cfi,
+                        "cfi_valid": 1,
+                        "cfi_idx": prediction.cfi_idx,
+                        "cfi_type": decoded_cfi_types[prediction.cfi_idx],
+                        "cfi_target": decoded_target_for_predicted_cfi,
+                    },
+                )
+            with m.Else():
+                m.d.av_comb += assign(
+                    ret,
+                    {
+                        "mispredicted": 0,
+                        "cfi_valid": prediction.cfi_target_valid,
+                        "cfi_idx": prediction.cfi_idx,
+                        "cfi_type": prediction.cfi_type,
+                        "cfi_target": prediction.cfi_target,
                     },
                 )
 

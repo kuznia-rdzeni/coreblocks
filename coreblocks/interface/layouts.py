@@ -88,6 +88,9 @@ class CommonLayoutFields:
         self.ftq_ptr: LayoutListField = ("ftq_ptr", FTQPtrLayout(gen_params))
         """A pointer into the Fetch Target Queue"""
 
+        self.ftq_offset: LayoutListField = ("ftq_offset", gen_params.fetch_width_log)
+        """Offset of an instruction (counted in number of instructions) within its FTQ entry (fetch block)"""
+
         self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
         """Address of a fetch block"""
 
@@ -267,6 +270,7 @@ class SchedulerLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.reg_alloc_in = self.scheduler_in = make_layout(
@@ -285,6 +289,7 @@ class SchedulerLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.reg_alloc_out = self.instr_tag_in = make_layout(
@@ -303,6 +308,7 @@ class SchedulerLayouts:
             fields.tag_increment,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.renaming_in = self.instr_tag_out = make_layout(
@@ -320,6 +326,7 @@ class SchedulerLayouts:
             fields.tag,
             fields.tag_increment,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.renaming_out = self.rob_allocate_in = make_layout(
@@ -335,6 +342,7 @@ class SchedulerLayouts:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.rob_allocate_out = self.rs_select_in = make_layout(
@@ -352,6 +360,7 @@ class SchedulerLayouts:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.rs_insert_in = self.rs_select_out = make_layout(
@@ -530,6 +539,7 @@ class RSFullDataLayout:
             fields.csr,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
 
@@ -581,6 +591,7 @@ class RSLayouts:
             "imm",
             "pc",
             "tag",
+            "ftq_ptr",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=rs_entries, data_fields=data_fields)
@@ -602,6 +613,7 @@ class RSLayouts:
                 "imm",
                 "pc",
                 "tag",
+                "ftq_ptr",
             },
         )
 
@@ -687,6 +699,7 @@ class FetchLayouts:
             fields.predicted_taken,
             fields.cfi_type,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.fetch_result = make_layout(
@@ -695,10 +708,12 @@ class FetchLayouts:
         )
 
         self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
-        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), ("redirect_target", gen_params.isa.xlen))
+        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), fields.cfi_target)
         self.redirect = make_layout(fields.pc)
-        self.frontend_redirect = make_layout(fields.pc, ("from_unsafe", 1))
-        self.resume = make_layout(fields.pc)
+
+        # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
+        # (or have already been) committed before the instruction the core is being redirected to.
+        self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
 
         self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
 
@@ -716,9 +731,10 @@ class FetchLayouts:
 
         self.pred_checker_o = make_layout(
             ("mispredicted", 1),
-            ("stall", 1),
-            fields.fb_instr_idx,
-            ("redirect_target", gen_params.isa.xlen),
+            ("cfi_valid", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
+            fields.cfi_target,
         )
 
 
@@ -735,6 +751,7 @@ class DecodeLayouts:
             fields.csr,
             fields.pc,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.decode_result = make_layout(
@@ -753,6 +770,7 @@ class DecodeLayouts:
             fields.rollback_tag_v,
             fields.commit_checkpoint,
             fields.ftq_ptr,
+            fields.ftq_offset,
         )
 
         self.tagged_decode_result = make_layout(
@@ -779,6 +797,7 @@ class FuncUnitLayouts:
             fields.imm,
             fields.pc,
             fields.tag,
+            fields.ftq_ptr,
         )
 
         self.push_result = make_layout(
@@ -885,6 +904,7 @@ class CSRUnitLayouts:
             "csr",
             "pc",
             "tag",
+            "ftq_ptr",
         }
 
         self.rs = gen_params.get(RSInterfaceLayouts, rs_entries=self.rs_entries, data_fields=data_fields)

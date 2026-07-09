@@ -9,15 +9,19 @@ from transactron.lib.metrics import TaggedCounter
 from transactron.utils import OneHotMux, logging, assign, AssignType
 from transactron.utils.dependencies import DependencyContext
 
+from transactron.evlog import EventSource
+
 from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, RSFullDataLayout, SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.arch.optypes import OpType, impure_optypes
 from coreblocks.interface.keys import CoreStateKey
+from coreblocks.telemetry import RobAllocate, SchedulerEnter
 
 __all__ = ["Scheduler"]
 
 
 log = logging.HardwareLogger("frontend.scheduler")
+evlog = EventSource("backend.scheduler")
 
 
 class RegAllocation(Elaboratable):
@@ -54,6 +58,12 @@ class RegAllocation(Elaboratable):
             m.d.av_comb += assign(data_out, instrs)
 
             for i in range(self.gen_params.frontend_superscalarity):
+                evlog.emit(
+                    m,
+                    SchedulerEnter.hw(ftq_ptr=instrs.data[i].ftq_ptr, ftq_offset=instrs.data[i].ftq_offset),
+                    when=i < instrs.count,
+                )
+
                 with m.If((i < instrs.count) & (instrs.data[i].regs_l.rl_dst != 0)):
                     m.d.av_comb += data_out.data[i].regs_p.rp_dst.eq(self.get_free_reg[i](m).ident)
 
@@ -173,7 +183,9 @@ class Renaming(Elaboratable):
                     )
 
                 m.d.av_comb += assign(
-                    instr_out, instr, fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment", "ftq_ptr"}
+                    instr_out,
+                    instr,
+                    fields={"exec_fn", "imm", "csr", "pc", "tag", "tag_increment", "ftq_ptr", "ftq_offset"},
                 )
                 m.d.av_comb += assign(instr_out.regs_l, instr.regs_l, fields=AssignType.COMMON)
                 m.d.av_comb += instr_out.regs_p.rp_dst.eq(instr.regs_p.rp_dst)
@@ -236,6 +248,16 @@ class ROBAllocation(Elaboratable):
             m.d.av_comb += assign(data_out, instrs, fields=AssignType.COMMON)
             for i in range(self.gen_params.frontend_superscalarity):
                 m.d.av_comb += data_out.data[i].rob_id.eq(rob_ids.entries[i].rob_id)
+
+                evlog.emit(
+                    m,
+                    RobAllocate.hw(
+                        ftq_ptr=instrs.data[i].ftq_ptr,
+                        ftq_offset=instrs.data[i].ftq_offset,
+                        rob_id=rob_ids.entries[i].rob_id,
+                    ),
+                    when=i < instrs.count,
+                )
 
             self.push_instrs(m, data_out)
 
@@ -425,6 +447,7 @@ class RSInsertion(Elaboratable):
                         "csr": instr.csr,
                         "pc": instr.pc,
                         "tag": instr.tag,
+                        "ftq_ptr": instr.ftq_ptr,
                     },
                 )
                 rs_datas.append(rs_data)
