@@ -50,6 +50,7 @@ def main():
         pytest_arguments.append("-s")
     if args.jobs and not args.list and not args.no_capture:
         # To list tests we can not use xdist, because it doesn't support forwarding of stdout from workers.
+        # We don't use costly fixture setup, `maxschedchunk` allows to order and distribute tests better.
         pytest_arguments += ["-n", str(args.jobs), "--dist=load", "--maxschedchunk=1"]
     # If --all is requested, enable the primary regression suite.
     if args.all:
