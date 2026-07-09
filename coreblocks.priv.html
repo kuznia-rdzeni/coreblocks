@@ -240,33 +240,94 @@
 <section id="module-coreblocks.priv.pmp">
 <span id="coreblocks-priv-pmp-module"></span><h2>coreblocks.priv.pmp module<a class="headerlink" href="#module-coreblocks.priv.pmp" title="Link to this heading"></a></h2>
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">DynamicAreaPMPChecker</span></span><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Implementation of physical memory protection checker that checks permissions
+of an naturally aligned power-of-two physical address range.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.pmp.PMPOperationMode" title="coreblocks.priv.pmp.PMPOperationMode"><span class="pre">PMPOperationMode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mode: PMPOperationMode</strong></dt><dd><p>How privilege level, for which access will be done, is found.</p>
+</dd>
+<dt><strong>size_classes: list[int]</strong></dt><dd><p>The log2 of power-of-two for which the checker can do the operations.
+The size_class signal selects the value from these.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.paddr">
+<span class="sig-name descname"><span class="pre">paddr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.paddr" title="Link to this definition"></a></dt>
+<dd><p>Memory address, for which PMP checks are requested. Must be aligned to the size class.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.result">
+<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.result" title="Link to this definition"></a></dt>
+<dd><p>RWX permission bits for the given address based on current PMP configuration
+and privilege mode. Bits are set to 0 if access is denied.
+layout: PMPLayout</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.size_class">
+<span class="sig-name descname"><span class="pre">size_class</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.size_class" title="Link to this definition"></a></dt>
+<dd><p>The size class for which to check uniformity and attributes. See size_classes in constructor.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.uniform">
+<span class="sig-name descname"><span class="pre">uniform</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.uniform" title="Link to this definition"></a></dt>
+<dd><p>Is the address range fully inside a single PMP entry.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPChecker</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>Implementation of physical memory protection checker.
-This is a combinational circuit with return value read from <cite>result</cite> output.</p>
-<p>Effective mode depends on <cite>mode</cite>:
-- LSU: MPRV-aware (using MPP when MPRV=1 and current mode is M)
-- INSTRUCTION_FETCH: uses only current privilege mode
-- MMU: always behaves as supervisor mode</p>
-<p>In machine mode, accesses bypass PMP by default (result = 1/1/1) unless a
-matching locked entry (L=1) is found. S/U-mode accesses default to no
-access (0/0/0) if no entry matches.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Attributes<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>paddr</strong><span class="classifier">Signal</span></dt><dd><p>Memory address, for which PMP checks are requested.</p>
-</dd>
-<dt><strong>result</strong><span class="classifier">PMPLayout</span></dt><dd><p>RWX permission bits for the given address based on current PMP configuration
-and privilege mode. Bits are set to 0 if access is denied.</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<p>Like DynamicAreaPMPChecker, but with constant access size.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.pmp.PMPOperationMode" title="coreblocks.priv.pmp.PMPOperationMode"><span class="pre">PMPOperationMode</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.__init__" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.priv.pmp.PMPOperationMode" title="coreblocks.priv.pmp.PMPOperationMode"><span class="pre">PMPOperationMode</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">access_size_log</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.__init__" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>mode: PMPOperationMode</strong></dt><dd><p>How privilege level, for which access will be done, is found.</p>
+</dd>
+<dt><strong>access_size_log: int</strong></dt><dd><p>The log2 of power-of-two for which the checker validates operations for.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.paddr">
+<span class="sig-name descname"><span class="pre">paddr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.paddr" title="Link to this definition"></a></dt>
+<dd><p>Memory address, for which PMP checks are requested.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.result">
+<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.result" title="Link to this definition"></a></dt>
+<dd><p>RWX permission bits for the given address based on current PMP configuration
+and privilege mode. Bits are set to 0 if access is denied.
+layout: PMPLayout</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.uniform">
+<span class="sig-name descname"><span class="pre">uniform</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.uniform" title="Link to this definition"></a></dt>
+<dd><p>Is the address range fully inside a single PMP entry.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -282,23 +343,38 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayoutFull">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPLayoutFull</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayoutFull" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev131)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayoutFull.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayoutFull.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPOperationMode</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>choice of the privilege mode of an access</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode.INSTRUCTION_FETCH">
 <span class="sig-name descname"><span class="pre">INSTRUCTION_FETCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode.INSTRUCTION_FETCH" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>access is of the current privilege mode</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode.LSU">
 <span class="sig-name descname"><span class="pre">LSU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode.LSU" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>access is MPRV-aware - using MPP when MPRV=1, otherwise current privilege mode</p>
+</dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPOperationMode.MMU">
 <span class="sig-name descname"><span class="pre">MMU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPOperationMode.MMU" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>access is always generated by S-mode</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -320,7 +396,7 @@ and privilege mode. Bits are set to 0 if access is denied.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:14 2026-07-09.
+      <span class="lastupdated">Last updated on 18:16 2026-07-09.
       </span></p>
   </div>
 
