@@ -6,6 +6,7 @@ from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.interface.layouts import CSRRegisterLayouts, InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
 from coreblocks.priv.csr.shadow import ShadowCSR
+from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
@@ -164,10 +165,8 @@ class InternalInterruptController(Component):
 
             smode_delegable = ExceptionCause.smode_delegable_mask(gen_params.isa.xlen)
 
-            self.medeleg = CSRRegister(CSRAddress.MEDELEG, gen_params, ro_bits=~smode_delegable)
-            self.medelegh = None
-            if gen_params.isa.xlen == 32:
-                self.medelegh = CSRRegister(CSRAddress.MEDELEGH, gen_params, ro_bits=~(smode_delegable >> 32))
+            self.medeleg = CSRRegister(None, gen_params, width=64, ro_bits=~smode_delegable)
+            self.medeleg_shadow = DoubleShadowCSR(gen_params, self.medeleg, CSRAddress.MEDELEG, CSRAddress.MEDELEGH)
 
             self.sie = ShadowCSR(CSRAddress.SIE, gen_params, self.mie, mask=self.mideleg.read)
 
@@ -212,9 +211,7 @@ class InternalInterruptController(Component):
         m.submodules += [self.mie, self.mip]
 
         if self.gen_params.supervisor_mode:
-            m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg, self.sip_write_mask]
-            if self.medelegh is not None:
-                m.submodules += [self.medelegh]
+            m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg, self.medeleg_shadow, self.sip_write_mask]
 
         priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
 
@@ -316,12 +313,7 @@ class InternalInterruptController(Component):
                         Mux(ideleg.bit_select(cause_num, 1), PrivilegeLevel.SUPERVISOR, PrivilegeLevel.MACHINE)
                     )
                 with m.Else():
-                    edeleg = Signal(64)
-
-                    if self.medelegh is not None:
-                        m.d.av_comb += edeleg.eq(Cat(self.medeleg.read(m).data, self.medelegh.read(m).data))
-                    else:
-                        m.d.av_comb += edeleg.eq(self.medeleg.read(m).data)
+                    edeleg = self.medeleg.read(m).data
 
                     with m.If(priv_mode.read(m).data < PrivilegeLevel.MACHINE):
                         m.d.av_comb += target_priv.eq(
@@ -333,7 +325,7 @@ class InternalInterruptController(Component):
             log.info(m, True, "Interrupt handler entry to {}", target_priv)
             return {"target_priv": target_priv}
 
-        # mret/sret/entry conflicts cannot happen in real conditions - xret is called under precommit
+        # mret/sret/entry conflicts cannot happen in real conditions - xret is called under side fx guard
         # this is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
         with Transaction().body(m):
             with m.If(self.entry.run):

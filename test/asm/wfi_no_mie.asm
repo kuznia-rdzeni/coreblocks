@@ -17,10 +17,12 @@ _start:
     j pass
 
 fail:
+    csrwi 0x8fe, 0x12
     j fail
 
 pass:
     li x8, 8
+    csrwi 0x8fe, 0x10
     j pass
 
 trap_handler:

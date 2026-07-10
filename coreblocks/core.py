@@ -13,6 +13,8 @@ from coreblocks.interface.layouts import *
 from coreblocks.interface.keys import (
     CSRInstancesKey,
     CommonBusDataKey,
+    InstructionAddressTranslatorBackingDeviceKey,
+    DataAddressTranslatorBackingDeviceKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.core_structs.crat import CheckpointRAT
@@ -28,7 +30,10 @@ from coreblocks.backend.announcement import ResultAnnouncement
 from coreblocks.backend.retirement import Retirement
 from coreblocks.peripherals.bus_adapter import WishboneMasterAdapter
 from coreblocks.peripherals.wishbone import WishboneMaster, WishboneInterface
+from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
+from coreblocks.priv.vmem.walker import PageTableWalker
 from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
+from transactron.evlog import EvLogEnabledKey
 
 __all__ = ["Core"]
 
@@ -52,15 +57,51 @@ class Core(Component):
         self.dm = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
             self.dm.add_dependency(HwMetricsEnabledKey(), True)
+            self.dm.add_dependency(EvLogEnabledKey(), True)
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
 
         self.bus_master_instr_adapter = WishboneMasterAdapter(self.wb_master_instr)
-        self.bus_master_data_adapter = WishboneMasterAdapter(self.wb_master_data)
-        self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter)
+        self.bus_master_data_adapter = WishboneMasterAdapter(
+            self.wb_master_data,
+            port_count=2 if self.gen_params.vmem_params.supported_non_bare_schemes else 1,
+        )
 
-        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter)
+        self.dm.add_dependency(CommonBusDataKey(), self.bus_master_data_adapter.ports[0])
+
+        self.ptw = None
+        self.l2_tlb = None
+        self.l1i_tlb = None
+        self.l1d_tlb = None
+        if self.gen_params.vmem_params.supported_non_bare_schemes:
+            self.ptw = PageTableWalker(self.gen_params, bus=self.bus_master_data_adapter.ports[1])
+            self.l2_tlb = SetAssociativeTLB(
+                self.gen_params,
+                entries=self.gen_params.tlb_config.l2tlb_entries,
+                ways=self.gen_params.tlb_config.l2tlb_ways,
+                backing_resolver=self.ptw,
+                perf_name_prefix="mmu.tlb.l2",
+                ports=2,
+            )
+            self.l1i_tlb = FullyAssociativeTLB(
+                self.gen_params,
+                entries=self.gen_params.tlb_config.itlb_entries,
+                backing_resolver=self.l2_tlb.get_port(),
+                perf_name_prefix="mmu.tlb.l1i",
+                ports=1,
+            )
+            self.l1d_tlb = FullyAssociativeTLB(
+                self.gen_params,
+                entries=self.gen_params.tlb_config.dtlb_entries,
+                backing_resolver=self.l2_tlb.get_port(),
+                perf_name_prefix="mmu.tlb.l1d",
+                ports=1,
+            )
+            self.dm.add_dependency(InstructionAddressTranslatorBackingDeviceKey(), self.l1i_tlb.get_port)
+            self.dm.add_dependency(DataAddressTranslatorBackingDeviceKey(), self.l1d_tlb.get_port)
+
+        self.frontend = CoreFrontend(gen_params=self.gen_params, instr_bus=self.bus_master_instr_adapter.ports[0])
 
         self.rf_allocator = PriorityEncoderAllocator(
             gen_params.phys_regs,
@@ -118,6 +159,15 @@ class Core(Component):
 
         m.submodules.bus_master_instr_adapter = self.bus_master_instr_adapter
         m.submodules.bus_master_data_adapter = self.bus_master_data_adapter
+        if self.gen_params.vmem_params.supported_non_bare_schemes:
+            assert self.ptw is not None
+            assert self.l2_tlb is not None
+            assert self.l1i_tlb is not None
+            assert self.l1d_tlb is not None
+            m.submodules.ptw = self.ptw
+            m.submodules.l2_tlb = self.l2_tlb
+            m.submodules.l1i_tlb = self.l1i_tlb
+            m.submodules.l1d_tlb = self.l1d_tlb
 
         m.submodules.frontend = self.frontend
 

@@ -16,7 +16,7 @@ from transactron.utils import DependencyContext, OneHotSwitch
 from coreblocks.params import *
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
-from coreblocks.interface.layouts import PrivUnitLayouts
+from coreblocks.interface.layouts import PrivUnitLayouts, FTQPtr
 from coreblocks.interface.keys import (
     CoreStateKey,
     MretKey,
@@ -24,7 +24,7 @@ from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     ExceptionReportKey,
     CSRInstancesKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     UnsafeInstructionResolvedKey,
     FlushICacheKey,
     WaitForInterruptResumeKey,
@@ -69,7 +69,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         self.perf_instr = TaggedCounter(
             "backend.fu.priv.instr",
-            "Number of instructions precommited with side effects by the privilege unit",
+            "Number of instructions executed by the privilege unit",
             tags=PrivilegedFn.Fn,
         )
 
@@ -87,6 +87,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         instr_rob = Signal(self.gen_params.rob_entries_bits)
         instr_pc = Signal(self.gen_params.isa.xlen)
         instr_fn = self.fn.get_function()
+        ftq_ptr = FTQPtr(gen_params=self.gen_params)
 
         instr_imm = Signal(self.gen_params.isa.xlen)
         instr_s1_val = Signal(self.gen_params.isa.xlen)
@@ -115,11 +116,12 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 instr_s1_val.eq(arg.s1_val),
                 instr_s2_val.eq(arg.s2_val),
                 instr_imm.eq(arg.imm),
+                ftq_ptr.eq(arg.ftq_ptr),
             ]
 
         with Transaction().body(m, ready=instr_valid & ~finished):
-            precommit = self.dm.get_dependency(InstructionPrecommitKey())
-            precommit(m, instr_rob)
+            side_fx_guard = self.dm.get_dependency(SideFxGuardKey())
+            side_fx_guard(m, rob_id=instr_rob, require_done=0)
             m.d.sync += finished.eq(1)
             self.perf_instr.incr(m, instr_fn)
 
@@ -158,6 +160,12 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
                     if self.gen_params.vmem_params.supported_non_bare_schemes and sfence_vma is not None:
                         with branch((instr_fn == PrivilegedFn.Fn.SFENCEVMA) & ~illegal_sfencevma):
+                            # [SFENCE.W.INVAL] - make all current data/refills visible to flushes, so:
+                            # - wait for side effects - side_fx_guard
+                            # - by the TLB construction, all flushes are linearized after the refills,
+                            #   so all later flushes will see the new data.
+
+                            # [SINVAL.VMA] - flush the TLB
                             imm_view = data.View(self.gen_params.get(PrivUnitLayouts).sfencevma_imm_layout, instr_imm)
 
                             sfence_vma[0](
@@ -167,6 +175,11 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                                 all_vaddrs=imm_view.rs1 == 0,
                                 all_asids=imm_view.rs2 == 0,
                             )
+
+                            # [SFENCE.INVAL.IR] - make sure all later translations see the previous flushes, so:
+                            # - stall the fetcher
+                            # - by the TLB construction, all translations are linearized after the flushes,
+                            #   so all later translations will see the flushes.
 
                 with branch((instr_fn == PrivilegedFn.Fn.FENCEI)):
                     flush_icache(m)
@@ -237,7 +250,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following the execution of an xRET instruction."
-                # mret() method is called from precommit() that was executed at least one cycle earlier (because
+                # mret() method is called (on side effect time) at least one cycle earlier (because
                 # of finished condition). If calling mret() caused interrupt to be active, it is already represented
                 # by updated async_interrupt_active signal.
                 # Interrupt is reported on this xRET instruction with return address set to instruction that we
@@ -249,7 +262,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
             with m.Elif(~core_state.flushing):
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
                 # Unstall the fetch
-                resume_core(m, pc=ret_pc)
+                resume_core(m, ftq_ptr=ftq_ptr, pc=ret_pc)
 
             self.push_result(
                 m,

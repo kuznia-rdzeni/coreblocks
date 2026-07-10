@@ -33,8 +33,9 @@ loop:
     mv x1, x2
     mv x2, x3
     bne x2, x4, loop
-infloop:
-    j infloop
+pass:
+    csrwi 0x8fe, 0x10
+    j pass
 
 int0_handler:
     # save main loop register state
@@ -110,6 +111,7 @@ ecall_handler:
 
 fail:
     csrwi 0x7ff, 2
+    csrwi 0x8fe, 0x12
     j fail
 
 .org 0x200

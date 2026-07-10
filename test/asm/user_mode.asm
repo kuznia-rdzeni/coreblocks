@@ -51,9 +51,11 @@ user_code4:
     j fail
 
 fail:
+    csrwi 0x8fe, 0x12
     j fail
 
 pass:
+    csrwi 0x8fe, 0x10
     j pass
 
 set_mpp_umode:

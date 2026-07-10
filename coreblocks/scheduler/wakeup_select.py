@@ -1,11 +1,18 @@
+from typing import Optional
+
 from amaranth import *
 
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import FuncUnitLayouts, RSLayouts
+from coreblocks.telemetry import FuIssue
+from transactron.evlog import EventSource
 from transactron.utils import PriorityEncoder, assign, AssignType
 from transactron.core import *
 
 __all__ = ["WakeupSelect"]
+
+
+evlog = EventSource("backend.wakeup_select")
 
 
 class WakeupSelect(Elaboratable):
@@ -31,7 +38,7 @@ class WakeupSelect(Elaboratable):
     take_row: Required[Method]
     issue: Required[Method]
 
-    def __init__(self, *, gen_params: GenParams, rs_entries: int):
+    def __init__(self, *, gen_params: GenParams, rs_entries: int, fu_kind: Optional[str] = None):
         """
         Parameters
         ----------
@@ -39,8 +46,12 @@ class WakeupSelect(Elaboratable):
             Instance of GenParams with parameters describing the core.
         rs_entries : int
             Number of entries of the RS connected to this instance of WakeupSelect.
+        fu_kind : str, optional
+            Name of the functional unit fed by this instance, reported in the
+            event log on every issue.
         """
         self.gen_params = gen_params
+        self.fu_kind = fu_kind
         rs_layouts = gen_params.get(RSLayouts, rs_entries=rs_entries)
         self.get_ready = Method(o=rs_layouts.get_ready_list_out)  # assumption: ready only if nonzero result
         self.take_row = Method(i=rs_layouts.take_in, o=rs_layouts.take_out)
@@ -56,7 +67,10 @@ class WakeupSelect(Elaboratable):
             m.d.av_comb += prio_encoder.i.eq(ready.ready_list)
             row = self.take_row(m, prio_encoder.o)
             issue_rec = Signal(self.gen_params.get(FuncUnitLayouts).issue)
-            m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
+            m.d.av_comb += assign(issue_rec, row, fields=AssignType.ALL)
             self.issue(m, issue_rec)
+
+            if self.fu_kind is not None:
+                evlog.emit(m, FuIssue.hw(rob_id=issue_rec.rob_id, unit=self.fu_kind))
 
         return m

@@ -213,8 +213,10 @@ bne x1, x0, fail  # no plic irqs pending
 
 pass:
 li x31, 0xcafe
+csrwi 0x8fe, 0x10
 1:
 j 1b
 
 fail:
+csrwi 0x8fe, 0x12
 j fail

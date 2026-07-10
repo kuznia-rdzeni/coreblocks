@@ -1,16 +1,20 @@
+from dataclasses import dataclass
 from typing import Protocol
 
 from amaranth import *
-from amaranth_types import HasElaborate
 
 from coreblocks.peripherals.wishbone import WishboneMaster
 from coreblocks.peripherals.axi_lite import AXILiteMaster
 
-from transactron import Method, def_method, TModule
+from transactron import Method, Methods, def_method, TModule, def_methods
 from transactron.lib import Serializer
 from transactron.utils.transactron_helpers import make_layout
 
-__all__ = ["BusMasterInterface", "WishboneMasterAdapter", "AXILiteMasterAdapter"]
+__all__ = [
+    "BusMasterInterface",
+    "WishboneMasterAdapter",
+    "AXILiteMasterAdapter",
+]
 
 
 class BusParametersInterface(Protocol):
@@ -32,7 +36,7 @@ class BusParametersInterface(Protocol):
     granularity: int
 
 
-class BusMasterInterface(HasElaborate, Protocol):
+class BusMasterInterface(Protocol):
     """
     An interface of a common bus.
 
@@ -103,16 +107,18 @@ class CommonBusMasterMethodLayout:
         self.write_response_layout = make_layout(("err", 1))
 
 
-class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
+class WishboneMasterAdapter(Elaboratable):
     """
     An adapter for Wishbone master.
-
-    The adapter module is for use in places where BusMasterInterface is expected.
 
     Parameters
     ----------
     bus: WishboneMaster
         Specific Wishbone master module which is to be adapted.
+
+    port_count: int
+        Number of ports to be created for the bus adapter. Each port will have its own set
+        of methods for read and write requests and responses. The default value is 1.
 
     Attributes
     ----------
@@ -122,65 +128,72 @@ class WishboneMasterAdapter(Elaboratable, BusMasterInterface):
     method_layouts: CommonBusMasterMethodLayout
         Layouts of common bus master methods.
 
-    request_read: Method
-        Transactional method for initiating a read request.
-        It is ready if the `request` method of the underlying Wishbone master is ready.
-        Input layout is `request_read_layout`.
-
-    request_write: Method
-        Transactional method for initiating a write request.
-        It is ready if the `request` method of the underlying Wishbone master is ready.
-        Input layout is `request_write_layout`.
-
-    get_read_response: Method
-        Transactional method for reading a response of a read action.
-        It is ready if the `result` method of the underlying Wishbone master is ready.
-        Output layout is `read_response_layout`.
-
-    get_write_response: Method
-        Transactional method for reading a response of a write action.
-        It is ready if the `result` method of the underlying Wishbone master is ready.
-        Output layout is `write_response_layout`.
+    ports: list[BusMasterInterface]
+        List of bus master interfaces for each port. Each interface contains methods for read and write requests
+        and responses. The number of interfaces is equal to `port_count`.
     """
 
-    def __init__(self, bus: WishboneMaster):
+    def __init__(self, bus: WishboneMaster, port_count: int = 1):
         self.bus = bus
         self.params = self.bus.wb_params
 
         self.method_layouts = CommonBusMasterMethodLayout(self.params)
 
-        self.request_read = Method(i=self.method_layouts.request_read_layout)
-        self.request_write = Method(i=self.method_layouts.request_write_layout)
-        self.get_read_response = Method(o=self.method_layouts.read_response_layout)
-        self.get_write_response = Method(o=self.method_layouts.write_response_layout)
+        self.port_count = port_count
+
+        self.request_read = Methods(port_count, i=self.method_layouts.request_read_layout)
+        self.request_write = Methods(port_count, i=self.method_layouts.request_write_layout)
+        self.get_read_response = Methods(port_count, o=self.method_layouts.read_response_layout)
+        self.get_write_response = Methods(port_count, o=self.method_layouts.write_response_layout)
+
+        @dataclass(frozen=True)
+        class _Port(BusMasterInterface):
+            params: BusParametersInterface
+            request_read: Method
+            request_write: Method
+            get_read_response: Method
+            get_write_response: Method
+
+        self.ports = [
+            _Port(
+                params=self.params,
+                request_read=self.request_read[i],
+                request_write=self.request_write[i],
+                get_read_response=self.get_read_response[i],
+                get_write_response=self.get_write_response[i],
+            )
+            for i in range(port_count)
+        ]
 
     def elaborate(self, platform):
         m = TModule()
 
         bus_serializer = Serializer(
-            port_count=2, serialized_req_method=self.bus.request, serialized_resp_method=self.bus.result
+            port_count=2 * self.port_count,
+            serialized_req_method=self.bus.request,
+            serialized_resp_method=self.bus.result,
         )
         m.submodules.bus_serializer = bus_serializer
 
-        @def_method(m, self.request_read)
-        def _(arg):
+        @def_methods(m, self.request_read)
+        def _(i, arg):
             we = C(0, unsigned(1))
             data = C(0, unsigned(self.params.data_width))
-            bus_serializer.serialize_in[0](m, addr=arg.addr, data=data, we=we, sel=arg.sel)
+            bus_serializer.serialize_in[0 + 2 * i](m, addr=arg.addr, data=data, we=we, sel=arg.sel)
 
-        @def_method(m, self.request_write)
-        def _(arg):
+        @def_methods(m, self.request_write)
+        def _(i, arg):
             we = C(1, unsigned(1))
-            bus_serializer.serialize_in[1](m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
+            bus_serializer.serialize_in[1 + 2 * i](m, addr=arg.addr, data=arg.data, we=we, sel=arg.sel)
 
-        @def_method(m, self.get_read_response)
-        def _():
-            res = bus_serializer.serialize_out[0](m)
+        @def_methods(m, self.get_read_response)
+        def _(i):
+            res = bus_serializer.serialize_out[0 + 2 * i](m)
             return {"data": res.data, "err": res.err}
 
-        @def_method(m, self.get_write_response)
-        def _():
-            res = bus_serializer.serialize_out[1](m)
+        @def_methods(m, self.get_write_response)
+        def _(i):
+            res = bus_serializer.serialize_out[1 + 2 * i](m)
             return {"err": res.err}
 
         return m

@@ -30,6 +30,7 @@ venv.bak/
 
 # Tests outputs
 test/__traces__
+test/__evlogs__
 test/__profiles__/*.json
 pytestdebug.log
 _coreblocks_regression.lock
@@ -40,6 +41,11 @@ _coreblocks_regression.counter
 /test/regression/cocotb/build
 /test/regression/cocotb/results.xml
 /test/regression/cocotb/cocotb-config.cache
+
+# riscv-arch-test
+/test/external/riscv-arch-test/elfs
+test/external/riscv-arch-test/logs
+test/external/riscv-arch-test/summary.log
 
 # riscv-tests
 test/external/riscv-tests/test-*

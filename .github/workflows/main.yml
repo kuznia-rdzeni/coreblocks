@@ -44,159 +44,6 @@ jobs:
             core.v
             core.v.json
 
-
-  build-riscof-tests:
-    name: Build regression tests (riscv-arch-test)
-    runs-on: ubuntu-latest
-    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
-    timeout-minutes: 10
-    env:
-      PYENV_ROOT: "/root/.pyenv"
-      LC_ALL: "C.UTF8"
-      LANG: "C.UTF8"
-    defaults:
-      run:
-        working-directory: test/external/riscof/
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Get submodules HEAD hash
-        working-directory: .
-        run: |
-          # ownership workaround
-          git config --global --add safe.directory /__w/coreblocks/coreblocks
-          # paths in command are relative!
-          git submodule > .gitmodules-hash
-
-      - name: Cache compiled and reference riscv-arch-test
-        id: cache-riscv-arch-test
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-riscv-arch-test
-        with:
-          path: |
-            test/external/riscof/riscv-arch-test/**/*.elf
-            test/external/riscof/riscof_work/**/*.signature
-            test/external/riscof/**/*Makefile*
-
-          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscof/coreblocks/**',
-              '**/test/external/riscof/spike_simple/**',
-              '**/test/external/riscof/config.ini',
-              '**/.gitmodules-hash',
-              '**/docker/riscv-toolchain.Dockerfile',
-              '**/.github/workflows/main.yml'
-            ) }}
-          lookup-only: true
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Checkout with submodules
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Setup PATH
-        run: echo "/.pyenv/bin" >> $GITHUB_PATH
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Setup pyenv python
-        run: |
-          eval "$(pyenv init --path)"
-          pyenv global 3.6.15
-          . /venv3.6/bin/activate
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Setup arch test suite
-        run: |
-          . /venv3.6/bin/activate
-          riscof testlist --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Build and run tests on reference and generate Makefiles
-        run: |
-          . /venv3.6/bin/activate
-          riscof run --config=config.ini --suite=riscv-arch-test/riscv-test-suite/ --env=riscv-arch-test/riscv-test-suite/env
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Build tests for Coreblocks
-        run: |
-          MAKEFILE_PATH=riscof_work/Makefile.build-DUT-coreblocks ../../../ci/riscof_run_makefile.sh
-
-      - if: ${{ steps.cache-riscv-arch-test.outputs.cache-hit != 'true' }}
-        name: Upload compiled and reference tests artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: "riscof-tests"
-          path: |
-            test/external/riscof/riscv-arch-test/**/*.elf
-            test/external/riscof/riscof_work/**/*.signature
-            test/external/riscof/**/*Makefile*
-
-  run-riscof-tests:
-    name: Run regression tests (riscv-arch-test)
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
-    needs: [ build-riscof-tests, build-core ]
-    timeout-minutes: 60
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Get submodules HEAD hash
-        run: |
-          git config --global --add safe.directory /__w/coreblocks/coreblocks
-          git submodule > .gitmodules-hash
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-            python-version: '3.13'
-
-      - name: Install Coreblocks dependencies
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ".[dev]"
-
-      - uses: actions/download-artifact@v8
-        name: Download full verilog core
-        with:
-          name: "verilog-full-core"
-          path: .
-
-      - uses: actions/cache@v4
-        name: Download tests from cache
-        env:
-          cache-name: cache-riscv-arch-test
-        with:
-          path: |
-            test/external/riscof/riscv-arch-test/**/*.elf
-            test/external/riscof/riscof_work/**/*.signature
-            test/external/riscof/**/*Makefile*
-
-          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
-              '**/test/external/riscof/coreblocks/**',
-              '**/test/external/riscof/spike_simple/**',
-              '**/test/external/riscof/config.ini',
-              '**/.gitmodules-hash',
-              '**/docker/riscv-toolchain.Dockerfile',
-              '**/.github/workflows/main.yml'
-            ) }}
-          fail-on-cache-miss: true
-
-      - name: Run tests on Coreblocks
-        run: |
-          . venv/bin/activate
-          MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks NPROC=1 ./ci/riscof_run_makefile.sh
-
-      - name: Compare signatures (test results)
-        run: MAKEFILE_PATH=test/external/riscof/riscof_work/Makefile.run-DUT-coreblocks ./ci/riscof_compare.sh
-
-
   build-regression-tests:
     name: Build regression tests (riscv-tests)
     runs-on: ubuntu-latest
@@ -245,7 +92,7 @@ jobs:
   run-regression-tests:
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    timeout-minutes: 45
+    timeout-minutes: 60
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     needs: [ build-regression-tests, build-core ]
     steps:
@@ -300,6 +147,118 @@ jobs:
           . venv/bin/activate
           ./scripts/run_tests.py -c 1 -a -b pysim regression
 
+  build-arch-regression-tests:
+    name: Build arch regression tests (riscv-arch-test)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/riscv/act4-build:sha-cb452225bcac086030f4bf6f3565298abe45401c
+      options: --user root
+    timeout-minutes: 20
+    steps:
+      - name: Add required tools for github CI
+        run: |
+          apt-get update
+          apt-get install -y git tar gzip curl ca-certificates build-essential libgmp-dev
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Get submodules HEAD hash
+        working-directory: .
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - name: Cache arch regression tests
+        id: cache-arch-regression-tests
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-arch-regression-tests
+        with:
+          path: |
+            test/external/riscv-arch-test/elfs/**/*.elf
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscv-arch-test/Makefile',
+              '**/test/external/riscv-arch-test/coreblocks/**',
+              '**/.gitmodules-hash',
+              '**/.github/workflows/main.yml'
+            ) }}
+
+      - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
+        name: Checkout with submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
+        name: Trust riscv-arch-test with mise
+        run: mise trust test/external/riscv-arch-test/.mise.toml
+
+      - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
+        name: Build arch regression tests
+        run: make -C test/external/riscv-arch-test -j $(nproc)
+
+      - name: Upload riscv-arch-test tests
+        uses: actions/upload-artifact@v7
+        with:
+          name: "riscv-arch-test-elfs"
+          path: test/external/riscv-arch-test/elfs
+
+  run-arch-regression-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [cocotb, pysim]
+    name: Run arch regression tests (riscv-arch-test)
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    timeout-minutes: 180
+    needs: [ build-arch-regression-tests ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Get submodules HEAD hash
+        working-directory: .
+        run: |
+          git config --global --add safe.directory /__w/coreblocks/coreblocks
+          git submodule > .gitmodules-hash
+
+      - name: Restore arch regression tests cache
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-arch-regression-tests
+        with:
+          path: |
+            test/external/riscv-arch-test/elfs/**/*.elf
+          key: ${{ env.cache-name }}-${{ runner.os }}-${{ hashFiles(
+              '**/test/external/riscv-arch-test/Makefile',
+              '**/test/external/riscv-arch-test/coreblocks/**',
+              '**/.gitmodules-hash',
+              '**/.github/workflows/main.yml'
+            ) }}
+          fail-on-cache-miss: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
+
+      - name: Run arch regression tests
+        run: |
+          . venv/bin/activate
+          if [ "${{ matrix.config }}" = "cocotb" ]; then
+            ./scripts/run_tests.py --arch-tests -v -b cocotb regression
+          else
+            ./scripts/run_tests.py --arch-tests -v -b pysim -c 1 -j 0 'regression.*not'
+          fi
 
   unit-test:
     name: Run unit tests

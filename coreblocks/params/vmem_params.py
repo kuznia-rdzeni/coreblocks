@@ -44,7 +44,7 @@ class VirtualMemoryParameters:
         *,
         xlen: int,
         supervisor_mode: bool = False,
-        asidlen: int = 0,
+        asidlen: int | None = None,
         supported_schemes: Collection[SatpMode] = (SatpMode.BARE,),
     ):
         self.supported_schemes = frozenset(supported_schemes)
@@ -55,12 +55,15 @@ class VirtualMemoryParameters:
         if not supervisor_mode and self.supported_schemes != {SatpMode.BARE}:
             raise ValueError("Virtual memory schemes other than BARE require supervisor mode support")
 
-        if asidlen < 0:
+        if asidlen is not None and asidlen < 0:
             raise ValueError(f"ASIDLEN must be non-negative, got {asidlen}")
 
         self.satp_layout = SatpLayout(xlen)
 
         max_asidlen = self.satp_layout["asid"].width
+        if asidlen is None:
+            asidlen = max_asidlen
+
         if asidlen > max_asidlen:
             raise ValueError(f"ASIDLEN={asidlen} exceeds maximum {max_asidlen} for XLEN={xlen}")
 

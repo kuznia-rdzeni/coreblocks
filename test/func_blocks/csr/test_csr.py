@@ -15,7 +15,7 @@ from coreblocks.interface.keys import (
     CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
-    InstructionPrecommitKey,
+    SideFxGuardKey,
     CSRInstancesKey,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel
@@ -34,9 +34,9 @@ class CSRUnitTestCircuit(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.precommit = self.precommit = TestbenchIO(
+        m.submodules.side_fx_guard = self.side_fx_guard = TestbenchIO(
             Adapter(
-                i=self.gen_params.get(RetirementLayouts).precommit_in,
+                i=self.gen_params.get(RetirementLayouts).side_fx_guard_in,
                 nonexclusive=True,
                 combiner=lambda m, args, runs: args[0],
             ).set(with_validate_arguments=True)
@@ -47,7 +47,7 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
         )
-        DependencyContext.get().add_dependency(InstructionPrecommitKey(), self.precommit.adapter.iface)
+        DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
         DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
@@ -57,7 +57,9 @@ class CSRUnitTestCircuit(Elaboratable):
         m.submodules.insert = self.insert = TestbenchIO(AdapterTrans.create(self.dut.insert))
         m.submodules.update = self.update = TestbenchIO(AdapterTrans.create(self.dut.update[0]))
         m.submodules.accept = self.accept = TestbenchIO(AdapterTrans.create(self.dut.get_result))
-        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(Adapter(i=self.gen_params.get(FetchLayouts).resume))
+        m.submodules.fetch_resume = self.fetch_resume = TestbenchIO(
+            Adapter(i=self.gen_params.get(FetchLayouts).backend_redirect)
+        )
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen_params)
         m.submodules.priv_io = self.priv_io = TestbenchIO(
             AdapterTrans.create(self.csr_instances.m_mode.priv_mode.write)
@@ -171,13 +173,13 @@ class TestCSRUnit(TestCSRUnitBase):
 
             await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim)  # TODO: sensible precommit handling
+            self.dut.side_fx_guard.call_init(sim)  # TODO: sensible side_fx_guard handling
 
             await self.random_wait_geom(sim)
             res, resume_res = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.fetch_resume).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res is not None and resume_res is not None
             assert res.rp_dst == op["exp"]["exp_read"]["rp_dst"]
@@ -265,13 +267,13 @@ class TestCSRUnit(TestCSRUnitBase):
 
             await self.random_wait_geom(sim)
             # TODO: this is a hack, a real method mock should be used
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim)
+            self.dut.side_fx_guard.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res["exception"] == 1
             assert report is not None
@@ -321,13 +323,13 @@ class TestCSRUnit(TestCSRUnitBase):
             )
 
             await self.random_wait_geom(sim)
-            for _, r in self.dut.precommit.adapter.validators:  # type: ignore
+            for _, r in self.dut.side_fx_guard.adapter.validators:  # type: ignore
                 sim.set(r, 1)
-            self.dut.precommit.call_init(sim)
+            self.dut.side_fx_guard.call_init(sim)
 
             await self.random_wait_geom(sim)
             res, report = await CallTrigger(sim).call(self.dut.accept).sample(self.dut.exception_report).until_done()
-            self.dut.precommit.disable(sim)
+            self.dut.side_fx_guard.disable(sim)
 
             assert res is not None
             assert res.exception == int(case["expect_exception"])

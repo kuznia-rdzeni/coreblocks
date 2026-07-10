@@ -544,6 +544,7 @@ class CSRInstances(Elaboratable):
 
         if gen_params._generate_test_hardware:
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
+            self.csr_coreblocks_test_exit = CSRRegister(CSRAddress.COREBLOCKS_TEST_EXIT_CSR, gen_params)
 
         self.time = CSRRegister(
             CSRAddress.TIME,
@@ -566,6 +567,7 @@ class CSRInstances(Elaboratable):
 
         if self.gen_params._generate_test_hardware:
             m.submodules.csr_coreblocks_test = self.csr_coreblocks_test
+            m.submodules.csr_coreblocks_test_exit = self.csr_coreblocks_test_exit
 
         # TIME CSR is a R/O alias to Memory-Mapped `mtime` value (from clint). If `mtime` is not available,
         # then fallback to providing a cycle counter source.

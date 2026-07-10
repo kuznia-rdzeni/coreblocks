@@ -16,6 +16,7 @@ from cocotb.result import SimTimeoutError
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
+from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
 from transactron.utils.gen import GenerationInfo
 
@@ -186,6 +187,25 @@ class CocotbSimulation(SimulationBackend):
 
             await clock_edge_event  # type: ignore
 
+    async def evlog_handler(self, clock, evlog: EventLog):
+        generated = self.gen_info.evlog
+        if not generated.schema.sites:
+            return
+
+        def resolve(location: SignalHandle) -> SignalReader:
+            handle = self.get_cocotb_handle(location)
+            return lambda: int(handle.value)
+
+        sampler = GeneratedEvLogSampler(generated, resolve)
+
+        clock_edge_event = FallingEdge(clock)
+        cycle = 0
+
+        while True:
+            sampler.sample(cycle, evlog)
+            cycle += 1
+            await clock_edge_event  # type: ignore
+
     async def logging_handler(self, clock):
         clock_edge_event = FallingEdge(clock)
 
@@ -223,7 +243,12 @@ class CocotbSimulation(SimulationBackend):
 
             await clock_edge_event  # type: ignore
 
-    async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int = 5000) -> SimulationExecutionResult:
+    async def run(
+        self,
+        mem_model: CoreMemoryModel,
+        timeout_cycles: int = 5000,
+        get_interrupt_value: Optional[Callable[[], int]] = None,
+    ) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
 
@@ -237,11 +262,25 @@ class CocotbSimulation(SimulationBackend):
         data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
 
+        if get_interrupt_value is not None:
+
+            async def interrupt_generator_process():
+                while True:
+                    self.dut.interrupts.value = get_interrupt_value()
+                    await RisingEdge(self.dut.clk)
+
+            cocotb.start_soon(interrupt_generator_process())
+
         profile = None
         if "__TRANSACTRON_PROFILE" in os.environ:
             profile = Profile()
             profile.transactions_and_methods = self.gen_info.profile_data.transactions_and_methods
             cocotb.start_soon(self.profile_handler(self.dut.clk, profile))
+
+        evlog = None
+        if "__TRANSACTRON_EVLOG" in os.environ and self.gen_info.evlog.schema.sites:
+            evlog = EventLog(self.gen_info.evlog.schema)
+            cocotb.start_soon(self.evlog_handler(self.dut.clk, evlog))
 
         cocotb.start_soon(self.logging_handler(self.dut.clk))
 
@@ -254,6 +293,7 @@ class CocotbSimulation(SimulationBackend):
         result = SimulationExecutionResult(success)
 
         result.profile = profile
+        result.evlog = evlog
 
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}

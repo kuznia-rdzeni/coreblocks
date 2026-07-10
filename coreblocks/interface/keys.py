@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
 __all__ = [
     "CommonBusDataKey",
-    "InstructionPrecommitKey",
-    "BranchVerifyKey",
+    "SideFxGuardKey",
+    "BranchResolveKey",
     "PredictedJumpTargetKey",
     "UnsafeInstructionResolvedKey",
     "ExceptionReportKey",
@@ -29,7 +29,9 @@ __all__ = [
     "CSRListKey",
     "FlushICacheKey",
     "SFenceVMAKey",
-    "L1TLBBackingDeviceKey",
+    "InstructionAddressTranslatorBackingDeviceKey",
+    "DataAddressTranslatorBackingDeviceKey",
+    "FTQCommitKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
 ]
@@ -41,12 +43,12 @@ class CommonBusDataKey(SimpleKey[BusMasterInterface]):
 
 
 @dataclass(frozen=True)
-class InstructionPrecommitKey(SimpleKey[Method]):
+class SideFxGuardKey(SimpleKey[Method]):
     pass
 
 
 @dataclass(frozen=True)
-class BranchVerifyKey(SimpleKey[Method]):
+class BranchResolveKey(SimpleKey[Method]):
     pass
 
 
@@ -127,12 +129,22 @@ class SFenceVMAKey(UnifierKey, unifier=MethodProduct.create):
     Expected layout is `AddressTranslationLayouts.sfence_vma`.
     """
 
+    pass
+
 
 @dataclass(frozen=True)
-class L1TLBBackingDeviceKey(SimpleKey["TLBBackingDevice"]):
-    """Used to provide a component that can be used as a backing device for the L1 TLB."""
-
+class InstructionAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
     pass
+
+
+@dataclass(frozen=True)
+class DataAddressTranslatorBackingDeviceKey(SimpleKey[Callable[[], "TLBBackingDevice"]]):
+    pass
+
+
+@dataclass(frozen=True)
+class FTQCommitKey(SimpleKey[Method]):
+    """Method called when the retirement unit commits an instruction."""
 
 
 @dataclass(frozen=True)

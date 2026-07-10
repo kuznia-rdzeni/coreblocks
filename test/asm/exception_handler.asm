@@ -37,8 +37,9 @@ rob_loop:
 
     li x11, 0xaaaa # verify exception return
 
-infloop:
-    j infloop
+pass:
+    csrw 0x8fe, 0x10
+    j pass
 
 exception_handler:
    mv x6, x2

@@ -444,6 +444,8 @@ class CSRAddress(IntEnum, shape=12):
 
     # CSR for custom communication with testbenches
     COREBLOCKS_TEST_CSR = 0x7FF
+    # CSR for signalling end of test in testbenches
+    COREBLOCKS_TEST_EXIT_CSR = 0x8FE
     # CSR providing writable current privilege mode (U-mode accesible)
     COREBLOCKS_TEST_PRIV_MODE = 0x8FF
 

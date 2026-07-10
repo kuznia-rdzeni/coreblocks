@@ -99,6 +99,8 @@ class _CoreConfigurationDataClass:
         Log of the cache line size (in bytes).
     fetch_block_bytes_log: int
         Log of the size of the fetch block (in bytes).
+    ftq_size_log: int
+        Log of the number of entries in the Fetch Target Queue
     instr_buffer_size: int
         Size of the instruction buffer.
     interrupt_custom_count: int
@@ -181,6 +183,7 @@ class _CoreConfigurationDataClass:
     icache_line_bytes_log: int = 5
 
     fetch_block_bytes_log: int = 2
+    ftq_size_log: int = 4
 
     instr_buffer_size: int = 4
 
@@ -191,8 +194,8 @@ class _CoreConfigurationDataClass:
     user_mode: bool = True
     supervisor_mode: bool = True
 
-    asidlen: int = 0
-    supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE,)
+    asidlen: int | None = None
+    supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE, SatpMode.SV32)
     phys_addr_bits: int | None = None
     hpm_counters_count: int = 0
 

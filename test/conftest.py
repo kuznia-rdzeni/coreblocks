@@ -7,6 +7,7 @@ import pytest
 def pytest_addoption(parser: pytest.Parser):
     group = parser.getgroup("coreblocks")
     group.addoption("--coreblocks-regression", action="store_true", help="Run also regression tests.")
+    group.addoption("--coreblocks-arch-regression", action="store_true", help="Run arch regression tests.")
     group.addoption(
         "--coreblocks-backend",
         default="cocotb",
@@ -15,6 +16,7 @@ def pytest_addoption(parser: pytest.Parser):
     )
     group.addoption("--coreblocks-traces", action="store_true", help="Generate traces from regression tests")
     group.addoption("--coreblocks-profile", action="store_true", help="Write execution profiles")
+    group.addoption("--coreblocks-evlog", action="store_true", help="Write captured event logs")
     group.addoption("--coreblocks-list", action="store_true", help="List all tests in flatten format.")
     group.addoption(
         "--coreblocks-test-name",
@@ -95,6 +97,19 @@ def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Confi
     deselect_based_on_flatten_name(items, config)
     deselect_based_on_count(items, config)
 
+    def sort_key(item: pytest.Item):
+        mark = item.get_closest_marker("collection_order")
+        if mark is None:
+            return (0, 0)
+        val = mark.args[0]
+        assert isinstance(val, int)
+        if val >= 0:
+            return (-1, val)
+        else:
+            return (1, val)
+
+    items.sort(key=sort_key)
+
 
 def pytest_runtest_setup(item: pytest.Item):
     """
@@ -106,6 +121,9 @@ def pytest_runtest_setup(item: pytest.Item):
 
     if item.config.getoption("--coreblocks-profile", False):  # type: ignore
         os.environ["__TRANSACTRON_PROFILE"] = "1"
+
+    if item.config.getoption("--coreblocks-evlog", False):  # type: ignore
+        os.environ["__TRANSACTRON_EVLOG"] = "1"
 
     log_filter = item.config.getoption("--coreblocks-log-filter")
     os.environ["__TRANSACTRON_LOG_FILTER"] = ".*" if not isinstance(log_filter, str) else log_filter
