@@ -137,8 +137,6 @@ class RVVIHartCollector(Component):
             for i in range(self.gen_params.fetch_width):
                 port = ftq_write_ports[i]
 
-                m.d.sync += Print(Format(f"FTQ write: port {i}, ftq.ptr {{:x}}, pc {{:x}}, instr {{:x}}", ftq_ptr.ptr, instrs[i].pc, instrs[i].instr))
-
                 m.d.av_comb += port.addr.eq(ftq_ptr.ptr * self.gen_params.fetch_width + i)
                 m.d.av_comb += port.data.eq(instrs[i])
                 m.d.comb += port.en.eq(1)
@@ -201,8 +199,6 @@ class RVVIHartCollector(Component):
             # set order/intr_next to the last retire port
             m.d.sync += order.eq(order + (i + 1))
             m.d.sync += intr_next.eq(interrupt | trap)
-
-        # check that only prefix of the finalize_retire methods are called,
 
         return m
 
