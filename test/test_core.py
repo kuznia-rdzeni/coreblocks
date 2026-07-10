@@ -22,6 +22,7 @@ from coreblocks.socks.socks import Socks
 import random
 import subprocess
 import tempfile
+import pytest
 from parameterized import parameterized_class
 
 from transactron.utils.dependencies import DependencyContext
@@ -198,6 +199,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("sv32_translation", "sv32_translation.asm", 500, {9: 5, 10: 1}, True, configurations.full),
     ],
 )
+@pytest.mark.collection_order(1)
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
     name: str
     source_file: str
@@ -252,6 +254,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         ("wfi_int.asm", 80, {2: 10}, {2: 10, 3: 10}, 5, 15, True),
     ],
 )
+@pytest.mark.collection_order(0)
 class TestCoreInterrupt(TestCoreAsmSourceBase):
     source_file: str
     start_regvals: dict[int, int]
@@ -353,6 +356,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
         ("wfi_no_mie.asm", 250, {8: 8}, True),  # only using level enable
     ],
 )
+@pytest.mark.collection_order(0)
 class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
     source_file: str
     always_mmode: bool
