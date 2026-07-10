@@ -127,6 +127,11 @@ def make_xc7a200t_platform(resource_builder: ResourceBuilder):
         def __init__(self, *, toolchain="Xray"):
             super().__init__(toolchain=toolchain)
 
+        @property
+        def _xray_device(self):
+            # Workaround for chipdb naming
+            return f"{super()._xray_device}{self.package}"  # type: ignore
+
         def toolchain_program(self, products, name, **kwargs):
             pass
 
@@ -153,6 +158,11 @@ def make_xc7k480t_platform(resource_builder: ResourceBuilder):
 
         def __init__(self, *, toolchain="Xray"):
             super().__init__(toolchain=toolchain)
+
+        @property
+        def _xray_device(self):
+            # Workaround for chipdb naming
+            return f"{super()._xray_device}{self.package}"  # type: ignore
 
         @property
         def _xray_family(self):
