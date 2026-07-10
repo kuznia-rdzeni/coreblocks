@@ -20,7 +20,7 @@ dependencies = [
     "amaranth-stubs~=0.5.0.1",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron~=0.10.0",
+    "transactron @ git+https://github.com/tilk/transactron.git@5892fd0f1c40edaaa4a09f0df5c8071a72e2f30c",
 ]
 license = "BSD-3-Clause"
 license-files = [ "LICENSE" ]
