@@ -194,6 +194,8 @@ class Core(Component):
             m.submodules.rvvi_collector = self.rvvi_collector
             m.submodules.rvvi_aggregator = self.rvvi_aggregator
 
+            connect(m.top_module, flipped(self.rvvi_trace), self.rvvi_aggregator)  # type: ignore
+
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
         m.submodules.instruction_metrics = InstructionMetrics()
