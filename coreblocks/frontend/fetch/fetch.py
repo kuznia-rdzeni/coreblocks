@@ -4,7 +4,7 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
+from transactron.utils import DependencyContext, count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -17,6 +17,7 @@ from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
+from coreblocks.interface.keys import RVVIHartCollectorKey
 from coreblocks.frontend import FrontendParams
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
 from coreblocks.telemetry import InstrFetched
@@ -245,6 +246,8 @@ class FetchUnit(Elaboratable):
             expanded_instr = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
             is_rvc = Signal(fetch_width)
 
+            full_instrs = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
+
             # Whether in this cycle we have a fetch block that contains
             # an instruction that crosses a fetch boundary
             instr_block_cross = Signal()
@@ -268,8 +271,11 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += is_rvc[i].eq(is_instr_compressed(full_instr))
                     m.d.av_comb += rvc_expanders[i].instr_in.eq(full_instr[:16])
                     m.d.av_comb += expanded_instr[i].eq(Mux(is_rvc[i], rvc_expanders[i].instr_out, full_instr))
+                    m.d.av_comb += full_instrs[i].eq(full_instr)
                 else:
-                    m.d.av_comb += expanded_instr[i].eq(cache_resp.fetch_block[i * 32 : (i + 1) * 32])
+                    full_instr = Signal(self.gen_params.isa.ilen)
+                    m.d.av_comb += expanded_instr[i].eq(full_instr)
+                    m.d.av_comb += full_instrs[i].eq(full_instr)
 
             # Mask denoting at which offsets expected instructions start (depends on rvc indication and start address)
             instr_start = [Signal() for _ in range(fetch_width)]
@@ -312,6 +318,24 @@ class FetchUnit(Elaboratable):
                 instrs=expanded_instr,
                 instr_block_cross=instr_block_cross,
             )
+
+            rvvi_hart_collector = DependencyContext.get().get_optional_dependency(RVVIHartCollectorKey())
+            if rvvi_hart_collector is not None:
+                instr_pcs = [params.pc_from_fb(fetch_block_addr, i) for i in range(fetch_width)]
+                if Extension.ZCA in self.gen_params.isa.extensions:
+                    instr_pcs[0] = instr_pcs[0] - Mux(instr_block_cross, 2, 0)
+
+                rvvi_hart_collector.register_ftq(
+                    m,
+                    ftq_ptr=fetch_request.ftq_ptr,
+                    instrs=[
+                        {
+                            "instr": full_instrs[i],
+                            "pc": instr_pcs[i],
+                        }
+                        for i in range(fetch_width)
+                    ],
+                )
 
         # Make sure to clean the state
         with m.If(flush_now):

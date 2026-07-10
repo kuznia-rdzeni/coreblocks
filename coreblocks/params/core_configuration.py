@@ -77,6 +77,8 @@ class _CoreConfigurationDataClass:
         The value of the MIMPID CSR.
     debug_signals: bool
         Enable debug signals (for example hardware metrics etc). If disabled, none of them will be synthesized.
+    with_rvvi: bool
+        Enable RVVI-TRACE interface.
     phys_regs_bits: int
         Size of the Physical Register File is 2**phys_regs_bits.
     rob_entries_bits: int
@@ -164,6 +166,7 @@ class _CoreConfigurationDataClass:
     mimpid: int = 0
 
     debug_signals: bool = True
+    with_rvvi: bool = False
 
     phys_regs_bits: int = 6
     rob_entries_bits: int = 7

@@ -1,0 +1,226 @@
+from amaranth import *
+from amaranth.lib.data import ArrayLayout, View
+from amaranth.lib.wiring import Component, Out
+
+from transactron import *
+from transactron.utils import DependencyContext
+from transactron.utils.amaranth_ext.component_interface import ComponentInterface, COut
+
+from coreblocks.arch.isa_consts import XlenEncoding
+from coreblocks.params import GenParams
+from coreblocks.interface.layouts import RVVILayouts
+from coreblocks.interface.keys import CSRInstancesKey
+
+
+__all__ = [
+    "RVVIRetireInterface",
+    "RVVIHartCollector",
+    "RVVIAggregator",
+]
+
+
+class RVVIRetireInterface(ComponentInterface):
+    def __init__(self, ilen: int, xlen: int, flen: int = 0, vlen: int = 0):
+        self.valid = COut(1)
+        self.order = COut(64)
+
+        self.insn = COut(ilen)
+        self.trap = COut(1)
+        self.debug_mode = COut(1)
+        self.intr = COut(1)  # optional
+        self.halt = COut(1)  # optional
+
+        self.pc_rdata = COut(xlen)
+        self.pc_wdata = COut(xlen)  # optional
+
+        self.x_wdata = COut(ArrayLayout(xlen, 32))
+        self.x_wb = COut(32)
+        self.f_wdata = COut(ArrayLayout(flen, 32))
+        self.f_wb = COut(32)
+        self.v_wdata = COut(ArrayLayout(vlen, 32))
+        self.v_wb = COut(32)
+
+        # FIXME: there are 4096 CSRs in the interface, that makes ~130k wide wire,
+        # but amaranth only supports up to 2**16 wide wires
+        self.csr = COut(ArrayLayout(xlen, 0))
+        self.csr_wb = COut(0)
+
+        self.lrsc_cancel = COut(1)
+
+        self.mode = COut(2)  # optional
+        self.mode_virt = COut(1)  # optional
+        self.ixl = COut(2)  # optional
+
+
+class RVVIHartCollector(Component):
+    """A module that collects information required for RVVI-TRACE interface for a single hart.
+
+    Currently doesn't implement `pc_wdata`, `f_*`, `v_*`, `csr_*`.
+
+    Made as a simulation module, so critical path nor area is not optimized.
+    Either way exposing more than 128k wires is not feasible.
+    """
+
+    retire_port: View
+    """Single hart worth of data of RVVI-TRACE interface."""
+
+    def __init__(self, gen_params: GenParams):
+        self.gen_params = gen_params
+        self.layouts = gen_params.get(RVVILayouts)
+
+        self.frontend_ports = gen_params.frontend_superscalarity
+        self.reg_write_ports = gen_params.announcement_superscalarity
+        self.retire_ports = gen_params.retirement_superscalarity
+
+        self.register_ftq = Method(i=self.layouts.register_ftq)
+        self.register_ftq_rob_assoc = Methods(self.frontend_ports, i=self.layouts.register_ftq_rob_assoc)
+        self.register_reg_write = Methods(self.reg_write_ports, i=self.layouts.register_reg_write)
+        self.finalize_retire = Methods(self.retire_ports, i=self.layouts.finalize_retire)
+
+        super().__init__(
+            {
+                "retire_port": Out(
+                    RVVIRetireInterface(
+                        ilen=gen_params.isa.ilen,
+                        xlen=gen_params.isa.xlen,
+                        flen=0,
+                        vlen=0,
+                    ).signature
+                ).array(self.retire_ports)
+            }
+        )
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        ftq_data = Signal(
+            ArrayLayout(
+                ArrayLayout(self.layouts.instr_info, self.gen_params.fetch_width),
+                self.gen_params.ftq_size,
+            )
+        )
+
+        @def_method(m, self.register_ftq)
+        def _(ftq_ptr, instrs):
+            for i in range(self.gen_params.fetch_width):
+                m.d.sync += ftq_data[ftq_ptr][i].eq(instrs[i])
+
+        rob_data = Signal(
+            ArrayLayout(
+                self.layouts.instr_info,
+                self.gen_params.rob_entries,
+            )
+        )
+
+        @def_methods(m, self.register_ftq_rob_assoc)
+        def _(_, ftq_ptr, ftq_offset, rob_id):
+            m.d.sync += rob_data[rob_id].eq(ftq_data[ftq_ptr][ftq_offset])
+
+        rf_data = Signal(
+            ArrayLayout(
+                self.gen_params.isa.xlen,
+                self.gen_params.phys_regs,
+            )
+        )
+
+        @def_methods(m, self.register_reg_write)
+        def _(_, reg_id, reg_val):
+            m.d.sync += rf_data[reg_id].eq(reg_val)
+
+        self.csr = DependencyContext.get().get_dependency(CSRInstancesKey())
+        mode = self.csr.m_mode.priv_mode.value
+        mode_virt = C(0, 1)
+
+        ixl = {
+            32: XlenEncoding.W32,
+            64: XlenEncoding.W64,
+            128: XlenEncoding.W128,
+        }[self.gen_params.isa.xlen]
+
+        order = Signal(64)
+        intr_next = Signal()
+
+        @def_methods(m, self.finalize_retire)
+        def _(i, rob_id, rl_dst, rp_dst, trap, interrupt):
+            port = self.retire_port[i]
+
+            m.d.comb += port.valid.eq(1)
+            m.d.av_comb += port.order.eq(order + i)
+
+            m.d.av_comb += port.insn.eq(rob_data[rob_id].instr)
+            m.d.av_comb += port.trap.eq(trap)
+            m.d.av_comb += port.debug_mode.eq(0)
+            m.d.av_comb += port.intr.eq(intr_next if i == 0 else 0)
+            m.d.av_comb += port.halt.eq(0)  # never happens
+            m.d.av_comb += port.pc_rdata.eq(rob_data[rob_id].pc)
+            m.d.av_comb += port.pc_wdata.eq(0)  # not implemented
+
+            reg_val = Signal(self.gen_params.isa.xlen)
+            with m.If(rp_dst != 0):
+                m.d.comb += reg_val.eq(rf_data[rp_dst])
+
+            for k in range(32):
+                with m.If(k == rl_dst):
+                    m.d.av_comb += port.x_wdata[k].eq(reg_val)
+                    m.d.av_comb += port.x_wb[k].eq(1)
+
+            # f_* not implemented
+
+            # v_* not implemented
+
+            # csr_* not implemented
+
+            m.d.av_comb += port.lrsc_cancel.eq(0)  # never happens
+            m.d.av_comb += port.mode.eq(mode)
+            m.d.av_comb += port.mode_virt.eq(mode_virt)
+            m.d.av_comb += port.ixl.eq(ixl)
+
+            # set order/intr_next to the last retire port
+            m.d.sync += order.eq(order + (i + 1))
+            m.d.sync += intr_next.eq(interrupt | trap)
+
+        # check that only prefix of the finalize_retire methods are called,
+
+        return m
+
+
+class RVVIAggregator(Component):
+    """A module that aggregates multiple RVVIHartCollector modules into a RVVI-TRACE interface."""
+
+    def __init__(self, rvvi_harts: list[RVVIHartCollector]):
+        self.rvvi_harts = rvvi_harts
+
+        num_harts = len(rvvi_harts)
+        ret_count = max(rvvi_hart.retire_ports for rvvi_hart in rvvi_harts)
+
+        fields = {
+            "clk": Out(1),
+        }
+
+        self.ret_port_signature = RVVIRetireInterface(
+            ilen=max(rvvi_hart.gen_params.isa.ilen for rvvi_hart in rvvi_harts),
+            xlen=max(rvvi_hart.gen_params.isa.xlen for rvvi_hart in rvvi_harts),
+            flen=0,
+            vlen=0,
+        ).signature
+
+        ret_interface_fields = self.ret_port_signature.members
+
+        for field in ret_interface_fields:
+            fields[field] = ret_interface_fields[field].array(num_harts, ret_count)
+
+        super().__init__(fields)
+
+    def elaborate(self, platform):
+        m = TModule()
+
+        m.d.comb += self.clk.eq(ClockSignal())  # type: ignore
+
+        for i, rvvi_hart in enumerate(self.rvvi_harts):
+            for j in range(rvvi_hart.retire_ports):
+                for field in self.ret_port_signature.members:
+                    lhs = getattr(self, field)[i][j]
+                    rhs = getattr(rvvi_hart.retire_port[j], field)
+                    m.d.comb += lhs.eq(rhs)
+
+        return m
