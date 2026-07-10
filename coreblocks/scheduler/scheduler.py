@@ -250,18 +250,18 @@ class ROBAllocation(Elaboratable):
             for i in range(self.gen_params.frontend_superscalarity):
                 m.d.av_comb += data_out.data[i].rob_id.eq(rob_ids.entries[i].rob_id)
 
-                with m.If(i < instrs.count):
-                    evlog.emit(
-                        m,
-                        RobAllocate.hw(
-                            ftq_ptr=instrs.data[i].ftq_ptr,
-                            ftq_offset=instrs.data[i].ftq_offset,
-                            rob_id=rob_ids.entries[i].rob_id,
-                        ),
-                        when=i < instrs.count,
-                    )
+                evlog.emit(
+                    m,
+                    RobAllocate.hw(
+                        ftq_ptr=instrs.data[i].ftq_ptr,
+                        ftq_offset=instrs.data[i].ftq_offset,
+                        rob_id=rob_ids.entries[i].rob_id,
+                    ),
+                    when=i < instrs.count,
+                )
 
-                    if rvvi is not None:
+                if rvvi is not None:
+                    with m.If(i < instrs.count):
                         rvvi.register_ftq_rob_assoc[i](
                             m,
                             rob_id=rob_ids.entries[i].rob_id,

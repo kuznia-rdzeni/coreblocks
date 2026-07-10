@@ -154,12 +154,11 @@ class RVVIHartCollector(Component):
             m.d.comb += wport.en.eq(1)
 
         @def_methods(m, self.register_reg_write)
-        def _(_, reg_id, reg_val):
+        def _(i, reg_id, reg_val):
             with m.If(reg_id != 0):
-                port = rf_write_ports[reg_id]
-                m.d.av_comb += port.addr.eq(reg_id)
-                m.d.av_comb += port.data.eq(reg_val)
-                m.d.comb += port.en.eq(1)
+                m.d.av_comb += rf_write_ports[i].addr.eq(reg_id)
+                m.d.av_comb += rf_write_ports[i].data.eq(reg_val)
+                m.d.comb += rf_write_ports[i].en.eq(1)
 
         @def_methods(m, self.finalize_retire)
         def _(i, rob_id, rl_dst, rp_dst, trap, interrupt):
