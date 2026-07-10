@@ -214,7 +214,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         if socks_test:
             self.configuration = self.configuration.replace(_generate_test_hardware=True, interrupt_custom_count=4)
 
-        self.configuration = self.configuration.replace(with_rvvi=True)
+        # self.configuration = self.configuration.replace(with_rvvi=True)
 
         self.gen_params = GenParams(self.configuration)
 
