@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783666223057,
+  "lastUpdate": 1783675065336,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -24661,6 +24661,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/7fdf1bc7055a06c3250278af53956945eb718b89"
         },
         "date": 1783666208022,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.4486953069382838,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6047801963294921,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.37129390940316226,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6493506493506493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35847370537509493,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060531192093885,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3432821873773525,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4457149159895584,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "691c4ecab5b61d3dc80269bf760ed12d7a9925e2",
+          "message": "Run core tests first (#1012)",
+          "timestamp": "2026-07-10T10:37:10+02:00",
+          "tree_id": "58924e5bbbeef7b5463b6e65a2fbd40a20f1defd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/691c4ecab5b61d3dc80269bf760ed12d7a9925e2"
+        },
+        "date": 1783675054466,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
