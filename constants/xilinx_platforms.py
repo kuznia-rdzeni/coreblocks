@@ -118,9 +118,9 @@ def make_xc7a200t_platform(resource_builder: ResourceBuilder):
 
         clk_pin = pins.named_pin(xc7a200t_fbg676_pclk)
         resources = [
-            Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-            Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(100e6), Attrs(IO_TYPE="LVCMOS33")),
-        ] + resource_builder(pins)
+            Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IOSTANDARD="LVCMOS33")),
+            Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(100e6), Attrs(IOSTANDARD="LVCMOS33")),
+        ] + resource_builder(pins, attrs=Attrs(IOSTANDARD="LVCMOS33"))
 
         connectors = []
 
@@ -150,9 +150,9 @@ def make_xc7k480t_platform(resource_builder: ResourceBuilder):
 
         clk_pin = pins.named_pin(xc7k480t_ffg1156_pclk)
         resources = [
-            Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IO_TYPE="LVCMOS33")),
-            Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(100e6), Attrs(IO_TYPE="LVCMOS33")),
-        ] + resource_builder(pins)
+            Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IOSTANDARD="LVCMOS33")),
+            Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(100e6), Attrs(IOSTANDARD="LVCMOS33")),
+        ] + resource_builder(pins, attrs=Attrs(IOSTANDARD="LVCMOS33"))
 
         connectors = []
 
