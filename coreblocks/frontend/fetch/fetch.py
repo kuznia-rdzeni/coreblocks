@@ -276,6 +276,7 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += full_instrs[i].eq(Mux(is_rvc[i], full_instr[:16], full_instr))
                 else:
                     full_instr = Signal(self.gen_params.isa.ilen)
+                    m.d.av_comb += full_instr.eq(cache_resp.fetch_block[i * 32 : (i + 1) * 32])
                     m.d.av_comb += expanded_instr[i].eq(full_instr)
                     m.d.av_comb += full_instrs[i].eq(full_instr)
 

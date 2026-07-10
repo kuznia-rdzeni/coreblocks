@@ -180,9 +180,12 @@ class RVVIHartCollector(Component):
 
             rf_port = rf_read_ports[i]
             m.d.av_comb += rf_port.addr.eq(rp_dst)
-            for k in range(32):
+            m.d.av_comb += [
+                port.x_wdata[k].eq(rf_port.data)
+                for k in range(32)
+            ]
+            for k in range(1, 32):
                 with m.If(k == rl_dst):
-                    m.d.av_comb += port.x_wdata[k].eq(rf_port.data)
                     m.d.av_comb += port.x_wb[k].eq(1)
 
             # f_* not implemented
@@ -214,9 +217,7 @@ class RVVIAggregator(Component):
         num_harts = len(rvvi_harts)
         ret_count = max(rvvi_hart.retire_ports for rvvi_hart in rvvi_harts)
 
-        fields = {
-            "clk": Out(1),
-        }
+        fields = {}
 
         self.ret_port_signature = RVVIRetireInterface(
             ilen=max(rvvi_hart.gen_params.isa.ilen for rvvi_hart in rvvi_harts),
@@ -235,7 +236,7 @@ class RVVIAggregator(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        m.d.comb += self.clk.eq(ClockSignal())  # type: ignore
+        # TODO: technically also a clk signal
 
         for i, rvvi_hart in enumerate(self.rvvi_harts):
             for j in range(rvvi_hart.retire_ports):
