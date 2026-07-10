@@ -271,7 +271,9 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += is_rvc[i].eq(is_instr_compressed(full_instr))
                     m.d.av_comb += rvc_expanders[i].instr_in.eq(full_instr[:16])
                     m.d.av_comb += expanded_instr[i].eq(Mux(is_rvc[i], rvc_expanders[i].instr_out, full_instr))
-                    m.d.av_comb += full_instrs[i].eq(full_instr)
+
+                    # full_instrs should be zero-extended instruction
+                    m.d.av_comb += full_instrs[i].eq(Mux(is_rvc[i], full_instr[:16], full_instr))
                 else:
                     full_instr = Signal(self.gen_params.isa.ilen)
                     m.d.av_comb += expanded_instr[i].eq(full_instr)
@@ -319,13 +321,13 @@ class FetchUnit(Elaboratable):
                 instr_block_cross=instr_block_cross,
             )
 
-            rvvi_hart_collector = DependencyContext.get().get_optional_dependency(RVVIHartCollectorKey())
-            if rvvi_hart_collector is not None:
+            rvvi = DependencyContext.get().get_optional_dependency(RVVIHartCollectorKey())
+            if rvvi is not None:
                 instr_pcs = [params.pc_from_fb(fetch_block_addr, i) for i in range(fetch_width)]
                 if Extension.ZCA in self.gen_params.isa.extensions:
                     instr_pcs[0] = instr_pcs[0] - Mux(instr_block_cross, 2, 0)
 
-                rvvi_hart_collector.register_ftq(
+                rvvi.register_ftq(
                     m,
                     ftq_ptr=fetch_request.ftq_ptr,
                     instrs=[

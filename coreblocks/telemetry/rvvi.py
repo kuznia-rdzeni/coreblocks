@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib import memory
 from amaranth.lib.data import ArrayLayout, View
 from amaranth.lib.wiring import Component, Out
 
@@ -93,39 +94,30 @@ class RVVIHartCollector(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        ftq_data = Signal(
-            ArrayLayout(
-                ArrayLayout(self.layouts.instr_info, self.gen_params.fetch_width),
-                self.gen_params.ftq_size,
-            )
+        m.submodules.ftq_mem = ftq_mem = memory.Memory(
+            shape=self.layouts.instr_info,
+            depth=self.gen_params.ftq_size * self.gen_params.fetch_width,
+            init=[]
         )
 
-        @def_method(m, self.register_ftq)
-        def _(ftq_ptr, instrs):
-            for i in range(self.gen_params.fetch_width):
-                m.d.sync += ftq_data[ftq_ptr][i].eq(instrs[i])
-
-        rob_data = Signal(
-            ArrayLayout(
-                self.layouts.instr_info,
-                self.gen_params.rob_entries,
-            )
+        m.submodules.rob_mem = rob_mem = memory.Memory(
+            shape=self.layouts.instr_info,
+            depth=self.gen_params.rob_entries,
+            init=[]
         )
 
-        @def_methods(m, self.register_ftq_rob_assoc)
-        def _(_, ftq_ptr, ftq_offset, rob_id):
-            m.d.sync += rob_data[rob_id].eq(ftq_data[ftq_ptr][ftq_offset])
-
-        rf_data = Signal(
-            ArrayLayout(
-                self.gen_params.isa.xlen,
-                self.gen_params.phys_regs,
-            )
+        m.submodules.rf_mem = rf_mem = memory.Memory(
+            shape=self.gen_params.isa.xlen,
+            depth=self.gen_params.phys_regs,
+            init=[]
         )
 
-        @def_methods(m, self.register_reg_write)
-        def _(_, reg_id, reg_val):
-            m.d.sync += rf_data[reg_id].eq(reg_val)
+        ftq_write_ports = [ftq_mem.write_port() for _ in range(self.gen_params.fetch_width)]
+        ftq_read_ports = [ftq_mem.read_port(domain="comb") for _ in range(self.frontend_ports)]
+        rob_write_ports = [rob_mem.write_port() for _ in range(self.frontend_ports)]
+        rob_read_ports = [rob_mem.read_port(domain="comb") for _ in range(self.retire_ports)]
+        rf_write_ports = [rf_mem.write_port() for _ in range(self.reg_write_ports)]
+        rf_read_ports = [rf_mem.read_port(domain="comb") for _ in range(self.retire_ports)]
 
         self.csr = DependencyContext.get().get_dependency(CSRInstancesKey())
         mode = self.csr.m_mode.priv_mode.value
@@ -140,28 +132,58 @@ class RVVIHartCollector(Component):
         order = Signal(64)
         intr_next = Signal()
 
+        @def_method(m, self.register_ftq)
+        def _(ftq_ptr, instrs):
+            for i in range(self.gen_params.fetch_width):
+                port = ftq_write_ports[i]
+
+                m.d.sync += Print(Format(f"FTQ write: port {i}, ftq.ptr {{:x}}, pc {{:x}}, instr {{:x}}", ftq_ptr.ptr, instrs[i].pc, instrs[i].instr))
+
+                m.d.av_comb += port.addr.eq(ftq_ptr.ptr * self.gen_params.fetch_width + i)
+                m.d.av_comb += port.data.eq(instrs[i])
+                m.d.comb += port.en.eq(1)
+
+        @def_methods(m, self.register_ftq_rob_assoc)
+        def _(i, ftq_ptr, ftq_offset, rob_id):
+            rport = ftq_read_ports[i]
+            wport = rob_write_ports[i]
+
+            m.d.av_comb += rport.addr.eq(ftq_ptr.ptr * self.gen_params.fetch_width + ftq_offset)
+            m.d.av_comb += wport.addr.eq(rob_id)
+            m.d.av_comb += wport.data.eq(rport.data)
+            m.d.comb += wport.en.eq(1)
+
+        @def_methods(m, self.register_reg_write)
+        def _(_, reg_id, reg_val):
+            with m.If(reg_id != 0):
+                port = rf_write_ports[reg_id]
+                m.d.av_comb += port.addr.eq(reg_id)
+                m.d.av_comb += port.data.eq(reg_val)
+                m.d.comb += port.en.eq(1)
+
         @def_methods(m, self.finalize_retire)
         def _(i, rob_id, rl_dst, rp_dst, trap, interrupt):
             port = self.retire_port[i]
 
+            rob_port = rob_read_ports[i]
+            m.d.av_comb += rob_port.addr.eq(rob_id)
+
             m.d.comb += port.valid.eq(1)
             m.d.av_comb += port.order.eq(order + i)
 
-            m.d.av_comb += port.insn.eq(rob_data[rob_id].instr)
+            m.d.av_comb += port.insn.eq(rob_port.data.instr)
             m.d.av_comb += port.trap.eq(trap)
             m.d.av_comb += port.debug_mode.eq(0)
             m.d.av_comb += port.intr.eq(intr_next if i == 0 else 0)
             m.d.av_comb += port.halt.eq(0)  # never happens
-            m.d.av_comb += port.pc_rdata.eq(rob_data[rob_id].pc)
+            m.d.av_comb += port.pc_rdata.eq(rob_port.data.pc)
             m.d.av_comb += port.pc_wdata.eq(0)  # not implemented
 
-            reg_val = Signal(self.gen_params.isa.xlen)
-            with m.If(rp_dst != 0):
-                m.d.comb += reg_val.eq(rf_data[rp_dst])
-
+            rf_port = rf_read_ports[i]
+            m.d.av_comb += rf_port.addr.eq(rp_dst)
             for k in range(32):
                 with m.If(k == rl_dst):
-                    m.d.av_comb += port.x_wdata[k].eq(reg_val)
+                    m.d.av_comb += port.x_wdata[k].eq(rf_port.data)
                     m.d.av_comb += port.x_wb[k].eq(1)
 
             # f_* not implemented
