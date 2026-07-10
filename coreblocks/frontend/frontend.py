@@ -15,7 +15,11 @@ from coreblocks.frontend.bpu.bpu import BranchPredictionUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import FlushICacheKey, RollbackKey
+from coreblocks.interface.keys import (
+    ActiveTagsKey,
+    FlushICacheKey,
+    RollbackKey,
+)
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
 
 
@@ -70,10 +74,16 @@ class RollbackTagger(Elaboratable):
 
             self.push_instr(m, out)
 
+        get_active_tags = DependencyContext.get().get_dependency(ActiveTagsKey())
+        active_tags = Signal(get_active_tags.layout_out)
+        with Transaction().body(m):
+            m.d.av_comb += active_tags.eq(get_active_tags(m))
+
         @def_method(m, self.rollback)
-        def _(tag: Value):
-            m.d.sync += rollback_tag.eq(tag)
-            m.d.sync += rollback_tag_v.eq(1)
+        def _(tag: Value, pc: Value, ftq_ptr: Value):
+            with m.If(active_tags.active_tags[tag]):
+                m.d.sync += rollback_tag.eq(tag)
+                m.d.sync += rollback_tag_v.eq(1)
 
         return m
 
@@ -84,7 +94,7 @@ class CoreFrontend(Elaboratable):
     consume_instr: Provided[Method]
     """Consume a single decoded instruction."""
 
-    resume_from_exception: Provided[Method]
+    resume_from_core_flush: Provided[Method]
     """Resume the frontend from the given PC after an exception."""
 
     stall: Provided[Method]
@@ -93,6 +103,8 @@ class CoreFrontend(Elaboratable):
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
         self.gen_params = gen_params
         self.connections = DependencyContext.get()
+
+        self.flush_frontend = Method()
 
         self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, self.gen_params.instr_buffer_size)
 
@@ -119,10 +131,13 @@ class CoreFrontend(Elaboratable):
         self.ftq = FetchTargetQueue(self.gen_params)
 
         self.consume_instr = Method(o=self.gen_params.get(SchedulerLayouts).scheduler_in)
-        self.resume_from_exception = self.stall_ctrl.resume_from_exception
-        self.stall = Method()
+        self.resume_from_core_flush = self.stall_ctrl.resume_from_core_flush
+        self.get_exception_information = self.stall_ctrl.get_exception_information
 
         self.rollback_tagger = RollbackTagger(self.gen_params)
+
+        self.rollback = Method(i=gen_params.get(RATLayouts).rollback_in)
+        DependencyContext.get().add_dependency(RollbackKey(), self.rollback)
 
     def elaborate(self, platform):
         m = TModule()
@@ -161,12 +176,18 @@ class CoreFrontend(Elaboratable):
 
         m.submodules.stall_ctrl = self.stall_ctrl
 
-        @def_method(m, self.stall)
+        @def_method(m, self.flush_frontend, nonexclusive=True)
         def _():
             self.fetch.flush(m)
             self.instr_buffer.clear(m)
             self.output_pipe.clear(m)
             self.bpu.flush(m)
-            self.stall_ctrl.stall_exception(m)
+
+        self.stall_ctrl.fetch_flush.provide(self.flush_frontend)
+        # TODO: should be flush whole frontend or fetch?
+
+        @def_method(m, self.rollback)
+        def _(tag, pc, ftq_ptr):
+            self.flush_frontend(m)
 
         return m

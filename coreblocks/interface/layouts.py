@@ -26,6 +26,7 @@ __all__ = [
     "CSRUnitLayouts",
     "ICacheLayouts",
     "JumpBranchLayouts",
+    "ExceptionRegisterLayouts",
     "PrivUnitLayouts",
     "FetchTargetQueueLayouts",
     "BranchPredictionLayouts",
@@ -401,7 +402,7 @@ class RATLayouts:
         self.old_rp_dst: LayoutListField = ("old_rp_dst", gen_params.phys_regs_bits)
         """Physical register previously associated with the given logical register in RRAT."""
 
-        self.active_tags_bitmask: LayoutListField = ("active_tags", ArrayLayout(1, 2**gen_params.tag_bits))
+        self.active_tags_bitmask: LayoutListField = ("active_tags", ArrayLayout(1, gen_params.tag_count))
         """Bitmask, when bit is set when corresponding tag is on the current speculation/execution
         path and reset when instruction was already rolled back (is not included in current FRAT)"""
 
@@ -420,7 +421,12 @@ class RATLayouts:
 
         self.rrat_peek_out = make_layout(self.entries)
 
-        self.rollback_in = make_layout(fields.tag)
+        self.rat_data_layout: LayoutListField = (
+            "entries",
+            ArrayLayout(gen_params.phys_regs_bits, gen_params.isa.reg_cnt),
+        )
+
+        self.rollback_in = make_layout(fields.tag, fields.pc, fields.ftq_ptr)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
 
         self.crat_commit_checkpoint_in = make_layout(fields.tag, fields.commit_checkpoint)
@@ -428,7 +434,7 @@ class RATLayouts:
         self.crat_rename_in = self.frat_rename_in
         self.crat_rename_out = self.frat_rename_out
 
-        self.crat_tag_in = (fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
+        self.crat_tag_in = make_layout(fields.rollback_tag, fields.rollback_tag_v, fields.commit_checkpoint)
         self.crat_tag_out = make_layout(fields.tag, fields.tag_increment, fields.commit_checkpoint)
 
         self.crat_flush_restore_in = make_layout(self.entries)
@@ -568,7 +574,7 @@ class RetirementLayouts:
         self.require_done: LayoutListField = ("require_done", 1)
         """Don't run if there exist earlier not done instructions in ROB"""
 
-        self.side_fx_guard_in = make_layout(fields.rob_id, self.require_done)
+        self.side_fx_guard_in = make_layout(fields.rob_id, fields.tag, self.require_done)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """
@@ -798,7 +804,7 @@ class FuncUnitLayouts:
             fields.pc,
             fields.tag,
             fields.ftq_ptr,
-        )
+        )  # TODO: shouldnt it be equal to RS out?
 
         self.push_result = make_layout(
             fields.rob_id,
@@ -938,6 +944,7 @@ class ExceptionRegisterLayouts:
             fields.cause,
             fields.rob_id,
             fields.pc,
+            fields.tag,
             self.mtval,
         )
 

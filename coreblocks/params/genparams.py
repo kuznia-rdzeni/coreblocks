@@ -104,6 +104,7 @@ class GenParams(DependentCache):
 
         self.checkpoint_count = cfg.checkpoint_count
         self.tag_bits = cfg.tag_bits
+        self.tag_count = 2**self.tag_bits
         assert cfg.checkpoint_count < 2**cfg.tag_bits
 
         self.min_instr_width_bytes = 2 if cfg.compressed or cfg.zcb else 4

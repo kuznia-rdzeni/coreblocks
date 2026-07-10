@@ -117,7 +117,7 @@ class FetchUnit(Elaboratable):
                 log.info(
                     m,
                     i < result.count,
-                    "Sending an instr to the backend pc=0x{:x} instr=0x{:x}",
+                    "Issuing an instr from frontend pc=0x{:x} instr=0x{:x}",
                     result.data[i].pc,
                     result.data[i].instr,
                 )
@@ -469,7 +469,7 @@ class FetchUnit(Elaboratable):
         with m.If(flush_now):
             m.d.sync += flushing_counter.eq(req_counter.count_next)
 
-        @def_method(m, self.flush)
+        @def_method(m, self.flush, nonexclusive=True)
         def _():
             flush()
             serializer.clear(m)

@@ -16,8 +16,9 @@ from coreblocks.interface.layouts import (
     BranchPredictionLayouts,
     FTQPtr,
     FetchTargetQueueLayouts,
+    RATLayouts,
 )
-from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey
+from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey, RollbackKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
 from coreblocks.telemetry import FetchRequest, FTQAlloc, FTQCommit, FTQRollback
 
@@ -124,6 +125,9 @@ class FetchTargetQueue(Elaboratable):
         self.resolve = Method(i=ftq_layouts.branch_resolve)
         self.backend_redirect = Method(i=ifu_layouts.backend_redirect)
 
+        self.rollback_handler = Method(i=gen_params.get(RATLayouts).rollback_in)
+        self.dep_manager.add_dependency(RollbackKey(), self.rollback_handler)
+
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
         self.dep_manager.add_dependency(FTQCommitKey(), self.commit)
 
@@ -213,7 +217,9 @@ class FetchTargetQueue(Elaboratable):
             log.assertion(
                 m,
                 commit_ptr <= ftq_ptr_casted,
-                "FTQ entry was retired out-of-order",
+                "FTQ entry was retired out-of-order",  # previous {} commited {}",
+                #      commit_ptr,
+                #     ftq_ptr_casted,
             )
 
             evlog.emit(m, FTQCommit.hw(ftq_ptr=ftq_ptr))
@@ -230,6 +236,18 @@ class FetchTargetQueue(Elaboratable):
             evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="backend_redirect"))
             m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
             m.d.sync += fetch_ptr.eq(ftq_ptr_plus_one)
+
+        @def_method(m, self.rollback_handler)
+        def _(tag, pc, ftq_ptr):
+            rollback_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
+            m.d.av_comb += rollback_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
+
+            fetch_address_unit.backend_redirect(m, pc=pc)
+
+            # log.debug(m, True, "rollback to pc {}, ftq_ptr {} -> {}", pc, fetch_ptr, rollback_ptr_plus_one)
+
+            m.d.sync += alloc_ptr.eq(rollback_ptr_plus_one)
+            m.d.sync += fetch_ptr.eq(rollback_ptr_plus_one)
 
         @def_method(m, self.jump_target_req)
         def _():
