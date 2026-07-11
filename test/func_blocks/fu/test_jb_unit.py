@@ -11,7 +11,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.arch import Funct3, OpType, ExceptionCause
 from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey
 
-from transactron.utils import signed_to_int, DependencyContext
+from transactron.utils import signed_to_int, DependencyContext, layout_subset
 from transactron.lib import BasicFifo
 
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
@@ -24,6 +24,9 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         layouts = gen_params.get(JumpBranchLayouts)
 
         branch_resolve_layout = gen_params.get(FetchTargetQueueLayouts).branch_resolve
+        self.branch_resolve_verify = layout_subset(
+            branch_resolve_layout, fields={"from_pc", "misprediction", "taken", "cfi_target"}
+        )
 
         self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
         self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
@@ -38,7 +41,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         self.push_result = Method(
             i=StructLayout(
                 gen_params.get(FuncUnitLayouts).push_result.members
-                | (branch_resolve_layout.members if not auipc_test else {})
+                | (self.branch_resolve_verify.members if not auipc_test else {})
             )
         )
 
@@ -52,12 +55,12 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         self.jb.push_result.provide(res_fifo.write)
 
         @def_method(m, self.target_pred_req)
-        def _():
+        def _(ftq_ptr):
             pass
 
         @def_method(m, self.target_pred_resp)
         def _(arg):
-            return {"valid": 0, "cfi_target": 0}
+            return {"valid": 0, "cfi_idx": 0, "cfi_target": 0}
 
         with Transaction().body(m):
             res = res_fifo.read(m)
@@ -70,7 +73,8 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
             if not self.auipc_test:
                 verify = self.fifo_branch_resolved.read(m)
                 ret = ret | {
-                    "next_pc": verify.next_pc,
+                    "cfi_target": verify.cfi_target,
+                    "taken": verify.taken,
                     "from_pc": verify.from_pc,
                     "misprediction": verify.misprediction,
                 }
@@ -95,29 +99,42 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> dict[str, int]:
     max_int = 2**xlen - 1
     branch_target = pc + signed_to_int(i_imm, xlen)
-    next_pc = 0
     res = pc + 4
+
+    cfi_target = 0
+    cfi_taken = 0
 
     match fn:
         case JumpBranchFn.Fn.JAL:
-            next_pc = pc + signed_to_int(i_imm, xlen)
+            cfi_target = pc + signed_to_int(i_imm, xlen)
+            cfi_taken = 1
         case JumpBranchFn.Fn.JALR:
-            next_pc = (i1 + signed_to_int(i_imm, xlen)) & ~0x1
+            cfi_target = (i1 + signed_to_int(i_imm, xlen)) & ~0x1
+            cfi_taken = 1
         case JumpBranchFn.Fn.BEQ:
-            next_pc = branch_target if i1 == i2 else pc + 4
+            cfi_target = branch_target
+            cfi_taken = i1 == i2
         case JumpBranchFn.Fn.BNE:
-            next_pc = branch_target if i1 != i2 else pc + 4
+            cfi_target = branch_target
+            cfi_taken = i1 != i2
         case JumpBranchFn.Fn.BLT:
-            next_pc = branch_target if signed_to_int(i1, xlen) < signed_to_int(i2, xlen) else pc + 4
+            cfi_target = branch_target
+            cfi_taken = signed_to_int(i1, xlen) < signed_to_int(i2, xlen)
         case JumpBranchFn.Fn.BLTU:
-            next_pc = branch_target if i1 < i2 else pc + 4
+            cfi_target = branch_target
+            cfi_taken = i1 < i2
         case JumpBranchFn.Fn.BGE:
-            next_pc = branch_target if signed_to_int(i1, xlen) >= signed_to_int(i2, xlen) else pc + 4
+            cfi_target = branch_target
+            cfi_taken = signed_to_int(i1, xlen) >= signed_to_int(i2, xlen)
         case JumpBranchFn.Fn.BGEU:
-            next_pc = branch_target if i1 >= i2 else pc + 4
+            cfi_target = branch_target
+            cfi_taken = i1 >= i2
 
-    next_pc &= max_int
     res &= max_int
+    cfi_target &= max_int
+
+    next_pc = cfi_target if cfi_taken == 1 else pc + 4
+    next_pc &= max_int
 
     misprediction = next_pc != pc + 4
 
@@ -131,9 +148,13 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
         exception = ExceptionCause._COREBLOCKS_MISPREDICTION
         exception_pc = next_pc
 
-    return {"result": res, "from_pc": pc, "next_pc": next_pc, "misprediction": misprediction} | (
-        {"exception": exception, "exception_pc": exception_pc, "mtval": mtval} if exception is not None else {}
-    )
+    return {
+        "result": res,
+        "from_pc": pc,
+        "misprediction": misprediction,
+        "cfi_target": cfi_target,
+        "taken": cfi_taken,
+    } | ({"exception": exception, "exception_pc": exception_pc, "mtval": mtval} if exception is not None else {})
 
 
 @staticmethod
