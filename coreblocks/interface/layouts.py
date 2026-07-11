@@ -149,9 +149,6 @@ class CommonLayoutFields:
         self.rvc: LayoutListField = ("rvc", 1)
         """Instruction is a compressed (two-byte) one."""
 
-        self.predicted_taken: LayoutListField = ("predicted_taken", 1)
-        """If the branch was predicted taken."""
-
         self.cfi_idx: LayoutListField = ("cfi_idx", gen_params.fetch_width_log)
         """An index of a CFI instruction in a fetch block."""
 
@@ -665,7 +662,12 @@ class FetchTargetQueueLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.branch_resolve = make_layout(
-            ("from_pc", gen_params.isa.xlen), ("next_pc", gen_params.isa.xlen), ("misprediction", 1)
+            ("from_pc", gen_params.isa.xlen),
+            ("misprediction", 1),
+            ("taken", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
+            fields.cfi_target,
         )
 
         self.commit = make_layout(fields.ftq_ptr)
@@ -697,7 +699,6 @@ class FetchLayouts:
             fields.pc,
             self.access_fault,
             fields.rvc,
-            fields.predicted_taken,
             fields.cfi_type,
             fields.ftq_ptr,
             fields.ftq_offset,
@@ -709,7 +710,11 @@ class FetchLayouts:
         )
 
         self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
-        self.fetch_writeback = make_layout(fields.ftq_ptr, ("redirect", 1), fields.cfi_target)
+        self.fetch_writeback = make_layout(
+            fields.ftq_ptr, ("redirect", 1), ("stall", 1), fields.cfi_idx, fields.cfi_type, fields.cfi_target
+        )
+        """redirect - steer fetch to cfi_target; stall - rewind, but wait for the backend
+        to resume (fault or unsafe instruction). Both drop the FTQ entries after ftq_ptr."""
         self.redirect = make_layout(fields.pc)
 
         # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
@@ -732,11 +737,13 @@ class FetchLayouts:
 
         self.pred_checker_o = make_layout(
             ("mispredicted", 1),
-            ("cfi_valid", 1),
             fields.cfi_idx,
             fields.cfi_type,
             fields.cfi_target,
         )
+        """cfi_type - type of the CFI the frontend follows in this block (on a misprediction,
+        the one causing the redirect); CfiType.INVALID on a misprediction means a fall-through resteer
+        with no redirecting CFI, so cfi_target is the next sequential fetch block."""
 
 
 class DecodeLayouts:
@@ -838,12 +845,11 @@ class JumpBranchLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
 
-        self.predicted_jump_target_req = make_layout()
-        self.predicted_jump_target_resp = make_layout(fields.cfi_target, ("valid", 1))
+        self.predicted_jump_target_req = make_layout(fields.ftq_ptr)
+        self.predicted_jump_target_resp = make_layout(("valid", 1), fields.cfi_idx, fields.cfi_target)
 
         self.funct7_info = make_layout(
             fields.rvc,
-            fields.predicted_taken,
         )
         """Information passed from the frontend to the jumpbranch unit. Encoded in the funct7 field."""
 
