@@ -106,10 +106,22 @@ G30 H27 P31 R28 R29 R31 Y26 Y27
 """.split()
 
 
+class XrayXilinxPlatform(XilinxPlatform):
+    def __init__(self, *, toolchain="Xray"):
+        super().__init__(toolchain=toolchain)
+
+        self._xray_command_templates.insert(1, r"""sed -i "s/\\\\\[/[/" {{name}}.xdc""")  # type: ignore
+
+    @property
+    def _xray_device(self):
+        # Workaround for chipdb naming
+        return f"{super()._xray_device}{self.package}"  # type: ignore
+
+
 def make_xc7a200t_platform(resource_builder: ResourceBuilder):
     pins = PinManager(xc7a200t_fbg676_pins)
 
-    class XC7A200TPlatform(XilinxPlatform):
+    class XC7A200TPlatform(XrayXilinxPlatform):
         device = "xc7a200t"
         package = "fbg676"
         speed = "2"
@@ -124,14 +136,6 @@ def make_xc7a200t_platform(resource_builder: ResourceBuilder):
 
         connectors = []
 
-        def __init__(self, *, toolchain="Xray"):
-            super().__init__(toolchain=toolchain)
-
-        @property
-        def _xray_device(self):
-            # Workaround for chipdb naming
-            return f"{super()._xray_device}{self.package}"  # type: ignore
-
         def toolchain_program(self, products, name, **kwargs):
             pass
 
@@ -141,7 +145,7 @@ def make_xc7a200t_platform(resource_builder: ResourceBuilder):
 def make_xc7k480t_platform(resource_builder: ResourceBuilder):
     pins = PinManager(xc7k480t_ffg1156_pins)
 
-    class XC7K480TPlatform(XilinxPlatform):
+    class XC7K480TPlatform(XrayXilinxPlatform):
         device = "xc7k480t"
         package = "ffg1156"
         speed = "2"
@@ -155,14 +159,6 @@ def make_xc7k480t_platform(resource_builder: ResourceBuilder):
         ] + resource_builder(pins, attrs=Attrs(IOSTANDARD="LVCMOS33"))
 
         connectors = []
-
-        def __init__(self, *, toolchain="Xray"):
-            super().__init__(toolchain=toolchain)
-
-        @property
-        def _xray_device(self):
-            # Workaround for chipdb naming
-            return f"{super()._xray_device}{self.package}"  # type: ignore
 
         @property
         def _xray_family(self):
