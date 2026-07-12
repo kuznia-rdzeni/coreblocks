@@ -2,10 +2,15 @@ from coreblocks.func_blocks.fu.fpu.dr_division import *
 from coreblocks.func_blocks.fu.fpu.qsf_tables import R4A2RED_PARAMS
 from transactron.testing import *
 from amaranth import *
+from dataclasses import dataclass
 
 
-# x = int("1011010011", 2)
-# d = int("1110110011", 2)
+@dataclass
+class TCase:
+    x: int
+    d: int
+    result: int
+    zero_rem: int
 
 
 class TestDRDivision(TestCaseWithSimulator):
@@ -15,14 +20,26 @@ class TestDRDivision(TestCaseWithSimulator):
 
         async def tests(sim: TestbenchContext):
             input_dict = {}
-            input_dict["x"] = 2**9
-            input_dict["d"] = 2**9
-            print(input_dict["x"])
-            print(input_dict["d"])
-            await drd.div_init.call(sim, input_dict)
-            resp = await drd.div_result.call(sim)
-            assert resp["result"] == (2 ** (10 + 2))
-            assert resp["zero_rem"] == 1
+            test_cases = [
+                TCase(2**9, 2**9, 2**12, 1),
+                TCase(
+                    int("1001011010", 2),
+                    int("1101011101", 2),
+                    int("101100101111", 2),
+                    0,
+                ),
+                TCase(int("1011010011"), int("1110110011", 2), int("110000110110", 2), 0),
+            ]
+            for tc in test_cases:
+                input_dict["x"] = tc["x"]
+                input_dict["d"] = tc["d"]
+                print("TC")
+                print(input_dict["x"])
+                print(input_dict["d"])
+                await drd.div_init.call(sim, input_dict)
+                resp = await drd.div_result.call(sim)
+                assert resp["result"] == tc["result"]
+                assert resp["zero_rem"] == tc["zero_rem"]
 
         async def test_process(sim: TestbenchContext):
             await tests(sim)
