@@ -172,7 +172,7 @@ class DrDivModule(Elaboratable):
                 m.d.comb += otfc_response.eq(resp)
             m.d.sync += Print("RESULT: ", otfc_response["result"])
             with m.If(residual_negative):
-                m.d.comb += adjusted_result.eq((otfc_response["result"] - 2) << 2)
+                m.d.comb += adjusted_result.eq((otfc_response["result"] - 1) << 2)
             with m.Else():
                 m.d.comb += adjusted_result.eq(otfc_response["result"] << 2)
             return {"result": adjusted_result, "zero_rem": zero_rem}
