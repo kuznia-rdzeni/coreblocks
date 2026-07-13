@@ -34,13 +34,12 @@ def pick_information_to_search(platform):
     """
     Returns a list of information to search for based on the platform.
     """
-    from constants.benchmark_information import ecp5 as ecp5_information
+    import constants.benchmark_information as information
 
-    if platform == "ecp5":
-        return ecp5_information
-    else:
+    if not hasattr(information, platform):
         raise NotImplementedError(f"Platform {platform} is not supported.")
 
+    return getattr(information, platform)
 
 def omit_regex_and_keyword(information_to_search):
     """
@@ -63,7 +62,7 @@ if __name__ == "__main__":
         "-p",
         "--platform",
         default="ecp5",
-        choices=["ecp5"],
+        choices=["ecp5", "xc7a200t"],
         help="Selects platform to collect information from. Default: %(default)s",
     )
     parser.add_argument(

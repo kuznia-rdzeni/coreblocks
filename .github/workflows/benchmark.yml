@@ -73,7 +73,7 @@ jobs:
       - name: Collect Benchmark information
         run: |
           . venv/bin/activate
-          ./scripts/parse_benchmark_info.py -o synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
+          ./scripts/parse_benchmark_info.py -p ${{ matrix.platform }} -o synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
           cat ./synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
 
       - uses: actions/upload-artifact@v7
