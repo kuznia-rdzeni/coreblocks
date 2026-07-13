@@ -111,6 +111,7 @@ class XrayXilinxPlatform(XilinxPlatform):
         super().__init__(toolchain=toolchain)
 
         self._xray_command_templates.insert(1, r"""sed -i "s/\\\\\[/[/" {{name}}.xdc""")  # type: ignore
+        self._xray_command_templates.insert(1, r""". /etc/nix-devshell-env.sh""")  # type: ignore
 
     @property
     def _xray_device(self):
