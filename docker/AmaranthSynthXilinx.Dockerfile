@@ -4,7 +4,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
     git lsb-release ca-certificates curl \
-    build-essential cmake && \
+    yosys build-essential cmake && \
     rm -rf /var/lib/apt/lists/*
 
 # Install nix
