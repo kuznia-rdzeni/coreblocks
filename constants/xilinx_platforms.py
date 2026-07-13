@@ -110,8 +110,15 @@ class XrayXilinxPlatform(XilinxPlatform):
     def __init__(self, *, toolchain="Xray"):
         super().__init__(toolchain=toolchain)
 
+        # Save nextpnr log
+        self._xray_command_templates[1] += r""" --log {{name}}.tim"""  # type: ignore
+        # Don't generate bitstream (for now)
+        self._xray_command_templates.pop()  # type: ignore
+        self._xray_command_templates.pop()  # type: ignore
+        # Fix tcl escaping for nextpnr-xilinx
         self._xray_command_templates.insert(1, r"""sed -i "s/\\\\\[/[/" {{name}}.xdc""")  # type: ignore
-        self._xray_command_templates.insert(1, r""". /etc/nix-devshell-env.sh""")  # type: ignore
+        # Update env for Nix nextpnr-xilinx
+        # self._xray_command_templates.insert(1, r""". /etc/nix-devshell-env.sh""")  # type: ignore
 
     @property
     def _xray_device(self):
