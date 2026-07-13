@@ -3,7 +3,7 @@ FROM ubuntu:24.04
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
     apt-get install -y --no-install-recommends \
-    git yosys lsb-release ca-certificates curl \
+    git lsb-release ca-certificates curl \
     build-essential cmake && \
     rm -rf /var/lib/apt/lists/*
 
@@ -17,6 +17,7 @@ ENV \
 
 # Install openXC7 toolchain
 RUN nix registry add openxc7 github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c10f03beb81d8f8e468a && \
+    nix print-dev-env openxc7\#devShell.x86_64-linux > /etc/nix-devshell-env.sh && \
     nix profile add openxc7\#nextpnr-xilinx && \
     nix profile add openxc7\#prjxray && \
     nix profile add openxc7\#fasm && \
