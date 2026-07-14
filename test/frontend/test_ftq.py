@@ -43,7 +43,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             self.bpu_requests.append(pc)
 
     @def_method_mock(lambda self: self.ftq.ifu_request)
-    def ifu_request_mock(self, pc, ftq_ptr):
+    def ifu_request_mock(self, pc, ftq_ptr, fetch_gen):
         @MethodMock.effect
         def eff():
             self.ifu_requests.append({"pc": pc, "ftq_ptr": ftq_ptr["ptr"]})
@@ -160,7 +160,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
             self.bpu_requests.append(pc)
 
     @def_method_mock(lambda self: self.ftq.ifu_request)
-    def ifu_request_mock(self, pc, ftq_ptr):
+    def ifu_request_mock(self, pc, ftq_ptr, fetch_gen):
         @MethodMock.effect
         def eff():
             self.ifu_requests.append(pc)
