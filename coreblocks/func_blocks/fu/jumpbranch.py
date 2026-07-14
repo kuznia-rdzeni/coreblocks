@@ -116,7 +116,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         self.perf_misaligned = HwCounter(
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
         )
-        self.perf_mispredictions = HwCounter("backend.fu.jumpbranch.mispredictions", "Number of branch mispredictions")
 
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
@@ -125,7 +124,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
 
         m.submodules += [
             self.perf_misaligned,
-            self.perf_mispredictions,
         ]
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
@@ -163,7 +161,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 ~is_auipc
                 & ((instr.taken != predicted_taken) | (instr.taken & (prediction.cfi_target != instr.jmp_addr)))
             )
-            self.perf_mispredictions.incr(m, enable_call=misprediction)
 
             jmp_addr_misaligned = (
                 instr.jmp_addr & (0b1 if Extension.ZCA in self.gen_params.isa.extensions else 0b11)

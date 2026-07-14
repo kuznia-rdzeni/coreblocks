@@ -118,6 +118,7 @@ full = CoreConfiguration(
     announcement_superscalarity=2,
     retirement_superscalarity=2,
     interrupt_custom_count=15,
+    hpm_counters_count=2,
 )
 
 # Core configuration used in internal testbenches

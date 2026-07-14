@@ -1,3 +1,5 @@
+from functools import reduce
+from operator import or_
 from amaranth import *
 from amaranth_types import ValueLike
 from coreblocks.arch import CSRAddress
@@ -11,6 +13,7 @@ from coreblocks.arch.csr_address import (
 from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
     PAGE_SIZE_LOG,
+    HPMEvent,
     SatpMode,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
@@ -23,7 +26,7 @@ from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.interface.keys import CSRInstancesKey
 from typing import Optional
 from amaranth.lib import data
-from transactron.core import Transaction, TModule
+from transactron.core import Method, Transaction, TModule, def_method
 from transactron.utils import DependencyContext, logging
 
 
@@ -218,20 +221,29 @@ class MachineModeCSRRegisters(Elaboratable):
         self._menvcfg_fields_implementation(gen_params, self.menvcfg, self.menvcfgh)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
+        self.hpm_counters_count = gen_params.hpm_counters_count
         for i in range(3, 32):
             is_implemented = i < gen_params.hpm_counters_count + 3
+            # The unprivileged hpmcounterN shadows belong to Zihpm - accesses to counters
+            # not implemented should raise an illegal-instruction exception, so the shadow
+            # CSRs are only created for implemented counters. The machine-level CSRs always
+            # exist (read-only zero when not implemented), as required by the privileged spec.
             counter = DoubleCounterCSR(
                 gen_params,
                 low_addr=CSRAddress[f"MHPMCOUNTER{i}"],
                 high_addr=CSRAddress[f"MHPMCOUNTER{i}H"],
-                shadow_low_addr=CSRAddress[f"HPMCOUNTER{i}"],
-                shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"],
+                shadow_low_addr=CSRAddress[f"HPMCOUNTER{i}"] if is_implemented else None,
+                shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"] if is_implemented else None,
                 shadow_access_filter=counteren_access_filter(gen_params, i),
                 read_only_zero=not is_implemented,
             )
             event = CSRRegister(CSRAddress[f"MHPMEVENT{i}"], gen_params, ro_bits=0 if is_implemented else ~0)
             setattr(self, f"mhpmevent{i}", event)
             setattr(self, f"mhpmcounter{i}", counter)
+
+        self.hpm_event_report = Method(i=[("events", len(HPMEvent))])
+        """Reports occurrences of HPM events (as a bit mask indexed by `HPMEvent`). Every implemented
+        `mhpmcounterN` whose `mhpmeventN` selects a reported event is incremented by one."""
 
     def elaborate(self, platform):
         m = TModule()
@@ -242,6 +254,22 @@ class MachineModeCSRRegisters(Elaboratable):
 
         with Transaction().body(m):
             self.mcycle.increment(m)
+
+        def hpm_event_combiner(m, args, runs):
+            return {"events": reduce(or_, (Mux(runs[i], arg.events, 0) for i, arg in enumerate(args)))}
+
+        @def_method(m, self.hpm_event_report, nonexclusive=True, combiner=hpm_event_combiner)
+        def _(events):
+            for i in range(3, 3 + self.hpm_counters_count):
+                counter = getattr(self, f"mhpmcounter{i}")
+                event_select = getattr(self, f"mhpmevent{i}").value
+                with m.Switch(event_select):
+                    for event in HPMEvent:
+                        if event == HPMEvent.NO_EVENT:
+                            continue
+                        with m.Case(event):
+                            with m.If(events[event]):
+                                counter.increment(m)
 
         return m
 
