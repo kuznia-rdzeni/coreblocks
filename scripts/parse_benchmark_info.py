@@ -23,10 +23,12 @@ def find_synthesis_information(line, information_to_search):
     """
 
     for information in information_to_search:
-        if information["keyword"] in line:
-            found_value = re.findall(information["regex"], line)[0]
+        kws = [information["keyword"]] if isinstance(information["keyword"], str) else information["keyword"]
+        for kw in [kw for kw in kws if kw in line]:
+            found_value = re.findall(information["regex"], line)
             if found_value:
-                information.update({"value": float(found_value)})
+                fun = information["update"] if "update" in information else lambda kw, old, new: new
+                information.update({"value": fun(kw, information["value"], float(found_value[0]))})
                 break
 
 
@@ -41,6 +43,7 @@ def pick_information_to_search(platform):
 
     return getattr(information, platform)
 
+
 def omit_regex_and_keyword(information_to_search):
     """
     Removes the regex and keyword from the information.
@@ -49,6 +52,8 @@ def omit_regex_and_keyword(information_to_search):
     for information in information_to_search:
         del information["regex"]
         del information["keyword"]
+        if "update" in information:
+            del information["update"]
 
     return information_to_search
 
