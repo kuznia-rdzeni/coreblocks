@@ -110,6 +110,8 @@ class XrayXilinxPlatform(XilinxPlatform):
     def __init__(self, *, toolchain="Xray"):
         super().__init__(toolchain=toolchain)
 
+        # Allow synthesis of block RAM
+        self._xray_command_templates[0] = self._xray_command_templates[0].replace("-nobram", "")  # type: ignore
         # Save nextpnr log
         self._xray_command_templates[1] += r""" --log {{name}}.tim"""  # type: ignore
         # Don't generate bitstream (for now)
