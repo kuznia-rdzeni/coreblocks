@@ -270,22 +270,42 @@ jobs:
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
-      - name: Store synthesis benchmark result (basic)
+      - name: Store synthesis benchmark result (basic, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Fmax and LCs (basic)
           tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-basic.json'
+          output-file-path: './synth-benchmark-basic-ecp5.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
-      - name: Store synthesis benchmark result (full)
+      - name: Store synthesis benchmark result (full, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Fmax and LCs (full)
           tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-full.json'
+          output-file-path: './synth-benchmark-full-ecp5.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (basic, XC7A200T)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (basic)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-basic-xc7a200t.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (full, XC7A200T)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (full)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-full-xc7a200t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
