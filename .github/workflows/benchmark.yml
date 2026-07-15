@@ -203,6 +203,7 @@ jobs:
         with:
           pattern: synth_benchmark_results-*
           path: artifacts
+          merge-multiple: true
 
       - name: Save PR number
         run: |
@@ -249,6 +250,7 @@ jobs:
         with:
           pattern: synth_benchmark_results-*
           path: .
+          merge-multiple: true
 
       - name: Put results in a cache
         uses: actions/cache@v4
