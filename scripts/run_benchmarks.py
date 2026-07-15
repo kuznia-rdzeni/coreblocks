@@ -202,8 +202,6 @@ def main():
 
         ipc = result.instr / result.cycles
         ipcs.append({"name": name, "unit": "Instructions Per Cycle", "value": ipc})
-        mpki = result.mispredicts / result.instr * 1000
-        ipcs.append({"name": name, "unit": "Mispredictions Per 1000 Instructions", "value": mpki})
 
     print(build_result_table(results, "simple_outline"))
 
