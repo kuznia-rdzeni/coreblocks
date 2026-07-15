@@ -193,8 +193,7 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ github.event.pull_request.base.sha }}
           path: |
             perf_benchmark.json
-            synth-benchmark-basic.json
-            synth-benchmark-full.json
+            synth-benchmark-*.json
 
       - uses: actions/download-artifact@v8
         with:
@@ -202,11 +201,7 @@ jobs:
           path: artifacts
       - uses: actions/download-artifact@v8
         with:
-          name: synth_benchmark_results-basic
-          path: artifacts
-      - uses: actions/download-artifact@v8
-        with:
-          name: synth_benchmark_results-full
+          pattern: synth_benchmark_results-*
           path: artifacts
 
       - name: Save PR number
@@ -221,14 +216,14 @@ jobs:
           {
             echo "## Benchmarks summary"
             echo "### Performance benchmarks"
-            ci/print_benchmark_summary.py --precision 3 artifacts/perf_benchmark.json perf_benchmark.json
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 3 --results full perf_benchmark.json
             echo
             echo "You can view all the metrics [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
-            echo "### Synthesis benchmarks (basic)"
-            ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-basic.json synth-benchmark-basic.json
+            echo "### Synthesis benchmarks (ECP5)"
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-ecp5.json --results full synth-benchmark-full-ecp5.json
             echo
-            echo "### Synthesis benchmarks (full)"
-            ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-full.json synth-benchmark-full.json
+            echo "### Synthesis benchmarks (XC7A200T)"
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7a200t.json --results full synth-benchmark-full-xc7a200t.json
             echo
           } >> summary/comment.md
 
@@ -252,11 +247,7 @@ jobs:
           path: .
       - uses: actions/download-artifact@v8
         with:
-          name: synth_benchmark_results-basic
-          path: .
-      - uses: actions/download-artifact@v8
-        with:
-          name: synth_benchmark_results-full
+          pattern: synth_benchmark_results-*
           path: .
 
       - name: Put results in a cache
@@ -267,8 +258,7 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ github.sha }}
           path: |
             perf_benchmark.json
-            synth-benchmark-basic.json
-            synth-benchmark-full.json
+            synth-benchmark-*.json
 
       - name: Store benchmark result (IPC)
         uses: benchmark-action/github-action-benchmark@v1
