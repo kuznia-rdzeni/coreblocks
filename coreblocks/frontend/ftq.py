@@ -6,6 +6,7 @@ from transactron.evlog import EventSource
 from transactron.utils import make_layout, DependencyContext
 from transactron.utils import logging
 from transactron.lib.metrics import *
+from transactron.lib.storage import MemoryBank
 
 from coreblocks.params import GenParams
 from coreblocks.arch import *
@@ -135,6 +136,9 @@ class FetchTargetQueue(Elaboratable):
         m.submodules.fetch_address_unit = fetch_address_unit = FetchAddressUnit(self.gen_params)
 
         m.submodules.pc_mem = pc_mem = FTQMemoryWrapper(gen_params=self.gen_params, layout=make_layout(fields.pc))
+        m.submodules.jb_unit_prediction_mem = jb_unit_prediction_mem = MemoryBank(
+            shape=self.jump_target_resp.data_out.shape(), depth=self.gen_params.ftq_size
+        )
 
         # Three pointers in the queue.
         alloc_ptr = FTQPtr(gen_params=self.gen_params)
@@ -190,20 +194,37 @@ class FetchTargetQueue(Elaboratable):
         def _(
             ftq_ptr,
             redirect,
+            stall,
+            cfi_idx,
+            cfi_type,
             cfi_target,
         ):
             ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
             m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
-            self.bpu_flush(m)
+            # The record is valid only if fetch followed a taken CFI in this block. On a stall
+            # (JALR with unknown target or fault/unsafe) no CFI was followed - the jump-branch
+            # unit will detect the mispredict and the backend will redirect. A fall-through
+            # resteer has cfi_type INVALID, so it never marks the record valid.
+            jb_unit_prediction_mem.write(
+                m,
+                addr=ftq_ptr.ptr,
+                data={
+                    "valid": CfiType.valid(cfi_type) & ~stall,
+                    "cfi_idx": cfi_idx,
+                    "cfi_target": cfi_target,
+                },
+            )
 
-            evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
+            with m.If(redirect | stall):
+                self.bpu_flush(m)
+                m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
+                m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
 
-            m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
-            m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
+                evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
 
-            with m.If(redirect):
-                fetch_address_unit.ifu_redirect(m, pc=cfi_target)
+                with m.If(redirect):
+                    fetch_address_unit.ifu_redirect(m, pc=cfi_target)
 
         @def_method(m, self.commit)
         def _(ftq_ptr):
@@ -232,15 +253,15 @@ class FetchTargetQueue(Elaboratable):
             m.d.sync += fetch_ptr.eq(ftq_ptr_plus_one)
 
         @def_method(m, self.jump_target_req)
-        def _():
-            pass
+        def _(ftq_ptr):
+            jb_unit_prediction_mem.read_req(m, addr=ftq_ptr.ptr)
 
         @def_method(m, self.jump_target_resp)
-        def _(arg):
-            return {"valid": 0, "cfi_target": 0}
+        def _():
+            return jb_unit_prediction_mem.read_resp(m).data
 
         @def_method(m, self.resolve)
-        def _(from_pc, next_pc, misprediction):
+        def _(from_pc, misprediction, taken, cfi_idx, cfi_type, cfi_target):
             pass
 
         return m

@@ -479,7 +479,7 @@ class MstatusFieldOffsets(IntEnum):
     SBE = 36  # Supervisor Endianness Control
     MBE = 37  # Machine Endianness Control
     GVA = 38  # Guest Virtual Address
-    MPV = 39  # Mass Page Valid
+    MPV = 39  # Machine Previous Virtualization Mode
     MPELP = 40  # Machine Previous Expected Landing Pad
     MDT = 41  # Machine Disable Trap
     SD = -1  # Context Status Dirty bit. Placed on last bit of mstatus

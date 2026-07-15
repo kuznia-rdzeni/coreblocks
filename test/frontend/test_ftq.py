@@ -89,7 +89,9 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             for _ in range(5):
                 await sim.tick()
             flush_count_before = self.bpu_flush_count
-            await self.ftq.ifu_writeback.call(sim, ftq_ptr={"ptr": 0, "parity": 0}, redirect=1, cfi_target=0x200)
+            await self.ftq.ifu_writeback.call(
+                sim, ftq_ptr={"ptr": 0, "parity": 0}, redirect=0, stall=1, cfi_idx=0, cfi_type=0, cfi_target=0
+            )
             assert self.bpu_flush_count > flush_count_before
 
         with self.run_simulation(self.ftq) as sim:
@@ -102,7 +104,15 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         redirect_pc = 0x200
 
         async def proc(sim: TestbenchContext):
-            await self.ftq.ifu_writeback.call(sim, ftq_ptr={"ptr": 0, "parity": 0}, redirect=1, cfi_target=redirect_pc)
+            await self.ftq.ifu_writeback.call(
+                sim,
+                ftq_ptr={"ptr": 0, "parity": 0},
+                redirect=1,
+                stall=0,
+                cfi_idx=0,
+                cfi_type=0,
+                cfi_target=redirect_pc,
+            )
             for _ in range(5):
                 await sim.tick()
             assert redirect_pc in [req["pc"] for req in self.ifu_requests]

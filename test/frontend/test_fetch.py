@@ -95,7 +95,14 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         random.seed(41)
 
-    def add_instr(self, data: int, jumps: bool, jump_offset: int = 0, branch_taken: bool = False) -> int:
+    def add_instr(
+        self,
+        data: int,
+        jumps: bool,
+        jump_offset: int = 0,
+        branch_taken: bool = False,
+        predicted_taken: bool = False,
+    ) -> int:
         rvc = (data & 0b11) != 0b11
         if rvc:
             self.mem[self.pc] = data
@@ -113,6 +120,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                 "pc": self.pc,
                 "jumps": jumps,
                 "branch_taken": branch_taken,
+                "predicted_taken": predicted_taken,
                 "next_pc": next_pc,
                 "rvc": rvc,
             }
@@ -135,12 +143,14 @@ class TestFetchUnit(TestCaseWithSimulator):
     def gen_jal(self, offset: int) -> int:
         data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
 
-        return self.add_instr(data, True, jump_offset=offset, branch_taken=True)
+        # The fetch statically predicts every JAL as taken.
+        return self.add_instr(data, True, jump_offset=offset, branch_taken=True, predicted_taken=True)
 
     def gen_branch(self, offset: int, taken: bool):
         data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
 
-        return self.add_instr(data, True, jump_offset=offset, branch_taken=taken)
+        # Static prediction with no BPU: backward branches (negative offset) are predicted taken.
+        return self.add_instr(data, True, jump_offset=offset, branch_taken=taken, predicted_taken=offset < 0)
 
     async def cache_process(self, sim: ProcessContext):
         while True:
@@ -194,12 +204,14 @@ class TestFetchUnit(TestCaseWithSimulator):
         pass
 
     @def_method_mock(lambda self: self.fetch.fetch_writeback)
-    def fetch_writeback_mock(self, ftq_ptr, redirect, cfi_target):
+    def fetch_writeback_mock(self, ftq_ptr, redirect, stall, cfi_idx, cfi_type, cfi_target):
+        # Mirror the FTQ: redirect to `cfi_target` when there is a known target,
+        # otherwise stall until the backend resumes us
         @MethodMock.effect
         def eff():
             if redirect:
                 self.last_redirect = cfi_target
-            else:
+            elif stall:
                 self.stalled = True
 
     async def fetch_out_check(self, sim: TestbenchContext):
@@ -222,7 +234,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                 if (instr_data & 0b11) == 0b11:
                     assert v["instr"] == instr_data
 
-            if (instr["jumps"] and (instr["branch_taken"] != v["predicted_taken"])) or access_fault:
+            if (instr["jumps"] and (instr["branch_taken"] != instr["predicted_taken"])) or access_fault:
                 await self.random_wait(sim, 5)
                 self.stalled = True
                 await self.fetch.flush.call(sim)
@@ -484,7 +496,6 @@ class TestFetchUnit(TestCaseWithSimulator):
 @dataclass(frozen=True)
 class CheckerResult:
     mispredicted: bool
-    cfi_valid: bool
     cfi_idx: int
     cfi_type: CfiType
     cfi_target: int
@@ -558,7 +569,6 @@ class TestPredictionChecker(TestCaseWithSimulator):
 
         return CheckerResult(
             mispredicted=bool(res["mispredicted"]),
-            cfi_valid=bool(res["cfi_valid"]),
             cfi_idx=res["cfi_idx"],
             cfi_type=CfiType(res["cfi_type"]),
             cfi_target=res["cfi_target"],
@@ -568,15 +578,12 @@ class TestPredictionChecker(TestCaseWithSimulator):
         self,
         res: CheckerResult,
         mispredicted: Optional[bool] = None,
-        cfi_valid: Optional[bool] = None,
         cfi_idx: Optional[int] = None,
         cfi_type: Optional[CfiType] = None,
         cfi_target: Optional[int] = None,
     ):
         if mispredicted is not None:
             assert res.mispredicted == mispredicted
-        if cfi_valid is not None:
-            assert res.cfi_valid == cfi_valid
         if cfi_idx is not None:
             assert res.cfi_idx == cfi_idx
         if cfi_type is not None:
@@ -753,16 +760,16 @@ class TestPredictionChecker(TestCaseWithSimulator):
         async def proc(sim: TestbenchContext):
             # No prediction was made, but there is a JAL at the beginning
             ret = await self.check(sim, 0x100, False, [(CfiType.JAL, 0x20)], 0, 0, CfiType.INVALID, None)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 + 0x20)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=0, cfi_target=0x100 + 0x20)
 
             # The same, but the jump is between two fetch blocks
             if self.with_rvc:
                 ret = await self.check(sim, 0x100, True, [(CfiType.JAL, 0x20)], 0, 0, CfiType.INVALID, None)
-                self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 + 0x20 - 2)
+                self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=0, cfi_target=0x100 + 0x20 - 2)
 
             # Not predicted backward branch
             ret = await self.check(sim, 0x100, False, [(CfiType.BRANCH, -100)], 0b0, 0, CfiType.INVALID, 0)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 - 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=0, cfi_target=0x100 - 100)
 
             # Now tests for fetch blocks with multiple instructions
             if fetch_width < 2:
@@ -779,7 +786,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 CfiType.BRANCH,
                 0x100 + instr_width + 100,
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 - 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=0, cfi_target=0x100 - 100)
 
             # We predicted the branch on the second instruction, but there's a JALR on the first one.
             ret = await self.check(
@@ -792,7 +799,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 CfiType.BRANCH,
                 0x100 + instr_width + 100,
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=False, cfi_idx=0)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JALR, cfi_idx=0)
 
             # We predicted the branch on the second instruction, but there's a backward on the first one.
             ret = await self.check(
@@ -805,25 +812,29 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 CfiType.BRANCH,
                 0x100 + instr_width + 100,
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 - 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=0, cfi_target=0x100 - 100)
 
             # Unpredicted backward branch as the second instruction
             ret = await self.check(
                 sim, 0x100, False, [(CfiType.INVALID, 0), (CfiType.BRANCH, -100)], 0b00, 0, CfiType.INVALID, 0
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=1, cfi_target=0x100 + instr_width - 100)
+            self.assert_resp(
+                ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=1, cfi_target=0x100 + instr_width - 100
+            )
 
             # Unpredicted JAL as the second instruction
             ret = await self.check(
                 sim, 0x100, False, [(CfiType.INVALID, 0), (CfiType.JAL, 100)], 0b00, 0, CfiType.INVALID, 0
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=1, cfi_target=0x100 + instr_width + 100)
+            self.assert_resp(
+                ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=1, cfi_target=0x100 + instr_width + 100
+            )
 
             # Unpredicted JALR as the second instruction
             ret = await self.check(
                 sim, 0x100, False, [(CfiType.INVALID, 0), (CfiType.JALR, 100)], 0b00, 0, CfiType.INVALID, 0
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=False, cfi_idx=1)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JALR, cfi_idx=1)
 
             if fetch_width < 3:
                 return
@@ -839,7 +850,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 None,
             )
             self.assert_resp(
-                ret, mispredicted=True, cfi_valid=True, cfi_idx=2, cfi_target=0x100 + 2 * instr_width + 100
+                ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=2, cfi_target=0x100 + 2 * instr_width + 100
             )
 
         with self.run_simulation(self.m) as sim:
@@ -854,20 +865,20 @@ class TestPredictionChecker(TestCaseWithSimulator):
             # We predicted a JAL, but in fact there is a non-CFI instruction
             ret = await self.check(sim, 0x100, False, [(CfiType.INVALID, 0)], 0, 0, CfiType.JAL, 100)
             self.assert_resp(
-                ret, mispredicted=True, cfi_valid=True, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
+                ret, mispredicted=True, cfi_type=CfiType.INVALID, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
             )
 
             # We predicted a JAL, but in fact there is a branch
             ret = await self.check(sim, 0x100, False, [(CfiType.BRANCH, -100)], 0, 0, CfiType.JAL, 100)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 - 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=0, cfi_target=0x100 - 100)
 
             # We predicted a JAL, but in fact there is a JALR instruction
             ret = await self.check(sim, 0x100, False, [(CfiType.JALR, -100)], 0, 0, CfiType.JAL, 100)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=False, cfi_idx=0)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JALR, cfi_idx=0)
 
             # We predicted a branch, but in fact there is a JAL
             ret = await self.check(sim, 0x100, False, [(CfiType.JAL, -100)], 0b1, 0, CfiType.BRANCH, 100)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 - 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=0, cfi_target=0x100 - 100)
 
             if fetch_width < 2:
                 return
@@ -877,7 +888,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 sim, 0x100, False, [(CfiType.BRANCH, -100), (CfiType.INVALID, 0)], 0b11, 1, CfiType.BRANCH, 100
             )
             self.assert_resp(
-                ret, mispredicted=True, cfi_valid=True, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
+                ret, mispredicted=True, cfi_type=CfiType.INVALID, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
             )
 
             # The same as above, but we start from the second instruction
@@ -892,7 +903,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 100,
             )
             self.assert_resp(
-                ret, mispredicted=True, cfi_valid=True, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
+                ret, mispredicted=True, cfi_type=CfiType.INVALID, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
             )
 
         with self.run_simulation(self.m) as sim:
@@ -905,20 +916,20 @@ class TestPredictionChecker(TestCaseWithSimulator):
         async def proc(sim: TestbenchContext):
             # We predicted a wrong JAL target
             ret = await self.check(sim, 0x100, False, [(CfiType.JAL, 100)], 0, 0, CfiType.JAL, 200)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 + 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=0, cfi_target=0x100 + 100)
 
             # We predicted a wrong branch target
             ret = await self.check(sim, 0x100, False, [(CfiType.BRANCH, 100)], 0b1, 0, CfiType.BRANCH, 200)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 + 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=0, cfi_target=0x100 + 100)
 
             # We didn't provide the branch target
             ret = await self.check(sim, 0x100, False, [(CfiType.BRANCH, 100)], 0b1, 0, CfiType.BRANCH, None)
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 + 100)
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=0, cfi_target=0x100 + 100)
 
             # We predicted a wrong JAL target that is between two fetch blocks
             if self.with_rvc:
                 ret = await self.check(sim, 0x100, True, [(CfiType.JAL, 100)], 0, 0, CfiType.JAL, 300)
-                self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=0, cfi_target=0x100 + 100 - 2)
+                self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=0, cfi_target=0x100 + 100 - 2)
 
             if fetch_width < 2:
                 return
@@ -927,13 +938,17 @@ class TestPredictionChecker(TestCaseWithSimulator):
             ret = await self.check(
                 sim, 0x100, False, [(CfiType.INVALID, 0), (CfiType.BRANCH, 100)], 0b10, 1, CfiType.BRANCH, None
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=1, cfi_target=0x100 + instr_width + 100)
+            self.assert_resp(
+                ret, mispredicted=True, cfi_type=CfiType.BRANCH, cfi_idx=1, cfi_target=0x100 + instr_width + 100
+            )
 
             # The second instruction is a JAL with a wrong target
             ret = await self.check(
                 sim, 0x100, False, [(CfiType.INVALID, 0), (CfiType.JAL, 100)], 0b10, 1, CfiType.JAL, 200
             )
-            self.assert_resp(ret, mispredicted=True, cfi_valid=True, cfi_idx=1, cfi_target=0x100 + instr_width + 100)
+            self.assert_resp(
+                ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=1, cfi_target=0x100 + instr_width + 100
+            )
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(proc)

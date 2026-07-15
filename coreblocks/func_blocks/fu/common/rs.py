@@ -154,12 +154,18 @@ class RSBase(Elaboratable):
         def _(rs_entry_id: Value) -> ReturnDict:
             actual_rs_entry_id = Signal.like(rs_entry_id)
             m.d.av_comb += actual_rs_entry_id.eq(self.order[rs_entry_id])
-            record = self.data[actual_rs_entry_id]
+
+            take_sel = Signal(self.rs_entries)
+            m.d.av_comb += take_sel.eq(Cat(actual_rs_entry_id == i for i in range(self.rs_entries)))
+            record = OneHotMux.create(m, [(take_sel[i], self.data[i].rs_data) for i in range(self.rs_entries)])
+
             free_idx(m, idx=rs_entry_id)
-            m.d.sync += record.rec_full.eq(0)
+            for i in range(self.rs_entries):
+                with m.If(take_sel[i]):
+                    m.d.sync += self.data[i].rec_full.eq(0)
             self.perf_rs_wait_time.stop(m, slot=actual_rs_entry_id)
             out = Signal(self.layouts.take_out)
-            m.d.av_comb += assign(out, record.rs_data, fields=AssignType.COMMON)
+            m.d.av_comb += assign(out, record, fields=AssignType.COMMON)
             self.log.debug(m, True, "taken entry {} at idx {}", actual_rs_entry_id, rs_entry_id)
             return out
 
