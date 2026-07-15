@@ -110,17 +110,20 @@ class XrayXilinxPlatform(XilinxPlatform):
     def __init__(self, *, toolchain="Xray"):
         super().__init__(toolchain=toolchain)
 
+        templates = self._xray_command_templates  # type: ignore
         # Allow synthesis of block RAM
-        self._xray_command_templates[0] = self._xray_command_templates[0].replace("-nobram", "")  # type: ignore
+        templates[0] = templates[0].replace("-nobram", "")
+        # Don't emit '$scopeinfo' cells
+        templates[0] = templates[0].replace("write_json", "write_json -noscopeinfo")
         # Save nextpnr log
-        self._xray_command_templates[1] += r""" --log {{name}}.tim"""  # type: ignore
+        templates[1] += r""" --log {{name}}.tim"""
         # Don't generate bitstream (for now)
-        self._xray_command_templates.pop()  # type: ignore
-        self._xray_command_templates.pop()  # type: ignore
+        templates.pop()  # type: ignore
+        templates.pop()  # type: ignore
         # Fix tcl escaping for nextpnr-xilinx
-        self._xray_command_templates.insert(1, r"""sed -i "s/\\\\\[/[/" {{name}}.xdc""")  # type: ignore
+        templates.insert(1, r"""sed -i "s/\\\\\[/[/" {{name}}.xdc""")
         # Update env for Nix nextpnr-xilinx
-        # self._xray_command_templates.insert(1, r""". /etc/nix-devshell-env.sh""")  # type: ignore
+        # self._xray_command_templates.insert(1, r""". /etc/nix-devshell-env.sh""")
 
     @property
     def _xray_device(self):
