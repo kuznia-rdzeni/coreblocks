@@ -55,8 +55,11 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(
             Adapter.create(self.retirement.exception_cause_clear)
         )
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
-            Adapter.create(self.retirement.fetch_continue)
+        m.submodules.mock_fetch_redirect = self.mock_fetch_redirect = TestbenchIO(
+            Adapter.create(self.retirement.fetch_redirect)
+        )
+        m.submodules.mock_frontend_flush = self.mock_frontend_flush = TestbenchIO(
+            Adapter.create(self.retirement.frontend_flush)
         )
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter.create(self.retirement.instr_decrement)
@@ -164,7 +167,7 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
-        return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
+        return {"valid": 0}  # keep exception cause method enabled
 
     @def_method_mock(lambda self: self.retc.mock_exception_clear)
     def exception_clear_process(self):
@@ -178,8 +181,12 @@ class TestRetirement(TestCaseWithSimulator):
     def mock_trap_entry_process(self, cause):
         return {"target_priv": PrivilegeLevel.MACHINE}
 
-    @def_method_mock(lambda self: self.retc.mock_fetch_continue)
-    def mock_fetch_continue_process(self, pc):
+    @def_method_mock(lambda self: self.retc.mock_fetch_redirect)
+    def mock_fetch_redirect_process(self, pc, ftq_ptr):
+        pass
+
+    @def_method_mock(lambda self: self.retc.mock_frontend_flush)
+    def mock_frontend_flush(self):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)

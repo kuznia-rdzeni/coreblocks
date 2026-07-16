@@ -15,7 +15,7 @@ from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.fu_params import FunctionalComponentParams
 from coreblocks.arch import Funct3, Funct7
 from coreblocks.interface.keys import AsyncInterruptInsertSignalKey, ExceptionReportKey, CSRInstancesKey
-from coreblocks.interface.layouts import ExceptionRegisterLayouts
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts
 from coreblocks.arch.optypes import OpType
 from transactron.lib import Adapter
 from transactron.testing import (
@@ -105,7 +105,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     def setup(self, fixture_initialize_testing_env):
         self.gen_params = GenParams(configurations.test)
 
-        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report))
+        self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionInformationRegisterLayouts).report))
         self.csrs = CSRInstances(self.gen_params)
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.report_mock.adapter.iface)
@@ -133,6 +133,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
             exec_fn = self.ops[op]
             pc = random.randint(0, max_int) & ~0b11
             results = self.compute_result(data1, data2, data_imm, pc, op, self.gen_params.isa.xlen)
+            tag = random.randint(0, 2**self.gen_params.tag_bits - 1)
 
             self.requests.append(
                 {
@@ -143,6 +144,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
                     "rp_dst": rp_dst,
                     "imm": data_imm if not self.zero_imm else data2 if data2_is_imm else 0,
                     "pc": pc,
+                    "tag": tag,
                 }
             )
 
@@ -155,6 +157,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
                         "cause": cause,
                         "pc": results.setdefault("exception_pc", pc),
                         "mtval": results.setdefault("mtval", 0),
+                        "tag": tag,
                     }
                 )
 

@@ -124,11 +124,8 @@ class Core(Component):
 
         self.retirement = Retirement(self.gen_params)
 
-        self.exception_information_register = ExceptionInformationRegister(
-            self.gen_params,
-            rob_get_indices=self.ROB.get_indices,
-            fetch_stall_exception=self.frontend.stall,
-        )
+        self.exception_information_register = ExceptionInformationRegister(self.gen_params)
+        self.exception_information_register.rob_get_indices.provide(self.ROB.get_indices)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
@@ -170,6 +167,7 @@ class Core(Component):
             m.submodules.l1d_tlb = self.l1d_tlb
 
         m.submodules.frontend = self.frontend
+        self.frontend.get_exception_information.provide(self.exception_information_register.get)
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
         m.submodules.CRAT = crat = self.CRAT
@@ -235,7 +233,8 @@ class Core(Component):
         retirement.exception_cause_get.provide(self.exception_information_register.get)
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)
-        retirement.fetch_continue.provide(self.frontend.resume_from_exception)
+        retirement.fetch_redirect.provide(self.frontend.redirect)
+        retirement.frontend_flush.provide(self.frontend.flush)
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)

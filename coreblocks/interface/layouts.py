@@ -5,7 +5,7 @@ from coreblocks.params import GenParams
 from coreblocks.arch import *
 from coreblocks.interface.views import CircularBufferPointer
 from transactron.utils import LayoutList, LayoutListField, layout_subset
-from transactron.utils.transactron_helpers import make_layout, extend_layout
+from transactron.utils.transactron_helpers import make_layout
 
 __all__ = [
     "CommonLayoutFields",
@@ -29,6 +29,7 @@ __all__ = [
     "PrivUnitLayouts",
     "FetchTargetQueueLayouts",
     "BranchPredictionLayouts",
+    "ExceptionInformationRegisterLayouts",
 ]
 
 
@@ -923,7 +924,7 @@ class CSRUnitLayouts:
         assert self.imm_layout.size == gen_params.isa.xlen
 
 
-class ExceptionRegisterLayouts:
+class ExceptionInformationRegisterLayouts:
     """Layouts used in the exception information register."""
 
     def __init__(self, gen_params: GenParams):
@@ -933,15 +934,19 @@ class ExceptionRegisterLayouts:
         """ Value to set for mtval CSR register """
 
         self.valid: LayoutListField = ("valid", 1)
+        """ Information about exception is stored for a current speculation path """
 
-        self.report = make_layout(
+        self.data = make_layout(
             fields.cause,
             fields.rob_id,
+            fields.tag,
             fields.pc,
             self.mtval,
         )
 
-        self.get = extend_layout(self.report, self.valid)
+        self.report = self.data
+
+        self.get = make_layout(("data", self.data), self.valid)
 
 
 class InternalInterruptControllerLayouts:

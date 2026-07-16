@@ -179,7 +179,9 @@ class LSUDummy(FuncUnit, Elaboratable):
                     m.d.comb += arg.eq(issued_noop.read(m))
 
             with m.If(res["exception"]):
-                self.report(m, rob_id=arg["rob_id"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"])
+                self.report(
+                    m, rob_id=arg["rob_id"], tag=arg["tag"], cause=res["cause"], pc=arg["pc"], mtval=res["addr"]
+                )
 
             self.log.debug(m, 1, "accept rob_id={} result=0x{:08x} exception={}", arg.rob_id, res.data, res.exception)
 
