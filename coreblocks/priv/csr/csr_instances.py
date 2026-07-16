@@ -224,16 +224,17 @@ class MachineModeCSRRegisters(Elaboratable):
         self.hpm_counters_count = gen_params.hpm_counters_count
         for i in range(3, 32):
             is_implemented = i < gen_params.hpm_counters_count + 3
-            # The unprivileged hpmcounterN shadows belong to Zihpm - accesses to counters
-            # not implemented should raise an illegal-instruction exception, so the shadow
-            # CSRs are only created for implemented counters. The machine-level CSRs always
-            # exist (read-only zero when not implemented), as required by the privileged spec.
+            # All 29 mhpmcounterN must exist per the privileged spec; the ones this core does
+            # not implement read as zero. Their unprivileged hpmcounterN shadows may legally
+            # either read as zero or raise an illegal-instruction exception - we choose zero,
+            # because the arch tests read every hpmcounterN and assume none of them trap.
+            # See https://github.com/riscv/riscv-isa-manual/issues/2558 for why the spec permits both.
             counter = DoubleCounterCSR(
                 gen_params,
                 low_addr=CSRAddress[f"MHPMCOUNTER{i}"],
                 high_addr=CSRAddress[f"MHPMCOUNTER{i}H"],
-                shadow_low_addr=CSRAddress[f"HPMCOUNTER{i}"] if is_implemented else None,
-                shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"] if is_implemented else None,
+                shadow_low_addr=CSRAddress[f"HPMCOUNTER{i}"],
+                shadow_high_addr=CSRAddress[f"HPMCOUNTER{i}H"],
                 shadow_access_filter=counteren_access_filter(gen_params, i),
                 read_only_zero=not is_implemented,
             )
