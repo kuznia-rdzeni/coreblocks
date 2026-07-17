@@ -26,12 +26,15 @@ class BenchmarkResult:
         A number of cycles the benchmark took.
     instr: int
         A count of instructions commited during the benchmark.
+    mispredicts: int
+        A count of branch mispredictions during the benchmark, from the HPM counter.
     metric_values: dict[str, dict[str, int]]
         Values of the core metrics taken at the end of the simulation.
     """
 
     cycles: int
     instr: int
+    mispredicts: int
     metric_values: dict[str, dict[str, int]]
 
 
@@ -41,14 +44,19 @@ class MMIO(RandomAccessMemory):
     The structure of the MMIO is as follows:
     0x80000000-0x80000004 (int): finish signal - if the program writes here, the simulation terminates.
     0x80000004-0x80000008 (int): return code of the program
-    0x80000008-0x80000010 (uint64_t): the number of cycles spent during the benchmark
-    0x80000010-0x80000018 (uint64_t): the number of instruction executed during the benchmark
-    0x80000018-0x8000001c (uintptr_t): mcause, if an exception occured
-    0x8000001c-0x80000020 (uintptr_t): mepc, if an exception occured
+    0x80000008-0x8000000c (uintptr_t): mcause, if an exception occured
+    0x8000000c-0x80000010 (uintptr_t): mepc, if an exception occured
+    0x80000010-... (uint64_t each): benchmark counters, mirroring the `to_host` struct
+        in the embench board support: cycles, instructions, branch mispredictions.
     """
 
+    SIZE = 64  # leaves room for future counters
+    COUNTERS_OFFSET = 0x10
+
     def __init__(self, on_finish: Callable[[], None]):
-        super().__init__(range(0x80000000, 0x80000000 + 32), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * 32)
+        super().__init__(
+            range(0x80000000, 0x80000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * MMIO.SIZE
+        )
         self.on_finish = on_finish
 
     def write(self, req: WriteRequest) -> WriteReply:
@@ -58,20 +66,27 @@ class MMIO(RandomAccessMemory):
         else:
             return super().write(req)
 
+    def _counter(self, index: int) -> int:
+        offset = MMIO.COUNTERS_OFFSET + 8 * index
+        return int.from_bytes(self.data[offset : offset + 8], "little")
+
     def return_code(self):
         return int.from_bytes(self.data[4:8], "little", signed=True)
 
-    def cycle_cnt(self):
-        return int.from_bytes(self.data[8:16], "little")
-
-    def instr_cnt(self):
-        return int.from_bytes(self.data[16:24], "little")
-
     def mcause(self):
-        return int.from_bytes(self.data[24:28], "little")
+        return int.from_bytes(self.data[8:12], "little")
 
     def mepc(self):
-        return int.from_bytes(self.data[28:32], "little")
+        return int.from_bytes(self.data[12:16], "little")
+
+    def cycle_cnt(self):
+        return self._counter(0)
+
+    def instr_cnt(self):
+        return self._counter(1)
+
+    def mispredict_cnt(self):
+        return self._counter(2)
 
 
 def get_all_benchmark_names():
@@ -109,7 +124,12 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
     if mmio.return_code() != 0:
         raise RuntimeError("The benchmark exited with a non-zero return code: %d" % mmio.return_code())
 
-    bench_results = BenchmarkResult(cycles=mmio.cycle_cnt(), instr=mmio.instr_cnt(), metric_values=result.metric_values)
+    bench_results = BenchmarkResult(
+        cycles=mmio.cycle_cnt(),
+        instr=mmio.instr_cnt(),
+        mispredicts=mmio.mispredict_cnt(),
+        metric_values=result.metric_values,
+    )
 
     os.makedirs(str(results_dir), exist_ok=True)
     with open(f"{str(results_dir)}/{benchmark_name}.json", "w") as outfile:

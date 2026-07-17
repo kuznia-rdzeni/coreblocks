@@ -21,7 +21,7 @@ from transactron.lib.metrics import *
 from coreblocks.telemetry import RobFlush, RobRetire
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.arch import ExceptionCause, PrivilegeLevel
+from coreblocks.arch import ExceptionCause, HPMEvent, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import (
     CoreStateKey,
@@ -89,6 +89,9 @@ class Retirement(Elaboratable):
             "Number of retired instructions",
             ways=gen_params.retirement_superscalarity,
         )
+        self.perf_mispredictions = HwCounter(
+            "backend.retirement.mispredictions", "Number of committed branch mispredictions"
+        )
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",
             "Cycles spent flushing the core after a trap",
@@ -107,7 +110,7 @@ class Retirement(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
+        m.submodules += [self.perf_instr_ret, self.perf_mispredictions, self.perf_trap_latency]
 
         csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
         m_csr = csr_instances.m_mode
@@ -223,6 +226,9 @@ class Retirement(Elaboratable):
 
                             m.d.sync += continue_pc_override.eq(1)
                             m.d.sync += continue_pc.eq(cause_register.pc)
+
+                            self.perf_mispredictions.incr(m)
+                            m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
