@@ -143,6 +143,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             ("taken", 1),
             fields.cfi_idx,
             fields.tag,
+            fields.ftq_ptr,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
@@ -211,6 +212,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             with m.If(~is_auipc):
                 resolve_branch(
                     m,
+                    ftq_ptr=instr.ftq_ptr,
                     from_pc=instr.pc,
                     misprediction=misprediction,
                     taken=instr.taken,
@@ -272,6 +274,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 taken=jb.taken,
                 cfi_idx=cfi_idx,
                 tag=arg.tag,
+                ftq_ptr=arg.ftq_ptr,
             )
 
         return m
