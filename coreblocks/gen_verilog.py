@@ -118,11 +118,7 @@ def main():
         "--sim-logs-filter", action="store", default=".*", help="Optional regexp filter for --sim-logs sources"
     )
 
-    parser.add_argument(
-        "--with-rvvi",
-        action="store_true",
-        help="Enable RVVI-TRACE interface"
-    )
+    parser.add_argument("--with-rvvi", action="store_true", help="Enable RVVI-TRACE interface")
 
     args = parser.parse_args()
 

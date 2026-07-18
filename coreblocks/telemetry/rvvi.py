@@ -95,21 +95,15 @@ class RVVIHartCollector(Component):
         m = TModule()
 
         m.submodules.ftq_mem = ftq_mem = memory.Memory(
-            shape=self.layouts.instr_info,
-            depth=self.gen_params.ftq_size * self.gen_params.fetch_width,
-            init=[]
+            shape=self.layouts.instr_info, depth=self.gen_params.ftq_size * self.gen_params.fetch_width, init=[]
         )
 
         m.submodules.rob_mem = rob_mem = memory.Memory(
-            shape=self.layouts.instr_info,
-            depth=self.gen_params.rob_entries,
-            init=[]
+            shape=self.layouts.instr_info, depth=self.gen_params.rob_entries, init=[]
         )
 
         m.submodules.rf_mem = rf_mem = memory.Memory(
-            shape=self.gen_params.isa.xlen,
-            depth=self.gen_params.phys_regs,
-            init=[]
+            shape=self.gen_params.isa.xlen, depth=self.gen_params.phys_regs, init=[]
         )
 
         ftq_write_ports = [ftq_mem.write_port() for _ in range(self.gen_params.fetch_width)]
@@ -177,10 +171,7 @@ class RVVIHartCollector(Component):
 
             rf_port = rf_read_ports[i]
             m.d.av_comb += rf_port.addr.eq(rp_dst)
-            m.d.av_comb += [
-                port.x_wdata[k].eq(rf_port.data)
-                for k in range(32)
-            ]
+            m.d.av_comb += [port.x_wdata[k].eq(rf_port.data) for k in range(32)]
             for k in range(1, 32):
                 with m.If(k == rl_dst):
                     m.d.av_comb += port.x_wb[k].eq(1)
