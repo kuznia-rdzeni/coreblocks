@@ -93,6 +93,15 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.last_redirect = None
         self.backend_redirect = deque()
 
+        # Every fetch request is identified by (ftq_ptr, fetch_gen) and gets a monotone sequence number,
+        # so the testbench can answer `check_stale` queries the way the FTQ would
+        self.req_seq = 0
+        self.entry_gen = [0] * self.gen_params.ftq_size
+        self.issued_seq: dict[tuple[int, int, int], int] = {}
+        self.seq_of_ptr: dict[tuple[int, int], int] = {}
+        self.stale_ids: set[tuple[int, int, int]] = set()
+        self.redirect_origin_seq = 0
+
         random.seed(41)
 
     def add_instr(
@@ -210,9 +219,29 @@ class TestFetchUnit(TestCaseWithSimulator):
         @MethodMock.effect
         def eff():
             if redirect:
+                # A redirect rewinds the fetch pointer: every block issued after the
+                # redirecting one is dead
+                origin_seq = self.seq_of_ptr[(ftq_ptr["ptr"], ftq_ptr["parity"])]
+                for fetch_id, seq in self.issued_seq.items():
+                    if seq > origin_seq:
+                        self.stale_ids.add(fetch_id)
+                self.redirect_origin_seq = origin_seq
+
                 self.last_redirect = cfi_target
             elif stall:
                 self.stalled = True
+
+    def is_stale(self, ftq_ptr, fetch_gen) -> bool:
+        fetch_id = (ftq_ptr["ptr"], ftq_ptr["parity"], fetch_gen)
+        return self.stalled or fetch_id in self.stale_ids
+
+    @def_method_mock(lambda self: self.fetch.check_stale[0])
+    def check_stale_s1_mock(self, ftq_ptr, fetch_gen):
+        return {"stale": self.is_stale(ftq_ptr, fetch_gen)}
+
+    @def_method_mock(lambda self: self.fetch.check_stale[1])
+    def check_stale_s2_mock(self, ftq_ptr, fetch_gen):
+        return {"stale": self.is_stale(ftq_ptr, fetch_gen)}
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
@@ -272,21 +301,47 @@ class TestFetchUnit(TestCaseWithSimulator):
     async def requester(self, sim: ProcessContext):
         while True:
             ret = None
+            issued_seq = None
+            slot = 0
+            parity = 0
+            gen = 0
+
             if self.stalled:
                 await sim.tick()
             else:
-                ret = await self.fetch.fetch_request.call_try(sim, pc=self.next_fetch_request)
+                seq = self.req_seq
+                slot = seq % self.gen_params.ftq_size
+                parity = (seq // self.gen_params.ftq_size) % 2
+                gen = (self.entry_gen[slot] + 1) % 4
+                ret = await self.fetch.fetch_request.call_try(
+                    sim, pc=self.next_fetch_request, ftq_ptr={"ptr": slot, "parity": parity}, fetch_gen=gen
+                )
+                if ret is not None:
+                    # The request fired - commit the FTQ-side bookkeeping
+                    fetch_id = (slot, parity, gen)
+                    self.entry_gen[slot] = gen
+                    self.issued_seq[fetch_id] = seq
+                    self.seq_of_ptr[(slot, parity)] = seq
+                    self.stale_ids.discard(fetch_id)
+                    self.req_seq = seq + 1
+                    issued_seq = seq
 
             await sim.delay(0)
             if self.stalled:
                 while not self.backend_redirect:
                     await self.tick(sim)
 
+                # A backend redirect rewinds the whole frontend: every block issued
+                # so far is dead
+                self.stale_ids.update(self.issued_seq.keys())
                 self.stalled = False
                 self.next_fetch_request = self.backend_redirect[0]
                 self.backend_redirect.popleft()
 
             elif self.last_redirect is not None:
+                if issued_seq is not None and issued_seq > self.redirect_origin_seq:
+                    self.stale_ids.add((slot, parity, gen))
+                self.req_seq = self.redirect_origin_seq + 1
                 self.next_fetch_request = self.last_redirect
             elif ret is not None:
                 self.next_fetch_request = (
@@ -561,7 +616,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
         res = await self.m.check.call(
             sim,
             fb_addr=pc >> self.gen_params.fetch_block_bytes_log,
-            instr_block_cross=block_cross,
+            starts_mid_instr=block_cross,
             instr_valid=instr_valid,
             predecoded=predecoded_raw,
             prediction=prediction,
