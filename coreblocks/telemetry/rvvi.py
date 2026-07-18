@@ -4,13 +4,11 @@ from amaranth.lib.data import ArrayLayout, View
 from amaranth.lib.wiring import Component, Out
 
 from transactron import *
-from transactron.utils import DependencyContext
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, COut
 
 from coreblocks.arch.isa_consts import XlenEncoding
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RVVILayouts
-from coreblocks.interface.keys import CSRInstancesKey
 
 
 __all__ = [
@@ -113,10 +111,6 @@ class RVVIHartCollector(Component):
         rf_write_ports = [rf_mem.write_port() for _ in range(self.reg_write_ports)]
         rf_read_ports = [rf_mem.read_port(domain="comb") for _ in range(self.retire_ports)]
 
-        self.csr = DependencyContext.get().get_dependency(CSRInstancesKey())
-        mode = self.csr.m_mode.priv_mode.value
-        mode_virt = C(0, 1)
-
         ixl = {
             32: XlenEncoding.W32,
             64: XlenEncoding.W64,
@@ -183,8 +177,9 @@ class RVVIHartCollector(Component):
             # csr_* not implemented
 
             m.d.av_comb += port.lrsc_cancel.eq(0)  # never happens
-            m.d.av_comb += port.mode.eq(mode)
-            m.d.av_comb += port.mode_virt.eq(mode_virt)
+            # mode needs the priv level during the execution of the instr and not duing the retirement
+            m.d.av_comb += port.mode.eq(0)  # not implemented
+            m.d.av_comb += port.mode_virt.eq(0)  # always 0
             m.d.av_comb += port.ixl.eq(ixl)
 
             # set order/intr_next to the last retire port
