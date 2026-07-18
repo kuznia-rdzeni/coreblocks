@@ -53,6 +53,11 @@ class FetchUnit(Elaboratable):
     stall_unsafe: Required[Method]
     """Called when an unsafe instruction is fetched."""
 
+    check_stale: Required[Methods]
+    """
+    Asks the FTQ whether a fetch request is stale. One instance per stage (1 and 2).
+    """
+
     def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
@@ -72,6 +77,7 @@ class FetchUnit(Elaboratable):
         self.cont = Method(i=self.layouts.fetch_result)
         self.fetch_request = Method(i=self.layouts.fetch_request)
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
+        self.check_stale = Methods(2, i=self.layouts.check_stale_req, o=self.layouts.check_stale_resp)
 
         self.flush = Method()
 
@@ -124,20 +130,16 @@ class FetchUnit(Elaboratable):
             self.cont(m, result)
 
         m.submodules.fetch_requests = fetch_requests = BasicFifo(
-            make_layout(fields.pc, ("access_fault", 1), ("page_fault", 1), fields.ftq_ptr),
+            make_layout(fields.pc, ("access_fault", 1), ("page_fault", 1), fields.ftq_ptr, fields.fetch_gen),
             depth=2,
         )
 
         # This limits number of fetch blocks the fetch unit can process
         # at a time. We start counting when sending a request to the cache and
         # stop when pushing a fetch packet out of the fetch unit.
-        m.submodules.req_counter = req_counter = Semaphore(4)
-        flushing_counter = Signal.like(req_counter.count)
-
-        flush_now = Signal()
-
-        def flush():
-            m.d.comb += flush_now.eq(1)
+        max_inflight_requests = 4
+        assert max_inflight_requests <= 2 ** make_layout(fields.fetch_gen).size
+        m.submodules.req_counter = req_counter = Semaphore(max_inflight_requests)
 
         #
         # Fetch - stage 0
@@ -156,19 +158,19 @@ class FetchUnit(Elaboratable):
         )
         m.submodules += ConnectTrans.create(self.addr_translator.accept, addr_translator_accept_pipe.write)
 
-        m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr))
+        m.submodules.ftq_ptr_pipe = ftq_ptr_pipe = Pipe(make_layout(fields.ftq_ptr, fields.fetch_gen))
 
         @def_method(m, self.fetch_request)
-        def _(pc, ftq_ptr):
+        def _(pc, ftq_ptr, fetch_gen):
             log.info(m, True, "[IFU] request pc=0x{:x}", pc)
             req_counter.acquire(m)
 
             self.addr_translator.request(m, addr=pc, is_store=0)
-            ftq_ptr_pipe.write(m, ftq_ptr=ftq_ptr)
+            ftq_ptr_pipe.write(m, ftq_ptr=ftq_ptr, fetch_gen=fetch_gen)
 
         with Transaction().body(m):
             translated = addr_translator_accept_pipe.read(m)
-            ftq_ptr = ftq_ptr_pipe.read(m).ftq_ptr
+            request_id = ftq_ptr_pipe.read(m)
             access_fault = Signal()
 
             m.d.av_comb += pmp_checker.paddr.eq(translated.paddr)
@@ -182,7 +184,8 @@ class FetchUnit(Elaboratable):
                 pc=translated.vaddr,
                 access_fault=access_fault,
                 page_fault=translated.page_fault,
-                ftq_ptr=ftq_ptr,
+                ftq_ptr=request_id.ftq_ptr,
+                fetch_gen=request_id.fetch_gen,
             )
 
         #
@@ -192,11 +195,14 @@ class FetchUnit(Elaboratable):
             [
                 fields.fb_addr,
                 fields.ftq_ptr,
+                fields.fetch_gen,
                 ("instr_valid", fetch_width),
                 ("access_fault", FetchLayouts.FaultFlag),
                 ("rvc", fetch_width),
                 ("instrs", ArrayLayout(self.gen_params.isa.ilen, fetch_width)),
-                ("instr_block_cross", 1),
+                ("starts_mid_instr", 1),
+                ("ends_mid_instr", 1),
+                ("last_half", 16),
             ]
         )
 
@@ -220,6 +226,8 @@ class FetchUnit(Elaboratable):
         prev_half_v = Signal()
         with Transaction(name="Fetch_Stage1").body(m):
             fetch_request = fetch_requests.read(m)
+
+            s1_stale = self.check_stale[0](m, ftq_ptr=fetch_request.ftq_ptr, fetch_gen=fetch_request.fetch_gen).stale
 
             # The address of the fetch block.
             fetch_block_addr = params.fb_addr(fetch_request.pc)
@@ -247,15 +255,15 @@ class FetchUnit(Elaboratable):
 
             # Whether in this cycle we have a fetch block that contains
             # an instruction that crosses a fetch boundary
-            instr_block_cross = Signal()
-            m.d.av_comb += instr_block_cross.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
+            starts_mid_instr = Signal()
+            m.d.av_comb += starts_mid_instr.eq(prev_half_v & ((prev_half_addr + 1) == fetch_block_addr))
 
             for i in range(fetch_width):
                 if Extension.ZCA in self.gen_params.isa.extensions:
                     full_instr = Signal(self.gen_params.isa.ilen)
                     if i == 0:
                         # If we have a half of an instruction from the previous block - we need to use it now.
-                        with m.If(instr_block_cross):
+                        with m.If(starts_mid_instr):
                             m.d.av_comb += full_instr.eq(Cat(prev_half, cache_resp.fetch_block[0:16]))
                         with m.Else():
                             m.d.av_comb += full_instr.eq(cache_resp.fetch_block[:32])
@@ -279,7 +287,7 @@ class FetchUnit(Elaboratable):
                         m.d.av_comb += instr_start[i].eq(fetch_block_offset == 0)
                     elif i == 1:
                         m.d.av_comb += instr_start[i].eq(
-                            (fetch_block_offset <= i) & (~instr_start[0] | is_rvc[0] | instr_block_cross)
+                            (fetch_block_offset <= i) & (~instr_start[0] | is_rvc[0] | starts_mid_instr)
                         )
                     else:
                         m.d.av_comb += instr_start[i].eq(
@@ -288,14 +296,18 @@ class FetchUnit(Elaboratable):
                 else:
                     m.d.av_comb += instr_start[i].eq(fetch_block_offset <= i)
 
+            ends_mid_instr = Signal()
+
             if Extension.ZCA in self.gen_params.isa.extensions:
                 instr_position_mask = Cat(instr_start[:-1], instr_start[-1] & is_rvc[-1])
 
-                m.d.sync += prev_half_v.eq(
-                    (flushing_counter <= 1) & ~access_fault.any() & ~is_rvc[-1] & instr_start[-1]
-                )
-                m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
-                m.d.sync += prev_half_addr.eq(fetch_block_addr)
+                m.d.av_comb += ends_mid_instr.eq(~access_fault.any() & ~is_rvc[-1] & instr_start[-1])
+
+                # Only a live block may update the cross-fetch carry
+                with m.If(~s1_stale):
+                    m.d.sync += prev_half_v.eq(ends_mid_instr)
+                    m.d.sync += prev_half.eq(cache_resp.fetch_block[-16:])
+                    m.d.sync += prev_half_addr.eq(fetch_block_addr)
             else:
                 instr_position_mask = Cat(instr_start)
 
@@ -309,13 +321,12 @@ class FetchUnit(Elaboratable):
                 access_fault=access_fault,
                 rvc=is_rvc,
                 ftq_ptr=fetch_request.ftq_ptr,
+                fetch_gen=fetch_request.fetch_gen,
                 instrs=expanded_instr,
-                instr_block_cross=instr_block_cross,
+                starts_mid_instr=starts_mid_instr,
+                ends_mid_instr=ends_mid_instr,
+                last_half=cache_resp.fetch_block[-16:],
             )
-
-        # Make sure to clean the state
-        with m.If(flush_now):
-            m.d.sync += prev_half_v.eq(0)
 
         #
         # Fetch - stage 2
@@ -351,13 +362,15 @@ class FetchUnit(Elaboratable):
             # No prediction for now
             prediction = Signal(self.layouts.bpu_prediction)
 
+            s2_stale = self.check_stale[1](m, ftq_ptr=ftq_ptr, fetch_gen=s1_data.fetch_gen).stale
+
             # The method is guarded by the If to make sure that the metrics
-            # are updated only if not flushing.
-            with m.If(flushing_counter == 0):
+            # are updated only for live blocks.
+            with m.If(~s2_stale):
                 predcheck_res = prediction_checker.check(
                     m,
                     fb_addr=fetch_block_addr,
-                    instr_block_cross=s1_data.instr_block_cross,
+                    starts_mid_instr=s1_data.starts_mid_instr,
                     instr_valid=instr_valid,
                     predecoded=predecoded_instr,
                     prediction=prediction,
@@ -425,59 +438,65 @@ class FetchUnit(Elaboratable):
                 ]
 
             if Extension.ZCA in self.gen_params.isa.extensions:
-                with m.If(s1_data.instr_block_cross):
+                with m.If(s1_data.starts_mid_instr):
                     m.d.av_comb += raw_instrs[0].pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
                     with m.If(s1_data.access_fault):
                         # Mark that access/page fault happened only at second (current) half.
-                        # If fault happened on the first half `instr_block_cross` would be false
+                        # If fault happened on the first half `starts_mid_instr` would be false
                         m.d.av_comb += raw_instrs[0].access_fault.eq(
                             s1_data.access_fault | FetchLayouts.FaultFlag.EXCEPTION_ON_SECOND_HALF
                         )
 
-            with condition(m) as branch:
-                with branch(flushing_counter == 0):
-                    with m.If(fault_any | unsafe_stall):
-                        self.stall_unsafe(m)
+            with m.If(~s2_stale):
+                with m.If(fault_any | unsafe_stall):
+                    self.stall_unsafe(m)
 
-                    with m.If(fault_any | unsafe_stall | redirect):
-                        flush()
+                self.fetch_writeback(
+                    m,
+                    ftq_ptr=ftq_ptr,
+                    redirect=redirect,
+                    stall=fault_any | unsafe_stall,
+                    cfi_idx=predcheck_res.cfi_idx,
+                    cfi_type=predcheck_res.cfi_type,
+                    cfi_target=predcheck_res.cfi_target,
+                )
 
-                    self.fetch_writeback(
+                # The cross-fetch carry is dropped whenever this block breaks the
+                # sequential fetch stream (redirect/fault/stall), with one exception: a
+                # fall-through resteer (a predicted CFI decoded as a non-CFI; cfi_type is
+                # INVALID) steers to the next sequential block, so this whole block is on-path
+                # and the carry must be re-established instead.
+                if Extension.ZCA in self.gen_params.isa.extensions:
+                    with m.If(redirect & s1_data.ends_mid_instr & ~CfiType.valid(predcheck_res.cfi_type)):
+                        m.d.sync += [
+                            prev_half_v.eq(1),
+                            prev_half.eq(s1_data.last_half),
+                            prev_half_addr.eq(fetch_block_addr),
+                        ]
+                    with m.Elif(fault_any | unsafe_stall | redirect):
+                        m.d.sync += prev_half_v.eq(0)
+
+                self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
+
+                for i in range(fetch_width):
+                    evlog.emit(
                         m,
-                        ftq_ptr=ftq_ptr,
-                        redirect=redirect,
-                        stall=fault_any | unsafe_stall,
-                        cfi_idx=predcheck_res.cfi_idx,
-                        cfi_type=predcheck_res.cfi_type,
-                        cfi_target=predcheck_res.cfi_target,
+                        InstrFetched.hw(
+                            ftq_ptr=ftq_ptr,
+                            pc=raw_instrs[i].pc,
+                            instr=raw_instrs[i].instr,
+                            ftq_offset=i,
+                        ),
+                        when=fetch_mask[i],
                     )
 
-                    self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
-
-                    for i in range(fetch_width):
-                        evlog.emit(
-                            m,
-                            InstrFetched.hw(
-                                ftq_ptr=ftq_ptr,
-                                pc=raw_instrs[i].pc,
-                                instr=raw_instrs[i].instr,
-                                ftq_offset=i,
-                            ),
-                            when=fetch_mask[i],
-                        )
-
-                    # Make sure this is called only once to avoid a huge mux on arguments
-                    m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
-                    serializer.write(m, data=aligner.outputs, count=aligner.output_cnt)
-                with branch():
-                    m.d.sync += flushing_counter.eq(flushing_counter - 1)
-
-        with m.If(flush_now):
-            m.d.sync += flushing_counter.eq(req_counter.count_next)
+                # Make sure this is called only once to avoid a huge mux on arguments
+                m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
+                serializer.write(m, data=aligner.outputs, count=aligner.output_cnt)
 
         @def_method(m, self.flush)
         def _():
-            flush()
+            m.d.sync += prev_half_v.eq(0)
             serializer.clear(m)
 
         return m
@@ -611,7 +630,7 @@ class PredictionChecker(Elaboratable):
         ]
 
         @def_method(m, self.check)
-        def _(fb_addr, instr_block_cross, instr_valid, predecoded, prediction):
+        def _(fb_addr, starts_mid_instr, instr_valid, predecoded, prediction):
             decoded_cfi_types = Array([predecoded[i].cfi_type for i in range(self.gen_params.fetch_width)])
             decoded_cfi_offsets = Array([predecoded[i].cfi_offset for i in range(self.gen_params.fetch_width)])
 
@@ -642,7 +661,7 @@ class PredictionChecker(Elaboratable):
             def get_decoded_target_for(idx: Value) -> Value:
                 base = params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
                 if Extension.ZCA in self.gen_params.isa.extensions:
-                    return base - Mux(instr_block_cross & (idx == 0), 2, 0)
+                    return base - Mux(starts_mid_instr & (idx == 0), 2, 0)
                 return base
 
             # Target of a CFI that would redirect the frontend according to the prediction
