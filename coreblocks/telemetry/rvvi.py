@@ -226,7 +226,7 @@ class RVVIAggregator(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        # TODO: technically also a clk signal
+        # TODO: clk signal, but should be always positive edge
 
         for i, rvvi_hart in enumerate(self.rvvi_harts):
             for j in range(rvvi_hart.retire_ports):
