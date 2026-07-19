@@ -58,6 +58,9 @@ class FetchUnit(Elaboratable):
     Asks the FTQ whether a fetch request is stale. One instance per stage (1 and 2).
     """
 
+    read_prediction: Required[Method]
+    """Return the branch prediction stored for a given FTQ entry. """
+
     def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
@@ -78,6 +81,7 @@ class FetchUnit(Elaboratable):
         self.fetch_request = Method(i=self.layouts.fetch_request)
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
         self.check_stale = Methods(2, i=self.layouts.check_stale_req, o=self.layouts.check_stale_resp)
+        self.read_prediction = Method(i=self.layouts.read_prediction_req, o=self.layouts.bpu_prediction)
 
         self.flush = Method()
 
@@ -359,14 +363,11 @@ class FetchUnit(Elaboratable):
             # Predecode instructions
             predecoded_instr = [predecoders[i].predecode(m, instrs[i]) for i in range(fetch_width)]
 
-            # No prediction for now
-            prediction = Signal(self.layouts.bpu_prediction)
-
             s2_stale = self.check_stale[1](m, ftq_ptr=ftq_ptr, fetch_gen=s1_data.fetch_gen).stale
 
-            # The method is guarded by the If to make sure that the metrics
-            # are updated only for live blocks.
             with m.If(~s2_stale):
+                prediction = self.read_prediction(m, ftq_ptr=ftq_ptr)
+
                 predcheck_res = prediction_checker.check(
                     m,
                     fb_addr=fetch_block_addr,
@@ -389,40 +390,52 @@ class FetchUnit(Elaboratable):
             has_unsafe = Signal()
             m.d.av_comb += has_unsafe.eq(~unsafe_prio_encoder.n)
 
-            redirect_before_unsafe = Signal()
-            m.d.av_comb += redirect_before_unsafe.eq(predcheck_res.cfi_idx < unsafe_idx)
+            # Is there any control flow instruction that we should follow?
+            cfi_followed = Signal()
+            m.d.av_comb += cfi_followed.eq(CfiType.valid(predcheck_res.cfi_type))
 
+            # The point where control leaves the block (its "exit")
+            # If we didn't follow any CFI, then our exit point is the last instruction
+            exit_idx = Signal(range(fetch_width))
+            exit_target = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += [
+                exit_idx.eq(Mux(cfi_followed, predcheck_res.cfi_idx, fetch_width - 1)),
+                exit_target.eq(Mux(cfi_followed, predcheck_res.cfi_target, params.pc_from_fb(fetch_block_addr + 1, 0))),
+            ]
+
+            # The exit is always reached, unless an unsafe instruction comes before it
+            exit_reached = Signal()
+            m.d.av_comb += exit_reached.eq(~has_unsafe | (exit_idx < unsafe_idx))
+
+            # A JALR's target cannot be computed from predecode, so a mispredicted JALR
+            # can't redirect - we stall until the backend executes it instead
+            eff_cfi_valid = Signal()
+            eff_redirect_target = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += eff_cfi_valid.eq(~CfiType.is_jalr(predcheck_res.cfi_type))
+            m.d.av_comb += eff_redirect_target.eq(exit_target)
+
+            mispredict = Signal()
+            m.d.av_comb += mispredict.eq(predcheck_res.mispredicted)
+
+            # Stall either on an unsafe instruction cutting the block (~exit_reached), or on
+            # an exit through a mispredicted JALR whose target we don't know (~eff_cfi_valid)
             redirect = Signal()
-            unsafe_stall = Signal()
-            redirect_or_unsafe_idx = Signal(range(fetch_width))
+            stall_core = Signal()
+            m.d.av_comb += redirect.eq(exit_reached & mispredict & eff_cfi_valid)
+            m.d.av_comb += stall_core.eq(~exit_reached | (mispredict & ~eff_cfi_valid))
 
-            with m.If(predcheck_res.mispredicted & (~has_unsafe | redirect_before_unsafe)):
-                # A JALR's target cannot be computed from predecode, so instead of redirecting
-                # we stall until the backend executes it. Any other mispredict (including a
-                # fall-through resteer, where cfi_type is INVALID) has a known target
-                m.d.av_comb += [
-                    redirect.eq(~CfiType.is_jalr(predcheck_res.cfi_type)),
-                    unsafe_stall.eq(CfiType.is_jalr(predcheck_res.cfi_type)),
-                    redirect_or_unsafe_idx.eq(predcheck_res.cfi_idx),
-                ]
-            with m.Elif(has_unsafe):
-                m.d.av_comb += [
-                    unsafe_stall.eq(1),
-                    redirect_or_unsafe_idx.eq(unsafe_idx),
-                ]
+            # Index of the last instruction of the block: the exit, or the unsafe instruction
+            # that cut the block before it
+            block_end_idx = Signal(range(fetch_width))
+            m.d.av_comb += block_end_idx.eq(Mux(exit_reached, exit_idx, unsafe_idx))
 
-            # This mask denotes what prefix of instructions we should enqueue.
-            valid_instr_prefix = Signal(fetch_width)
-            with m.If(redirect | unsafe_stall):
-                # If there is an instruction that redirects or stalls the frontend, enqueue
-                # instructions only up to that instruction.
-                m.d.av_comb += valid_instr_prefix.eq((1 << (redirect_or_unsafe_idx + 1)) - 1)
-            with m.Else():
-                m.d.av_comb += valid_instr_prefix.eq(C(1).replicate(fetch_width))
+            # The mask that denotes what prefix of instructions we should enqueue
+            block_prefix_mask = Signal(fetch_width)
+            m.d.av_comb += block_prefix_mask.eq((1 << (block_end_idx + 1)) - 1)
 
-            # The ultimate mask that tells which instructions should be sent to the backend.
+            # The ultimate mask that tells which instructions should be sent to the backend
             fetch_mask = Signal(fetch_width)
-            m.d.av_comb += fetch_mask.eq(instr_valid & valid_instr_prefix)
+            m.d.av_comb += fetch_mask.eq(instr_valid & block_prefix_mask)
 
             # Aggregate all signals that will be sent out of the fetch unit.
             raw_instrs = Signal(ArrayLayout(self.layouts.raw_instr, fetch_width))
@@ -448,17 +461,17 @@ class FetchUnit(Elaboratable):
                         )
 
             with m.If(~s2_stale):
-                with m.If(fault_any | unsafe_stall):
+                with m.If(fault_any | stall_core):
                     self.stall_unsafe(m)
 
                 self.fetch_writeback(
                     m,
                     ftq_ptr=ftq_ptr,
                     redirect=redirect,
-                    stall=fault_any | unsafe_stall,
-                    cfi_idx=predcheck_res.cfi_idx,
+                    stall=fault_any | stall_core,
+                    cfi_idx=exit_idx,
                     cfi_type=predcheck_res.cfi_type,
-                    cfi_target=predcheck_res.cfi_target,
+                    cfi_target=eff_redirect_target,
                 )
 
                 # The cross-fetch carry is dropped whenever this block breaks the
@@ -473,7 +486,7 @@ class FetchUnit(Elaboratable):
                             prev_half.eq(s1_data.last_half),
                             prev_half_addr.eq(fetch_block_addr),
                         ]
-                    with m.Elif(fault_any | unsafe_stall | redirect):
+                    with m.Elif(fault_any | stall_core | redirect):
                         m.d.sync += prev_half_v.eq(0)
 
                 self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
@@ -677,8 +690,14 @@ class PredictionChecker(Elaboratable):
                 | ~CfiType.valid(prediction.cfi_type)
             )
 
+            decoded_cfi_type_at_pred = Mux(
+                instr_valid.bit_select(prediction.cfi_idx, 1),
+                decoded_cfi_types[prediction.cfi_idx],
+                CfiType.INVALID,
+            )
+
             mispredicted_cfi_type = CfiType.valid(prediction.cfi_type) & (
-                prediction.cfi_type != decoded_cfi_types[prediction.cfi_idx]
+                prediction.cfi_type != decoded_cfi_type_at_pred
             )
 
             mispredicted_cfi_target = (CfiType.is_branch(prediction.cfi_type) | CfiType.is_jal(prediction.cfi_type)) & (
@@ -700,14 +719,16 @@ class PredictionChecker(Elaboratable):
                 )
             with m.Elif(mispredicted_cfi_type):
                 self.perf_mispredicted_cfi_type.incr(m, prediction.cfi_type)
-                fallthrough_addr = params.pc_from_fb(fb_addr + 1, 0)
+                # If no decoded instruction redirects (pd_redirection_enc.n), this is a
+                # fall-through resteer: cfi_type is INVALID and cfi_idx/cfi_target are
+                # meaningless.
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
-                        "cfi_idx": Mux(pd_redirection_enc.n, self.gen_params.fetch_width - 1, pd_redirect_idx),
+                        "cfi_idx": pd_redirect_idx,
                         "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
-                        "cfi_target": Mux(pd_redirection_enc.n, fallthrough_addr, decoded_target_for_decoded_cfi),
+                        "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
             with m.Elif(mispredicted_cfi_target):
