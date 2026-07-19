@@ -163,6 +163,7 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_request"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_request</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_writeback"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_writeback</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.flush"><code class="docutils literal notranslate"><span class="pre">FetchUnit.flush</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.read_prediction"><code class="docutils literal notranslate"><span class="pre">FetchUnit.read_prediction</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.stall_unsafe"><code class="docutils literal notranslate"><span class="pre">FetchUnit.stall_unsafe</span></code></a></li>
 </ul>
 </li>
@@ -411,6 +412,12 @@ redirect fetch to a new PC.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.read_prediction">
+<span class="sig-name descname"><span class="pre">read_prediction</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.read_prediction" title="Link to this definition"></a></dt>
+<dd><p>Return the branch prediction stored for a given FTQ entry (read by the fetch unit).</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.resolve">
 <span class="sig-name descname"><span class="pre">resolve</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.resolve" title="Link to this definition"></a></dt>
 <dd><p>Record branch resolution information for a committed FTQ entry (stub).</p>
@@ -490,7 +497,7 @@ difficult to handle side effects) instruction was just fetched.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 06:58 2026-07-18.
+      <span class="lastupdated">Last updated on 13:22 2026-07-19.
       </span></p>
   </div>
 
