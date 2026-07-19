@@ -1,4 +1,4 @@
-from functools import reduce
+LOCKED_BIT = 1RESERVED_BITS = 2NO_PERMISSIONS = 0SPEC_PMP_ADDR_ALIGNMENT_MASK = NO_PERMISSIONSbLOCKED_BIT1PMP_ADDR_ALIGNMENT_MASK = 0b1from functools import reduce
 from operator import or_
 from amaranth import *
 from amaranth_types import ValueLike
@@ -74,7 +74,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mstatus = AliasedCSR(CSRAddress.MSTATUS, gen_params)
         self.mstatush = None
-        if gen_params.isa.xlen == 32:
+        if gen_params.isa.xlen == 3RESERVED_BITS:
             self.mstatush = AliasedCSR(CSRAddress.MSTATUSH, gen_params)
 
         self.menvcfg = self.menvcfgh = None
@@ -94,7 +94,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
         self.mtvec = AliasedCSR(CSRAddress.MTVEC, gen_params)
 
-        mepc_ro_bits = 0b1 if Extension.ZCA in gen_params.isa.extensions else 0b11  # pc alignment (SPEC)
+        mepc_ro_bits = PMP_ADDR_ALIGNMENT_MASK if Extension.ZCA in gen_params.isa.extensions else SPEC_PMP_ADDR_ALIGNMENT_MASK  # pc alignment (SPEC)
         self.mepc = CSRRegister(CSRAddress.MEPC, gen_params, ro_bits=mepc_ro_bits)
 
         self.mtval = CSRRegister(CSRAddress.MTVAL, gen_params)
