@@ -4,9 +4,11 @@ from amaranth.lib.data import ArrayLayout, View
 from amaranth.lib.wiring import Component, Out
 
 from transactron import *
+from transactron.utils import DependencyContext, make_layout
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, COut
 
-from coreblocks.arch.isa_consts import XlenEncoding
+from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
+from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import RVVILayouts
 
@@ -92,13 +94,16 @@ class RVVIHartCollector(Component):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.ftq_mem = ftq_mem = memory.Memory(
-            shape=self.layouts.instr_info, depth=self.gen_params.ftq_size * self.gen_params.fetch_width, init=[]
+        instr_info_ext = make_layout(
+            ("info", self.layouts.instr_info),
+            ("priv_mode", PrivilegeLevel),
         )
 
-        m.submodules.rob_mem = rob_mem = memory.Memory(
-            shape=self.layouts.instr_info, depth=self.gen_params.rob_entries, init=[]
+        m.submodules.ftq_mem = ftq_mem = memory.Memory(
+            shape=instr_info_ext, depth=self.gen_params.ftq_size * self.gen_params.fetch_width, init=[]
         )
+
+        m.submodules.rob_mem = rob_mem = memory.Memory(shape=instr_info_ext, depth=self.gen_params.rob_entries, init=[])
 
         m.submodules.rf_mem = rf_mem = memory.Memory(
             shape=self.gen_params.isa.xlen, depth=self.gen_params.phys_regs, init=[]
@@ -120,13 +125,18 @@ class RVVIHartCollector(Component):
         order = Signal(64)
         intr_next = Signal()
 
+        csr = DependencyContext.get().get_dependency(CSRInstancesKey())
+
         @def_method(m, self.register_ftq)
         def _(ftq_ptr, instrs):
+            priv_mode = csr.m_mode.priv_mode.read(m)
+
             for i in range(self.gen_params.fetch_width):
                 port = ftq_write_ports[i]
 
                 m.d.av_comb += port.addr.eq(ftq_ptr.ptr * self.gen_params.fetch_width + i)
-                m.d.av_comb += port.data.eq(instrs[i])
+                m.d.av_comb += port.data.info.eq(instrs[i])
+                m.d.av_comb += port.data.priv_mode.eq(priv_mode)
                 m.d.comb += port.en.eq(1)
 
         @def_methods(m, self.register_ftq_rob_assoc)
@@ -155,12 +165,12 @@ class RVVIHartCollector(Component):
             m.d.comb += port.valid.eq(1)
             m.d.av_comb += port.order.eq(order + i)
 
-            m.d.av_comb += port.insn.eq(rob_port.data.instr)
+            m.d.av_comb += port.insn.eq(rob_port.data.info.instr)
             m.d.av_comb += port.trap.eq(trap)
             m.d.av_comb += port.debug_mode.eq(0)
             m.d.av_comb += port.intr.eq(intr_next if i == 0 else 0)
             m.d.av_comb += port.halt.eq(0)  # never happens
-            m.d.av_comb += port.pc_rdata.eq(rob_port.data.pc)
+            m.d.av_comb += port.pc_rdata.eq(rob_port.data.info.pc)
             m.d.av_comb += port.pc_wdata.eq(0)  # not implemented
 
             rf_port = rf_read_ports[i]
@@ -177,8 +187,7 @@ class RVVIHartCollector(Component):
             # csr_* not implemented
 
             m.d.av_comb += port.lrsc_cancel.eq(0)  # never happens
-            # mode needs the priv level during the execution of the instr and not duing the retirement
-            m.d.av_comb += port.mode.eq(0)  # not implemented
+            m.d.av_comb += port.mode.eq(rob_port.data.priv_mode)
             m.d.av_comb += port.mode_virt.eq(0)  # always 0
             m.d.av_comb += port.ixl.eq(ixl)
 
