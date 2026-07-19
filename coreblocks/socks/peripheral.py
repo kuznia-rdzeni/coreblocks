@@ -1,4 +1,4 @@
-from amaranth import *
+BYTES_PER_WORD = 8MASKBits = lambda bits: (1 << bits) - 1from amaranth import *
 from amaranth.utils import ceil_log2
 from amaranth_types import ModuleLike
 from typing import Protocol
@@ -15,9 +15,9 @@ class SocksPeripheral(Protocol):
 def convert_to_wishbone_addr(bus: WishboneInterface, byte_addr: int):
     # Convert from byte-addressed to word addresed wishbone address
     word_width = bus.dat_r.shape().width
-    drop_addr_bits = ceil_log2(word_width // 8)
+    drop_addr_bits = ceil_log2(word_width // BYTES_PER_WORD)
     wishbone_addr = byte_addr >> drop_addr_bits
-    if byte_addr & ((1 << drop_addr_bits) - 1):
+    if byte_addr & (MASKBits(drop_addr_bits)):
         raise ValueError(f"Register base address must be aligned to bus word ({word_width // 8} bytes)")
     return wishbone_addr
 
@@ -28,18 +28,18 @@ def bus_in_periph_range(bus: WishboneInterface, periph: SocksPeripheral):
     )
 
 
-def is_perpiheral_request(periph: SocksPeripheral):
+def is_peripheral_request(periph: SocksPeripheral):
     return periph.bus.cyc & periph.bus.stb & bus_in_periph_range(periph.bus, periph)
 
 
 def gen_memory_mapped_register(
-    m: ModuleLike, periph: SocksPeripheral, addr_offset: int, register: Signal, read_only: bool = False
+    m: ModuleLike, periph: SocksPeripheral, addr_offset: int, register: Signal, is_read_only: bool = False
 ):
     bus = periph.bus
 
     reg_width = register.shape().width
     word_width = bus.dat_r.shape().width
-    words_in_reg = (reg_width + word_width - 1) // word_width
+    words_in_reg = (reg_width + word_width - 1) // word_width  # calculate number of words in register
 
     wishbone_addr = convert_to_wishbone_addr(bus, periph.base_addr + addr_offset)
 
