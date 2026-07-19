@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784488180383,
+  "lastUpdate": 1784488182662,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -69543,6 +69543,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 60719,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4100,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3376,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13696,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "62e8f7b1d6b7ff7d01201779e683b1a830f28862",
+          "message": "Typo correction (#1027)",
+          "timestamp": "2026-07-19T20:09:20+02:00",
+          "tree_id": "c0768ef2b4bcb31a51a92212371e9dc4e2e7c4d5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/62e8f7b1d6b7ff7d01201779e683b1a830f28862"
+        },
+        "date": 1784488181931,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 37.82,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 59688,
             "unit": "LUT4"
           },
           {
