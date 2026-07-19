@@ -254,7 +254,7 @@ class FetchUnit(Elaboratable):
             expanded_instr = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
             is_rvc = Signal(fetch_width)
 
-            full_instrs = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
+            instrs = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
 
             # Whether in this cycle we have a fetch block that contains
             # an instruction that crosses a fetch boundary
@@ -279,14 +279,12 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += is_rvc[i].eq(is_instr_compressed(full_instr))
                     m.d.av_comb += rvc_expanders[i].instr_in.eq(full_instr[:16])
                     m.d.av_comb += expanded_instr[i].eq(Mux(is_rvc[i], rvc_expanders[i].instr_out, full_instr))
-
-                    # full_instrs should be zero-extended instruction
-                    m.d.av_comb += full_instrs[i].eq(Mux(is_rvc[i], full_instr[:16], full_instr))
+                    m.d.av_comb += instrs[i].eq(Mux(is_rvc[i], full_instr[:16], full_instr))
                 else:
                     full_instr = Signal(self.gen_params.isa.ilen)
                     m.d.av_comb += full_instr.eq(cache_resp.fetch_block[i * 32 : (i + 1) * 32])
                     m.d.av_comb += expanded_instr[i].eq(full_instr)
-                    m.d.av_comb += full_instrs[i].eq(full_instr)
+                    m.d.av_comb += instrs[i].eq(full_instr)
 
             # Mask denoting at which offsets expected instructions start (depends on rvc indication and start address)
             instr_start = [Signal() for _ in range(fetch_width)]
@@ -348,7 +346,7 @@ class FetchUnit(Elaboratable):
                     ftq_ptr=fetch_request.ftq_ptr,
                     instrs=[
                         {
-                            "instr": full_instrs[i],
+                            "instr": instrs[i],
                             "pc": instr_pcs[i],
                         }
                         for i in range(fetch_width)
