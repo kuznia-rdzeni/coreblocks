@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784478708881,
+  "lastUpdate": 1784488177859,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25109,6 +25109,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c348a75840d6089fd0e967cd2600944010b149f8"
         },
         "date": 1784478692517,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44857616856795907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6041853293193333,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3712677795788336,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6459876726130505,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3553220513954946,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060445628166818,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.34319096601073346,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4458048865651619,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "62e8f7b1d6b7ff7d01201779e683b1a830f28862",
+          "message": "Typo correction (#1027)",
+          "timestamp": "2026-07-19T20:09:20+02:00",
+          "tree_id": "c0768ef2b4bcb31a51a92212371e9dc4e2e7c4d5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/62e8f7b1d6b7ff7d01201779e683b1a830f28862"
+        },
+        "date": 1784488167709,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
