@@ -664,6 +664,9 @@ class BranchPredictionLayouts:
             fields.pc, fields.cfi_target, fields.cfi_idx, fields.cfi_type, ("taken", 1), ("mispredict", 1)
         )
 
+        self.predictor_request = make_layout(fields.pc)
+        self.predictor_predict = make_layout(("hit", 1), fields.cfi_target, fields.cfi_idx, fields.cfi_type)
+
 
 class FetchTargetQueueLayouts:
     def __init__(self, gen_params: GenParams):

@@ -25,6 +25,7 @@ from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.csr.csr_unit import CSRBlockComponent
 from coreblocks.arch.isa_consts import SatpMode
 from coreblocks.params.vmem_params import TLBCacheConfiguration
+from coreblocks.params.bpu_params import BranchPredictionConfig
 
 __all__ = [
     "CoreConfiguration",
@@ -101,6 +102,8 @@ class _CoreConfigurationDataClass:
         Log of the size of the fetch block (in bytes).
     ftq_size_log: int
         Log of the number of entries in the Fetch Target Queue
+    bpu_config: BranchPredictionConfig
+        Configuration of the branch prediction unit and its sub-predictors (e.g. their sizes).
     instr_buffer_size: int
         Size of the instruction buffer.
     interrupt_custom_count: int
@@ -183,6 +186,8 @@ class _CoreConfigurationDataClass:
 
     fetch_block_bytes_log: int = 2
     ftq_size_log: int = 4
+
+    bpu_config: BranchPredictionConfig = BranchPredictionConfig()
 
     instr_buffer_size: int = 4
 
