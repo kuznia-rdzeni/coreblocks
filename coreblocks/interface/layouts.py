@@ -738,6 +738,8 @@ class FetchLayouts:
         self.check_stale_resp = make_layout(("stale", 1))
         """A stale fetch block must be dropped without side effects."""
 
+        self.read_prediction_req = make_layout(fields.ftq_ptr)
+
         self.pred_checker_i = make_layout(
             fields.fb_addr,
             ("starts_mid_instr", 1),
@@ -753,8 +755,8 @@ class FetchLayouts:
             fields.cfi_target,
         )
         """cfi_type - type of the CFI the frontend follows in this block (on a misprediction,
-        the one causing the redirect); CfiType.INVALID on a misprediction means a fall-through resteer
-        with no redirecting CFI, so cfi_target is the next sequential fetch block."""
+        the one causing the redirect). cfi_idx and cfi_target are meaningful only when cfi_type
+        is valid."""
 
 
 class DecodeLayouts:

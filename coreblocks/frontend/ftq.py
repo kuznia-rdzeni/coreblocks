@@ -90,6 +90,8 @@ class FetchTargetQueue(Elaboratable):
     """
     bpu_response: Provided[Method]
     """Accept a branch prediction result and supply the predicted next PC to the FAU."""
+    read_prediction: Provided[Method]
+    """Return the branch prediction stored for a given FTQ entry (read by the fetch unit)."""
     jump_target_req: Provided[Method]
     """Request the predicted jump target for a given FTQ entry (stub)."""
     jump_target_resp: Provided[Method]
@@ -120,6 +122,7 @@ class FetchTargetQueue(Elaboratable):
         self.bpu_response = Method(i=bpu_layouts.write_prediction)
         self.bpu_flush = Method()
         self.check_stale = Methods(2, i=ifu_layouts.check_stale_req, o=ifu_layouts.check_stale_resp)
+        self.read_prediction = Method(i=ifu_layouts.read_prediction_req, o=ifu_layouts.bpu_prediction)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
         self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
@@ -203,6 +206,11 @@ class FetchTargetQueue(Elaboratable):
         @def_method(m, self.bpu_response)
         def _(pc, ftq_ptr):
             fetch_address_unit.write(m, pc=pc)
+
+        @def_method(m, self.read_prediction)
+        def _(ftq_ptr):
+            # There is no BPU prediction storage yet
+            return Signal(self.gen_params.get(FetchLayouts).bpu_prediction)
 
         # A request is stale iff any of:
         #  - its entry was re-issued since (generation mismatch),
