@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784405453260,
+  "lastUpdate": 1784470657260,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -24981,6 +24981,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/20c7710d853472ff9b256f96d734a655e1623e65"
         },
         "date": 1784405436048,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44857616856795907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6041853293193333,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3712677795788336,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6459876726130505,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3553220513954946,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060445628166818,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.34319096601073346,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4458048865651619,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "974977a944987840ec6e98eff6a77e7cdaf8a315",
+          "message": "fetch unit: restructure fetch around the block exit point (#1023)",
+          "timestamp": "2026-07-19T15:21:44+02:00",
+          "tree_id": "4dde5f09892eb11b0da702fca9c6b5300eb7b924",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/974977a944987840ec6e98eff6a77e7cdaf8a315"
+        },
+        "date": 1784470646422,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
