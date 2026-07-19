@@ -108,3 +108,6 @@ filterwarnings = [
     "ignore:cannot collect test class 'TestbenchIO':pytest.PytestCollectionWarning",
     "ignore:No files were found in testpaths:pytest.PytestConfigWarning:",
 ]
+markers = [
+    "collection_order"
+]
