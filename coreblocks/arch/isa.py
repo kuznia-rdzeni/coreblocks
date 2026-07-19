@@ -1,5 +1,3 @@
-from itertools import takewhile
-
 from amaranth.lib.enum import unique, auto
 import enum
 
@@ -168,54 +166,17 @@ class ISA:
         All supported extensions in the form of a bitwise or of `Extension`.
     """
 
-    def __init__(self, isa_str: str):
-        """
-        Parameters
-        ----------
-        isa_str : str
-            String identifying a specific RISC-V ISA. Please refer to GCC's
-            machine-dependent `arch` option for details.
-        """
-        isa_str = isa_str.lower()
-        if isa_str[0:2] != "rv":
-            raise RuntimeError("Invalid ISA string " + isa_str)
-        xlen_str = "".join(takewhile(str.isdigit, isa_str[2:]))
-        extensions_str = isa_str[len(xlen_str) + 2 :]
-
-        if not len(xlen_str):
-            raise RuntimeError("Empty native base integer ISA width string")
-
-        self.xlen = int(xlen_str)
+    def __init__(self, extensions: Extension, xlen: int):
+        self.xlen = xlen
         self.xlen_log = self.xlen.bit_length() - 1
 
         if self.xlen not in [32, 64, 128]:
             raise RuntimeError("Invalid native base integer ISA width %d" % self.xlen)
 
-        if len(extensions_str) == 0:
-            raise RuntimeError("Empty ISA extensions string")
+        self.extensions = Extension(extensions)
 
-        # The first extension letter must be one of "i", "e", or "g".
-        if extensions_str[0] not in ["i", "e", "g"]:
-            raise RuntimeError("Invalid first letter of ISA extensions string " + extensions_str[0])
-
-        self.extensions = Extension(0)
-
-        def parse_extension(e):
-            val = Extension[e.upper()]
-            if self.extensions & val:
-                raise RuntimeError("Duplication in ISA extensions string")
-            self.extensions |= val
-
-        for es in extensions_str.split("_"):
-            for i, e in enumerate(es):
-                try:
-                    parse_extension(e)
-                except KeyError:
-                    try:
-                        parse_extension(es[i:])
-                    except KeyError:
-                        raise RuntimeError(f"Neither {es[i]} nor {es[i:]} is a valid extension in {es}") from None
-                    break
+        if not (self.extensions & (Extension.I | Extension.E)):
+            raise RuntimeError("ISA with neither I nor E")
 
         if (self.extensions & Extension.E) and self.xlen != 32:
             raise RuntimeError("ISA extension E with XLEN != 32")
@@ -257,6 +218,23 @@ class ISA:
         self.reg_field_bits = 5
 
         self.csr_alen = 12
+
+    def gen_str(self, *, skip_internal: bool = False, skip_implied: bool = False) -> str:
+        if skip_implied:
+            implied = Extension(0)
+
+            for ext, imply in extension_implications.items():
+                if ext in self.extensions:
+                    implied |= imply
+
+            if Extension.C in self.extensions:
+                implied |= get_c_extension_expansion(self.extensions, self.xlen)
+
+            extensions = self.extensions & ~implied
+        else:
+            extensions = self.extensions
+
+        return gen_isa_string(extensions, self.xlen, skip_internal=skip_internal)
 
 
 def gen_isa_string(extensions: Extension, isa_xlen: int, *, skip_internal: bool = False) -> str:

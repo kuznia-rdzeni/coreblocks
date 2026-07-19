@@ -112,7 +112,7 @@ def build_result_table(results: dict[str, BenchmarkResult], tablefmt: str) -> st
     if len(results) == 0:
         return ""
 
-    header = ["Testbench name", "Cycles", "Instructions", "IPC"]
+    header = ["Testbench name", "Cycles", "Instructions", "IPC", "Mispredicts/1k instr"]
 
     # First fetch all metrics names to build the header
     result = next(iter(results.values()))
@@ -124,8 +124,9 @@ def build_result_table(results: dict[str, BenchmarkResult], tablefmt: str) -> st
     columns = [header]
     for benchmark_name, result in results.items():
         ipc = result.instr / result.cycles
+        mpki = result.mispredicts / result.instr * 1000
 
-        column = [benchmark_name, result.cycles, result.instr, ipc]
+        column = [benchmark_name, result.cycles, result.instr, ipc, mpki]
 
         for metric_name in sorted(result.metric_values.keys()):
             regs = result.metric_values[metric_name]

@@ -85,10 +85,10 @@ trap_entry:
   li t0, 0x80000000
 
   csrr a0, mcause
-  sw a0, 24(t0)
+  sw a0, 8(t0)
 
   csrr a0, mepc
-  sw a0, 28(t0)
+  sw a0, 12(t0)
 
   // Store the return code
   li a0, -1

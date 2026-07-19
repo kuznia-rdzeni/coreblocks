@@ -15,6 +15,7 @@ __all__ = [
     "Registers",
     "PrivilegeLevel",
     "InterruptCauseNumber",
+    "HPMEvent",
     "XlenEncoding",
     "PMPAFlagEncoding",
     "PMPCfgLayout",
@@ -206,6 +207,15 @@ class InterruptCauseNumber(IntEnum):
     MTI = 7  # machine timer interrupt
     SEI = 9  # supervisor external interrupt
     MEI = 11  # machine external interrupt
+
+
+@unique
+class HPMEvent(IntEnum):
+    """Implementation-defined hardware performance monitoring event numbers,
+    selectable via the `mhpmeventN` CSRs."""
+
+    NO_EVENT = 0
+    BRANCH_MISPREDICTION = 1
 
 
 @unique

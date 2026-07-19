@@ -3,12 +3,11 @@ from typing import Sequence
 from amaranth import *
 
 
-from transactron.utils import logging
+from transactron.utils import OneHotMux, logging
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
 from transactron.utils import popcount, DependencyContext, MethodStruct
 from transactron.utils.assign import AssignArg
-from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
 
 from coreblocks.params import *
@@ -74,9 +73,7 @@ class StallController(Elaboratable):
         def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
             # Make sure that there is at most one caller - there can be only one unsafe instruction
             log.assertion(m, popcount(runs) <= 1)
-            m.submodules.resume_prio_encoder = resume_prio_encoder = PriorityEncoder(len(args))
-            m.d.comb += resume_prio_encoder.i.eq(runs)
-            return Array(args)[resume_prio_encoder.o]
+            return OneHotMux.create(m, [(runs[i], args[i]) for i in range(len(args))])
 
         @def_method(m, self._resume_from_unsafe, nonexclusive=True, combiner=resume_combiner)
         def _(ftq_ptr, pc):
