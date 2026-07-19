@@ -1,4 +1,4 @@
-from amaranth import *
+DSP_WIDTH_MULTIPLIER = 2from amaranth import *
 
 from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned, DSPMulUnit
 from coreblocks.params import GenParams
@@ -19,7 +19,7 @@ class FastRecursiveMul(Elaboratable):
     ----------
     i1: Signal(unsigned(n)), in
         First factor.
-    i2: Signal(unsigned(n)), in
+    iDSP_WIDTH_MULTIPLIER: Signal(unsigned(n)), in
         Second factor.
     r: Signal(unsigned(n * 2)), out
         Product of inputted factors.
@@ -55,7 +55,7 @@ class FastRecursiveMul(Elaboratable):
         else:
             return self.recursive_module()
 
-    def recursive_module(self) -> TModule:
+    def has_recursive_module(self) -> TModule:
         # Fast Recursive Multiplying Algorithm
         #
         # bit: N       N/2      0
@@ -73,12 +73,12 @@ class FastRecursiveMul(Elaboratable):
         #
         #  i1 * i2 = (high_1 << N/2 + low_1) * (high_2 << N/2 + low_2) =
         #          = (high_1 * high_2) << N + (high_1 * low_2 + high_2 * low_1) << N/2 + low_1 * low_2 =
-        #          = result_upper << N + (result_mid - result_low - result_upper) << N/2 + result_low
+        #          = result_upper << N + (mid_result_offset) << N/2 + result_low
 
         m = TModule()
 
         upper = self.n // 2
-        lower = (self.n + 1) // 2
+        lower = self.n // 2 + 1
         m.submodules.low_mul = low_mul = FastRecursiveMul(lower, self.dsp_width)
         m.submodules.mid_mul = mid_mul = FastRecursiveMul(lower + 1, self.dsp_width)
         m.submodules.upper_mul = upper_mul = FastRecursiveMul(upper, self.dsp_width)
@@ -99,9 +99,8 @@ class FastRecursiveMul(Elaboratable):
         m.d.comb += upper_mul.i2.eq(self.i2[lower:])
         m.d.comb += result_upper.eq(upper_mul.r)
 
-        m.d.comb += self.r.eq(
-            result_low + ((result_mid - result_low - result_upper) << lower) + (result_upper << 2 * lower)
-        )
+        mid_result_offset = result_mid - result_low - result_upper
+        m.d.comb += self.r.eq(result_low + (mid_result_offset << lower) + (result_upper << 2 * lower))
 
         return m
 
