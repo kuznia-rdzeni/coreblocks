@@ -142,9 +142,8 @@ def make_xc7a200t_platform(resource_builder: ResourceBuilder):
         default_rst = "rst"
 
         clk_pin = pins.named_pin(xc7a200t_fbg676_pclk)
-        rst_pin = pins.named_pin(xc7a200t_fbg676_pclk)
         resources = [
-            Resource("rst", 0, PinsN(rst_pin, dir="i"), Attrs(IOSTANDARD="LVCMOS33")),
+            Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IOSTANDARD="LVCMOS33")),
             Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(100e6), Attrs(IOSTANDARD="LVCMOS33")),
         ] + resource_builder(pins, attrs=Attrs(IOSTANDARD="LVCMOS33"))
 
@@ -167,9 +166,8 @@ def make_xc7k480t_platform(resource_builder: ResourceBuilder):
         default_rst = "rst"
 
         clk_pin = pins.named_pin(xc7k480t_ffg1156_pclk)
-        rst_pin = pins.named_pin(xc7k480t_ffg1156_pclk)
         resources = [
-            Resource("rst", 0, PinsN(rst_pin, dir="i"), Attrs(IOSTANDARD="LVCMOS33")),
+            Resource("rst", 0, PinsN(pins.p(), dir="i"), Attrs(IOSTANDARD="LVCMOS33")),
             Resource("clk", 0, Pins(clk_pin, dir="i"), Clock(100e6), Attrs(IOSTANDARD="LVCMOS33")),
         ] + resource_builder(pins, attrs=Attrs(IOSTANDARD="LVCMOS33"))
 
