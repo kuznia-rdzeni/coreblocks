@@ -91,6 +91,11 @@ class CommonLayoutFields:
         self.ftq_offset: LayoutListField = ("ftq_offset", gen_params.fetch_width_log)
         """Offset of an instruction (counted in number of instructions) within its FTQ entry (fetch block)"""
 
+        self.fetch_gen: LayoutListField = ("fetch_gen", 2)
+        """Generation counter of a fetch request, bumped each time its FTQ entry is (re)issued
+        to the IFU. 2 bits suffice: we assume (and assert) that IFU admits at most 4 blocks, so
+        at most 4 generations of one entry can coexist."""
+
         self.fb_addr: LayoutListField = ("fb_addr", gen_params.isa.xlen - gen_params.fetch_block_bytes_log)
         """Address of a fetch block"""
 
@@ -708,7 +713,7 @@ class FetchLayouts:
             ("data", ArrayLayout(self.raw_instr, gen_params.frontend_superscalarity)),
         )
 
-        self.fetch_request = make_layout(fields.pc, fields.ftq_ptr)
+        self.fetch_request = make_layout(fields.pc, fields.ftq_ptr, fields.fetch_gen)
         self.fetch_writeback = make_layout(
             fields.ftq_ptr, ("redirect", 1), ("stall", 1), fields.cfi_idx, fields.cfi_type, fields.cfi_target
         )
@@ -726,9 +731,17 @@ class FetchLayouts:
             fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
         )
 
+        self.check_stale_req = make_layout(fields.ftq_ptr, fields.fetch_gen)
+        """Ask whether the fetch request identified by (ftq_ptr, fetch_gen) is stale."""
+
+        self.check_stale_resp = make_layout(("stale", 1))
+        """A stale fetch block must be dropped without side effects."""
+
+        self.read_prediction_req = make_layout(fields.ftq_ptr)
+
         self.pred_checker_i = make_layout(
             fields.fb_addr,
-            ("instr_block_cross", 1),
+            ("starts_mid_instr", 1),
             ("instr_valid", gen_params.fetch_width),
             ("predecoded", ArrayLayout(self.predecoded_instr, gen_params.fetch_width)),
             ("prediction", self.bpu_prediction),
@@ -741,8 +754,8 @@ class FetchLayouts:
             fields.cfi_target,
         )
         """cfi_type - type of the CFI the frontend follows in this block (on a misprediction,
-        the one causing the redirect); CfiType.INVALID on a misprediction means a fall-through resteer
-        with no redirecting CFI, so cfi_target is the next sequential fetch block."""
+        the one causing the redirect). cfi_idx and cfi_target are meaningful only when cfi_type
+        is valid."""
 
 
 class DecodeLayouts:

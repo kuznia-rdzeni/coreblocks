@@ -43,10 +43,18 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             self.bpu_requests.append(pc)
 
     @def_method_mock(lambda self: self.ftq.ifu_request)
-    def ifu_request_mock(self, pc, ftq_ptr):
+    def ifu_request_mock(self, pc, ftq_ptr, fetch_gen):
         @MethodMock.effect
         def eff():
-            self.ifu_requests.append({"pc": pc, "ftq_ptr": ftq_ptr["ptr"]})
+            self.ifu_requests.append(
+                {"pc": pc, "ftq_ptr": ftq_ptr["ptr"], "parity": ftq_ptr["parity"], "fetch_gen": fetch_gen}
+            )
+
+    async def check_stale(self, sim: TestbenchContext, req: dict) -> int:
+        res = await self.ftq.check_stale[0].call(
+            sim, ftq_ptr={"ptr": req["ftq_ptr"], "parity": req["parity"]}, fetch_gen=req["fetch_gen"]
+        )
+        return res["stale"]
 
     async def auto_bpu_process(self, sim: ProcessContext):
         """Responds to each BPU request by predicting PC+4 as the next PC."""
@@ -133,6 +141,106 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         with self.run_simulation(self.ftq) as sim:
             sim.add_testbench(proc)
 
+    def test_fetch_gen_starts_at_one_and_is_unique_per_entry(self):
+        # Each entry is issued exactly once as fetch advances, so every request carries
+        # generation 1
+        n_allocs = 4
+
+        async def proc(sim: TestbenchContext):
+            for _ in range(20):
+                await sim.tick()
+            assert len(self.ifu_requests) >= n_allocs
+            for i in range(n_allocs):
+                assert self.ifu_requests[i]["ftq_ptr"] == i
+                assert self.ifu_requests[i]["fetch_gen"] == 1
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_check_stale_false_for_inflight_request(self):
+        async def proc(sim: TestbenchContext):
+            for _ in range(10):
+                await sim.tick()
+            assert len(self.ifu_requests) >= 3
+            assert await self.check_stale(sim, self.ifu_requests[0]) == 0
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_check_stale_true_on_generation_mismatch(self):
+        # Querying a real entry with a generation it was never issued with is stale
+        async def proc(sim: TestbenchContext):
+            for _ in range(10):
+                await sim.tick()
+            assert len(self.ifu_requests) >= 3
+            req = dict(self.ifu_requests[0])
+            req["fetch_gen"] = 0
+            assert await self.check_stale(sim, req) == 1
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_check_stale_true_for_not_yet_fetched_entry(self):
+        async def proc(sim: TestbenchContext):
+            for _ in range(10):
+                await sim.tick()
+            future = {"ftq_ptr": self.gen_params.ftq_size - 1, "parity": 0, "fetch_gen": 1}
+            assert await self.check_stale(sim, future) == 1
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_ifu_redirect_makes_squashed_requests_stale(self):
+        redirect_pc = 0x500
+
+        async def proc(sim: TestbenchContext):
+            for _ in range(15):
+                await sim.tick()
+            assert len(self.ifu_requests) >= 4
+            before = self.ifu_requests[0]
+            squashed = self.ifu_requests[3]
+            assert before["ftq_ptr"] == 0
+            assert squashed["ftq_ptr"] == 3
+
+            # Both requests are valid before the redirect.
+            assert await self.check_stale(sim, before) == 0
+            assert await self.check_stale(sim, squashed) == 0
+
+            n_before_redirect = len(self.ifu_requests)
+
+            await self.ftq.ifu_writeback.call(
+                sim,
+                ftq_ptr={"ptr": 1, "parity": 0},
+                redirect=1,
+                stall=0,
+                cfi_idx=0,
+                cfi_type=0,
+                cfi_target=redirect_pc,
+            )
+
+            # The squashed request is now stale; the one before the redirect point is untouched.
+            assert await self.check_stale(sim, squashed) == 1
+            assert await self.check_stale(sim, before) == 0
+
+            # Fetch resumes from the redirect target and re-issues the squashed entry with a
+            # bumped generation. The old (stale) request stays stale
+            for _ in range(15):
+                await sim.tick()
+            new_requests = list(self.ifu_requests)[n_before_redirect:]
+            reissued = [req for req in new_requests if req["ftq_ptr"] == squashed["ftq_ptr"]]
+            assert reissued, "the squashed entry should have been re-fetched"
+            assert reissued[0]["fetch_gen"] != squashed["fetch_gen"]
+            assert await self.check_stale(sim, reissued[0]) == 0
+            assert await self.check_stale(sim, squashed) == 1
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
 
 class TestFetchTargetQueueFull(TestCaseWithSimulator):
     @pytest.fixture(autouse=True)
@@ -160,7 +268,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
             self.bpu_requests.append(pc)
 
     @def_method_mock(lambda self: self.ftq.ifu_request)
-    def ifu_request_mock(self, pc, ftq_ptr):
+    def ifu_request_mock(self, pc, ftq_ptr, fetch_gen):
         @MethodMock.effect
         def eff():
             self.ifu_requests.append(pc)
