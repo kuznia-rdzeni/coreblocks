@@ -23,7 +23,7 @@ RUN nix registry add openxc7 github:openxc7/toolchain-nix/f358781e5c21a59ab9c8c1
     nix profile add openxc7\#fasm && \
     nix build openxc7\#nextpnr-xilinx-chipdb.artix7 -o /nix/var/nix/gcroots/artix7-chipdb && \
     nix build openxc7\#nextpnr-xilinx-chipdb.kintex7 -o /nix/var/nix/gcroots/kintex7-chipdb && \
-    nix build openxc7\#nextpnr-xilinx-chipdb.spartan7 -o /nix/var/nix/gcroots/spartan7-chipdb && \
-    nix build openxc7\#nextpnr-xilinx-chipdb.zynq7 -o /nix/var/nix/gcroots/zynq7-chipdb && \
+#    nix build openxc7\#nextpnr-xilinx-chipdb.spartan7 -o /nix/var/nix/gcroots/spartan7-chipdb && \
+#    nix build openxc7\#nextpnr-xilinx-chipdb.zynq7 -o /nix/var/nix/gcroots/zynq7-chipdb && \
     nix-store --gc && \
     nix print-dev-env openxc7\#devShell.x86_64-linux > /etc/nix-devshell-env.sh
