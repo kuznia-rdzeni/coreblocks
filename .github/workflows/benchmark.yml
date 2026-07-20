@@ -136,13 +136,29 @@ jobs:
       - name: Run benchmarks
         run: |
           . venv/bin/activate
-          scripts/run_benchmarks.py -o perf_benchmark.json --summary perf.md
+          scripts/run_benchmarks.py --evlog -o perf_benchmark.json --summary perf.md
           cat perf.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Convert event logs to the pipeline viewer format
+        run: |
+          . venv/bin/activate
+          mkdir -p kanata
+          for evlog in test/regression/__evlogs__/*.jsonl; do
+            name=$(basename "$evlog" .jsonl)
+            python3 -m coreblocks.telemetry.konata "$evlog" -o "kanata/$name.kanata"
+          done
 
       - uses: actions/upload-artifact@v7
         with:
           name: perf_benchmark_results
           path: perf_benchmark.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: perf_benchmark_kanata
+          path: kanata
+          compression-level: 9
+          retention-days: 3
 
   pr-summary:
     name: Create benchmark summary for a pull request
