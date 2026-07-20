@@ -143,7 +143,7 @@ jobs:
         run: |
           . venv/bin/activate
           mkdir -p kanata
-          for evlog in test/regression/__evlogs__/*.jsonl; do
+          for evlog in test/__evlogs__/*.jsonl; do
             name=$(basename "$evlog" .jsonl)
             python3 -m coreblocks.telemetry.konata "$evlog" -o "kanata/$name.kanata"
           done
