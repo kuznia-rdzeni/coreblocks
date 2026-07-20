@@ -45,7 +45,6 @@ class StallController(Elaboratable):
         self.gen_params = gen_params
 
         self.stall_unsafe = Method()
-        self.stall_exception = Method()
         self.stall_guard = Method()
 
         self.on_redirect_frontend = Method()
@@ -77,11 +76,11 @@ class StallController(Elaboratable):
             pass
 
         with Transaction().body(m):
-            # Treat core flushing as a latched valid excpetion, all tags will be freed and invalidated during flush
+            # Treat core flushing as a latched valid exception, all tags will be freed and invalidated during flush
             exception = self.get_exception_information(m)
 
             with m.If((exception.valid | core_state.flushing) & ~stalled_exception):
-                log.debug(m, True, "Stalling frontend - pending exception on speclation path")
+                log.debug(m, True, "Stalling frontend - pending exception on speculative path")
                 m.d.sync += stalled_exception.eq(1)
 
             with m.If(~exception.valid & ~core_state.flushing & stalled_exception):
