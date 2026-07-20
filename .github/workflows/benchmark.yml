@@ -15,11 +15,13 @@ jobs:
     strategy:
       matrix:
         config: [basic, full]
-        platform: [ecp5, xc7a200t]
+        platform: [ecp5, xc7a200t, xc7k480t]
         include:
           - platform: ecp5
             container: ecp5-2025.01.31
           - platform: xc7a200t
+            container: xilinx-2026.07.15
+          - platform: xc7k480t
             container: xilinx-2026.07.15
     name: Run synthesis benchmarks
     if: >
@@ -63,6 +65,8 @@ jobs:
             export DB_DIR=$NEXTPNR_DIR/share/nextpnr/external/prjxray-db
             if [[ "${{ matrix.platform }}" == xc7a200t ]]; then
               export CHIPDB_DIR=`nix eval --raw openxc7#nextpnr-xilinx-chipdb.artix7.outPath`
+            elif [[ "${{ matrix.platform }}" == xc7k480t ]]; then
+              export CHIPDB_DIR=`nix eval --raw openxc7#nextpnr-xilinx-chipdb.kintex7.outPath`
             fi
           fi
           PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }} --platform ${{ matrix.platform }}
@@ -225,6 +229,9 @@ jobs:
             echo
             echo "### Synthesis benchmarks (XC7A200T)"
             ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7a200t.json --results full synth-benchmark-full-xc7a200t.json
+            echo
+            echo "### Synthesis benchmarks (XC7K480T)"
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7k480t.json --results full synth-benchmark-full-xc7k480t.json
             echo
           } >> summary/comment.md
 
