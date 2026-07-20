@@ -2,7 +2,6 @@ from typing import Sequence
 
 from amaranth import *
 
-
 from transactron.utils import OneHotMux, logging
 from transactron.lib.metrics import *
 from transactron.utils import popcount, DependencyContext, MethodStruct
@@ -41,11 +40,15 @@ class StallController(Elaboratable):
     get_exception_information: Required[Method]
     """Gets information from `ExceptionInformationRegister`."""
 
+    frontend_flush: Required[Method]
+
     def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
         self.stall_unsafe = Method()
         self.stall_guard = Method()
+
+        self.frontend_flush = Method()
 
         self.on_redirect_frontend = Method()
 
@@ -82,10 +85,11 @@ class StallController(Elaboratable):
             with m.If((exception.valid | core_state.flushing) & ~stalled_exception):
                 log.debug(m, True, "Stalling frontend - pending exception on speculative path")
                 m.d.sync += stalled_exception.eq(1)
+                self.frontend_flush(m)
 
             with m.If(~exception.valid & ~core_state.flushing & stalled_exception):
                 # This can happen in two cases:
-                # * exception got rolled-back, just continue operation from last request
+                # * exception got rolled-back, redirect needs to be called from rollback
                 # * retirement finished flushing the core - it will also call the redirect
                 log.debug(m, True, "Removing frontend exception stalled state - exception got invalidated")
                 m.d.sync += stalled_exception.eq(0)

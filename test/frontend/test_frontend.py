@@ -134,11 +134,11 @@ class TestFrontend(TestCaseWithSimulator):
         while True:
             await self.random_wait_geom(sim, 0.5)
             if self.stall_exception and self.pending_exception:
-                await self.frontend.flush.call(sim)
+                await sim.tick()  # wait tick for a frontend flush to trigger
                 self.in_stall = True
                 self.stall_resume_pc = (random.randrange(0x400) // 4) * 4
                 self.flushing = True
-                await self.random_wait(sim, 8)
+                await self.random_wait(sim, 4)
                 await CallTrigger(sim).call(self.eir.clear).call(
                     self.frontend.redirect, pc=self.stall_resume_pc, ftq_ptr=self.pending_exception["ftq_ptr"]
                 )

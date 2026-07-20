@@ -63,7 +63,6 @@ class Retirement(Elaboratable):
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore_in)
         self.fetch_redirect = Method(i=self.gen_params.get(FetchLayouts).backend_redirect)
-        self.frontend_flush = Method()
         self.instr_decrement = Method(
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
@@ -252,9 +251,6 @@ class Retirement(Elaboratable):
                                     set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
 
                             m.d.sync += trap_target_priv.eq(target_priv)
-
-                        # Confirmed excpetion, flush remaining instructions before core counter
-                        self.frontend_flush(m)
 
                         # Fetch is already stalled by ExceptionCauseRegister
                         with m.If(core_empty):

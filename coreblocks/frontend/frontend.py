@@ -88,8 +88,6 @@ class CoreFrontend(Elaboratable):
     redirect: Provided[Method]
     """Redirect the frontend to a new PC."""
 
-    flush: Provided[Method]
-
     get_exception_information: Required[Method]
 
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
@@ -124,12 +122,14 @@ class CoreFrontend(Elaboratable):
 
         self.consume_instr = Method(o=self.gen_params.get(SchedulerLayouts).scheduler_in)
         self.redirect = Method(i=layouts.backend_redirect)
-        self.flush = Method()
 
         self.get_exception_information = Method(o=gen_params.get(ExceptionInformationRegisterLayouts).get)
 
     def elaborate(self, platform):
         m = TModule()
+
+        flush = Method()
+        self.stall_ctrl.frontend_flush.provide(flush)
 
         if self.gen_params.icache_params.enable:
             m.submodules.icache_refiller = self.icache_refiller
@@ -170,11 +170,11 @@ class CoreFrontend(Elaboratable):
 
         @def_method(m, self.redirect)
         def _(ftq_ptr, pc):
-            self.flush(m)
+            flush(m)
             self.ftq.backend_redirect(m, ftq_ptr=ftq_ptr, pc=pc)
             self.stall_ctrl.on_redirect_frontend(m)
 
-        @def_method(m, self.flush, nonexclusive=True)
+        @def_method(m, flush, nonexclusive=True)
         def _():
             self.fetch.flush(m)
             self.instr_buffer.clear(m)

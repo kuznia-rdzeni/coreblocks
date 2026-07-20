@@ -234,7 +234,6 @@ class Core(Component):
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)
         retirement.fetch_redirect.provide(self.frontend.redirect)
-        retirement.frontend_flush.provide(self.frontend.flush)
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)
