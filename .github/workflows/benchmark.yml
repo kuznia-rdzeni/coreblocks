@@ -15,12 +15,10 @@ jobs:
     strategy:
       matrix:
         config: [basic, full]
-        platform: [ecp5, xc7a200t, xc7k480t]
+        platform: [ecp5, xc7k480t]
         include:
           - platform: ecp5
             container: ecp5-2025.01.31
-          - platform: xc7a200t
-            container: xilinx-2026.07.15
           - platform: xc7k480t
             container: xilinx-2026.07.15
     name: Run synthesis benchmarks
@@ -227,9 +225,6 @@ jobs:
             echo "### Synthesis benchmarks (ECP5)"
             ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-ecp5.json --results full synth-benchmark-full-ecp5.json
             echo
-            echo "### Synthesis benchmarks (XC7A200T)"
-            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7a200t.json --results full synth-benchmark-full-xc7a200t.json
-            echo
             echo "### Synthesis benchmarks (XC7K480T)"
             ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7k480t.json --results full synth-benchmark-full-xc7k480t.json
             echo
@@ -299,22 +294,22 @@ jobs:
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
-      - name: Store synthesis benchmark result (basic, XC7A200T)
+      - name: Store synthesis benchmark result (basic, XC7K480T)
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Fmax and LCs (basic)
           tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-basic-xc7a200t.json'
+          output-file-path: './synth-benchmark-basic-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
-      - name: Store synthesis benchmark result (full, XC7A200T)
+      - name: Store synthesis benchmark result (full, XC7K480T)
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Fmax and LCs (full)
           tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-full-xc7a200t.json'
+          output-file-path: './synth-benchmark-full-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
