@@ -11,7 +11,7 @@ ecp5 = [
     {"name": "LUTs used as ram: (ECP5)", "unit": "LUT", "value": 0, "regex": "(\\d+)/\\d+", "keyword": "RAM LUTs"},
     {"name": "LUTs used as DFF: (ECP5)", "unit": "LUT", "value": 0, "regex": "(\\d+)/\\d+", "keyword": "Total DFFs"},
 ]
-xc7a200t = [
+xc7k480t = xc7a200t = [
     {
         "name": "Max clock frequency (Fmax)",
         "unit": "MHz",

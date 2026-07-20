@@ -67,7 +67,7 @@ if __name__ == "__main__":
         "-p",
         "--platform",
         default="ecp5",
-        choices=["ecp5", "xc7a200t"],
+        choices=["ecp5", "xc7a200t", "xc7k480t"],
         help="Selects platform to collect information from. Default: %(default)s",
     )
     parser.add_argument(
