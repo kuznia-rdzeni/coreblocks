@@ -161,16 +161,17 @@ def synthesize(core_config: CoreConfiguration, platform: str, core: UnitCore):
         gen_params = GenParams(core_config)
         resource_builder, module = core(gen_params)
 
+        plat: Callable[[ResourceBuilder], Callable[[], Platform]]
         if platform == "ecp5":
-            plat = make_ecp5_platform(resource_builder)()
+            plat = make_ecp5_platform
         elif platform == "xc7a200t":
-            plat = make_xc7a200t_platform(resource_builder)()
+            plat = make_xc7a200t_platform
         elif platform == "xc7k480t":
-            plat = make_xc7k480t_platform(resource_builder)()
+            plat = make_xc7k480t_platform
         else:
             raise ValueError("Unknown platform")
 
-        plat.build(module)
+        plat(resource_builder)().build(module)
 
 
 def main():
