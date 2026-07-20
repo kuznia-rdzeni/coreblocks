@@ -115,7 +115,7 @@ jobs:
   run-perf-benchmarks:
     name: Run performance benchmarks
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    timeout-minutes: 60
+    timeout-minutes: 120
     container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     needs: build-perf-benchmarks
     steps:
