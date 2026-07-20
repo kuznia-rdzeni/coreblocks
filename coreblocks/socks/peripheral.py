@@ -28,7 +28,7 @@ def bus_in_periph_range(bus: WishboneInterface, periph: SocksPeripheral):
     )
 
 
-def is_perpiheral_request(periph: SocksPeripheral):
+def is_peripheral_request(periph: SocksPeripheral):
     return periph.bus.cyc & periph.bus.stb & bus_in_periph_range(periph.bus, periph)
 
 

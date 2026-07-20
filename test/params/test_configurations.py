@@ -33,7 +33,7 @@ class TestConfigurationsISAString(TestCase):
             configurations.full,
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
             "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx_xintmachinemode_xintsupervisor",
-            "rv32imacbzicond_zicsr_zifencei_zcb_zbc_zbkx",
+            "rv32imacbzicond_zicsr_zifencei_zihpm_zcb_zbc_zbkx",
         ),
         ISAStrTest(configurations.tiny, "rv32e", "rv32e", "rv32e"),
         ISAStrTest(configurations.test, "rv32", "rv32", "rv32i"),

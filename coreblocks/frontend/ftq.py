@@ -6,6 +6,7 @@ from transactron.evlog import EventSource
 from transactron.utils import make_layout, DependencyContext
 from transactron.utils import logging
 from transactron.lib.metrics import *
+from transactron.lib.storage import MemoryBank
 
 from coreblocks.params import GenParams
 from coreblocks.arch import *
@@ -82,8 +83,15 @@ class FetchTargetQueue(Elaboratable):
     Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
     redirect fetch to a new PC.
     """
+    check_stale: Provided[Methods]
+    """
+    Tell whether a fetch request (identified by its FTQ pointer and generation) is stale, i.e.
+    was invalidated by a redirect after it was issued.
+    """
     bpu_response: Provided[Method]
     """Accept a branch prediction result and supply the predicted next PC to the FAU."""
+    read_prediction: Provided[Method]
+    """Return the branch prediction stored for a given FTQ entry (read by the fetch unit)."""
     jump_target_req: Provided[Method]
     """Request the predicted jump target for a given FTQ entry (stub)."""
     jump_target_resp: Provided[Method]
@@ -113,6 +121,8 @@ class FetchTargetQueue(Elaboratable):
         self.bpu_request = Method(i=bpu_layouts.request)
         self.bpu_response = Method(i=bpu_layouts.write_prediction)
         self.bpu_flush = Method()
+        self.check_stale = Methods(2, i=ifu_layouts.check_stale_req, o=ifu_layouts.check_stale_resp)
+        self.read_prediction = Method(i=ifu_layouts.read_prediction_req, o=ifu_layouts.bpu_prediction)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
         self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
@@ -135,11 +145,18 @@ class FetchTargetQueue(Elaboratable):
         m.submodules.fetch_address_unit = fetch_address_unit = FetchAddressUnit(self.gen_params)
 
         m.submodules.pc_mem = pc_mem = FTQMemoryWrapper(gen_params=self.gen_params, layout=make_layout(fields.pc))
+        m.submodules.jb_unit_prediction_mem = jb_unit_prediction_mem = MemoryBank(
+            shape=self.jump_target_resp.data_out.shape(), depth=self.gen_params.ftq_size
+        )
 
         # Three pointers in the queue.
         alloc_ptr = FTQPtr(gen_params=self.gen_params)
         fetch_ptr = FTQPtr(gen_params=self.gen_params)
         commit_ptr = FTQPtr(gen_params=self.gen_params)
+
+        entry_gen = Array(
+            Signal(make_layout(fields.fetch_gen).size, name=f"entry_gen_{i}") for i in range(self.gen_params.ftq_size)
+        )
 
         fetch_ptr_next = FTQPtr(gen_params=self.gen_params)
         m.d.sync += fetch_ptr.eq(fetch_ptr_next)
@@ -176,9 +193,13 @@ class FetchTargetQueue(Elaboratable):
             fetch_pc = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += fetch_pc.eq(Mux(early_fetch, alloc_fetch_bypass, pc_mem.read_data))
 
-            self.ifu_request(m, ftq_ptr=fetch_ptr, pc=fetch_pc)
-            evlog.emit(m, FetchRequest.hw(ftq_ptr=fetch_ptr, pc=fetch_pc))
+            new_gen = entry_gen[fetch_ptr.ptr] + 1
+            m.d.sync += entry_gen[fetch_ptr.ptr].eq(new_gen)
+
+            self.ifu_request(m, ftq_ptr=fetch_ptr, pc=fetch_pc, fetch_gen=new_gen)
             m.d.comb += fetch_ptr_next.eq(fetch_ptr + 1)
+
+            evlog.emit(m, FetchRequest.hw(ftq_ptr=fetch_ptr, pc=fetch_pc))
 
         ftq_alloc_transaction.schedule_before(send_fetch_req_transaction)
 
@@ -186,24 +207,56 @@ class FetchTargetQueue(Elaboratable):
         def _(pc, ftq_ptr):
             fetch_address_unit.write(m, pc=pc)
 
+        @def_method(m, self.read_prediction)
+        def _(ftq_ptr):
+            # There is no BPU prediction storage yet
+            return Signal(self.gen_params.get(FetchLayouts).bpu_prediction)
+
+        # A request is stale iff any of:
+        #  - its entry was re-issued since (generation mismatch),
+        #  - its entry sits at or past the fetch pointer: a redirect rewound fetch over it and
+        #    it was not re-issued yet,
+        #  - the FTQ is stalled (pointers not rewound until the backend resumes).
+        @def_methods(m, self.check_stale)
+        def _(_, ftq_ptr, fetch_gen):
+            p = FTQPtr(ftq_ptr, gen_params=self.gen_params)
+            return {"stale": (entry_gen[p.ptr] != fetch_gen) | (p >= fetch_ptr) | (~self.stall_guard.ready)}
+
         @def_method(m, self.ifu_writeback)
         def _(
             ftq_ptr,
             redirect,
+            stall,
+            cfi_idx,
+            cfi_type,
             cfi_target,
         ):
             ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
             m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
-            self.bpu_flush(m)
+            # The record is valid only if fetch followed a taken CFI in this block. On a stall
+            # (JALR with unknown target or fault/unsafe) no CFI was followed - the jump-branch
+            # unit will detect the mispredict and the backend will redirect. A fall-through
+            # resteer has cfi_type INVALID, so it never marks the record valid.
+            jb_unit_prediction_mem.write(
+                m,
+                addr=ftq_ptr.ptr,
+                data={
+                    "valid": CfiType.valid(cfi_type) & ~stall,
+                    "cfi_idx": cfi_idx,
+                    "cfi_target": cfi_target,
+                },
+            )
 
-            evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
+            with m.If(redirect | stall):
+                self.bpu_flush(m)
+                m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
+                m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
 
-            m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
-            m.d.comb += fetch_ptr_next.eq(ftq_ptr_plus_one)
+                evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
 
-            with m.If(redirect):
-                fetch_address_unit.ifu_redirect(m, pc=cfi_target)
+                with m.If(redirect):
+                    fetch_address_unit.ifu_redirect(m, pc=cfi_target)
 
         @def_method(m, self.commit)
         def _(ftq_ptr):
@@ -236,15 +289,15 @@ class FetchTargetQueue(Elaboratable):
             log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
 
         @def_method(m, self.jump_target_req)
-        def _():
-            pass
+        def _(ftq_ptr):
+            jb_unit_prediction_mem.read_req(m, addr=ftq_ptr.ptr)
 
         @def_method(m, self.jump_target_resp)
-        def _(arg):
-            return {"valid": 0, "cfi_target": 0}
+        def _():
+            return jb_unit_prediction_mem.read_resp(m).data
 
         @def_method(m, self.resolve)
-        def _(from_pc, next_pc, misprediction):
+        def _(from_pc, misprediction, taken, cfi_idx, cfi_type, cfi_target):
             pass
 
         return m

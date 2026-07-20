@@ -58,9 +58,6 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_fetch_redirect = self.mock_fetch_redirect = TestbenchIO(
             Adapter.create(self.retirement.fetch_redirect)
         )
-        m.submodules.mock_frontend_flush = self.mock_frontend_flush = TestbenchIO(
-            Adapter.create(self.retirement.frontend_flush)
-        )
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter.create(self.retirement.instr_decrement)
         )
@@ -183,10 +180,6 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_fetch_redirect)
     def mock_fetch_redirect_process(self, pc, ftq_ptr):
-        pass
-
-    @def_method_mock(lambda self: self.retc.mock_frontend_flush)
-    def mock_frontend_flush(self):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)

@@ -150,6 +150,8 @@ class CoreFrontend(Elaboratable):
 
         self.ftq.ifu_request.provide(self.fetch.fetch_request)
         self.fetch.fetch_writeback.provide(self.ftq.ifu_writeback)
+        self.fetch.check_stale.provide(self.ftq.check_stale)
+        self.fetch.read_prediction.provide(self.ftq.read_prediction)
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
         decode.get_raw.provide(self.instr_buffer.read)

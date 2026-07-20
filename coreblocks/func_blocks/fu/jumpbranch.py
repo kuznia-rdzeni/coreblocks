@@ -11,7 +11,8 @@ from transactron.lib import *
 from transactron.utils import logging
 from transactron.utils import DependencyContext, from_method_layout
 from coreblocks.params import GenParams, FunctionalComponentParams
-from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension
+from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension, CfiType
+from coreblocks.frontend import FrontendParams
 from coreblocks.interface.layouts import JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
@@ -115,7 +116,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         self.perf_misaligned = HwCounter(
             "backend.fu.jumpbranch.misaligned", "Number of instructions with misaligned target address"
         )
-        self.perf_mispredictions = HwCounter("backend.fu.jumpbranch.mispredictions", "Number of branch mispredictions")
 
         self.exception_report = self.dm.get_dependency(ExceptionReportKey())()
 
@@ -124,7 +124,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
 
         m.submodules += [
             self.perf_misaligned,
-            self.perf_mispredictions,
         ]
 
         jump_target_req, jump_target_resp = self.dm.get_dependency(PredictedJumpTargetKey())
@@ -133,6 +132,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         m.submodules.jb = jb = JumpBranch(self.gen_params, fn=self.fn)
 
         fields = self.gen_params.get(CommonLayoutFields)
+        fparams = self.gen_params.get(FrontendParams)
         instr_fifo_layout = make_layout(
             fields.rob_id,
             fields.pc,
@@ -141,27 +141,26 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             ("jmp_addr", self.gen_params.isa.xlen),
             ("reg_res", self.gen_params.isa.xlen),
             ("taken", 1),
-            fields.predicted_taken,
+            fields.cfi_idx,
             fields.tag,
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
         with Transaction().body(m):
             instr = instr_fifo.read(m)
-            target_prediction = jump_target_resp(m)
+            prediction = jump_target_resp(m)
 
             jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
             is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
 
-            predicted_addr_correctly = (instr.type != JumpBranchFn.Fn.JALR) | (
-                target_prediction.valid & (target_prediction.cfi_target == instr.jmp_addr)
-            )
+            predicted_taken = Signal()
+            m.d.av_comb += predicted_taken.eq(prediction.valid & (instr.cfi_idx == prediction.cfi_idx))
 
             misprediction = Signal()
             m.d.av_comb += misprediction.eq(
-                ~(is_auipc | (predicted_addr_correctly & (instr.taken == instr.predicted_taken)))
+                ~is_auipc
+                & ((instr.taken != predicted_taken) | (instr.taken & (prediction.cfi_target != instr.jmp_addr)))
             )
-            self.perf_mispredictions.incr(m, enable_call=misprediction)
 
             jmp_addr_misaligned = (
                 instr.jmp_addr & (0b1 if Extension.ZCA in self.gen_params.isa.extensions else 0b11)
@@ -213,8 +212,23 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                     mtval=0,
                 )
 
+            cfi_type = Signal(CfiType)
+            m.d.av_comb += cfi_type.eq(CfiType.BRANCH)
+            with m.If(instr.type == JumpBranchFn.Fn.JAL):
+                m.d.av_comb += cfi_type.eq(CfiType.JAL)
+            with m.Elif(instr.type == JumpBranchFn.Fn.JALR):
+                m.d.av_comb += cfi_type.eq(CfiType.JALR)
+
             with m.If(~is_auipc):
-                resolve_branch(m, from_pc=instr.pc, next_pc=jump_result, misprediction=misprediction)
+                resolve_branch(
+                    m,
+                    from_pc=instr.pc,
+                    misprediction=misprediction,
+                    taken=instr.taken,
+                    cfi_idx=instr.cfi_idx,
+                    cfi_type=cfi_type,
+                    cfi_target=instr.jmp_addr,
+                )
                 log.debug(
                     m,
                     True,
@@ -244,7 +258,19 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             m.d.top_comb += funct7_info.eq(arg.exec_fn.funct7)
             m.d.top_comb += jb.in_rvc.eq(funct7_info.rvc)
 
-            jump_target_req(m)
+            # The frontend indexes a CFI by its position within the fetch block it was
+            # fetched with. A non-compressed instruction that starts in the last slot of
+            # a fetch block crosses into the next block and belongs to that block, at
+            # index 0, so its index cannot be derived from the PC alone.
+            # TODO: remove this once we pass cfi_idx to FUs
+            cfi_idx = Signal(self.gen_params.fetch_width_log)
+            m.d.av_comb += cfi_idx.eq(fparams.fb_instr_idx(arg.pc))
+            if Extension.ZCA in self.gen_params.isa.extensions:
+                instr_block_cross = ~funct7_info.rvc & (fparams.fb_instr_idx(arg.pc) == self.gen_params.fetch_width - 1)
+                with m.If(instr_block_cross):
+                    m.d.av_comb += cfi_idx.eq(0)
+
+            jump_target_req(m, ftq_ptr=arg.ftq_ptr)
 
             instr_fifo.write(
                 m,
@@ -255,7 +281,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 jmp_addr=jb.jmp_addr,
                 reg_res=jb.reg_res,
                 taken=jb.taken,
-                predicted_taken=funct7_info.predicted_taken,
+                cfi_idx=cfi_idx,
                 tag=arg.tag,
             )
 

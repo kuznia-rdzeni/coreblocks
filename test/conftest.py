@@ -97,6 +97,19 @@ def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Confi
     deselect_based_on_flatten_name(items, config)
     deselect_based_on_count(items, config)
 
+    def sort_key(item: pytest.Item):
+        mark = item.get_closest_marker("collection_order")
+        if mark is None:
+            return (0, 0)
+        val = mark.args[0]
+        assert isinstance(val, int)
+        if val >= 0:
+            return (-1, val)
+        else:
+            return (1, val)
+
+    items.sort(key=sort_key)
+
 
 def pytest_runtest_setup(item: pytest.Item):
     """
