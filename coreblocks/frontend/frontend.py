@@ -181,5 +181,6 @@ class CoreFrontend(Elaboratable):
             self.fetch.flush(m)
             self.instr_buffer.clear(m)
             self.output_pipe.clear(m)
+            self.bpu.flush(m)
 
         return m
