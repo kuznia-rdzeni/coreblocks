@@ -83,8 +83,15 @@ class FetchTargetQueue(Elaboratable):
     Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
     redirect fetch to a new PC.
     """
+    check_stale: Provided[Methods]
+    """
+    Tell whether a fetch request (identified by its FTQ pointer and generation) is stale, i.e.
+    was invalidated by a redirect after it was issued.
+    """
     bpu_response: Provided[Method]
     """Accept a branch prediction result and supply the predicted next PC to the FAU."""
+    read_prediction: Provided[Method]
+    """Return the branch prediction stored for a given FTQ entry (read by the fetch unit)."""
     jump_target_req: Provided[Method]
     """Request the predicted jump target for a given FTQ entry (stub)."""
     jump_target_resp: Provided[Method]
@@ -114,6 +121,8 @@ class FetchTargetQueue(Elaboratable):
         self.bpu_request = Method(i=bpu_layouts.request)
         self.bpu_response = Method(i=bpu_layouts.write_prediction)
         self.bpu_flush = Method()
+        self.check_stale = Methods(2, i=ifu_layouts.check_stale_req, o=ifu_layouts.check_stale_resp)
+        self.read_prediction = Method(i=ifu_layouts.read_prediction_req, o=ifu_layouts.bpu_prediction)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
         self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
@@ -144,6 +153,10 @@ class FetchTargetQueue(Elaboratable):
         alloc_ptr = FTQPtr(gen_params=self.gen_params)
         fetch_ptr = FTQPtr(gen_params=self.gen_params)
         commit_ptr = FTQPtr(gen_params=self.gen_params)
+
+        entry_gen = Array(
+            Signal(make_layout(fields.fetch_gen).size, name=f"entry_gen_{i}") for i in range(self.gen_params.ftq_size)
+        )
 
         fetch_ptr_next = FTQPtr(gen_params=self.gen_params)
         m.d.sync += fetch_ptr.eq(fetch_ptr_next)
@@ -180,15 +193,34 @@ class FetchTargetQueue(Elaboratable):
             fetch_pc = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += fetch_pc.eq(Mux(early_fetch, alloc_fetch_bypass, pc_mem.read_data))
 
-            self.ifu_request(m, ftq_ptr=fetch_ptr, pc=fetch_pc)
-            evlog.emit(m, FetchRequest.hw(ftq_ptr=fetch_ptr, pc=fetch_pc))
+            new_gen = entry_gen[fetch_ptr.ptr] + 1
+            m.d.sync += entry_gen[fetch_ptr.ptr].eq(new_gen)
+
+            self.ifu_request(m, ftq_ptr=fetch_ptr, pc=fetch_pc, fetch_gen=new_gen)
             m.d.comb += fetch_ptr_next.eq(fetch_ptr + 1)
+
+            evlog.emit(m, FetchRequest.hw(ftq_ptr=fetch_ptr, pc=fetch_pc))
 
         ftq_alloc_transaction.schedule_before(send_fetch_req_transaction)
 
         @def_method(m, self.bpu_response)
         def _(pc, ftq_ptr):
             fetch_address_unit.write(m, pc=pc)
+
+        @def_method(m, self.read_prediction)
+        def _(ftq_ptr):
+            # There is no BPU prediction storage yet
+            return Signal(self.gen_params.get(FetchLayouts).bpu_prediction)
+
+        # A request is stale iff any of:
+        #  - its entry was re-issued since (generation mismatch),
+        #  - its entry sits at or past the fetch pointer: a redirect rewound fetch over it and
+        #    it was not re-issued yet,
+        #  - the FTQ is stalled (pointers not rewound until the backend resumes).
+        @def_methods(m, self.check_stale)
+        def _(_, ftq_ptr, fetch_gen):
+            p = FTQPtr(ftq_ptr, gen_params=self.gen_params)
+            return {"stale": (entry_gen[p.ptr] != fetch_gen) | (p >= fetch_ptr) | (~self.stall_guard.ready)}
 
         @def_method(m, self.ifu_writeback)
         def _(

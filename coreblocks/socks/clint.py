@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from transactron.lib.dependencies import DependencyContext, SimpleKey
 
 from coreblocks.peripherals.wishbone import WishboneInterface, WishboneParameters
-from coreblocks.socks.peripheral import SocksPeripheral, gen_memory_mapped_register, is_perpiheral_request
+from coreblocks.socks.peripheral import SocksPeripheral, gen_memory_mapped_register, is_peripheral_request
 
 
 @dataclass(frozen=True)
@@ -63,7 +63,7 @@ class ClintPeriph(Component, SocksPeripheral):
             m.d.comb += self.mtip[i].eq(self.mtime >= self.mtimecmp[i])
             m.d.comb += self.msip[i].eq(self.ipi[i])
 
-        with m.If(is_perpiheral_request(self)):
+        with m.If(is_peripheral_request(self)):
             m.d.comb += self.bus.err.eq(1)  # default - overwritten by memory mapped registers declaration
             m.d.comb += self.bus.ack.eq(0)
 

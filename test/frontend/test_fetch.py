@@ -93,6 +93,19 @@ class TestFetchUnit(TestCaseWithSimulator):
         self.last_redirect = None
         self.backend_redirect = deque()
 
+        # Every fetch request is identified by (ftq_ptr, fetch_gen) and gets a monotone sequence number,
+        # so the testbench can answer `check_stale` queries the way the FTQ would
+        self.req_seq = 0
+        self.entry_gen = [0] * self.gen_params.ftq_size
+        self.issued_seq: dict[tuple[int, int, int], int] = {}
+        self.seq_of_ptr: dict[tuple[int, int], int] = {}
+        self.stale_ids: set[tuple[int, int, int]] = set()
+        self.redirect_origin_seq = 0
+
+        # BPU predictions, keyed by fetch block address
+        self.predictions_by_block: dict[int, dict] = {}
+        self.pred_of_ptr: dict[tuple[int, int], Optional[dict]] = {}
+
         random.seed(41)
 
     def add_instr(
@@ -152,6 +165,39 @@ class TestFetchUnit(TestCaseWithSimulator):
         # Static prediction with no BPU: backward branches (negative offset) are predicted taken.
         return self.add_instr(data, True, jump_offset=offset, branch_taken=taken, predicted_taken=offset < 0)
 
+    def empty_prediction(self) -> dict:
+        return {"branch_mask": 0, "cfi_idx": 0, "cfi_type": CfiType.INVALID, "cfi_target": 0, "cfi_target_valid": 0}
+
+    def predict_block(self, instr_pc: int, cfi_type: CfiType, target: int, branch: bool = False):
+        block_addr = instr_pc & ~(self.gen_params.fetch_block_bytes - 1)
+        cfi_idx = (instr_pc & (self.gen_params.fetch_block_bytes - 1)) >> self.gen_params.min_instr_width_bytes_log
+        self.predictions_by_block[block_addr] = {
+            "branch_mask": (1 << cfi_idx) if branch else 0,
+            "cfi_idx": cfi_idx,
+            "cfi_type": cfi_type,
+            "cfi_target": target,
+            "cfi_target_valid": 1,
+        }
+
+    def gen_predicted_branch(self, offset: int) -> int:
+        assert offset > 0
+        data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
+        pc = self.add_instr(data, True, jump_offset=offset, branch_taken=True, predicted_taken=True)
+        self.predict_block(pc, CfiType.BRANCH, pc + offset, branch=True)
+        return pc
+
+    def gen_predicted_jal(self, offset: int) -> int:
+        data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
+        pc = self.add_instr(data, True, jump_offset=offset, branch_taken=True, predicted_taken=True)
+        self.predict_block(pc, CfiType.JAL, pc + offset)
+        return pc
+
+    def gen_predicted_jalr(self, target_offset: int) -> int:
+        data = ITypeInstr(opcode=Opcode.JALR, rd=0, funct3=Funct3.JALR, rs1=0, imm=0).encode()
+        pc = self.add_instr(data, True, jump_offset=target_offset, branch_taken=True, predicted_taken=True)
+        self.predict_block(pc, CfiType.JALR, pc + target_offset)
+        return pc
+
     async def cache_process(self, sim: ProcessContext):
         while True:
             while len(self.input_q) == 0:
@@ -210,9 +256,33 @@ class TestFetchUnit(TestCaseWithSimulator):
         @MethodMock.effect
         def eff():
             if redirect:
+                # A redirect rewinds the fetch pointer: every block issued after the
+                # redirecting one is dead
+                origin_seq = self.seq_of_ptr[(ftq_ptr["ptr"], ftq_ptr["parity"])]
+                for fetch_id, seq in self.issued_seq.items():
+                    if seq > origin_seq:
+                        self.stale_ids.add(fetch_id)
+                self.redirect_origin_seq = origin_seq
+
                 self.last_redirect = cfi_target
             elif stall:
                 self.stalled = True
+
+    def is_stale(self, ftq_ptr, fetch_gen) -> bool:
+        fetch_id = (ftq_ptr["ptr"], ftq_ptr["parity"], fetch_gen)
+        return self.stalled or fetch_id in self.stale_ids
+
+    @def_method_mock(lambda self: self.fetch.check_stale[0])
+    def check_stale_s1_mock(self, ftq_ptr, fetch_gen):
+        return {"stale": self.is_stale(ftq_ptr, fetch_gen)}
+
+    @def_method_mock(lambda self: self.fetch.check_stale[1])
+    def check_stale_s2_mock(self, ftq_ptr, fetch_gen):
+        return {"stale": self.is_stale(ftq_ptr, fetch_gen)}
+
+    @def_method_mock(lambda self: self.fetch.read_prediction)
+    def read_prediction_mock(self, ftq_ptr):
+        return self.pred_of_ptr.get((ftq_ptr["ptr"], ftq_ptr["parity"])) or self.empty_prediction()
 
     async def fetch_out_check(self, sim: TestbenchContext):
         async def check_instr(instr, v):
@@ -272,26 +342,63 @@ class TestFetchUnit(TestCaseWithSimulator):
     async def requester(self, sim: ProcessContext):
         while True:
             ret = None
+            issued_seq = None
+            issued_pred = None
+            slot = 0
+            parity = 0
+            gen = 0
+
             if self.stalled:
                 await sim.tick()
             else:
-                ret = await self.fetch.fetch_request.call_try(sim, pc=self.next_fetch_request)
+                seq = self.req_seq
+                slot = seq % self.gen_params.ftq_size
+                parity = (seq // self.gen_params.ftq_size) % 2
+                gen = (self.entry_gen[slot] + 1) % 4
+                ret = await self.fetch.fetch_request.call_try(
+                    sim, pc=self.next_fetch_request, ftq_ptr={"ptr": slot, "parity": parity}, fetch_gen=gen
+                )
+                if ret is not None:
+                    # The request fired - commit the FTQ-side bookkeeping
+                    fetch_id = (slot, parity, gen)
+                    self.entry_gen[slot] = gen
+                    self.issued_seq[fetch_id] = seq
+                    self.seq_of_ptr[(slot, parity)] = seq
+                    self.stale_ids.discard(fetch_id)
+                    self.req_seq = seq + 1
+                    issued_seq = seq
+
+                    # Record the BPU prediction for this block (if any), to be served
+                    # to the fetch unit via `read_prediction`
+                    block_addr = self.next_fetch_request & ~(self.gen_params.fetch_block_bytes - 1)
+                    issued_pred = self.predictions_by_block.get(block_addr)
+                    self.pred_of_ptr[(slot, parity)] = issued_pred
 
             await sim.delay(0)
             if self.stalled:
                 while not self.backend_redirect:
                     await self.tick(sim)
 
+                # A backend redirect rewinds the whole frontend: every block issued
+                # so far is dead
+                self.stale_ids.update(self.issued_seq.keys())
                 self.stalled = False
                 self.next_fetch_request = self.backend_redirect[0]
                 self.backend_redirect.popleft()
 
             elif self.last_redirect is not None:
+                if issued_seq is not None and issued_seq > self.redirect_origin_seq:
+                    self.stale_ids.add((slot, parity, gen))
+                self.req_seq = self.redirect_origin_seq + 1
                 self.next_fetch_request = self.last_redirect
             elif ret is not None:
-                self.next_fetch_request = (
-                    1 + (self.next_fetch_request // self.gen_params.fetch_block_bytes)
-                ) * self.gen_params.fetch_block_bytes
+                if issued_pred is not None:
+                    # Follow the prediction, like the FTQ would
+                    self.next_fetch_request = issued_pred["cfi_target"]
+                else:
+                    self.next_fetch_request = (
+                        1 + (self.next_fetch_request // self.gen_params.fetch_block_bytes)
+                    ) * self.gen_params.fetch_block_bytes
 
             self.last_redirect = None
 
@@ -437,6 +544,64 @@ class TestFetchUnit(TestCaseWithSimulator):
 
         self.run_sim()
 
+    def test_correct_predictions(self):
+        # A predicted-taken forward branch. Statically it would be predicted not-taken,
+        # so any redirect would mean the BPU prediction was ignored
+        self.gen_predicted_branch(self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # A correctly predicted JAL
+        self.gen_predicted_jal(2 * self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # A predicted JALR: its target is only known from the prediction. Without one,
+        # fetch would have to stall until the backend resolves it
+        self.gen_predicted_jalr(3 * self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # A predicted branch that is not the first instruction of its block - the
+        # instructions before it must still be delivered, the ones after it dropped
+        if self.gen_params.fetch_width >= 2:
+            self.gen_non_branch_instr(rvc=False)
+            self.gen_predicted_branch(self.gen_params.fetch_block_bytes)
+            for _ in range(self.gen_params.fetch_width):
+                self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_bogus_prediction_resteer(self):
+        # A few blocks of plain instructions
+        for _ in range(2 * self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # The predictor claims there is a taken JAL in a block that has no CFI at all
+        pc = self.gen_non_branch_instr(rvc=False)
+        self.predict_block(pc, CfiType.JAL, pc + 0x1000)
+        for _ in range(2 * self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_mistargeted_prediction_redirect(self):
+        # A JAL predicted with a wrong target: the prediction checker must redirect
+        # to the decoded target
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        offset = 2 * self.gen_params.fetch_block_bytes
+        data = JTypeInstr(opcode=Opcode.JAL, rd=0, imm=offset).encode()
+        # The frontend corrects the bad target itself
+        pc = self.add_instr(data, True, jump_offset=offset, branch_taken=True, predicted_taken=True)
+        self.predict_block(pc, CfiType.JAL, pc + 0x1000)
+
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
     def test_access_fault(self):
         for _ in range(self.gen_params.fetch_width):
             self.gen_non_branch_instr(rvc=False)
@@ -561,7 +726,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
         res = await self.m.check.call(
             sim,
             fb_addr=pc >> self.gen_params.fetch_block_bytes_log,
-            instr_block_cross=block_cross,
+            starts_mid_instr=block_cross,
             instr_valid=instr_valid,
             predecoded=predecoded_raw,
             prediction=prediction,
@@ -859,14 +1024,12 @@ class TestPredictionChecker(TestCaseWithSimulator):
     def test_mispredicted_cfi_type(self):
         instr_width = self.gen_params.min_instr_width_bytes
         fetch_width = self.gen_params.fetch_width
-        fb_bytes = self.gen_params.fetch_block_bytes
 
         async def proc(sim: TestbenchContext):
-            # We predicted a JAL, but in fact there is a non-CFI instruction
+            # We predicted a JAL, but in fact there is a non-CFI instruction.
+            # cfi_type is INVALID and cfi_idx/cfi_target are meaningless
             ret = await self.check(sim, 0x100, False, [(CfiType.INVALID, 0)], 0, 0, CfiType.JAL, 100)
-            self.assert_resp(
-                ret, mispredicted=True, cfi_type=CfiType.INVALID, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
-            )
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.INVALID)
 
             # We predicted a JAL, but in fact there is a branch
             ret = await self.check(sim, 0x100, False, [(CfiType.BRANCH, -100)], 0, 0, CfiType.JAL, 100)
@@ -887,9 +1050,7 @@ class TestPredictionChecker(TestCaseWithSimulator):
             ret = await self.check(
                 sim, 0x100, False, [(CfiType.BRANCH, -100), (CfiType.INVALID, 0)], 0b11, 1, CfiType.BRANCH, 100
             )
-            self.assert_resp(
-                ret, mispredicted=True, cfi_type=CfiType.INVALID, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
-            )
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.INVALID)
 
             # The same as above, but we start from the second instruction
             ret = await self.check(
@@ -902,8 +1063,48 @@ class TestPredictionChecker(TestCaseWithSimulator):
                 CfiType.BRANCH,
                 100,
             )
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.INVALID)
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(proc)
+
+    def test_prediction_at_invalid_slot(self):
+        instr_width = self.gen_params.min_instr_width_bytes
+        fetch_width = self.gen_params.fetch_width
+
+        async def proc(sim: TestbenchContext):
+            if fetch_width < 2:
+                return
+
+            # The prediction points at a slot before the entry point of the block. Even
+            # though the slot holds a JAL matching the prediction, it is not on the
+            # fetch path and must be treated as if there was no CFI there at all
+            ret = await self.check(
+                sim,
+                0x100 + instr_width,
+                False,
+                [(CfiType.JAL, 100), (CfiType.INVALID, 0)],
+                0,
+                0,
+                CfiType.JAL,
+                0x100 + 100,
+            )
+            self.assert_resp(ret, mispredicted=True, cfi_type=CfiType.INVALID)
+
+            # Same, but a real JAL sits at a later, valid slot - the checker must
+            # redirect to that one instead
+            ret = await self.check(
+                sim,
+                0x100 + instr_width,
+                False,
+                [(CfiType.JAL, 100), (CfiType.JAL, 100)],
+                0,
+                0,
+                CfiType.JAL,
+                0x100 + 100,
+            )
             self.assert_resp(
-                ret, mispredicted=True, cfi_type=CfiType.INVALID, cfi_idx=fetch_width - 1, cfi_target=0x100 + fb_bytes
+                ret, mispredicted=True, cfi_type=CfiType.JAL, cfi_idx=1, cfi_target=0x100 + instr_width + 100
             )
 
         with self.run_simulation(self.m) as sim:
