@@ -15,6 +15,12 @@ jobs:
     strategy:
       matrix:
         config: [basic, full]
+        platform: [ecp5, xc7k480t]
+        include:
+          - platform: ecp5
+            container: ecp5-2025.01.31
+          - platform: xc7k480t
+            container: xilinx-2026.07.20
     name: Run synthesis benchmarks
     if: >
       github.ref == 'refs/heads/master' ||
@@ -27,7 +33,7 @@ jobs:
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 75
-    container: ghcr.io/kuznia-rdzeni/amaranth-synth:ecp5-2025.01.31
+    container: ghcr.io/kuznia-rdzeni/amaranth-synth:${{ matrix.container }}
     steps:
       - uses: actions/checkout@v6
 
@@ -49,9 +55,19 @@ jobs:
           python3 -m pip install ".[dev]"
 
       - name: Synthesize
+        shell: bash
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }}
+          if [[ "${{ matrix.container }}" == xilinx* ]]; then
+            export NEXTPNR_DIR=`nix eval --raw openxc7#nextpnr-xilinx.outPath`
+            export DB_DIR=$NEXTPNR_DIR/share/nextpnr/external/prjxray-db
+            if [[ "${{ matrix.platform }}" == xc7a200t ]]; then
+              export CHIPDB_DIR=`nix eval --raw openxc7#nextpnr-xilinx-chipdb.artix7.outPath`
+            elif [[ "${{ matrix.platform }}" == xc7k480t ]]; then
+              export CHIPDB_DIR=`nix eval --raw openxc7#nextpnr-xilinx-chipdb.kintex7.outPath`
+            fi
+          fi
+          PYTHONHASHSEED=0 ./scripts/synthesize.py --verbose --strip-debug --config ${{ matrix.config }} --platform ${{ matrix.platform }}
 
       - name: Print synthesis information
         run: cat ./build/top.tim
@@ -59,13 +75,13 @@ jobs:
       - name: Collect Benchmark information
         run: |
           . venv/bin/activate
-          ./scripts/parse_benchmark_info.py -o synth-benchmark-${{ matrix.config }}.json
-          cat ./synth-benchmark-${{ matrix.config }}.json
+          ./scripts/parse_benchmark_info.py -p ${{ matrix.platform }} -o synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
+          cat ./synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
 
       - uses: actions/upload-artifact@v7
         with:
-          name: synth_benchmark_results-${{ matrix.config }}
-          path: synth-benchmark-${{ matrix.config }}.json
+          name: synth_benchmark_results-${{ matrix.config }}-${{ matrix.platform }}
+          path: synth-benchmark-${{ matrix.config }}-${{ matrix.platform }}.json
 
 
   build-perf-benchmarks:
@@ -99,7 +115,7 @@ jobs:
   run-perf-benchmarks:
     name: Run performance benchmarks
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    timeout-minutes: 60
+    timeout-minutes: 120
     container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     needs: build-perf-benchmarks
     steps:
@@ -195,8 +211,7 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ github.event.pull_request.base.sha }}
           path: |
             perf_benchmark.json
-            synth-benchmark-basic.json
-            synth-benchmark-full.json
+            synth-benchmark-*.json
 
       - uses: actions/download-artifact@v8
         with:
@@ -204,12 +219,9 @@ jobs:
           path: artifacts
       - uses: actions/download-artifact@v8
         with:
-          name: synth_benchmark_results-basic
+          pattern: synth_benchmark_results-*
           path: artifacts
-      - uses: actions/download-artifact@v8
-        with:
-          name: synth_benchmark_results-full
-          path: artifacts
+          merge-multiple: true
 
       - name: Save PR number
         run: |
@@ -223,14 +235,14 @@ jobs:
           {
             echo "## Benchmarks summary"
             echo "### Performance benchmarks"
-            ci/print_benchmark_summary.py --precision 3 artifacts/perf_benchmark.json perf_benchmark.json
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 3 --results full perf_benchmark.json
             echo
             echo "You can view all the metrics [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
-            echo "### Synthesis benchmarks (basic)"
-            ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-basic.json synth-benchmark-basic.json
+            echo "### Synthesis benchmarks (ECP5)"
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-ecp5.json --results full synth-benchmark-full-ecp5.json
             echo
-            echo "### Synthesis benchmarks (full)"
-            ci/print_benchmark_summary.py --precision 0 artifacts/synth-benchmark-full.json synth-benchmark-full.json
+            echo "### Synthesis benchmarks (XC7K480T)"
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7k480t.json --results full synth-benchmark-full-xc7k480t.json
             echo
           } >> summary/comment.md
 
@@ -254,12 +266,9 @@ jobs:
           path: .
       - uses: actions/download-artifact@v8
         with:
-          name: synth_benchmark_results-basic
+          pattern: synth_benchmark_results-*
           path: .
-      - uses: actions/download-artifact@v8
-        with:
-          name: synth_benchmark_results-full
-          path: .
+          merge-multiple: true
 
       - name: Put results in a cache
         uses: actions/cache@v4
@@ -269,8 +278,7 @@ jobs:
           key: ${{ env.cache-name }}-${{ runner.os }}-${{ github.sha }}
           path: |
             perf_benchmark.json
-            synth-benchmark-basic.json
-            synth-benchmark-full.json
+            synth-benchmark-*.json
 
       - name: Store benchmark result (IPC)
         uses: benchmark-action/github-action-benchmark@v1
@@ -282,22 +290,42 @@ jobs:
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
-      - name: Store synthesis benchmark result (basic)
+      - name: Store synthesis benchmark result (basic, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Fmax and LCs (basic)
           tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-basic.json'
+          output-file-path: './synth-benchmark-basic-ecp5.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
-      - name: Store synthesis benchmark result (full)
+      - name: Store synthesis benchmark result (full, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Fmax and LCs (full)
           tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-full.json'
+          output-file-path: './synth-benchmark-full-ecp5.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (basic, XC7K480T)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (basic)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-basic-xc7k480t.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (full, XC7K480T)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (full)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-full-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
