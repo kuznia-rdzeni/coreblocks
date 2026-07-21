@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784630489429,
+  "lastUpdate": 1784630491945,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -69819,6 +69819,55 @@ window.BENCHMARK_DATA = {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 13696,
             "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f428e5c9167d14da1db5d190b3e8e5079954f4af",
+          "message": "Add Xilinx platforms to CI (#1009)",
+          "timestamp": "2026-07-21T11:47:43+02:00",
+          "tree_id": "2d3f781985e3052039c48a4b202424841659d778",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f428e5c9167d14da1db5d190b3e8e5079954f4af"
+        },
+        "date": 1784630491158,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.33,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 45147,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 13750,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 964,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
           }
         ]
       }
