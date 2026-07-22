@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784630491945,
+  "lastUpdate": 1784741801443,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25237,6 +25237,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f428e5c9167d14da1db5d190b3e8e5079954f4af"
         },
         "date": 1784630470138,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44857616856795907,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6041853293193333,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3712677795788336,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6459876726130505,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3553220513954946,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.3060445628166818,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.34319096601073346,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4458048865651619,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
+          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
+          "timestamp": "2026-07-22T18:39:55+02:00",
+          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
+        },
+        "date": 1784741790970,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
