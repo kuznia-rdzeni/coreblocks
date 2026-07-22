@@ -3,7 +3,7 @@ import itertools
 
 from amaranth.utils import ceil_log2, exact_log2
 
-from coreblocks.arch.isa import ISA
+from coreblocks.arch.isa import ISA, Extension
 from .icache_params import ICacheParameters
 from .vmem_params import VirtualMemoryParameters
 from .fu_params import extensions_supported
@@ -41,6 +41,9 @@ class GenParams(DependentCache):
             raise RuntimeError(f"Extensions {ext_partial & ~ext_full!r} are only partially supported")
 
         extensions |= cfg._implied_extensions
+        if cfg.hpm_counters_count > 0:
+            extensions |= Extension.ZIHPM
+
         self.isa = ISA(extensions, cfg.xlen)
 
         self.pma = cfg.pma
@@ -154,10 +157,6 @@ class GenParams(DependentCache):
 
         if self.hpm_counters_count < 0 or self.hpm_counters_count > 29:
             raise ValueError("HPM counters count must be in range [0, 29]")
-
-        # TODO: remove when HPM counters are implemented
-        if self.hpm_counters_count > 0:
-            raise NotImplementedError("HPM counters are currently not implemented")
 
         if self.supervisor_mode and not self.user_mode:
             raise ValueError("Supervisor mode support requires user mode support")

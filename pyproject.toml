@@ -17,10 +17,10 @@ classifiers = [
 ]
 dependencies = [
     "amaranth~=0.5.8",
-    "amaranth-stubs~=0.5.0.0",
+    "amaranth-stubs~=0.5.0.3",
     "amaranth-yosys==0.40.0.0.post100",
     "dataclasses-json==0.6.3",
-    "transactron~=0.10.0",
+    "transactron~=0.11.0",
 ]
 license = "BSD-3-Clause"
 license-files = [ "LICENSE" ]
@@ -107,4 +107,7 @@ filterwarnings = [
     "ignore:cannot collect test class 'TestbenchContext':pytest.PytestCollectionWarning",
     "ignore:cannot collect test class 'TestbenchIO':pytest.PytestCollectionWarning",
     "ignore:No files were found in testpaths:pytest.PytestConfigWarning:",
+]
+markers = [
+    "collection_order"
 ]

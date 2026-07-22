@@ -35,7 +35,7 @@ class Decode(Elaboratable):
         m = TModule()
 
         @def_method(m, self.decode)
-        def _(instr, pc, rvc, predicted_taken, access_fault, cfi_type, ftq_ptr, ftq_offset):
+        def _(instr, pc, rvc, access_fault, cfi_type, ftq_ptr, ftq_offset):
             m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
             m.d.top_comb += instr_decoder.instr.eq(instr)
 
@@ -51,7 +51,6 @@ class Decode(Elaboratable):
             jb_funct7 = Signal(from_method_layout(self.gen_params.get(JumpBranchLayouts).funct7_info))
             m.d.av_comb += [
                 jb_funct7.rvc.eq(rvc),
-                jb_funct7.predicted_taken.eq(predicted_taken),
             ]
 
             exception_override = Signal()

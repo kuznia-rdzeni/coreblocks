@@ -191,8 +191,11 @@ jobs:
           submodules: recursive
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
-        name: Trust riscv-arch-test with mise
-        run: mise trust test/external/riscv-arch-test/.mise.toml
+        name: Install mise tools for riscv-arch-test
+        working-directory: test/external/riscv-arch-test/riscv-arch-test
+        run: |
+          mise trust
+          mise install
 
       - if: ${{ steps.cache-arch-regression-tests.outputs.cache-hit != 'true' }}
         name: Build arch regression tests

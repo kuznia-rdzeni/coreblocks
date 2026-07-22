@@ -93,8 +93,8 @@ params:
       true,
       true,
       true,
-      false,
-      false,
+      true,
+      true,
       false,
       false,
       false,
@@ -174,8 +174,8 @@ params:
       false,
       false,
       false,
-      false,
-      false,
+      true,
+      true,
       false,
       false,
       false,
@@ -204,14 +204,16 @@ params:
       false,
       false,
     ]
+  # Legal mhpmeventN selector values: 0 = NO_EVENT, 1 = BRANCH_MISPREDICTION (coreblocks.arch.isa_consts.HPMEvent)
+  HPM_EVENTS: [0, 1]
   MCOUNTINHIBIT_IMPLEMENTED: false
   MCOUNTENABLE_EN:
     [
       true,
       true,
       true,
-      false,
-      false,
+      true,
+      true,
       false,
       false,
       false,
