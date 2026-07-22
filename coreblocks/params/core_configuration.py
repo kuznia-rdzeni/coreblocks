@@ -1,4 +1,4 @@
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 
 import dataclasses
 from dataclasses import dataclass, field
@@ -154,7 +154,8 @@ class _CoreConfigurationDataClass:
         ]
 
     xlen: int = 32
-    func_units_config: Collection[BlockComponentParams] = basic_configuration
+    func_units_config: Sequence[BlockComponentParams] = basic_configuration
+    announcement_config: Sequence[Collection[int]] | None = None
 
     compressed: bool = False
     zcb: bool = False

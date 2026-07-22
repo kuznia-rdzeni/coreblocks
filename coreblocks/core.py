@@ -221,9 +221,10 @@ class Core(Component):
         with Transaction().body(m):
             self.announcement_counter.incr(m, tag=sum(method.run for method in announce_result))
 
-        m.submodules.announcement_connector = CrossbarConnectTrans.create(
-            self.func_blocks_unifier.get_result, announce_result
-        )
+        for i, announcement_set in enumerate(self.gen_params.announcement_config):
+            m.submodules[f"announcement_connector_{i}"] = CrossbarConnectTrans.create(
+                [self.func_blocks_unifier.get_result[i] for i in announcement_set], announce_result[i]
+            )
 
         m.submodules.retirement = retirement = self.retirement
         retirement.rob_peek.provide(rob.peek)
