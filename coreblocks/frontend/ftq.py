@@ -71,7 +71,7 @@ class FTQReadQueue(Elaboratable):
             m.d.comb += wrport.en.eq(1)
 
         # Higher-indexed rollback ports override lower-indexed ones
-        @def_methods(m, self.rollback)
+        @def_methods(m, self.rollback, single_caller=True)
         def _(_, ftq_ptr):
             m.d.comb += read_ptr_next.eq(ftq_ptr)
 
