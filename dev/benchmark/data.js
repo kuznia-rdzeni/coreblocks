@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784741803600,
+  "lastUpdate": 1784741805775,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -69981,6 +69981,55 @@ window.BENCHMARK_DATA = {
             "name": "Block RAM used",
             "value": 5,
             "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
+          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
+          "timestamp": "2026-07-22T18:39:55+02:00",
+          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
+        },
+        "date": 1784741805370,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.98,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 59695,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4068,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3376,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13696,
+            "unit": "LUT"
           }
         ]
       }
