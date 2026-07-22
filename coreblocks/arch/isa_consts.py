@@ -25,7 +25,7 @@ __all__ = [
 
 
 @unique
-class InstrType(Enum):
+class InstrType(Enum, shape=3):
     R = 0
     I = 1  # noqa: E741
     S = 2
