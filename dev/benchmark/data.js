@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784741805775,
+  "lastUpdate": 1784741807819,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -51410,6 +51410,55 @@ window.BENCHMARK_DATA = {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8116,
             "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
+          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
+          "timestamp": "2026-07-22T18:39:55+02:00",
+          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
+        },
+        "date": 1784741807416,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.29,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 16962,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7906,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 303,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
           }
         ]
       }
