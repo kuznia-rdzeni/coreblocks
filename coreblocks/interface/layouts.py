@@ -656,9 +656,16 @@ class ICacheLayouts:
 class BranchPredictionLayouts:
     def __init__(self, gen_params: GenParams):
         fields = gen_params.get(CommonLayoutFields)
+        fetch_layouts = gen_params.get(FetchLayouts)
 
         self.request = make_layout(fields.pc, fields.ftq_ptr)
-        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr)
+        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr, ("prediction", fetch_layouts.bpu_prediction))
+        self.update = make_layout(
+            fields.pc, fields.cfi_target, fields.cfi_idx, fields.cfi_type, ("taken", 1), ("mispredict", 1)
+        )
+
+        self.predictor_request = make_layout(fields.pc)
+        self.predictor_predict = make_layout(("hit", 1), fields.cfi_target, fields.cfi_idx, fields.cfi_type)
 
 
 class FetchTargetQueueLayouts:
@@ -666,6 +673,7 @@ class FetchTargetQueueLayouts:
         fields = gen_params.get(CommonLayoutFields)
 
         self.branch_resolve = make_layout(
+            fields.ftq_ptr,
             ("from_pc", gen_params.isa.xlen),
             ("misprediction", 1),
             ("taken", 1),
