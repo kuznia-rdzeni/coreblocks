@@ -333,12 +333,16 @@ class FetchTargetQueue(Elaboratable):
             ftq_ptr_plus_one = FTQPtr(gen_params=self.gen_params)
             m.d.av_comb += ftq_ptr_plus_one.eq(FTQPtr(ftq_ptr, gen_params=self.gen_params) + 1)
 
+            log.debug(m, True, "Backend redirected to pc=0x{:x}", pc)
+
             fetch_address_unit.backend_redirect(m, pc=pc)
 
             evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="backend_redirect"))
             m.d.sync += alloc_ptr.eq(ftq_ptr_plus_one)
             pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
             prediction_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
+
+            log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
 
         @def_method(m, self.jump_target_req)
         def _(ftq_ptr):
