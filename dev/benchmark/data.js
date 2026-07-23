@@ -25410,7 +25410,7 @@ window.BENCHMARK_DATA = {
         ]
       }
     ],
-    "Fmax and LCs (basic)": [
+    "Fmax and LCs (basic, ECP5)": [
       {
         "commit": {
           "author": {
@@ -51382,55 +51382,6 @@ window.BENCHMARK_DATA = {
       {
         "commit": {
           "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "f428e5c9167d14da1db5d190b3e8e5079954f4af",
-          "message": "Add Xilinx platforms to CI (#1009)",
-          "timestamp": "2026-07-21T11:47:43+02:00",
-          "tree_id": "2d3f781985e3052039c48a4b202424841659d778",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f428e5c9167d14da1db5d190b3e8e5079954f4af"
-        },
-        "date": 1784630488644,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 51.68,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 17063,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 7906,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 303,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 3,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
             "email": "xthaid@gmail.com",
             "name": "Jakub Urbańczyk",
             "username": "xThaid"
@@ -51474,55 +51425,6 @@ window.BENCHMARK_DATA = {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8116,
             "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "xthaid@gmail.com",
-            "name": "Jakub Urbańczyk",
-            "username": "xThaid"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
-          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
-          "timestamp": "2026-07-22T18:39:55+02:00",
-          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
-        },
-        "date": 1784741807416,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 47.29,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 16962,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 7906,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 303,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 3,
-            "unit": "RAMB36E1"
           }
         ]
       },
@@ -51574,58 +51476,9 @@ window.BENCHMARK_DATA = {
             "unit": "LUT"
           }
         ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro@piotro.eu",
-            "name": "Aria Węgrzyn",
-            "username": "awariac"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "ccc992eef4d5d39f5dfff032e7dcaeb9464da081",
-          "message": "Checkpointing part 1.5: Stall control, Exception Invalidation (#1021)",
-          "timestamp": "2026-07-23T10:03:23+02:00",
-          "tree_id": "defb381114b87446ac843e46e71e8064ce7a233b",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ccc992eef4d5d39f5dfff032e7dcaeb9464da081"
-        },
-        "date": 1784797253262,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 52.28,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 17277,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 7937,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 300,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 3,
-            "unit": "RAMB36E1"
-          }
-        ]
       }
     ],
-    "Fmax and LCs (full)": [
+    "Fmax and LCs (full, ECP5)": [
       {
         "commit": {
           "author": {
@@ -70149,6 +70002,255 @@ window.BENCHMARK_DATA = {
       {
         "commit": {
           "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
+          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
+          "timestamp": "2026-07-22T18:39:55+02:00",
+          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
+        },
+        "date": 1784741805370,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.98,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 59695,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4068,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3376,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13696,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ccc992eef4d5d39f5dfff032e7dcaeb9464da081",
+          "message": "Checkpointing part 1.5: Stall control, Exception Invalidation (#1021)",
+          "timestamp": "2026-07-23T10:03:23+02:00",
+          "tree_id": "defb381114b87446ac843e46e71e8064ce7a233b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ccc992eef4d5d39f5dfff032e7dcaeb9464da081"
+        },
+        "date": 1784797250618,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 37.16,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 59909,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4100,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3428,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13733,
+            "unit": "LUT"
+          }
+        ]
+      }
+    ],
+    "Fmax and LCs (basic, XC7K480T)": [
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f428e5c9167d14da1db5d190b3e8e5079954f4af",
+          "message": "Add Xilinx platforms to CI (#1009)",
+          "timestamp": "2026-07-21T11:47:43+02:00",
+          "tree_id": "2d3f781985e3052039c48a4b202424841659d778",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/f428e5c9167d14da1db5d190b3e8e5079954f4af"
+        },
+        "date": 1784630488644,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 51.68,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17063,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7906,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 303,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
+          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
+          "timestamp": "2026-07-22T18:39:55+02:00",
+          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
+        },
+        "date": 1784741807416,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.29,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 16962,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7906,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 303,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ccc992eef4d5d39f5dfff032e7dcaeb9464da081",
+          "message": "Checkpointing part 1.5: Stall control, Exception Invalidation (#1021)",
+          "timestamp": "2026-07-23T10:03:23+02:00",
+          "tree_id": "defb381114b87446ac843e46e71e8064ce7a233b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ccc992eef4d5d39f5dfff032e7dcaeb9464da081"
+        },
+        "date": 1784797253262,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 52.28,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17277,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7937,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 300,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      }
+    ],
+    "Fmax and LCs (full, XC7K480T)": [
+      {
+        "commit": {
+          "author": {
             "email": "tilk@tilk.eu",
             "name": "Marek Materzok",
             "username": "tilk"
@@ -70214,55 +70316,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
         },
-        "date": 1784741805370,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 38.98,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 59695,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 4068,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 3376,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 13696,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "xthaid@gmail.com",
-            "name": "Jakub Urbańczyk",
-            "username": "xThaid"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "42af82b5785d7b2c369187afc3b510803aba442b",
-          "message": "benchmarks: upload Kanata pipeline logs as an artifact (#1029)",
-          "timestamp": "2026-07-22T18:39:55+02:00",
-          "tree_id": "2b01b43d2bfa455282f4199cf0277a7b873023b6",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/42af82b5785d7b2c369187afc3b510803aba442b"
-        },
         "date": 1784741809448,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -70290,55 +70343,6 @@ window.BENCHMARK_DATA = {
             "name": "Block RAM used",
             "value": 5,
             "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "piotro@piotro.eu",
-            "name": "Aria Węgrzyn",
-            "username": "awariac"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "ccc992eef4d5d39f5dfff032e7dcaeb9464da081",
-          "message": "Checkpointing part 1.5: Stall control, Exception Invalidation (#1021)",
-          "timestamp": "2026-07-23T10:03:23+02:00",
-          "tree_id": "defb381114b87446ac843e46e71e8064ce7a233b",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ccc992eef4d5d39f5dfff032e7dcaeb9464da081"
-        },
-        "date": 1784797250618,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 37.16,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 59909,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 4100,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 3428,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 13733,
-            "unit": "LUT"
           }
         ]
       },
