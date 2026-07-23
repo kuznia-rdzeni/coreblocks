@@ -97,6 +97,7 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.__init__"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.flush"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.flush</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.request"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.request</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.update"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.update</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.write_prediction"><code class="docutils literal notranslate"><span class="pre">BranchPredictionUnit.write_prediction</span></code></a></li>
 </ul>
 </li>
@@ -325,12 +326,14 @@ but this is needed to differentiate from instructions that left <cite>Frontend</
 <section id="module-coreblocks.frontend.ftq">
 <span id="coreblocks-frontend-ftq-module"></span><h2>coreblocks.frontend.ftq module<a class="headerlink" href="#module-coreblocks.frontend.ftq" title="Link to this heading"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FTQMemoryWrapper">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.ftq.</span></span><span class="sig-name descname"><span class="pre">FTQMemoryWrapper</span></span><a class="headerlink" href="#coreblocks.frontend.ftq.FTQMemoryWrapper" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FTQReadQueue">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.ftq.</span></span><span class="sig-name descname"><span class="pre">FTQReadQueue</span></span><a class="headerlink" href="#coreblocks.frontend.ftq.FTQReadQueue" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>A memory indexed by FTQ pointer, with random-access writes and an internal read pointer
+that pops entries in FTQ order.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FTQMemoryWrapper.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.Layout" title="(in Amaranth language &amp; toolchain v0.6.0.dev133)"><span class="pre">Layout</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.ftq.FTQMemoryWrapper.__init__" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FTQReadQueue.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">layout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.Layout" title="(in Amaranth language &amp; toolchain v0.6.0.dev133)"><span class="pre">Layout</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rollback_ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.ftq.FTQReadQueue.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -341,8 +344,8 @@ but this is needed to differentiate from instructions that left <cite>Frontend</
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
 <p>Tracks speculative fetch targets in a circular buffer indexed by FTQ pointer.
 Each entry represents one fetch block: the FTQ allocates an entry per fetch, sends the PC to
-both the IFU and BPU, and advances the fetch pointer. Entries are freed at retirement via
-<code class="docutils literal notranslate"><span class="pre">commit</span></code> and the buffer stalls allocation when full.</p>
+both the IFU and BPU, and advances the fetch pointer. Entries are freed once the training
+stream has consumed them; the buffer stalls allocation when full.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.__init__" title="Link to this definition"></a></dt>
@@ -370,6 +373,12 @@ both the IFU and BPU, and advances the fetch pointer. Entries are freed at retir
 <dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.bpu_response">
 <span class="sig-name descname"><span class="pre">bpu_response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.bpu_response" title="Link to this definition"></a></dt>
 <dd><p>Accept a branch prediction result and supply the predicted next PC to the FAU.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.bpu_update">
+<span class="sig-name descname"><span class="pre">bpu_update</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.bpu_update" title="Link to this definition"></a></dt>
+<dd><p>Train the branch predictor with a resolved branch.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -501,7 +510,7 @@ difficult to handle side effects) instruction was just fetched.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 12:17 2026-07-23.
+      <span class="lastupdated">Last updated on 13:25 2026-07-23.
       </span></p>
   </div>
 
