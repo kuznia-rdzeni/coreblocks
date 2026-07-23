@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784816606978,
+  "lastUpdate": 1784816610122,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -70857,6 +70857,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 966,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8443ea8cc24d48e2faa5cbd597cbdf74472c9811",
+          "message": "FTQ: prediction and training plumbing (#1025)",
+          "timestamp": "2026-07-23T15:24:23+02:00",
+          "tree_id": "22fe763fc0eb011f56275f1d86d949aa78cd1127",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8443ea8cc24d48e2faa5cbd597cbdf74472c9811"
+        },
+        "date": 1784816609665,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 36.96,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 44901,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 13801,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 975,
             "unit": "Slice"
           },
           {
