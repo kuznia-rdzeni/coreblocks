@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784812419307,
+  "lastUpdate": 1784812421962,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -70389,6 +70389,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 17277,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7937,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 300,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a5de0e6a9e58b74a1d317e29cf71b8e9684fbe37",
+          "message": "Fix benchmark graphs for Xilinx (#1031)",
+          "timestamp": "2026-07-23T14:16:01+02:00",
+          "tree_id": "6cf59aba65643ada14df6e9911660ae0482d740c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a5de0e6a9e58b74a1d317e29cf71b8e9684fbe37"
+        },
+        "date": 1784812421111,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.43,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17189,
             "unit": "LUT"
           },
           {
