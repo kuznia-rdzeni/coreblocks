@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784812416922,
+  "lastUpdate": 1784812419307,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -70191,6 +70191,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 59909,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4100,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3428,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13733,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a5de0e6a9e58b74a1d317e29cf71b8e9684fbe37",
+          "message": "Fix benchmark graphs for Xilinx (#1031)",
+          "timestamp": "2026-07-23T14:16:01+02:00",
+          "tree_id": "6cf59aba65643ada14df6e9911660ae0482d740c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a5de0e6a9e58b74a1d317e29cf71b8e9684fbe37"
+        },
+        "date": 1784812418502,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 37.65,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 56440,
             "unit": "LUT4"
           },
           {
