@@ -145,6 +145,7 @@ class CoreFrontend(Elaboratable):
 
         self.ftq.bpu_request.provide(self.bpu.request)
         self.ftq.bpu_flush.provide(self.bpu.flush)
+        self.ftq.bpu_update.provide(self.bpu.update)
         self.ftq.stall_guard.provide(self.stall_ctrl.stall_guard)
         self.bpu.write_prediction.provide(self.ftq.bpu_response)
 
