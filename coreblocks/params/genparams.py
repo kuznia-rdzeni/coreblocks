@@ -169,6 +169,8 @@ class GenParams(DependentCache):
 
         self.multiport_memory_type = cfg.multiport_memory_type
 
+        self.has_rvvi = cfg.with_rvvi
+
     @property
     def isa_short_str(self) -> str:
         return self.isa.gen_str(skip_internal=True, skip_implied=True)

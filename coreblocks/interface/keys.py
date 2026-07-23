@@ -12,6 +12,7 @@ from amaranth import Signal
 if TYPE_CHECKING:
     from coreblocks.priv.csr.csr_instances import CSRInstances  # noqa: F401
     from coreblocks.priv.vmem.iface import TLBBackingDevice  # noqa: F401
+    from coreblocks.telemetry.rvvi import RVVIHartCollector  # noqa: F401
 
 __all__ = [
     "CommonBusDataKey",
@@ -35,6 +36,7 @@ __all__ = [
     "RollbackKey",
     "InstructionTaggedCounterKey",
     "ActiveTagsKey",
+    "RVVIHartCollectorKey",
 ]
 
 
@@ -175,5 +177,9 @@ class ActiveTagsKey(SimpleKey[Method]):
     Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path or if its
     effects should be ignored.
     """
+    pass
 
+
+@dataclass(frozen=True)
+class RVVIHartCollectorKey(SimpleKey["RVVIHartCollector"]):
     pass
