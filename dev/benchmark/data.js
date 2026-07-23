@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784812424458,
+  "lastUpdate": 1784816599326,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25429,6 +25429,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a5de0e6a9e58b74a1d317e29cf71b8e9684fbe37"
         },
         "date": 1784812402674,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44844731541673366,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5951740300321152,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3661826587675101,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6450701307924483,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35531157138749,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30097743800508947,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3402741852043456,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4437417112544016,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8443ea8cc24d48e2faa5cbd597cbdf74472c9811",
+          "message": "FTQ: prediction and training plumbing (#1025)",
+          "timestamp": "2026-07-23T15:24:23+02:00",
+          "tree_id": "22fe763fc0eb011f56275f1d86d949aa78cd1127",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8443ea8cc24d48e2faa5cbd597cbdf74472c9811"
+        },
+        "date": 1784816588554,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
