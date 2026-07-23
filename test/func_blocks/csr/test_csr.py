@@ -9,7 +9,12 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts, CSRRegisterLayouts
+from coreblocks.interface.layouts import (
+    ExceptionInformationRegisterLayouts,
+    RetirementLayouts,
+    FetchLayouts,
+    CSRRegisterLayouts,
+)
 from coreblocks.interface.keys import (
     AsyncInterruptInsertSignalKey,
     CoreStateKey,
@@ -45,7 +50,7 @@ class CSRUnitTestCircuit(Elaboratable):
             Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen_params.get(ExceptionInformationRegisterLayouts).report)
         )
         DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
@@ -279,7 +284,7 @@ class TestCSRUnit(TestCSRUnitBase):
             assert report is not None
             report_dict = data_const_to_dict(report)
             report_dict.pop("mtval")  # mtval tested in mtval.asm test
-            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
+            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0, "tag": 0} == report_dict
 
     def test_exception(self):
         self.gen_params = GenParams(configurations.test)
@@ -338,7 +343,7 @@ class TestCSRUnit(TestCSRUnitBase):
                 assert report is not None
                 report_dict = data_const_to_dict(report)
                 report_dict.pop("mtval")
-                assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
+                assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0, "tag": 0} == report_dict
             else:
                 assert report is None
 

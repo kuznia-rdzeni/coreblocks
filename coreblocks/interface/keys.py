@@ -34,6 +34,7 @@ __all__ = [
     "FTQCommitKey",
     "RollbackKey",
     "InstructionTaggedCounterKey",
+    "ActiveTagsKey",
 ]
 
 
@@ -163,6 +164,16 @@ class InstructionTaggedCounterKey(ListKey[tuple[str, Method]]):
     Collects methods called on instruction issue, paired with FU name.
     The method must have a tag argument, which will be passed to a `TaggedCounter`.
     A separate counter will be created for different tag types.
+    """
+
+    pass
+
+
+@dataclass(frozen=True)
+class ActiveTagsKey(SimpleKey[Method]):
+    """
+    Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path or if its
+    effects should be ignored.
     """
 
     pass
