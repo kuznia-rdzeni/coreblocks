@@ -1136,8 +1136,8 @@
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend"><code class="docutils literal notranslate"><span class="pre">CoreFrontend</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.__init__"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.consume_instr"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.consume_instr</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.resume_from_exception"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.resume_from_exception</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.stall"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.stall</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.get_exception_information"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.get_exception_information</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.CoreFrontend.redirect"><code class="docutils literal notranslate"><span class="pre">CoreFrontend.redirect</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.frontend.RollbackTagger"><code class="docutils literal notranslate"><span class="pre">RollbackTagger</span></code></a><ul>
@@ -1186,9 +1186,10 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.html#module-coreblocks.frontend.stall_controller">coreblocks.frontend.stall_controller module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController"><code class="docutils literal notranslate"><span class="pre">StallController</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.__init__"><code class="docutils literal notranslate"><span class="pre">StallController.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.frontend_flush"><code class="docutils literal notranslate"><span class="pre">StallController.frontend_flush</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.get_exception_information"><code class="docutils literal notranslate"><span class="pre">StallController.get_exception_information</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.redirect_frontend"><code class="docutils literal notranslate"><span class="pre">StallController.redirect_frontend</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.resume_from_exception"><code class="docutils literal notranslate"><span class="pre">StallController.resume_from_exception</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.stall_exception"><code class="docutils literal notranslate"><span class="pre">StallController.stall_exception</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.stall_guard"><code class="docutils literal notranslate"><span class="pre">StallController.stall_guard</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.stall_controller.StallController.stall_unsafe"><code class="docutils literal notranslate"><span class="pre">StallController.stall_unsafe</span></code></a></li>
 </ul>
@@ -1734,7 +1735,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 16:40 2026-07-22.
+      <span class="lastupdated">Last updated on 08:04 2026-07-23.
       </span></p>
   </div>
 
