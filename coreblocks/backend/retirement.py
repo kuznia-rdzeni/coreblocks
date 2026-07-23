@@ -3,7 +3,7 @@ from amaranth.lib.data import View
 from transactron.utils import count_trailing_zeros, or_value
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
-    ExceptionRegisterLayouts,
+    ExceptionInformationRegisterLayouts,
     FetchLayouts,
     InternalInterruptControllerLayouts,
     RATLayouts,
@@ -60,10 +60,10 @@ class Retirement(Elaboratable):
         )
         self.free_rf_put = Methods(gen_params.retirement_superscalarity, i=[("ident", range(gen_params.phys_regs))])
         self.rf_free = Methods(gen_params.retirement_superscalarity, i=gen_params.get(RFLayouts).rf_free)
-        self.exception_cause_get = Method(o=gen_params.get(ExceptionRegisterLayouts).get)
+        self.exception_cause_get = Method(o=gen_params.get(ExceptionInformationRegisterLayouts).get)
         self.exception_cause_clear = Method()
         self.c_rat_restore = Method(i=gen_params.get(RATLayouts).crat_flush_restore_in)
-        self.fetch_continue = Method(i=self.gen_params.get(FetchLayouts).backend_redirect)
+        self.fetch_redirect = Method(i=self.gen_params.get(FetchLayouts).backend_redirect)
         self.instr_decrement = Method(
             i=gen_params.get(CoreInstructionCounterLayouts).decrement_in,
             o=gen_params.get(CoreInstructionCounterLayouts).decrement_out,
@@ -187,7 +187,9 @@ class Retirement(Elaboratable):
             exception_rob_id = or_value(
                 Mux(exception_one_hot[i], rob_entry.rob_id, 0) for i, rob_entry in enumerate(rob_entries.entries)
             )
-            m.d.av_comb += retire_valid.eq(Mux(exception, ecr_entry.valid & (ecr_entry.rob_id == exception_rob_id), 1))
+            m.d.av_comb += retire_valid.eq(
+                Mux(exception, ecr_entry.valid & (ecr_entry.data.rob_id == exception_rob_id), 1)
+            )
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -201,14 +203,13 @@ class Retirement(Elaboratable):
 
                     commit_trapping = Signal()
 
-                    cause_register = self.exception_cause_get(m)
+                    cause_register = self.exception_cause_get(m).data
+                    arch_trap = Signal(init=1)
 
                     with m.If(exception):
                         self.perf_trap_latency.start(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
-
-                        arch_trap = Signal(init=1)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
@@ -352,9 +353,9 @@ class Retirement(Elaboratable):
                     resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
                     m.d.sync += continue_pc_override.eq(0)
 
-                    self.fetch_continue(m, ftq_ptr=ftq_commit_ptr, pc=resume_pc)
+                    self.fetch_redirect(m, ftq_ptr=ftq_commit_ptr, pc=resume_pc)
 
-                    # Release pending trap state - allow accepting new reports
+                    # Release pending trap state - allow accepting new reports and unstall fetch
                     self.exception_cause_clear(m)
 
                     m.next = "NORMAL"

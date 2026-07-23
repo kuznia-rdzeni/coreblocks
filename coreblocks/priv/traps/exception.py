@@ -1,75 +1,47 @@
 from amaranth import *
+from transactron import Provided, Transaction
 from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.genparams import GenParams
 
-from coreblocks.arch import ExceptionCause
-from coreblocks.interface.layouts import ExceptionRegisterLayouts
-from coreblocks.interface.keys import ExceptionReportKey
-from transactron.core import TModule, def_method, Method
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, ROBLayouts
+from coreblocks.interface.keys import ActiveTagsKey, ExceptionReportKey
+from transactron.core import Required, TModule, def_method, Method
 from transactron.lib.connectors import ConnectTrans
 from transactron.lib.fifo import BasicFifo
-
-
-# NOTE: This function is not used in ExceptionCauseRegister, but may be useful in computing priorities before reporting
-def should_update_priority(m: TModule, current_cause: Value, new_cause: Value) -> Value:
-    # Comparing all priorities would be expensive, this function only checks conditions that could happen in hardware
-    _update = Signal()
-
-    # All breakpoint kinds have the highest priority in conflicting cases
-    with m.If(new_cause == ExceptionCause.BREAKPOINT):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        ((new_cause == ExceptionCause.INSTRUCTION_PAGE_FAULT) | (new_cause == ExceptionCause.INSTRUCTION_ACCESS_FAULT))
-        & (current_cause != ExceptionCause.BREAKPOINT)
-    ):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        (new_cause == ExceptionCause.LOAD_ADDRESS_MISALIGNED)
-        & ((current_cause == ExceptionCause.LOAD_ACCESS_FAULT) | (current_cause == ExceptionCause.LOAD_PAGE_FAULT))
-    ):
-        m.d.comb += _update.eq(1)
-
-    with m.If(
-        (new_cause == ExceptionCause.STORE_ADDRESS_MISALIGNED)
-        & ((current_cause == ExceptionCause.STORE_ACCESS_FAULT) | (current_cause == ExceptionCause.STORE_PAGE_FAULT))
-    ):
-        m.d.comb += _update.eq(1)
-
-    return _update
 
 
 class ExceptionInformationRegister(Elaboratable):
     """ExceptionInformationRegister
 
-    Stores parameters of earliest (in instruction order) exception, to save resources in the `ReorderBuffer`.
-    All FUs that report exceptions should `report` the details to `ExceptionCauseRegister` and set `exception` bit in
-    result data. Exception order is computed in this module. Only one exception can be reported for single instruction,
-    exception priorities should be computed locally before calling report.
+    Stores parameters of oldest (in instruction order) exception, to save resources in the `ReorderBuffer`.
+    All FUs that report exceptions should `report` the details to `ExceptionInformationRegister` and set `exception` bit
+    in result data. Exception order is computed in this module. Only one exception can be reported for single
+    instruction, exception priorities should be computed locally before calling report.
     If `exception` bit is set in the ROB, `Retirement` stage fetches exception details from this module.
+    It will automatically track when a tag is invalidated to keep only data from a current speculation path.
     """
 
-    def __init__(self, gen_params: GenParams, rob_get_indices: Method, fetch_stall_exception: Method):
+    get: Provided[Method]
+    report: Provided[Method]
+    rob_get_indices: Required[Method]
+
+    def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
 
-        self.cause = Signal(ExceptionCause)
-        self.rob_id = Signal(gen_params.rob_entries_bits)
-        self.pc = Signal(gen_params.isa.xlen)
-        self.mtval = Signal(gen_params.isa.xlen)
-        self.valid = Signal()
+        self.layouts = gen_params.get(ExceptionInformationRegisterLayouts)
 
-        self.layouts = gen_params.get(ExceptionRegisterLayouts)
+        self.data = Signal(self.layouts.data)
+        self.valid = Signal()
 
         self.report = Method(i=self.layouts.report)
 
-        self.clears: list[Method] = []
+        self._clears: list[Method] = []
 
         # Break long combinational paths from single-cycle FUs
         def call_report():
             report_fifo = BasicFifo(self.layouts.report, 2)
             report_connector = ConnectTrans.create(report_fifo.read, self.report)
-            self.clears.append(report_fifo.clear)
+            self._clears.append(report_fifo.clear)
             added = False
 
             def call(m: TModule, **kwargs):
@@ -81,55 +53,56 @@ class ExceptionInformationRegister(Elaboratable):
 
             return call
 
-        dm = DependencyContext.get()
-        dm.add_dependency(ExceptionReportKey(), call_report)
+        self.dm = DependencyContext.get()
+        self.dm.add_dependency(ExceptionReportKey(), call_report)
 
         self.get = Method(o=self.layouts.get)
 
         self.clear = Method()
 
-        self.rob_get_indices = rob_get_indices
-        self.fetch_stall_exception = fetch_stall_exception
+        self.rob_get_indices = Method(o=gen_params.get(ROBLayouts).get_indices)
 
     def elaborate(self, platform):
         m = TModule()
 
+        with Transaction().body(m):
+            active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
+
+        with m.If(~active_tags[self.data.tag]):
+            # If stored exception got invalidated (rolled-back):
+            # rollbacks disard suffix of instructions - it means there was no reported exception
+            # on any older instruction, and all younger ones are discarded. We can safely remove the entry.
+            m.d.sync += self.valid.eq(0)
+
         @def_method(m, self.report)
-        def _(cause, rob_id, pc, mtval):
+        def _(arg):
             should_write = Signal()
 
-            with m.If(self.valid & (self.rob_id == rob_id)):
+            with m.If(~active_tags[arg.tag] | (self.valid & (arg.rob_id == self.data.rob_id))):
                 # entry for the same rob_id cannot be overwritten, because its update couldn't be validated
                 # in Retirement.
                 m.d.comb += should_write.eq(0)
             with m.Elif(self.valid):
                 rob_start_idx = self.rob_get_indices(m).start
                 m.d.comb += should_write.eq(
-                    (rob_id - rob_start_idx).as_unsigned() < (self.rob_id - rob_start_idx).as_unsigned()
+                    (arg.rob_id - rob_start_idx).as_unsigned() < (self.data.rob_id - rob_start_idx).as_unsigned()
                 )
             with m.Else():
                 m.d.comb += should_write.eq(1)
 
             with m.If(should_write):
-                m.d.sync += self.rob_id.eq(rob_id)
-                m.d.sync += self.cause.eq(cause)
-                m.d.sync += self.pc.eq(pc)
-                m.d.sync += self.mtval.eq(mtval)
-
-            m.d.sync += self.valid.eq(1)
-
-            # In case of any reported exception, core will need to be flushed. Fetch can be stalled immediately
-            self.fetch_stall_exception(m)
+                m.d.sync += self.data.eq(arg)
+                m.d.sync += self.valid.eq(1)
 
         @def_method(m, self.get, nonexclusive=True)
         def _():
-            return {"rob_id": self.rob_id, "cause": self.cause, "pc": self.pc, "mtval": self.mtval, "valid": self.valid}
+            return {"data": self.data, "valid": self.valid}
 
         @def_method(m, self.clear)
         def _():
             m.d.sync += self.valid.eq(0)
-            for clear in self.clears:
+            for clear in self._clears:
                 clear(m)
-            del self.clears  # exception will be raised if new fifos are created later
+            del self._clears  # exception will be raised if new fifos are created later
 
         return m

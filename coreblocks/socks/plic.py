@@ -11,7 +11,7 @@ from coreblocks.socks.peripheral import (
     SocksPeripheral,
     convert_to_wishbone_addr,
     gen_memory_mapped_register,
-    is_perpiheral_request,
+    is_peripheral_request,
 )
 
 __all__ = [
@@ -76,7 +76,7 @@ class PlicPeriph(Component, SocksPeripheral):
         context_treshold = Array([Signal(self.priority_bits) for _ in range(self.context_count)])
         interrupt_priority = Array([Signal(self.priority_bits) for _ in range(self.interrupt_count)])
 
-        with m.If(is_perpiheral_request(self)):
+        with m.If(is_peripheral_request(self)):
             m.d.comb += self.bus.err.eq(1)  # default - overwritten by memory mapped registers declaration
             m.d.comb += self.bus.ack.eq(0)
 
@@ -131,7 +131,7 @@ class PlicPeriph(Component, SocksPeripheral):
                 self.bus,
                 self.base_addr + OFFSET_CONTEXT_REGS + context * CONTEXT_REGS_SIZE + OFFSET_CONTEXT_INTERRUPT_CLAIM,
             )
-            with m.If(is_perpiheral_request(self) & (self.bus.adr == claim_addr)):
+            with m.If(is_peripheral_request(self) & (self.bus.adr == claim_addr)):
                 m.d.comb += assign(
                     claim_complete_for_context,
                     {

@@ -60,6 +60,7 @@ class CircularBufferPointer(data.View):
 
     @staticmethod
     def queue_size(enqueue_ptr: "CircularBufferPointer", dequeue_ptr: "CircularBufferPointer") -> Value:
-        return (enqueue_ptr.ptr - dequeue_ptr.ptr).as_unsigned()[: enqueue_ptr.layout.ptr_width] + (
-            enqueue_ptr.parity ^ dequeue_ptr.parity
+        return Cat(
+            (enqueue_ptr.ptr - dequeue_ptr.ptr).as_unsigned()[: enqueue_ptr.layout.ptr_width],
+            (enqueue_ptr.ptr == dequeue_ptr.ptr) & (enqueue_ptr.parity ^ dequeue_ptr.parity),
         )

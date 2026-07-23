@@ -10,6 +10,7 @@ from transactron.testing import (
 )
 from transactron.testing.method_mock import MethodMock
 
+from coreblocks.arch import CfiType
 from coreblocks.frontend.ftq import FetchTargetQueue
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
@@ -22,6 +23,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         self.gen_params = GenParams(configurations.test.replace(start_pc=self.start_pc))
         self.ifu_requests: deque = deque()
         self.bpu_requests: deque = deque()
+        self.bpu_updates: deque = deque()
         self.bpu_flush_count: int = 0
 
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
@@ -35,6 +37,21 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         @MethodMock.effect
         def eff():
             self.bpu_flush_count += 1
+
+    @def_method_mock(lambda self: self.ftq.bpu_update)
+    def bpu_update_mock(self, pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+        @MethodMock.effect
+        def eff():
+            self.bpu_updates.append(
+                {
+                    "pc": pc,
+                    "cfi_target": cfi_target,
+                    "cfi_idx": cfi_idx,
+                    "cfi_type": cfi_type,
+                    "taken": taken,
+                    "mispredict": mispredict,
+                }
+            )
 
     @def_method_mock(lambda self: self.ftq.bpu_request)
     def bpu_request_mock(self, pc, ftq_ptr):
@@ -261,6 +278,10 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
     def bpu_flush_mock(self):
         pass
 
+    @def_method_mock(lambda self: self.ftq.bpu_update)
+    def bpu_update_mock(self, pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+        pass
+
     @def_method_mock(lambda self: self.ftq.bpu_request)
     def bpu_request_mock(self, pc, ftq_ptr):
         @MethodMock.effect
@@ -303,6 +324,139 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
             for _ in range(5):
                 await sim.tick()
             assert len(self.ifu_requests) == ftq_size + 1
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+
+class TestFetchTargetQueueTrain(TestCaseWithSimulator):
+    @pytest.fixture(autouse=True)
+    def setup(self, fixture_initialize_testing_env):
+        self.start_pc = 0x100
+        # 4-instruction fetch blocks so CFI indices distinguish resolves within a block
+        self.gen_params = GenParams(configurations.test.replace(start_pc=self.start_pc, fetch_block_bytes_log=4))
+        self.bpu_requests: deque = deque()
+        self.bpu_updates: deque = deque()
+
+        self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+
+    @def_method_mock(lambda self: self.ftq.stall_guard)
+    def stall_guard_mock(self):
+        pass
+
+    @def_method_mock(lambda self: self.ftq.bpu_flush)
+    def bpu_flush_mock(self):
+        pass
+
+    @def_method_mock(lambda self: self.ftq.bpu_request)
+    def bpu_request_mock(self, pc, ftq_ptr):
+        @MethodMock.effect
+        def eff():
+            self.bpu_requests.append(pc)
+
+    @def_method_mock(lambda self: self.ftq.ifu_request)
+    def ifu_request_mock(self, pc, ftq_ptr, fetch_gen):
+        pass
+
+    @def_method_mock(lambda self: self.ftq.bpu_update)
+    def bpu_update_mock(self, pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+        @MethodMock.effect
+        def eff():
+            self.bpu_updates.append(
+                {
+                    "pc": pc,
+                    "cfi_target": cfi_target,
+                    "cfi_idx": cfi_idx,
+                    "cfi_type": cfi_type,
+                    "taken": taken,
+                    "mispredict": mispredict,
+                }
+            )
+
+    async def auto_bpu_process(self, sim: ProcessContext):
+        while True:
+            if self.bpu_requests:
+                pc = self.bpu_requests.popleft()
+                await self.ftq.bpu_response.call(sim, pc=pc + 16, ftq_ptr={"ptr": 0, "parity": 0})
+            else:
+                await sim.tick()
+
+    async def resolve(self, sim: TestbenchContext, cfi_idx: int, misprediction: int, taken: int, cfi_target: int):
+        await self.ftq.resolve.call(
+            sim,
+            ftq_ptr={"ptr": 0, "parity": 0},
+            from_pc=self.start_pc,
+            misprediction=misprediction,
+            taken=taken,
+            cfi_idx=cfi_idx,
+            cfi_type=CfiType.BRANCH,
+            cfi_target=cfi_target,
+        )
+
+    async def commit_and_get_update(self, sim: TestbenchContext) -> dict:
+        await self.ftq.commit.call(sim, ftq_ptr={"ptr": 1, "parity": 0})
+        for _ in range(5):
+            await sim.tick()
+        assert len(self.bpu_updates) == 1
+        return self.bpu_updates[0]
+
+    def test_train_sends_resolved_record_after_commit(self):
+        async def proc(sim: TestbenchContext):
+            await self.resolve(sim, cfi_idx=2, misprediction=0, taken=1, cfi_target=0x180)
+            assert len(self.bpu_updates) == 0
+
+            update = await self.commit_and_get_update(sim)
+            assert update["pc"] == self.start_pc
+            assert update["cfi_target"] == 0x180
+            assert update["cfi_idx"] == 2
+            assert update["cfi_type"] == CfiType.BRANCH
+            assert update["taken"] == 1
+            assert update["mispredict"] == 0
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_unresolved_entry_trains_nothing(self):
+        async def proc(sim: TestbenchContext):
+            await self.ftq.commit.call(sim, ftq_ptr={"ptr": 1, "parity": 0})
+            for _ in range(5):
+                await sim.tick()
+            assert len(self.bpu_updates) == 0
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_resolve_keeps_furthest_cfi_without_mispredict(self):
+        async def proc(sim: TestbenchContext):
+            await self.resolve(sim, cfi_idx=1, misprediction=0, taken=0, cfi_target=0x180)
+            await self.resolve(sim, cfi_idx=0, misprediction=0, taken=0, cfi_target=0x190)
+            await self.resolve(sim, cfi_idx=3, misprediction=0, taken=1, cfi_target=0x1A0)
+
+            update = await self.commit_and_get_update(sim)
+            assert update["cfi_idx"] == 3
+            assert update["cfi_target"] == 0x1A0
+            assert update["taken"] == 1
+            assert update["mispredict"] == 0
+
+        with self.run_simulation(self.ftq) as sim:
+            sim.add_process(self.auto_bpu_process)
+            sim.add_testbench(proc)
+
+    def test_resolve_keeps_oldest_mispredicting_cfi(self):
+        async def proc(sim: TestbenchContext):
+            await self.resolve(sim, cfi_idx=3, misprediction=0, taken=0, cfi_target=0x180)
+            await self.resolve(sim, cfi_idx=1, misprediction=1, taken=1, cfi_target=0x300)
+            await self.resolve(sim, cfi_idx=2, misprediction=1, taken=1, cfi_target=0x400)
+            await self.resolve(sim, cfi_idx=3, misprediction=0, taken=1, cfi_target=0x500)
+
+            update = await self.commit_and_get_update(sim)
+            assert update["cfi_idx"] == 1
+            assert update["cfi_target"] == 0x300
+            assert update["taken"] == 1
+            assert update["mispredict"] == 1
 
         with self.run_simulation(self.ftq) as sim:
             sim.add_process(self.auto_bpu_process)
