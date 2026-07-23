@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784797251400,
+  "lastUpdate": 1784797254021,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -51572,6 +51572,55 @@ window.BENCHMARK_DATA = {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8155,
             "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ccc992eef4d5d39f5dfff032e7dcaeb9464da081",
+          "message": "Checkpointing part 1.5: Stall control, Exception Invalidation (#1021)",
+          "timestamp": "2026-07-23T10:03:23+02:00",
+          "tree_id": "defb381114b87446ac843e46e71e8064ce7a233b",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ccc992eef4d5d39f5dfff032e7dcaeb9464da081"
+        },
+        "date": 1784797253262,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 52.28,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17277,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7937,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 300,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
           }
         ]
       }
