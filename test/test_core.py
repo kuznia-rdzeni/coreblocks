@@ -479,11 +479,11 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
             self.TraceItem(0x02, 0x4085, (1, 0x1)),  # c.li x1, 1
             self.TraceItem(0x04, 0x00209113, (2, 0x4)),  # slli x2, x1, 2
             self.TraceItem(0x08, 0x00417193, (3, 0x4)),  # andi x3, x2, 0x4
-            self.TraceItem(0x0c, 0x00019363),  # bnez x3, 0x12 [continue]
+            self.TraceItem(0x0C, 0x00019363),  # bnez x3, 0x12 [continue]
             self.TraceItem(0x12, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0(x0)
-            self.TraceItem(0x16, 0xa001),  # c.j 0x1c [loop]
-            self.TraceItem(0x16, 0xa001),  # c.j 0x1c [loop]
-            self.TraceItem(0x16, 0xa001),  # c.j 0x1c [loop]
+            self.TraceItem(0x16, 0xA001),  # c.j 0x1c [loop]
+            self.TraceItem(0x16, 0xA001),  # c.j 0x1c [loop]
+            self.TraceItem(0x16, 0xA001),  # c.j 0x1c [loop]
         ]
 
         async def run_and_check_rvvi(sim: TestbenchContext):
@@ -515,9 +515,7 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
 
         bin_src = self.prepare_source("rvvi.asm", c_extension=True)
 
-        self.m = CoreTestElaboratable(
-            self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"]
-        )
+        self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(run_and_check_rvvi)

@@ -177,6 +177,7 @@ class ActiveTagsKey(SimpleKey[Method]):
     Provides `CRAT.get_active_tags` method, to check if instruction is on active speculation path or if its
     effects should be ignored.
     """
+
     pass
 
 
