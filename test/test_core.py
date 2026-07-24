@@ -460,7 +460,11 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
     exit_csr: bool = False
 
     def setup_method(self):
-        self.configuration = configurations.tiny.replace(_generate_test_hardware=True, with_rvvi=True)
+        self.configuration = configurations.tiny.replace(
+            _generate_test_hardware=True,
+            with_rvvi=True,
+            compressed=True,
+        )
         self.gen_params = GenParams(self.configuration)
 
     @dataclass
@@ -471,15 +475,15 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
 
     def test_asm_source(self):
         expected_trace = [
-            self.TraceItem(0x00, 0x00000013, None),  # nop
-            self.TraceItem(0x04, 0x00100093, (1, 0x1)),  # li x1, 1
-            self.TraceItem(0x08, 0x00209113, (2, 0x4)),  # slli x2, x1, 2
-            self.TraceItem(0x0c, 0x00417193, (3, 0x4)),  # andi x3, x2, 0x4
-            self.TraceItem(0x10, 0x00019463),  # bnez x3, 0x18 [continue]
-            self.TraceItem(0x18, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0(x0)
-            self.TraceItem(0x1c, 0x0000006f),  # j 0x1c [loop]
-            self.TraceItem(0x1c, 0x0000006f),  # j 0x1c [loop]
-            self.TraceItem(0x1c, 0x0000006f),  # j 0x1c [loop]
+            self.TraceItem(0x00, 0x0001, None),  # c.nop
+            self.TraceItem(0x02, 0x4085, (1, 0x1)),  # c.li x1, 1
+            self.TraceItem(0x04, 0x00209113, (2, 0x4)),  # slli x2, x1, 2
+            self.TraceItem(0x08, 0x00417193, (3, 0x4)),  # andi x3, x2, 0x4
+            self.TraceItem(0x0c, 0x00019363),  # bnez x3, 0x12 [continue]
+            self.TraceItem(0x12, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0(x0)
+            self.TraceItem(0x16, 0xa001),  # c.j 0x1c [loop]
+            self.TraceItem(0x16, 0xa001),  # c.j 0x1c [loop]
+            self.TraceItem(0x16, 0xa001),  # c.j 0x1c [loop]
         ]
 
         async def run_and_check_rvvi(sim: TestbenchContext):
@@ -509,7 +513,7 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
 
                 await sim.tick()
 
-        bin_src = self.prepare_source("rvvi.asm")
+        bin_src = self.prepare_source("rvvi.asm", c_extension=True)
 
         self.m = CoreTestElaboratable(
             self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"]
