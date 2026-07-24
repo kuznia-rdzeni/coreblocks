@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 from amaranth import *
 from amaranth.lib.wiring import connect
@@ -76,6 +77,7 @@ class CoreTestElaboratable(Elaboratable):
 
 
 class TestCoreBase(TestCaseWithSimulator):
+    configuration: CoreConfiguration
     gen_params: GenParams
     m: CoreTestElaboratable
 
@@ -449,3 +451,69 @@ class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.run_with_smode_interrupt_process)
+
+
+@pytest.mark.collection_order(1)
+class TestCoreRVVI(TestCoreAsmSourceBase):
+    cycle_count: int = 200
+    expected_regvals: dict[int, int] = {}
+    exit_csr: bool = False
+
+    def setup_method(self):
+        self.configuration = configurations.tiny.replace(_generate_test_hardware=True, with_rvvi=True)
+        self.gen_params = GenParams(self.configuration)
+
+    @dataclass
+    class TraceItem:
+        pc: int
+        instr: int
+        reg_write: tuple[int, int] | None = None  # (reg_id, reg_val)
+
+    def test_asm_source(self):
+        expected_trace = [
+            self.TraceItem(0x00, 0x00000013, None),  # nop
+            self.TraceItem(0x04, 0x00100093, (1, 0x1)),  # li x1, 1
+            self.TraceItem(0x08, 0x00209113, (2, 0x4)),  # slli x2, x1, 2
+            self.TraceItem(0x0c, 0x00417193, (3, 0x4)),  # andi x3, x2, 0x4
+            self.TraceItem(0x10, 0x00019463),  # bnez x3, 0x18 [continue]
+            self.TraceItem(0x18, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0(x0)
+            self.TraceItem(0x1c, 0x0000006f),  # j 0x1c [loop]
+            self.TraceItem(0x1c, 0x0000006f),  # j 0x1c [loop]
+            self.TraceItem(0x1c, 0x0000006f),  # j 0x1c [loop]
+        ]
+
+        async def run_and_check_rvvi(sim: TestbenchContext):
+            ticks = DependencyContext.get().get_dependency(TicksKey())
+            port = self.m.core.rvvi_collector.retire_port[0]
+
+            for i, trace_item in enumerate(expected_trace):
+                while sim.get(ticks) < self.cycle_count and sim.get(port.valid) == 0:
+                    await sim.tick()
+
+                if sim.get(ticks) >= self.cycle_count:
+                    assert False, f"Timed out waiting for RVVI retire port to become valid at trace index {i}"
+
+                assert sim.get(port.valid)
+                assert sim.get(port.order) == i, "not in-order retire on RVVI port"
+
+                reg_write = None
+                for i in range(32):
+                    if sim.get(port.x_wb[i]):
+                        if reg_write is not None:
+                            assert False, "Multiple register writes in a single instruction"
+                        reg_write = (i, sim.get(port.x_wdata[i]))
+
+                assert sim.get(port.pc_rdata) == trace_item.pc
+                assert sim.get(port.insn) == trace_item.instr
+                assert reg_write == trace_item.reg_write
+
+                await sim.tick()
+
+        bin_src = self.prepare_source("rvvi.asm")
+
+        self.m = CoreTestElaboratable(
+            self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"]
+        )
+
+        with self.run_simulation(self.m) as sim:
+            sim.add_testbench(run_and_check_rvvi)
