@@ -3,7 +3,7 @@ from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
-from transactron.lib import FIFO, Adapter
+from transactron.lib import BasicFifo, Adapter
 from transactron.core import TModule
 from transactron.utils import DependencyContext
 from coreblocks.core_structs.rat import RRAT
@@ -26,7 +26,7 @@ class RetirementTestCircuit(Elaboratable):
         m = TModule()
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
-        m.submodules.free_rf_list = self.free_rf = FIFO(
+        m.submodules.free_rf_list = self.free_rf = BasicFifo(
             [("ident", range(self.gen_params.phys_regs))], self.gen_params.phys_regs
         )
 

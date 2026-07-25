@@ -2,10 +2,8 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO, ConnectTrans, Pipe
-from transactron.utils import logging
-from transactron.lib.simultaneous import condition
-from transactron.utils import DependencyContext
+from transactron.lib import ConnectTrans, Pipe, BasicFifo, condition
+from transactron.utils import logging, DependencyContext
 
 from coreblocks.arch import OpType
 from coreblocks.arch.isa_consts import ExceptionCause
@@ -80,12 +78,12 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
-        m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.requests = requests = BasicFifo(self.fu_layouts.issue, 2)
         m.submodules.translator_in = translator_in = Pipe(self.translator_layouts.request)
-        m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)
-        m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
-        m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
-        m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.translated = translated = BasicFifo(self.translator_layouts.accept, 2)
+        m.submodules.results_noop = results_noop = BasicFifo(self.lsu_layouts.accept, 2)
+        m.submodules.issued = issued = BasicFifo(self.fu_layouts.issue, 2)
+        m.submodules.issued_noop = issued_noop = BasicFifo(self.fu_layouts.issue, 2)
 
         @def_method(m, self.issue)
         def _(arg):
