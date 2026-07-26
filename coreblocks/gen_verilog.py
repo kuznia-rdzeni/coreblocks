@@ -118,6 +118,8 @@ def main():
         "--sim-logs-filter", action="store", default=".*", help="Optional regexp filter for --sim-logs sources"
     )
 
+    parser.add_argument("--with-rvvi", action="store_true", help="Enable RVVI-TRACE interface")
+
     args = parser.parse_args()
 
     os.environ["AMARANTH_verbose"] = "true" if args.verbose else "false"
@@ -147,6 +149,8 @@ def main():
 
     assert args.reset_pc[:2] == "0x", "Expected hex number as --reset-pc"
     config = config.replace(start_pc=int(args.reset_pc[2:], base=16))
+
+    config = config.replace(with_rvvi=args.with_rvvi)
 
     sim_params = (parse_logging_level(args.sim_logs_level), args.sim_logs_filter) if args.sim_logs else None
 

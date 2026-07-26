@@ -14,7 +14,7 @@ from transactron.evlog import EventSource
 from coreblocks.interface.layouts import RATLayouts, RFLayouts, ROBLayouts, RSFullDataLayout, SchedulerLayouts
 from coreblocks.params import GenParams
 from coreblocks.arch.optypes import OpType, impure_optypes
-from coreblocks.interface.keys import CoreStateKey
+from coreblocks.interface.keys import CoreStateKey, RVVIHartCollectorKey
 from coreblocks.telemetry import RobAllocate, SchedulerEnter
 
 __all__ = ["Scheduler"]
@@ -223,6 +223,7 @@ class ROBAllocation(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
+        rvvi = DependencyContext.get().get_optional_dependency(RVVIHartCollectorKey())
         data_out = Signal(self.push_instrs.layout_in)
 
         with Transaction().body(m):
@@ -258,6 +259,15 @@ class ROBAllocation(Elaboratable):
                     ),
                     when=i < instrs.count,
                 )
+
+                if rvvi is not None:
+                    with m.If(i < instrs.count):
+                        rvvi.register_ftq_rob_assoc[i](
+                            m,
+                            rob_id=rob_ids.entries[i].rob_id,
+                            ftq_ptr=instrs.data[i].ftq_ptr,
+                            ftq_offset=instrs.data[i].ftq_offset,
+                        )
 
             self.push_instrs(m, data_out)
 

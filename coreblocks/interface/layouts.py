@@ -30,6 +30,7 @@ __all__ = [
     "FetchTargetQueueLayouts",
     "BranchPredictionLayouts",
     "ExceptionInformationRegisterLayouts",
+    "RVVILayouts",
 ]
 
 
@@ -1001,3 +1002,39 @@ class PrivUnitLayouts:
         Needed for re-encoding the instruction for xtval, when access is illegal.
         """
         assert self.sfencevma_imm_layout.size == gen_params.isa.xlen
+
+
+class RVVILayouts:
+    """Layouts used in the RVVI interface."""
+
+    def __init__(self, gen_params: GenParams):
+        fields = gen_params.get(CommonLayoutFields)
+
+        self.instr_info = make_layout(
+            fields.instr,
+            fields.pc,
+        )
+
+        self.register_ftq = make_layout(
+            fields.ftq_ptr,
+            ("instrs", ArrayLayout(self.instr_info, gen_params.fetch_width)),
+        )
+
+        self.register_ftq_rob_assoc = make_layout(
+            fields.ftq_ptr,
+            fields.ftq_offset,
+            fields.rob_id,
+        )
+
+        self.register_reg_write = make_layout(
+            fields.reg_id,
+            fields.reg_val,
+        )
+
+        self.finalize_retire = make_layout(
+            fields.rob_id,
+            fields.rl_dst,
+            fields.rp_dst,
+            ("trap", 1),
+            ("interrupt", 1),
+        )
