@@ -13,16 +13,22 @@ class DrDivParams:
     ----------
     iterations: int
         Number of iterations of digit recurrence
-    op_width: int
-        width of operands
-    result_width: int
-        width of result
+    fractional_bits: int
+        width of the fractional part of the float
+    result_fractional_bits: int
+        Fractional bits of the result we want to compute. The integer bits are always zero before shift
     """
 
-    def __init__(self, *, iterations: int, op_width: int, result_width: int):
+    def __init__(
+        self,
+        *,
+        iterations: int,
+        fractional_bits: int,
+        result_fractional_bits: int,
+    ):
         self.iterations = iterations
-        self.op_width = op_width
-        self.result_width = result_width
+        self.fractional_bits = fractional_bits
+        self.result_fractional_bits = result_fractional_bits
 
 
 class DrDivMethodLayout:
@@ -41,16 +47,17 @@ class DrDivMethodLayout:
         result - result of operation
         zero_rem - flag indicating if remainder is zero
         """
-
+        # This algorithm uses fp number with range [1/2;1),
+        # so we only get number of fractional bits
         self.division_init_in_layout = [
-            ("d", dr_div_params.op_width),
-            ("x", dr_div_params.op_width),
+            ("d", dr_div_params.fractional_bits),
+            ("x", dr_div_params.fractional_bits),
         ]
         self.division_run_out_layout = [
             (
                 "result",
-                dr_div_params.result_width - 2,
-            ),  # TODO change to another parameter
+                dr_div_params.result_fractional_bits,
+            ),
             ("zero_rem", 1),
         ]
 
@@ -76,7 +83,7 @@ class DrDivModule(Elaboratable):
     def __init__(self, *, div_params: DrDivParams, qsf_params: QSFParams):
         self.div_params = div_params
         self.qsf_params = qsf_params
-        self.otfc_params = OTFCParams(result_width=self.div_params.result_width - 1)
+        self.otfc_params = OTFCParams(result_width=self.div_params.result_fractional_bits)
         self.method_layouts = DrDivMethodLayout(dr_div_params=div_params)
         self.div_init = Method(i=self.method_layouts.division_init_in_layout)
         self.div_result = Method(o=self.method_layouts.division_run_out_layout)
@@ -86,34 +93,36 @@ class DrDivModule(Elaboratable):
         m.submodules.otfc = otfc = OTFCModule(otfc_params=self.otfc_params)
         m.submodules.qsf = qsf = QSFModule(qsf_params=self.qsf_params)
 
-        additional_iterations = 2
+        # Integer bits needed for residual computation
         integer_bits = 3
-        counter_max = self.div_params.iterations + additional_iterations
+        counter_max = self.div_params.iterations
 
         counter = Signal(range(0, counter_max + 1))
-        residual = Signal(signed(integer_bits + self.div_params.op_width))
-        divisor = Signal(1 + self.div_params.op_width)
+        residual = Signal(signed(integer_bits + self.div_params.fractional_bits))
+        divisor = Signal(1 + self.div_params.fractional_bits)
 
-        two_p = Signal(signed(2 + self.div_params.op_width))
-        one_p = Signal(signed(2 + self.div_params.op_width))
-        m_one_p = Signal(signed(2 + self.div_params.op_width))
-        m_two_p = Signal(signed(2 + self.div_params.op_width))
+        two_p = Signal(signed(2 + self.div_params.fractional_bits))
+        one_p = Signal(signed(2 + self.div_params.fractional_bits))
+        m_one_p = Signal(signed(2 + self.div_params.fractional_bits))
+        m_two_p = Signal(signed(2 + self.div_params.fractional_bits))
 
-        init_ready = Signal()
+        init_ready = Signal(init=1)
         result_ready = Signal()
         residual_negative = Signal()
-
-        otfc_response = Signal(
-            from_method_layout(otfc.method_layouts.otfc_result_out_layout)
-        )
+        residual_is_zero = Signal()
+        residual_is_minus_d = Signal()
+        otfc_response = Signal(from_method_layout(otfc.method_layouts.otfc_result_out_layout))
         qsf_response = Signal(from_method_layout(qsf.method_layouts.qsf_out_layout))
 
-        @def_method(m, self.div_init)
+        @def_method(m, self.div_init, ready=init_ready)
         def _(x, d):
             m.d.sync
             m.d.sync += divisor.eq(d)
             m.d.sync += residual.eq(x)
             m.d.sync += residual_negative.eq(0)
+            m.d.sync += residual_is_minus_d.eq(0)
+            # We assume that divisor is not zero
+            m.d.sync += residual_is_zero.eq(0)
             # Divisor does not change through the entirety of the division
             # so we precompute all the possible value of q*d
             m.d.sync += two_p.eq(2 * d)
@@ -122,72 +131,79 @@ class DrDivModule(Elaboratable):
             m.d.sync += m_two_p.eq(-2 * d)
             m.d.sync += counter.eq(0)
             m.d.sync += result_ready.eq(0)
-            m.d.sync += init_ready.eq(1)
 
-            m.d.sync += Print("INIT: ", x, " ", d, " ", counter, " ", counter_max)
-            m.d.sync += Print("1d: ", one_p)
+        with m.FSM(init="Idle"):
+            with m.State("Idle"):
+                with m.If(self.div_init.run):
+                    m.next = "Loop"
+                    m.d.sync += init_ready.eq(0)
+            with m.State("Loop"):
+                with m.If((counter < (counter_max))):
+                    # The residual for the next iteration. This Signal could have the same shape
+                    # as residual, but those two MSB bits would be shifted out anyway.
+                    new_residual = Signal(self.div_params.fractional_bits + 1)
 
-        with m.If((counter < (counter_max)) & init_ready):
-            m.d.sync += Print("COUNTER: ", counter, " r: ", residual, " d: ", divisor)
-            new_residual = Signal(self.div_params.op_width + 1)
-
-            with Transaction().body(m):
-                m.d.sync += Print(
-                    Format(
-                        "qsf res: {:07b}, divisor: {:05b} ",
-                        residual[-7:].as_signed(),
-                        (divisor[-5:] << 0),
-                    )
-                )
-                resp_qsf = qsf.qsf_request(
-                    m, residual=residual[-7:].as_signed(), divisor=(divisor[-5:] << 0)
-                )
-                m.d.comb += qsf_response.eq(resp_qsf)
-                otfc.otfc_add_digit(m, sign=qsf_response["sign"], q=qsf_response["q"])
-            m.d.sync += counter.eq(counter + 1)
-            # To check if the last residual is zero we keep this
-            # information in a separate flag before we compute new residual
-            m.d.sync += residual_negative.eq(residual < 0)
-            # The residual is extended by two integer bits for the purpose of shift by 2 (4*R[j])
-            # but only one integer bit is used in recurrence
-            # so we use additional signal to cut off those two bits
-            m.d.sync += Print(
-                "qsf resp = ", qsf_response["q"], " sign: ", qsf_response["sign"]
-            )
-            with m.Switch(qsf_response["q"]):
-                with m.Case(2):
-                    with m.If(qsf_response["sign"] == 1):
-                        m.d.comb += new_residual.eq(residual - m_two_p)
-                    with m.Else():
-                        m.d.comb += new_residual.eq(residual - two_p)
-                with m.Case(1):
-                    with m.If(qsf_response["sign"] == 1):
-                        m.d.comb += new_residual.eq(residual - m_one_p)
-                    with m.Else():
-                        m.d.comb += new_residual.eq(residual - one_p)
-                with m.Case(0):
-                    m.d.comb += new_residual.eq(residual)
-            m.d.sync += Print(Format("new residual: {:014b}", new_residual))
-            m.d.sync += residual.eq(new_residual << 2)  # R[j + 1] = 4*R[j]
-        with m.Elif(counter == (counter_max)):
-            m.d.sync += result_ready.eq(1)
-            m.d.sync += init_ready.eq(0)
+                    with Transaction().body(m):
+                        resp_qsf = qsf.qsf_request(
+                            m,
+                            residual=residual[-7:].as_signed(),
+                            divisor=(divisor[-5:] << 0),
+                        )
+                        m.d.comb += qsf_response.eq(resp_qsf)
+                        otfc.otfc_add_digit(m, sign=qsf_response["sign"], q=qsf_response["q"])
+                    m.d.sync += counter.eq(counter + 1)
+                    # To check if the last residual is zero we keep this
+                    # information in a separate flag before we compute new residual
+                    # This applies to the other flags as well
+                    m.d.sync += residual_negative.eq(residual < 0)
+                    m.d.sync += residual_is_minus_d.eq(residual == m_one_p)
+                    m.d.sync += residual_is_zero.eq(~(residual.any()))
+                    # The residual is extended by two integer bits for the purpose of shift by 2 (4*R[j])
+                    # but only one integer bit is used in recurrence
+                    # so we use additional signal to cut off those two bits
+                    with m.Switch(qsf_response["q"]):
+                        with m.Case(2):
+                            with m.If(qsf_response["sign"] == 1):
+                                m.d.comb += new_residual.eq(residual - m_two_p)
+                            with m.Else():
+                                m.d.comb += new_residual.eq(residual - two_p)
+                        with m.Case(1):
+                            with m.If(qsf_response["sign"] == 1):
+                                m.d.comb += new_residual.eq(residual - m_one_p)
+                            with m.Else():
+                                m.d.comb += new_residual.eq(residual - one_p)
+                        with m.Case(0):
+                            m.d.comb += new_residual.eq(residual)
+                    m.d.sync += residual.eq(new_residual << 2)  # R[j + 1] = 4*R[j]
+                with m.Elif(counter == (counter_max)):
+                    m.next = "Result"
+                    m.d.sync += result_ready.eq(1)
+            with m.State("Result"):
+                with m.If(self.div_result.run):
+                    m.d.sync += result_ready.eq(0)
+                    m.d.sync += init_ready.eq(1)
+                    m.next = "Idle"
 
         @def_method(m, self.div_result, ready=result_ready)
         def _():
             zero_rem = Signal()
-            adjusted_result = Signal(
-                self.div_params.result_width - 2
-            )  # TODO add another field to params for quotient bits and output bits
-            m.d.comb += zero_rem.eq(~residual.any())
+            adjusted_result = Signal(self.div_params.result_fractional_bits)
+            # This is note for the future. We are chcecking if the residual
+            # is not equal -d beacuse in this case of subtracting 1 from the result
+            # to correct the negative final residual, our residual would be zero
+            # However the books doesn't mention that something like that is needed
+            # It just checks if the last residual is zero, so maybe this is redundant
             m.d.sync += counter.eq(0)
             with Transaction().body(m):
                 resp = otfc.otfc_result(m, shift=0)
                 m.d.comb += otfc_response.eq(resp)
-            m.d.sync += Print(Format("RESULT: {:015b}", otfc_response["result"]))
+            # The initialization condition requires that we shift result left by 2.
+            # We can also do this by setting correct signal shape
             with m.If(residual_negative):
+                m.d.comb += zero_rem.eq(residual_is_minus_d)
                 m.d.comb += adjusted_result.eq((otfc_response["result"] - 1))
             with m.Else():
+                m.d.comb += zero_rem.eq(residual_is_zero)
                 m.d.comb += adjusted_result.eq(otfc_response["result"])
             return {"result": adjusted_result, "zero_rem": zero_rem}
 

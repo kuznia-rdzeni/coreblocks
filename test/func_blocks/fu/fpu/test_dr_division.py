@@ -16,11 +16,11 @@ class TCase:
 class TestDRDivision(TestCaseWithSimulator):
     def test_manual(self):
         params = DrDivParams(
-            iterations=5, op_width=10, result_width=14 + 1
-        )  # fractional + one integer bit
-        drd = SimpleTestCircuit(
-            DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS)
+            iterations=7,
+            fractional_bits=10,
+            result_fractional_bits=14,
         )
+        drd = SimpleTestCircuit(DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS))
 
         async def tests(sim: TestbenchContext):
             input_dict = {}
@@ -42,9 +42,6 @@ class TestDRDivision(TestCaseWithSimulator):
             for tc in test_cases:
                 input_dict["x"] = tc.x
                 input_dict["d"] = tc.d
-                print("TC")
-                print(input_dict["x"])
-                print(input_dict["d"])
                 await drd.div_init.call(sim, input_dict)
                 resp = await drd.div_result.call(sim)
                 assert resp["result"] == tc.result
