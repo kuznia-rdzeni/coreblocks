@@ -15,6 +15,7 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
     InstructionAddressTranslatorBackingDeviceKey,
     DataAddressTranslatorBackingDeviceKey,
+    RVVIHartCollectorKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.core_structs.crat import CheckpointRAT
@@ -34,6 +35,7 @@ from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
 from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
 from transactron.evlog import EvLogEnabledKey
+from coreblocks.telemetry.rvvi import RVVIAggregator, RVVIHartCollector
 
 __all__ = ["Core"]
 
@@ -44,20 +46,26 @@ class Core(Component):
     interrupts: Signal
 
     def __init__(self, *, gen_params: GenParams):
-        super().__init__(
-            {
-                "wb_instr": Out(WishboneInterface(gen_params.wb_params).signature),
-                "wb_data": Out(WishboneInterface(gen_params.wb_params).signature),
-                "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
-            }
-        )
-
         self.gen_params = gen_params
 
         self.dm = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
             self.dm.add_dependency(HwMetricsEnabledKey(), True)
             self.dm.add_dependency(EvLogEnabledKey(), True)
+
+        signature = {
+            "wb_instr": Out(WishboneInterface(gen_params.wb_params).signature),
+            "wb_data": Out(WishboneInterface(gen_params.wb_params).signature),
+            "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
+        }
+
+        if self.gen_params.has_rvvi:
+            self.rvvi_collector = RVVIHartCollector(self.gen_params)
+            self.rvvi_aggregator = RVVIAggregator([self.rvvi_collector])
+            self.dm.add_dependency(RVVIHartCollectorKey(), self.rvvi_collector)
+            signature["rvvi_trace"] = Out(self.rvvi_aggregator.signature)
+
+        super().__init__(signature)
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
@@ -179,6 +187,12 @@ class Core(Component):
         m.submodules.interrupt_controller = self.interrupt_controller
         m.d.comb += self.interrupt_controller.internal_report_level.eq(self.interrupts[0:16])
         m.d.comb += self.interrupt_controller.custom_report.eq(self.interrupts[16:])
+
+        if self.gen_params.has_rvvi:
+            m.submodules.rvvi_collector = self.rvvi_collector
+            m.submodules.rvvi_aggregator = self.rvvi_aggregator
+
+            connect(m.top_module, flipped(self.rvvi_trace), self.rvvi_aggregator)  # type: ignore
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
