@@ -20,6 +20,14 @@ coreblocks.telemetry.konata module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.telemetry.rvvi module
+--------------------------------
+
+.. automodule:: coreblocks.telemetry.rvvi
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 
