@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784816610122,
+  "lastUpdate": 1785058436062,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25493,6 +25493,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8443ea8cc24d48e2faa5cbd597cbdf74472c9811"
         },
         "date": 1784816588554,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44844731541673366,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5951740300321152,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3661826587675101,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6450701307924483,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35531157138749,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30097743800508947,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3402741852043456,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4437417112544016,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "35c3db3e33cff7100b958eb996ff1727c9be173f",
+          "message": "implement RVVI-TRACE (#1017)",
+          "timestamp": "2026-07-26T10:21:03+02:00",
+          "tree_id": "e6e7eb673d8ebdc09c3ae7ca7ccd48958c436c91",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/35c3db3e33cff7100b958eb996ff1727c9be173f"
+        },
+        "date": 1785058425075,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
