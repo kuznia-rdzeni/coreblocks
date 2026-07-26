@@ -49,7 +49,7 @@ class DivUnit(FuncUnitBase[DivFn]):
     def elaborate(self, platform):
         m = super().elaborate(platform)
 
-        m.submodules.params_fifo = params_fifo = FIFO(
+        m.submodules.params_fifo = params_fifo = BasicFifo(
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
                 ("rp_dst", self.gen_params.phys_regs_bits),

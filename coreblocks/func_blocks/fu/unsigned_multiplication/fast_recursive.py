@@ -4,10 +4,9 @@ from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsi
 from coreblocks.params import GenParams
 from transactron import *
 from transactron.core import def_method
+from transactron.lib import BasicFifo
 
 __all__ = ["RecursiveUnsignedMul"]
-
-from transactron.lib import FIFO
 
 
 class FastRecursiveMul(Elaboratable):
@@ -117,7 +116,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
 
     def elaborate(self, platform):
         m = TModule()
-        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen_params.isa.xlen)], 2)
+        m.submodules.fifo = fifo = BasicFifo([("o", 2 * self.gen_params.isa.xlen)], 2)
 
         m.submodules.mul = mul = FastRecursiveMul(self.gen_params.isa.xlen, self.dsp_width)
 
