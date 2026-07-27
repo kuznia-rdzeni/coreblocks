@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.enum import unique, IntEnum, auto
+from amaranth.lib.enum import unique, Enum, IntEnum, auto
 
 from amaranth_types import ValueLike
 
@@ -66,7 +66,7 @@ impure_optypes = frozenset(optype for optype in range(OpType.JAL, OpType.ARITHME
 
 
 @unique
-class CfiType(IntEnum, shape=3):
+class CfiType(Enum, shape=3):
     """
     Types of control flow instructions.
 
