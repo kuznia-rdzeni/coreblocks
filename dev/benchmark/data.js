@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785058443848,
+  "lastUpdate": 1785192000082,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25557,6 +25557,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/35c3db3e33cff7100b958eb996ff1727c9be173f"
         },
         "date": 1785058425075,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44844731541673366,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5951740300321152,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3661826587675101,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6450701307924483,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35531157138749,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30097743800508947,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3402741852043456,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4437417112544016,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "621f00b282ffccd7f50f7de366a529ded81e1957",
+          "message": "change all FIFO to BasicFifo (#1032)",
+          "timestamp": "2026-07-26T18:06:30+02:00",
+          "tree_id": "bdc6c9bb4a3cbbad2e27fdda8986222e42631132",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/621f00b282ffccd7f50f7de366a529ded81e1957"
+        },
+        "date": 1785191989130,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
