@@ -9,7 +9,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.keys import CoreStateKey, RollbackKey
 from coreblocks.interface.layouts import RSInterfaceLayouts, RetirementLayouts
 
-from transactron.lib import FIFO, AdapterTrans, Adapter
+from transactron.lib import BasicFifo, AdapterTrans, Adapter
 from transactron.testing.functions import MethodData, data_const_to_dict
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.amaranth_ext.elaboratables import ModuleConnector
@@ -55,8 +55,8 @@ class SchedulerTestCircuit(Elaboratable):
         scheduler_layouts = self.gen_params.get(SchedulerLayouts)
 
         # data structures
-        m.submodules.instr_fifo = instr_fifo = FIFO(scheduler_layouts.scheduler_in, 16)
-        m.submodules.free_rf_fifo = free_rf_fifo = FIFO(
+        m.submodules.instr_fifo = instr_fifo = BasicFifo(scheduler_layouts.scheduler_in, 16)
+        m.submodules.free_rf_fifo = free_rf_fifo = BasicFifo(
             scheduler_layouts.free_rf_layout, 2**self.gen_params.phys_regs_bits
         )
         m.submodules.crat = self.crat = crat = CheckpointRAT(gen_params=self.gen_params)

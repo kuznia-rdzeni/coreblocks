@@ -26,6 +26,7 @@ from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import (
     CoreStateKey,
     CSRInstancesKey,
+    RVVIHartCollectorKey,
     SideFxGuardKey,
     FTQCommitKey,
 )
@@ -118,6 +119,8 @@ class Retirement(Elaboratable):
         m.submodules.instret_csr = self.instret_csr
         m.submodules.instret_shadow = self.instret_shadow
 
+        rvvi = self.dependency_manager.get_optional_dependency(RVVIHartCollectorKey())
+
         ftq_commit = self.dependency_manager.get_dependency(FTQCommitKey())
 
         def free_phys_reg(i: int, rp_dst: Value):
@@ -200,14 +203,13 @@ class Retirement(Elaboratable):
 
                     commit_trapping = Signal()
 
+                    cause_register = self.exception_cause_get(m).data
+                    arch_trap = Signal(init=1)
+
                     with m.If(exception):
                         self.perf_trap_latency.start(m)
 
-                        cause_register = self.exception_cause_get(m).data
-
                         cause_entry = Signal(self.gen_params.isa.xlen)
-
-                        arch_trap = Signal(init=1)
 
                         with m.If(cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT):
                             # Async interrupts are inserted only by JumpBranchUnit and conditionally by MRET and CSR
@@ -272,11 +274,25 @@ class Retirement(Elaboratable):
 
                     last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
                     for i in range(self.gen_params.retirement_superscalarity):
+                        entry = rob_entries.entries[i]
+
                         with m.If(i - commit_trapping < no_trap_count):
-                            retire_instr(i, rob_entries.entries[i])
-                            m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
+                            retire_instr(i, entry)
+                            m.d.av_comb += last_commit_ftq_ptr.eq(entry.rob_data.ftq_ptr)
+
+                            if rvvi is not None:
+                                rvvi.finalize_retire[i](
+                                    m,
+                                    rob_id=entry.rob_id,
+                                    rl_dst=entry.rob_data.rl_dst,
+                                    rp_dst=entry.rob_data.rp_dst,
+                                    trap=entry.exception & arch_trap,
+                                    interrupt=entry.exception
+                                    & (cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT),
+                                )
+
                         with m.Elif(i < retire_count):
-                            flush_instr(i, rob_entries.entries[i])
+                            flush_instr(i, entry)
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(no_trap_count.bool() | commit_trapping):
