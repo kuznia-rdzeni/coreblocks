@@ -14,6 +14,7 @@ from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
     PAGE_SIZE_LOG,
     HPMEvent,
+    MisaExtension,
     SatpMode,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
@@ -409,36 +410,21 @@ class MachineModeCSRRegisters(Elaboratable):
         )
 
     def _misa_value(self, gen_params):
-        misa_value = 0
+        misa_ext = MisaExtension(0)
 
-        misa_extension_bits = {
-            0: Extension.A,
-            1: Extension.B,
-            2: Extension.C,
-            3: Extension.D,
-            4: Extension.E,
-            5: Extension.F,
-            8: Extension.I,
-            12: Extension.M,
-            16: Extension.Q,
-            21: Extension.V,
-        }
-
-        for bit, extension in misa_extension_bits.items():
-            if extension in gen_params.isa.extensions:
-                misa_value |= 1 << bit
+        for ext in gen_params.isa.extensions:
+            if ext.name in MisaExtension:
+                misa_ext |= MisaExtension[ext.name]
 
         if gen_params.supervisor_mode:
-            misa_value |= 1 << 18
+            misa_ext |= MisaExtension.S
 
         if gen_params.user_mode:
-            misa_value |= 1 << 20
-        # 7 - Hypervisor, 23 - Custom Extensions
+            misa_ext |= MisaExtension.U
 
-        xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
-        misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
+        misa_xlen = XlenEncoding.from_xlen(gen_params.isa.xlen)
 
-        return misa_value
+        return misa_ext.value | misa_xlen.value << (gen_params.isa.xlen - 2)
 
 
 class SupervisorModeCSRRegisters(Elaboratable):

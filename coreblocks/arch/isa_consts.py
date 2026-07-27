@@ -1,7 +1,7 @@
 from collections.abc import Set
 from amaranth import Value
 from amaranth.lib.data import StructLayout
-from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag
+from amaranth.lib.enum import Flag, unique, Enum, IntEnum, IntFlag
 
 __all__ = [
     "InstrType",
@@ -219,14 +219,48 @@ class HPMEvent(IntEnum):
 
 
 @unique
-class XlenEncoding(IntEnum, shape=2):
+class XlenEncoding(Enum, shape=2):
     W32 = 1
     W64 = 2
     W128 = 3
 
+    @staticmethod
+    def from_xlen(xlen: int):
+        return XlenEncoding[f"W{xlen}"]
+
 
 @unique
-class PMPAFlagEncoding(IntEnum, shape=2):
+class MisaExtension(Flag, shape=26):
+    A = 1 << 0
+    B = 1 << 1
+    C = 1 << 2
+    D = 1 << 3
+    E = 1 << 4
+    F = 1 << 5
+    G = 1 << 6
+    H = 1 << 7
+    I = 1 << 8
+    J = 1 << 9
+    K = 1 << 10
+    L = 1 << 11
+    M = 1 << 12
+    N = 1 << 13
+    O = 1 << 14
+    P = 1 << 15
+    Q = 1 << 16
+    R = 1 << 17
+    S = 1 << 18
+    T = 1 << 19
+    U = 1 << 20
+    V = 1 << 21
+    W = 1 << 22
+    X = 1 << 23
+    Y = 1 << 24
+    Z = 1 << 25
+
+
+@unique
+class PMPAFlagEncoding(Enum, shape=2):
     OFF = 0
     TOR = 1
     NA4 = 2
@@ -234,7 +268,7 @@ class PMPAFlagEncoding(IntEnum, shape=2):
 
 
 @unique
-class SatpMode(IntEnum, shape=4):
+class SatpMode(Enum, shape=4):
     BARE = 0
     SV32 = 1
     SV39 = 8
