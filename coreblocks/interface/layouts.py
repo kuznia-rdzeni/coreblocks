@@ -424,7 +424,7 @@ class RATLayouts:
 
         self.rrat_peek_out = make_layout(self.entries)
 
-        self.rollback_in = make_layout(fields.tag)
+        self.rollback_in = make_layout(fields.tag, fields.pc, fields.ftq_ptr)
         self.get_active_tags_out = make_layout(self.active_tags_bitmask)
 
         self.crat_commit_checkpoint_in = make_layout(fields.tag, fields.commit_checkpoint)
@@ -572,7 +572,7 @@ class RetirementLayouts:
         self.require_done: LayoutListField = ("require_done", 1)
         """Don't run if there exist earlier not done instructions in ROB"""
 
-        self.side_fx_guard_in = make_layout(fields.rob_id, self.require_done)
+        self.side_fx_guard_in = make_layout(fields.rob_id, fields.tag, self.require_done)
 
         self.flushing = ("flushing", 1)
         """ Core is currently flushed """

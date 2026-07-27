@@ -72,7 +72,7 @@ class RollbackTagger(Elaboratable):
             self.push_instr(m, out)
 
         @def_method(m, self.rollback)
-        def _(tag: Value):
+        def _(tag, pc, ftq_ptr):
             m.d.sync += rollback_tag.eq(tag)
             m.d.sync += rollback_tag_v.eq(1)
 
@@ -171,8 +171,17 @@ class CoreFrontend(Elaboratable):
         self.stall_ctrl.redirect_frontend.provide(self.redirect)
         self.stall_ctrl.get_exception_information.provide(self.get_exception_information)
 
+        rollback = Method(i=self.gen_params.get(RATLayouts).rollback_in)
+        self.connections.add_dependency(RollbackKey(), rollback)
+
         @def_method(m, self.redirect)
         def _(ftq_ptr, pc):
+            flush(m)
+            self.ftq.backend_redirect(m, ftq_ptr=ftq_ptr, pc=pc)
+            self.stall_ctrl.on_redirect_frontend(m)
+
+        @def_method(m, rollback)
+        def _(tag, pc, ftq_ptr):
             flush(m)
             self.ftq.backend_redirect(m, ftq_ptr=ftq_ptr, pc=pc)
             self.stall_ctrl.on_redirect_frontend(m)

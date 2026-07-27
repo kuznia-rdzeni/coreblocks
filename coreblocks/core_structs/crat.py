@@ -249,9 +249,6 @@ class CheckpointRAT(Elaboratable):
             with m.If(active_renames[k].valid):
                 m.d.sync += self.frat[active_renames[k].rl_dst].eq(active_renames[k].rp_dst)
 
-        # FIXME: Commented due to Transactron #63. rollback is not currently used, fix later
-        # self.rollback.add_conflict(self.flush_restore, Priority.RIGHT)
-
         # -------------------------------------------
         # Instructon tagging and stalling before RAT
         # -------------------------------------------
@@ -341,11 +338,12 @@ class CheckpointRAT(Elaboratable):
         active_tags_reset_mask_0 = Signal.like(active_tags, init=0)
 
         @def_method(m, self.rollback)
-        def _(tag: Value):
+        def _(tag: Value, ftq_ptr: Value, pc: Value):
             tag_map.read_req(m, addr=tag)
             m.d.sync += rollback_tag_s1.eq(tag)
 
-            # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking
+            # Invalidate tags on wrong speculaton path (suffix), but don't free them for instruction validity tracking.
+            # This must happen immediately for side fx control.
             tag_plus_1 = Signal(self.gen_params.tag_bits)
             alloc_tags_bound = Signal(self.gen_params.tag_bits)
             m.d.av_comb += tag_plus_1.eq(tag + 1)
@@ -411,8 +409,11 @@ class CheckpointRAT(Elaboratable):
             m.d.comb += active_tags_reset_mask_1.eq(1 << freed_tag)
             m.d.sync += tags_tail.eq(freed_tag + 1)
 
+            # prevent double-free on a just rolled back tag (it can be retired a cycle later)
+            current_checkpointed_tags = checkpointed_tags & ~checkpointed_tags_reset_mask_0
+
             # deallocate physical checkpoints (but not tags) associated with freed tag
-            with m.If(((checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
+            with m.If(((current_checkpointed_tags & active_tags) & (1 << freed_tag)).any()):
                 m.d.comb += checkpoints_next_tail_comb.eq(mod_incr(checkpoints_tail, self.gen_params.checkpoint_count))
                 m.d.sync += checkpoints_tail.eq(checkpoints_next_tail_comb)
                 with m.If(~checkpoints_full_overwrite):

@@ -108,7 +108,6 @@ class StallController(Elaboratable):
         @def_method(m, self.on_redirect_frontend)
         def _():
             # All redirections change execuction point so clear unsafe state
-            log.assertion(m, ~self.stall_guard.ready, "Frontend needs to be stalled for a redirect")
             m.d.sync += stalled_unsafe.eq(0)
 
         @def_method(m, self.stall_unsafe)

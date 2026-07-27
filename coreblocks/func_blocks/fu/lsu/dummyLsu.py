@@ -12,6 +12,7 @@ from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     CommonBusDataKey,
     CoreStateKey,
     ExceptionReportKey,
@@ -61,16 +62,11 @@ class LSUDummy(FuncUnit, Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-        flush = Signal()  # exception handling, requests are not issued
-
-        with Transaction().body(m):
-            core_state = self.dependency_manager.get_dependency(CoreStateKey())
-            state = core_state(m)
-            m.d.comb += flush.eq(state.flushing)
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
-        rob_id_match = Signal()
+        request_tag = Signal(self.gen_params.tag_bits)
+        request_side_fx = Signal()
         is_load = Signal()
 
         m.submodules.addr_translator = self.addr_translator
@@ -104,11 +100,16 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules += ConnectTrans.create(translator_in.read, self.addr_translator.request)
         m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
+        with Transaction().body(m):
+            core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
+            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
+
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
         pmas = pma_checker.result
         can_reorder = is_load & ~pmas["mmio"]
-        want_issue = rob_id_match | can_reorder
+        want_issue = request_side_fx | can_reorder
+        flush = core_state.flushing | ~active_tags[request_tag]
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, ready=do_issue):
@@ -121,6 +122,8 @@ class LSUDummy(FuncUnit, Elaboratable):
             m.d.av_comb += pmp_checker.paddr.eq(paddr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
+            m.d.av_comb += request_tag.eq(arg.tag)
+            # TODO: refactor with peek
 
             exception = Signal()
             cause = Signal(ExceptionCause)
@@ -193,8 +196,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         with Transaction().body(m):
             side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
-            side_fx_guard(m, rob_id=request_rob_id, require_done=0)
-            m.d.comb += rob_id_match.eq(1)
+            side_fx_guard(m, rob_id=request_rob_id, tag=request_tag, require_done=0)
+            m.d.comb += request_side_fx.eq(1)
 
         return m
 

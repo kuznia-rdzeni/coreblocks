@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import count_trailing_zeros, or_value
+from transactron.utils import HardwareLogger, count_trailing_zeros, or_value
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionInformationRegisterLayouts,
@@ -24,6 +24,7 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.arch import ExceptionCause, HPMEvent, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     CoreStateKey,
     CSRInstancesKey,
     RVVIHartCollectorKey,
@@ -39,14 +40,12 @@ from coreblocks.arch.isa_consts import TrapVectorMode
 __all__ = ["Retirement"]
 
 
+log = HardwareLogger("backend.retirement")
 evlog = EventSource("backend.retirement")
 
 
 class Retirement(Elaboratable):
-    def __init__(
-        self,
-        gen_params: GenParams,
-    ):
+    def __init__(self, gen_params: GenParams):
         self.gen_params = gen_params
         self.rob_peek = Method(o=gen_params.get(ROBLayouts).peek_layout)
         self.rob_retire = Method(i=gen_params.get(ROBLayouts).retire_layout)
@@ -72,7 +71,6 @@ class Retirement(Elaboratable):
         interrupt_controller_layouts = gen_params.get(InternalInterruptControllerLayouts)
         self.async_interrupt_cause = Method(o=interrupt_controller_layouts.interrupt_cause)
         self.checkpoint_tag_free = Method()
-        self.checkpoint_get_active_tags = Method(o=gen_params.get(RATLayouts).get_active_tags_out)
 
         self.pure_count = Signal(range(gen_params.retirement_superscalarity + 1))
         self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_count)
@@ -141,27 +139,51 @@ class Retirement(Elaboratable):
 
             self.perf_instr_ret.incr[i](m)
 
+            log.debug(
+                m,
+                True,
+                "retiring instruction rl{} -> rp{} freeing rp{}",
+                rob_entry.rob_data.rl_dst,
+                rob_entry.rob_data.rp_dst,
+                rat_out.old_rp_dst,
+            )
+
         def flush_instr(i: int, rob_entry: View):
             evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
 
-            # free the "new" instruction rp_dst - result is flushed
+            # free the "new" instruction rp_dst - result is discarded
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
+
+            log.debug(
+                m,
+                True,
+                "flushing instruction freeing rp{}",
+                rob_entry.rob_data.rp_dst,
+            )
 
         retire_valid = Signal()
         exception = Signal()
-        continue_pc_override = Signal()
-        continue_pc = Signal(self.gen_params.isa.xlen)
-        core_flushing = Signal()
         trap_target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
         ftq_commit_ptr = FTQPtr(gen_params=self.gen_params)
+
+        active_tags = Signal(self.gen_params.tag_count)
+        last_retired_tag = Signal(self.gen_params.tag_bits)
+        next_last_retired_tag = Signal.like(last_retired_tag)
 
         retire_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         no_trap_count = Signal.like(retire_count)
         done_count = Signal.like(retire_count)
         tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
-        safe_mask = Signal.like(tag_incr_mask)
+        retiring_mask = Signal.like(tag_incr_mask)
+        tag_active_mask_prefix = Signal.like(tag_incr_mask)
+        tag_active_mask_suffix = Signal.like(tag_incr_mask)
+        tag_active_mask = Signal.like(tag_incr_mask)
         done_mask = Signal.like(tag_incr_mask)
-        free_checkpoint = Signal()
+        first_tag_incr_pos = Signal.like(retire_count)
+        free_tag = Signal()
+
+        with Transaction().body(m):
+            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
         with Transaction().body(m):
             rob_entries = self.rob_peek(m)
@@ -171,13 +193,27 @@ class Retirement(Elaboratable):
             m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
             m.d.av_comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
             m.d.av_comb += done_count.eq(count_trailing_zeros(~done_mask))
-            m.d.av_comb += safe_mask.eq(tag_incr_mask & (tag_incr_mask - 1) | (-1 << done_count))
-            m.d.av_comb += retire_count.eq(count_trailing_zeros(safe_mask))
-            m.d.av_comb += free_checkpoint.eq(safe_mask != (tag_incr_mask | (-1 << done_count))[: len(safe_mask)])
+            limiting_instruction_mask = (tag_incr_mask & (tag_incr_mask - 1)) | (-1 << done_count)
+
+            m.d.av_comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
+            m.d.av_comb += retiring_mask.eq(~(-1 << retire_count))
+            m.d.av_comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
+
+            m.d.av_comb += first_tag_incr_pos.eq(count_trailing_zeros(tag_incr_mask | (-1 << done_count)))
+            m.d.av_comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
+            m.d.av_comb += tag_active_mask_suffix.eq(  # last retired tag until limiting incr (if exsists)
+                Mux(active_tags[last_retired_tag], ~(-1 << first_tag_incr_pos), 0)
+            )
+            m.d.av_comb += tag_active_mask_prefix.eq(  # the same tag from limiting bit increase up
+                -active_tags[next_last_retired_tag] << first_tag_incr_pos
+            )
+            m.d.av_comb += tag_active_mask.eq(tag_active_mask_suffix | tag_active_mask_prefix)
 
             exception_bits = Signal(self.gen_params.retirement_superscalarity)
-            m.d.av_comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries))
-            m.d.av_comb += no_trap_count.eq(count_trailing_zeros(exception_bits | safe_mask))
+            m.d.av_comb += exception_bits.eq(
+                Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask
+            )
+            m.d.av_comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
             m.d.av_comb += exception.eq(no_trap_count != retire_count)
 
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
@@ -196,8 +232,9 @@ class Retirement(Elaboratable):
                 with Transaction(name="Retirement_NORMAL").body(m, ready=retire_valid):
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If(free_checkpoint):
+                    with m.If(free_tag):
                         self.checkpoint_tag_free(m)
+                        m.d.sync += last_retired_tag.eq(last_retired_tag + 1)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
 
@@ -222,17 +259,8 @@ class Retirement(Elaboratable):
                             m.d.av_comb += cause_entry.eq(
                                 (1 << (self.gen_params.isa.xlen - 1)) | self.async_interrupt_cause(m).cause
                             )
-                        with m.Elif(cause_register.cause == ExceptionCause._COREBLOCKS_MISPREDICTION):
-                            # Branch misprediction - commit jump, flush core and continue from correct pc.
-                            m.d.av_comb += commit_trapping.eq(1)
-                            # Do not modify trap related CSRs
-                            m.d.av_comb += arch_trap.eq(0)
-
-                            m.d.sync += continue_pc_override.eq(1)
-                            m.d.sync += continue_pc.eq(cause_register.pc)
-
-                            self.perf_mispredictions.incr(m)
-                            m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
+                        # self.perf_mispredictions.incr(m)
+                        # m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION) what with this one now
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
@@ -241,22 +269,21 @@ class Retirement(Elaboratable):
 
                             m.d.av_comb += cause_entry.eq(cause_register.cause)
 
-                        with m.If(arch_trap):
-                            # Register RISC-V architectural trap in CSRs.
-                            target_priv = self.trap_entry(m, cause=cause_entry).target_priv
+                        # Register RISC-V architectural trap in CSRs.
+                        target_priv = self.trap_entry(m, cause=cause_entry).target_priv
 
-                            def set_trap_csrs(cause_reg, epc_reg, tval_reg):
-                                cause_reg.write(m, cause_entry)
-                                epc_reg.write(m, cause_register.pc)
-                                tval_reg.write(m, cause_register.mtval)
+                        def set_trap_csrs(cause_reg, epc_reg, tval_reg):
+                            cause_reg.write(m, cause_entry)
+                            epc_reg.write(m, cause_register.pc)
+                            tval_reg.write(m, cause_register.mtval)
 
-                            with m.Switch(target_priv):
-                                if self.gen_params.supervisor_mode:
-                                    with m.Case(PrivilegeLevel.SUPERVISOR):
-                                        assert s_csr is not None
-                                        set_trap_csrs(s_csr.scause, s_csr.sepc, s_csr.stval)
-                                with m.Case(PrivilegeLevel.MACHINE):
-                                    set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
+                        with m.Switch(target_priv):
+                            if self.gen_params.supervisor_mode:
+                                with m.Case(PrivilegeLevel.SUPERVISOR):
+                                    assert s_csr is not None
+                                    set_trap_csrs(s_csr.scause, s_csr.sepc, s_csr.stval)
+                            with m.Case(PrivilegeLevel.MACHINE):
+                                set_trap_csrs(m_csr.mcause, m_csr.mepc, m_csr.mtval)
 
                             m.d.sync += trap_target_priv.eq(target_priv)
 
@@ -273,29 +300,36 @@ class Retirement(Elaboratable):
                     )
 
                     last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
+                    last_commit_ftq_ptr_v = Signal()
                     for i in range(self.gen_params.retirement_superscalarity):
                         entry = rob_entries.entries[i]
 
                         with m.If(i - commit_trapping < no_trap_count):
-                            retire_instr(i, entry)
-                            m.d.av_comb += last_commit_ftq_ptr.eq(entry.rob_data.ftq_ptr)
+                            with m.If(tag_active_mask.bit_select(i, 1)):
+                                retire_instr(i, rob_entries.entries[i])
 
-                            if rvvi is not None:
-                                rvvi.finalize_retire[i](
-                                    m,
-                                    rob_id=entry.rob_id,
-                                    rl_dst=entry.rob_data.rl_dst,
-                                    rp_dst=entry.rob_data.rp_dst,
-                                    trap=entry.exception & arch_trap,
-                                    interrupt=entry.exception
-                                    & (cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT),
-                                )
+                                if rvvi is not None:
+                                    rvvi.finalize_retire[i](
+                                        m,
+                                        rob_id=entry.rob_id,
+                                        rl_dst=entry.rob_data.rl_dst,
+                                        rp_dst=entry.rob_data.rp_dst,
+                                        trap=entry.exception & arch_trap,
+                                        interrupt=entry.exception
+                                        & (cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT),
+                                    )
 
+                                m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
+                                m.d.av_comb += last_commit_ftq_ptr_v.eq(1)
+                            with m.Else():
+                                # flush inactive instruction - CRAT entry was already rolled back
+                                flush_instr(i, rob_entries.entries[i])
                         with m.Elif(i < retire_count):
-                            flush_instr(i, entry)
+                            # hard flush instruction for trap handling
+                            flush_instr(i, rob_entries.entries[i])
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
-                    with m.If(no_trap_count.bool() | commit_trapping):
+                    with m.If(last_commit_ftq_ptr_v):
                         ftq_commit(m, ftq_ptr=last_commit_ftq_ptr)
                         m.d.sync += ftq_commit_ptr.eq(last_commit_ftq_ptr)
 
@@ -304,8 +338,9 @@ class Retirement(Elaboratable):
                     # Flush entire core
                     self.rob_retire(m, count=retire_count)
 
-                    with m.If(free_checkpoint):
+                    with m.If(free_tag):
                         self.checkpoint_tag_free(m)
+                        m.d.sync += last_retired_tag.eq(last_retired_tag + 1)
 
                     core_empty = self.instr_decrement(m, count=retire_count)
 
@@ -321,6 +356,7 @@ class Retirement(Elaboratable):
                     # Resume core operation
                     self.c_rat_restore(m, entries=self.r_rat_peek(m).entries)
                     self.perf_trap_latency.stop(m)
+                    log.debug(m, True, "Resuming core")
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     tvec_offset = Signal(self.gen_params.isa.xlen)
@@ -350,10 +386,7 @@ class Retirement(Elaboratable):
                     # (xtvec_base stores base[MXLEN-1:2])
                     m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
 
-                    resume_pc = Mux(continue_pc_override, continue_pc, handler_pc)
-                    m.d.sync += continue_pc_override.eq(0)
-
-                    self.fetch_redirect(m, ftq_ptr=ftq_commit_ptr, pc=resume_pc)
+                    self.fetch_redirect(m, ftq_ptr=ftq_commit_ptr, pc=handler_pc)
 
                     # Release pending trap state - allow accepting new reports and unstall fetch
                     self.exception_cause_clear(m)
@@ -362,7 +395,7 @@ class Retirement(Elaboratable):
 
         @def_method(m, self.core_state, nonexclusive=True)
         def _():
-            return {"flushing": core_flushing}
+            return {"flushing": fsm.ongoing("TRAP_FLUSH")}
 
         # Run side fx on first non-pure instr, if exception not encountered
         m.d.comb += self.pure_count.eq(count_trailing_zeros(Cat(~entry.pure for entry in rob_entries.entries)))
@@ -376,20 +409,25 @@ class Retirement(Elaboratable):
         m.d.comb += side_fx_rob_id.eq(rob_entries.entries[0].rob_id + self.pure_count)
 
         # Disable executing any side effects from instructions in core when it is flushed
-        m.d.comb += core_flushing.eq(fsm.ongoing("TRAP_FLUSH") | exc_prefixes[done_count])
+        core_flushing = Signal()
+        m.d.comb += core_flushing.eq(
+            fsm.ongoing("TRAP_FLUSH") | exc_prefixes[done_count]
+        )  # FIXME: this check is too restrictive but it will work
 
-        # The argument is only used in argument validation, it is not needed in the method body.
-        # A dummy combiner is provided.
+        # The argument is only used in argument validation, it is not needed in the method body. A dummy combiner is
+        # provided.
         @def_method(
             m,
             self.side_fx_guard,
             ready=~core_flushing,
-            validate_arguments=lambda rob_id, require_done: (rob_id == side_fx_rob_id)
-            & (~require_done | (self.pure_count == done_count)),
+            validate_arguments=lambda rob_id, tag, require_done: (rob_id == side_fx_rob_id)
+            & (
+                ~require_done | (self.pure_count == done_count) & active_tags[tag]
+            ),  # FUTURE-TODO: inactive instruction are pure
             nonexclusive=True,
-            combiner=lambda m, args, runs: {"rob_id": 0, "require_done": 0},
+            combiner=lambda m, args, runs: {"rob_id": 0, "tag": 0, "require_done": 0},
         )
-        def _(rob_id, require_done):
+        def _(rob_id, tag, require_done):
             return
 
         return m
