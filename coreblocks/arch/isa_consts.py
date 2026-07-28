@@ -35,7 +35,7 @@ class InstrType(Enum, shape=3):
 
 
 @unique
-class Opcode(IntEnum, shape=5):
+class Opcode(Enum, shape=5):
     LOAD = 0b00000
     LOAD_FP = 0b00001
     MISC_MEM = 0b00011
@@ -141,7 +141,7 @@ class Registers(IntEnum, shape=5):
 
 
 @unique
-class FenceTarget(IntFlag, shape=4):
+class FenceTarget(Flag, shape=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
@@ -149,7 +149,7 @@ class FenceTarget(IntFlag, shape=4):
 
 
 @unique
-class FenceFm(IntEnum, shape=4):
+class FenceFm(Enum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
 
@@ -194,7 +194,7 @@ class PrivilegeLevel(IntEnum, shape=2):
 
 
 @unique
-class TrapVectorMode(IntEnum, shape=2):
+class TrapVectorMode(Enum, shape=2):
     DIRECT = 0b00
     VECTORED = 0b01
 
