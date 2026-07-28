@@ -13,7 +13,7 @@ from coreblocks.params import configurations
 from coreblocks.arch import *
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
@@ -74,7 +74,7 @@ class DummyLSUTestCircuit(Elaboratable):
         self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen.get(ExceptionInformationRegisterLayouts).report)
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
@@ -172,6 +172,7 @@ class TestDummyLSULoads(TestCaseWithSimulator):
                             ExceptionCause.LOAD_ADDRESS_MISALIGNED if misaligned else ExceptionCause.LOAD_ACCESS_FAULT
                         ),
                         "pc": 0,
+                        "tag": 0,
                         "mtval": addr,
                     }
                 )

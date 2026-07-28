@@ -10,7 +10,7 @@ from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionRe
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RetirementLayouts
 from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
@@ -54,7 +54,7 @@ class PMAIndirectTestCircuit(Elaboratable):
         self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
 
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter(i=self.gen.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen.get(ExceptionInformationRegisterLayouts).report)
         )
 
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)

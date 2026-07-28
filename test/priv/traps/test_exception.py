@@ -1,12 +1,13 @@
 from amaranth import *
-from coreblocks.interface.layouts import ROBLayouts
+from coreblocks.interface.keys import ActiveTagsKey
+from coreblocks.interface.layouts import RATLayouts
 
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.params import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.params import configurations
 from transactron.lib import Adapter
-from transactron.utils import ModuleConnector
+from transactron.utils import DependencyContext, ModuleConnector
 
 from transactron.testing import *
 
@@ -16,12 +17,15 @@ import random
 class TestExceptionInformationRegister(TestCaseWithSimulator):
     rob_max = 7
 
-    def should_update(self, new_arg, old_arg, rob_start) -> bool:
+    def should_update(self, new_arg, old_arg) -> bool:
+        if not ((self.active_tags >> new_arg["tag"]) & 1):
+            return False
+
         if old_arg is None:
             return True
 
-        if ((new_arg["rob_id"] - rob_start) % (self.rob_max + 1)) < (
-            (old_arg["rob_id"] - rob_start) % (self.rob_max + 1)
+        if ((new_arg["rob_id"] - self.rob_id) % (self.rob_max + 1)) < (
+            (old_arg["rob_id"] - self.rob_id) % (self.rob_max + 1)
         ):
             return True
 
@@ -31,24 +35,24 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
         self.gen_params = GenParams(configurations.test)
         random.seed(2)
 
-        self.cycles = 256
+        cycles = 256
+        tag_count = 4
 
-        self.rob_idx_mock = TestbenchIO(Adapter(o=self.gen_params.get(ROBLayouts).get_indices))
-        self.fetch_stall_mock = TestbenchIO(Adapter())
+        self.tags_active = TestbenchIO(Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out))
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
+
         self.dut = SimpleTestCircuit(
-            ExceptionInformationRegister(
-                self.gen_params, self.rob_idx_mock.adapter.iface, self.fetch_stall_mock.adapter.iface
-            ),
+            ExceptionInformationRegister(self.gen_params),
         )
-        m = ModuleConnector(self.dut, rob_idx_mock=self.rob_idx_mock, fetch_stall_mock=self.fetch_stall_mock)
+        m = ModuleConnector(self.dut, self.tags_active)
 
         self.rob_id = 0
+        self.active_tags = 0
 
         async def process_test(sim: TestbenchContext):
             saved_entry = None
 
-            self.fetch_stall_mock.enable(sim)
-            for _ in range(self.cycles):
+            for _ in range(cycles):
                 self.rob_id = random.randint(0, self.rob_max)
 
                 cause = random.choice(list(ExceptionCause))
@@ -58,23 +62,48 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
                     report_rob = random.randint(0, self.rob_max)
                 report_pc = random.randrange(2**self.gen_params.isa.xlen)
                 report_mtval = random.randrange(2**self.gen_params.isa.xlen)
-                report_arg = {"cause": cause, "rob_id": report_rob, "pc": report_pc, "mtval": report_mtval}
+                report_tag = random.randrange(tag_count)
+                report_arg = {
+                    "cause": cause,
+                    "rob_id": report_rob,
+                    "pc": report_pc,
+                    "mtval": report_mtval,
+                    "tag": report_tag,
+                }
 
-                expected = report_arg if self.should_update(report_arg, saved_entry, self.rob_id) else saved_entry
-                res1, res2 = (
-                    await CallTrigger(sim).call(self.dut.report, report_arg).sample(self.fetch_stall_mock).until_done()
-                )
-                assert res1 is not None and res2 is not None  # fetch_stall is called in the same cycle
+                expected = report_arg if self.should_update(report_arg, saved_entry) else saved_entry
+                await self.dut.report.call(sim, report_arg)
 
                 new_state = data_const_to_dict(await self.dut.get.call(sim))
 
-                assert new_state == expected | {"valid": 1}  # type: ignore
+                if expected is not None:
+                    assert new_state == {"data": expected, "valid": 1}
+                    saved_entry = new_state["data"]
+                else:
+                    assert not new_state["valid"]
 
-                saved_entry = new_state
+                if random.random() < 0.4:
+                    self.active_tags = random.randrange(2**tag_count)
+                    await sim.tick()
+                    new_state = data_const_to_dict(await self.dut.get.call(sim))
+                    if saved_entry and (self.active_tags >> saved_entry["tag"]) & 1:
+                        assert new_state == {"data": saved_entry, "valid": 1}
+                        saved_entry = new_state["data"]
+                    else:
+                        assert not new_state["valid"]
+                        saved_entry = None
 
-        @def_method_mock(lambda: self.rob_idx_mock)
+        @def_method_mock(lambda: self.dut.rob_get_indices)
         def process_rob_idx_mock():
             return {"start": self.rob_id, "end": 0}
+
+        @def_method_mock(lambda: self.tags_active)  # type: ignore
+        def process_tags_active():
+            return {
+                "active_tags": [
+                    (self.active_tags >> i) & 1 for i in range(self.tags_active.adapter.iface.layout_out.size)
+                ]
+            }
 
         with self.run_simulation(m) as sim:
             sim.add_testbench(process_test)

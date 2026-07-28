@@ -88,6 +88,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
         instr_pc = Signal(self.gen_params.isa.xlen)
         instr_fn = self.fn.get_function()
         ftq_ptr = FTQPtr(gen_params=self.gen_params)
+        instr_tag = Signal(self.gen_params.tag_bits)
 
         instr_imm = Signal(self.gen_params.isa.xlen)
         instr_s1_val = Signal(self.gen_params.isa.xlen)
@@ -116,6 +117,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 instr_s1_val.eq(arg.s1_val),
                 instr_s2_val.eq(arg.s2_val),
                 instr_imm.eq(arg.imm),
+                instr_tag.eq(arg.tag),
                 ftq_ptr.eq(arg.ftq_ptr),
             ]
 
@@ -245,7 +247,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                         log.error(m, True, "missing Funct12 case")
 
                 self.exception_report(
-                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=ret_pc, rob_id=instr_rob, mtval=instr
+                    m, cause=ExceptionCause.ILLEGAL_INSTRUCTION, rob_id=instr_rob, tag=instr_tag, pc=ret_pc, mtval=instr
                 )
             with m.Elif(async_interrupt_active):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
@@ -257,7 +259,12 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                 # would normally return to (mepc value is preserved)
                 m.d.av_comb += exception.eq(1)
                 self.exception_report(
-                    m, cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT, pc=ret_pc, rob_id=instr_rob, mtval=0
+                    m,
+                    cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    rob_id=instr_rob,
+                    tag=instr_tag,
+                    pc=ret_pc,
+                    mtval=0,
                 )
             with m.Elif(~core_state.flushing):
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)

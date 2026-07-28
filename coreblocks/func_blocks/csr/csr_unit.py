@@ -235,7 +235,14 @@ class CSRUnit(FuncBlock, Elaboratable):
                     )
                 )
                 m.d.av_comb += mtval[20:32].eq(instr.csr)
-                self.report(m, rob_id=instr.rob_id, cause=ExceptionCause.ILLEGAL_INSTRUCTION, pc=instr.pc, mtval=mtval)
+                self.report(
+                    m,
+                    cause=ExceptionCause.ILLEGAL_INSTRUCTION,
+                    rob_id=instr.rob_id,
+                    tag=instr.tag,
+                    pc=instr.pc,
+                    mtval=mtval,
+                )
             with m.Elif(interrupt):
                 # SPEC: "These conditions for an interrupt trap to occur [..] must also be evaluated immediately
                 # following  [..] an explicit write to a CSR on which these interrupt trap conditions expressly depend."
@@ -244,8 +251,9 @@ class CSRUnit(FuncBlock, Elaboratable):
                 # CSR instructions are never compressed, PC+4 is always next instruction
                 self.report(
                     m,
-                    rob_id=instr.rob_id,
                     cause=ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT,
+                    rob_id=instr.rob_id,
+                    tag=instr.tag,
                     pc=instr.pc + self.gen_params.isa.ilen_bytes,
                     mtval=0,
                 )

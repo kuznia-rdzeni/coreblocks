@@ -3,9 +3,10 @@ from amaranth.lib.data import ArrayLayout
 from amaranth.lib import memory
 from transactron import Methods, Transaction, def_methods, TModule
 from transactron.utils.amaranth_ext.elaboratables import OneHotMux
+from coreblocks.interface.keys import RVVIHartCollectorKey
 from coreblocks.interface.layouts import RFLayouts
 from coreblocks.params import GenParams
-from transactron.utils import logging
+from transactron.utils import DependencyContext, logging
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.lib.storage import MemoryBank
 from transactron.utils.amaranth_ext.functions import popcount
@@ -80,6 +81,8 @@ class RegisterFile(Elaboratable):
                 "valid": forward | self.valids[reg_id],
             }
 
+        rvvi = DependencyContext.get().get_optional_dependency(RVVIHartCollectorKey())
+
         @def_methods(m, self.write)
         def _(k: int, reg_id: Value, reg_val: Value):
             m.d.comb += being_written[k].eq(reg_id)
@@ -89,6 +92,9 @@ class RegisterFile(Elaboratable):
                 self.entries.write[k](m, addr=reg_id, data=reg_val)
                 m.d.sync += self.valids[reg_id].eq(1)
                 self.perf_rf_valid_time.start[k](m, slot=reg_id)
+
+                if rvvi is not None:
+                    rvvi.register_reg_write[k](m, reg_id=reg_id, reg_val=reg_val)
 
         @def_methods(m, self.free)
         def _(k: int, reg_id: Value):
