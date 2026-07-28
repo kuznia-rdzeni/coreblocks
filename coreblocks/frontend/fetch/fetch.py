@@ -4,7 +4,15 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import DependencyContext, count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
+from transactron.utils import (
+    DependencyContext,
+    count_trailing_zeros,
+    popcount,
+    assign,
+    StableSelectingNetwork,
+    logging,
+    mux,
+)
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -669,9 +677,6 @@ class PredictionChecker(Elaboratable):
 
         @def_method(m, self.check)
         def _(fb_addr, starts_mid_instr, instr_valid, predecoded, prediction):
-            decoded_cfi_types = Array([predecoded[i].cfi_type for i in range(self.gen_params.fetch_width)])
-            decoded_cfi_offsets = Array([predecoded[i].cfi_offset for i in range(self.gen_params.fetch_width)])
-
             # First find all the instructions that would redirect the fetch unit.
             decoded_redirections = Signal(self.gen_params.fetch_width)
             for i in range(self.gen_params.fetch_width):
@@ -679,12 +684,12 @@ class PredictionChecker(Elaboratable):
                 # taken. This prediction will be used if the branch prediction unit
                 # didn't detect the branch at all.
                 m.d.av_comb += decoded_redirections[i].eq(
-                    CfiType.is_jal(decoded_cfi_types[i])
-                    | CfiType.is_jalr(decoded_cfi_types[i])
+                    CfiType.is_jal(predecoded[i].cfi_type)
+                    | CfiType.is_jalr(predecoded[i].cfi_type)
                     | (
-                        CfiType.is_branch(decoded_cfi_types[i])
+                        CfiType.is_branch(predecoded[i].cfi_type)
                         & ~prediction.branch_mask[i]
-                        & (decoded_cfi_offsets[i] < 0)
+                        & (predecoded[i].cfi_offset < 0)
                     )
                 )
 
@@ -697,7 +702,7 @@ class PredictionChecker(Elaboratable):
 
             # For a given instruction index, returns a CFI target based on the predecode info
             def get_decoded_target_for(idx: Value) -> Value:
-                base = params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
+                base = params.pc_from_fb(fb_addr, idx) + predecoded[idx].cfi_offset
                 if Extension.ZCA in self.gen_params.isa.extensions:
                     return base - Mux(starts_mid_instr & (idx == 0), 2, 0)
                 return base
@@ -715,9 +720,9 @@ class PredictionChecker(Elaboratable):
                 | ~CfiType.valid(prediction.cfi_type)
             )
 
-            decoded_cfi_type_at_pred = Mux(
+            decoded_cfi_type_at_pred = mux(
                 instr_valid.bit_select(prediction.cfi_idx, 1),
-                decoded_cfi_types[prediction.cfi_idx],
+                predecoded[prediction.cfi_idx].cfi_type,
                 CfiType.INVALID,
             )
 
@@ -732,13 +737,13 @@ class PredictionChecker(Elaboratable):
             ret = Signal.like(self.check.data_out)
 
             with m.If(preceding_redirection):
-                self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx])
+                self.perf_preceding_redirection.incr(m, predecoded[pd_redirect_idx].cfi_type)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
                         "cfi_idx": pd_redirect_idx,
-                        "cfi_type": decoded_cfi_types[pd_redirect_idx],
+                        "cfi_type": predecoded[pd_redirect_idx].cfi_type,
                         "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
@@ -752,7 +757,7 @@ class PredictionChecker(Elaboratable):
                     {
                         "mispredicted": 1,
                         "cfi_idx": pd_redirect_idx,
-                        "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
+                        "cfi_type": mux(pd_redirection_enc.n, CfiType.INVALID, predecoded[pd_redirect_idx].cfi_type),
                         "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
@@ -763,7 +768,7 @@ class PredictionChecker(Elaboratable):
                     {
                         "mispredicted": 1,
                         "cfi_idx": prediction.cfi_idx,
-                        "cfi_type": decoded_cfi_types[prediction.cfi_idx],
+                        "cfi_type": predecoded[prediction.cfi_idx].cfi_type,
                         "cfi_target": decoded_target_for_predicted_cfi,
                     },
                 )
