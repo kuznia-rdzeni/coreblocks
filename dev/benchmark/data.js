@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785277630642,
+  "lastUpdate": 1785277632474,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -71930,6 +71930,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Block RAM used",
             "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40",
+          "message": "Tiny core in CI (#1036)",
+          "timestamp": "2026-07-28T23:29:22+02:00",
+          "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
+        },
+        "date": 1785277632111,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.92,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7152,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 125,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
             "unit": "RAMB36E1"
           }
         ]
