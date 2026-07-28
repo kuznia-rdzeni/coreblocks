@@ -44,7 +44,7 @@ class FastRecursiveMul(Elaboratable):
         if self.n <= self.dsp_width:
             m = TModule()
             m.submodules.dsp = dsp = DSPMulUnit(self.dsp_width)
-            with Transaction().body(m):
+            with Transaction().always_body(m):
                 # The bit width of the `i1` and `i2` parameters of `dsp` is different than of `self.i1`
                 # and `self.i2`, which triggers an error. Using `| 0` silences it.
                 res = dsp.compute(m, i1=self.i1 | 0, i2=self.i2 | 0)

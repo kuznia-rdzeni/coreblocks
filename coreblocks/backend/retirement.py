@@ -163,7 +163,7 @@ class Retirement(Elaboratable):
         done_mask = Signal.like(tag_incr_mask)
         free_checkpoint = Signal()
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
 
             # CRAT can currently deallocate at most one tag per cycle, this logic reduces the retire rate

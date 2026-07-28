@@ -112,7 +112,7 @@ class ReorderBuffer(Elaboratable):
 
         m.submodules.data = self.data
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             peek_ret = self.data.peek(m)
 
         @def_method(m, self.peek, nonexclusive=True)
@@ -181,7 +181,7 @@ class ReorderBuffer(Elaboratable):
         if self.perf_rob_size.metrics_enabled():
             rob_size = Signal(self.params.rob_entries_bits)
             m.d.comb += rob_size.eq((end_idx - start_idx)[0 : self.params.rob_entries_bits])
-            with Transaction(name="perf").body(m):
+            with Transaction(name="perf").always_body(m):
                 self.perf_rob_size.add(m, rob_size)
 
         return m

@@ -79,16 +79,14 @@ class ShadowCSR(CSRRegisterBase):
         read_mask = Signal.like(self.value)
 
         if isinstance(self.write_mask, Method):
-            with Transaction().body(m) as t:
+            with Transaction().always_body(m):
                 m.d.comb += write_mask.eq(self.write_mask(m).data)
-            log.error(m, ~t.run, "assert transaction running failed")
         else:
             m.d.comb += write_mask.eq(self.write_mask)
 
         if isinstance(self.read_mask, Method):
-            with Transaction().body(m) as t:
+            with Transaction().always_body(m):
                 m.d.comb += read_mask.eq(self.read_mask(m).data)
-            log.error(m, ~t.run, "assert transaction running failed")
         else:
             m.d.comb += read_mask.eq(self.read_mask)
 

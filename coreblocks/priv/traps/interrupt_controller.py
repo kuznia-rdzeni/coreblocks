@@ -234,7 +234,7 @@ class InternalInterruptController(Component):
 
         mie = Signal(self.gen_params.isa.xlen)
         mip = Signal(self.gen_params.isa.xlen)
-        with Transaction().body(m) as assign_trans:
+        with Transaction().always_body(m):
             priv = priv_mode.read(m).data
             pending = Signal(self.gen_params.isa.xlen)
             mideleg = Signal(self.gen_params.isa.xlen)
@@ -265,7 +265,6 @@ class InternalInterruptController(Component):
                 ]
 
             m.d.av_comb += interrupt_enable_m.eq(self.mstatus_mie.read(m).data | (priv < PrivilegeLevel.MACHINE))
-        log.error(m, ~assign_trans.run, "assert transaction running failed")
 
         m_interrupt_insert = Signal()
         s_interrupt_insert = Signal()
@@ -281,12 +280,11 @@ class InternalInterruptController(Component):
         # WFI is independent of global mstatus.xIE and mideleg
         m.d.comb += self.wfi_resume.eq(interrupt_pending)
 
-        with Transaction().body(m) as mip_trans:
+        with Transaction().always_body(m):
             mip_value = self.mip.read_comb(m).data
             new_data = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
             self.mip.write(m, {"data": new_data})
-        log.error(m, ~mip_trans.run, "assert transaction running failed")
 
         @def_method(m, self.mret)
         def _():
@@ -327,7 +325,7 @@ class InternalInterruptController(Component):
 
         # mret/sret/entry conflicts cannot happen in real conditions - xret is called under side fx guard
         # this is split here to avoid complicated call graphs and conflicts that are not handled well by Transactron
-        with Transaction().body(m):
+        with Transaction().body(m) as t:
             with m.If(self.entry.run):
                 priv = priv_mode.read(m).data
                 target_priv = self.entry.data_out.target_priv
@@ -362,6 +360,8 @@ class InternalInterruptController(Component):
                     spp = self.mstatus_spp.read(m).data
                     priv_mode.write(m, Mux(spp, PrivilegeLevel.SUPERVISOR, PrivilegeLevel.USER))
                     self.m_mode_csr.mstatus_mprv.write(m, 0)
+        needs_run = self.entry.run | self.mret.run | (self.sret.run if self.gen_params.supervisor_mode else 0)
+        log.assertion(m, t.run | ~needs_run, "Interrupt controller transaction did not run")
 
         interrupt_priority = [
             InterruptCauseNumber.MEI,
