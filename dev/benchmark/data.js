@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785268498513,
+  "lastUpdate": 1785277625182,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25813,6 +25813,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d9145a21cb4541e1eeb306c7a273ee82816e821b"
         },
         "date": 1785268476080,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44844731541673366,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5951740300321152,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3661826587675101,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6450701307924483,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35531157138749,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30097743800508947,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3402741852043456,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4437417112544016,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40",
+          "message": "Tiny core in CI (#1036)",
+          "timestamp": "2026-07-28T23:29:22+02:00",
+          "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
+        },
+        "date": 1785277613908,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
