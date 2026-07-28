@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785268496152,
+  "lastUpdate": 1785268498513,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -72157,6 +72157,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 979,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d9145a21cb4541e1eeb306c7a273ee82816e821b",
+          "message": "Enum refactor (#1022)",
+          "timestamp": "2026-07-28T20:57:55+02:00",
+          "tree_id": "8e5164adb6e04a3010a03e02234b176b78d52731",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/d9145a21cb4541e1eeb306c7a273ee82816e821b"
+        },
+        "date": 1785268497738,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.93,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 44648,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 13835,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 977,
             "unit": "Slice"
           },
           {
