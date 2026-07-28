@@ -112,7 +112,7 @@ class ReorderBuffer(Elaboratable):
 
         m.submodules.data = self.data
 
-        with Transaction().always_body(m):
+        with Transaction().body(m):
             peek_ret = self.data.peek(m)
 
         @def_method(m, self.peek, nonexclusive=True)
