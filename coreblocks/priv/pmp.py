@@ -21,7 +21,7 @@ class PMPLayoutFull(data.StructLayout):
 
 
 @unique
-class PMPOperationMode(Enum, shape=2):
+class PMPOperationMode(Enum):
     """choice of the privilege mode of an access"""
 
     LSU = auto()
