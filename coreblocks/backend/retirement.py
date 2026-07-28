@@ -421,9 +421,8 @@ class Retirement(Elaboratable):
             self.side_fx_guard,
             ready=~core_flushing,
             validate_arguments=lambda rob_id, tag, require_done: (rob_id == side_fx_rob_id)
-            & (
-                ~require_done | (self.pure_count == done_count) & active_tags[tag]
-            ),  # FUTURE-TODO: inactive instruction are pure
+            & (~require_done | (self.pure_count == done_count))
+            & active_tags[tag],  # FUTURE-TODO: inactive instruction are pure
             nonexclusive=True,
             combiner=lambda m, args, runs: {"rob_id": 0, "tag": 0, "require_done": 0},
         )
