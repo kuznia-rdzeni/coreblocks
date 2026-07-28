@@ -4,7 +4,15 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import DependencyContext, count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging, mux
+from transactron.utils import (
+    DependencyContext,
+    count_trailing_zeros,
+    popcount,
+    assign,
+    StableSelectingNetwork,
+    logging,
+    mux,
+)
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
