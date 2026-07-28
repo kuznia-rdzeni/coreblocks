@@ -337,9 +337,9 @@ funct_code_type: TypeAlias = tuple[Optional[int], Optional[int]]
 class TestEncodingUniqueness(TestCase):
     def test_encoding_uniqueness(self):
         def instruction_code(instr: Encoding) -> code_type:
-            op_code = int(instr.opcode)
-            funct3 = int(instr.funct3) if instr.funct3 is not None else None
-            funct7 = int(instr.funct7) if instr.funct7 is not None else None
+            op_code = instr.opcode.value
+            funct3 = instr.funct3.value if instr.funct3 is not None else None
+            funct7 = instr.funct7.value if instr.funct7 is not None else None
             funct12_5bits = None
 
             if instr.funct12 is not None:

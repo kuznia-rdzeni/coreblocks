@@ -13,7 +13,7 @@ from transactron.utils.dependencies import DependencyContext
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode, DynamicAreaPMPChecker
 
 
-def make_cfg(*, r=0, w=0, x=0, a=0, lock=0) -> int:
+def make_cfg(*, r=0, w=0, x=0, a=PMPAFlagEncoding.OFF, lock=0) -> int:
     cfg = PMPCfgLayout().const({"R": r, "W": w, "X": x, "A": a, "L": lock})
     return cfg.as_value().value
 

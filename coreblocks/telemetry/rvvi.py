@@ -116,11 +116,7 @@ class RVVIHartCollector(Component):
         rf_write_ports = [rf_mem.write_port() for _ in range(self.reg_write_ports)]
         rf_read_ports = [rf_mem.read_port(domain="comb") for _ in range(self.retire_ports)]
 
-        ixl = {
-            32: XlenEncoding.W32,
-            64: XlenEncoding.W64,
-            128: XlenEncoding.W128,
-        }[self.gen_params.isa.xlen]
+        ixl = XlenEncoding.from_xlen(self.gen_params.isa.xlen)
 
         order = Signal(64)
         intr_next = Signal()
