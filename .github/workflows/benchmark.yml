@@ -14,7 +14,7 @@ jobs:
   synthesis:
     strategy:
       matrix:
-        config: [basic, full]
+        config: [tiny, basic, full]
         platform: [ecp5, xc7k480t]
         include:
           - platform: ecp5
