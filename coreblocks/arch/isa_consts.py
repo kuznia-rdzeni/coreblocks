@@ -1,7 +1,7 @@
 from collections.abc import Set
 from amaranth import Value
 from amaranth.lib.data import StructLayout
-from amaranth.lib.enum import Flag, unique, Enum, IntEnum, IntFlag
+from amaranth.lib.enum import Flag, unique, Enum, IntEnum
 
 __all__ = [
     "InstrType",
