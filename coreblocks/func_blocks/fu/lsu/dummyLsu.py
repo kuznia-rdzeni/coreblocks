@@ -63,7 +63,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m = TModule()
         flush = Signal()  # exception handling, requests are not issued
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             core_state = self.dependency_manager.get_dependency(CoreStateKey())
             state = core_state(m)
             m.d.comb += flush.eq(state.flushing)

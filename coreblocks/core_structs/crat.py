@@ -454,7 +454,7 @@ class CheckpointRAT(Elaboratable):
             sample_width=ceil_log2(self.gen_params.checkpoint_count),
         )
         if perf_tags.metrics_enabled():
-            with Transaction().body(m):
+            with Transaction().always_body(m):
                 num_tags = Signal(self.gen_params.tag_bits + 1)
                 m.d.comb += num_tags.eq(
                     Mux(
@@ -465,10 +465,10 @@ class CheckpointRAT(Elaboratable):
                 )
                 perf_tags.add(m, num_tags)
         if perf_tags_active.metrics_enabled():
-            with Transaction().body(m):
+            with Transaction().always_body(m):
                 perf_tags_active.add(m, popcount(active_tags))
         if perf_checkpoints.metrics_enabled():
-            with Transaction().body(m):
+            with Transaction().always_body(m):
                 num_checkpoints = Signal(range(self.gen_params.checkpoint_count))
                 m.d.comb += num_checkpoints.eq(
                     Mux(

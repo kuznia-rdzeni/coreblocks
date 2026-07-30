@@ -254,7 +254,7 @@ class MachineModeCSRRegisters(Elaboratable):
             if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
                 m.submodules[name] = value
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             self.mcycle.increment(m)
 
         def hpm_event_combiner(m, args, runs):
@@ -591,7 +591,7 @@ class CSRInstances(Elaboratable):
         m.d.sync += time_counter.eq(time_counter + 1)
         time_source = time_counter if clint_mtime is None else clint_mtime
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             if clint_mtime is not None:
                 self.time.write(m, data=time_source[: self.time.width])
                 if self.gen_params.isa.xlen == 32:
@@ -601,7 +601,7 @@ class CSRInstances(Elaboratable):
         if self.gen_params.isa.xlen == 32:
             m.submodules.timeh = self.timeh
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             priv_mode = self.m_mode.priv_mode.read(m).data
             mprv = self.m_mode.mstatus_mprv.read(m).data
             log.assertion(

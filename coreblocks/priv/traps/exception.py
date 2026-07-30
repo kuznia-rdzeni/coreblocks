@@ -65,7 +65,7 @@ class ExceptionInformationRegister(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
 
         with m.If(~active_tags[self.data.tag]):

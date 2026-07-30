@@ -74,7 +74,7 @@ class AddressTranslator(Elaboratable):
         mxr = Signal()
         sum_ = Signal()
 
-        with Transaction().body(m) as t:
+        with Transaction().always_body(m):
             priv_mode = csr.m_mode.priv_mode.read(m).data
 
             match self.mode:
@@ -93,8 +93,6 @@ class AddressTranslator(Elaboratable):
 
             m.d.av_comb += mxr.eq(csr.m_mode.mstatus_mxr.read(m).data)
             m.d.av_comb += sum_.eq(csr.m_mode.mstatus_sum.read(m).data)
-
-        log.error(m, ~t.run, "Transaction must always run")
 
         @def_method(m, self.request)
         def _(addr: Value, is_store: Value):

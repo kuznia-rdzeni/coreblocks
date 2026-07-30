@@ -1,5 +1,5 @@
 from amaranth import *
-from transactron import TModule, Method, def_method, Transaction
+from transactron import TModule, Method, def_method
 from transactron.utils.transactron_helpers import from_method_layout
 from coreblocks.func_blocks.fu.fpu.fpu_common import RoundingModes, FPUParams
 from coreblocks.func_blocks.fu.fpu.lza import LZAModule
@@ -118,15 +118,14 @@ class ClosePathModule(Elaboratable):
                 with m.Case(RoundingModes.ROUND_NEAREST_AWAY):
                     m.d.av_comb += l_flag.eq((result_add_zero[-1] & guard_bit) | ~(guard_bit))
 
-            with Transaction().body(m):
-                m.d.av_comb += final_result.eq(Mux(l_flag, result_add_one, result_add_zero))
-                resp = Mux(
-                    l_flag,
-                    one_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=1),
-                    zero_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=0),
-                )
-                m.d.av_comb += lza_resp.eq(resp)
-                m.d.av_comb += is_zero.eq(lza_resp["is_zero"])
+            m.d.av_comb += final_result.eq(Mux(l_flag, result_add_one, result_add_zero))
+            resp = Mux(
+                l_flag,
+                one_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=1),
+                zero_lza.predict_request(m, sig_a=sig_a, sig_b=sig_b, carry=0),
+            )
+            m.d.av_comb += lza_resp.eq(resp)
+            m.d.av_comb += is_zero.eq(lza_resp["is_zero"])
 
             with m.If(is_zero | (exp == 0)):
                 m.d.av_comb += final_sig.eq(final_result)
