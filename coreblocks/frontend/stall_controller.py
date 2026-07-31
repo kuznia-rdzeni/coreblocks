@@ -105,15 +105,15 @@ class StallController(Elaboratable):
 
             self.redirect_frontend(m, ftq_ptr=ftq_ptr, pc=pc)
 
-        @def_method(m, self.on_redirect_frontend)
-        def _():
-            # All redirections change execuction point so clear unsafe state
-            m.d.sync += stalled_unsafe.eq(0)
-
         @def_method(m, self.stall_unsafe)
         def _():
             log.assertion(m, ~stalled_unsafe, "Can't be stalled twice because of an unsafe instruction")
             log.info(m, True, "Stalling frontend - unsafe instruction")
             m.d.sync += stalled_unsafe.eq(1)
+
+        @def_method(m, self.on_redirect_frontend)
+        def _():
+            # All redirections change execuction point so clear unsafe state
+            m.d.sync += stalled_unsafe.eq(0)
 
         return m
