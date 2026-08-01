@@ -19,7 +19,7 @@ ifeq ($(SIM),verilator)
 endif
 
 ifeq ($(TRACES),1)
-  EXTRA_ARGS += --trace-fst --trace-structs
+  EXTRA_ARGS += --trace --trace-fst --trace-structs
 endif
 
 # include cocotb's make rules to take care of the simulator setup
