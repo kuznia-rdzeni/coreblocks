@@ -3,7 +3,11 @@
 # defaults
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
-SIM_BUILD ?= build/$(BUILD_NAME)/$(SIM)
+ifeq ($(TRACES),1)
+	SIM_BUILD ?= build/$(BUILD_NAME)/$(SIM)-trace
+else
+	SIM_BUILD ?= build/$(BUILD_NAME)/$(SIM)
+endif
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
 TOPLEVEL = top
