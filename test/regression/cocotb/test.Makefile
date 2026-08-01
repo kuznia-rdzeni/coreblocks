@@ -1,3 +1,3 @@
-MODULE = arch_elf_entrypoint
+MODULE = test_entrypoint
 BUILD_NAME = test
 include common.Makefile
