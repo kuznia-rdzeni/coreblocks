@@ -3,14 +3,14 @@
 # defaults
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
-SIM_BUILD ?= build/riscv-arch-test/$(SIM)
+SIM_BUILD ?= build/$(BUILD_NAME)/$(SIM)
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
 TOPLEVEL = top
 
 # Yosys/Amaranth borkedness workaround
 ifeq ($(SIM),verilator)
-  EXTRA_ARGS += -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-UNSIGNED -Wno-CMPCONST -Wno-LITENDIAN -Wno-UNOPTFLAT
+  EXTRA_ARGS += -Wno-CASEINCOMPLETE -Wno-CASEOVERLAP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-UNSIGNED -Wno-CMPCONST -Wno-LITENDIAN -Wno-UNOPTFLAT -Wno-ALWNEVER
   BUILD_ARGS += -j`nproc`
 endif
 
