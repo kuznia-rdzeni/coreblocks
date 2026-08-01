@@ -147,8 +147,8 @@ class RSBase(Elaboratable):
             self.perf_rs_wait_time.start(m, slot=rs_entry_id)
             self.log.debug(m, True, "inserted entry {}", rs_entry_id)
 
-        with Transaction().body(m):
-            self.order = order(m).order  # always ready!
+        with Transaction().always_body(m):
+            self.order = order(m).order
 
         @def_method(m, self.take)
         def _(rs_entry_id: Value) -> ReturnDict:
@@ -180,7 +180,7 @@ class RSBase(Elaboratable):
         if self.perf_num_full.metrics_enabled():
             num_full = Signal(range(self.rs_entries + 1))
             m.d.comb += num_full.eq(popcount(Cat(self.data[entry_id].rec_full for entry_id in range(self.rs_entries))))
-            with Transaction(name="perf").body(m):
+            with Transaction(name="perf").always_body(m):
                 self.perf_num_full.add(m, num_full)
 
 

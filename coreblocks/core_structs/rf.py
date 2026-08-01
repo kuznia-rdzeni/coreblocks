@@ -132,7 +132,7 @@ class RegisterFile(Elaboratable):
             m.d.comb += num_valid.eq(
                 popcount(Cat(self.valids[reg_id] for reg_id in range(2**self.gen_params.phys_regs_bits)))
             )
-            with Transaction(name="perf").body(m):
+            with Transaction(name="perf").always_body(m):
                 self.perf_num_valid.add(m, num_valid)
 
         return m

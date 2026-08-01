@@ -158,7 +158,7 @@ class WishboneMaster(Component):
             with m.State("WBWaitACK"):
                 with m.If(self.wb_master.ack | self.wb_master.err):
                     m.d.comb += request_ready.eq(result.read.run)
-                    with Transaction().body(m):
+                    with Transaction().always_body(m):
                         # will be always ready, as we checked that in Idle
                         result.write(m, data=Mux(self.txn_req.we, 0, self.wb_master.dat_r), err=self.wb_master.err)
                     with m.If(self.request.run):

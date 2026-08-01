@@ -192,7 +192,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret | illegal_sret | illegal_sfencevma)
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             core_state = self.dm.get_dependency(CoreStateKey())(m)
 
         with Transaction().body(m, ready=instr_valid & (finished | core_state.flushing)):
