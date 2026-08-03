@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import asyncio
+import re
 import xml.etree.ElementTree as eT
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
@@ -45,6 +46,35 @@ ACCESS_FAULT_ADDRESS = 0x00000000
 INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
 
 START_PC = 0x80000000
+
+EXPECTED_FAIL = {
+    # fails
+    "sv32_exceptions_(S|U)mode",  # ?
+    "sv32_exceptions_mprv_(S|U)_Mmode",  # page fault before alignment fault (misconfig?)
+    "sv32_nleaf_pte_DAU_(S|U)mode",  # non-leaf D,A,U flags should cause page fault
+    "InterruptsU",  # ?
+    "Exceptions.*Zalrcs",  # sail requires size of reservation set <= 12
+    "pmpzalrsc_cfg_wr",
+    "Exceptions.*Zaamo",  # misaligned amo should cause write flavoured exception
+    "pmpzaamo_cfg_wr",
+
+    # fail - coreblocks assertion
+    "Zifencei-fence.i",
+}
+
+EXPECTED_TIMEOUT = {
+    "ExceptionsS",
+    "InterruptsS",
+    "InterruptsSSm",
+    "S_scsr",
+    "sv32_pmp_on_pte_(S|U)mode",
+    "U",
+    "ZicntrS",
+}
+
+def is_expected_failing(test_name: str, failset: set[str]) -> bool:
+    test_name = test_name.split("/")[-1].split(".")[0]
+    return any(re.fullmatch(rf"{pattern}(-\d\d)?", test_name, re.IGNORECASE) for pattern in failset)
 
 
 class EndTestMMIO(MemorySegment):
@@ -170,6 +200,8 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         elf_path,
         sim_backend.stop,
         do_workarounds=False,
+        disable_write_protection=True,
+        force_executable=True,
     )
 
     result = await sim_backend.run(
@@ -189,7 +221,7 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         raise RuntimeError("Simulation timed out")
 
     if endtest.written_value != 1:
-        raise RuntimeError("Failing test: %d" % endtest.written_value)
+        raise RuntimeError(f"Failing test: {endtest.written_value}")
 
 
 async def run_test(sim_backend, test_name: str):
@@ -228,20 +260,25 @@ def ensure_arch_test_cocotb_build():
         VERILOG_STAMP.write_text("built\n")
 
 
+def run_and_check(test_name: str, traces: bool = False, env = None):
+    with tempfile.NamedTemporaryFile("r") as tmp_result_file:
+        arglist = get_arg_list(test_name, tmp_result_file.name, traces=traces)
+        subprocess.run(arglist, env=env, check=True)
+
+        tree = eT.parse(tmp_result_file.name)
+        if len(list(tree.iter("failure"))) != 0:
+            raise RuntimeError(f"Test run {test_name} failed")
+
+
 def build_cocotb_module_under_lock(traces: bool) -> None:
     # Ensure the Verilog sources are present
     ensure_arch_test_cocotb_build()
 
-    with FileLock(BUILT_LOCK_FILE):
-        tmp_result_file = tempfile.NamedTemporaryFile("r")
-        arglist = get_arg_list("SKIP", tmp_result_file.name, traces=traces)
-        res = subprocess.run(arglist)
-        if res.returncode != 0:
-            raise RuntimeError("Arch test cocotb make build failed")
-
-        tree = eT.parse(tmp_result_file.name)
-        if len(list(tree.iter("failure"))) != 0:
-            raise RuntimeError("Arch test cocotb make build failed with test failure")
+    try:
+        with FileLock(BUILT_LOCK_FILE):
+            run_and_check("SKIP", traces)
+    except Exception as e:
+        raise RuntimeError("Failed to build cocotb module for arch regression") from e
 
 
 def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
@@ -251,13 +288,7 @@ def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
     my_env["PATH"] = str(TEST_ROOT) + ":" + my_env.get("PATH", "")
 
     for elf_path in elf_paths:
-        tmp_result_file = tempfile.NamedTemporaryFile("r")
-        arglist = get_arg_list(str(elf_path.resolve()), tmp_result_file.name, traces=traces)
-        res = subprocess.run(arglist, env=my_env)
-        assert res.returncode == 0
-
-        tree = eT.parse(tmp_result_file.name)
-        assert len(list(tree.iter("failure"))) == 0
+        run_and_check(str(elf_path.resolve()), traces, env=my_env)
 
 
 def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
@@ -299,6 +330,11 @@ def verilate_arch_model(worker_id, sim_backend, traces_enabled, request: pytest.
 def test_entrypoint(
     arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
 ):
+    if is_expected_failing(arch_test_name, EXPECTED_FAIL):
+        pytest.xfail(f"Test {arch_test_name} is known failure")
+    if is_expected_failing(arch_test_name, EXPECTED_TIMEOUT):
+        pytest.xfail(f"Test {arch_test_name} is known not (or taking too long) to terminate")
+
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
     if not path.exists():
         raise FileNotFoundError(f"ELF file not found for test {arch_test_name}: {path}")

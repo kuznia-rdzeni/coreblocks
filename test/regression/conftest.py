@@ -2,6 +2,7 @@ from glob import glob
 from pathlib import Path
 import pytest
 import subprocess
+import re
 
 test_dir = Path(__file__).parent.parent
 riscv_tests_dir = test_dir.joinpath("external/riscv-tests")
