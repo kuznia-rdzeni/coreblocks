@@ -255,7 +255,7 @@
             },
             "amo": "AlignmentException"
           },
-          "atomic_support": "AMOCASQ",
+          "atomic_support": "AMOArithmetic",
           "misaligned_atomicity_granule_size_exp": 0,
           "vector_misaligned_atomicity_granule_size_exp": 0,
           "reservability": "RsrvEventual",
@@ -286,12 +286,12 @@
           "write_idempotent": false,
           "misaligned_exceptions": {
             "load_store": {
-              "Some": "AccessFault"
+              "Some": "AlignmentException"
             },
             "vector": {
-              "Some": "AccessFault"
+              "Some": "AlignmentException"
             },
-            "amo": "AccessFault"
+            "amo": "AlignmentException"
           },
           "atomic_support": "AMONone",
           "misaligned_atomicity_granule_size_exp": 0,
@@ -331,7 +331,7 @@
     "clint": {
       "supported": true,
       // This must be in a suitable IO memory region (see `memory.regions`).
-      "base": 3774873600,
+      "base": 3758096384,
       "size": 786432
     },
     // Very simple MMIO device to generate interrupts for testing
@@ -340,10 +340,10 @@
       "supported": true,
       // This must be in a suitable IO memory region (see `memory.regions`)
       // and 4-byte aligned. The size is always 0x20.
-      "base": 3775922176
+      "base": 3774873600
     },
     "clock_frequency": 1000000000,
-    "instructions_per_tick": 1,
+    "instructions_per_tick": 2,
     "wfi_is_nop": false,
     "wfi_available_to_user_mode": false,
     // The maximum increment in the time CSR before a wait instruction
@@ -357,7 +357,7 @@
     // Note: it is also legal for these instructions to spuriously
     // retire successfully at any point, but there is currently no
     // configuration option for this behaviour.
-    "max_time_to_wait": 2000
+    "max_time_to_wait": 200
   },
   "extensions": {
     "M": {

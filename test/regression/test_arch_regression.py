@@ -48,22 +48,30 @@ INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
 START_PC = 0x80000000
 
 EXPECTED_FAIL = {
-    # fails
-    "sv32_exceptions_(S|U)mode",  # ?
-    "sv32_exceptions_mprv_(S|U)_Mmode",  # page fault before alignment fault (misconfig?)
-    "sv32_nleaf_pte_DAU_(S|U)mode",  # non-leaf D,A,U flags should cause page fault
-    "InterruptsU",  # ?
-    "Exceptions.*Zalrcs",  # sail requires size of reservation set <= 12
+    # [?] misaligned exceptions should be either before address translation at the very end
+    "ExceptionsS",
+    "sv32_exceptions_mprv_(S|U)_Mmode",
+
+    # [?] trap loop
+    "sv32_exceptions_(S|U)mode",
+
+    # [?] sail requires size of reservation set <= 12
+    "Exceptions.*Zalrcs",
     "pmpzalrsc_cfg_wr",
-    "Exceptions.*Zaamo",  # misaligned amo should cause write flavoured exception
+
+    # misaligned amo should cause write flavoured exception
+    "Exceptions.*Zaamo",
     "pmpzaamo_cfg_wr",
 
-    # fail - coreblocks assertion
+    # [?] ?????
+    "InterruptsU",
+
+    # coreblocks assertion
     "Zifencei-fence.i",
 }
 
 EXPECTED_TIMEOUT = {
-    "ExceptionsS",
+    # [?] WFI dosn't wake up
     "InterruptsS",
     "InterruptsSSm",
     "S_scsr",
