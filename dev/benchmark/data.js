@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785938842177,
+  "lastUpdate": 1785938845353,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -73589,6 +73589,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 979,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4f11685cc5b8c1cf52a95894a584314ccd8900f5",
+          "message": "Fix wave tracing for cocotb (#1038)",
+          "timestamp": "2026-08-05T15:07:27+02:00",
+          "tree_id": "44ce5735b815860f7ee6bef0cb5cdbd8e275f785",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4f11685cc5b8c1cf52a95894a584314ccd8900f5"
+        },
+        "date": 1785938843806,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 45.13,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 44751,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 13835,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 978,
             "unit": "Slice"
           },
           {
