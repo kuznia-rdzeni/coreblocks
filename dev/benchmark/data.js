@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785418753537,
+  "lastUpdate": 1785919959414,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -25941,6 +25941,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ba9c1a21652202a02908395ada9ad4853118ce77"
         },
         "date": 1785418723989,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.44844731541673366,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.5951740300321152,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.3661826587675101,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6450701307924483,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.35531157138749,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.30097743800508947,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.3402741852043456,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.4437417112544016,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "aa853adf9dd47d03a72b024d91a47b75d01d8b58",
+          "message": "add missing U-bit check for non-leaf PTEs (#1039)",
+          "timestamp": "2026-08-05T09:47:13+02:00",
+          "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
+        },
+        "date": 1785919947661,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
