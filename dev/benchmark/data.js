@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785968309267,
+  "lastUpdate": 1785968311342,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -74256,6 +74256,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 978,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "205a789867daf4e0ae0f17b0cbb837a31336ee35",
+          "message": "Remove stale FunctionalTestCircuit (#1041)",
+          "timestamp": "2026-08-05T23:19:41+02:00",
+          "tree_id": "b82c602d560736cc11ede5a1a780b0bf7130aebd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/205a789867daf4e0ae0f17b0cbb837a31336ee35"
+        },
+        "date": 1785968310749,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 37.31,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 44692,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 13835,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 977,
             "unit": "Slice"
           },
           {
