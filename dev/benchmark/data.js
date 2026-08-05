@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785968289514,
+  "lastUpdate": 1785968292161,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -72218,6 +72218,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 57479,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4084,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3428,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 13754,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4",
+          "message": "SimpleTestCircuit in interrupt controller test (#1042)",
+          "timestamp": "2026-08-05T23:19:09+02:00",
+          "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
+        },
+        "date": 1785968291404,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.17,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 62415,
             "unit": "LUT4"
           },
           {
