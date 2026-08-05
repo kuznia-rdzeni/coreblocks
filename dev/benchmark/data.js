@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785968303727,
+  "lastUpdate": 1785968305658,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -73426,6 +73426,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Block RAM used",
             "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4",
+          "message": "SimpleTestCircuit in interrupt controller test (#1042)",
+          "timestamp": "2026-08-05T23:19:09+02:00",
+          "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
+        },
+        "date": 1785968297107,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 51.74,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17241,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7970,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 303,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
             "unit": "RAMB36E1"
           }
         ]
