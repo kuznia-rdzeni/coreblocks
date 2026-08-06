@@ -4,7 +4,7 @@ from amaranth import *
 
 from collections import namedtuple, deque
 from typing import Callable, Optional, Iterable
-from parameterized import parameterized_class
+import pytest
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.keys import CoreStateKey, RollbackKey
 from coreblocks.interface.layouts import RSInterfaceLayouts, RetirementLayouts
@@ -116,13 +116,12 @@ class SchedulerTestCircuit(Elaboratable):
         return m
 
 
-@parameterized_class(
-    ("name", "optype_sets", "instr_count"),
+@pytest.mark.parametrize(
+    ("optype_sets", "instr_count"),
     [
-        ("One-RS", [set(OpType)], 100),
-        ("Two-RS", [{OpType.ARITHMETIC, OpType.COMPARE}, {OpType.MUL, OpType.COMPARE}], 500),
+        ([set(OpType)], 100),
+        ([{OpType.ARITHMETIC, OpType.COMPARE}, {OpType.MUL, OpType.COMPARE}], 500),
         (
-            "Three-RS",
             [{OpType.ARITHMETIC, OpType.COMPARE}, {OpType.MUL, OpType.COMPARE}, {OpType.DIV_REM, OpType.COMPARE}],
             300,
         ),
@@ -132,7 +131,10 @@ class TestScheduler(TestCaseWithSimulator):
     optype_sets: list[set[OpType]]
     instr_count: int
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, optype_sets: list[set[OpType]], instr_count: int):
+        self.optype_sets = optype_sets
+        self.instr_count = instr_count
         self.rs_count = len(self.optype_sets)
         self.gen_params = GenParams(
             configurations.test.replace(

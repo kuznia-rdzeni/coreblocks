@@ -1,5 +1,4 @@
 from collections import deque
-from parameterized import parameterized_class
 import random
 import pytest
 
@@ -21,14 +20,14 @@ from transactron.testing.testbenchio import CallTrigger
 from ..peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
-@parameterized_class(
-    ("name", "isa_xlen", "line_size", "fetch_block"),
+@pytest.mark.parametrize(
+    ("isa_xlen", "line_size", "fetch_block"),
     [
-        ("line16B_block4B_rv32i", 32, 4, 2),
-        ("line32B_block8B_rv32i", 32, 5, 3),
-        ("line32B_block8B_rv64i", 64, 5, 3),
-        ("line64B_block16B_rv32i", 32, 6, 4),
-        ("line16B_block16B_rv32i", 32, 4, 4),
+        (32, 4, 2),
+        (32, 5, 3),
+        (64, 5, 3),
+        (32, 6, 4),
+        (32, 4, 4),
     ],
 )
 class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
@@ -37,7 +36,10 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
     fetch_block: int
 
     @pytest.fixture(autouse=True)
-    def setup_method(self) -> None:
+    def setup(self, isa_xlen: int, line_size: int, fetch_block: int) -> None:
+        self.isa_xlen = isa_xlen
+        self.line_size = line_size
+        self.fetch_block = fetch_block
         self.gen_params = GenParams(
             configurations.test.replace(
                 xlen=self.isa_xlen, icache_line_bytes_log=self.line_size, fetch_block_bytes_log=self.fetch_block
@@ -129,18 +131,21 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             sim.add_testbench(self.refiller_process)
 
 
-@parameterized_class(
-    ("name", "isa_xlen", "fetch_block"),
+@pytest.mark.parametrize(
+    ("isa_xlen", "fetch_block"),
     [
-        ("rv32i", 32, 2),
-        ("rv64i", 64, 3),
+        (32, 2),
+        (64, 3),
     ],
 )
 class TestICacheBypass(TestCaseWithSimulator):
     isa_xlen: int
     fetch_block: int
 
-    def setup_method(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, isa_xlen: int, fetch_block: int) -> None:
+        self.isa_xlen = isa_xlen
+        self.fetch_block = fetch_block
         self.gen_params = GenParams(
             configurations.test.replace(xlen=self.isa_xlen, fetch_block_bytes_log=self.fetch_block, icache_enable=False)
         )
@@ -238,13 +243,13 @@ class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
         return Module()
 
 
-@parameterized_class(
-    ("name", "isa_xlen", "line_size", "fetch_block"),
+@pytest.mark.parametrize(
+    ("isa_xlen", "line_size", "fetch_block"),
     [
-        ("line16B_block8B_rv32i", 32, 4, 2),
-        ("line64B_block16B_rv32i", 32, 6, 4),
-        ("line32B_block16B_rv64i", 64, 5, 4),
-        ("line32B_block32B_rv64i", 64, 5, 5),
+        (32, 4, 2),
+        (32, 6, 4),
+        (64, 5, 4),
+        (64, 5, 5),
     ],
 )
 class TestICache(TestCaseWithSimulator):
@@ -252,7 +257,11 @@ class TestICache(TestCaseWithSimulator):
     line_size: int
     fetch_block: int
 
-    def setup_method(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, isa_xlen: int, line_size: int, fetch_block: int) -> None:
+        self.isa_xlen = isa_xlen
+        self.line_size = line_size
+        self.fetch_block = fetch_block
         random.seed(42)
 
         self.mem = dict()

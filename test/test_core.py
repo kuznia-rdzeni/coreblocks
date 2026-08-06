@@ -24,7 +24,6 @@ import random
 import subprocess
 import tempfile
 import pytest
-from parameterized import parameterized_class
 
 from transactron.utils.dependencies import DependencyContext
 
@@ -80,8 +79,13 @@ class TestCoreBase(TestCaseWithSimulator):
     configuration: CoreConfiguration
     gen_params: GenParams
     m: CoreTestElaboratable
+    core_param_fixtures: tuple[str, ...] = ()
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, request):
+        for fixture_name in self.core_param_fixtures:
+            for key, value in request.getfixturevalue(fixture_name).items():
+                setattr(self, key, value)
         self.configuration = self.configuration.replace(_generate_test_hardware=True)
 
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
@@ -180,7 +184,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
             assert self.get_arch_reg_val(sim, reg_id) == val, "Bad register value"
 
 
-@parameterized_class(
+@pytest.mark.parametrize(
     ("name", "source_file", "cycle_count", "expected_regvals", "exit_csr", "configuration"),
     [
         ("fibonacci", "fibonacci.asm", 700, {2: 2971215073}, True, configurations.basic),
@@ -203,9 +207,30 @@ class TestCoreAsmSourceBase(TestCoreBase):
 )
 @pytest.mark.collection_order(1)
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
+    core_param_fixtures = ("core_params_basic",)
+
     name: str
     source_file: str
     configuration: CoreConfiguration
+
+    @pytest.fixture(autouse=True)
+    def core_params_basic(
+        self,
+        name: str,
+        source_file: str,
+        cycle_count: int,
+        expected_regvals: dict[int, int],
+        exit_csr: bool,
+        configuration: CoreConfiguration,
+    ):
+        return {
+            "name": name,
+            "source_file": source_file,
+            "cycle_count": cycle_count,
+            "expected_regvals": expected_regvals,
+            "exit_csr": exit_csr,
+            "configuration": configuration,
+        }
 
     def test_asm_source(self):
         bin_src = self.prepare_source(self.source_file)
@@ -228,7 +253,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
 # returning from an interrupt and triggering it again with 'lo' and 'hi' parameters)
-@parameterized_class(
+@pytest.mark.parametrize(
     ("source_file", "cycle_count", "start_regvals", "expected_regvals", "lo", "hi", "edge_only"),
     [
         (
@@ -258,6 +283,8 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 )
 @pytest.mark.collection_order(0)
 class TestCoreInterrupt(TestCoreAsmSourceBase):
+    core_param_fixtures = ("core_params_interrupt",)
+
     source_file: str
     start_regvals: dict[int, int]
     lo: int
@@ -266,12 +293,31 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     reg_init_mem_offset: int = 0x100
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def core_params_interrupt(
+        self,
+        source_file: str,
+        cycle_count: int,
+        start_regvals: dict[int, int],
+        expected_regvals: dict[int, int],
+        lo: int,
+        hi: int,
+        edge_only: bool,
+    ):
         self.configuration = configurations.full.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
         )
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
+        return {
+            "source_file": source_file,
+            "cycle_count": cycle_count,
+            "start_regvals": start_regvals,
+            "expected_regvals": expected_regvals,
+            "lo": lo,
+            "hi": hi,
+            "edge_only": edge_only,
+        }
 
     async def clear_level_interrupt_process(self, sim: ProcessContext):
         async for *_, value in sim.tick().sample(self.m.core.csr_instances.csr_coreblocks_test.value):
@@ -351,7 +397,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             sim.add_process(self.clear_level_interrupt_process)
 
 
-@parameterized_class(
+@pytest.mark.parametrize(
     ("source_file", "cycle_count", "expected_regvals", "always_mmode"),
     [
         ("user_mode.asm", 1800, {4: 6}, False),
@@ -360,15 +406,30 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 )
 @pytest.mark.collection_order(0)
 class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
+    core_param_fixtures = ("core_params_priv_mode",)
+
     source_file: str
     always_mmode: bool
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def core_params_priv_mode(
+        self,
+        source_file: str,
+        cycle_count: int,
+        expected_regvals: dict[int, int],
+        always_mmode: bool,
+    ):
         self.configuration = configurations.full.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
         )
         self.gen_params = GenParams(self.configuration)
         random.seed(161453)
+        return {
+            "source_file": source_file,
+            "cycle_count": cycle_count,
+            "expected_regvals": expected_regvals,
+            "always_mmode": always_mmode,
+        }
 
     async def run_with_interrupt_process(self, sim: TestbenchContext):
         ticks = DependencyContext.get().get_dependency(TicksKey())

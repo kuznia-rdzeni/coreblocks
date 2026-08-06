@@ -66,6 +66,8 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     zero_imm = True
     core_config = configurations.test
 
+    unit_param_fixtures: tuple[str, ...] = ()
+
     @staticmethod
     def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
         """
@@ -89,7 +91,11 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         raise NotImplementedError
 
     @pytest.fixture(autouse=True)
-    def setup(self, fixture_initialize_testing_env):
+    def setup(self, fixture_initialize_testing_env, request):
+        for fixture_name in self.unit_param_fixtures:
+            for key, value in request.getfixturevalue(fixture_name).items():
+                setattr(self, key, value)
+
         self.gen_params = GenParams(configurations.test)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionInformationRegisterLayouts).report))

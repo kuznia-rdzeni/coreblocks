@@ -1,4 +1,4 @@
-from parameterized import parameterized_class
+import pytest
 
 from coreblocks.func_blocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.arch import Funct3, Funct7, OpType
@@ -33,24 +33,17 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
     return output % (2**xlen)
 
 
-@parameterized_class(
-    ("name", "func_unit"),
+@pytest.mark.parametrize(
+    "func_unit",
     [
-        (
-            "iterative",
-            ZbcComponent(recursion_depth=0),
-        ),
-        (
-            "recursive_3",
-            ZbcComponent(recursion_depth=3),
-        ),
-        (
-            "recursive_full",
-            ZbcComponent(recursion_depth=configurations.test.xlen.bit_length() - 1),
-        ),
+        ZbcComponent(recursion_depth=0),
+        ZbcComponent(recursion_depth=3),
+        ZbcComponent(recursion_depth=configurations.test.xlen.bit_length() - 1),
     ],
 )
 class TestZbcUnit(FunctionalUnitTestCase[ZbcFn.Fn]):
+    unit_param_fixtures = ("unit_params",)
+
     ops = {
         ZbcFn.Fn.CLMUL: ExecFn(OpType.CLMUL, Funct3.CLMUL, Funct7.CLMUL),
         ZbcFn.Fn.CLMULH: ExecFn(OpType.CLMUL, Funct3.CLMULH, Funct7.CLMUL),
@@ -66,6 +59,10 @@ class TestZbcUnit(FunctionalUnitTestCase[ZbcFn.Fn]):
                 return {"result": clmulh(i1, i2, xlen)}
             case ZbcFn.Fn.CLMULR:
                 return {"result": clmulr(i1, i2, xlen)}
+
+    @pytest.fixture(autouse=True)
+    def unit_params(self, func_unit):
+        return {"func_unit": func_unit}
 
     def test_fu(self):
         self.run_standard_fu_test()

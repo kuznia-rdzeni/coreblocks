@@ -6,7 +6,7 @@ from coreblocks.func_blocks.fu.fpu.fpu_common import (
 )
 from transactron import TModule
 from transactron.lib import AdapterTrans
-from parameterized import parameterized
+import pytest
 from transactron.testing import *
 from amaranth import *
 
@@ -42,7 +42,7 @@ class TestFPUError(TestCaseWithSimulator):
     params = FPUParams(sig_width=24, exp_width=8)
     help_values = HelpValues(params)
 
-    @parameterized.expand([(params, help_values)])
+    @pytest.mark.parametrize("params, help_values", [(params, help_values)])
     def test_special_cases(self, params: FPUParams, help_values: HelpValues):
         fpue = TestFPUError.FPUErrorModule(params)
 
@@ -210,7 +210,8 @@ class TestFPUError(TestCaseWithSimulator):
         with self.run_simulation(fpue) as sim:
             sim.add_testbench(test_process)
 
-    @parameterized.expand(
+    @pytest.mark.parametrize(
+        "params, help_values, rm, plus_overflow_sig, plus_overflow_exp, minus_overflow_sig, minus_overflow_exp",
         [
             (
                 params,
@@ -257,7 +258,7 @@ class TestFPUError(TestCaseWithSimulator):
                 help_values.max_sig,
                 help_values.max_norm_exp,
             ),
-        ]
+        ],
     )
     def test_rounding(
         self,
