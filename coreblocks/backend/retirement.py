@@ -330,15 +330,15 @@ class Retirement(Elaboratable):
                             # hard flush instruction for trap handling
                             flush_instr(i, rob_entries.entries[i])
 
-                        # TODO: this is some approximation of misprediction events - looking for active -> inactive
-                        # changes in retured instructions.
-                        # More metadata needs to be stored for an accurate result, improve.
-                        active_mask_with_prev = Signal(tag_active_mask.shape().width + 1)
-                        m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask & retiring_mask))
-                        change_mask = active_mask_with_prev & ((~active_mask_with_prev) >> 1)
-                        with m.If((change_mask & retiring_mask).any()):  # without last bit
-                            self.perf_mispredictions.incr(m)
-                            m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
+                    # TODO: this is some approximation of misprediction events - looking for active -> inactive
+                    # changes in retured instructions.
+                    # More metadata needs to be stored for an accurate result, improve.
+                    active_mask_with_prev = Signal(tag_active_mask.shape().width + 1)
+                    m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask & retiring_mask))
+                    change_mask = active_mask_with_prev & ((~active_mask_with_prev) >> 1)
+                    with m.If((change_mask & retiring_mask).any()):  # without last bit
+                        self.perf_mispredictions.incr(m)
+                        m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(last_commit_ftq_ptr_v):

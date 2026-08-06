@@ -6,11 +6,11 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
+from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
-from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RetirementLayouts
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
 from transactron.testing import CallTrigger, TestbenchIO, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
@@ -56,7 +56,6 @@ class PMAIndirectTestCircuit(Elaboratable):
         m.submodules.exception_report = self.exception_report = TestbenchIO(
             Adapter(i=self.gen.get(ExceptionInformationRegisterLayouts).report)
         )
-
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         layouts = self.gen.get(RetirementLayouts)
@@ -74,6 +73,11 @@ class PMAIndirectTestCircuit(Elaboratable):
 
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
+        m.submodules.tags_active = self.tags_active = TestbenchIO(
+            Adapter(o=self.gen.get(RATLayouts).get_active_tags_out)
+        )
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -136,15 +140,19 @@ class TestPMAIndirect(TestCaseWithSimulator):
 
         @def_method_mock(
             lambda: self.test_module.side_fx_guard,
-            validate_arguments=lambda rob_id, require_done: rob_id == 1,
+            validate_arguments=lambda rob_id, tag, require_done: rob_id == 1,
             enable=lambda: self.side_fx_guard_enabled,
         )
-        def side_fx_guarder(rob_id, require_done):
+        def side_fx_guarder(arg):
             return {}
 
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
             return {"flushing": 0}
+
+        @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
+        def tags_active_mock():
+            return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.process)

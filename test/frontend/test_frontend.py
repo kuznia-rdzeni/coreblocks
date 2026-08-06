@@ -201,6 +201,8 @@ class TestFrontend(TestCaseWithSimulator):
 
             await self.ftq_commit.call(sim, ftq_ptr=self.ftq_commit_queue.pop())
 
+    # TODO: Improve to test rollbakcs and RolbackTagger. This unfortunatelly requires to simulate full misprediction
+    # behaviour with emulating real branch instructions.
     def test_frontend(self):
         with self.run_simulation(self.m, max_cycles=1500) as sim:
             sim.add_testbench(self.consume_process)
