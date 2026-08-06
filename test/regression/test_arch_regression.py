@@ -230,7 +230,7 @@ def ensure_arch_test_cocotb_build():
         VERILOG_STAMP.write_text("built\n")
 
 
-def run_and_check(test_name: str, traces: bool = False, env = None):
+def run_and_check(test_name: str, traces: bool = False, env=None):
     with tempfile.NamedTemporaryFile("r") as tmp_result_file:
         arglist = get_arg_list(test_name, tmp_result_file.name, traces=traces)
         subprocess.run(arglist, env=env, check=True)

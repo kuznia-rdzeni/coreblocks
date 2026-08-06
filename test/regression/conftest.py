@@ -14,21 +14,16 @@ ARCH_EXPECTED_FAIL = {
     # [?] misaligned exceptions should be either before address translation at the very end
     "ExceptionsS",
     "sv32_exceptions_mprv_(S|U)_Mmode",
-
     # [?] trap loop
     "sv32_exceptions_(S|U)mode",
-
     # [?] sail requires size of reservation set <= 12
     ".*exceptions.*zalrsc.*",
     "pmpzalrsc_cfg_wr",
-
     # misaligned amo should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-
     # [?] ?????
     "InterruptsU",
-
     # coreblocks assertion
     r"Zifencei-.*",
 }
@@ -41,6 +36,7 @@ ARCH_EXPECTED_TIMEOUT = {
     "U",
     "ZicntrS",
 }
+
 
 def is_arch_expected_failing(test_name: str, failset: set[str] | None = None) -> bool:
     if failset is None:
