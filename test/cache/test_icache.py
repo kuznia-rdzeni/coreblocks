@@ -1,51 +1,24 @@
 from collections import deque
 from parameterized import parameterized_class
 import random
+import pytest
 
 from amaranth import Elaboratable, Module
 from amaranth.utils import exact_log2
 
-from transactron.lib import AdapterTrans, Adapter
+from transactron import Method, Required
+from transactron.utils import ModuleConnector
 from coreblocks.cache.icache import ICache, ICacheBypass, CacheRefillerInterface
 from coreblocks.params import GenParams
 from coreblocks.interface.layouts import ICacheLayouts
 from coreblocks.params import configurations
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 
-from transactron.testing import TestCaseWithSimulator, TestbenchIO, def_method_mock, TestbenchContext
+from transactron.testing import SimpleTestCircuit, TestCaseWithSimulator, def_method_mock, TestbenchContext
 from transactron.testing.functions import MethodData
 from transactron.testing.method_mock import MethodMock
 from transactron.testing.testbenchio import CallTrigger
 from ..peripherals.bus_mock import BusMockParameters, MockMasterAdapter
-
-
-class SimpleCommonBusCacheRefillerTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-        self.cp = self.gen_params.icache_params
-
-    def elaborate(self, platform):
-        m = Module()
-
-        bus_mock_params = BusMockParameters(
-            data_width=self.gen_params.isa.xlen,
-            addr_width=self.gen_params.isa.xlen,
-        )
-        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
-
-        self.refiller = SimpleCommonBusCacheRefiller(
-            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
-        )
-
-        self.start_refill = TestbenchIO(AdapterTrans.create(self.refiller.start_refill))
-        self.accept_refill = TestbenchIO(AdapterTrans.create(self.refiller.accept_refill))
-
-        m.submodules.bus_master_adapter = self.bus_master_adapter
-        m.submodules.refiller = self.refiller
-        m.submodules.start_refill = self.start_refill
-        m.submodules.accept_refill = self.accept_refill
-
-        return m
 
 
 @parameterized_class(
@@ -63,6 +36,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
     line_size: int
     fetch_block: int
 
+    @pytest.fixture(autouse=True)
     def setup_method(self) -> None:
         self.gen_params = GenParams(
             configurations.test.replace(
@@ -70,7 +44,19 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             )
         )
         self.cp = self.gen_params.icache_params
-        self.test_module = SimpleCommonBusCacheRefillerTestCircuit(self.gen_params)
+
+        bus_mock_params = BusMockParameters(
+            data_width=self.gen_params.isa.xlen,
+            addr_width=self.gen_params.isa.xlen,
+        )
+        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
+
+        self.refiller = SimpleCommonBusCacheRefiller(
+            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
+        )
+        self.tc = SimpleTestCircuit(self.refiller)
+
+        self.test_module = ModuleConnector(bus_master_adapter=self.bus_master_adapter, refiller=self.tc)
 
         random.seed(42)
 
@@ -96,7 +82,7 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
 
     async def bus_mock(self, sim: TestbenchContext):
         while True:
-            req = await self.test_module.bus_master_adapter.request_read_mock.call(sim)
+            req = await self.bus_master_adapter.request_read_mock.call(sim)
 
             # Bus model is addressing words, so we need to shift it a bit to get the real address.
             addr = req.addr << exact_log2(self.cp.word_width_bytes)
@@ -108,15 +94,15 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             data = random.randrange(2**self.gen_params.isa.xlen)
             self.mem[addr] = data
 
-            await self.test_module.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
+            await self.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
 
     async def refiller_process(self, sim: TestbenchContext):
         while self.requests:
             req_addr = self.requests.pop()
-            await self.test_module.start_refill.call(sim, paddr=req_addr)
+            await self.tc.start_refill.call(sim, paddr=req_addr)
 
             for i in range(self.cp.fetch_blocks_in_line):
-                ret = await self.test_module.accept_refill.call(sim)
+                ret = await self.tc.accept_refill.call(sim)
 
                 cur_addr = req_addr + i * self.cp.fetch_block_bytes
 
@@ -143,29 +129,6 @@ class TestSimpleCommonBusCacheRefiller(TestCaseWithSimulator):
             sim.add_testbench(self.refiller_process)
 
 
-class ICacheBypassTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-        self.cp = self.gen_params.icache_params
-
-    def elaborate(self, platform):
-        m = Module()
-
-        bus_mock_params = BusMockParameters(
-            data_width=self.gen_params.isa.xlen,
-            addr_width=self.gen_params.isa.xlen,
-        )
-
-        m.submodules.bus_master_adapter = self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
-        m.submodules.bypass = self.bypass = ICacheBypass(
-            self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter
-        )
-        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans.create(self.bypass.issue_req))
-        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans.create(self.bypass.accept_res))
-
-        return m
-
-
 @parameterized_class(
     ("name", "isa_xlen", "fetch_block"),
     [
@@ -182,7 +145,17 @@ class TestICacheBypass(TestCaseWithSimulator):
             configurations.test.replace(xlen=self.isa_xlen, fetch_block_bytes_log=self.fetch_block, icache_enable=False)
         )
         self.cp = self.gen_params.icache_params
-        self.m = ICacheBypassTestCircuit(self.gen_params)
+
+        bus_mock_params = BusMockParameters(
+            data_width=self.gen_params.isa.xlen,
+            addr_width=self.gen_params.isa.xlen,
+        )
+        self.bus_master_adapter = MockMasterAdapter(bus_mock_params)
+
+        self.bypass = ICacheBypass(self.gen_params.get(ICacheLayouts), self.cp, self.bus_master_adapter)
+        self.tc = SimpleTestCircuit(self.bypass)
+
+        self.m = ModuleConnector(bus_master_adapter=self.bus_master_adapter, bypass=self.tc)
 
         random.seed(42)
 
@@ -209,7 +182,7 @@ class TestICacheBypass(TestCaseWithSimulator):
 
     async def bus_mock(self, sim: TestbenchContext):
         while True:
-            req = await self.m.bus_master_adapter.request_read_mock.call(sim)
+            req = await self.bus_master_adapter.request_read_mock.call(sim)
 
             # Bus model is addressing words, so we need to shift it a bit to get the real address.
             addr = req.addr << exact_log2(self.cp.word_width_bytes)
@@ -222,16 +195,16 @@ class TestICacheBypass(TestCaseWithSimulator):
             if self.gen_params.isa.xlen == 64:
                 data = self.load_or_gen_mem(addr + 4) << 32 | data
 
-            await self.m.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
+            await self.bus_master_adapter.get_read_response_mock.call(sim, data=data, err=err)
 
     async def user_process(self, sim: TestbenchContext):
         while self.requests:
             req_addr = self.requests.popleft() & ~(self.cp.fetch_block_bytes - 1)
-            await self.m.issue_req.call(sim, paddr=req_addr)
+            await self.tc.issue_req.call(sim, paddr=req_addr)
 
             await self.random_wait_geom(sim, 0.5)
 
-            ret = await self.m.accept_res.call(sim)
+            ret = await self.tc.accept_res.call(sim)
 
             if (req_addr & ~(self.cp.word_width_bytes - 1)) in self.bad_addrs:
                 assert ret["error"]
@@ -252,39 +225,17 @@ class TestICacheBypass(TestCaseWithSimulator):
 
 
 class MockedCacheRefiller(Elaboratable, CacheRefillerInterface):
+    start_refill: Required[Method]
+    accept_refill: Required[Method]
+
     def __init__(self, gen_params: GenParams):
         layouts = gen_params.get(ICacheLayouts)
 
-        self.start_refill_mock = TestbenchIO(Adapter(i=layouts.start_refill))
-        self.accept_refill_mock = TestbenchIO(Adapter(o=layouts.accept_refill))
-
-        self.start_refill = self.start_refill_mock.adapter.iface
-        self.accept_refill = self.accept_refill_mock.adapter.iface
+        self.start_refill = Method(i=layouts.start_refill)
+        self.accept_refill = Method(o=layouts.accept_refill)
 
     def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.start_refill = self.start_refill_mock
-        m.submodules.accept_refill = self.accept_refill_mock
-
-        return m
-
-
-class ICacheTestCircuit(Elaboratable):
-    def __init__(self, gen_params: GenParams):
-        self.gen_params = gen_params
-        self.cp = self.gen_params.icache_params
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.refiller = self.refiller = MockedCacheRefiller(self.gen_params)
-        m.submodules.cache = self.cache = ICache(self.gen_params.get(ICacheLayouts), self.cp, self.refiller)
-        m.submodules.issue_req = self.issue_req = TestbenchIO(AdapterTrans.create(self.cache.issue_req))
-        m.submodules.accept_res = self.accept_res = TestbenchIO(AdapterTrans.create(self.cache.accept_res))
-        m.submodules.flush_cache = self.flush_cache = TestbenchIO(AdapterTrans.create(self.cache.flush))
-
-        return m
+        return Module()
 
 
 @parameterized_class(
@@ -328,9 +279,13 @@ class TestICache(TestCaseWithSimulator):
             )
         )
         self.cp = self.gen_params.icache_params
-        self.m = ICacheTestCircuit(self.gen_params)
+        self.refiller = MockedCacheRefiller(self.gen_params)
+        self.refiller_tc = SimpleTestCircuit(self.refiller)
+        self.cache = ICache(self.gen_params.get(ICacheLayouts), self.cp, self.refiller)
+        self.cache_tc = SimpleTestCircuit(self.cache)
+        self.m = ModuleConnector(refiller=self.refiller_tc, cache=self.cache_tc)
 
-    @def_method_mock(lambda self: self.m.refiller.start_refill_mock, enable=lambda self: self.accept_refill_request)
+    @def_method_mock(lambda self: self.refiller_tc.start_refill, enable=lambda self: self.accept_refill_request)
     def start_refill_mock(self, paddr):
         @MethodMock.effect
         def eff():
@@ -342,7 +297,7 @@ class TestICache(TestCaseWithSimulator):
     def enen(self):
         return self.refill_in_fly
 
-    @def_method_mock(lambda self: self.m.refiller.accept_refill_mock, enable=enen)
+    @def_method_mock(lambda self: self.refiller_tc.accept_refill, enable=enen)
     def accept_refill_mock(self):
         addr = self.refill_addr + self.refill_block_cnt * self.cp.fetch_block_bytes
 
@@ -380,13 +335,13 @@ class TestICache(TestCaseWithSimulator):
 
     async def send_req(self, sim: TestbenchContext, addr: int):
         self.issued_requests.append(addr)
-        await self.m.issue_req.call(sim, paddr=addr)
+        await self.cache_tc.issue_req.call(sim, paddr=addr)
 
     async def expect_resp(self, sim: TestbenchContext, wait=False):
         if wait:
-            *_, resp = await self.m.accept_res.sample_outputs_until_done(sim)
+            *_, resp = await self.cache_tc.accept_res.sample_outputs_until_done(sim)
         else:
-            *_, resp = await self.m.accept_res.sample_outputs(sim)
+            *_, resp = await self.cache_tc.accept_res.sample_outputs(sim)
 
         self.assert_resp(resp)
 
@@ -408,9 +363,9 @@ class TestICache(TestCaseWithSimulator):
 
     async def call_cache(self, sim: TestbenchContext, addr: int):
         await self.send_req(sim, addr)
-        self.m.accept_res.enable(sim)
+        self.cache_tc.accept_res.enable(sim)
         await self.expect_resp(sim, wait=True)
-        self.m.accept_res.disable(sim)
+        self.cache_tc.accept_res.disable(sim)
 
     def test_1_way(self):
         self.init_module(1, 4)
@@ -481,19 +436,19 @@ class TestICache(TestCaseWithSimulator):
             await self.tick(sim, 4)
 
             # Create a stream of requests to ensure the pipeline is working
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
             for i in range(0, self.cp.num_of_sets * self.cp.line_size_bytes, 4):
                 addr = 0x00010000 + i
                 self.issued_requests.append(addr)
 
                 # Send the request
-                ret = await self.m.issue_req.call_try(sim, paddr=addr)
+                ret = await self.cache_tc.issue_req.call_try(sim, paddr=addr)
                 assert ret is not None
 
                 # After a cycle the response should be ready
                 await self.expect_resp(sim)
 
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             await self.tick(sim, 4)
 
@@ -504,7 +459,7 @@ class TestICache(TestCaseWithSimulator):
             # Wait a few cycles. There are two requests queued
             await self.tick(sim, 4)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
             await self.expect_resp(
                 sim,
             )
@@ -516,7 +471,7 @@ class TestICache(TestCaseWithSimulator):
                 sim,
             )
 
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             await self.tick(sim, 4)
 
@@ -524,13 +479,13 @@ class TestICache(TestCaseWithSimulator):
             await self.send_req(sim, 0x00020000)
             await self.send_req(sim, 0x00010000 + self.cp.line_size_bytes)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
 
             await self.expect_resp(sim, wait=True)
             await self.expect_resp(
                 sim,
             )
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             await self.tick(sim, 2)
 
@@ -538,13 +493,13 @@ class TestICache(TestCaseWithSimulator):
             await self.send_req(sim, 0x00020004)
             await self.send_req(sim, 0x00030000 + self.cp.line_size_bytes)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
 
             await self.expect_resp(
                 sim,
             )
             await self.expect_resp(sim, wait=True)
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             await self.tick(sim, 2)
 
@@ -552,11 +507,11 @@ class TestICache(TestCaseWithSimulator):
             await self.send_req(sim, 0x00040000)
             await self.send_req(sim, 0x00050000 + self.cp.line_size_bytes)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
 
             await self.expect_resp(sim, wait=True)
             await self.expect_resp(sim, wait=True)
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(cache_process)
@@ -580,7 +535,7 @@ class TestICache(TestCaseWithSimulator):
 
             assert len(self.refill_requests) == 0
 
-            await self.m.flush_cache.call(sim)
+            await self.cache_tc.flush.call(sim)
 
             # The cache should be empty
             for s in range(self.cp.num_of_sets):
@@ -591,9 +546,9 @@ class TestICache(TestCaseWithSimulator):
 
             # Try to flush during refilling the line
             await self.send_req(sim, 0x00030000)
-            await self.m.flush_cache.call(sim)
+            await self.cache_tc.flush.call(sim)
             # We still should be able to accept the response for the last request
-            self.assert_resp(await self.m.accept_res.call(sim))
+            self.assert_resp(await self.cache_tc.accept_res.call(sim))
             self.expect_refill(0x00030000)
 
             await self.call_cache(sim, 0x00010000)
@@ -602,31 +557,31 @@ class TestICache(TestCaseWithSimulator):
             # Try to execute issue_req and flush_cache methods at the same time
             self.issued_requests.append(0x00010000)
             issue_req_res, flush_cache_res = (
-                await CallTrigger(sim).call(self.m.issue_req, paddr=0x00010000).call(self.m.flush_cache)
+                await CallTrigger(sim).call(self.cache_tc.issue_req, paddr=0x00010000).call(self.cache_tc.flush)
             )
             assert issue_req_res is None
             assert flush_cache_res is not None
-            await self.m.issue_req.call(sim, paddr=0x00010000)
-            self.assert_resp(await self.m.accept_res.call(sim))
+            await self.cache_tc.issue_req.call(sim, paddr=0x00010000)
+            self.assert_resp(await self.cache_tc.accept_res.call(sim))
             self.expect_refill(0x00010000)
 
             # Schedule two requests and then flush
             await self.send_req(sim, 0x00000000 + self.cp.line_size_bytes)
             await self.send_req(sim, 0x00010000)
 
-            res = await self.m.flush_cache.call_try(sim)
+            res = await self.cache_tc.flush.call_try(sim)
             # We cannot flush until there are two pending requests
             assert res is None
-            res = await self.m.flush_cache.call_try(sim)
+            res = await self.cache_tc.flush.call_try(sim)
             assert res is None
 
             # Accept the first response
-            self.assert_resp(await self.m.accept_res.call(sim))
+            self.assert_resp(await self.cache_tc.accept_res.call(sim))
 
-            await self.m.flush_cache.call(sim)
+            await self.cache_tc.flush.call(sim)
 
             # And accept the second response ensuring that we got old data
-            self.assert_resp(await self.m.accept_res.call(sim))
+            self.assert_resp(await self.cache_tc.accept_res.call(sim))
             self.expect_refill(0x00000000 + self.cp.line_size_bytes)
 
             # Just make sure that the line is truly flushed
@@ -661,17 +616,17 @@ class TestICache(TestCaseWithSimulator):
 
             # Test how pipelining works with errors
 
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             # Schedule two requests, the first one causing an error
             await self.send_req(sim, 0x00020000)
             await self.send_req(sim, 0x00011000)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
 
             await self.expect_resp(sim, wait=True)
             await self.expect_resp(sim, wait=True)
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             await self.tick(sim, 3)
 
@@ -681,11 +636,11 @@ class TestICache(TestCaseWithSimulator):
 
             await self.tick(sim, 10)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
 
             await self.expect_resp(sim, wait=True)
             await self.expect_resp(sim, wait=True)
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             await self.tick(sim, 3)
 
@@ -693,11 +648,11 @@ class TestICache(TestCaseWithSimulator):
             await self.send_req(sim, 0x00020000)
             await self.send_req(sim, 0x00010000)
 
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
 
             await self.expect_resp(sim, wait=True)
             await self.expect_resp(sim, wait=True)
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
 
             # The second request will cause an error
             await self.send_req(sim, 0x00021004)
@@ -706,13 +661,13 @@ class TestICache(TestCaseWithSimulator):
             await self.tick(sim, 10)
 
             # Accept the first response
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
             await self.expect_resp(sim, wait=True)
 
             # Wait before accepting the second response
-            self.m.accept_res.disable(sim)
+            self.cache_tc.accept_res.disable(sim)
             await self.tick(sim, 10)
-            self.m.accept_res.enable(sim)
+            self.cache_tc.accept_res.enable(sim)
             await self.expect_resp(sim, wait=True)
 
             # This request should not cause an error
@@ -750,7 +705,7 @@ class TestICache(TestCaseWithSimulator):
                 while len(self.issued_requests) == 0:
                     await sim.tick()
 
-                self.assert_resp(await self.m.accept_res.call(sim))
+                self.assert_resp(await self.cache_tc.accept_res.call(sim))
                 await self.random_wait_geom(sim, 0.2)
 
         with self.run_simulation(self.m) as sim:
