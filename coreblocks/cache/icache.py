@@ -153,7 +153,7 @@ class ICache(Elaboratable, CacheInterface):
         flush_start = Signal()
         flush_finish = Signal()
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             self.perf_flushes.incr(m, enable_call=flush_finish)
 
         with m.FSM(init="FLUSH") as fsm:

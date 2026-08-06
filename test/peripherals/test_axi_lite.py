@@ -1,4 +1,4 @@
-from amaranth import Elaboratable
+from transactron.utils import ModuleConnector
 from coreblocks.peripherals.axi_lite import *
 from transactron import Method, def_method, TModule
 from transactron.lib import AdapterTrans
@@ -82,63 +82,53 @@ class AXILiteInterfaceWrapper:
 # 1. use queues instead of copy-pasting
 # 2. handle each AXI pipe independently
 class TestAXILiteMaster(TestCaseWithSimulator):
-    class AXILiteMasterTestModule(Elaboratable):
-        def __init__(self, params: AXILiteParameters):
-            self.params = params
-            self.write_request_layout = [
-                ("addr", self.params.addr_width),
-                ("prot", 3),
-                ("data", self.params.data_width),
-                ("strb", self.params.data_width // 8),
-            ]
-
-            self.write_request = Method(i=self.write_request_layout)
-
-        def elaborate(self, platform):
-            m = TModule()
-            m.submodules.alm = alm = self.axi_lite_master = AXILiteMaster(self.params)
-            m.submodules.rar = self.read_address_request_adapter = TestbenchIO(AdapterTrans.create(alm.ra_request))
-            m.submodules.rdr = self.read_data_response_adapter = TestbenchIO(AdapterTrans.create(alm.rd_response))
-            m.submodules.war = self.write_address_request_adapter = TestbenchIO(AdapterTrans.create(alm.wa_request))
-            m.submodules.wdr = self.write_data_request_adapter = TestbenchIO(AdapterTrans.create(alm.wd_request))
-            m.submodules.wrr = self.write_response_response_adapter = TestbenchIO(AdapterTrans.create(alm.wr_response))
-
-            @def_method(m, self.write_request, ready=alm.wa_request.ready & alm.wd_request.ready)
-            def _(arg):
-                alm.wa_request(m, addr=arg.addr, prot=arg.prot)
-                alm.wd_request(m, data=arg.data, strb=arg.strb)
-
-            m.submodules.wr = self.write_request_adapter = TestbenchIO(AdapterTrans.create(self.write_request))
-
-            return m
-
     def test_manual(self):
-        almt = TestAXILiteMaster.AXILiteMasterTestModule(AXILiteParameters())
+        alm = AXILiteMaster(AXILiteParameters())
+        almt = SimpleTestCircuit(alm)
+
+        m = TModule()
+        write_request = Method(
+            i=[
+                ("addr", alm.axil_params.addr_width),
+                ("prot", 3),
+                ("data", alm.axil_params.data_width),
+                ("strb", alm.axil_params.data_width // 8),
+            ]
+        )
+
+        @def_method(m, write_request, ready=alm.wa_request.ready & alm.wd_request.ready)
+        def _(arg):
+            alm.wa_request(m, addr=arg.addr, prot=arg.prot)
+            alm.wd_request(m, data=arg.data, strb=arg.strb)
+
+        write_request_adapter = TestbenchIO(AdapterTrans.create(write_request))
+
+        dut = ModuleConnector(m, write_request_adapter, axi_lite_master=almt)
 
         async def master_process(sim: TestbenchContext):
             # read request
-            await almt.read_address_request_adapter.call(sim, addr=5, prot=0)
+            await almt.ra_request.call(sim, addr=5, prot=0)
 
-            await almt.read_address_request_adapter.call(sim, addr=10, prot=1)
+            await almt.ra_request.call(sim, addr=10, prot=1)
 
-            await almt.read_address_request_adapter.call(sim, addr=15, prot=1)
+            await almt.ra_request.call(sim, addr=15, prot=1)
 
-            await almt.read_address_request_adapter.call(sim, addr=20, prot=0)
+            await almt.ra_request.call(sim, addr=20, prot=0)
 
-            await almt.write_request_adapter.call(sim, addr=6, prot=0, data=10, strb=3)
+            await write_request_adapter.call(sim, addr=6, prot=0, data=10, strb=3)
 
-            await almt.write_request_adapter.call(sim, addr=7, prot=0, data=11, strb=3)
+            await write_request_adapter.call(sim, addr=7, prot=0, data=11, strb=3)
 
-            await almt.write_request_adapter.call(sim, addr=8, prot=0, data=12, strb=3)
+            await write_request_adapter.call(sim, addr=8, prot=0, data=12, strb=3)
 
-            await almt.write_request_adapter.call(sim, addr=9, prot=1, data=13, strb=4)
+            await write_request_adapter.call(sim, addr=9, prot=1, data=13, strb=4)
 
-            await almt.read_address_request_adapter.call(sim, addr=1, prot=1)
+            await almt.ra_request.call(sim, addr=1, prot=1)
 
-            await almt.read_address_request_adapter.call(sim, addr=2, prot=1)
+            await almt.ra_request.call(sim, addr=2, prot=1)
 
         async def slave_process(sim: TestbenchContext):
-            slave = AXILiteInterfaceWrapper(almt.axi_lite_master.axil_master)
+            slave = AXILiteInterfaceWrapper(alm.axil_master)
 
             # 1st request
             slave.slave_ra_ready(sim, 1)
@@ -210,46 +200,46 @@ class TestAXILiteMaster(TestCaseWithSimulator):
             await slave.slave_rd_respond(sim, 4, 1)
 
         async def result_process(sim: TestbenchContext):
-            resp = await almt.read_data_response_adapter.call(sim)
+            resp = await almt.rd_response.call(sim)
             assert resp["data"] == 10
             assert resp["resp"] == 0
 
-            resp = await almt.read_data_response_adapter.call(sim)
+            resp = await almt.rd_response.call(sim)
             assert resp["data"] == 15
             assert resp["resp"] == 0
 
-            resp = await almt.read_data_response_adapter.call(sim)
+            resp = await almt.rd_response.call(sim)
             assert resp["data"] == 20
             assert resp["resp"] == 0
 
-            resp = await almt.read_data_response_adapter.call(sim)
+            resp = await almt.rd_response.call(sim)
             assert resp["data"] == 25
             assert resp["resp"] == 0
 
-            resp = await almt.write_response_response_adapter.call(sim)
+            resp = await almt.wr_response.call(sim)
             assert resp["resp"] == 1
 
-            resp = await almt.write_response_response_adapter.call(sim)
+            resp = await almt.wr_response.call(sim)
             assert resp["resp"] == 1
 
-            resp = await almt.write_response_response_adapter.call(sim)
+            resp = await almt.wr_response.call(sim)
             assert resp["resp"] == 1
 
-            resp = await almt.write_response_response_adapter.call(sim)
+            resp = await almt.wr_response.call(sim)
             assert resp["resp"] == 0
 
             for _ in range(5):
                 await sim.tick()
 
-            resp = await almt.read_data_response_adapter.call(sim)
+            resp = await almt.rd_response.call(sim)
             assert resp["data"] == 3
             assert resp["resp"] == 1
 
-            resp = await almt.read_data_response_adapter.call(sim)
+            resp = await almt.rd_response.call(sim)
             assert resp["data"] == 4
             assert resp["resp"] == 1
 
-        with self.run_simulation(almt) as sim:
+        with self.run_simulation(dut) as sim:
             sim.add_testbench(master_process)
             sim.add_testbench(slave_process)
             sim.add_testbench(result_process)

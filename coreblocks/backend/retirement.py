@@ -186,7 +186,7 @@ class Retirement(Elaboratable):
         with Transaction().body(m):
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
 
             # CRAT can currently deallocate at most one tag per cycle, this logic reduces the retire rate

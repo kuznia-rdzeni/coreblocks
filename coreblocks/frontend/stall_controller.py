@@ -66,7 +66,7 @@ class StallController(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             core_state = self.dm.get_dependency(CoreStateKey())(m)
 
         # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because

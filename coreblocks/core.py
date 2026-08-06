@@ -230,7 +230,7 @@ class Core(Component):
             announcement.rf_write_val.provide(self.RF.write[i])
             announce_result.append(announcement.push_result)
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             self.announcement_counter.incr(m, tag=sum(method.run for method in announce_result))
 
         m.submodules.announcement_connector = CrossbarConnectTrans.create(

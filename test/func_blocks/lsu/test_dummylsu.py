@@ -339,6 +339,10 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         def side_fx_guarder(rob_id, require_done):
             return {}
 
+        @def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
+
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.one_instr_test)
 
@@ -439,6 +443,10 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def side_fx_guarder(self, rob_id, require_done):
         return {}
 
+    @def_method_mock(lambda self: self.test_module.core_state)
+    def core_state_process(self):
+        return {"flushing": 0}
+
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
         def exception_consumer(arg):
@@ -502,6 +510,10 @@ class TestDummyLSUFence(TestCaseWithSimulator):
                 pending_req = False
 
             return {"data": 1, "err": 0}
+
+        @def_method_mock(lambda: self.test_module.core_state)
+        def core_state_process():
+            return {"flushing": 0}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.process)

@@ -127,9 +127,12 @@ class TestRetirement(TestCaseWithSimulator):
         def eff():
             self.submit_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
+    @def_method_mock(lambda self: self.retc.mock_rob_peek)
     def peek_process(self):
-        return {"count": 1, "entries": [self.submit_q[0]]}
+        if self.submit_q:
+            return {"count": 1, "entries": [self.submit_q[0]]}
+        else:
+            return {"count": 0}
 
     async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:

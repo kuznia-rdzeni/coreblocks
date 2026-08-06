@@ -5,7 +5,7 @@ import pytest
 from collections import deque
 from typing import Generic, TypeVar
 
-from amaranth import Elaboratable, Signal
+from amaranth import Signal
 
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
@@ -26,19 +26,6 @@ from transactron.testing import (
     TestbenchContext,
 )
 from transactron.utils import ModuleConnector, NameIntDict
-
-
-class FunctionalTestCircuit(Elaboratable):
-    """
-    Common circuit for testing functional modules which are using @see{FuncUnitLayouts}.
-
-    Parameters
-    ----------
-    gen: GenParams
-        Core generation parameters.
-    func_unit : FunctionalComponentParams
-        Class of functional unit to be tested.
-    """
 
 
 @dataclass

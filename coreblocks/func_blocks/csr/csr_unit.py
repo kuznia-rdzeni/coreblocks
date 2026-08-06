@@ -207,7 +207,7 @@ class CSRUnit(FuncBlock, Elaboratable):
                 m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 

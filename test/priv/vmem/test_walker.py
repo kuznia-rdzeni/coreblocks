@@ -128,7 +128,7 @@ class TestPageTableWalker(TestCaseWithSimulator):
                 bad_encodings = []
                 bad_encodings.append({"V": 0})
                 bad_encodings.append({"V": 1, "R": 0, "W": 1})
-                for v in ("A", "D"):
+                for v in ("A", "D", "U"):
                     bad_encodings.append({"V": 1, v: 1})  # non-leaf with A/D is reserved
                 if self.gen_params.isa.xlen == 64:
                     bad_encodings.append({"V": 1, "reserved": random.randint(1, 0x7F)})

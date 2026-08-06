@@ -1,7 +1,7 @@
 from collections.abc import Set
 from amaranth import Value
 from amaranth.lib.data import StructLayout
-from amaranth.lib.enum import unique, Enum, IntEnum, IntFlag
+from amaranth.lib.enum import Flag, unique, Enum, IntEnum
 
 __all__ = [
     "InstrType",
@@ -25,7 +25,7 @@ __all__ = [
 
 
 @unique
-class InstrType(Enum):
+class InstrType(Enum, shape=3):
     R = 0
     I = 1  # noqa: E741
     S = 2
@@ -35,7 +35,7 @@ class InstrType(Enum):
 
 
 @unique
-class Opcode(IntEnum, shape=5):
+class Opcode(Enum, shape=5):
     LOAD = 0b00000
     LOAD_FP = 0b00001
     MISC_MEM = 0b00011
@@ -141,7 +141,7 @@ class Registers(IntEnum, shape=5):
 
 
 @unique
-class FenceTarget(IntFlag, shape=4):
+class FenceTarget(Flag, shape=4):
     MEM_W = 0b0001
     MEM_R = 0b0010
     DEV_O = 0b0100
@@ -149,7 +149,7 @@ class FenceTarget(IntFlag, shape=4):
 
 
 @unique
-class FenceFm(IntEnum, shape=4):
+class FenceFm(Enum, shape=4):
     NONE = 0b0000
     TSO = 0b1000
 
@@ -193,7 +193,7 @@ class PrivilegeLevel(IntEnum, shape=2):
 
 
 @unique
-class TrapVectorMode(IntEnum, shape=2):
+class TrapVectorMode(Enum, shape=2):
     DIRECT = 0b00
     VECTORED = 0b01
 
@@ -218,14 +218,48 @@ class HPMEvent(IntEnum):
 
 
 @unique
-class XlenEncoding(IntEnum, shape=2):
+class XlenEncoding(Enum, shape=2):
     W32 = 1
     W64 = 2
     W128 = 3
 
+    @staticmethod
+    def from_xlen(xlen: int):
+        return XlenEncoding[f"W{xlen}"]
+
 
 @unique
-class PMPAFlagEncoding(IntEnum, shape=2):
+class MisaExtension(Flag, shape=26):
+    A = 1 << 0
+    B = 1 << 1
+    C = 1 << 2
+    D = 1 << 3
+    E = 1 << 4
+    F = 1 << 5
+    G = 1 << 6
+    H = 1 << 7
+    I = 1 << 8  # noqa: E741
+    J = 1 << 9
+    K = 1 << 10
+    L = 1 << 11
+    M = 1 << 12
+    N = 1 << 13
+    O = 1 << 14  # noqa: E741
+    P = 1 << 15
+    Q = 1 << 16
+    R = 1 << 17
+    S = 1 << 18
+    T = 1 << 19
+    U = 1 << 20
+    V = 1 << 21
+    W = 1 << 22
+    X = 1 << 23
+    Y = 1 << 24
+    Z = 1 << 25
+
+
+@unique
+class PMPAFlagEncoding(Enum, shape=2):
     OFF = 0
     TOR = 1
     NA4 = 2
@@ -233,7 +267,7 @@ class PMPAFlagEncoding(IntEnum, shape=2):
 
 
 @unique
-class SatpMode(IntEnum, shape=4):
+class SatpMode(Enum, shape=4):
     BARE = 0
     SV32 = 1
     SV39 = 8
