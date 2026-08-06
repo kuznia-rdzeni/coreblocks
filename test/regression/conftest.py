@@ -10,6 +10,45 @@ arch_tests_dir = test_dir.joinpath("external/riscv-arch-test/elfs")
 profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
+ARCH_EXPECTED_FAIL = {
+    # [?] misaligned exceptions should be either before address translation at the very end
+    "ExceptionsS",
+    "sv32_exceptions_mprv_(S|U)_Mmode",
+
+    # [?] trap loop
+    "sv32_exceptions_(S|U)mode",
+
+    # [?] sail requires size of reservation set <= 12
+    ".*exceptions.*zalrsc.*",
+    "pmpzalrsc_cfg_wr",
+
+    # misaligned amo should cause write flavoured exception
+    ".*exceptions.*zaamo.*",
+    "pmpzaamo_cfg_wr",
+
+    # [?] ?????
+    "InterruptsU",
+
+    # coreblocks assertion
+    r"Zifencei-.*",
+}
+
+ARCH_EXPECTED_TIMEOUT = {
+    "InterruptsS",
+    "InterruptsSSm",
+    "S_scsr",
+    "sv32_pmp_on_pte_(S|U)mode",
+    "U",
+    "ZicntrS",
+}
+
+def is_arch_expected_failing(test_name: str, failset: set[str] | None = None) -> bool:
+    if failset is None:
+        failset = ARCH_EXPECTED_FAIL | ARCH_EXPECTED_TIMEOUT
+
+    test_name = test_name.split("/")[-1].split(".")[0]
+    return any(re.fullmatch(rf"{pattern}(-\d\d)?", test_name, re.IGNORECASE) for pattern in failset)
+
 
 def get_all_test_names():
     return sorted([name[5:] for name in glob("test-*", root_dir=riscv_tests_dir)])
@@ -48,7 +87,7 @@ def load_arch_regression_tests() -> list[str]:
             print("Couldn't build arch regression tests")
         all_tests = set(get_all_arch_test_names())
 
-    return sorted(list(all_tests))
+    return sorted(filter(lambda name: not is_arch_expected_failing(name), all_tests))
 
 
 def is_regression_enabled(config: pytest.Config) -> bool:

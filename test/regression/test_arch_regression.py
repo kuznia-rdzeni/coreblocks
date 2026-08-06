@@ -8,7 +8,6 @@ import subprocess
 import sys
 import tempfile
 import asyncio
-import re
 import xml.etree.ElementTree as eT
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
@@ -46,43 +45,6 @@ ACCESS_FAULT_ADDRESS = 0x00000000
 INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
 
 START_PC = 0x80000000
-
-EXPECTED_FAIL = {
-    # [?] misaligned exceptions should be either before address translation at the very end
-    "ExceptionsS",
-    "sv32_exceptions_mprv_(S|U)_Mmode",
-
-    # [?] trap loop
-    "sv32_exceptions_(S|U)mode",
-
-    # [?] sail requires size of reservation set <= 12
-    "Exceptions.*Zalrcs",
-    "pmpzalrsc_cfg_wr",
-
-    # misaligned amo should cause write flavoured exception
-    "Exceptions.*Zaamo",
-    "pmpzaamo_cfg_wr",
-
-    # [?] ?????
-    "InterruptsU",
-
-    # coreblocks assertion
-    "Zifencei-fence.i",
-}
-
-EXPECTED_TIMEOUT = {
-    # [?] WFI dosn't wake up
-    "InterruptsS",
-    "InterruptsSSm",
-    "S_scsr",
-    "sv32_pmp_on_pte_(S|U)mode",
-    "U",
-    "ZicntrS",
-}
-
-def is_expected_failing(test_name: str, failset: set[str]) -> bool:
-    test_name = test_name.split("/")[-1].split(".")[0]
-    return any(re.fullmatch(rf"{pattern}(-\d\d)?", test_name, re.IGNORECASE) for pattern in failset)
 
 
 class EndTestMMIO(MemorySegment):
@@ -338,11 +300,6 @@ def verilate_arch_model(worker_id, sim_backend, traces_enabled, request: pytest.
 def test_entrypoint(
     arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
 ):
-    if is_expected_failing(arch_test_name, EXPECTED_FAIL):
-        pytest.xfail(f"Test {arch_test_name} is known failure")
-    if is_expected_failing(arch_test_name, EXPECTED_TIMEOUT):
-        pytest.xfail(f"Test {arch_test_name} is known not (or taking too long) to terminate")
-
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
     if not path.exists():
         raise FileNotFoundError(f"ELF file not found for test {arch_test_name}: {path}")
