@@ -13,7 +13,7 @@ from coreblocks.params import configurations
 from coreblocks.arch import *
 from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
-from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RetirementLayouts
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
@@ -94,6 +94,12 @@ class DummyLSUTestCircuit(Elaboratable):
 
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
+        m.submodules.tags_active = self.tags_active = TestbenchIO(
+            Adapter(o=self.gen.get(RATLayouts).get_active_tags_out)
+        )
+
+        DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -262,6 +268,10 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         @def_method_mock(lambda: self.test_module.core_state)
         def core_state_process():
             return {"flushing": 0}
+
+        @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
+        def tags_active_mock():
+            return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.bus_mock, background=True)

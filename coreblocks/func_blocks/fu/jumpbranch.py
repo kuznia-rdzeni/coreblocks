@@ -216,9 +216,9 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             with m.Elif(is_jalr):
                 # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
                 with m.If(active_tags[instr.tag] & ~core_state.flushing):
-                    unsafe_resolved(m, pc=jump_result, ftq_ptr=instr.ftq_ptr)  # TODO: verify
+                    unsafe_resolved(m, pc=jump_result, ftq_ptr=instr.ftq_ptr)
             with m.Elif(misprediction):
-                # Async interrupts can have priority, because `jump_result` both actions are done at the same time there.
+                # Async interrupts can have priority, because `jump_result` both actions are done at the same time there
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
                 with m.If(active_tags[instr.tag] & ~core_state.flushing):
                     rollback(m, tag=instr.tag, pc=jump_result, ftq_ptr=instr.ftq_ptr)

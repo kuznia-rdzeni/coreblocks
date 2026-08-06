@@ -181,6 +181,7 @@ class Retirement(Elaboratable):
         done_mask = Signal.like(tag_incr_mask)
         first_tag_incr_pos = Signal.like(retire_count)
         free_tag = Signal()
+        last_retired_active = Signal()
 
         with Transaction().body(m):
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
@@ -259,8 +260,6 @@ class Retirement(Elaboratable):
                             m.d.av_comb += cause_entry.eq(
                                 (1 << (self.gen_params.isa.xlen - 1)) | self.async_interrupt_cause(m).cause
                             )
-                        # self.perf_mispredictions.incr(m)
-                        # m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION) what with this one now
                         with m.Else():
                             # RISC-V synchronous exceptions - don't retire instruction that caused exception,
                             # and later resume from it.
@@ -321,12 +320,25 @@ class Retirement(Elaboratable):
 
                                 m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
                                 m.d.av_comb += last_commit_ftq_ptr_v.eq(1)
+                                m.d.sync += last_retired_active.eq(1)
                             with m.Else():
                                 # flush inactive instruction - CRAT entry was already rolled back
                                 flush_instr(i, rob_entries.entries[i])
+                                m.d.sync += last_retired_active.eq(0)
+
                         with m.Elif(i < retire_count):
                             # hard flush instruction for trap handling
                             flush_instr(i, rob_entries.entries[i])
+
+                        # TODO: this is some approximation of misprediction events - looking for active -> inactive
+                        # changes in retured instructions.
+                        # More metadata needs to be stored for an accurate result, improve.
+                        active_mask_with_prev = Signal(tag_active_mask.shape().width + 1)
+                        m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask & retiring_mask))
+                        change_mask = active_mask_with_prev & ((~active_mask_with_prev) >> 1)
+                        with m.If((change_mask & retiring_mask).any()):  # without last bit
+                            self.perf_mispredictions.incr(m)
+                            m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(last_commit_ftq_ptr_v):
@@ -387,6 +399,7 @@ class Retirement(Elaboratable):
                     m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
 
                     self.fetch_redirect(m, ftq_ptr=ftq_commit_ptr, pc=handler_pc)
+                    m.d.sync += last_retired_active.eq(1)
 
                     # Release pending trap state - allow accepting new reports and unstall fetch
                     self.exception_cause_clear(m)

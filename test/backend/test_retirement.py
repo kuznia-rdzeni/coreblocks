@@ -9,8 +9,8 @@ from transactron.utils import DependencyContext
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import FetchTargetQueueLayouts
-from coreblocks.interface.keys import CSRInstancesKey, SideFxGuardKey, FTQCommitKey
+from coreblocks.interface.layouts import FetchTargetQueueLayouts, RATLayouts
+from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, SideFxGuardKey, FTQCommitKey
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -70,8 +70,9 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(self.retirement.checkpoint_tag_free)
         )
         m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
-            Adapter.create(self.retirement.checkpoint_get_active_tags)
+            Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out)
         )
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.mock_checkpoint_get_active_tags.adapter.iface)
         m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
             Adapter.create(self.retirement.c_rat_restore)
         )
@@ -186,9 +187,11 @@ class TestRetirement(TestCaseWithSimulator):
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
 
-    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)  # type: ignore
     def mock_checkpoint_get_active_tags(self):
-        return {"active_tags": -1}
+        return {
+            "active_tags": [1 for _ in range(self.retc.mock_checkpoint_get_active_tags.adapter.iface.layout_out.size)]
+        }
 
     @def_method_mock(lambda self: self.retc.mock_c_rat_restore)
     def mock_c_rat_restore(self):
