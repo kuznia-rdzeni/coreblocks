@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786026394918,
+  "lastUpdate": 1786026396918,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -75011,6 +75011,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 44607,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 13835,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 978,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6c5344202f54b4193af9dc257103fcac2267ba11",
+          "message": "SimpleTestCircuit in bus test (#1048)",
+          "timestamp": "2026-08-06T15:18:55+02:00",
+          "tree_id": "bd4115c8f8aad2b4dc705a640847d645d40dd298",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c5344202f54b4193af9dc257103fcac2267ba11"
+        },
+        "date": 1786026396495,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 39.45,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 44936,
             "unit": "LUT"
           },
           {
