@@ -183,7 +183,7 @@ class Retirement(Elaboratable):
         free_tag = Signal()
         last_retired_active = Signal()
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
         with Transaction().always_body(m):

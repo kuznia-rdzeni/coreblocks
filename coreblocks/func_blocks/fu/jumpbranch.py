@@ -151,7 +151,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
             core_state = self.dm.get_dependency(CoreStateKey())(m)
 

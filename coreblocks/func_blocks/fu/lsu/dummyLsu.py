@@ -100,7 +100,7 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules += ConnectTrans.create(translator_in.read, self.addr_translator.request)
         m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
