@@ -3,6 +3,7 @@ from pathlib import Path
 from filelock import FileLock
 import pytest
 import argparse
+import re
 import os
 import subprocess
 import sys
@@ -170,7 +171,7 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         elf_path,
         sim_backend.stop,
         do_workarounds=False,
-        disable_write_protection=True,
+        disable_write_protection=re.match("Zifencei", elf_path.name) is not None,
         force_executable=True,
     )
 
