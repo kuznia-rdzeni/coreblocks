@@ -9,6 +9,7 @@ from transactron.utils import (
     count_trailing_zeros,
     popcount,
     assign,
+    OneHotMux,
     StableSelectingNetwork,
     logging,
     mux,
@@ -694,26 +695,43 @@ class PredictionChecker(Elaboratable):
                 )
 
             # Find the earliest one
+            pd_redirect_mask = Signal(self.gen_params.fetch_width)
+            m.d.av_comb += pd_redirect_mask.eq(decoded_redirections & instr_valid)
+
             m.submodules.pd_redirection_enc = pd_redirection_enc = PriorityEncoder(self.gen_params.fetch_width)
-            m.d.av_comb += pd_redirection_enc.i.eq(decoded_redirections & instr_valid)
+            m.d.av_comb += pd_redirection_enc.i.eq(pd_redirect_mask)
 
             pd_redirect_idx = Signal(self.gen_params.fetch_width_log)
             m.d.av_comb += pd_redirect_idx.eq(pd_redirection_enc.o[: self.gen_params.fetch_width_log])
 
-            # For a given instruction index, returns a CFI target based on the predecode info
-            def get_decoded_target_for(idx: Value) -> Value:
-                base = params.pc_from_fb(fb_addr, idx) + predecoded[idx].cfi_offset
+            # The predecode info of the redirecting instruction. When nothing redirects,
+            # the mux outputs zeroes, i.e. a CfiType.INVALID instruction
+            pd_redirect_instr = OneHotMux.create(
+                m,
+                [(pd_redirect_mask[i], predecoded[i]) for i in range(self.gen_params.fetch_width)],
+                priority=True,
+            )
+
+            # For a given instruction index and its predecoded CFI offset, returns the CFI target
+            def get_decoded_target_for(idx: Value, cfi_offset: Value, is_first: Value) -> Value:
+                base = params.pc_from_fb(fb_addr, idx) + cfi_offset
                 if Extension.ZCA in self.gen_params.isa.extensions:
-                    return base - Mux(starts_mid_instr & (idx == 0), 2, 0)
+                    return base - Mux(starts_mid_instr & is_first, 2, 0)
                 return base
 
             # Target of a CFI that would redirect the frontend according to the prediction
             decoded_target_for_predicted_cfi = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += decoded_target_for_predicted_cfi.eq(get_decoded_target_for(prediction.cfi_idx))
+            m.d.av_comb += decoded_target_for_predicted_cfi.eq(
+                get_decoded_target_for(
+                    prediction.cfi_idx, predecoded[prediction.cfi_idx].cfi_offset, prediction.cfi_idx == 0
+                )
+            )
 
             # Target of a CFI that would redirect the frontend according to predecode info
             decoded_target_for_decoded_cfi = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += decoded_target_for_decoded_cfi.eq(get_decoded_target_for(pd_redirect_idx))
+            m.d.av_comb += decoded_target_for_decoded_cfi.eq(
+                get_decoded_target_for(pd_redirect_idx, pd_redirect_instr.cfi_offset, pd_redirect_mask[0])
+            )
 
             preceding_redirection = ~pd_redirection_enc.n & (
                 ((CfiType.valid(prediction.cfi_type) & (pd_redirect_idx < prediction.cfi_idx)))
@@ -737,27 +755,26 @@ class PredictionChecker(Elaboratable):
             ret = Signal.like(self.check.data_out)
 
             with m.If(preceding_redirection):
-                self.perf_preceding_redirection.incr(m, predecoded[pd_redirect_idx].cfi_type)
+                self.perf_preceding_redirection.incr(m, pd_redirect_instr.cfi_type)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
                         "cfi_idx": pd_redirect_idx,
-                        "cfi_type": predecoded[pd_redirect_idx].cfi_type,
+                        "cfi_type": pd_redirect_instr.cfi_type,
                         "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
             with m.Elif(mispredicted_cfi_type):
                 self.perf_mispredicted_cfi_type.incr(m, prediction.cfi_type)
-                # If no decoded instruction redirects (pd_redirection_enc.n), this is a
-                # fall-through resteer: cfi_type is INVALID and cfi_idx/cfi_target are
-                # meaningless.
+                # If no decoded instruction redirects, this is a fall-through resteer: the
+                # one-hot mux outputs CfiType.INVALID and cfi_idx/cfi_target are meaningless.
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
                         "cfi_idx": pd_redirect_idx,
-                        "cfi_type": mux(pd_redirection_enc.n, CfiType.INVALID, predecoded[pd_redirect_idx].cfi_type),
+                        "cfi_type": pd_redirect_instr.cfi_type,
                         "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
