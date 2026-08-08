@@ -785,7 +785,7 @@ class PredictionChecker(Elaboratable):
                     {
                         "mispredicted": 1,
                         "cfi_idx": prediction.cfi_idx,
-                        "cfi_type": predecoded[prediction.cfi_idx].cfi_type,
+                        "cfi_type": prediction.cfi_type,
                         "cfi_target": decoded_target_for_predicted_cfi,
                     },
                 )
