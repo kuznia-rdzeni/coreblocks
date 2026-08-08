@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786178217517,
+  "lastUpdate": 1786178220240,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -74559,6 +74559,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 306,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b19400ae56b7007fd24d8fc96589466482151939",
+          "message": "OneHotMux in retirement (#1052)",
+          "timestamp": "2026-08-08T09:35:14+02:00",
+          "tree_id": "2164647f62922fdf3ae154115dbe0bf5a41d6139",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b19400ae56b7007fd24d8fc96589466482151939"
+        },
+        "date": 1786178219439,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.1,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17623,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7970,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 303,
             "unit": "Slice"
           },
           {
