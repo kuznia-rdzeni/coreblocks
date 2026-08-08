@@ -293,7 +293,7 @@ jobs:
       - name: Store synthesis benchmark result (tiny, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Fmax and LCs (basic, ECP5)
+          name: Fmax and LCs (tiny, ECP5)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-tiny-ecp5.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -323,7 +323,7 @@ jobs:
       - name: Store synthesis benchmark result (tiny, XC7K480T)
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Fmax and LCs (basic, XC7K480T)
+          name: Fmax and LCs (tiny, XC7K480T)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-tiny-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
