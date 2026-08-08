@@ -714,10 +714,10 @@ class PredictionChecker(Elaboratable):
 
             # For a given instruction index and its predecoded CFI offset, returns the CFI target
             def get_decoded_target_for(idx: Value, cfi_offset: Value, is_first: Value) -> Value:
-                base = params.pc_from_fb(fb_addr, idx) + cfi_offset
+                offset = cfi_offset
                 if Extension.ZCA in self.gen_params.isa.extensions:
-                    return base - Mux(starts_mid_instr & is_first, 2, 0)
-                return base
+                    offset = cfi_offset - Mux(starts_mid_instr & is_first, 2, 0)
+                return params.pc_from_fb(fb_addr, idx) + offset
 
             # Target of a CFI that would redirect the frontend according to the prediction
             decoded_target_for_predicted_cfi = Signal(self.gen_params.isa.xlen)
