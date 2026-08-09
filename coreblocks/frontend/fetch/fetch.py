@@ -669,6 +669,7 @@ class PredictionChecker(Elaboratable):
         m = TModule()
 
         params = self.gen_params.get(FrontendParams)
+        layouts = self.gen_params.get(FetchLayouts)
 
         m.submodules += [
             self.perf_mispredicted_cfi_type,
@@ -706,11 +707,17 @@ class PredictionChecker(Elaboratable):
 
             # The predecode info of the redirecting instruction. When nothing redirects,
             # the mux outputs zeroes, i.e. a CfiType.INVALID instruction
-            pd_redirect_instr = OneHotMux.create(
-                m,
-                [(pd_redirect_mask[i], predecoded[i]) for i in range(self.gen_params.fetch_width)],
-                priority=True,
+            # TODO: use OneHotMux.create (or something similar) once it doesn't drive its signals through
+            # m.d.comb
+            m.submodules.pd_redirect_mux = pd_redirect_mux = OneHotMux(
+                layouts.predecoded_instr, self.gen_params.fetch_width, priority=True, has_default=False
             )
+            m.d.av_comb += pd_redirect_mux.select.eq(pd_redirect_mask)
+            for i in range(self.gen_params.fetch_width):
+                m.d.av_comb += Value.cast(pd_redirect_mux.inputs[i]).eq(Value.cast(predecoded[i]))
+
+            pd_redirect_instr = Signal(layouts.predecoded_instr)
+            m.d.av_comb += Value.cast(pd_redirect_instr).eq(Value.cast(pd_redirect_mux.output))
 
             # For a given instruction index and its predecoded CFI offset, returns the CFI target
             def get_decoded_target_for(idx: Value, cfi_offset: Value, is_first: Value) -> Value:
