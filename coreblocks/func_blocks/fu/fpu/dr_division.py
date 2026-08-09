@@ -83,7 +83,9 @@ class DrDivModule(Elaboratable):
     def __init__(self, *, div_params: DrDivParams, qsf_params: QSFParams):
         self.div_params = div_params
         self.qsf_params = qsf_params
-        self.otfc_params = OTFCParams(result_width=self.div_params.result_fractional_bits)
+        self.otfc_params = OTFCParams(
+            result_width=self.div_params.result_fractional_bits
+        )
         self.method_layouts = DrDivMethodLayout(dr_div_params=div_params)
         self.div_init = Method(i=self.method_layouts.division_init_in_layout)
         self.div_result = Method(o=self.method_layouts.division_run_out_layout)
@@ -111,11 +113,14 @@ class DrDivModule(Elaboratable):
         residual_negative = Signal()
         residual_is_zero = Signal()
         residual_is_minus_d = Signal()
-        otfc_response = Signal(from_method_layout(otfc.method_layouts.otfc_result_out_layout))
+        otfc_response = Signal(
+            from_method_layout(otfc.method_layouts.otfc_result_out_layout)
+        )
         qsf_response = Signal(from_method_layout(qsf.method_layouts.qsf_out_layout))
 
         with m.FSM(init="Idle") as fsm:
             with m.State("Idle"):
+
                 @def_method(m, self.div_init, ready=fsm.ongoing("Idle"))
                 def _(x, d):
                     m.d.sync += divisor.eq(d)
@@ -133,69 +138,66 @@ class DrDivModule(Elaboratable):
                     m.d.sync += counter.eq(0)
                     m.d.sync += result_ready.eq(0)
                     m.next = "Loop"
-            with m.State("Loop"):
-                with m.If((counter < (counter_max))):
-                    # The residual for the next iteration. This Signal could have the same shape
-                    # as residual, but those two MSB bits would be shifted out anyway.
-                    new_residual = Signal(self.div_params.fractional_bits + 1)
 
-                    with Transaction().body(m):
-                        resp_qsf = qsf.qsf_request(
+            with m.State("Loop"):
+                # The residual for the next iteration. This Signal could have the same shape
+                # as residual, but those two MSB bits would be shifted out anyway.
+                new_residual = Signal(self.div_params.fractional_bits + 1)
+
+                with Transaction().always_body(m):
+                    m.d.av_comb += qsf_response.eq(
+                        qsf.qsf_request(
                             m,
                             residual=residual[-7:].as_signed(),
                             divisor=(divisor[-5:] << 0),
                         )
-                        m.d.comb += qsf_response.eq(resp_qsf)
-                        otfc.otfc_add_digit(m, sign=qsf_response["sign"], q=qsf_response["q"])
-                    m.d.sync += counter.eq(counter + 1)
-                    # To check if the last residual is zero we keep this
-                    # information in a separate flag before we compute new residual
-                    # This applies to the other flags as well
-                    m.d.sync += residual_negative.eq(residual < 0)
-                    m.d.sync += residual_is_minus_d.eq(residual == m_one_p)
-                    m.d.sync += residual_is_zero.eq(~(residual.any()))
-                    # The residual is extended by two integer bits for the purpose of shift by 2 (4*R[j])
-                    # but only one integer bit is used in recurrence
-                    # so we use additional signal to cut off those two bits
-                    with m.Switch(qsf_response["q"]):
-                        with m.Case(2):
-                            with m.If(qsf_response["sign"] == 1):
-                                m.d.comb += new_residual.eq(residual - m_two_p)
-                            with m.Else():
-                                m.d.comb += new_residual.eq(residual - two_p)
-                        with m.Case(1):
-                            with m.If(qsf_response["sign"] == 1):
-                                m.d.comb += new_residual.eq(residual - m_one_p)
-                            with m.Else():
-                                m.d.comb += new_residual.eq(residual - one_p)
-                        with m.Case(0):
-                            m.d.comb += new_residual.eq(residual)
-                    m.d.sync += residual.eq(new_residual << 2)  # R[j + 1] = 4*R[j]
-                with m.Elif(counter == (counter_max)):
-                    m.next = "Result"
-                    m.d.sync += result_ready.eq(1)
+                    )
+                    otfc.otfc_add_digit(
+                        m, sign=qsf_response["sign"], q=qsf_response["q"]
+                    )
+                m.d.sync += counter.eq(counter + 1)
+                # To check if the last residual is zero we keep this
+                # information in a separate flag before we compute new residual
+                # This applies to the other flags as well
+                m.d.sync += residual_negative.eq(residual < 0)
+                m.d.sync += residual_is_zero.eq(residual == 0)
+                # The residual is extended by two integer bits
+                # for the purpose of shift by 2 (4*R[j])
+                # but only one integer bit is used in recurrence
+                # so we use additional signal to cut off those two bits
+                with m.Switch(qsf_response["q"]):
+                    with m.Case(2):
+                        with m.If(qsf_response["sign"] == 1):
+                            m.d.comb += new_residual.eq(residual - m_two_p)
+                        with m.Else():
+                            m.d.comb += new_residual.eq(residual - two_p)
+                    with m.Case(1):
+                        with m.If(qsf_response["sign"] == 1):
+                            m.d.comb += new_residual.eq(residual - m_one_p)
+                        with m.Else():
+                            m.d.comb += new_residual.eq(residual - one_p)
+                    with m.Case(0):
+                        m.d.comb += new_residual.eq(residual)
+                m.d.sync += residual.eq(new_residual << 2)  # R[j + 1] = 4*R[j]
+            with m.If(counter == (counter_max)):
+                m.next = "Result"
+                m.d.sync += result_ready.eq(1)
             with m.State("Result"):
+
                 @def_method(m, self.div_result, ready=fsm.ongoing("Result"))
                 def _():
                     zero_rem = Signal()
                     adjusted_result = Signal(self.div_params.result_fractional_bits)
-                    # This is note for the future. We are chcecking if the residual
-                    # is not equal -d beacuse in this case of subtracting 1 from the result
-                    # to correct the negative final residual, our residual would be zero
-                    # However the books doesn't mention that something like that is needed
-                    # It just checks if the last residual is zero, so maybe this is redundant
                     m.d.sync += counter.eq(0)
-                    with Transaction().body(m):
-                        resp = otfc.otfc_result(m, shift=0)
-                        m.d.comb += otfc_response.eq(resp)
+                    m.d.av_comb += otfc_response.eq(otfc.otfc_result(m, shift=0))
                     # The initialization condition requires that we shift result left by 2.
                     # We can also do this by setting correct signal shape
                     with m.If(residual_negative):
-                        m.d.comb += zero_rem.eq(residual_is_minus_d)
-                        m.d.comb += adjusted_result.eq((otfc_response["result"] - 1))
+                        m.d.av_comb += zero_rem.eq(residual_is_minus_d)
+                        m.d.av_comb += adjusted_result.eq((otfc_response["result"] - 1))
                     with m.Else():
-                        m.d.comb += zero_rem.eq(residual_is_zero)
-                        m.d.comb += adjusted_result.eq(otfc_response["result"])
+                        m.d.av_comb += zero_rem.eq(residual_is_zero)
+                        m.d.av_comb += adjusted_result.eq(otfc_response["result"])
                     m.next = "Idle"
                     return {"result": adjusted_result, "zero_rem": zero_rem}
 

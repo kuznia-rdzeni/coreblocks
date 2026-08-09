@@ -20,22 +20,24 @@ class TestDRDivision(TestCaseWithSimulator):
             fractional_bits=10,
             result_fractional_bits=14,
         )
-        drd = SimpleTestCircuit(DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS))
+        drd = SimpleTestCircuit(
+            DrDivModule(div_params=params, qsf_params=R4A2RED_PARAMS)
+        )
 
         async def tests(sim: TestbenchContext):
             input_dict = {}
             test_cases = [
-                TCase(2**9, 2**9, int("1000000000000", 2), 1),
+                TCase(0b1000000000, 0b1000000000, 0b1000000000000, 1),
                 TCase(
-                    int("1001011010", 2),
-                    int("1101011101", 2),
-                    int("101100101111", 2),
+                    0b1001011010,
+                    0b1101011101,
+                    0b101100101111,
                     0,
                 ),
                 TCase(
-                    int("1011010011", 2),
-                    int("1110110011", 2),
-                    int("110000110110", 2),
+                    0b1011010011,
+                    0b1110110011,
+                    0b110000110110,
                     0,
                 ),
             ]
