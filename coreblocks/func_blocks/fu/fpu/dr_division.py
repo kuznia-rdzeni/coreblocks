@@ -114,29 +114,25 @@ class DrDivModule(Elaboratable):
         otfc_response = Signal(from_method_layout(otfc.method_layouts.otfc_result_out_layout))
         qsf_response = Signal(from_method_layout(qsf.method_layouts.qsf_out_layout))
 
-        @def_method(m, self.div_init, ready=init_ready)
-        def _(x, d):
-            m.d.sync
-            m.d.sync += divisor.eq(d)
-            m.d.sync += residual.eq(x)
-            m.d.sync += residual_negative.eq(0)
-            m.d.sync += residual_is_minus_d.eq(0)
-            # We assume that divisor is not zero
-            m.d.sync += residual_is_zero.eq(0)
-            # Divisor does not change through the entirety of the division
-            # so we precompute all the possible value of q*d
-            m.d.sync += two_p.eq(2 * d)
-            m.d.sync += one_p.eq(d)
-            m.d.sync += m_one_p.eq(-1 * d)
-            m.d.sync += m_two_p.eq(-2 * d)
-            m.d.sync += counter.eq(0)
-            m.d.sync += result_ready.eq(0)
-
-        with m.FSM(init="Idle"):
+        with m.FSM(init="Idle") as fsm:
             with m.State("Idle"):
-                with m.If(self.div_init.run):
+                @def_method(m, self.div_init, ready=fsm.ongoing("Idle"))
+                def _(x, d):
+                    m.d.sync += divisor.eq(d)
+                    m.d.sync += residual.eq(x)
+                    m.d.sync += residual_negative.eq(0)
+                    m.d.sync += residual_is_minus_d.eq(0)
+                    # We assume that divisor is not zero
+                    m.d.sync += residual_is_zero.eq(0)
+                    # Divisor does not change through the entirety of the division
+                    # so we precompute all the possible value of q*d
+                    m.d.sync += two_p.eq(2 * d)
+                    m.d.sync += one_p.eq(d)
+                    m.d.sync += m_one_p.eq(-1 * d)
+                    m.d.sync += m_two_p.eq(-2 * d)
+                    m.d.sync += counter.eq(0)
+                    m.d.sync += result_ready.eq(0)
                     m.next = "Loop"
-                    m.d.sync += init_ready.eq(0)
             with m.State("Loop"):
                 with m.If((counter < (counter_max))):
                     # The residual for the next iteration. This Signal could have the same shape
@@ -179,32 +175,28 @@ class DrDivModule(Elaboratable):
                     m.next = "Result"
                     m.d.sync += result_ready.eq(1)
             with m.State("Result"):
-                with m.If(self.div_result.run):
-                    m.d.sync += result_ready.eq(0)
-                    m.d.sync += init_ready.eq(1)
+                @def_method(m, self.div_result, ready=fsm.ongoing("Result"))
+                def _():
+                    zero_rem = Signal()
+                    adjusted_result = Signal(self.div_params.result_fractional_bits)
+                    # This is note for the future. We are chcecking if the residual
+                    # is not equal -d beacuse in this case of subtracting 1 from the result
+                    # to correct the negative final residual, our residual would be zero
+                    # However the books doesn't mention that something like that is needed
+                    # It just checks if the last residual is zero, so maybe this is redundant
+                    m.d.sync += counter.eq(0)
+                    with Transaction().body(m):
+                        resp = otfc.otfc_result(m, shift=0)
+                        m.d.comb += otfc_response.eq(resp)
+                    # The initialization condition requires that we shift result left by 2.
+                    # We can also do this by setting correct signal shape
+                    with m.If(residual_negative):
+                        m.d.comb += zero_rem.eq(residual_is_minus_d)
+                        m.d.comb += adjusted_result.eq((otfc_response["result"] - 1))
+                    with m.Else():
+                        m.d.comb += zero_rem.eq(residual_is_zero)
+                        m.d.comb += adjusted_result.eq(otfc_response["result"])
                     m.next = "Idle"
-
-        @def_method(m, self.div_result, ready=result_ready)
-        def _():
-            zero_rem = Signal()
-            adjusted_result = Signal(self.div_params.result_fractional_bits)
-            # This is note for the future. We are chcecking if the residual
-            # is not equal -d beacuse in this case of subtracting 1 from the result
-            # to correct the negative final residual, our residual would be zero
-            # However the books doesn't mention that something like that is needed
-            # It just checks if the last residual is zero, so maybe this is redundant
-            m.d.sync += counter.eq(0)
-            with Transaction().body(m):
-                resp = otfc.otfc_result(m, shift=0)
-                m.d.comb += otfc_response.eq(resp)
-            # The initialization condition requires that we shift result left by 2.
-            # We can also do this by setting correct signal shape
-            with m.If(residual_negative):
-                m.d.comb += zero_rem.eq(residual_is_minus_d)
-                m.d.comb += adjusted_result.eq((otfc_response["result"] - 1))
-            with m.Else():
-                m.d.comb += zero_rem.eq(residual_is_zero)
-                m.d.comb += adjusted_result.eq(otfc_response["result"])
-            return {"result": adjusted_result, "zero_rem": zero_rem}
+                    return {"result": adjusted_result, "zero_rem": zero_rem}
 
         return m
