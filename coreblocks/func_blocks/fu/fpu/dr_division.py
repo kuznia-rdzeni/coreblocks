@@ -83,9 +83,7 @@ class DrDivModule(Elaboratable):
     def __init__(self, *, div_params: DrDivParams, qsf_params: QSFParams):
         self.div_params = div_params
         self.qsf_params = qsf_params
-        self.otfc_params = OTFCParams(
-            result_width=self.div_params.result_fractional_bits
-        )
+        self.otfc_params = OTFCParams(result_width=self.div_params.result_fractional_bits)
         self.method_layouts = DrDivMethodLayout(dr_div_params=div_params)
         self.div_init = Method(i=self.method_layouts.division_init_in_layout)
         self.div_result = Method(o=self.method_layouts.division_run_out_layout)
@@ -108,14 +106,10 @@ class DrDivModule(Elaboratable):
         m_one_p = Signal(signed(2 + self.div_params.fractional_bits))
         m_two_p = Signal(signed(2 + self.div_params.fractional_bits))
 
-        init_ready = Signal(init=1)
-        result_ready = Signal()
         residual_negative = Signal()
         residual_is_zero = Signal()
         residual_is_minus_d = Signal()
-        otfc_response = Signal(
-            from_method_layout(otfc.method_layouts.otfc_result_out_layout)
-        )
+        otfc_response = Signal(from_method_layout(otfc.method_layouts.otfc_result_out_layout))
         qsf_response = Signal(from_method_layout(qsf.method_layouts.qsf_out_layout))
 
         with m.FSM(init="Idle") as fsm:
@@ -136,7 +130,6 @@ class DrDivModule(Elaboratable):
                     m.d.sync += m_one_p.eq(-1 * d)
                     m.d.sync += m_two_p.eq(-2 * d)
                     m.d.sync += counter.eq(0)
-                    m.d.sync += result_ready.eq(0)
                     m.next = "Loop"
 
             with m.State("Loop"):
@@ -152,9 +145,7 @@ class DrDivModule(Elaboratable):
                             divisor=(divisor[-5:] << 0),
                         )
                     )
-                    otfc.otfc_add_digit(
-                        m, sign=qsf_response["sign"], q=qsf_response["q"]
-                    )
+                    otfc.otfc_add_digit(m, sign=qsf_response["sign"], q=qsf_response["q"])
                 m.d.sync += counter.eq(counter + 1)
                 # To check if the last residual is zero we keep this
                 # information in a separate flag before we compute new residual
@@ -179,9 +170,9 @@ class DrDivModule(Elaboratable):
                     with m.Case(0):
                         m.d.comb += new_residual.eq(residual)
                 m.d.sync += residual.eq(new_residual << 2)  # R[j + 1] = 4*R[j]
-            with m.If(counter == (counter_max)):
-                m.next = "Result"
-                m.d.sync += result_ready.eq(1)
+                next_counter = counter + 1
+                with m.If(next_counter == counter_max):
+                    m.next = "Result"
             with m.State("Result"):
 
                 @def_method(m, self.div_result, ready=fsm.ongoing("Result"))
