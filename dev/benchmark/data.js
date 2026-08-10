@@ -52991,55 +52991,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
         },
-        "date": 1785277626691,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 61.6,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7513,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 588,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40",
-          "message": "Tiny core in CI (#1036)",
-          "timestamp": "2026-07-28T23:29:22+02:00",
-          "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
-        },
         "date": 1785277628516,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -53066,55 +53017,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8170,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "kuba@ev1.pl",
-            "name": "Janeczko Jakub",
-            "username": "qbojj"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "ba9c1a21652202a02908395ada9ad4853118ce77",
-          "message": "use always_body whenever possible (#1037)",
-          "timestamp": "2026-07-30T14:40:39+02:00",
-          "tree_id": "3ecc93e4bfe89356fe4d24763c49f923fb336715",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ba9c1a21652202a02908395ada9ad4853118ce77"
-        },
-        "date": 1785418739317,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 69.33,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7246,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
             "unit": "LUT"
           }
         ]
@@ -53187,55 +53089,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
         },
-        "date": 1785919961009,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 63.19,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7291,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "kuba@ev1.pl",
-            "name": "Janeczko Jakub",
-            "username": "qbojj"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "aa853adf9dd47d03a72b024d91a47b75d01d8b58",
-          "message": "add missing U-bit check for non-leaf PTEs (#1039)",
-          "timestamp": "2026-08-05T09:47:13+02:00",
-          "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
-        },
         "date": 1785919963149,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -53262,55 +53115,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8170,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "kuba@ev1.pl",
-            "name": "Janeczko Jakub",
-            "username": "qbojj"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "4f11685cc5b8c1cf52a95894a584314ccd8900f5",
-          "message": "Fix wave tracing for cocotb (#1038)",
-          "timestamp": "2026-08-05T15:07:27+02:00",
-          "tree_id": "44ce5735b815860f7ee6bef0cb5cdbd8e275f785",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4f11685cc5b8c1cf52a95894a584314ccd8900f5"
-        },
-        "date": 1785938830293,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 72,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7503,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
             "unit": "LUT"
           }
         ]
@@ -53383,55 +53187,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
         },
-        "date": 1785968286374,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 69.01,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7226,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4",
-          "message": "SimpleTestCircuit in interrupt controller test (#1042)",
-          "timestamp": "2026-08-05T23:19:09+02:00",
-          "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
-        },
         "date": 1785968288731,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -53458,55 +53213,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8170,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "205a789867daf4e0ae0f17b0cbb837a31336ee35",
-          "message": "Remove stale FunctionalTestCircuit (#1041)",
-          "timestamp": "2026-08-05T23:19:41+02:00",
-          "tree_id": "b82c602d560736cc11ede5a1a780b0bf7130aebd",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/205a789867daf4e0ae0f17b0cbb837a31336ee35"
-        },
-        "date": 1785968298794,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 66.51,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7187,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
             "unit": "LUT"
           }
         ]
@@ -53579,55 +53285,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "22dac04b096f5062fffc89df4d82c841ca2289b7",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33487a05b389a834573f2b70622ebbdba7f4a259"
         },
-        "date": 1786004813800,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 57.5,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7287,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "33487a05b389a834573f2b70622ebbdba7f4a259",
-          "message": "SimpleTestCircuit in icache test (#1045)",
-          "timestamp": "2026-08-06T09:26:44+02:00",
-          "tree_id": "22dac04b096f5062fffc89df4d82c841ca2289b7",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33487a05b389a834573f2b70622ebbdba7f4a259"
-        },
         "date": 1786004815609,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -53654,55 +53311,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as DFF: (ECP5)",
             "value": 8170,
-            "unit": "LUT"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "6c5344202f54b4193af9dc257103fcac2267ba11",
-          "message": "SimpleTestCircuit in bus test (#1048)",
-          "timestamp": "2026-08-06T15:18:55+02:00",
-          "tree_id": "bd4115c8f8aad2b4dc705a640847d645d40dd298",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c5344202f54b4193af9dc257103fcac2267ba11"
-        },
-        "date": 1786026385458,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 62.95,
-            "unit": "MHz"
-          },
-          {
-            "name": "Device utilisation: (ECP5)",
-            "value": 7321,
-            "unit": "LUT4"
-          },
-          {
-            "name": "LUTs used as carry: (ECP5)",
-            "value": 556,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as ram: (ECP5)",
-            "value": 1224,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUTs used as DFF: (ECP5)",
-            "value": 2711,
             "unit": "LUT"
           }
         ]
@@ -73916,55 +73524,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
         },
-        "date": 1785277632111,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 62.92,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7152,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 125,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40",
-          "message": "Tiny core in CI (#1036)",
-          "timestamp": "2026-07-28T23:29:22+02:00",
-          "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
-        },
         "date": 1785277633966,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -73991,55 +73550,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "Block RAM used",
             "value": 3,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "kuba@ev1.pl",
-            "name": "Janeczko Jakub",
-            "username": "qbojj"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "ba9c1a21652202a02908395ada9ad4853118ce77",
-          "message": "use always_body whenever possible (#1037)",
-          "timestamp": "2026-07-30T14:40:39+02:00",
-          "tree_id": "3ecc93e4bfe89356fe4d24763c49f923fb336715",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ba9c1a21652202a02908395ada9ad4853118ce77"
-        },
-        "date": 1785418747441,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 70.22,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7133,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 126,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
             "unit": "RAMB36E1"
           }
         ]
@@ -74112,55 +73622,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
         },
-        "date": 1785919967257,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 70.7,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7184,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 126,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "kuba@ev1.pl",
-            "name": "Janeczko Jakub",
-            "username": "qbojj"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "aa853adf9dd47d03a72b024d91a47b75d01d8b58",
-          "message": "add missing U-bit check for non-leaf PTEs (#1039)",
-          "timestamp": "2026-08-05T09:47:13+02:00",
-          "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
-        },
         "date": 1785919969354,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -74187,55 +73648,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "Block RAM used",
             "value": 3,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "kuba@ev1.pl",
-            "name": "Janeczko Jakub",
-            "username": "qbojj"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "4f11685cc5b8c1cf52a95894a584314ccd8900f5",
-          "message": "Fix wave tracing for cocotb (#1038)",
-          "timestamp": "2026-08-05T15:07:27+02:00",
-          "tree_id": "44ce5735b815860f7ee6bef0cb5cdbd8e275f785",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4f11685cc5b8c1cf52a95894a584314ccd8900f5"
-        },
-        "date": 1785938838829,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 64.1,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7151,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 126,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
             "unit": "RAMB36E1"
           }
         ]
@@ -74308,55 +73720,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
         },
-        "date": 1785968293885,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 71.99,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7243,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 126,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4",
-          "message": "SimpleTestCircuit in interrupt controller test (#1042)",
-          "timestamp": "2026-08-05T23:19:09+02:00",
-          "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
-        },
         "date": 1785968297107,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -74383,55 +73746,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "Block RAM used",
             "value": 3,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "205a789867daf4e0ae0f17b0cbb837a31336ee35",
-          "message": "Remove stale FunctionalTestCircuit (#1041)",
-          "timestamp": "2026-08-05T23:19:41+02:00",
-          "tree_id": "b82c602d560736cc11ede5a1a780b0bf7130aebd",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/205a789867daf4e0ae0f17b0cbb837a31336ee35"
-        },
-        "date": 1785968305370,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 65.54,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7168,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 128,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
             "unit": "RAMB36E1"
           }
         ]
@@ -74504,55 +73818,6 @@ window.BENCHMARK_DATA = {
           "tree_id": "22dac04b096f5062fffc89df4d82c841ca2289b7",
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33487a05b389a834573f2b70622ebbdba7f4a259"
         },
-        "date": 1786004819250,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 71.39,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7160,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 126,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "33487a05b389a834573f2b70622ebbdba7f4a259",
-          "message": "SimpleTestCircuit in icache test (#1045)",
-          "timestamp": "2026-08-06T09:26:44+02:00",
-          "tree_id": "22dac04b096f5062fffc89df4d82c841ca2289b7",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33487a05b389a834573f2b70622ebbdba7f4a259"
-        },
         "date": 1786004821157,
         "tool": "customBiggerIsBetter",
         "benches": [
@@ -74579,55 +73844,6 @@ window.BENCHMARK_DATA = {
           {
             "name": "Block RAM used",
             "value": 3,
-            "unit": "RAMB36E1"
-          }
-        ]
-      },
-      {
-        "commit": {
-          "author": {
-            "email": "tilk@tilk.eu",
-            "name": "Marek Materzok",
-            "username": "tilk"
-          },
-          "committer": {
-            "email": "noreply@github.com",
-            "name": "GitHub",
-            "username": "web-flow"
-          },
-          "distinct": true,
-          "id": "6c5344202f54b4193af9dc257103fcac2267ba11",
-          "message": "SimpleTestCircuit in bus test (#1048)",
-          "timestamp": "2026-08-06T15:18:55+02:00",
-          "tree_id": "bd4115c8f8aad2b4dc705a640847d645d40dd298",
-          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c5344202f54b4193af9dc257103fcac2267ba11"
-        },
-        "date": 1786026392633,
-        "tool": "customBiggerIsBetter",
-        "benches": [
-          {
-            "name": "Max clock frequency (Fmax)",
-            "value": 65.37,
-            "unit": "MHz"
-          },
-          {
-            "name": "LUT used",
-            "value": 7149,
-            "unit": "LUT"
-          },
-          {
-            "name": "LUT DFF used",
-            "value": 2758,
-            "unit": "LUT"
-          },
-          {
-            "name": "Slice carry chains used",
-            "value": 126,
-            "unit": "Slice"
-          },
-          {
-            "name": "Block RAM used",
-            "value": 0,
             "unit": "RAMB36E1"
           }
         ]
@@ -75874,6 +75090,398 @@ window.BENCHMARK_DATA = {
             "username": "web-flow"
           },
           "distinct": true,
+          "id": "6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40",
+          "message": "Tiny core in CI (#1036)",
+          "timestamp": "2026-07-28T23:29:22+02:00",
+          "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
+        },
+        "date": 1785277626691,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.6,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7513,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 588,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ba9c1a21652202a02908395ada9ad4853118ce77",
+          "message": "use always_body whenever possible (#1037)",
+          "timestamp": "2026-07-30T14:40:39+02:00",
+          "tree_id": "3ecc93e4bfe89356fe4d24763c49f923fb336715",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ba9c1a21652202a02908395ada9ad4853118ce77"
+        },
+        "date": 1785418739317,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 69.33,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7246,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "aa853adf9dd47d03a72b024d91a47b75d01d8b58",
+          "message": "add missing U-bit check for non-leaf PTEs (#1039)",
+          "timestamp": "2026-08-05T09:47:13+02:00",
+          "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
+        },
+        "date": 1785919961009,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 63.19,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7291,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4f11685cc5b8c1cf52a95894a584314ccd8900f5",
+          "message": "Fix wave tracing for cocotb (#1038)",
+          "timestamp": "2026-08-05T15:07:27+02:00",
+          "tree_id": "44ce5735b815860f7ee6bef0cb5cdbd8e275f785",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4f11685cc5b8c1cf52a95894a584314ccd8900f5"
+        },
+        "date": 1785938830293,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 72,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7503,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4",
+          "message": "SimpleTestCircuit in interrupt controller test (#1042)",
+          "timestamp": "2026-08-05T23:19:09+02:00",
+          "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
+        },
+        "date": 1785968286374,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 69.01,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7226,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "205a789867daf4e0ae0f17b0cbb837a31336ee35",
+          "message": "Remove stale FunctionalTestCircuit (#1041)",
+          "timestamp": "2026-08-05T23:19:41+02:00",
+          "tree_id": "b82c602d560736cc11ede5a1a780b0bf7130aebd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/205a789867daf4e0ae0f17b0cbb837a31336ee35"
+        },
+        "date": 1785968298794,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 66.51,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7187,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "33487a05b389a834573f2b70622ebbdba7f4a259",
+          "message": "SimpleTestCircuit in icache test (#1045)",
+          "timestamp": "2026-08-06T09:26:44+02:00",
+          "tree_id": "22dac04b096f5062fffc89df4d82c841ca2289b7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33487a05b389a834573f2b70622ebbdba7f4a259"
+        },
+        "date": 1786004813800,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 57.5,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7287,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6c5344202f54b4193af9dc257103fcac2267ba11",
+          "message": "SimpleTestCircuit in bus test (#1048)",
+          "timestamp": "2026-08-06T15:18:55+02:00",
+          "tree_id": "bd4115c8f8aad2b4dc705a640847d645d40dd298",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c5344202f54b4193af9dc257103fcac2267ba11"
+        },
+        "date": 1786026385458,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.95,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 7321,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 556,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 2711,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
           "id": "f141e8c98eaa6edd7b28adf7db6518977bc3343b",
           "message": "Fix benchmark mixup (#1053)",
           "timestamp": "2026-08-08T09:24:18+02:00",
@@ -76010,6 +75618,398 @@ window.BENCHMARK_DATA = {
       }
     ],
     "Fmax and LCs (tiny, XC7K480T)": [
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40",
+          "message": "Tiny core in CI (#1036)",
+          "timestamp": "2026-07-28T23:29:22+02:00",
+          "tree_id": "49cbdb8d4c6e24e7a4a977afd06ed3534f949277",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6bfb76f1836a3250a0f0ecb3b43e409ca12e3c40"
+        },
+        "date": 1785277632111,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 62.92,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7152,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 125,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ba9c1a21652202a02908395ada9ad4853118ce77",
+          "message": "use always_body whenever possible (#1037)",
+          "timestamp": "2026-07-30T14:40:39+02:00",
+          "tree_id": "3ecc93e4bfe89356fe4d24763c49f923fb336715",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/ba9c1a21652202a02908395ada9ad4853118ce77"
+        },
+        "date": 1785418747441,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 70.22,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7133,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "aa853adf9dd47d03a72b024d91a47b75d01d8b58",
+          "message": "add missing U-bit check for non-leaf PTEs (#1039)",
+          "timestamp": "2026-08-05T09:47:13+02:00",
+          "tree_id": "026090f31ebc02b5922767aba7f5ec4d72bf6f4d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/aa853adf9dd47d03a72b024d91a47b75d01d8b58"
+        },
+        "date": 1785919967257,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 70.7,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7184,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4f11685cc5b8c1cf52a95894a584314ccd8900f5",
+          "message": "Fix wave tracing for cocotb (#1038)",
+          "timestamp": "2026-08-05T15:07:27+02:00",
+          "tree_id": "44ce5735b815860f7ee6bef0cb5cdbd8e275f785",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4f11685cc5b8c1cf52a95894a584314ccd8900f5"
+        },
+        "date": 1785938838829,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 64.1,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7151,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4",
+          "message": "SimpleTestCircuit in interrupt controller test (#1042)",
+          "timestamp": "2026-08-05T23:19:09+02:00",
+          "tree_id": "be98626665861c01b9158a80a4a1c63f148e9787",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9c6e6f7688b6d70a5ed6b81831fff64f09ba69b4"
+        },
+        "date": 1785968293885,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 71.99,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7243,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "205a789867daf4e0ae0f17b0cbb837a31336ee35",
+          "message": "Remove stale FunctionalTestCircuit (#1041)",
+          "timestamp": "2026-08-05T23:19:41+02:00",
+          "tree_id": "b82c602d560736cc11ede5a1a780b0bf7130aebd",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/205a789867daf4e0ae0f17b0cbb837a31336ee35"
+        },
+        "date": 1785968305370,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 65.54,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7168,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 128,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "33487a05b389a834573f2b70622ebbdba7f4a259",
+          "message": "SimpleTestCircuit in icache test (#1045)",
+          "timestamp": "2026-08-06T09:26:44+02:00",
+          "tree_id": "22dac04b096f5062fffc89df4d82c841ca2289b7",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/33487a05b389a834573f2b70622ebbdba7f4a259"
+        },
+        "date": 1786004819250,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 71.39,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7160,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6c5344202f54b4193af9dc257103fcac2267ba11",
+          "message": "SimpleTestCircuit in bus test (#1048)",
+          "timestamp": "2026-08-06T15:18:55+02:00",
+          "tree_id": "bd4115c8f8aad2b4dc705a640847d645d40dd298",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c5344202f54b4193af9dc257103fcac2267ba11"
+        },
+        "date": 1786026392633,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 65.37,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7149,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2758,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
       {
         "commit": {
           "author": {
