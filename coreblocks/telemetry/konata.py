@@ -61,7 +61,7 @@ class KonataParser(EventConsumer):
     - "Rn" (rename) from entering the scheduler,
     - "Ds" (dispatch) from ROB allocation (which is where the
       instruction becomes identified by its ROB id),
-    - "Is" (issue) from being issued to a functional unit,
+    - "IX" (issue) from being issued to a functional unit,
     - "Cm" once execution completes.
 
     The instruction terminates by retiring (`RobRetire`) or being squashed.
@@ -76,6 +76,8 @@ class KonataParser(EventConsumer):
         self.blocks: dict[int, _Block] = {}
         # Kanata instruction ids of live ROB entries, keyed by the ROB id.
         self.rob: dict[int, int] = {}
+        # Kanata instruction ids associated with destination registers.
+        self.regs: dict[int, int] = {}
         # Kanata instruction ids with a terminal (retire/flush) record.
         self.terminated: set[int] = set()
         # (cycle, sequence number, line) command timeline; the sequence
@@ -163,8 +165,14 @@ class KonataParser(EventConsumer):
             return
         insn_id = block.instr_ids[ev.ftq_offset]
         self.rob[ev.rob_id] = insn_id
+        if ev.rp_dst:
+            self.regs[ev.rp_dst] = insn_id
         self._command(rec.cycle, "S", insn_id, 0, "Ds")
         self._command(rec.cycle, "L", insn_id, 1, f" rob_id={ev.rob_id}")
+        if ev.rp_s1:
+            self._command(rec.cycle, "W", insn_id, self.regs[ev.rp_s1], 0)
+        if ev.rp_s2:
+            self._command(rec.cycle, "W", insn_id, self.regs[ev.rp_s2], 0)
 
     @handles(FuIssue)
     def on_fu_issue(self, rec: DecodedEvent):

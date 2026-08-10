@@ -100,6 +100,9 @@ class RobAllocate(Event):
     ftq_ptr: int
     ftq_offset: int
     rob_id: int
+    rp_dst: int
+    rp_s1: int
+    rp_s2: int
 
 
 @event("backend.rob_retire")
