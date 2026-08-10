@@ -181,7 +181,7 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "S", insn_id, 0, "Is")
+        self._command(rec.cycle, "S", insn_id, 0, "IX")
         self._command(rec.cycle, "L", insn_id, 1, f" fu={ev.unit}")
 
     @handles(ExecComplete)
