@@ -433,7 +433,10 @@ class CheckpointRAT(Elaboratable):
         @def_method(m, self.get_active_tags, nonexclusive=True)
         def _():
             out = Signal(ArrayLayout(1, 2**self.gen_params.tag_bits))
-            m.d.av_comb += out.eq(active_tags)
+
+            core_state = self.dm.get_dependency(CoreStateKey())(m)
+            m.d.av_comb += out.eq(Mux(core_state.flushing, 0, active_tags))
+
             return {"active_tags": out}
 
         m.submodules.perf_tags = perf_tags = HwExpHistogram(

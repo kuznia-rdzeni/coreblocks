@@ -18,7 +18,6 @@ from coreblocks.interface.keys import (
     ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
     BranchResolveKey,
-    CoreStateKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
     RollbackKey,
@@ -153,7 +152,6 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
 
         with Transaction().always_body(m):
             active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
-            core_state = self.dm.get_dependency(CoreStateKey())(m)
 
         rollback, rollback_unifiers = self.dm.get_dependency(RollbackKey())
         m.submodules += rollback_unifiers
@@ -215,12 +213,12 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                 )
             with m.Elif(is_jalr):
                 # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
-                with m.If(active_tags[instr.tag] & ~core_state.flushing):
+                with m.If(active_tags[instr.tag]):
                     unsafe_resolved(m, pc=jump_result, ftq_ptr=instr.ftq_ptr)
             with m.Elif(misprediction):
                 # Async interrupts can have priority, because `jump_result` both actions are done at the same time there
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                with m.If(active_tags[instr.tag] & ~core_state.flushing):
+                with m.If(active_tags[instr.tag]):
                     rollback(m, tag=instr.tag, pc=jump_result, ftq_ptr=instr.ftq_ptr)
 
             cfi_type = Signal(CfiType)
@@ -230,7 +228,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             with m.Elif(instr.type == JumpBranchFn.Fn.JALR):
                 m.d.av_comb += cfi_type.eq(CfiType.JALR)
 
-            with m.If(~is_auipc & active_tags[instr.tag] & ~core_state.flushing):
+            with m.If(~is_auipc & active_tags[instr.tag]):
                 resolve_branch(
                     m,
                     ftq_ptr=instr.ftq_ptr,

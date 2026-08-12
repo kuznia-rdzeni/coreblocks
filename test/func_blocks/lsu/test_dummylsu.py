@@ -11,7 +11,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
+from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
@@ -88,9 +88,6 @@ class DummyLSUTestCircuit(Elaboratable):
             ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
-
-        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
@@ -266,10 +263,6 @@ class TestDummyLSULoads(TestCaseWithSimulator):
         def side_fx_guarder(rob_id, tag, require_done):
             return {}
 
-        @def_method_mock(lambda: self.test_module.core_state)
-        def core_state_process():
-            return {"flushing": 0}
-
         @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
         def tags_active_mock():
             return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
@@ -341,10 +334,6 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
         )
         def side_fx_guarder(rob_id, tag, require_done):
             return {}
-
-        @def_method_mock(lambda: self.test_module.core_state)
-        def core_state_process():
-            return {"flushing": 0}
 
         @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
         def tags_active_mock():
@@ -450,10 +439,6 @@ class TestDummyLSUStores(TestCaseWithSimulator):
     def side_fx_guarder(self, rob_id, tag, require_done):
         return {}
 
-    @def_method_mock(lambda self: self.test_module.core_state)
-    def core_state_process(self):
-        return {"flushing": 0}
-
     @def_method_mock(lambda self: self.test_module.tags_active)  # type: ignore
     def tags_active_mock(self):
         return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
@@ -523,10 +508,6 @@ class TestDummyLSUFence(TestCaseWithSimulator):
                 pending_req = False
 
             return {"data": 1, "err": 0}
-
-        @def_method_mock(lambda: self.test_module.core_state)
-        def core_state_process():
-            return {"flushing": 0}
 
         @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
         def tags_active_mock():

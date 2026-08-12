@@ -19,7 +19,6 @@ from coreblocks.interface.layouts import (
 from coreblocks.interface.keys import (
     ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
-    CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
     SideFxGuardKey,
@@ -59,7 +58,6 @@ class CSRUnitTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
@@ -106,10 +104,6 @@ class CSRUnitTestCircuit(Elaboratable):
 
 class TestCSRUnitBase(TestCaseWithSimulator):
     dut: CSRUnitTestCircuit
-
-    @def_method_mock(lambda self: self.dut.core_state)
-    def core_state_mock(self):
-        return {"flushing": 0}
 
     @def_method_mock(lambda self: self.dut.tags_active)  # type: ignore
     def tags_active_mock(self):

@@ -12,13 +12,11 @@ from coreblocks.interface.layouts import (
     JumpBranchLayouts,
     FetchTargetQueueLayouts,
     RATLayouts,
-    RetirementLayouts,
 )
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.arch import Funct3, OpType, ExceptionCause
 from coreblocks.interface.keys import (
     ActiveTagsKey,
-    CoreStateKey,
     PredictedJumpTargetKey,
     BranchResolveKey,
     RollbackKey,
@@ -45,7 +43,6 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
         self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
         self.active_tags = Method(o=self.gp.get(RATLayouts).get_active_tags_out)
-        self.core_state = Method(o=self.gp.get(RetirementLayouts).core_state)
         self.rollback_handler = Method(i=self.gp.get(RATLayouts).rollback_in)
         self.unsafe_resolved = Method(i=self.gp.get(FetchLayouts).backend_redirect)
 
@@ -54,7 +51,6 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
         DependencyContext.get().add_dependency(BranchResolveKey(), self.fifo_branch_resolved.write)
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.active_tags)
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state)
         DependencyContext.get().add_dependency(RollbackKey(), self.rollback_handler)
         DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self.unsafe_resolved)
 
@@ -87,10 +83,6 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         @def_method(m, self.active_tags)
         def _():
             return {"active_tags": [1 for _ in range(self.gp.tag_count)]}
-
-        @def_method(m, self.core_state)
-        def _(arg):
-            return {"flushing": 0}
 
         @def_method(m, self.rollback_handler)
         def _(arg):

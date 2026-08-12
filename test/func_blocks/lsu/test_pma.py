@@ -6,7 +6,7 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
+from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
 from transactron.testing.method_mock import MethodMock
 from transactron.utils.dependencies import DependencyContext
@@ -67,9 +67,6 @@ class PMAIndirectTestCircuit(Elaboratable):
             ).set(with_validate_arguments=True)
         )
         DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
-
-        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
@@ -145,10 +142,6 @@ class TestPMAIndirect(TestCaseWithSimulator):
         )
         def side_fx_guarder(arg):
             return {}
-
-        @def_method_mock(lambda: self.test_module.core_state)
-        def core_state_process():
-            return {"flushing": 0}
 
         @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
         def tags_active_mock():

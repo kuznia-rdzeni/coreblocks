@@ -166,7 +166,6 @@ class Retirement(Elaboratable):
         trap_target_priv = Signal(PrivilegeLevel, init=PrivilegeLevel.MACHINE)
         ftq_commit_ptr = FTQPtr(gen_params=self.gen_params)
 
-        active_tags = Signal(self.gen_params.tag_count)
         last_retired_tag = Signal(self.gen_params.tag_bits)
         next_last_retired_tag = Signal.like(last_retired_tag)
 
@@ -185,52 +184,46 @@ class Retirement(Elaboratable):
         last_retired_active = Signal()
 
         with Transaction().always_body(m):
-            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
-
-        with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
-
-            # CRAT can currently deallocate at most one tag per cycle, this logic reduces the retire rate
-            # TODO: improve
-            m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
-            m.d.av_comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
-            m.d.av_comb += done_count.eq(count_trailing_zeros(~done_mask))
-            m.d.av_comb += done_ignore_mask.eq(~done_mask | -(~done_mask))
-            m.d.av_comb += limiting_instruction_mask.eq((tag_incr_mask & (tag_incr_mask - 1)) | done_ignore_mask)
-
-            m.d.av_comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
-            m.d.av_comb += retiring_mask.eq(~(limiting_instruction_mask | -limiting_instruction_mask))
-            m.d.av_comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
-
-            m.d.av_comb += first_tag_incr_mask.eq(tag_incr_mask | done_ignore_mask)
-            first_tag_incr_pos = count_trailing_zeros(first_tag_incr_mask)
-            m.d.av_comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
-            tag_active_mask_suffix = Mux(
-                active_tags[last_retired_tag], ~(first_tag_incr_mask | -first_tag_incr_mask), 0
-            )  # last retired tag until limiting incr (if exsists)
-            tag_active_mask_prefix = (
-                -active_tags[next_last_retired_tag] << first_tag_incr_pos
-            )  # the same tag from limiting bit increase up
-            m.d.av_comb += tag_active_mask.eq((tag_active_mask_suffix | tag_active_mask_prefix) & retiring_mask)
-
-            exception_bits = Signal(self.gen_params.retirement_superscalarity)
-            m.d.av_comb += exception_bits.eq(
-                Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask
-            )
-            m.d.av_comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
-            m.d.av_comb += active_no_trap_count.eq(popcount(~(exception_bits | -exception_bits) & tag_active_mask))
-            m.d.av_comb += exception.eq((exception_bits & retiring_mask).any())
-
-            # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
+            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
             ecr_entry = self.exception_cause_get(m)
-            exception_one_hot = Signal.like(exception_bits)
-            m.d.av_comb += exception_one_hot.eq(exception_bits & (~exception_bits + 1))
-            exception_rob_id = or_value(
-                Mux(exception_one_hot[i], rob_entry.rob_id, 0) for i, rob_entry in enumerate(rob_entries.entries)
-            )
-            m.d.av_comb += retire_valid.eq(
-                Mux(exception, ecr_entry.valid & (ecr_entry.data.rob_id == exception_rob_id), 1)
-            )
+
+        # CRAT can currently deallocate at most one tag per cycle, this logic reduces the retire rate
+        # TODO: improve
+        m.d.comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
+        m.d.comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
+        m.d.comb += done_count.eq(count_trailing_zeros(~done_mask))
+        m.d.comb += done_ignore_mask.eq(~done_mask | -(~done_mask))
+        m.d.comb += limiting_instruction_mask.eq((tag_incr_mask & (tag_incr_mask - 1)) | done_ignore_mask)
+
+        m.d.comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
+        m.d.comb += retiring_mask.eq(~(limiting_instruction_mask | -limiting_instruction_mask))
+        m.d.comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
+
+        m.d.comb += first_tag_incr_mask.eq(tag_incr_mask | done_ignore_mask)
+        first_tag_incr_pos = count_trailing_zeros(first_tag_incr_mask)
+        m.d.comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
+        tag_active_mask_suffix = Mux(
+            active_tags[last_retired_tag], ~(first_tag_incr_mask | -first_tag_incr_mask), 0
+        )  # last retired tag until limiting incr (if exsists)
+        tag_active_mask_prefix = (
+            -active_tags[next_last_retired_tag] << first_tag_incr_pos
+        )  # the same tag from limiting bit increase up
+        m.d.comb += tag_active_mask.eq((tag_active_mask_suffix | tag_active_mask_prefix) & retiring_mask)
+
+        exception_bits = Signal(self.gen_params.retirement_superscalarity)
+        m.d.comb += exception_bits.eq(Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask)
+        m.d.comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
+        m.d.comb += active_no_trap_count.eq(popcount(~(exception_bits | -exception_bits) & tag_active_mask))
+        m.d.comb += exception.eq((exception_bits & retiring_mask).any())
+
+        # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
+        exception_one_hot = Signal.like(exception_bits)
+        m.d.comb += exception_one_hot.eq(exception_bits & (~exception_bits + 1))
+        exception_rob_id = or_value(
+            Mux(exception_one_hot[i], rob_entry.rob_id, 0) for i, rob_entry in enumerate(rob_entries.entries)
+        )
+        m.d.comb += retire_valid.eq(Mux(exception, ecr_entry.valid & (ecr_entry.data.rob_id == exception_rob_id), 1))
 
         with m.FSM("NORMAL") as fsm:
             with m.State("NORMAL"):
@@ -335,11 +328,11 @@ class Retirement(Elaboratable):
                             flush_instr(i, rob_entries.entries[i])
 
                     # TODO: this is some approximation of misprediction events - looking for active -> inactive
-                    # changes in retured instructions.
+                    # changes in retired instructions.
                     # More metadata needs to be stored for an accurate result, improve.
                     active_mask_with_prev = Signal(tag_active_mask.shape().width + 1)
-                    m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask & retiring_mask))
-                    change_mask = active_mask_with_prev & ((~active_mask_with_prev) >> 1)
+                    m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask))
+                    change_mask = active_mask_with_prev & ~tag_active_mask
                     with m.If((change_mask & retiring_mask).any()):  # without last bit
                         self.perf_mispredictions.incr(m)
                         m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
@@ -453,7 +446,7 @@ class Retirement(Elaboratable):
             ready=~core_flushing,
             validate_arguments=lambda rob_id, tag, require_done: (rob_id == side_fx_rob_id)
             & (~require_done | (pure_count == done_count))
-            & active_tags[tag],  # FUTURE-TODO: inactive instruction are pure
+            & active_tags[tag],  # FUTURE-TODO: inactive instructions are pure
             nonexclusive=True,
             combiner=lambda m, args, runs: {"rob_id": 0, "tag": 0, "require_done": 0},
         )

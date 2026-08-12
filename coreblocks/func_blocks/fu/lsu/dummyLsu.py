@@ -14,7 +14,6 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
     ActiveTagsKey,
     CommonBusDataKey,
-    CoreStateKey,
     ExceptionReportKey,
     SideFxGuardKey,
 )
@@ -101,15 +100,15 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
         with Transaction().always_body(m):
-            core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
+        flush = Signal()
         pmas = pma_checker.result
         can_reorder = is_load & ~pmas["mmio"]
         want_issue = request_side_fx | can_reorder
-        flush = core_state.flushing | ~active_tags[request_tag]
+        m.d.comb += flush.eq(~active_tags[request_tag])
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, ready=do_issue):

@@ -19,7 +19,6 @@ from coreblocks.arch import OpType, ExceptionCause
 from coreblocks.interface.layouts import PrivUnitLayouts, FTQPtr
 from coreblocks.interface.keys import (
     ActiveTagsKey,
-    CoreStateKey,
     MretKey,
     SretKey,
     AsyncInterruptInsertSignalKey,
@@ -195,9 +194,8 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         flush = Signal()
         with Transaction().always_body(m):
-            core_state = self.dm.get_dependency(CoreStateKey())(m)
             active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
-            m.d.av_comb += flush.eq(core_state.flushing | ~active_tags[instr_tag])
+            m.d.av_comb += flush.eq(~active_tags[instr_tag])
 
         with Transaction().body(m, ready=instr_valid & (finished | flush)):
             m.d.sync += instr_valid.eq(0)

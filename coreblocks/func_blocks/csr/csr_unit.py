@@ -18,7 +18,6 @@ from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInte
 from coreblocks.interface.keys import (
     ActiveTagsKey,
     CSRListKey,
-    CoreStateKey,
     UnsafeInstructionResolvedKey,
     CSRInstancesKey,
     SideFxGuardKey,
@@ -208,11 +207,10 @@ class CSRUnit(FuncBlock, Elaboratable):
                 m.d.sync += instr.rp_s1.eq(0)
 
         with Transaction().always_body(m):
-            core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
             active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
         flush_instr = Signal()
-        m.d.comb += flush_instr.eq(core_state.flushing | ~active_tags[instr.tag])
+        m.d.comb += flush_instr.eq(~active_tags[instr.tag])
 
         @def_method(m, self.get_result, done | (ready_to_process & flush_instr))
         def _():
