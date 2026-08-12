@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import HardwareLogger, count_trailing_zeros, or_value, popcount
+from transactron.utils import HardwareLogger, count_trailing_zeros, OneHotMux, popcount
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionInformationRegisterLayouts,
@@ -220,8 +220,10 @@ class Retirement(Elaboratable):
         # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
         exception_one_hot = Signal.like(exception_bits)
         m.d.comb += exception_one_hot.eq(exception_bits & (~exception_bits + 1))
-        exception_rob_id = or_value(
-            Mux(exception_one_hot[i], rob_entry.rob_id, 0) for i, rob_entry in enumerate(rob_entries.entries)
+        exception_rob_id = OneHotMux.create(
+            m,
+            [(exception_one_hot, rob_entry.rob_id) for rob_entry in rob_entries.entries],
+            priority=True,
         )
         m.d.comb += retire_valid.eq(Mux(exception, ecr_entry.valid & (ecr_entry.data.rob_id == exception_rob_id), 1))
 
