@@ -142,6 +142,16 @@ class Retirement(Elaboratable):
 
             self.perf_instr_ret.incr[i](m)
 
+            log.info(
+                m,
+                not self.gen_params.has_rvvi,
+                "Retired instruction #{}: rl_dst x{} rp_dst p{} rob_id 0x{:x}",
+                i,
+                rob_entry.rob_data.rl_dst,
+                rob_entry.rob_data.rp_dst,
+                rob_entry.rob_id,
+            )
+
         def flush_instr(i: int, rob_entry: View):
             evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
 
@@ -151,7 +161,7 @@ class Retirement(Elaboratable):
             log.debug(
                 m,
                 True,
-                "flushing instruction rob_id 0x{:x} freeing p{}",
+                "Flushed instruction rob_id 0x{:x} freeing p{}",
                 rob_entry.rob_id,
                 rob_entry.rob_data.rp_dst,
             )
