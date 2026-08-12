@@ -31,10 +31,8 @@ ARCH_EXPECTED_FAIL = {
 ARCH_EXPECTED_TIMEOUT = {
     "InterruptsS",
     "InterruptsSSm",
-    "S_scsr",
     "sv32_pmp_on_pte_(S|U)mode",
     "U",
-    "ZicntrS",
 }
 
 
