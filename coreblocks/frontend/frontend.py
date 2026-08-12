@@ -182,9 +182,7 @@ class CoreFrontend(Elaboratable):
 
         @def_method(m, rollback)
         def _(tag, pc, ftq_ptr):
-            flush(m)
-            self.ftq.backend_redirect(m, ftq_ptr=ftq_ptr, pc=pc)
-            self.stall_ctrl.on_redirect_frontend(m)
+            self.redirect(m, ftq_ptr=ftq_ptr, pc=pc)
 
         @def_method(m, flush, nonexclusive=True)
         def _():

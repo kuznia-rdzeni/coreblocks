@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import HardwareLogger, count_trailing_zeros, or_value
+from transactron.utils import HardwareLogger, count_trailing_zeros, or_value, popcount
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionInformationRegisterLayouts,
@@ -72,8 +72,8 @@ class Retirement(Elaboratable):
         self.async_interrupt_cause = Method(o=interrupt_controller_layouts.interrupt_cause)
         self.checkpoint_tag_free = Method()
 
-        self.pure_count = Signal(range(gen_params.retirement_superscalarity + 1))
-        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_count)
+        self.pure_active_count = Signal(range(gen_params.retirement_superscalarity + 1))
+        self.instret_csr = CSRRegister(None, gen_params, width=64, fu_read_map=lambda _, v: v + self.pure_active_count)
         self.instret_shadow = DoubleShadowCSR(
             gen_params,
             self.instret_csr,
@@ -172,14 +172,15 @@ class Retirement(Elaboratable):
 
         retire_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
         no_trap_count = Signal.like(retire_count)
+        active_no_trap_count = Signal.like(retire_count)
         done_count = Signal.like(retire_count)
         tag_incr_mask = Signal(self.gen_params.retirement_superscalarity)
         retiring_mask = Signal.like(tag_incr_mask)
-        tag_active_mask_prefix = Signal.like(tag_incr_mask)
-        tag_active_mask_suffix = Signal.like(tag_incr_mask)
         tag_active_mask = Signal.like(tag_incr_mask)
         done_mask = Signal.like(tag_incr_mask)
-        first_tag_incr_pos = Signal.like(retire_count)
+        done_ignore_mask = Signal.like(tag_incr_mask)
+        first_tag_incr_mask = Signal.like(tag_incr_mask)
+        limiting_instruction_mask = Signal.like(tag_incr_mask)
         free_tag = Signal()
         last_retired_active = Signal()
 
@@ -194,28 +195,31 @@ class Retirement(Elaboratable):
             m.d.av_comb += tag_incr_mask.eq(Cat(entry.rob_data.tag_increment for entry in rob_entries.entries))
             m.d.av_comb += done_mask.eq(Cat(entry.done for entry in rob_entries.entries))
             m.d.av_comb += done_count.eq(count_trailing_zeros(~done_mask))
-            limiting_instruction_mask = (tag_incr_mask & (tag_incr_mask - 1)) | (-1 << done_count)
+            m.d.av_comb += done_ignore_mask.eq(~done_mask | -(~done_mask))
+            m.d.av_comb += limiting_instruction_mask.eq((tag_incr_mask & (tag_incr_mask - 1)) | done_ignore_mask)
 
             m.d.av_comb += retire_count.eq(count_trailing_zeros(limiting_instruction_mask))
-            m.d.av_comb += retiring_mask.eq(~(-1 << retire_count))
+            m.d.av_comb += retiring_mask.eq(~(limiting_instruction_mask | -limiting_instruction_mask))
             m.d.av_comb += free_tag.eq((tag_incr_mask & retiring_mask).any())
 
-            m.d.av_comb += first_tag_incr_pos.eq(count_trailing_zeros(tag_incr_mask | (-1 << done_count)))
+            m.d.av_comb += first_tag_incr_mask.eq(tag_incr_mask | done_ignore_mask)
+            first_tag_incr_pos = count_trailing_zeros(first_tag_incr_mask)
             m.d.av_comb += next_last_retired_tag.eq(Mux(free_tag, last_retired_tag + 1, last_retired_tag))
-            m.d.av_comb += tag_active_mask_suffix.eq(  # last retired tag until limiting incr (if exsists)
-                Mux(active_tags[last_retired_tag], ~(-1 << first_tag_incr_pos), 0)
-            )
-            m.d.av_comb += tag_active_mask_prefix.eq(  # the same tag from limiting bit increase up
+            tag_active_mask_suffix = Mux(
+                active_tags[last_retired_tag], ~(first_tag_incr_mask | -first_tag_incr_mask), 0
+            )  # last retired tag until limiting incr (if exsists)
+            tag_active_mask_prefix = (
                 -active_tags[next_last_retired_tag] << first_tag_incr_pos
-            )
-            m.d.av_comb += tag_active_mask.eq(tag_active_mask_suffix | tag_active_mask_prefix)
+            )  # the same tag from limiting bit increase up
+            m.d.av_comb += tag_active_mask.eq((tag_active_mask_suffix | tag_active_mask_prefix) & retiring_mask)
 
             exception_bits = Signal(self.gen_params.retirement_superscalarity)
             m.d.av_comb += exception_bits.eq(
                 Cat(rob_entry.exception for rob_entry in rob_entries.entries) & tag_active_mask
             )
             m.d.av_comb += no_trap_count.eq(count_trailing_zeros(exception_bits | ~retiring_mask))
-            m.d.av_comb += exception.eq(no_trap_count != retire_count)
+            m.d.av_comb += active_no_trap_count.eq(popcount(~(exception_bits | -exception_bits) & tag_active_mask))
+            m.d.av_comb += exception.eq((exception_bits & retiring_mask).any())
 
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
             ecr_entry = self.exception_cause_get(m)
@@ -295,7 +299,7 @@ class Retirement(Elaboratable):
                     self.instret_csr.write(
                         m,
                         data=self.instret_csr.read(m).data
-                        + Mux(exception, no_trap_count + commit_trapping, retire_count),
+                        + Mux(exception, active_no_trap_count + commit_trapping, popcount(tag_active_mask)),
                     )
 
                     last_commit_ftq_ptr = Signal.like(rob_entries.entries[0].rob_data.ftq_ptr)
@@ -304,7 +308,7 @@ class Retirement(Elaboratable):
                         entry = rob_entries.entries[i]
 
                         with m.If(i - commit_trapping < no_trap_count):
-                            with m.If(tag_active_mask.bit_select(i, 1)):
+                            with m.If(tag_active_mask[i]):
                                 retire_instr(i, rob_entries.entries[i])
 
                                 if rvvi is not None:
@@ -411,7 +415,10 @@ class Retirement(Elaboratable):
             return {"flushing": fsm.ongoing("TRAP_FLUSH")}
 
         # Run side fx on first non-pure instr, if exception not encountered
-        m.d.comb += self.pure_count.eq(count_trailing_zeros(Cat(~entry.pure for entry in rob_entries.entries)))
+        impure_mask = Signal(range(self.gen_params.retirement_superscalarity))
+        pure_count = Signal(range(self.gen_params.retirement_superscalarity + 1))
+        m.d.comb += impure_mask.eq(Cat(~entry.pure for entry in rob_entries.entries))
+        m.d.comb += pure_count.eq(count_trailing_zeros(impure_mask))
         side_fx_rob_id = Signal(self.gen_params.rob_entries_bits)
         exc_prefixes = Array(
             [
@@ -419,7 +426,18 @@ class Retirement(Elaboratable):
                 for i in range(self.gen_params.retirement_superscalarity + 1)
             ]
         )
-        m.d.comb += side_fx_rob_id.eq(rob_entries.entries[0].rob_id + self.pure_count)
+        m.d.comb += side_fx_rob_id.eq(rob_entries.entries[0].rob_id + pure_count)
+
+        current_tag_expr = last_retired_tag
+        pure_inactive_offset = Signal(self.gen_params.retirement_superscalarity)
+        for i, entry in enumerate(rob_entries.entries):
+            # FUTURE-TODO: unify with the other tag mask when we would support retiring multiple tags in single cycle
+            current_tag_expr += entry.rob_data.tag_increment
+            current_tag = Signal(self.gen_params.tag_bits)
+            m.d.comb += current_tag.eq(current_tag_expr)
+            m.d.comb += pure_inactive_offset[i].eq(~active_tags[current_tag] & (~(impure_mask | -impure_mask))[i])
+
+        m.d.comb += self.pure_active_count.eq(pure_count - popcount(pure_inactive_offset))
 
         # Disable executing any side effects from instructions in core when it is flushed
         core_flushing = Signal()
@@ -434,7 +452,7 @@ class Retirement(Elaboratable):
             self.side_fx_guard,
             ready=~core_flushing,
             validate_arguments=lambda rob_id, tag, require_done: (rob_id == side_fx_rob_id)
-            & (~require_done | (self.pure_count == done_count))
+            & (~require_done | (pure_count == done_count))
             & active_tags[tag],  # FUTURE-TODO: inactive instruction are pure
             nonexclusive=True,
             combiner=lambda m, args, runs: {"rob_id": 0, "tag": 0, "require_done": 0},
