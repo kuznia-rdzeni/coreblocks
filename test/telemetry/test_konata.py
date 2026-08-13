@@ -92,9 +92,9 @@ class TestKonataParser:
             S\t1\t0\tDs
             L\t1\t1\t rob_id=1
             C\t1
-            S\t0\t0\tIs
+            S\t0\t0\tIX
             L\t0\t1\t fu=alu
-            S\t1\t0\tIs
+            S\t1\t0\tIX
             L\t1\t1\t fu=alu
             C\t1
             S\t0\t0\tCm
