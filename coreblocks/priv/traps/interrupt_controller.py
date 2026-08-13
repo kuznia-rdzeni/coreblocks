@@ -96,7 +96,7 @@ class InternalInterruptController(Component):
         # mip_meip_rdonly
         # mip_mtip_rdonly
         # mip_msip_rdonly
-        self.mip_writeable = self.edge_reported_mask & custom_interrupt_mask
+        self.mip_writeable = self.mie_writeable & self.edge_reported_mask
 
         if gen_params.supervisor_mode:
             # mip_stip_no_stimecmp_acc
