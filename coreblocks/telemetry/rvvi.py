@@ -4,7 +4,7 @@ from amaranth.lib.data import ArrayLayout, View
 from amaranth.lib.wiring import Component, Out
 
 from transactron import *
-from transactron.utils import DependencyContext, make_layout
+from transactron.utils import DependencyContext, make_layout, logging
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, COut
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
@@ -18,6 +18,8 @@ __all__ = [
     "RVVIHartCollector",
     "RVVIAggregator",
 ]
+
+log = logging.HardwareLogger("telemetry.rvvi")
 
 
 class RVVIRetireInterface(ComponentInterface):
@@ -190,6 +192,18 @@ class RVVIHartCollector(Component):
             # set order/intr_next to the last retire port
             m.d.sync += order.eq(order + (i + 1))
             m.d.sync += intr_next.eq(interrupt | trap)
+
+            log.info(
+                m,
+                True,
+                "Retired instruction #{}: pc 0x{:x}, rl_dst x{} = 0x{:x}, rob_id 0x{:x}, instr 0x{:x}",
+                i,
+                rob_port.data.info.pc,
+                rl_dst,
+                rf_port.data,
+                rob_id,
+                rob_port.data.info.instr,
+            )
 
         return m
 
