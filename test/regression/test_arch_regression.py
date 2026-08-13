@@ -3,6 +3,7 @@ from pathlib import Path
 from filelock import FileLock
 import pytest
 import argparse
+import re
 import os
 import subprocess
 import sys
@@ -170,6 +171,8 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         elf_path,
         sim_backend.stop,
         do_workarounds=False,
+        disable_write_protection=re.match("Zifencei", elf_path.name) is not None,
+        force_executable=True,
     )
 
     result = await sim_backend.run(
@@ -189,7 +192,7 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         raise RuntimeError("Simulation timed out")
 
     if endtest.written_value != 1:
-        raise RuntimeError("Failing test: %d" % endtest.written_value)
+        raise RuntimeError(f"Failing test: {endtest.written_value}")
 
 
 async def run_test(sim_backend, test_name: str):
@@ -228,20 +231,25 @@ def ensure_arch_test_cocotb_build():
         VERILOG_STAMP.write_text("built\n")
 
 
+def run_and_check(test_name: str, traces: bool = False, env=None):
+    with tempfile.NamedTemporaryFile("r") as tmp_result_file:
+        arglist = get_arg_list(test_name, tmp_result_file.name, traces=traces)
+        subprocess.run(arglist, env=env, check=True)
+
+        tree = eT.parse(tmp_result_file.name)
+        if len(list(tree.iter("failure"))) != 0:
+            raise RuntimeError(f"Test run {test_name} failed")
+
+
 def build_cocotb_module_under_lock(traces: bool) -> None:
     # Ensure the Verilog sources are present
     ensure_arch_test_cocotb_build()
 
-    with FileLock(BUILT_LOCK_FILE):
-        tmp_result_file = tempfile.NamedTemporaryFile("r")
-        arglist = get_arg_list("SKIP", tmp_result_file.name, traces=traces)
-        res = subprocess.run(arglist)
-        if res.returncode != 0:
-            raise RuntimeError("Arch test cocotb make build failed")
-
-        tree = eT.parse(tmp_result_file.name)
-        if len(list(tree.iter("failure"))) != 0:
-            raise RuntimeError("Arch test cocotb make build failed with test failure")
+    try:
+        with FileLock(BUILT_LOCK_FILE):
+            run_and_check("SKIP", traces)
+    except Exception as e:
+        raise RuntimeError("Failed to build cocotb module for arch regression") from e
 
 
 def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
@@ -251,13 +259,7 @@ def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
     my_env["PATH"] = str(TEST_ROOT) + ":" + my_env.get("PATH", "")
 
     for elf_path in elf_paths:
-        tmp_result_file = tempfile.NamedTemporaryFile("r")
-        arglist = get_arg_list(str(elf_path.resolve()), tmp_result_file.name, traces=traces)
-        res = subprocess.run(arglist, env=my_env)
-        assert res.returncode == 0
-
-        tree = eT.parse(tmp_result_file.name)
-        assert len(list(tree.iter("failure"))) == 0
+        run_and_check(str(elf_path.resolve()), traces, env=my_env)
 
 
 def regression_body_with_pysim(elf_paths: list[Path], traces: bool):

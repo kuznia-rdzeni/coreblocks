@@ -4,7 +4,7 @@
     "xlen": 32,
     "E": false,
     "writable_misa": false,
-    "writable_fiom": false,
+    "writable_fiom": true,
     // The top 29 bits in this value control whether the corresponding
     // HPM counters (hpmcounter31 .. hpmcounter3) are supported
     // (i.e. are not read-only zero). A set bit specifies that the
@@ -88,6 +88,33 @@
       "software_check": true,
       "reserved_exceptions": false
     },
+    "medeleg": {
+      // A bit set to 1 in this value specifies that the corresponding
+      // bit of `medeleg` can be set to 1. It represents the subset of
+      // delegatable traps of the implementation. Bits should not be
+      // set for traps that cannot be delegated as per the
+      // specification, and delegation of reserved traps is not
+      // supported.  This value is ignored when the `medeleg` CSR does
+      // not exist.
+      "delegatable_bits": {
+        "len": 64,
+        "value": "0x0000_0000_0000_b3FF"
+      }
+    },
+    "mideleg": {
+      // A bit set to 1 in this value specifies that the corresponding
+      // bit of `mideleg` can be set to 1. It represents the subset of
+      // delegatable interrupts of the implementation. Bits should not
+      // be set for interrupts that cannot be delegated as per the
+      // specification, and delegation of reserved interrupts is not
+      // supported. Bits set for interrupts designated for platform
+      // use are ignored. This value is ignored when the `mideleg` CSR
+      // does not exist.
+      "delegatable_bits": {
+        "len": "xlen",
+        "value": "0x0000_0222"
+      }
+    },
     "reserved_behavior": {
       // The configuration option determines how to handle the reserved behavior `amocas_odd_registers`.
       // "AMOCAS_Fatal"  – raise a Sail exception, stopping execution.
@@ -127,9 +154,11 @@
       // - "ExtContext_Off" allows only {Off}.  This makes the field read-only zero.
       "fs_legal_states": "ExtContext_Off",
       "vs_legal_states": "ExtContext_Off"
-    }
+    },
+    "privileged_isa_version": "Privileged_ISA_1_13"
   },
   "memory": {
+    "physaddr_bits": 34,
     "pmp": {
       "grain": 3,
       // This specifies the number of PMP entries present.
@@ -160,19 +189,13 @@
         "load_store": {
           "Some": "AlignmentException"
         },
-        // A misaligned vector load/store can be configured
-        // independently of the scalar case above, but uses the same
-        // option values.
         "vector": {
           "Some": "AlignmentException"
         },
-        // A misaligned LR/SC currently always faults, and this field can specify
-        // whether it generates an access fault (use `"AccessFault"`)
-        // or a misaligned exception (use `"AlignmentException"`).
-        "lrsc": "AlignmentException",
-        // Similarly, a misaligned AMO currently always faults, and this field
-        // can specify either `"AccessFault"` or `"AlignmentException"`.
-        "amo": "AlignmentException"
+        "amo": {
+          "Some": "AlignmentException"
+        },
+        "lrsc": "AlignmentException"
       },
       // If a misaligned access was specified to have no fault in `exceptions` above, the
       // fields below specify how it is handled.
@@ -181,7 +204,7 @@
       // 2^allowed_within_exp sized regions will be split into multiple
       // memory operations. 0 means all misaligned accesses will be split.
       // The maximum value is 12 (one page).
-      "allowed_within_exp": 0,
+      "default_allowed_within_exp": 0,
       // If the access gets split due to `allowed_within_exp` then the size
       // of the operations will be one byte if `byte_by_byte` is set, otherwise
       // they will be the maximum size possible based on the alignment. For
@@ -204,78 +227,6 @@
     // the `misaligned` PMA attribute for a region, see the comments for
     // `memory.misaligned.exceptions` above.
     "regions": [
-      // ROM
-      {
-        "base": {
-          "len": 64,
-          "value": "0x1000"
-        },
-        "size": {
-          "len": 64,
-          "value": "0x1000"
-        },
-        "attributes": {
-          "mem_type": "IOMemory",
-          "cacheable": true,
-          "coherent": false,
-          "executable": false,
-          "readable": true,
-          "writable": false,
-          "read_idempotent": true,
-          "write_idempotent": true,
-          "misaligned_exceptions": {
-            "load_store": {
-              "None": null
-            },
-            "vector": {
-              "None": null
-            },
-            "amo": "AccessFault"
-          },
-          "atomic_support": "AMONone",
-          "reservability": "RsrvNone",
-          "supports_cbo_zero": false,
-          "supports_pte_read": false,
-          "supports_pte_write": false
-        },
-        "include_in_device_tree": false
-      },
-      // MMIO
-      {
-        "base": {
-          "len": 64,
-          "value": "0x2000000"
-        },
-        "size": {
-          "len": 64,
-          "value": "0x10000000"
-        },
-        "attributes": {
-          "mem_type": "IOMemory",
-          "cacheable": false,
-          "coherent": true,
-          "executable": false,
-          "readable": true,
-          "writable": true,
-          "read_idempotent": false,
-          "write_idempotent": false,
-          "misaligned_exceptions": {
-            "load_store": {
-              "None": null
-            },
-            "vector": {
-              "None": null
-            },
-            "amo": "AccessFault"
-          },
-          "atomic_support": "AMONone",
-          "reservability": "RsrvNone",
-          "supports_cbo_zero": false,
-          "supports_pte_read": false,
-          "supports_pte_write": false
-        },
-        "include_in_device_tree": false
-      },
       // RAM
       {
         "base": {
@@ -284,7 +235,7 @@
         },
         "size": {
           "len": 64,
-          "value": "0x80000000"
+          "value": "0x40000000"
         },
         "attributes": {
           "mem_type": "MainMemory",
@@ -297,20 +248,60 @@
           "write_idempotent": true,
           "misaligned_exceptions": {
             "load_store": {
-              "None": null
+              "Some": "AlignmentException"
             },
             "vector": {
-              "None": null
+              "Some": "AlignmentException"
             },
-            "amo": "AccessFault"
+            "amo": "AlignmentException"
           },
-          "atomic_support": "AMOCASQ",
+          "atomic_support": "AMOArithmetic",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
           "reservability": "RsrvEventual",
           "supports_cbo_zero": true,
           "supports_pte_read": true,
           "supports_pte_write": true
         },
         "include_in_device_tree": true
+      },
+      // MMIO
+      {
+        "base": {
+          "len": 64,
+          "value": "0xE0000000"
+        },
+        "size": {
+          "len": 64,
+          "value": "0x20000000"
+        },
+        "attributes": {
+          "mem_type": "IOMemory",
+          "cacheable": false,
+          "coherent": true,
+          "executable": false,
+          "readable": true,
+          "writable": true,
+          "read_idempotent": false,
+          "write_idempotent": false,
+          "misaligned_exceptions": {
+            "load_store": {
+              "Some": "AlignmentException"
+            },
+            "vector": {
+              "Some": "AlignmentException"
+            },
+            "amo": "AlignmentException"
+          },
+          "atomic_support": "AMONone",
+          "misaligned_atomicity_granule_size_exp": 0,
+          "vector_misaligned_atomicity_granule_size_exp": 0,
+          "reservability": "RsrvNone",
+          "supports_cbo_zero": false,
+          "supports_pte_read": false,
+          "supports_pte_write": false
+        },
+        "include_in_device_tree": false
       }
     ]
   },
@@ -340,7 +331,7 @@
     "clint": {
       "supported": true,
       // This must be in a suitable IO memory region (see `memory.regions`).
-      "base": 33554432,
+      "base": 3758096384,
       "size": 786432
     },
     // Very simple MMIO device to generate interrupts for testing
@@ -349,10 +340,10 @@
       "supported": true,
       // This must be in a suitable IO memory region (see `memory.regions`)
       // and 4-byte aligned. The size is always 0x20.
-      "base": 201326592
+      "base": 3774873600
     },
     "clock_frequency": 1000000000,
-    "instructions_per_tick": 1,
+    "instructions_per_tick": 2,
     "wfi_is_nop": false,
     "wfi_available_to_user_mode": false,
     // The maximum increment in the time CSR before a wait instruction
@@ -376,7 +367,8 @@
       "supported": true
     },
     "F": {
-      "supported": false
+      "supported": false,
+      "fflags_dirty_policy": "Fflags_Dirty_Precise"
     },
     "D": {
       "supported": false
@@ -495,6 +487,9 @@
     },
     "Zalrsc": {
       "supported": true
+    },
+    "Zama16b": {
+      "supported": false
     },
     "Zawrs": {
       "supported": false,

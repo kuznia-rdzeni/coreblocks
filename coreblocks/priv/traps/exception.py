@@ -6,8 +6,11 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, ROBLayouts
 from coreblocks.interface.keys import ActiveTagsKey, ExceptionReportKey
 from transactron.core import Required, TModule, def_method, Method
+from transactron.utils import logging
 from transactron.lib.connectors import ConnectTrans
 from transactron.lib.fifo import BasicFifo
+
+log = logging.HardwareLogger("structs.eir")
 
 
 class ExceptionInformationRegister(Elaboratable):
@@ -93,6 +96,17 @@ class ExceptionInformationRegister(Elaboratable):
             with m.If(should_write):
                 m.d.sync += self.data.eq(arg)
                 m.d.sync += self.valid.eq(1)
+
+            log.debug(
+                m,
+                should_write,
+                "EIR entry updated on report: rob_id 0x{:x}, tag 0x{:x}, cause 0x{:x}, mtval 0x{:x}, pc 0x{:x}",
+                arg.rob_id,
+                arg.tag,
+                arg.cause,
+                arg.mtval,
+                arg.pc,
+            )
 
         @def_method(m, self.get, nonexclusive=True)
         def _():

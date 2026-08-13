@@ -5,11 +5,13 @@ from coreblocks.interface.layouts import FuncUnitLayouts, RFLayouts, ROBLayouts,
 from coreblocks.telemetry import ExecComplete
 from transactron import Method, Provided, Required, TModule, def_method
 from transactron.evlog import EventSource
+from transactron.utils.logging import HardwareLogger
 
 __all__ = ["ResultAnnouncement"]
 
 
 evlog = EventSource("backend.announcement")
+log = HardwareLogger("backend.announcement")
 
 
 class ResultAnnouncement(Elaboratable):
@@ -60,6 +62,7 @@ class ResultAnnouncement(Elaboratable):
             self.rob_mark_done(m, rob_id=rob_id, exception=exception)
 
             evlog.emit(m, ExecComplete.hw(rob_id=rob_id))
+            log.debug(m, True, "announce p{} = 0x{:x} for rob_id 0x{:x}", rp_dst, result, rob_id)
 
             self.rf_write_val(m, reg_id=rp_dst, reg_val=result)
             with m.If(rp_dst != 0):

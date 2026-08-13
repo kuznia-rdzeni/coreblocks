@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import count_trailing_zeros, or_value
+from transactron.utils import HardwareLogger, count_trailing_zeros, OneHotMux
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionInformationRegisterLayouts,
@@ -39,6 +39,7 @@ from coreblocks.arch.isa_consts import TrapVectorMode
 __all__ = ["Retirement"]
 
 
+log = HardwareLogger("backend.retirement")
 evlog = EventSource("backend.retirement")
 
 
@@ -141,11 +142,29 @@ class Retirement(Elaboratable):
 
             self.perf_instr_ret.incr[i](m)
 
+            log.info(
+                m,
+                not self.gen_params.has_rvvi,
+                "Retired instruction #{}: rl_dst x{} rp_dst p{} rob_id 0x{:x}",
+                i,
+                rob_entry.rob_data.rl_dst,
+                rob_entry.rob_data.rp_dst,
+                rob_entry.rob_id,
+            )
+
         def flush_instr(i: int, rob_entry: View):
             evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
 
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
+
+            log.debug(
+                m,
+                True,
+                "Flushed instruction rob_id 0x{:x} freeing p{}",
+                rob_entry.rob_id,
+                rob_entry.rob_data.rp_dst,
+            )
 
         retire_valid = Signal()
         exception = Signal()
@@ -182,10 +201,10 @@ class Retirement(Elaboratable):
 
             # Ensure that when exception is processed, correct entry is alredy in ExceptionCauseRegister
             ecr_entry = self.exception_cause_get(m)
-            exception_one_hot = Signal.like(exception_bits)
-            m.d.av_comb += exception_one_hot.eq(exception_bits & (~exception_bits + 1))
-            exception_rob_id = or_value(
-                Mux(exception_one_hot[i], rob_entry.rob_id, 0) for i, rob_entry in enumerate(rob_entries.entries)
+            exception_rob_id = OneHotMux.create(
+                m,
+                [(rob_entry.exception, rob_entry.rob_id) for rob_entry in rob_entries.entries],
+                priority=True,
             )
             m.d.av_comb += retire_valid.eq(
                 Mux(exception, ecr_entry.valid & (ecr_entry.data.rob_id == exception_rob_id), 1)
@@ -321,6 +340,7 @@ class Retirement(Elaboratable):
                     # Resume core operation
                     self.c_rat_restore(m, entries=self.r_rat_peek(m).entries)
                     self.perf_trap_latency.stop(m)
+                    log.debug(m, True, "Resuming core from the retirement")
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     tvec_offset = Signal(self.gen_params.isa.xlen)
