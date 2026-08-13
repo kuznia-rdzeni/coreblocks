@@ -10,7 +10,6 @@ the times its fetch block was allocated and requested.
 """
 
 import argparse
-from collections import defaultdict
 import signal
 import sys
 from collections.abc import Iterable
@@ -33,6 +32,7 @@ from .events import (
     RobFlush,
     RobRetire,
     SchedulerEnter,
+    Update,
 )
 
 
@@ -79,10 +79,8 @@ class KonataParser(EventConsumer):
         self.rob: dict[int, int] = {}
         # Physical register ids associated with Kanata instruction ids.
         self.rp_dst: dict[int, int] = {}
-        # Valid physical registers.
-        self.rp_valid: set[int] = set()
-        # Lists of Kanata instruction ids waiting for given register.
-        self.rp_waiting: dict[int, list[int]] = defaultdict(list)
+        # Kanata instuction ids keyed by target physical register ids.
+        self.by_rp_dst: dict[int, int] = {}
         # Kanata instruction ids with a terminal (retire/flush) record.
         self.terminated: set[int] = set()
         # (cycle, sequence number, line) command timeline; the sequence
@@ -171,14 +169,10 @@ class KonataParser(EventConsumer):
         insn_id = block.instr_ids[ev.ftq_offset]
         self.rob[ev.rob_id] = insn_id
         if ev.rp_dst:
-            if ev.rp_dst in self.rp_valid:
-                self.rp_valid.remove(ev.rp_dst)
             self.rp_dst[insn_id] = ev.rp_dst
+            self.by_rp_dst[ev.rp_dst] = insn_id
         self._command(rec.cycle, "S", insn_id, 0, "Ds")
         self._command(rec.cycle, "L", insn_id, 1, f" rob_id={ev.rob_id}")
-        for rp_s in [ev.rp_s1, ev.rp_s2]:
-            if rp_s and not rp_s in self.rp_valid:
-                self.rp_waiting[rp_s].append(insn_id)
 
     @handles(FuIssue)
     def on_fu_issue(self, rec: DecodedEvent):
@@ -198,12 +192,15 @@ class KonataParser(EventConsumer):
         if insn_id is None or insn_id in self.terminated:
             return
         self._command(rec.cycle, "S", insn_id, 0, "Cm")
-        if insn_id in self.rp_dst:
-            rp_dst = self.rp_dst[insn_id]
-            self.rp_valid.add(rp_dst)  # TODO: there is a race on rp_valid
-            for tgt_id in self.rp_waiting[rp_dst]:
-                self._command(rec.cycle, "W", tgt_id, insn_id, 0)
-            del self.rp_waiting[rp_dst]
+
+    @handles(Update)
+    def on_update(self, rec: DecodedEvent):
+        ev = rec.event
+        assert isinstance(ev, Update)
+        insn_id = self.rob.get(ev.rob_id)
+        if insn_id is None or insn_id in self.terminated:
+            return
+        self._command(rec.cycle, "W", insn_id, self.by_rp_dst[ev.reg_id], 0)
 
     @handles(RobRetire)
     def on_rob_retire(self, rec: DecodedEvent):
@@ -216,6 +213,7 @@ class KonataParser(EventConsumer):
         self.next_retire_id += 1
         self.terminated.add(insn_id)
         if insn_id in self.rp_dst:
+            del self.by_rp_dst[self.rp_dst[insn_id]]
             del self.rp_dst[insn_id]
 
     @handles(RobFlush)
@@ -228,6 +226,7 @@ class KonataParser(EventConsumer):
         self._command(rec.cycle, "R", insn_id, 0, 1)
         self.terminated.add(insn_id)
         if insn_id in self.rp_dst:
+            del self.by_rp_dst[self.rp_dst[insn_id]]
             del self.rp_dst[insn_id]
 
     @handles(FTQCommit)

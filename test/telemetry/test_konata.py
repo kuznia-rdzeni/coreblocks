@@ -43,8 +43,8 @@ class TestKonataParser:
             dec(5, InstrDecoded(ftq_ptr=0, ftq_offset=1)),
             dec(6, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
             dec(6, SchedulerEnter(ftq_ptr=0, ftq_offset=1)),
-            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0)),
-            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1)),
+            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=1)),
+            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1, rp_dst=2)),
             dec(8, FuIssue(rob_id=0, unit="alu")),
             dec(8, FuIssue(rob_id=1, unit="alu")),
             dec(9, ExecComplete(rob_id=0)),
@@ -128,7 +128,7 @@ class TestKonataParser:
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
             dec(2, FTQAlloc(ftq_ptr=1, pc=0x108)),
-            dec(3, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=5)),
+            dec(3, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=5, rp_dst=1)),
             dec(4, FTQCommit(ftq_ptr=0)),
             dec(5, FTQCommit(ftq_ptr=1)),
         ]
@@ -144,7 +144,7 @@ class TestKonataParser:
         records = [
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
-            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=3)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=3, rp_dst=1)),
             dec(3, RobFlush(rob_id=3)),
             dec(4, FTQRollback(ftq_ptr=0, cause="backend_redirect")),
         ]

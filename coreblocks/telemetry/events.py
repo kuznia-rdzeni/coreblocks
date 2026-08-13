@@ -101,8 +101,6 @@ class RobAllocate(Event):
     ftq_offset: int
     rob_id: int
     rp_dst: int
-    rp_s1: int
-    rp_s2: int
 
 
 @event("backend.rob_retire")
@@ -134,3 +132,12 @@ class ExecComplete(Event):
     ROB entry was marked done."""
 
     rob_id: int
+
+
+@event("backend.update")
+class Update(Event):
+    """The instruction is waiting for execution and one of its operands
+    was just announced."""
+
+    rob_id: int
+    reg_id: int
