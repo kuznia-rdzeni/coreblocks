@@ -550,7 +550,7 @@ matters for consumers of formats requiring monotonic timestamps.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIAggregator">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.telemetry.rvvi.</span></span><span class="sig-name descname"><span class="pre">RVVIAggregator</span></span><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIAggregator" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev133)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev135)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
 <p>A module that aggregates multiple RVVIHartCollector modules into a RVVI-TRACE interface.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIAggregator.__init__">
@@ -562,7 +562,7 @@ matters for consumers of formats requiring monotonic timestamps.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIHartCollector">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.telemetry.rvvi.</span></span><span class="sig-name descname"><span class="pre">RVVIHartCollector</span></span><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIHartCollector" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev133)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev135)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
 <p>A module that collects information required for RVVI-TRACE interface for a single hart.</p>
 <p>Currently doesn’t implement <cite>pc_wdata</cite>, <cite>f_*</cite>, <cite>v_*</cite>, <cite>csr_*</cite>.</p>
 <p>Made as a simulation module, so critical path nor area is not optimized.
@@ -574,7 +574,7 @@ Either way exposing more than 128k wires is not feasible.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port">
-<span class="sig-name descname"><span class="pre">retire_port</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev133)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">retire_port</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev135)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port" title="Link to this definition"></a></dt>
 <dd><p>Single hart worth of data of RVVI-TRACE interface.</p>
 </dd></dl>
 
@@ -608,7 +608,7 @@ Either way exposing more than 128k wires is not feasible.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 08:11 2026-08-09.
+      <span class="lastupdated">Last updated on 13:15 2026-08-13.
       </span></p>
   </div>
 
