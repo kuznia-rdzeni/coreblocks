@@ -12,13 +12,18 @@ from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
+from coreblocks.telemetry.events import Update
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
+from transactron.evlog import EventSource
 from transactron.utils import ReturnDict
 from transactron.utils.assign import assign, AssignType
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RSBase", "RS"]
+
+
+evlog = EventSource("backend.rs")
 
 
 class RSBase(Elaboratable):
@@ -105,6 +110,9 @@ class RSBase(Elaboratable):
             for i, record in enumerate(iter(self.data)):
                 m.d.comb += matches_s1[i][k].eq(record.rs_data.rp_s1 == reg_id)
                 m.d.comb += matches_s2[i][k].eq(record.rs_data.rp_s2 == reg_id)
+                evlog.emit(
+                    m, Update.hw(rob_id=record.rs_data.rob_id, reg_id=reg_id), when=matches_s1[i][k] | matches_s2[i][k]
+                )
 
         # It is assumed that two simultaneous update calls never update the same physical register.
         for k1, u1 in enumerate(self.update):
