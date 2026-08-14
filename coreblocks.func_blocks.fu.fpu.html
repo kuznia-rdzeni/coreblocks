@@ -154,6 +154,87 @@ Returns result as ‘close_path_out_layout’.</p>
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.func_blocks.fu.fpu.dr_division">
+<span id="coreblocks-func-blocks-fu-fpu-dr-division-module"></span><h2>coreblocks.func_blocks.fu.fpu.dr_division module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.dr_division" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivMethodLayout">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.dr_division.</span></span><span class="sig-name descname"><span class="pre">DrDivMethodLayout</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivMethodLayout" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Division by digit recurrence module metohds layouts</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dr_div_params: DrDivParams</strong></dt><dd><p>Parameters of division</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivMethodLayout.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr_div_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams" title="coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams"><span class="pre">DrDivParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivMethodLayout.__init__" title="Link to this definition"></a></dt>
+<dd><p>d - divisor
+x - dividend
+result - result of operation
+zero_rem - flag indicating if remainder is zero</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivModule">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.dr_division.</span></span><span class="sig-name descname"><span class="pre">DrDivModule</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivModule" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Module for performing division by digit recurrence</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>div_params: DrDivParams</strong></dt><dd><p>Params for division</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>div_init: Method</strong></dt><dd><p>Transactional method for initiating division
+Takes ‘division_init_in_layout’ as argument</p>
+</dd>
+<dt><strong>div_run: Method</strong></dt><dd><p>Performs division operation
+Returns ‘division_run_out_layout’ as argument</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivModule.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">div_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams" title="coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams"><span class="pre">DrDivParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">qsf_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams" title="coreblocks.func_blocks.fu.fpu.fpu_qsf.QSFParams"><span class="pre">QSFParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivModule.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.func_blocks.fu.fpu.dr_division.</span></span><span class="sig-name descname"><span class="pre">DrDivParams</span></span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Division by digit recurrence parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>iterations: int</strong></dt><dd><p>Number of iterations of digit recurrence</p>
+</dd>
+<dt><strong>fractional_bits: int</strong></dt><dd><p>width of the fractional part of the float</p>
+</dd>
+<dt><strong>result_fractional_bits: int</strong></dt><dd><p>Fractional bits of the result we want to compute. The integer bits are always zero before shift</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fractional_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_fractional_bits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.func_blocks.fu.fpu.dr_division.DrDivParams.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.func_blocks.fu.fpu.far_path">
 <span id="coreblocks-func-blocks-fu-fpu-far-path-module"></span><h2>coreblocks.func_blocks.fu.fpu.far_path module<a class="headerlink" href="#module-coreblocks.func_blocks.fu.fpu.far_path" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -1443,7 +1524,7 @@ Returns result as ‘otfc_result_out_layout’</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:10 2026-08-14.
+      <span class="lastupdated">Last updated on 21:55 2026-08-14.
       </span></p>
   </div>
 
