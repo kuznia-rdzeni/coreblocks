@@ -112,10 +112,10 @@ class DrDivModule(Elaboratable):
         otfc_response = Signal(from_method_layout(otfc.method_layouts.otfc_result_out_layout))
         qsf_response = Signal(from_method_layout(qsf.method_layouts.qsf_out_layout))
 
-        with m.FSM(init="Idle") as fsm:
+        with m.FSM(init="Idle"):
             with m.State("Idle"):
 
-                @def_method(m, self.div_init, ready=fsm.ongoing("Idle"))
+                @def_method(m, self.div_init)
                 def _(x, d):
                     m.d.sync += divisor.eq(d)
                     m.d.sync += residual.eq(x)
@@ -175,7 +175,7 @@ class DrDivModule(Elaboratable):
                     m.next = "Result"
             with m.State("Result"):
 
-                @def_method(m, self.div_result, ready=fsm.ongoing("Result"))
+                @def_method(m, self.div_result)
                 def _():
                     zero_rem = Signal()
                     adjusted_result = Signal(self.div_params.result_fractional_bits)
