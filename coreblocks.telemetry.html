@@ -332,7 +332,7 @@ its fetch block.</p>
 the instruction is identified by its <cite>rob_id</cite>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.events.RobAllocate.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftq_ptr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftq_offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.telemetry.events.RobAllocate.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftq_ptr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftq_offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rob_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rp_dst</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#coreblocks.telemetry.events.RobAllocate.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -354,6 +354,11 @@ the instruction is identified by its <cite>rob_id</cite>.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.telemetry.events.RobAllocate.rob_id">
 <span class="sig-name descname"><span class="pre">rob_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#coreblocks.telemetry.events.RobAllocate.rob_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.telemetry.events.RobAllocate.rp_dst">
+<span class="sig-name descname"><span class="pre">rp_dst</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><a class="headerlink" href="#coreblocks.telemetry.events.RobAllocate.rp_dst" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -464,7 +469,7 @@ block. Stages:</p>
 <li><p>“Rn” (rename) from entering the scheduler,</p></li>
 <li><p>“Ds” (dispatch) from ROB allocation (which is where the
 instruction becomes identified by its ROB id),</p></li>
-<li><p>“Is” (issue) from being issued to a functional unit,</p></li>
+<li><p>“IX” (issue) from being issued to a functional unit,</p></li>
 <li><p>“Cm” once execution completes.</p></li>
 </ul>
 <p>The instruction terminates by retiring (<cite>RobRetire</cite>) or being squashed.
@@ -532,6 +537,11 @@ Instructions still in flight when the event log ends are left unterminated.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_scheduler_enter">
 <span class="sig-name descname"><span class="pre">on_scheduler_enter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_scheduler_enter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_update">
+<span class="sig-name descname"><span class="pre">on_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_update" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -608,7 +618,7 @@ Either way exposing more than 128k wires is not feasible.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 13:15 2026-08-13.
+      <span class="lastupdated">Last updated on 08:19 2026-08-14.
       </span></p>
   </div>
 
