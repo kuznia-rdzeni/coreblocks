@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786705776950,
+  "lastUpdate": 1786705779205,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -74619,6 +74619,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 304,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b36d732ee51e0660c1a08b1865832d39e1df80e7",
+          "message": "make SSI edge triggered, as defined in ISA (#1058)",
+          "timestamp": "2026-08-14T12:09:06+02:00",
+          "tree_id": "d6161127cc9923c2a737db9634c0c53a317dc9ed",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b36d732ee51e0660c1a08b1865832d39e1df80e7"
+        },
+        "date": 1786705778563,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.02,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17433,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7970,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 306,
             "unit": "Slice"
           },
           {
