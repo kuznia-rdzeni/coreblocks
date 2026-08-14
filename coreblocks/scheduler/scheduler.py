@@ -256,6 +256,7 @@ class ROBAllocation(Elaboratable):
                         ftq_ptr=instrs.data[i].ftq_ptr,
                         ftq_offset=instrs.data[i].ftq_offset,
                         rob_id=rob_ids.entries[i].rob_id,
+                        rp_dst=instrs.data[i].regs_p.rp_dst,
                     ),
                     when=i < instrs.count,
                 )
