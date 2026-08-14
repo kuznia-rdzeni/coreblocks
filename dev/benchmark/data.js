@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786748233212,
+  "lastUpdate": 1786748235297,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -74830,6 +74830,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 306,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "73073559+Durchbruchswagen@users.noreply.github.com",
+            "name": "Mateusz Marszałek",
+            "username": "Durchbruchswagen"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5ac71ade320011f94ec7966d5358d9177168a75f",
+          "message": "Radix 4 Division by digit recurrence (#980)",
+          "timestamp": "2026-08-14T23:54:47+02:00",
+          "tree_id": "7d758712a11930b46af6ede49891ca280de11926",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5ac71ade320011f94ec7966d5358d9177168a75f"
+        },
+        "date": 1786748234759,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.86,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17347,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7970,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 303,
             "unit": "Slice"
           },
           {
