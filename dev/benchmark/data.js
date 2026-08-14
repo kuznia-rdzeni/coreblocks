@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786699274826,
+  "lastUpdate": 1786699277524,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -74408,6 +74408,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 303,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a8795b2bb606fa488a86e017677dc7931cfdc026",
+          "message": "Handle wake-up deps (#1057)",
+          "timestamp": "2026-08-14T10:18:04+02:00",
+          "tree_id": "1b45863fb70f8bbbea7864222d8a3a36f446d450",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/a8795b2bb606fa488a86e017677dc7931cfdc026"
+        },
+        "date": 1786699276617,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.45,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 17454,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 7970,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 304,
             "unit": "Slice"
           },
           {
