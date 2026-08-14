@@ -66,9 +66,12 @@ class InternalInterruptController(Component):
         self.gen_params = gen_params
         self.dm = DependencyContext.get()
 
-        self.edge_reported_mask = self.gen_params.interrupt_custom_edge_trig_mask << ISA_RESERVED_INTERRUPTS
         if gen_params.interrupt_custom_count > gen_params.isa.xlen - ISA_RESERVED_INTERRUPTS:
             raise RuntimeError("Too many custom interrupts")
+
+        self.edge_reported_mask = self.gen_params.interrupt_custom_edge_trig_mask << ISA_RESERVED_INTERRUPTS
+        if self.gen_params.supervisor_mode:
+            self.edge_reported_mask |= 1 << InterruptCauseNumber.SSI
 
         self.level_interrupts = Signal(self.gen_params.isa.xlen)
         self.new_edge_interrupts = Signal(self.gen_params.isa.xlen)
@@ -81,17 +84,19 @@ class InternalInterruptController(Component):
         self.mstatus_spie = m_mode_csr.mstatus_spie
         self.mstatus_spp = m_mode_csr.mstatus_spp
 
+        custom_interrupt_mask = ((1 << gen_params.interrupt_custom_count) - 1) << ISA_RESERVED_INTERRUPTS
+
         self.mie_writeable = (
             (1 << InterruptCauseNumber.MSI)
             | (1 << InterruptCauseNumber.MTI)
             | (1 << InterruptCauseNumber.MEI)
-            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+            | custom_interrupt_mask
         )
 
         # mip_meip_rdonly
         # mip_mtip_rdonly
         # mip_msip_rdonly
-        self.mip_writeable = self.edge_reported_mask
+        self.mip_writeable = self.mie_writeable & self.edge_reported_mask
 
         if gen_params.supervisor_mode:
             # mip_stip_no_stimecmp_acc
@@ -105,7 +110,7 @@ class InternalInterruptController(Component):
             (1 << InterruptCauseNumber.SSI)
             | (1 << InterruptCauseNumber.STI)
             | (1 << InterruptCauseNumber.SEI)
-            | (((1 << gen_params.interrupt_custom_count) - 1) << 16)
+            | custom_interrupt_mask
         )
 
         if gen_params.interrupt_all_interrupts_delegable:
@@ -114,7 +119,7 @@ class InternalInterruptController(Component):
         # sip_stip_acc
         # sip_seip_acc
         # sip_ssip_acc
-        self.sip_writeable = (self.mideleg_writeable & self.edge_reported_mask) | (1 << InterruptCauseNumber.SSI)
+        self.sip_writeable = self.mideleg_writeable & self.edge_reported_mask
 
         if gen_params.supervisor_mode:
             self.mie_writeable |= self.mideleg_writeable
