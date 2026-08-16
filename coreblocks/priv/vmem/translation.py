@@ -211,8 +211,8 @@ class AddressTranslator(Elaboratable):
                 m.d.av_comb += page_fault.eq(0)
             with m.Else():
                 m.d.av_comb += ppn.eq(tlb_ppn)
-                m.d.av_comb += page_fault.eq(tlb_page_fault)
                 m.d.av_comb += access_fault.eq(tlb_access_fault)
+                m.d.av_comb += page_fault.eq(tlb_page_fault & ~tlb_access_fault)
 
             return {
                 "vaddr": data.vaddr,
