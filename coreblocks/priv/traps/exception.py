@@ -4,7 +4,7 @@ from transactron.utils.dependencies import DependencyContext
 from coreblocks.params.genparams import GenParams
 
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, ROBLayouts
-from coreblocks.interface.keys import ActiveTagsKey, ExceptionReportKey
+from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey, ExceptionReportKey
 from transactron.core import Required, TModule, def_method, Method
 from transactron.utils import logging
 from transactron.lib.connectors import ConnectTrans
@@ -70,11 +70,13 @@ class ExceptionInformationRegister(Elaboratable):
 
         with Transaction().always_body(m):
             active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
+            core_state = self.dm.get_dependency(CoreStateKey())(m)
 
-        with m.If(~active_tags[self.data.tag]):
+        with m.If(~active_tags[self.data.tag] & ~core_state.flushing):
             # If stored exception got invalidated (rolled-back):
             # rollbacks disard suffix of instructions - it means there was no reported exception
             # on any older instruction, and all younger ones are discarded. We can safely remove the entry.
+            # Additionally keep the entry for Retirement use while flushing (all tags are invalid)
             m.d.sync += self.valid.eq(0)
 
         @def_method(m, self.report)

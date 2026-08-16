@@ -14,7 +14,7 @@ from coreblocks.interface.layouts import (
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
 from transactron.evlog import EventSource
-from transactron.utils import HardwareLogger, DependencyContext, count_trailing_zeros, OneHotMux, popcount
+from transactron.utils import DependencyContext, HardwareLogger, count_trailing_zeros, OneHotMux, popcount
 from transactron.lib.metrics import *
 
 from coreblocks.telemetry import RobFlush, RobRetire
