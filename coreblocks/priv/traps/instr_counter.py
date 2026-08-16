@@ -2,6 +2,9 @@ from amaranth import *
 from coreblocks.params.genparams import GenParams
 from coreblocks.interface.layouts import CoreInstructionCounterLayouts
 from transactron.core import Method, Provided, TModule, def_method
+from transactron.utils import logging
+
+log = logging.HardwareLogger("structs.core_counter")
 
 
 class CoreInstructionCounter(Elaboratable):
@@ -47,5 +50,7 @@ class CoreInstructionCounter(Elaboratable):
         def _(count):
             m.d.comb += decr_value.eq(count)
             return counter_next == 0
+
+        log.debug(m, counter_next != counter, "{} instructions in core", counter)
 
         return m

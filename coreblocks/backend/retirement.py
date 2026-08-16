@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import count_trailing_zeros, OneHotMux
+from transactron.utils import HardwareLogger, count_trailing_zeros, OneHotMux
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionInformationRegisterLayouts,
@@ -39,6 +39,7 @@ from coreblocks.arch.isa_consts import TrapVectorMode
 __all__ = ["Retirement"]
 
 
+log = HardwareLogger("backend.retirement")
 evlog = EventSource("backend.retirement")
 
 
@@ -141,11 +142,29 @@ class Retirement(Elaboratable):
 
             self.perf_instr_ret.incr[i](m)
 
+            log.info(
+                m,
+                not self.gen_params.has_rvvi,
+                "Retired instruction #{}: rl_dst x{} rp_dst p{} rob_id 0x{:x}",
+                i,
+                rob_entry.rob_data.rl_dst,
+                rob_entry.rob_data.rp_dst,
+                rob_entry.rob_id,
+            )
+
         def flush_instr(i: int, rob_entry: View):
             evlog.emit(m, RobFlush.hw(rob_id=rob_entry.rob_id))
 
             # free the "new" instruction rp_dst - result is flushed
             free_phys_reg(i, rob_entry.rob_data.rp_dst)
+
+            log.debug(
+                m,
+                True,
+                "Flushed instruction rob_id 0x{:x} freeing p{}",
+                rob_entry.rob_id,
+                rob_entry.rob_data.rp_dst,
+            )
 
         retire_valid = Signal()
         exception = Signal()
@@ -321,6 +340,7 @@ class Retirement(Elaboratable):
                     # Resume core operation
                     self.c_rat_restore(m, entries=self.r_rat_peek(m).entries)
                     self.perf_trap_latency.stop(m)
+                    log.debug(m, True, "Resuming core from the retirement")
 
                     handler_pc = Signal(self.gen_params.isa.xlen)
                     tvec_offset = Signal(self.gen_params.isa.xlen)
