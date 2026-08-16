@@ -1,6 +1,5 @@
 from amaranth import *
 from amaranth.lib.data import View
-from transactron.utils import HardwareLogger, count_trailing_zeros, OneHotMux
 from coreblocks.interface.layouts import (
     CoreInstructionCounterLayouts,
     ExceptionInformationRegisterLayouts,
@@ -15,7 +14,7 @@ from coreblocks.interface.layouts import (
 
 from transactron.core import Method, Methods, Transaction, TModule, def_method
 from transactron.evlog import EventSource
-from transactron.utils.dependencies import DependencyContext
+from transactron.utils import HardwareLogger, DependencyContext, count_trailing_zeros, OneHotMux, popcount
 from transactron.lib.metrics import *
 
 from coreblocks.telemetry import RobFlush, RobRetire
