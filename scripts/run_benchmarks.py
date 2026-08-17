@@ -18,7 +18,7 @@ sys.path.insert(0, str(topdir))
 import test.regression.benchmark  # noqa: E402
 from test.regression.benchmark import BenchmarkResult  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
-from test.regression.cocotb import run_cocotb_entrypoint
+from test.regression.cocotb import run_cocotb_entrypoint  # noqa: E402
 
 
 def cd_to_topdir():
@@ -64,7 +64,7 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
         additional_args=[
             "--no-print-directory",
             f"TESTCASE={','.join(benchmarks)}",
-        ]
+        ],
     )
 
 
