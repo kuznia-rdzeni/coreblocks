@@ -711,6 +711,7 @@ class FetchLayouts:
             self.access_fault,
             fields.rvc,
             fields.cfi_type,
+            fields.commit_checkpoint,
             fields.ftq_ptr,
             fields.ftq_offset,
         )
@@ -777,6 +778,7 @@ class DecodeLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.commit_checkpoint,
             fields.ftq_ptr,
             fields.ftq_offset,
         )
