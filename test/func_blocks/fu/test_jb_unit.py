@@ -6,10 +6,22 @@ from coreblocks.params import *
 from coreblocks.func_blocks.fu.jumpbranch import JumpBranchFuncUnit, JumpBranchFn
 from transactron import Method, def_method, TModule, Transaction
 
-from coreblocks.interface.layouts import FuncUnitLayouts, JumpBranchLayouts, FetchTargetQueueLayouts
+from coreblocks.interface.layouts import (
+    FetchLayouts,
+    FuncUnitLayouts,
+    JumpBranchLayouts,
+    FetchTargetQueueLayouts,
+    RATLayouts,
+)
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.arch import Funct3, OpType, ExceptionCause
-from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey
+from coreblocks.interface.keys import (
+    ActiveTagsKey,
+    PredictedJumpTargetKey,
+    BranchResolveKey,
+    RollbackKey,
+    UnsafeInstructionResolvedKey,
+)
 
 from transactron.utils import signed_to_int, DependencyContext, layout_subset
 from transactron.lib import BasicFifo
@@ -30,11 +42,17 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
 
         self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
         self.target_pred_resp = Method(o=layouts.predicted_jump_target_resp)
+        self.active_tags = Method(o=self.gp.get(RATLayouts).get_active_tags_out)
+        self.rollback_handler = Method(i=self.gp.get(RATLayouts).rollback_in)
+        self.unsafe_resolved = Method(i=self.gp.get(FetchLayouts).backend_redirect)
 
         self.fifo_branch_resolved = BasicFifo(branch_resolve_layout, 2)
 
         DependencyContext.get().add_dependency(PredictedJumpTargetKey(), (self.target_pred_req, self.target_pred_resp))
         DependencyContext.get().add_dependency(BranchResolveKey(), self.fifo_branch_resolved.write)
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.active_tags)
+        DependencyContext.get().add_dependency(RollbackKey(), self.rollback_handler)
+        DependencyContext.get().add_dependency(UnsafeInstructionResolvedKey(), self.unsafe_resolved)
 
         self.jb = JumpBranchFuncUnit(gen_params)
         self.issue = self.jb.issue
@@ -61,6 +79,18 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
         @def_method(m, self.target_pred_resp)
         def _(arg):
             return {"valid": 0, "cfi_idx": 0, "cfi_target": 0}
+
+        @def_method(m, self.active_tags)
+        def _():
+            return {"active_tags": [1 for _ in range(self.gp.tag_count)]}
+
+        @def_method(m, self.rollback_handler)
+        def _(arg):
+            pass
+
+        @def_method(m, self.unsafe_resolved)
+        def _(arg):
+            pass
 
         with Transaction().body(m):
             res = res_fifo.read(m)
@@ -144,9 +174,6 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     if next_pc & 0b11 != 0:
         exception = ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED
         mtval = next_pc
-    elif misprediction:
-        exception = ExceptionCause._COREBLOCKS_MISPREDICTION
-        exception_pc = next_pc
 
     return {
         "result": res,

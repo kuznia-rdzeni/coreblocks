@@ -87,7 +87,7 @@ class SchedulerTestCircuit(Elaboratable):
         m.submodules.instr_input = self.instr_inp = TestbenchIO(AdapterTrans.create(instr_fifo.write))
         m.submodules.free_rf_inp = self.free_rf_inp = TestbenchIO(AdapterTrans.create(free_rf_fifo.write))
         m.submodules.core_state = self.core_state = TestbenchIO(
-            Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
+            Adapter(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True)
         )
         m.submodules.get_active_tags = self.get_active_tags = TestbenchIO(AdapterTrans.create(crat.get_active_tags))
         m.submodules.free_tag = self.free_tag = TestbenchIO(AdapterTrans.create(crat.free_tag))
