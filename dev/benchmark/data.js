@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786957200922,
+  "lastUpdate": 1786957203348,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -54008,6 +54008,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 23854,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1412,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2044,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8170,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "603d60d04ea4baa1cfdcd23f448456f4d7c5c921",
+          "message": "Change all shebangs to /usr/bin/env (#1064)",
+          "timestamp": "2026-08-17T10:00:15+02:00",
+          "tree_id": "502eb36ffb87df89fd19c7b889b10d436dfb7d77",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/603d60d04ea4baa1cfdcd23f448456f4d7c5c921"
+        },
+        "date": 1786957202618,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 45.53,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 24004,
             "unit": "LUT4"
           },
           {
