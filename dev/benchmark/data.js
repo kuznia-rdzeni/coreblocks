@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786972360056,
+  "lastUpdate": 1786972362351,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -78507,6 +78507,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 126,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "piotro@piotro.eu",
+            "name": "Aria Węgrzyn",
+            "username": "awariac"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6cba40ab4a0754ae2804be5aa7d2e461e58245c3",
+          "message": "Checkpoint part 2: this time actually (#1050)",
+          "timestamp": "2026-08-17T14:16:25+02:00",
+          "tree_id": "0ec438c44d3af3591807444e18c2798626ddd1ba",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6cba40ab4a0754ae2804be5aa7d2e461e58245c3"
+        },
+        "date": 1786972361835,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 70.61,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7410,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2820,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 152,
             "unit": "Slice"
           },
           {
