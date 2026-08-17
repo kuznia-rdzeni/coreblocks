@@ -1,5 +1,5 @@
 from .memory import *
-from .common import SimulationBackend
+from .common import SimulationBackend, START_PC
 from .conftest import riscv_tests_dir, profile_dir, evlog_dir
 from .cocotb import run_cocotb_entrypoint
 from test.regression.pysim import PySimulation
@@ -75,7 +75,7 @@ def regression_body_with_pysim(test_name: str, traces: bool):
     traces_file = None
     if traces:
         traces_file = REGRESSION_TESTS_PREFIX + test_name
-    asyncio.run(run_test(PySimulation(traces_file=traces_file), test_name))
+    asyncio.run(run_test(PySimulation(traces_file=traces_file, reset_pc=START_PC), test_name))
 
 
 @pytest.fixture
