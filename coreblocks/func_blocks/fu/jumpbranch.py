@@ -15,10 +15,13 @@ from coreblocks.arch import Funct3, OpType, ExceptionCause, Extension, CfiType
 from coreblocks.frontend import FrontendParams
 from coreblocks.interface.layouts import JumpBranchLayouts, CommonLayoutFields
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
     BranchResolveKey,
     ExceptionReportKey,
     PredictedJumpTargetKey,
+    RollbackKey,
+    UnsafeInstructionResolvedKey,
 )
 from transactron.utils import OneHotSwitch
 from transactron.utils.transactron_helpers import make_layout
@@ -147,12 +150,20 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
         )
         m.submodules.instr_fifo = instr_fifo = BasicFifo(instr_fifo_layout, 2)
 
+        with Transaction().always_body(m):
+            active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
+
+        rollback, rollback_unifiers = self.dm.get_dependency(RollbackKey())
+        m.submodules += rollback_unifiers
+        unsafe_resolved = self.dm.get_dependency(UnsafeInstructionResolvedKey())
+
         with Transaction().body(m):
             instr = instr_fifo.read(m)
             prediction = jump_target_resp(m)
 
             jump_result = Mux(instr.taken, instr.jmp_addr, instr.reg_res)
             is_auipc = instr.type == JumpBranchFn.Fn.AUIPC
+            is_jalr = instr.type == JumpBranchFn.Fn.JALR
 
             predicted_taken = Signal()
             m.d.av_comb += predicted_taken.eq(prediction.valid & (instr.cfi_idx == prediction.cfi_idx))
@@ -200,18 +211,15 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                     pc=jump_result,
                     mtval=0,
                 )
+            with m.Elif(is_jalr):
+                # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
+                with m.If(active_tags[instr.tag]):
+                    unsafe_resolved(m, pc=jump_result, ftq_ptr=instr.ftq_ptr)
             with m.Elif(misprediction):
-                # Async interrupts can have priority, because `jump_result` is handled in the same way.
+                # Async interrupts can have priority, because `jump_result` both actions are done at the same time there
                 # No extra misprediction penalty will be introducted at interrupt return to `jump_result` address.
-                m.d.comb += exception.eq(1)
-                self.exception_report(
-                    m,
-                    cause=ExceptionCause._COREBLOCKS_MISPREDICTION,
-                    rob_id=instr.rob_id,
-                    tag=instr.tag,
-                    pc=jump_result,
-                    mtval=0,
-                )
+                with m.If(active_tags[instr.tag]):
+                    rollback(m, tag=instr.tag, pc=jump_result, ftq_ptr=instr.ftq_ptr)
 
             cfi_type = Signal(CfiType)
             m.d.av_comb += cfi_type.eq(CfiType.BRANCH)
@@ -220,7 +228,7 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
             with m.Elif(instr.type == JumpBranchFn.Fn.JALR):
                 m.d.av_comb += cfi_type.eq(CfiType.JALR)
 
-            with m.If(~is_auipc):
+            with m.If(~is_auipc & active_tags[instr.tag]):
                 resolve_branch(
                     m,
                     ftq_ptr=instr.ftq_ptr,

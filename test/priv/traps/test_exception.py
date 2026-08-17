@@ -1,17 +1,15 @@
 from amaranth import *
-from coreblocks.interface.keys import ActiveTagsKey
-from coreblocks.interface.layouts import RATLayouts
+import random
 
+from coreblocks.interface.keys import ActiveTagsKey, CoreStateKey
+from coreblocks.interface.layouts import RATLayouts, RetirementLayouts
 from coreblocks.priv.traps.exception import ExceptionInformationRegister
 from coreblocks.params import GenParams
 from coreblocks.arch import ExceptionCause
 from coreblocks.params import configurations
 from transactron.lib import Adapter
 from transactron.utils import DependencyContext, ModuleConnector
-
 from transactron.testing import *
-
-import random
 
 
 class TestExceptionInformationRegister(TestCaseWithSimulator):
@@ -39,12 +37,14 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
         tag_count = 4
 
         self.tags_active = TestbenchIO(Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out))
+        self.core_state = TestbenchIO(Adapter(o=self.gen_params.get(RetirementLayouts).core_state))
         DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
+        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         self.dut = SimpleTestCircuit(
             ExceptionInformationRegister(self.gen_params),
         )
-        m = ModuleConnector(self.dut, self.tags_active)
+        m = ModuleConnector(self.dut, self.tags_active, self.core_state)
 
         self.rob_id = 0
         self.active_tags = 0
@@ -104,6 +104,10 @@ class TestExceptionInformationRegister(TestCaseWithSimulator):
                     (self.active_tags >> i) & 1 for i in range(self.tags_active.adapter.iface.layout_out.size)
                 ]
             }
+
+        @def_method_mock(lambda: self.core_state)
+        def core_state_mock():
+            return {"flushing": 0}
 
         with self.run_simulation(m) as sim:
             sim.add_testbench(process_test)
