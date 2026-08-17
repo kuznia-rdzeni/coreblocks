@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 MAX_LINE_LENGTH=120
 
