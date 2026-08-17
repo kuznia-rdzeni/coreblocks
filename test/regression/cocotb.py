@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import sys
 import xml.etree.ElementTree as eT
+import argparse
 
 import cocotb
 from cocotb.clock import Clock, Timer
@@ -342,6 +343,11 @@ def generate_tests(test_function: Callable[[Any, Any], Coroutine[Any, Any, None]
         setattr(mod, test_name, _create_test(test_function, test_name, mod, test_name))
 
 
+def get_cocotb_lock_prefix(traces: bool) -> Path:
+    sim = os.environ.get("SIM", "verilator")
+    return BUILD_ROOT / f"{sim}{'-traces' if traces else ''}"
+
+
 def run_cocotb_entrypoint(
     entrypoint_module_name: str,
     traces: bool,
@@ -412,10 +418,11 @@ def ensure_core_verilog_generated():
 def ensure_cocotb_built(traces: bool):
     ensure_core_verilog_generated()
 
-    lock = BUILD_ROOT / "cocotb.lock"
-    stamp = BUILD_ROOT / "cocotb.stamp"
+    path = get_cocotb_lock_prefix(traces)
+    lock = path.with_suffix(".lock")
+    stamp = path.with_suffix(".stamp")
 
-    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     if stamp.exists():
         return
@@ -430,3 +437,15 @@ def ensure_cocotb_built(traces: bool):
             ensure_built=False,
         ), "Failed to build cocotb testbench"
         stamp.touch()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Prebuild cocotb testbench for coreblocks")
+    parser.add_argument("--traces", action="store_true", help="Enable cocotb trace generation")
+    args = parser.parse_args()
+
+    ensure_cocotb_built(traces=args.traces)
+
+
+if __name__ == "__main__":
+    main()
