@@ -117,7 +117,7 @@ on a dedicated <a class="reference external" href="https://kuznia-rdzeni.github.
 <p>In CI we use pre-built docker containers, which are publicly available on our <a class="reference external" href="https://github.com/orgs/kuznia-rdzeni/packages">github page</a>.
 In the following subsections we provide the instructions on how to manually run verification steps using these containers.
 They can be recreated using standard docker build commands:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">build</span> <span class="o">--</span><span class="n">platform</span> <span class="n">linux</span><span class="o">/</span><span class="n">amd64</span> <span class="o">-</span><span class="n">t</span> <span class="s2">&quot;amaranth-synth:latest&quot;</span> <span class="o">-</span><span class="n">f</span> <span class="o">./</span><span class="n">docker</span><span class="o">/</span><span class="n">AmaranthSynthECP5</span><span class="o">.</span><span class="n">Dockerfile</span> <span class="o">.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">build</span> <span class="o">--</span><span class="n">platform</span> <span class="n">linux</span><span class="o">/</span><span class="n">amd64</span> <span class="o">-</span><span class="n">t</span> <span class="s2">"amaranth-synth:latest"</span> <span class="o">-</span><span class="n">f</span> <span class="o">./</span><span class="n">docker</span><span class="o">/</span><span class="n">AmaranthSynthECP5</span><span class="o">.</span><span class="n">Dockerfile</span> <span class="o">.</span>
 </pre></div>
 </div>
 <section id="synthesis">
@@ -148,7 +148,7 @@ apt<span class="w"> </span>install<span class="w"> </span>python3.11-venv
 python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
-pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">".[dev]"</span>
 <span class="nv">PYTHONHASHSEED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>coreblocks<span class="w"> </span>--verbose<span class="w"> </span>--config<span class="w"> </span>full
 ./scripts/parse_benchmark_info.py
 cat<span class="w"> </span>benchmark.json
@@ -213,7 +213,7 @@ python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 <span class="nb">cd</span><span class="w"> </span>coreblocks
-pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">".[dev]"</span>
 <span class="nv">PYTHONHASHSEED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>coreblocks<span class="w"> </span>--verbose<span class="w"> </span>--config<span class="w"> </span>full
 ./scripts/run_benchmarks.py
 </pre></div>
@@ -254,7 +254,7 @@ python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 <span class="nb">cd</span><span class="w"> </span>coreblocks
-pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">".[dev]"</span>
 <span class="nv">PYTHONHASHSEED</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>coreblocks<span class="w"> </span>--verbose<span class="w"> </span>--config<span class="w"> </span>full
 ./scripts/run_tests.py<span class="w"> </span>-a<span class="w"> </span>regression
 </pre></div>
@@ -293,19 +293,19 @@ python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </
 .<span class="w"> </span>venv/bin/activate
 python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 <span class="nb">cd</span><span class="w"> </span>coreblocks
-pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+pip3<span class="w"> </span>install<span class="w"> </span><span class="s2">".[dev]"</span>
 </pre></div>
 </div>
 </section>
 <section id="running-act4-tests-using-act4-runner">
 <h3>Running ACT4 tests using ACT4 runner<a class="headerlink" href="#running-act4-tests-using-act4-runner" title="Link to this heading"></a></h3>
 <p>ACT4 framework provides a runner used for certification of RISC-V cores. For it to work one can call test_arch_regression script to run a test binary on the simulated core. The script will check the test result and print the error message if the test has failed.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>test.regression.test_arch_regression<span class="w"> </span>--backend<span class="w"> </span>cocotb<span class="w"> </span><span class="s2">&quot;&lt;elf_filename&gt;&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>test.regression.test_arch_regression<span class="w"> </span>--backend<span class="w"> </span>cocotb<span class="w"> </span><span class="s2">"&lt;elf_filename&gt;"</span>
 </pre></div>
 </div>
 <p>To run all of the tests in the directory, you can use the ACT4 runner script.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>./test/external/riscv-arch-test/riscv-arch-test/run_tests.py<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="s2">&quot;python -m test.regression.test_arch_regression --backend cocotb&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"python -m test.regression.test_arch_regression --backend cocotb"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>./test/external/riscv-arch-test/elfs
 </pre></div>
 </div>
@@ -339,7 +339,7 @@ before running ACT4’s run_tests script. To do that, you can run the following 
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 08:01 2026-08-17.
+      <span class="lastupdated">Last updated on 08:10 2026-08-17.
       </span></p>
   </div>
 
