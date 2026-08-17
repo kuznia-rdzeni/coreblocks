@@ -18,7 +18,7 @@ from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, ExceptionCause
 from coreblocks.interface.layouts import PrivUnitLayouts, FTQPtr
 from coreblocks.interface.keys import (
-    CoreStateKey,
+    ActiveTagsKey,
     MretKey,
     SretKey,
     AsyncInterruptInsertSignalKey,
@@ -123,7 +123,7 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
         with Transaction().body(m, ready=instr_valid & ~finished):
             side_fx_guard = self.dm.get_dependency(SideFxGuardKey())
-            side_fx_guard(m, rob_id=instr_rob, require_done=0)
+            side_fx_guard(m, rob_id=instr_rob, tag=instr_tag, require_done=0)
             m.d.sync += finished.eq(1)
             self.perf_instr.incr(m, instr_fn)
 
@@ -192,10 +192,12 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
 
             m.d.sync += illegal_instruction.eq(illegal_wfi | illegal_mret | illegal_sret | illegal_sfencevma)
 
-        with Transaction().body(m):
-            core_state = self.dm.get_dependency(CoreStateKey())(m)
+        flush = Signal()
+        with Transaction().always_body(m):
+            active_tags = self.dm.get_dependency(ActiveTagsKey())(m).active_tags
+            m.d.av_comb += flush.eq(~active_tags[instr_tag])
 
-        with Transaction().body(m, ready=instr_valid & (finished | core_state.flushing)):
+        with Transaction().body(m, ready=instr_valid & (finished | flush)):
             m.d.sync += instr_valid.eq(0)
             m.d.sync += finished.eq(0)
 
@@ -266,9 +268,8 @@ class PrivilegedFuncUnit(FuncUnitBase[PrivilegedFn]):
                     pc=ret_pc,
                     mtval=0,
                 )
-            with m.Elif(~core_state.flushing):
+            with m.Elif(~flush):
                 log.info(m, True, "Unstalling fetch from the priv unit new_pc=0x{:x}", ret_pc)
-                # Unstall the fetch
                 resume_core(m, ftq_ptr=ftq_ptr, pc=ret_pc)
 
             self.push_result(

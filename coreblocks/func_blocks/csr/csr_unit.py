@@ -16,8 +16,8 @@ from coreblocks.func_blocks.csr.csr_protocol import RegisteredCSRProtocol
 from coreblocks.func_blocks.interface.func_protocols import FuncBlock
 from coreblocks.interface.layouts import FuncUnitLayouts, CSRUnitLayouts, RSInterfaceLayouts, CSRRegisterLayouts
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     CSRListKey,
-    CoreStateKey,
     UnsafeInstructionResolvedKey,
     CSRInstancesKey,
     SideFxGuardKey,
@@ -150,7 +150,7 @@ class CSRUnit(FuncBlock, Elaboratable):
         # Methods used within this Tranaction are CSRRegister internal _fu_(read|write) handlers which are always ready
         with Transaction().body(m, ready=(ready_to_process & ~done)):
             side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
-            side_fx_guard(m, rob_id=instr.rob_id, require_done=1)
+            side_fx_guard(m, rob_id=instr.rob_id, tag=instr.tag, require_done=1)
             csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
             current_priv_mode = csr_instances.m_mode.priv_mode.read(m).data
 
@@ -206,10 +206,13 @@ class CSRUnit(FuncBlock, Elaboratable):
                 m.d.sync += instr.s1_val.eq(reg_val)
                 m.d.sync += instr.rp_s1.eq(0)
 
-        with Transaction().body(m):
-            core_state = self.dependency_manager.get_dependency(CoreStateKey())(m)
+        with Transaction().always_body(m):
+            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
 
-        @def_method(m, self.get_result, done | (ready_to_process & core_state.flushing))
+        flush_instr = Signal()
+        m.d.comb += flush_instr.eq(~active_tags[instr.tag])
+
+        @def_method(m, self.get_result, done | (ready_to_process & flush_instr))
         def _():
             m.d.sync += reserved.eq(0)
             m.d.sync += instr.valid.eq(0)
@@ -260,7 +263,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
             m.d.sync += exception.eq(0)
 
-            with m.If(~core_state.flushing & ~exception & ~interrupt):
+            with m.If(~flush_instr & ~exception & ~interrupt):
                 # CSR instructions are never compressed, PC+4 is always next instruction
                 resume_core(m, ftq_ptr=instr.ftq_ptr, pc=instr.pc + self.gen_params.isa.ilen_bytes)
 

@@ -4,7 +4,15 @@ from amaranth.lib.data import ArrayLayout
 from transactron.lib import BasicFifo, WideFifo, Semaphore, Pipe, ConnectTrans
 from transactron.lib.metrics import *
 from transactron.lib.simultaneous import condition
-from transactron.utils import count_trailing_zeros, popcount, assign, StableSelectingNetwork, logging
+from transactron.utils import (
+    DependencyContext,
+    count_trailing_zeros,
+    popcount,
+    assign,
+    StableSelectingNetwork,
+    logging,
+    mux,
+)
 from transactron.utils.transactron_helpers import make_layout
 from transactron.utils.amaranth_ext.coding import PriorityEncoder
 from transactron import *
@@ -17,6 +25,7 @@ from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from coreblocks.arch import *
 from coreblocks.params import *
 from coreblocks.interface.layouts import *
+from coreblocks.interface.keys import RVVIHartCollectorKey
 from coreblocks.frontend import FrontendParams
 from coreblocks.priv.vmem.translation import AddressTranslator, AddressTranslatorMode
 from coreblocks.telemetry import InstrFetched
@@ -257,6 +266,8 @@ class FetchUnit(Elaboratable):
             expanded_instr = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
             is_rvc = Signal(fetch_width)
 
+            instrs = [Signal(self.gen_params.isa.ilen) for _ in range(fetch_width)]
+
             # Whether in this cycle we have a fetch block that contains
             # an instruction that crosses a fetch boundary
             starts_mid_instr = Signal()
@@ -280,8 +291,12 @@ class FetchUnit(Elaboratable):
                     m.d.av_comb += is_rvc[i].eq(is_instr_compressed(full_instr))
                     m.d.av_comb += rvc_expanders[i].instr_in.eq(full_instr[:16])
                     m.d.av_comb += expanded_instr[i].eq(Mux(is_rvc[i], rvc_expanders[i].instr_out, full_instr))
+                    m.d.av_comb += instrs[i].eq(Mux(is_rvc[i], full_instr[:16], full_instr))
                 else:
-                    m.d.av_comb += expanded_instr[i].eq(cache_resp.fetch_block[i * 32 : (i + 1) * 32])
+                    full_instr = Signal(self.gen_params.isa.ilen)
+                    m.d.av_comb += full_instr.eq(cache_resp.fetch_block[i * 32 : (i + 1) * 32])
+                    m.d.av_comb += expanded_instr[i].eq(full_instr)
+                    m.d.av_comb += instrs[i].eq(full_instr)
 
             # Mask denoting at which offsets expected instructions start (depends on rvc indication and start address)
             instr_start = [Signal() for _ in range(fetch_width)]
@@ -331,6 +346,24 @@ class FetchUnit(Elaboratable):
                 ends_mid_instr=ends_mid_instr,
                 last_half=cache_resp.fetch_block[-16:],
             )
+
+            rvvi = DependencyContext.get().get_optional_dependency(RVVIHartCollectorKey())
+            if rvvi is not None:
+                instr_pcs = [params.pc_from_fb(fetch_block_addr, i) for i in range(fetch_width)]
+                if Extension.ZCA in self.gen_params.isa.extensions:
+                    instr_pcs[0] = instr_pcs[0] - Mux(starts_mid_instr, 2, 0)
+
+                rvvi.register_ftq(
+                    m,
+                    ftq_ptr=fetch_request.ftq_ptr,
+                    instrs=[
+                        {
+                            "instr": instrs[i],
+                            "pc": instr_pcs[i],
+                        }
+                        for i in range(fetch_width)
+                    ],
+                )
 
         #
         # Fetch - stage 2
@@ -644,9 +677,6 @@ class PredictionChecker(Elaboratable):
 
         @def_method(m, self.check)
         def _(fb_addr, starts_mid_instr, instr_valid, predecoded, prediction):
-            decoded_cfi_types = Array([predecoded[i].cfi_type for i in range(self.gen_params.fetch_width)])
-            decoded_cfi_offsets = Array([predecoded[i].cfi_offset for i in range(self.gen_params.fetch_width)])
-
             # First find all the instructions that would redirect the fetch unit.
             decoded_redirections = Signal(self.gen_params.fetch_width)
             for i in range(self.gen_params.fetch_width):
@@ -654,12 +684,12 @@ class PredictionChecker(Elaboratable):
                 # taken. This prediction will be used if the branch prediction unit
                 # didn't detect the branch at all.
                 m.d.av_comb += decoded_redirections[i].eq(
-                    CfiType.is_jal(decoded_cfi_types[i])
-                    | CfiType.is_jalr(decoded_cfi_types[i])
+                    CfiType.is_jal(predecoded[i].cfi_type)
+                    | CfiType.is_jalr(predecoded[i].cfi_type)
                     | (
-                        CfiType.is_branch(decoded_cfi_types[i])
+                        CfiType.is_branch(predecoded[i].cfi_type)
                         & ~prediction.branch_mask[i]
-                        & (decoded_cfi_offsets[i] < 0)
+                        & (predecoded[i].cfi_offset < 0)
                     )
                 )
 
@@ -672,7 +702,7 @@ class PredictionChecker(Elaboratable):
 
             # For a given instruction index, returns a CFI target based on the predecode info
             def get_decoded_target_for(idx: Value) -> Value:
-                base = params.pc_from_fb(fb_addr, idx) + decoded_cfi_offsets[idx]
+                base = params.pc_from_fb(fb_addr, idx) + predecoded[idx].cfi_offset
                 if Extension.ZCA in self.gen_params.isa.extensions:
                     return base - Mux(starts_mid_instr & (idx == 0), 2, 0)
                 return base
@@ -690,9 +720,9 @@ class PredictionChecker(Elaboratable):
                 | ~CfiType.valid(prediction.cfi_type)
             )
 
-            decoded_cfi_type_at_pred = Mux(
+            decoded_cfi_type_at_pred = mux(
                 instr_valid.bit_select(prediction.cfi_idx, 1),
-                decoded_cfi_types[prediction.cfi_idx],
+                predecoded[prediction.cfi_idx].cfi_type,
                 CfiType.INVALID,
             )
 
@@ -707,13 +737,13 @@ class PredictionChecker(Elaboratable):
             ret = Signal.like(self.check.data_out)
 
             with m.If(preceding_redirection):
-                self.perf_preceding_redirection.incr(m, decoded_cfi_types[pd_redirect_idx])
+                self.perf_preceding_redirection.incr(m, predecoded[pd_redirect_idx].cfi_type)
                 m.d.av_comb += assign(
                     ret,
                     {
                         "mispredicted": 1,
                         "cfi_idx": pd_redirect_idx,
-                        "cfi_type": decoded_cfi_types[pd_redirect_idx],
+                        "cfi_type": predecoded[pd_redirect_idx].cfi_type,
                         "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
@@ -727,7 +757,7 @@ class PredictionChecker(Elaboratable):
                     {
                         "mispredicted": 1,
                         "cfi_idx": pd_redirect_idx,
-                        "cfi_type": Mux(pd_redirection_enc.n, CfiType.INVALID, decoded_cfi_types[pd_redirect_idx]),
+                        "cfi_type": mux(pd_redirection_enc.n, CfiType.INVALID, predecoded[pd_redirect_idx].cfi_type),
                         "cfi_target": decoded_target_for_decoded_cfi,
                     },
                 )
@@ -738,7 +768,7 @@ class PredictionChecker(Elaboratable):
                     {
                         "mispredicted": 1,
                         "cfi_idx": prediction.cfi_idx,
-                        "cfi_type": decoded_cfi_types[prediction.cfi_idx],
+                        "cfi_type": predecoded[prediction.cfi_idx].cfi_type,
                         "cfi_target": decoded_target_for_predicted_cfi,
                     },
                 )

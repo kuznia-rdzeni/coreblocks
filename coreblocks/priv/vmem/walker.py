@@ -94,8 +94,8 @@ class PTEView(View):
             is_bad |= self.PBMT.any()
             is_bad |= self.N
 
-        # Non-leaf PTEs have A and D bits reserved
-        is_bad |= ~self.is_leaf() & (self.A | self.D)
+        # Non-leaf PTEs have ADU bits reserved
+        is_bad |= ~self.is_leaf() & (self.A | self.D | self.U)
 
         return is_bad
 

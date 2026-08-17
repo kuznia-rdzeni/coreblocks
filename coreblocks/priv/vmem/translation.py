@@ -51,6 +51,7 @@ class AddressTranslator(Elaboratable):
         bits_per_level = SatpMode.bits_per_page_table_level(self.gen_params.isa.xlen)
 
         fwd_layout = make_layout(
+            ("is_bare", 1),
             ("vaddr", self.gen_params.isa.xlen),
             ("access_fault", 1),
             ("vpn_invalid", 1),
@@ -74,7 +75,7 @@ class AddressTranslator(Elaboratable):
         mxr = Signal()
         sum_ = Signal()
 
-        with Transaction().body(m) as t:
+        with Transaction().always_body(m):
             priv_mode = csr.m_mode.priv_mode.read(m).data
 
             match self.mode:
@@ -93,8 +94,6 @@ class AddressTranslator(Elaboratable):
 
             m.d.av_comb += mxr.eq(csr.m_mode.mstatus_mxr.read(m).data)
             m.d.av_comb += sum_.eq(csr.m_mode.mstatus_sum.read(m).data)
-
-        log.error(m, ~t.run, "Transaction must always run")
 
         @def_method(m, self.request)
         def _(addr: Value, is_store: Value):
@@ -128,6 +127,7 @@ class AddressTranslator(Elaboratable):
 
             resp_fwd.write(
                 m,
+                is_bare=effective_satp_mode == SatpMode.BARE,
                 vaddr=addr,
                 vpn_invalid=vpn_invalid,
                 access_fault=access_fault,
@@ -150,7 +150,7 @@ class AddressTranslator(Elaboratable):
 
             if tlb is not None:
                 with condition(m, nonblocking=True) as branch:
-                    with branch((effective_satp_mode != SatpMode.BARE) & ~data.vpn_invalid):
+                    with branch(~data.is_bare & ~data.vpn_invalid):
                         m.d.av_comb += tlb_data.eq(tlb.accept(m))
 
                 with m.If(data.vpn_invalid):
@@ -205,14 +205,14 @@ class AddressTranslator(Elaboratable):
             page_fault = Signal()
             access_fault = Signal()
 
-            with m.If(effective_satp_mode == SatpMode.BARE):
+            with m.If(data.is_bare):
                 m.d.av_comb += ppn.eq(vpn)
                 m.d.av_comb += access_fault.eq(data.access_fault)
                 m.d.av_comb += page_fault.eq(0)
             with m.Else():
                 m.d.av_comb += ppn.eq(tlb_ppn)
-                m.d.av_comb += page_fault.eq(tlb_page_fault)
                 m.d.av_comb += access_fault.eq(tlb_access_fault)
+                m.d.av_comb += page_fault.eq(tlb_page_fault & ~tlb_access_fault)
 
             return {
                 "vaddr": data.vaddr,

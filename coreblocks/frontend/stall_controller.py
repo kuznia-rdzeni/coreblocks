@@ -66,7 +66,7 @@ class StallController(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             core_state = self.dm.get_dependency(CoreStateKey())(m)
 
         # Fetch can be resumed to unstall from 'unsafe' instructions, and stalled because
@@ -105,16 +105,15 @@ class StallController(Elaboratable):
 
             self.redirect_frontend(m, ftq_ptr=ftq_ptr, pc=pc)
 
-        @def_method(m, self.on_redirect_frontend)
-        def _():
-            # All redirections change execuction point so clear unsafe state
-            log.assertion(m, ~self.stall_guard.ready, "Frontend needs to be stalled for a redirect")
-            m.d.sync += stalled_unsafe.eq(0)
-
         @def_method(m, self.stall_unsafe)
         def _():
             log.assertion(m, ~stalled_unsafe, "Can't be stalled twice because of an unsafe instruction")
             log.info(m, True, "Stalling frontend - unsafe instruction")
             m.d.sync += stalled_unsafe.eq(1)
+
+        @def_method(m, self.on_redirect_frontend)
+        def _():
+            # All redirections change execuction point so clear unsafe state
+            m.d.sync += stalled_unsafe.eq(0)
 
         return m

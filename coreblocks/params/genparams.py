@@ -107,6 +107,7 @@ class GenParams(DependentCache):
 
         self.checkpoint_count = cfg.checkpoint_count
         self.tag_bits = cfg.tag_bits
+        self.tag_count = 2**cfg.tag_bits
         assert cfg.checkpoint_count < 2**cfg.tag_bits
 
         self.min_instr_width_bytes = 2 if cfg.compressed or cfg.zcb else 4
@@ -168,6 +169,8 @@ class GenParams(DependentCache):
         self.mimpid = cfg.mimpid
 
         self.multiport_memory_type = cfg.multiport_memory_type
+
+        self.has_rvvi = cfg.with_rvvi
 
     @property
     def isa_short_str(self) -> str:

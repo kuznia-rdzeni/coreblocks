@@ -2,10 +2,8 @@ from dataclasses import dataclass
 
 from amaranth import *
 from transactron import Method, TModule, Transaction, def_method
-from transactron.lib.connectors import FIFO, ConnectTrans, Pipe
-from transactron.utils import logging
-from transactron.lib.simultaneous import condition
-from transactron.utils import DependencyContext
+from transactron.lib import ConnectTrans, Pipe, BasicFifo, condition
+from transactron.utils import logging, DependencyContext
 
 from coreblocks.arch import OpType
 from coreblocks.arch.isa_consts import ExceptionCause
@@ -14,8 +12,8 @@ from coreblocks.func_blocks.fu.lsu.pma import PMAChecker
 from coreblocks.priv.pmp import PMPChecker, PMPOperationMode
 from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     CommonBusDataKey,
-    CoreStateKey,
     ExceptionReportKey,
     SideFxGuardKey,
 )
@@ -63,16 +61,11 @@ class LSUDummy(FuncUnit, Elaboratable):
 
     def elaborate(self, platform):
         m = TModule()
-        flush = Signal()  # exception handling, requests are not issued
-
-        with Transaction().body(m):
-            core_state = self.dependency_manager.get_dependency(CoreStateKey())
-            state = core_state(m)
-            m.d.comb += flush.eq(state.flushing)
 
         # Signals for handling issue logic
         request_rob_id = Signal(self.gen_params.rob_entries_bits)
-        rob_id_match = Signal()
+        request_tag = Signal(self.gen_params.tag_bits)
+        request_side_fx = Signal()
         is_load = Signal()
 
         m.submodules.addr_translator = self.addr_translator
@@ -80,12 +73,12 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules.pmp_checker = pmp_checker = PMPChecker(self.gen_params, mode=PMPOperationMode.LSU)
         m.submodules.requester = requester = LSURequester(self.gen_params, self.bus)
 
-        m.submodules.requests = requests = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.requests = requests = BasicFifo(self.fu_layouts.issue, 2)
         m.submodules.translator_in = translator_in = Pipe(self.translator_layouts.request)
-        m.submodules.translated = translated = FIFO(self.translator_layouts.accept, 2)
-        m.submodules.results_noop = results_noop = FIFO(self.lsu_layouts.accept, 2)
-        m.submodules.issued = issued = FIFO(self.fu_layouts.issue, 2)
-        m.submodules.issued_noop = issued_noop = FIFO(self.fu_layouts.issue, 2)
+        m.submodules.translated = translated = BasicFifo(self.translator_layouts.accept, 2)
+        m.submodules.results_noop = results_noop = BasicFifo(self.lsu_layouts.accept, 2)
+        m.submodules.issued = issued = BasicFifo(self.fu_layouts.issue, 2)
+        m.submodules.issued_noop = issued_noop = BasicFifo(self.fu_layouts.issue, 2)
 
         @def_method(m, self.issue)
         def _(arg):
@@ -106,11 +99,16 @@ class LSUDummy(FuncUnit, Elaboratable):
         m.submodules += ConnectTrans.create(translator_in.read, self.addr_translator.request)
         m.submodules += ConnectTrans.create(self.addr_translator.accept, translated.write)
 
+        with Transaction().always_body(m):
+            active_tags = self.dependency_manager.get_dependency(ActiveTagsKey())(m).active_tags
+
         # Issues load/store requests when the instruction is known, is a LOAD/STORE, and just before commit.
         # Memory loads can be issued speculatively.
+        flush = Signal()
         pmas = pma_checker.result
         can_reorder = is_load & ~pmas["mmio"]
-        want_issue = rob_id_match | can_reorder
+        want_issue = request_side_fx | can_reorder
+        m.d.comb += flush.eq(~active_tags[request_tag])
 
         do_issue = ~flush & want_issue
         with Transaction().body(m, ready=do_issue):
@@ -123,6 +121,8 @@ class LSUDummy(FuncUnit, Elaboratable):
             m.d.av_comb += pmp_checker.paddr.eq(paddr)
             m.d.av_comb += is_load.eq(arg.exec_fn.op_type == OpType.LOAD)
             m.d.av_comb += request_rob_id.eq(arg.rob_id)
+            m.d.av_comb += request_tag.eq(arg.tag)
+            # TODO: refactor with peek
 
             exception = Signal()
             cause = Signal(ExceptionCause)
@@ -195,8 +195,8 @@ class LSUDummy(FuncUnit, Elaboratable):
 
         with Transaction().body(m):
             side_fx_guard = self.dependency_manager.get_dependency(SideFxGuardKey())
-            side_fx_guard(m, rob_id=request_rob_id, require_done=0)
-            m.d.comb += rob_id_match.eq(1)
+            side_fx_guard(m, rob_id=request_rob_id, tag=request_tag, require_done=0)
+            m.d.comb += request_side_fx.eq(1)
 
         return m
 

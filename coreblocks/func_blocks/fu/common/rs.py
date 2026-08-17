@@ -12,13 +12,18 @@ from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
+from coreblocks.telemetry.events import Update
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
+from transactron.evlog import EventSource
 from transactron.utils import ReturnDict
 from transactron.utils.assign import assign, AssignType
 from transactron.utils.amaranth_ext.functions import popcount
 from transactron.utils.transactron_helpers import make_layout
 
 __all__ = ["RSBase", "RS"]
+
+
+evlog = EventSource("backend.rs")
 
 
 class RSBase(Elaboratable):
@@ -95,7 +100,6 @@ class RSBase(Elaboratable):
         @def_method(m, self.select)
         def _() -> ReturnDict:
             selected_id = alloc(m).ident
-            self.log.debug(m, True, "selected entry {}", selected_id)
             return {"rs_entry_id": selected_id}
 
         matches_s1 = Signal(ArrayLayout(len(self.update), self.rs_entries))
@@ -106,6 +110,9 @@ class RSBase(Elaboratable):
             for i, record in enumerate(iter(self.data)):
                 m.d.comb += matches_s1[i][k].eq(record.rs_data.rp_s1 == reg_id)
                 m.d.comb += matches_s2[i][k].eq(record.rs_data.rp_s2 == reg_id)
+                evlog.emit(
+                    m, Update.hw(rob_id=record.rs_data.rob_id, reg_id=reg_id), when=matches_s1[i][k] | matches_s2[i][k]
+                )
 
         # It is assumed that two simultaneous update calls never update the same physical register.
         for k1, u1 in enumerate(self.update):
@@ -141,14 +148,24 @@ class RSBase(Elaboratable):
                 )
 
         @def_method(m, self.insert)
-        def _(rs_entry_id: Value, rs_data: Value) -> None:
+        def _(rs_entry_id, rs_data) -> None:
             m.d.sync += self.data[rs_entry_id].rs_data.eq(rs_data)
             m.d.sync += self.data[rs_entry_id].rec_full.eq(1)
             self.perf_rs_wait_time.start(m, slot=rs_entry_id)
-            self.log.debug(m, True, "inserted entry {}", rs_entry_id)
+            self.log.debug(
+                m,
+                True,
+                "inserted entry {}, rob_id 0x{:x}, s1: p{} v 0x{:x}, s2: p{} v 0x{:x}",
+                rs_entry_id,
+                rs_data.rob_id,
+                rs_data.rp_s1,
+                rs_data.s1_val,
+                rs_data.rp_s2,
+                rs_data.s2_val,
+            )
 
-        with Transaction().body(m):
-            self.order = order(m).order  # always ready!
+        with Transaction().always_body(m):
+            self.order = order(m).order
 
         @def_method(m, self.take)
         def _(rs_entry_id: Value) -> ReturnDict:
@@ -166,7 +183,15 @@ class RSBase(Elaboratable):
             self.perf_rs_wait_time.stop(m, slot=actual_rs_entry_id)
             out = Signal(self.layouts.take_out)
             m.d.av_comb += assign(out, record, fields=AssignType.COMMON)
-            self.log.debug(m, True, "taken entry {} at idx {}", actual_rs_entry_id, rs_entry_id)
+            self.log.debug(
+                m,
+                True,
+                "taken entry {} at idx {}, rob_id 0x{:x}, rp_dst p{}",
+                actual_rs_entry_id,
+                rs_entry_id,
+                out.rob_id,
+                out.rp_dst,
+            )
             return out
 
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
@@ -180,7 +205,7 @@ class RSBase(Elaboratable):
         if self.perf_num_full.metrics_enabled():
             num_full = Signal(range(self.rs_entries + 1))
             m.d.comb += num_full.eq(popcount(Cat(self.data[entry_id].rec_full for entry_id in range(self.rs_entries))))
-            with Transaction(name="perf").body(m):
+            with Transaction(name="perf").always_body(m):
                 self.perf_num_full.add(m, num_full)
 
 

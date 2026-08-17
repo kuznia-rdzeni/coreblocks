@@ -11,9 +11,9 @@ from coreblocks.params import GenParams
 from coreblocks.func_blocks.fu.lsu.dummyLsu import LSUDummy
 from coreblocks.params import configurations
 from coreblocks.arch import *
-from coreblocks.interface.keys import CoreStateKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
+from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, ExceptionReportKey, SideFxGuardKey
 from coreblocks.priv.csr.csr_instances import CSRInstances
-from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RetirementLayouts
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts, RATLayouts, RetirementLayouts
 from ...peripherals.bus_mock import BusMockParameters, MockMasterAdapter
 
 
@@ -89,11 +89,13 @@ class DummyLSUTestCircuit(Elaboratable):
         )
         DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
 
-        m.submodules.core_state = self.core_state = TestbenchIO(Adapter(o=layouts.core_state, nonexclusive=True))
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
-
         m.submodules.csr_instances = self.csr_instances = CSRInstances(self.gen)
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
+        m.submodules.tags_active = self.tags_active = TestbenchIO(
+            Adapter(o=self.gen.get(RATLayouts).get_active_tags_out)
+        )
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
         m.submodules.func_unit = func_unit = LSUDummy(self.gen, self.bus_master_adapter)
 
@@ -255,13 +257,15 @@ class TestDummyLSULoads(TestCaseWithSimulator):
             def eff():
                 assert arg == self.exception_queue.pop()
 
-        @def_method_mock(lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, require_done: True)
-        def side_fx_guarder(rob_id, require_done):
+        @def_method_mock(
+            lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, tag, require_done: True
+        )
+        def side_fx_guarder(rob_id, tag, require_done):
             return {}
 
-        @def_method_mock(lambda: self.test_module.core_state)
-        def core_state_process():
-            return {"flushing": 0}
+        @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
+        def tags_active_mock():
+            return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.bus_mock, background=True)
@@ -325,9 +329,15 @@ class TestDummyLSULoadsCycles(TestCaseWithSimulator):
             def eff():
                 assert False
 
-        @def_method_mock(lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, require_done: True)
-        def side_fx_guarder(rob_id, require_done):
+        @def_method_mock(
+            lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, tag, require_done: True
+        )
+        def side_fx_guarder(rob_id, tag, require_done):
             return {}
+
+        @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
+        def tags_active_mock():
+            return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.one_instr_test)
@@ -422,12 +432,16 @@ class TestDummyLSUStores(TestCaseWithSimulator):
             await self.random_wait(sim, self.max_wait)
             self.side_fx_guard_data.pop()  # retire
 
-    def side_fx_guard_validate(self, rob_id, require_done):
+    def side_fx_guard_validate(self, rob_id, tag, require_done):
         return len(self.side_fx_guard_data) > 0 and rob_id == self.side_fx_guard_data[-1]
 
     @def_method_mock(lambda self: self.test_module.side_fx_guard, validate_arguments=side_fx_guard_validate)
-    def side_fx_guarder(self, rob_id, require_done):
+    def side_fx_guarder(self, rob_id, tag, require_done):
         return {}
+
+    @def_method_mock(lambda self: self.test_module.tags_active)  # type: ignore
+    def tags_active_mock(self):
+        return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
 
     def test(self):
         @def_method_mock(lambda: self.test_module.exception_report)
@@ -471,8 +485,10 @@ class TestDummyLSUFence(TestCaseWithSimulator):
             def eff():
                 assert False
 
-        @def_method_mock(lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, require_done: True)
-        def side_fx_guarder(rob_id, require_done):
+        @def_method_mock(
+            lambda: self.test_module.side_fx_guard, validate_arguments=lambda rob_id, tag, require_done: True
+        )
+        def side_fx_guarder(rob_id, tag, require_done):
             return {}
 
         pending_req = False
@@ -492,6 +508,10 @@ class TestDummyLSUFence(TestCaseWithSimulator):
                 pending_req = False
 
             return {"data": 1, "err": 0}
+
+        @def_method_mock(lambda: self.test_module.tags_active)  # type: ignore
+        def tags_active_mock():
+            return {"active_tags": [1 for _ in range(self.test_module.tags_active.adapter.iface.layout_out.size)]}
 
         with self.run_simulation(self.test_module) as sim:
             sim.add_testbench(self.process)

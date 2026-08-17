@@ -4,10 +4,9 @@ from collections import deque
 
 from amaranth.lib.wiring import connect
 from amaranth_types import ValueLike
+from transactron.utils import ModuleConnector
 
 from coreblocks.peripherals.wishbone import *
-
-from transactron.lib import AdapterTrans
 
 from transactron.testing import *
 
@@ -93,55 +92,45 @@ class WishboneInterfaceWrapper:
 
 
 class TestWishboneMaster(TestCaseWithSimulator):
-    class WishboneMasterTestModule(Elaboratable):
-        def __init__(self):
-            pass
-
-        def elaborate(self, platform):
-            m = Module()
-            m.submodules.wbm = self.wbm = wbm = WishboneMaster(WishboneParameters())
-            m.submodules.rqa = self.requestAdapter = TestbenchIO(AdapterTrans.create(wbm.request))
-            m.submodules.rsa = self.resultAdapter = TestbenchIO(AdapterTrans.create(wbm.result))
-            return m
-
     def test_manual(self):
-        twbm = TestWishboneMaster.WishboneMasterTestModule()
+        wbm = WishboneMaster(WishboneParameters())
+        twbm = SimpleTestCircuit(wbm)
 
         async def process(sim: TestbenchContext):
             # read request
-            await twbm.requestAdapter.call(sim, addr=2, data=0, we=0, sel=1)
+            await twbm.request.call(sim, addr=2, data=0, we=0, sel=1)
 
             # read request after delay
             await sim.tick()
             await sim.tick()
-            await twbm.requestAdapter.call(sim, addr=1, data=0, we=0, sel=1)
+            await twbm.request.call(sim, addr=1, data=0, we=0, sel=1)
 
             # write request
-            await twbm.requestAdapter.call(sim, addr=3, data=5, we=1, sel=0)
+            await twbm.request.call(sim, addr=3, data=5, we=1, sel=0)
 
             # RTY and ERR responese
-            await twbm.requestAdapter.call(sim, addr=2, data=0, we=0, sel=0)
-            resp = await twbm.requestAdapter.call_try(sim, addr=0, data=0, we=0, sel=0)
+            await twbm.request.call(sim, addr=2, data=0, we=0, sel=0)
+            resp = await twbm.request.call_try(sim, addr=0, data=0, we=0, sel=0)
             assert resp is None  # verify cycle restart
 
         async def result_process(sim: TestbenchContext):
-            resp = await twbm.resultAdapter.call(sim)
+            resp = await twbm.result.call(sim)
             assert resp["data"] == 8
             assert not resp["err"]
 
-            resp = await twbm.resultAdapter.call(sim)
+            resp = await twbm.result.call(sim)
             assert resp["data"] == 3
             assert not resp["err"]
 
-            resp = await twbm.resultAdapter.call(sim)
+            resp = await twbm.result.call(sim)
             assert not resp["err"]
 
-            resp = await twbm.resultAdapter.call(sim)
+            resp = await twbm.result.call(sim)
             assert resp["data"] == 1
             assert resp["err"]
 
         async def slave(sim: TestbenchContext):
-            wwb = WishboneInterfaceWrapper(twbm.wbm.wb_master)
+            wwb = WishboneInterfaceWrapper(wbm.wb_master)
 
             await wwb.slave_wait_and_verify(sim, 2, 0, 0, 1)
             await wwb.slave_respond(sim, 8)
@@ -312,24 +301,6 @@ class TestPipelinedWishboneMaster(TestCaseWithSimulator):
             sim.add_testbench(slave_process, background=True)
 
 
-class WishboneMemorySlaveCircuit(Elaboratable):
-    def __init__(self, wb_params: WishboneParameters, mem_args: dict):
-        self.wb_params = wb_params
-        self.mem_args = mem_args
-
-    def elaborate(self, platform):
-        m = Module()
-
-        m.submodules.mem_slave = self.mem_slave = WishboneMemorySlave(self.wb_params, **self.mem_args)
-        m.submodules.mem_master = self.mem_master = WishboneMaster(self.wb_params)
-        m.submodules.request = self.request = TestbenchIO(AdapterTrans.create(self.mem_master.request))
-        m.submodules.result = self.result = TestbenchIO(AdapterTrans.create(self.mem_master.result))
-
-        connect(m, self.mem_master.wb_master, self.mem_slave.bus)
-
-        return m
-
-
 class TestWishboneMemorySlave(TestCaseWithSimulator):
     def setup_method(self):
         self.memsize = 43  # test some weird depth
@@ -337,7 +308,12 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
 
         self.addr_width = (self.memsize - 1).bit_length()  # nearest log2 >= log2(memsize)
         self.wb_params = WishboneParameters(data_width=32, addr_width=self.addr_width, granularity=16)
-        self.m = WishboneMemorySlaveCircuit(wb_params=self.wb_params, mem_args={"depth": self.memsize, "init": []})
+        self.mem_slave = WishboneMemorySlave(self.wb_params, depth=self.memsize, init=[])
+        self.mem_master = WishboneMaster(self.wb_params)
+        self.tc = SimpleTestCircuit(self.mem_master)
+        m = Module()
+        connect(m, self.mem_master.wb_master, self.mem_slave.bus)
+        self.m = ModuleConnector(m, mem_slave=self.mem_slave, mem_master=self.tc)
 
         self.sel_width = self.wb_params.data_width // self.wb_params.granularity
 
@@ -359,12 +335,12 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                 req_queue.appendleft(req)
 
                 await self.random_wait_geom(sim, 0.2)
-                await self.m.request.call(sim, req)
+                await self.tc.request.call(sim, req)
 
         async def result_process(sim: TestbenchContext):
             for _ in range(self.iters):
                 await self.random_wait_geom(sim, 0.2)
-                res = await self.m.result.call(sim)
+                res = await self.tc.result.call(sim)
                 req = req_queue.pop()
 
                 if not req["we"]:
@@ -375,7 +351,7 @@ class TestWishboneMemorySlave(TestCaseWithSimulator):
                             granularity_mask = (2**self.wb_params.granularity - 1) << (i * self.wb_params.granularity)
                             mem_state[req["addr"]] &= ~granularity_mask
                             mem_state[req["addr"]] |= req["data"] & granularity_mask
-                    val = sim.get(Value.cast(self.m.mem_slave.mem.data[req["addr"]]))
+                    val = sim.get(Value.cast(self.mem_slave.mem.data[req["addr"]]))
                     assert val == mem_state[req["addr"]]
 
         with self.run_simulation(self.m, max_cycles=3000) as sim:
