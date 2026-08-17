@@ -160,7 +160,7 @@ class TestSchedulerCheckpointing(TestCaseWithSimulator):
                 if entry["tag_increment"]:
                     await dut.free_tag.call(sim)
 
-        @def_method_mock(lambda: dut.core_state, nonexclusive=True)
+        @def_method_mock(lambda: dut.core_state)
         def core_state_mock():
             return {"flushing": 0}
 

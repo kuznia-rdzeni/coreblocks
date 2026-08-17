@@ -51,7 +51,7 @@ class TestFrontend(TestCaseWithSimulator):
         ftq_commit = self.dm.get_dependency(FTQCommitKey())
         self.ftq_commit = TestbenchIO(AdapterTrans.create(ftq_commit))
 
-        self.core_state = TestbenchIO(Adapter(o=self.gen_params.get(RetirementLayouts).core_state))
+        self.core_state = TestbenchIO(Adapter(o=self.gen_params.get(RetirementLayouts).core_state, nonexclusive=True))
         self.dm.add_dependency(CoreStateKey(), self.core_state.adapter.iface)
 
         self.m = ModuleConnector(
