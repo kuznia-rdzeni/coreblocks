@@ -370,6 +370,7 @@ def run_cocotb_entrypoint(
 
     env = os.environ.copy()
     env["PATH"] = str(TEST_ROOT.resolve()) + os.pathsep + env["PATH"]
+    env["SIM"] = os.environ.get("SIM", "verilator")
     if additional_env is not None:
         env.update(additional_env)
 
