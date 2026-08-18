@@ -348,6 +348,13 @@ def get_cocotb_lock_prefix(traces: bool) -> Path:
     return BUILD_ROOT / f"{sim}{'-traces' if traces else ''}"
 
 
+def _extend_env_path_like(value: str, to_add: str) -> str:
+    if value:
+        return to_add + os.pathsep + value
+    else:
+        return to_add
+
+
 def run_cocotb_entrypoint(
     entrypoint_module_name: str,
     traces: bool,
@@ -358,8 +365,9 @@ def run_cocotb_entrypoint(
     if ensure_built:
         ensure_cocotb_built(traces)
 
-    arglist = ["make", "-C", str(TEST_ROOT), f"MODULE={entrypoint_module_name}"]
+    arglist = ["make", "-C", str(TEST_ROOT)]
 
+    arglist += [f"MODULE={entrypoint_module_name}"]
     arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
     arglist += [f"VERILOG_SOURCES={CORE_V}"]
     if traces:
@@ -369,7 +377,8 @@ def run_cocotb_entrypoint(
         arglist += additional_args
 
     env = os.environ.copy()
-    env["PATH"] = str(TEST_ROOT.resolve()) + os.pathsep + env["PATH"]
+    env["PATH"] = _extend_env_path_like(env.get("PATH", ""), str(TEST_ROOT.resolve()))
+    env["PYTHONPATH"] = _extend_env_path_like(env.get("PYTHONPATH", ""), str(REPO_ROOT.resolve()))
     env["SIM"] = os.environ.get("SIM", "verilator")
     if additional_env is not None:
         env.update(additional_env)
