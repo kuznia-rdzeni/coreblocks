@@ -491,7 +491,6 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
                     raw_instrs[i].access_fault.eq(s1_data.access_fault),
-                    raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
                     raw_instrs[i].commit_checkpoint.eq(commit_checkpoint_mask[i]),
                     raw_instrs[i].ftq_ptr.eq(ftq_ptr),
                     raw_instrs[i].ftq_offset.eq(i),

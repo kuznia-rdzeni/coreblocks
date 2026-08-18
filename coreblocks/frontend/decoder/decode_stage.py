@@ -35,7 +35,7 @@ class Decode(Elaboratable):
         m = TModule()
 
         @def_method(m, self.decode)
-        def _(instr, pc, rvc, access_fault, cfi_type, commit_checkpoint, ftq_ptr, ftq_offset):
+        def _(instr, pc, rvc, access_fault, commit_checkpoint, ftq_ptr, ftq_offset):
             m.submodules.instr_decoder = instr_decoder = InstrDecoder(self.gen_params)
             m.d.top_comb += instr_decoder.instr.eq(instr)
 
