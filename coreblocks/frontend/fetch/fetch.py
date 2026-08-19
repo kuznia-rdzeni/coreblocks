@@ -705,19 +705,18 @@ class PredictionChecker(Elaboratable):
             pd_redirect_idx = Signal(self.gen_params.fetch_width_log)
             m.d.av_comb += pd_redirect_idx.eq(pd_redirection_enc.o[: self.gen_params.fetch_width_log])
 
-            # The predecode info of the redirecting instruction. When nothing redirects,
-            # the mux outputs zeroes, i.e. a CfiType.INVALID instruction
+            # The predecode info of the redirecting instruction.
             # TODO: use OneHotMux.create (or something similar) once it doesn't drive its signals through
             # m.d.comb
             m.submodules.pd_redirect_mux = pd_redirect_mux = OneHotMux(
-                layouts.predecoded_instr, self.gen_params.fetch_width, priority=True, has_default=False
+                layouts.predecoded_instr, self.gen_params.fetch_width, priority=True, has_default=True
             )
             m.d.av_comb += pd_redirect_mux.select.eq(pd_redirect_mask)
-            for i in range(self.gen_params.fetch_width):
-                m.d.av_comb += Value.cast(pd_redirect_mux.inputs[i]).eq(Value.cast(predecoded[i]))
+            m.d.av_comb += pd_redirect_mux.inputs.eq(predecoded)
+            m.d.av_comb += Value.cast(pd_redirect_mux.default_input).eq(Signal(layouts.predecoded_instr))
 
             pd_redirect_instr = Signal(layouts.predecoded_instr)
-            m.d.av_comb += Value.cast(pd_redirect_instr).eq(Value.cast(pd_redirect_mux.output))
+            m.d.av_comb += pd_redirect_instr.eq(pd_redirect_mux.output)
 
             # For a given instruction index and its predecoded CFI offset, returns the CFI target
             def get_decoded_target_for(idx: Value, cfi_offset: Value, is_first: Value) -> Value:
