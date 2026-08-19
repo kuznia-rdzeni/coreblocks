@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787154228166,
+  "lastUpdate": 1787154230653,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -79571,6 +79571,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 7520,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2820,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 157,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e0e61ae40ca326ac3e911abf35e84802a27ef58a",
+          "message": "Timing optimizations in the prediction checker (#1054)",
+          "timestamp": "2026-08-19T16:43:00+02:00",
+          "tree_id": "1a81628020f31464bdf5794e8c06f8c4295918ed",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/e0e61ae40ca326ac3e911abf35e84802a27ef58a"
+        },
+        "date": 1787154229948,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 64.07,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7560,
             "unit": "LUT"
           },
           {
