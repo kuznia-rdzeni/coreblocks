@@ -128,10 +128,12 @@ class FetchUnit(Elaboratable):
         with Transaction(name="cont").body(m):
             peek_result = serializer.peek(m)
             count = Signal(range(self.gen_params.frontend_superscalarity + 1))
-            # we want at most one branch insn in scheduling group, and only at the end (for simplicity)
+            # A checkpoint is attached to the tag of a whole scheduling group, so an instruction
+            # that creates one must be the last in its group. We allow at most one such insn
+            # per group, and only at the end (for simplicity).
             # some insts in peek_result.data might not be valid, but this is still correct
-            which_is_branch = [0] + [instr.cfi_type == CfiType.BRANCH for instr in peek_result.data][:-1]
-            m.d.comb += count.eq(count_trailing_zeros(Cat(which_is_branch)))
+            which_ends_group = [0] + [instr.commit_checkpoint for instr in peek_result.data][:-1]
+            m.d.comb += count.eq(count_trailing_zeros(Cat(which_ends_group)))
             result = serializer.read(m, count=count)
             for i in range(self.gen_params.frontend_superscalarity):
                 log.info(
@@ -471,6 +473,17 @@ class FetchUnit(Elaboratable):
             fetch_mask = Signal(fetch_width)
             m.d.av_comb += fetch_mask.eq(instr_valid & block_prefix_mask)
 
+            # A checkpoint is needed for every instruction that fetch speculatively continued
+            # past, so that a backend rollback can undo the speculation:
+            #  - a branch always is,
+            #  - a JALR only when the frontend followed a prediction; otherwise fetch stalls on
+            #    it and the backend resolves it by resuming the frontend instead
+            branch_mask = Cat(CfiType.is_branch(instr.cfi_type) for instr in predecoded_instr)
+            followed_jalr = Signal()
+            commit_checkpoint_mask = Signal(fetch_width)
+            m.d.av_comb += followed_jalr.eq(cfi_followed & ~stall_core & CfiType.is_jalr(predcheck_res.cfi_type))
+            m.d.av_comb += commit_checkpoint_mask.eq(Mux(fault_any, 0, branch_mask | (followed_jalr << exit_idx)))
+
             # Aggregate all signals that will be sent out of the fetch unit.
             raw_instrs = Signal(ArrayLayout(self.layouts.raw_instr, fetch_width))
             for i in range(fetch_width):
@@ -479,7 +492,7 @@ class FetchUnit(Elaboratable):
                     raw_instrs[i].pc.eq(params.pc_from_fb(fetch_block_addr, i)),
                     raw_instrs[i].rvc.eq(s1_data.rvc[i]),
                     raw_instrs[i].access_fault.eq(s1_data.access_fault),
-                    raw_instrs[i].cfi_type.eq(predecoded_instr[i].cfi_type),
+                    raw_instrs[i].commit_checkpoint.eq(commit_checkpoint_mask[i]),
                     raw_instrs[i].ftq_ptr.eq(ftq_ptr),
                     raw_instrs[i].ftq_offset.eq(i),
                 ]
