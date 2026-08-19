@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786972368072,
+  "lastUpdate": 1787125952455,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -26965,6 +26965,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6cba40ab4a0754ae2804be5aa7d2e461e58245c3"
         },
         "date": 1786972340866,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5514026943841768,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332363669945053,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.4755993420047282,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6615732451215441,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.38763756042373754,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.4169005795001811,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5013666637387166,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "075dbc29727a9e664eb4c3d3fd714b40ba7ad4e1",
+          "message": "frontend: decouple checkpoint creation from instruction type (#1067)",
+          "timestamp": "2026-08-19T08:58:08+02:00",
+          "tree_id": "00449346cca25c0ff2b0daa34f1abdaf3c4c5c1c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/075dbc29727a9e664eb4c3d3fd714b40ba7ad4e1"
+        },
+        "date": 1787125943709,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
