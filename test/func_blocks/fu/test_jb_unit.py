@@ -202,14 +202,8 @@ ops_auipc = {
     ],
 )
 class TestJumpBranchUnit(FunctionalUnitTestCase[JumpBranchFn.Fn]):
-    unit_param_fixtures = ("unit_params",)
-
     compute_result = compute_result
     zero_imm = False
-
-    @pytest.fixture(autouse=True)
-    def unit_params(self, ops, func_unit, compute_result):
-        return {"ops": ops, "func_unit": func_unit, "compute_result": compute_result}
 
     def test_fu(self):
         self.run_standard_fu_test()

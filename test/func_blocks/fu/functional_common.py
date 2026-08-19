@@ -60,13 +60,10 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     """
 
     ops: dict[_T, ExecFn]
-    func_unit: FunctionalComponentParams
     number_of_tests = 50
     seed = 40
     zero_imm = True
     core_config = configurations.test
-
-    unit_param_fixtures: tuple[str, ...] = ()
 
     @staticmethod
     def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
@@ -91,11 +88,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         raise NotImplementedError
 
     @pytest.fixture(autouse=True)
-    def setup(self, fixture_initialize_testing_env, request):
-        for fixture_name in self.unit_param_fixtures:
-            for key, value in request.getfixturevalue(fixture_name).items():
-                setattr(self, key, value)
-
+    def setup(self, fixture_initialize_testing_env, func_unit: FunctionalComponentParams):
         self.gen_params = GenParams(configurations.test)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionInformationRegisterLayouts).report))
@@ -105,7 +98,7 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         DependencyContext.get().add_dependency(AsyncInterruptInsertSignalKey(), Signal())
         DependencyContext.get().add_dependency(CSRInstancesKey(), self.csrs)
 
-        self.m = SimpleTestCircuit(self.func_unit.get_module(self.gen_params), exclude=["increment_counter"])
+        self.m = SimpleTestCircuit(func_unit.get_module(self.gen_params), exclude=["increment_counter"])
         self.circ = ModuleConnector(dut=self.m, report_mock=self.report_mock, csrs=self.csrs)
 
         random.seed(self.seed)

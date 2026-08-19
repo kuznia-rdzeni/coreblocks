@@ -18,8 +18,6 @@ from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
     ],
 )
 class TestMultiplierUnit(FunctionalUnitTestCase[MulFn.Fn]):
-    unit_param_fixtures = ("unit_params",)
-
     ops = {
         MulFn.Fn.MUL: ExecFn(OpType.MUL, Funct3.MUL, Funct7.MULDIV),
         MulFn.Fn.MULH: ExecFn(OpType.MUL, Funct3.MULH, Funct7.MULDIV),
@@ -48,10 +46,6 @@ class TestMultiplierUnit(FunctionalUnitTestCase[MulFn.Fn]):
                 signed_half_i1 = signed_to_int(i1 % (2 ** (xlen // 2)), xlen // 2)
                 signed_half_i2 = signed_to_int(i2 % (2 ** (xlen // 2)), xlen // 2)
                 return {"result": int_to_signed(signed_half_i1 * signed_half_i2, xlen)}
-
-    @pytest.fixture(autouse=True)
-    def unit_params(self, func_unit):
-        return {"func_unit": func_unit}
 
     def test_fu(self):
         self.run_standard_fu_test()
