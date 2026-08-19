@@ -95,7 +95,6 @@ class JumpBranchWrapperComponent(FunctionalComponentParams):
         return JumpBranchFn().get_op_types()
 
 
-@staticmethod
 def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> dict[str, int]:
     max_int = 2**xlen - 1
     branch_target = pc + signed_to_int(i_imm, xlen)
@@ -157,7 +156,6 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
     } | ({"exception": exception, "exception_pc": exception_pc, "mtval": mtval} if exception is not None else {})
 
 
-@staticmethod
 def compute_result_auipc(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, xlen: int) -> dict[str, int]:
     max_int = 2**xlen - 1
     res = pc + 4
@@ -202,7 +200,6 @@ ops_auipc = {
     ],
 )
 class TestJumpBranchUnit(FunctionalUnitTestCase[JumpBranchFn.Fn]):
-    compute_result = compute_result
     zero_imm = False
 
     def test_fu(self):
