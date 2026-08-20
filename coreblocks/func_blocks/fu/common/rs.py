@@ -12,7 +12,7 @@ from transactron.utils.amaranth_ext.elaboratables import OneHotMux
 from coreblocks.params import GenParams
 from coreblocks.arch import OpType
 from coreblocks.interface.layouts import RSLayouts
-from coreblocks.telemetry.events import Update
+from coreblocks.telemetry.events import OperandWakeup
 from transactron.lib.metrics import HwExpHistogram, TaggedLatencyMeasurer
 from transactron.evlog import EventSource
 from transactron.utils import ReturnDict
@@ -111,7 +111,9 @@ class RSBase(Elaboratable):
                 m.d.comb += matches_s1[i][k].eq(record.rs_data.rp_s1 == reg_id)
                 m.d.comb += matches_s2[i][k].eq(record.rs_data.rp_s2 == reg_id)
                 evlog.emit(
-                    m, Update.hw(rob_id=record.rs_data.rob_id, reg_id=reg_id), when=matches_s1[i][k] | matches_s2[i][k]
+                    m,
+                    OperandWakeup.hw(rob_id=record.rs_data.rob_id, reg_id=reg_id),
+                    when=matches_s1[i][k] | matches_s2[i][k],
                 )
 
         # It is assumed that two simultaneous update calls never update the same physical register.
