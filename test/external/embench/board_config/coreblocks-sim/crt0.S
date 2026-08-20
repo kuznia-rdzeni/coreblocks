@@ -62,10 +62,10 @@ _start:
 
 .inf_loop:
   // Store the return code
-  li t0, 0x80000004
+  li t0, 0xf0000004
   sw a0, 0(t0);
   // Signal that we finished the test
-  li t0, 0x80000000
+  li t0, 0xf0000000
   sw a0, 0(t0);
   j .inf_loop
 
@@ -82,7 +82,7 @@ _fill_block:
   .align 2
 trap_entry:
   // Set the start address of the MMIO
-  li t0, 0x80000000
+  li t0, 0xf0000000
 
   csrr a0, mcause
   sw a0, 8(t0)

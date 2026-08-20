@@ -6,6 +6,9 @@ from transactron.evlog import EventLog
 from transactron.profiler import Profile
 
 
+START_PC = 0x80000000
+
+
 @dataclass
 class SimulationExecutionResult:
     """Information about the result of the simulation.
