@@ -108,25 +108,22 @@ class KonataParser(EventConsumer):
         self.timeline.append((cycle, len(self.timeline), "\t".join(str(col) for col in columns)))
 
     @handles(FTQAlloc)
-    def on_alloc(self, rec: DecodedEvent):
+    def on_alloc(self, rec: DecodedEvent[FTQAlloc]):
         ev = rec.event
-        assert isinstance(ev, FTQAlloc)
         # The allocation itself is not visualized (the FTQ entry's lifetime
         # differs from the instructions'), but the entry must be tracked so
         # that commits and rollbacks cover it.
         self.blocks[ev.ftq_ptr] = _Block(pc=ev.pc)
 
     @handles(FetchRequest)
-    def on_fetch_request(self, rec: DecodedEvent):
+    def on_fetch_request(self, rec: DecodedEvent[FetchRequest]):
         ev = rec.event
-        assert isinstance(ev, FetchRequest)
         block = self.blocks.setdefault(ev.ftq_ptr, _Block(pc=ev.pc))
         block.fetch_cycle = rec.cycle
 
     @handles(InstrFetched)
-    def on_instr_fetched(self, rec: DecodedEvent):
+    def on_instr_fetched(self, rec: DecodedEvent[InstrFetched]):
         ev = rec.event
-        assert isinstance(ev, InstrFetched)
         block = self.blocks.setdefault(ev.ftq_ptr, _Block(pc=ev.pc))
 
         insn_id = self.next_id
@@ -142,27 +139,24 @@ class KonataParser(EventConsumer):
         self._command(rec.cycle, "S", insn_id, 0, "Q")
 
     @handles(InstrDecoded)
-    def on_instr_decoded(self, rec: DecodedEvent):
+    def on_instr_decoded(self, rec: DecodedEvent[InstrDecoded]):
         ev = rec.event
-        assert isinstance(ev, InstrDecoded)
         block = self.blocks.get(ev.ftq_ptr)
         if block is None or ev.ftq_offset not in block.instr_ids:
             return
         self._command(rec.cycle, "S", block.instr_ids[ev.ftq_offset], 0, "D")
 
     @handles(SchedulerEnter)
-    def on_scheduler_enter(self, rec: DecodedEvent):
+    def on_scheduler_enter(self, rec: DecodedEvent[SchedulerEnter]):
         ev = rec.event
-        assert isinstance(ev, SchedulerEnter)
         block = self.blocks.get(ev.ftq_ptr)
         if block is None or ev.ftq_offset not in block.instr_ids:
             return
         self._command(rec.cycle, "S", block.instr_ids[ev.ftq_offset], 0, "Rn")
 
     @handles(RobAllocate)
-    def on_rob_allocate(self, rec: DecodedEvent):
+    def on_rob_allocate(self, rec: DecodedEvent[RobAllocate]):
         ev = rec.event
-        assert isinstance(ev, RobAllocate)
         block = self.blocks.get(ev.ftq_ptr)
         if block is None or ev.ftq_offset not in block.instr_ids:
             return
@@ -175,9 +169,8 @@ class KonataParser(EventConsumer):
         self._command(rec.cycle, "L", insn_id, 1, f" rob_id={ev.rob_id}")
 
     @handles(FuIssue)
-    def on_fu_issue(self, rec: DecodedEvent):
+    def on_fu_issue(self, rec: DecodedEvent[FuIssue]):
         ev = rec.event
-        assert isinstance(ev, FuIssue)
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
@@ -185,27 +178,24 @@ class KonataParser(EventConsumer):
         self._command(rec.cycle, "L", insn_id, 1, f" fu={ev.unit}")
 
     @handles(ExecComplete)
-    def on_exec_complete(self, rec: DecodedEvent):
+    def on_exec_complete(self, rec: DecodedEvent[ExecComplete]):
         ev = rec.event
-        assert isinstance(ev, ExecComplete)
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
         self._command(rec.cycle, "S", insn_id, 0, "Cm")
 
     @handles(Update)
-    def on_update(self, rec: DecodedEvent):
+    def on_update(self, rec: DecodedEvent[Update]):
         ev = rec.event
-        assert isinstance(ev, Update)
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
         self._command(rec.cycle, "W", insn_id, self.by_rp_dst[ev.reg_id], 0)
 
     @handles(RobRetire)
-    def on_rob_retire(self, rec: DecodedEvent):
+    def on_rob_retire(self, rec: DecodedEvent[RobRetire]):
         ev = rec.event
-        assert isinstance(ev, RobRetire)
         insn_id = self.rob.pop(ev.rob_id, None)
         if insn_id is None or insn_id in self.terminated:
             return
@@ -217,9 +207,8 @@ class KonataParser(EventConsumer):
             del self.rp_dst[insn_id]
 
     @handles(RobFlush)
-    def on_rob_flush(self, rec: DecodedEvent):
+    def on_rob_flush(self, rec: DecodedEvent[RobFlush]):
         ev = rec.event
-        assert isinstance(ev, RobFlush)
         insn_id = self.rob.pop(ev.rob_id, None)
         if insn_id is None or insn_id in self.terminated:
             return
@@ -230,9 +219,8 @@ class KonataParser(EventConsumer):
             del self.rp_dst[insn_id]
 
     @handles(FTQCommit)
-    def on_commit(self, rec: DecodedEvent):
+    def on_commit(self, rec: DecodedEvent[FTQCommit]):
         ev = rec.event
-        assert isinstance(ev, FTQCommit)
         # The commit pointer is the oldest live FTQ entry, so all entries
         # strictly before it are fully retired (each instruction got its own
         # `RobRetire`); they only need to be dropped from the bookkeeping.
@@ -240,9 +228,8 @@ class KonataParser(EventConsumer):
             del self.blocks[key]
 
     @handles(FTQRollback)
-    def on_rollback(self, rec: DecodedEvent):
+    def on_rollback(self, rec: DecodedEvent[FTQRollback]):
         ev = rec.event
-        assert isinstance(ev, FTQRollback)
         # `ftq_ptr` is the new allocation pointer: it and everything
         # allocated after it is squashed. Instructions already flushed from
         # the ROB (via `RobFlush`) are skipped; blocks squashed before
