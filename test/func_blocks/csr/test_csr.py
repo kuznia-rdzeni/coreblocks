@@ -9,10 +9,16 @@ from coreblocks.priv.csr.csr_instances import CSRInstances
 from coreblocks.params import GenParams
 from coreblocks.arch import Funct3, ExceptionCause, OpType, CSRAddress
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import ExceptionRegisterLayouts, RetirementLayouts, FetchLayouts, CSRRegisterLayouts
+from coreblocks.interface.layouts import (
+    ExceptionInformationRegisterLayouts,
+    RATLayouts,
+    RetirementLayouts,
+    FetchLayouts,
+    CSRRegisterLayouts,
+)
 from coreblocks.interface.keys import (
+    ActiveTagsKey,
     AsyncInterruptInsertSignalKey,
-    CoreStateKey,
     UnsafeInstructionResolvedKey,
     ExceptionReportKey,
     SideFxGuardKey,
@@ -45,11 +51,14 @@ class CSRUnitTestCircuit(Elaboratable):
             Adapter(o=self.gen_params.get(RetirementLayouts).core_state)
         )
         m.submodules.exception_report = self.exception_report = TestbenchIO(
-            Adapter(i=self.gen_params.get(ExceptionRegisterLayouts).report)
+            Adapter(i=self.gen_params.get(ExceptionInformationRegisterLayouts).report)
+        )
+        m.submodules.tags_active = self.tags_active = TestbenchIO(
+            Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out)
         )
         DependencyContext.get().add_dependency(SideFxGuardKey(), self.side_fx_guard.adapter.iface)
         DependencyContext.get().add_dependency(ExceptionReportKey(), lambda: self.exception_report.adapter.iface)
-        DependencyContext.get().add_dependency(CoreStateKey(), self.core_state.adapter.iface)
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.tags_active.adapter.iface)
 
         m.submodules.dut = self.dut = CSRUnit(self.gen_params)
 
@@ -96,9 +105,9 @@ class CSRUnitTestCircuit(Elaboratable):
 class TestCSRUnitBase(TestCaseWithSimulator):
     dut: CSRUnitTestCircuit
 
-    @def_method_mock(lambda self: self.dut.core_state)
-    def core_state_mock(self):
-        return {"flushing": 0}
+    @def_method_mock(lambda self: self.dut.tags_active)  # type: ignore
+    def tags_active_mock(self):
+        return {"active_tags": [1 for _ in range(self.dut.tags_active.adapter.iface.layout_out.size)]}
 
 
 class TestCSRUnit(TestCSRUnitBase):
@@ -279,7 +288,7 @@ class TestCSRUnit(TestCSRUnitBase):
             assert report is not None
             report_dict = data_const_to_dict(report)
             report_dict.pop("mtval")  # mtval tested in mtval.asm test
-            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
+            assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0, "tag": 0} == report_dict
 
     def test_exception(self):
         self.gen_params = GenParams(configurations.test)
@@ -338,7 +347,7 @@ class TestCSRUnit(TestCSRUnitBase):
                 assert report is not None
                 report_dict = data_const_to_dict(report)
                 report_dict.pop("mtval")
-                assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0} == report_dict
+                assert {"rob_id": rob_id, "cause": ExceptionCause.ILLEGAL_INSTRUCTION, "pc": 0, "tag": 0} == report_dict
             else:
                 assert report is None
 

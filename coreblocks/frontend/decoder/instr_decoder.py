@@ -154,7 +154,7 @@ class InstrDecoder(Elaboratable):
         Assign
             Assignment of signal.
         """
-        return sig.eq(self.instr[start : start + len(sig)])
+        return Value.cast(sig).eq(self.instr[start : start + len(Value.cast(sig))])
 
     def elaborate(self, platform):
         m = Module()

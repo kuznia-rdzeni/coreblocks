@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 COCOTB_CONFIG=`which -a cocotb-config | tail -n 1`
 

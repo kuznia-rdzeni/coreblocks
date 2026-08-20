@@ -15,6 +15,7 @@ from coreblocks.interface.keys import (
     CommonBusDataKey,
     InstructionAddressTranslatorBackingDeviceKey,
     DataAddressTranslatorBackingDeviceKey,
+    RVVIHartCollectorKey,
 )
 from coreblocks.params.genparams import GenParams
 from coreblocks.core_structs.crat import CheckpointRAT
@@ -34,6 +35,7 @@ from coreblocks.priv.vmem.tlb import FullyAssociativeTLB, SetAssociativeTLB
 from coreblocks.priv.vmem.walker import PageTableWalker
 from transactron.lib.metrics import HwMetricsEnabledKey, TaggedCounter
 from transactron.evlog import EvLogEnabledKey
+from coreblocks.telemetry.rvvi import RVVIAggregator, RVVIHartCollector
 
 __all__ = ["Core"]
 
@@ -44,20 +46,26 @@ class Core(Component):
     interrupts: Signal
 
     def __init__(self, *, gen_params: GenParams):
-        super().__init__(
-            {
-                "wb_instr": Out(WishboneInterface(gen_params.wb_params).signature),
-                "wb_data": Out(WishboneInterface(gen_params.wb_params).signature),
-                "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
-            }
-        )
-
         self.gen_params = gen_params
 
         self.dm = DependencyContext.get()
         if self.gen_params.debug_signals_enabled:
             self.dm.add_dependency(HwMetricsEnabledKey(), True)
             self.dm.add_dependency(EvLogEnabledKey(), True)
+
+        signature = {
+            "wb_instr": Out(WishboneInterface(gen_params.wb_params).signature),
+            "wb_data": Out(WishboneInterface(gen_params.wb_params).signature),
+            "interrupts": In(ISA_RESERVED_INTERRUPTS + gen_params.interrupt_custom_count),
+        }
+
+        if self.gen_params.has_rvvi:
+            self.rvvi_collector = RVVIHartCollector(self.gen_params)
+            self.rvvi_aggregator = RVVIAggregator([self.rvvi_collector])
+            self.dm.add_dependency(RVVIHartCollectorKey(), self.rvvi_collector)
+            signature["rvvi_trace"] = Out(self.rvvi_aggregator.signature)
+
+        super().__init__(signature)
 
         self.wb_master_instr = WishboneMaster(self.gen_params.wb_params, "instr")
         self.wb_master_data = WishboneMaster(self.gen_params.wb_params, "data")
@@ -124,11 +132,8 @@ class Core(Component):
 
         self.retirement = Retirement(self.gen_params)
 
-        self.exception_information_register = ExceptionInformationRegister(
-            self.gen_params,
-            rob_get_indices=self.ROB.get_indices,
-            fetch_stall_exception=self.frontend.stall,
-        )
+        self.exception_information_register = ExceptionInformationRegister(self.gen_params)
+        self.exception_information_register.rob_get_indices.provide(self.ROB.get_indices)
 
         self.func_blocks_unifier = FuncBlocksUnifier(
             gen_params=gen_params,
@@ -170,6 +175,7 @@ class Core(Component):
             m.submodules.l1d_tlb = self.l1d_tlb
 
         m.submodules.frontend = self.frontend
+        self.frontend.get_exception_information.provide(self.exception_information_register.get)
 
         m.submodules.rf_allocator = rf_allocator = self.rf_allocator
         m.submodules.CRAT = crat = self.CRAT
@@ -181,6 +187,12 @@ class Core(Component):
         m.submodules.interrupt_controller = self.interrupt_controller
         m.d.comb += self.interrupt_controller.internal_report_level.eq(self.interrupts[0:16])
         m.d.comb += self.interrupt_controller.custom_report.eq(self.interrupts[16:])
+
+        if self.gen_params.has_rvvi:
+            m.submodules.rvvi_collector = self.rvvi_collector
+            m.submodules.rvvi_aggregator = self.rvvi_aggregator
+
+            connect(m.top_module, flipped(self.rvvi_trace), self.rvvi_aggregator)  # type: ignore
 
         m.submodules.core_counter = core_counter = CoreInstructionCounter(self.gen_params)
 
@@ -218,7 +230,7 @@ class Core(Component):
             announcement.rf_write_val.provide(self.RF.write[i])
             announce_result.append(announcement.push_result)
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             self.announcement_counter.incr(m, tag=sum(method.run for method in announce_result))
 
         for i, announcement_set in enumerate(self.gen_params.announcement_config):
@@ -236,11 +248,10 @@ class Core(Component):
         retirement.exception_cause_get.provide(self.exception_information_register.get)
         retirement.exception_cause_clear.provide(self.exception_information_register.clear)
         retirement.c_rat_restore.provide(crat.flush_restore)
-        retirement.fetch_continue.provide(self.frontend.resume_from_exception)
+        retirement.fetch_redirect.provide(self.frontend.redirect)
         retirement.instr_decrement.provide(core_counter.decrement)
         retirement.trap_entry.provide(self.interrupt_controller.entry)
         retirement.async_interrupt_cause.provide(self.interrupt_controller.interrupt_cause)
-        retirement.checkpoint_get_active_tags.provide(crat.get_active_tags)
         retirement.checkpoint_tag_free.provide(crat.free_tag)
 
         m.submodules.func_blocks_unifier = self.func_blocks_unifier

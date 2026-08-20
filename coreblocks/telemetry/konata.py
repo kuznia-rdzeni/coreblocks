@@ -19,20 +19,7 @@ import capstone
 
 from transactron.evlog import DecodedEvent, EventConsumer, EventLogReader, handles
 
-from .events import (
-    ExecComplete,
-    FetchRequest,
-    FTQAlloc,
-    FTQCommit,
-    FTQRollback,
-    FuIssue,
-    InstrDecoded,
-    InstrFetched,
-    RobAllocate,
-    RobFlush,
-    RobRetire,
-    SchedulerEnter,
-)
+from .events import *
 
 
 __all__ = ["KonataParser"]
@@ -61,7 +48,7 @@ class KonataParser(EventConsumer):
     - "Rn" (rename) from entering the scheduler,
     - "Ds" (dispatch) from ROB allocation (which is where the
       instruction becomes identified by its ROB id),
-    - "Is" (issue) from being issued to a functional unit,
+    - "IX" (issue) from being issued to a functional unit,
     - "Cm" once execution completes.
 
     The instruction terminates by retiring (`RobRetire`) or being squashed.
@@ -76,6 +63,10 @@ class KonataParser(EventConsumer):
         self.blocks: dict[int, _Block] = {}
         # Kanata instruction ids of live ROB entries, keyed by the ROB id.
         self.rob: dict[int, int] = {}
+        # Physical register ids associated with Kanata instruction ids.
+        self.rp_dst: dict[int, int] = {}
+        # Kanata instuction ids keyed by target physical register ids.
+        self.by_rp_dst: dict[int, int] = {}
         # Kanata instruction ids with a terminal (retire/flush) record.
         self.terminated: set[int] = set()
         # (cycle, sequence number, line) command timeline; the sequence
@@ -101,6 +92,13 @@ class KonataParser(EventConsumer):
 
     def _command(self, cycle: int, *columns) -> None:
         self.timeline.append((cycle, len(self.timeline), "\t".join(str(col) for col in columns)))
+
+    def _forget_dst(self, insn_id: int) -> None:
+        """Drops the destination register mapping of a terminated instruction,
+        unless the register was already reallocated to a younger one."""
+        rp_dst = self.rp_dst.pop(insn_id, None)
+        if rp_dst is not None and self.by_rp_dst.get(rp_dst) == insn_id:
+            del self.by_rp_dst[rp_dst]
 
     @handles(FTQAlloc)
     def on_alloc(self, rec: DecodedEvent):
@@ -163,6 +161,9 @@ class KonataParser(EventConsumer):
             return
         insn_id = block.instr_ids[ev.ftq_offset]
         self.rob[ev.rob_id] = insn_id
+        if ev.rp_dst:
+            self.rp_dst[insn_id] = ev.rp_dst
+            self.by_rp_dst[ev.rp_dst] = insn_id
         self._command(rec.cycle, "S", insn_id, 0, "Ds")
         self._command(rec.cycle, "L", insn_id, 1, f" rob_id={ev.rob_id}")
 
@@ -173,7 +174,7 @@ class KonataParser(EventConsumer):
         insn_id = self.rob.get(ev.rob_id)
         if insn_id is None or insn_id in self.terminated:
             return
-        self._command(rec.cycle, "S", insn_id, 0, "Is")
+        self._command(rec.cycle, "S", insn_id, 0, "IX")
         self._command(rec.cycle, "L", insn_id, 1, f" fu={ev.unit}")
 
     @handles(ExecComplete)
@@ -185,6 +186,16 @@ class KonataParser(EventConsumer):
             return
         self._command(rec.cycle, "S", insn_id, 0, "Cm")
 
+    @handles(OperandWakeup)
+    def on_update(self, rec: DecodedEvent):
+        ev = rec.event
+        assert isinstance(ev, OperandWakeup)
+        insn_id = self.rob.get(ev.rob_id)
+        producer_id = self.by_rp_dst.get(ev.reg_id)
+        if insn_id is None or producer_id is None or insn_id in self.terminated:
+            return
+        self._command(rec.cycle, "W", insn_id, producer_id, 0)
+
     @handles(RobRetire)
     def on_rob_retire(self, rec: DecodedEvent):
         ev = rec.event
@@ -195,6 +206,7 @@ class KonataParser(EventConsumer):
         self._command(rec.cycle, "R", insn_id, self.next_retire_id, 0)
         self.next_retire_id += 1
         self.terminated.add(insn_id)
+        self._forget_dst(insn_id)
 
     @handles(RobFlush)
     def on_rob_flush(self, rec: DecodedEvent):
@@ -205,6 +217,7 @@ class KonataParser(EventConsumer):
             return
         self._command(rec.cycle, "R", insn_id, 0, 1)
         self.terminated.add(insn_id)
+        self._forget_dst(insn_id)
 
     @handles(FTQCommit)
     def on_commit(self, rec: DecodedEvent):
@@ -228,6 +241,7 @@ class KonataParser(EventConsumer):
         for key in self._entries_from(ev.ftq_ptr):
             for insn_id in self.blocks.pop(key).instr_ids.values():
                 flushed.add(insn_id)
+                self._forget_dst(insn_id)
                 if insn_id in self.terminated:
                     continue
                 self._command(rec.cycle, "R", insn_id, 0, 1)

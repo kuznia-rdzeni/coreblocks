@@ -14,7 +14,7 @@ jobs:
   synthesis:
     strategy:
       matrix:
-        config: [basic, full]
+        config: [tiny, basic, full]
         platform: [ecp5, xc7k480t]
         include:
           - platform: ecp5
@@ -152,13 +152,29 @@ jobs:
       - name: Run benchmarks
         run: |
           . venv/bin/activate
-          scripts/run_benchmarks.py -o perf_benchmark.json --summary perf.md
+          scripts/run_benchmarks.py --evlog -o perf_benchmark.json --summary perf.md
           cat perf.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Convert event logs to the pipeline viewer format
+        run: |
+          . venv/bin/activate
+          mkdir -p kanata
+          for evlog in test/__evlogs__/*.jsonl; do
+            name=$(basename "$evlog" .jsonl)
+            python3 -m coreblocks.telemetry.konata "$evlog" -o "kanata/$name.log"
+          done
 
       - uses: actions/upload-artifact@v7
         with:
           name: perf_benchmark_results
           path: perf_benchmark.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: perf_benchmark_kanata
+          path: kanata
+          compression-level: 9
+          retention-days: 3
 
   pr-summary:
     name: Create benchmark summary for a pull request
@@ -223,10 +239,10 @@ jobs:
             echo
             echo "You can view all the metrics [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
             echo "### Synthesis benchmarks (ECP5)"
-            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-ecp5.json --results full synth-benchmark-full-ecp5.json
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results tiny synth-benchmark-tiny-ecp5.json --results basic synth-benchmark-basic-ecp5.json --results full synth-benchmark-full-ecp5.json
             echo
             echo "### Synthesis benchmarks (XC7K480T)"
-            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results basic synth-benchmark-basic-xc7k480t.json --results full synth-benchmark-full-xc7k480t.json
+            ci/print_benchmark_summary.py --results-dir artifacts --baseline-dir . --precision 0 --results tiny synth-benchmark-tiny-xc7k480t.json --results basic synth-benchmark-basic-xc7k480t.json --results full synth-benchmark-full-xc7k480t.json
             echo
           } >> summary/comment.md
 
@@ -274,10 +290,20 @@ jobs:
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
 
+      - name: Store synthesis benchmark result (tiny, ECP5)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (tiny, ECP5)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-tiny-ecp5.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
       - name: Store synthesis benchmark result (basic, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Fmax and LCs (basic)
+          name: Fmax and LCs (basic, ECP5)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-basic-ecp5.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -287,9 +313,19 @@ jobs:
       - name: Store synthesis benchmark result (full, ECP5)
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Fmax and LCs (full)
+          name: Fmax and LCs (full, ECP5)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-full-ecp5.json'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: "dev/benchmark"
+
+      - name: Store synthesis benchmark result (tiny, XC7K480T)
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Fmax and LCs (tiny, XC7K480T)
+          tool: 'customBiggerIsBetter'
+          output-file-path: './synth-benchmark-tiny-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
@@ -297,7 +333,7 @@ jobs:
       - name: Store synthesis benchmark result (basic, XC7K480T)
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Fmax and LCs (basic)
+          name: Fmax and LCs (basic, XC7K480T)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-basic-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -307,7 +343,7 @@ jobs:
       - name: Store synthesis benchmark result (full, XC7K480T)
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Fmax and LCs (full)
+          name: Fmax and LCs (full, XC7K480T)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-full-xc7k480t.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}

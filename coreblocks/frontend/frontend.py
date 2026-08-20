@@ -5,7 +5,7 @@ from transactron.lib import BasicFifo, Connect, Pipe
 from transactron.utils import assign
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.arch.optypes import OpType
+from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.ftq import FetchTargetQueue
 from coreblocks.frontend.decoder.decode_stage import DecodeStage
@@ -55,23 +55,17 @@ class RollbackTagger(Elaboratable):
 
             out = Signal(self.gen_params.get(DecodeLayouts).tagged_decode_result)
             m.d.av_comb += assign(out, instrs)
-            # TODO: as branch is always the first insn, these should be per group
+            # TODO: as the checkpointing insn is always the last one, these should be per group
             for i in range(self.gen_params.frontend_superscalarity):
-                # fetcher guarantees that if branch is present, it's the last insn
-                # but computing this for each insn is simpler
-                is_branch = instrs.data[i].exec_fn.op_type == OpType.BRANCH
-                # no need to make checkpoint at JALR, we currently stall the fetch on it
-
                 m.d.av_comb += out.data[i].rollback_tag.eq(rollback_tag)
                 m.d.av_comb += out.data[i].rollback_tag_v.eq(rollback_tag_v)
-                m.d.av_comb += out.data[i].commit_checkpoint.eq(is_branch)
 
             m.d.sync += rollback_tag_v.eq(0)
 
             self.push_instr(m, out)
 
         @def_method(m, self.rollback)
-        def _(tag: Value):
+        def _(tag, pc, ftq_ptr):
             m.d.sync += rollback_tag.eq(tag)
             m.d.sync += rollback_tag_v.eq(1)
 
@@ -84,17 +78,18 @@ class CoreFrontend(Elaboratable):
     consume_instr: Provided[Method]
     """Consume a single decoded instruction."""
 
-    resume_from_exception: Provided[Method]
-    """Resume the frontend from the given PC after an exception."""
+    redirect: Provided[Method]
+    """Redirect the frontend to a new PC."""
 
-    stall: Provided[Method]
-    """Stall and flush the frontend."""
+    get_exception_information: Required[Method]
 
     def __init__(self, *, gen_params: GenParams, instr_bus: BusMasterInterface):
         self.gen_params = gen_params
         self.connections = DependencyContext.get()
 
-        self.instr_buffer = BasicFifo(self.gen_params.get(FetchLayouts).fetch_result, self.gen_params.instr_buffer_size)
+        layouts = self.gen_params.get(FetchLayouts)
+
+        self.instr_buffer = BasicFifo(layouts.fetch_result, self.gen_params.instr_buffer_size)
 
         cache_layouts = self.gen_params.get(ICacheLayouts)
         if gen_params.icache_params.enable:
@@ -108,8 +103,6 @@ class CoreFrontend(Elaboratable):
         self.stall_ctrl = StallController(self.gen_params)
 
         self.fetch = FetchUnit(self.gen_params, self.icache)
-        self.fetch.cont.provide(self.instr_buffer.write)
-        self.fetch.stall_unsafe.provide(self.stall_ctrl.stall_unsafe)
 
         # TODO: change back to Pipe after Scheduler made superscalar
         self.output_pipe = Pipe(self.gen_params.get(SchedulerLayouts).scheduler_in)
@@ -118,20 +111,26 @@ class CoreFrontend(Elaboratable):
         self.bpu = BranchPredictionUnit(self.gen_params)
         self.ftq = FetchTargetQueue(self.gen_params)
 
-        self.consume_instr = Method(o=self.gen_params.get(SchedulerLayouts).scheduler_in)
-        self.resume_from_exception = self.stall_ctrl.resume_from_exception
-        self.stall = Method()
-
         self.rollback_tagger = RollbackTagger(self.gen_params)
+
+        self.consume_instr = Method(o=self.gen_params.get(SchedulerLayouts).scheduler_in)
+        self.redirect = Method(i=layouts.backend_redirect)
+
+        self.get_exception_information = Method(o=gen_params.get(ExceptionInformationRegisterLayouts).get)
 
     def elaborate(self, platform):
         m = TModule()
+
+        flush = Method()
+        self.stall_ctrl.frontend_flush.provide(flush)
 
         if self.gen_params.icache_params.enable:
             m.submodules.icache_refiller = self.icache_refiller
         m.submodules.icache = self.icache
 
         m.submodules.fetch = self.fetch
+        self.fetch.cont.provide(self.instr_buffer.write)
+        self.fetch.stall_unsafe.provide(self.stall_ctrl.stall_unsafe)
         m.submodules.instr_buffer = self.instr_buffer
 
         m.submodules.ftq = self.ftq
@@ -139,6 +138,7 @@ class CoreFrontend(Elaboratable):
 
         self.ftq.bpu_request.provide(self.bpu.request)
         self.ftq.bpu_flush.provide(self.bpu.flush)
+        self.ftq.bpu_update.provide(self.bpu.update)
         self.ftq.stall_guard.provide(self.stall_ctrl.stall_guard)
         self.bpu.write_prediction.provide(self.ftq.bpu_response)
 
@@ -146,7 +146,6 @@ class CoreFrontend(Elaboratable):
         self.fetch.fetch_writeback.provide(self.ftq.ifu_writeback)
         self.fetch.check_stale.provide(self.ftq.check_stale)
         self.fetch.read_prediction.provide(self.ftq.read_prediction)
-        self.stall_ctrl.redirect_frontend.provide(self.ftq.backend_redirect)
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
         decode.get_raw.provide(self.instr_buffer.read)
@@ -162,13 +161,27 @@ class CoreFrontend(Elaboratable):
         m.submodules.output_pipe = self.output_pipe
 
         m.submodules.stall_ctrl = self.stall_ctrl
+        self.stall_ctrl.redirect_frontend.provide(self.redirect)
+        self.stall_ctrl.get_exception_information.provide(self.get_exception_information)
 
-        @def_method(m, self.stall)
+        rollback = Method(i=self.gen_params.get(RATLayouts).rollback_in)
+        self.connections.add_dependency(RollbackKey(), rollback)
+
+        @def_method(m, self.redirect)
+        def _(ftq_ptr, pc):
+            flush(m)
+            self.ftq.backend_redirect(m, ftq_ptr=ftq_ptr, pc=pc)
+            self.stall_ctrl.on_redirect_frontend(m)
+
+        @def_method(m, rollback)
+        def _(tag, pc, ftq_ptr):
+            self.redirect(m, ftq_ptr=ftq_ptr, pc=pc)
+
+        @def_method(m, flush, nonexclusive=True)
         def _():
             self.fetch.flush(m)
             self.instr_buffer.clear(m)
             self.output_pipe.clear(m)
             self.bpu.flush(m)
-            self.stall_ctrl.stall_exception(m)
 
         return m

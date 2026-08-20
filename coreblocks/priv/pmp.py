@@ -2,7 +2,7 @@ from amaranth import *
 from amaranth.lib import data
 from amaranth.lib.enum import Enum, auto, unique
 from amaranth_types import HasElaborate
-from transactron.core import TModule
+from transactron.core import TModule, Transaction
 from transactron.utils import DependencyContext, OneHotMux, assign, AssignType, make_layout
 
 from coreblocks.arch.isa_consts import PMPAFlagEncoding, PMPCfgLayout, PrivilegeLevel
@@ -176,9 +176,13 @@ class DynamicAreaPMPChecker(Elaboratable):
         else:
             m.d.comb += self.uniform.eq(selected.matches_all)
 
-        priv_mode = self.csr.priv_mode.value
-        mprv = self.csr.mstatus_mprv.value
-        mpp = self.csr.mstatus_mpp.value
+        priv_mode = Signal(PrivilegeLevel)
+        mprv = Signal()
+        mpp = Signal()
+        with Transaction().always_body(m):
+            m.d.av_comb += priv_mode.eq(self.csr.priv_mode.read(m))
+            m.d.av_comb += mprv.eq(self.csr.mstatus_mprv.read(m))
+            m.d.av_comb += mpp.eq(self.csr.mstatus_mpp.read(m))
 
         effective_priv_mode = Signal(PrivilegeLevel)
         match self.mode:

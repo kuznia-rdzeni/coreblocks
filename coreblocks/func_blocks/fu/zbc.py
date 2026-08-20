@@ -9,7 +9,7 @@ from coreblocks.func_blocks.interface.func_protocols import FuncUnit
 from coreblocks.params import GenParams, FunctionalComponentParams
 from coreblocks.arch import OpType, Funct3
 from transactron import Transaction, def_method
-from transactron.lib import FIFO
+from transactron.lib import BasicFifo
 from transactron.utils import OneHotSwitch
 
 
@@ -160,7 +160,7 @@ class ZbcUnit(FuncUnitBase[ZbcFn]):
     def elaborate(self, platform):
         m = super().elaborate(platform)
 
-        m.submodules.params_fifo = params_fifo = FIFO(
+        m.submodules.params_fifo = params_fifo = BasicFifo(
             [
                 ("rob_id", self.gen_params.rob_entries_bits),
                 ("rp_dst", self.gen_params.phys_regs_bits),

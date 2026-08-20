@@ -14,6 +14,7 @@ from coreblocks.arch.isa import Extension
 from coreblocks.arch.isa_consts import (
     PAGE_SIZE_LOG,
     HPMEvent,
+    MisaExtension,
     SatpMode,
 )
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding, TrapVectorMode, PMPAFlagEncoding, PMPCfgLayout
@@ -253,7 +254,7 @@ class MachineModeCSRRegisters(Elaboratable):
             if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
                 m.submodules[name] = value
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             self.mcycle.increment(m)
 
         def hpm_event_combiner(m, args, runs):
@@ -409,36 +410,21 @@ class MachineModeCSRRegisters(Elaboratable):
         )
 
     def _misa_value(self, gen_params):
-        misa_value = 0
+        misa_ext = MisaExtension(0)
 
-        misa_extension_bits = {
-            0: Extension.A,
-            1: Extension.B,
-            2: Extension.C,
-            3: Extension.D,
-            4: Extension.E,
-            5: Extension.F,
-            8: Extension.I,
-            12: Extension.M,
-            16: Extension.Q,
-            21: Extension.V,
-        }
-
-        for bit, extension in misa_extension_bits.items():
-            if extension in gen_params.isa.extensions:
-                misa_value |= 1 << bit
+        for ext in gen_params.isa.extensions:
+            if ext.name in MisaExtension:
+                misa_ext |= MisaExtension[ext.name]
 
         if gen_params.supervisor_mode:
-            misa_value |= 1 << 18
+            misa_ext |= MisaExtension.S
 
         if gen_params.user_mode:
-            misa_value |= 1 << 20
-        # 7 - Hypervisor, 23 - Custom Extensions
+            misa_ext |= MisaExtension.U
 
-        xml_field_mapping = {32: XlenEncoding.W32, 64: XlenEncoding.W64, 128: XlenEncoding.W128}
-        misa_value |= xml_field_mapping[gen_params.isa.xlen] << (gen_params.isa.xlen - 2)
+        misa_xlen = XlenEncoding.from_xlen(gen_params.isa.xlen)
 
-        return misa_value
+        return misa_ext.value | misa_xlen.value << (gen_params.isa.xlen - 2)
 
 
 class SupervisorModeCSRRegisters(Elaboratable):
@@ -605,7 +591,7 @@ class CSRInstances(Elaboratable):
         m.d.sync += time_counter.eq(time_counter + 1)
         time_source = time_counter if clint_mtime is None else clint_mtime
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             if clint_mtime is not None:
                 self.time.write(m, data=time_source[: self.time.width])
                 if self.gen_params.isa.xlen == 32:
@@ -615,7 +601,7 @@ class CSRInstances(Elaboratable):
         if self.gen_params.isa.xlen == 32:
             m.submodules.timeh = self.timeh
 
-        with Transaction().body(m):
+        with Transaction().always_body(m):
             priv_mode = self.m_mode.priv_mode.read(m).data
             mprv = self.m_mode.mstatus_mprv.read(m).data
             log.assertion(

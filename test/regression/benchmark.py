@@ -55,7 +55,7 @@ class MMIO(RandomAccessMemory):
 
     def __init__(self, on_finish: Callable[[], None]):
         super().__init__(
-            range(0x80000000, 0x80000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * MMIO.SIZE
+            range(0xF0000000, 0xF0000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * MMIO.SIZE
         )
         self.on_finish = on_finish
 

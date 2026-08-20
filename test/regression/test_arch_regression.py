@@ -1,17 +1,14 @@
 from typing import Literal
 from pathlib import Path
-from filelock import FileLock
 import pytest
 import argparse
+import re
 import os
-import subprocess
-import sys
-import tempfile
 import asyncio
-import xml.etree.ElementTree as eT
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
 from .pysim import PySimulation
+from .common import START_PC
 from .memory import (
     CoreMemoryModel,
     MemorySegment,
@@ -23,28 +20,14 @@ from .memory import (
     WriteRequest,
     load_segments_from_elf,
 )
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build" / "riscv-arch-test"
-TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
-
-VERILOG_LOCK_FILE = BUILD_ROOT / "verilog.lock"
-VERILOG_STAMP = BUILD_ROOT / "verilog.built"
-VERILOG_ROOT = BUILD_ROOT / "verilog"
-
-BUILT_LOCK_FILE = BUILD_ROOT / "cocotb.lock"
-
-CORE_V = VERILOG_ROOT / "core.v"
-CORE_V_JSON = VERILOG_ROOT / "core.v.json"
+from .cocotb import run_cocotb_entrypoint
 
 REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
 
 END_TEST_ADDRESS = 0xF0000000
 CONSOLE_ADDRESS = 0xF0001000
-ACCESS_FAULT_ADDRESS = 0x00000000
 INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
-
-START_PC = 0x80000000
+ACCESS_FAULT_ADDRESS = 0x00000000
 
 
 class EndTestMMIO(MemorySegment):
@@ -130,25 +113,6 @@ class InterruptGeneratorMMIO(MemorySegment):
         return WriteReply()
 
 
-def get_arg_list(test_name: str, result_path: str, traces: bool = False) -> list[str]:
-    arglist = ["make", "-C", str(TEST_ROOT), "-f", "arch_test.Makefile"]
-    arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
-    arglist += [f"VERILOG_SOURCES={CORE_V}"]
-    arglist += [f"TESTNAME={test_name}"]
-    if result_path:
-        arglist += [f"COCOTB_RESULTS_FILE={result_path}"]
-
-    if traces:
-        arglist += ["TRACES=1"]
-
-    return arglist
-
-
-def _set_transactron_env_defaults() -> None:
-    os.environ.setdefault("__TRANSACTRON_LOG_LEVEL", "WARNING")
-    os.environ.setdefault("__TRANSACTRON_LOG_FILTER", ".*")
-
-
 def build_memory_model(elf_path: str | Path, stop_callback, **kwargs):
     segments = []
     segments.extend(load_segments_from_elf(str(elf_path), **kwargs))
@@ -162,7 +126,6 @@ def build_memory_model(elf_path: str | Path, stop_callback, **kwargs):
 
 
 async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 2_000_000):
-    _set_transactron_env_defaults()
     elf_path = Path(elf_path).resolve()
 
     # Tests use self-modifying code for CSR access in lower privilege modes (see CSR_ACCESS)
@@ -170,6 +133,8 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         elf_path,
         sim_backend.stop,
         do_workarounds=False,
+        disable_write_protection=re.match("Zifencei", elf_path.name) is not None,
+        force_executable=True,
     )
 
     result = await sim_backend.run(
@@ -189,7 +154,7 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
         raise RuntimeError("Simulation timed out")
 
     if endtest.written_value != 1:
-        raise RuntimeError("Failing test: %d" % endtest.written_value)
+        raise RuntimeError(f"Failing test: {endtest.written_value}")
 
 
 async def run_test(sim_backend, test_name: str):
@@ -200,68 +165,14 @@ async def run_test(sim_backend, test_name: str):
     await run_arch_elf(sim_backend, elf_path, timeout_cycles=2_000_000)
 
 
-def ensure_arch_test_cocotb_build():
-    _set_transactron_env_defaults()
-
-    VERILOG_ROOT.mkdir(parents=True, exist_ok=True)
-
-    if VERILOG_STAMP.exists():
-        return
-
-    with FileLock(VERILOG_LOCK_FILE):
-        if VERILOG_STAMP.exists():
-            return
-
-        command = [
-            sys.executable,
-            "-m",
-            "coreblocks.gen_verilog",
-            "--config",
-            "full",
-            "--reset-pc",
-            f"0x{START_PC:x}",
-            "--with-socks",
-            "-o",
-            str(CORE_V),
-        ]
-        subprocess.run(command, check=True, cwd=REPO_ROOT)
-        VERILOG_STAMP.write_text("built\n")
-
-
-def build_cocotb_module_under_lock(traces: bool) -> None:
-    # Ensure the Verilog sources are present
-    ensure_arch_test_cocotb_build()
-
-    with FileLock(BUILT_LOCK_FILE):
-        tmp_result_file = tempfile.NamedTemporaryFile("r")
-        arglist = get_arg_list("SKIP", tmp_result_file.name, traces=traces)
-        res = subprocess.run(arglist)
-        if res.returncode != 0:
-            raise RuntimeError("Arch test cocotb make build failed")
-
-        tree = eT.parse(tmp_result_file.name)
-        if len(list(tree.iter("failure"))) != 0:
-            raise RuntimeError("Arch test cocotb make build failed with test failure")
-
-
 def regression_body_with_cocotb(elf_paths: list[Path], traces: bool):
-    build_cocotb_module_under_lock(traces=traces)
-
-    my_env = dict(os.environ)
-    my_env["PATH"] = str(TEST_ROOT) + ":" + my_env.get("PATH", "")
-
     for elf_path in elf_paths:
-        tmp_result_file = tempfile.NamedTemporaryFile("r")
-        arglist = get_arg_list(str(elf_path.resolve()), tmp_result_file.name, traces=traces)
-        res = subprocess.run(arglist, env=my_env)
-        assert res.returncode == 0
-
-        tree = eT.parse(tmp_result_file.name)
-        assert len(list(tree.iter("failure"))) == 0
+        assert run_cocotb_entrypoint(
+            "arch_elf_entrypoint", traces=traces, additional_args=[f"TESTNAME={elf_path}"]
+        ), f"Test failed for {elf_path}"
 
 
 def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
-    _set_transactron_env_defaults()
     for elf_path in elf_paths:
         traces_file = None
         if traces:
@@ -281,24 +192,7 @@ def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
-@pytest.fixture(scope="session")
-def verilate_arch_model(worker_id, sim_backend, traces_enabled, request: pytest.FixtureRequest):
-    """
-    Fixture to prevent races when building the cocotb/Verilator model for
-    arch-regression. It runs only in distributed, cocotb mode and executes a
-    'SKIP' run via the arch Makefile to ensure the cocotb module is built.
-    """
-    if sim_backend != "cocotb" or worker_id == "master":
-        yield None
-        return
-
-    build_cocotb_module_under_lock(traces=traces_enabled)
-    yield
-
-
-def test_entrypoint(
-    arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool, verilate_arch_model
-):
+def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
     if not path.exists():
         raise FileNotFoundError(f"ELF file not found for test {arch_test_name}: {path}")
@@ -318,6 +212,9 @@ def main():
     args = parser.parse_args()
 
     elf_paths = [path.resolve() for path in args.elf_path]
+
+    os.environ.setdefault("__TRANSACTRON_LOG_LEVEL", "WARNING")
+    os.environ.setdefault("__TRANSACTRON_LOG_FILTER", ".*")
 
     if args.backend == "cocotb":
         regression_body_with_cocotb(elf_paths, traces=args.traces)

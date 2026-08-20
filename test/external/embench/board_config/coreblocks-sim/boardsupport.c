@@ -19,7 +19,7 @@ typedef struct {
     uint64_t mispredict_cnt;
 } to_host;
 
-#define TO_HOST (*((volatile to_host*) (0x80000010UL)))
+#define TO_HOST (*((volatile to_host*) (0xf0000010UL)))
 
 static to_host start;
 

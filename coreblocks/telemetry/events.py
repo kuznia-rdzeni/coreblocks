@@ -15,6 +15,7 @@ __all__ = [
     "RobFlush",
     "FuIssue",
     "ExecComplete",
+    "OperandWakeup",
     "func_unit_kind",
 ]
 
@@ -100,6 +101,7 @@ class RobAllocate(Event):
     ftq_ptr: int
     ftq_offset: int
     rob_id: int
+    rp_dst: int
 
 
 @event("backend.rob_retire")
@@ -131,3 +133,12 @@ class ExecComplete(Event):
     ROB entry was marked done."""
 
     rob_id: int
+
+
+@event("backend.operand_wakeup")
+class OperandWakeup(Event):
+    """The instruction is waiting for execution and one of its operands
+    was just announced."""
+
+    rob_id: int
+    reg_id: int

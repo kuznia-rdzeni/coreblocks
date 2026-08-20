@@ -3,20 +3,7 @@ from textwrap import dedent
 
 from transactron.evlog import DecodedEvent, Event, EventSiteSchema
 
-from coreblocks.telemetry import (
-    ExecComplete,
-    FetchRequest,
-    FTQAlloc,
-    FTQCommit,
-    FTQRollback,
-    FuIssue,
-    InstrDecoded,
-    InstrFetched,
-    RobAllocate,
-    RobFlush,
-    RobRetire,
-    SchedulerEnter,
-)
+from coreblocks.telemetry import *
 from coreblocks.telemetry.konata import KonataParser
 
 DUMMY_SITE = EventSiteSchema(source_name="frontend", event_name="dummy", location=("x.py", 1), fields=[], statics={})
@@ -43,8 +30,8 @@ class TestKonataParser:
             dec(5, InstrDecoded(ftq_ptr=0, ftq_offset=1)),
             dec(6, SchedulerEnter(ftq_ptr=0, ftq_offset=0)),
             dec(6, SchedulerEnter(ftq_ptr=0, ftq_offset=1)),
-            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0)),
-            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1)),
+            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=1)),
+            dec(7, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1, rp_dst=2)),
             dec(8, FuIssue(rob_id=0, unit="alu")),
             dec(8, FuIssue(rob_id=1, unit="alu")),
             dec(9, ExecComplete(rob_id=0)),
@@ -92,9 +79,9 @@ class TestKonataParser:
             S\t1\t0\tDs
             L\t1\t1\t rob_id=1
             C\t1
-            S\t0\t0\tIs
+            S\t0\t0\tIX
             L\t0\t1\t fu=alu
-            S\t1\t0\tIs
+            S\t1\t0\tIX
             L\t1\t1\t fu=alu
             C\t1
             S\t0\t0\tCm
@@ -128,7 +115,7 @@ class TestKonataParser:
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
             dec(2, FTQAlloc(ftq_ptr=1, pc=0x108)),
-            dec(3, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=5)),
+            dec(3, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=5, rp_dst=1)),
             dec(4, FTQCommit(ftq_ptr=0)),
             dec(5, FTQCommit(ftq_ptr=1)),
         ]
@@ -144,7 +131,7 @@ class TestKonataParser:
         records = [
             dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
             dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
-            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=3)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=3, rp_dst=1)),
             dec(3, RobFlush(rob_id=3)),
             dec(4, FTQRollback(ftq_ptr=0, cause="backend_redirect")),
         ]
@@ -177,6 +164,35 @@ class TestKonataParser:
         KonataParser(out).run(records)
 
         assert "L\t0\t0\t00000100: ffffffff" in out.getvalue().splitlines()
+
+    def test_update_draws_dependency_arrow(self):
+        # An operand announcement links the waiting instruction to the producer
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x104, instr=0x93, ftq_offset=1)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=0, rp_dst=12)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=1, rob_id=1, rp_dst=13)),
+            dec(3, OperandWakeup(rob_id=1, reg_id=12)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        assert "W\t1\t0\t0" in out.getvalue().splitlines()
+
+    def test_update_with_untracked_producer_is_ignored(self):
+        records = [
+            dec(0, FTQAlloc(ftq_ptr=0, pc=0x100)),
+            dec(1, InstrFetched(ftq_ptr=0, pc=0x100, instr=0x13, ftq_offset=0)),
+            dec(2, RobAllocate(ftq_ptr=0, ftq_offset=0, rob_id=1, rp_dst=5)),
+            dec(3, OperandWakeup(rob_id=1, reg_id=12)),
+        ]
+
+        out = StringIO()
+        KonataParser(out).run(records)
+
+        assert not any(line.startswith("W") for line in out.getvalue().splitlines())
 
     def test_decode_of_squashed_instruction_is_ignored(self):
         # A decode event arriving after its FTQ entry was squashed (or for an

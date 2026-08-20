@@ -115,6 +115,7 @@ class TestFetchUnit(TestCaseWithSimulator):
         jump_offset: int = 0,
         branch_taken: bool = False,
         predicted_taken: bool = False,
+        commit_checkpoint: bool = False,
     ) -> int:
         rvc = (data & 0b11) != 0b11
         if rvc:
@@ -136,6 +137,7 @@ class TestFetchUnit(TestCaseWithSimulator):
                 "predicted_taken": predicted_taken,
                 "next_pc": next_pc,
                 "rvc": rvc,
+                "commit_checkpoint": commit_checkpoint,
             }
         )
 
@@ -163,7 +165,10 @@ class TestFetchUnit(TestCaseWithSimulator):
         data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
 
         # Static prediction with no BPU: backward branches (negative offset) are predicted taken.
-        return self.add_instr(data, True, jump_offset=offset, branch_taken=taken, predicted_taken=offset < 0)
+        # A branch always needs a checkpoint - falling through it is speculation too.
+        return self.add_instr(
+            data, True, jump_offset=offset, branch_taken=taken, predicted_taken=offset < 0, commit_checkpoint=True
+        )
 
     def empty_prediction(self) -> dict:
         return {"branch_mask": 0, "cfi_idx": 0, "cfi_type": CfiType.INVALID, "cfi_target": 0, "cfi_target_valid": 0}
@@ -182,7 +187,9 @@ class TestFetchUnit(TestCaseWithSimulator):
     def gen_predicted_branch(self, offset: int) -> int:
         assert offset > 0
         data = BTypeInstr(opcode=Opcode.BRANCH, imm=offset, funct3=Funct3.BEQ, rs1=0, rs2=0).encode()
-        pc = self.add_instr(data, True, jump_offset=offset, branch_taken=True, predicted_taken=True)
+        pc = self.add_instr(
+            data, True, jump_offset=offset, branch_taken=True, predicted_taken=True, commit_checkpoint=True
+        )
         self.predict_block(pc, CfiType.BRANCH, pc + offset, branch=True)
         return pc
 
@@ -194,9 +201,15 @@ class TestFetchUnit(TestCaseWithSimulator):
 
     def gen_predicted_jalr(self, target_offset: int) -> int:
         data = ITypeInstr(opcode=Opcode.JALR, rd=0, funct3=Funct3.JALR, rs1=0, imm=0).encode()
-        pc = self.add_instr(data, True, jump_offset=target_offset, branch_taken=True, predicted_taken=True)
+        pc = self.add_instr(
+            data, True, jump_offset=target_offset, branch_taken=True, predicted_taken=True, commit_checkpoint=True
+        )
         self.predict_block(pc, CfiType.JALR, pc + target_offset)
         return pc
+
+    def gen_jalr(self, target_offset: int) -> int:
+        data = ITypeInstr(opcode=Opcode.JALR, rd=0, funct3=Funct3.JALR, rs1=0, imm=0).encode()
+        return self.add_instr(data, True, jump_offset=target_offset, branch_taken=True, predicted_taken=False)
 
     async def cache_process(self, sim: ProcessContext):
         while True:
@@ -298,6 +311,8 @@ class TestFetchUnit(TestCaseWithSimulator):
             print(instr, v["pc"], v["access_fault"])
             assert v["pc"] == instr["pc"]
             assert v["access_fault"] == access_fault
+            # Nothing is speculated past a faulting block - it stalls until the backend traps
+            assert v["commit_checkpoint"] == (instr["commit_checkpoint"] and not access_fault)
 
             if not access_fault:
                 instr_data = instr["instr"]
@@ -331,6 +346,8 @@ class TestFetchUnit(TestCaseWithSimulator):
             v = await self.fifo.read.call(sim)
 
             for k in range(v.count):
+                assert not v.data[k].commit_checkpoint or k == v.count - 1
+
                 instr = self.instr_queue.popleft()
                 # if fault happened, throw away rest of insns
                 if await check_instr(instr, v.data[k]):
@@ -569,6 +586,38 @@ class TestFetchUnit(TestCaseWithSimulator):
             self.gen_predicted_branch(self.gen_params.fetch_block_bytes)
             for _ in range(self.gen_params.fetch_width):
                 self.gen_non_branch_instr(rvc=False)
+
+        self.run_sim()
+
+    def test_checkpoints(self):
+        # A branch predicted taken and one predicted not-taken - both directions are
+        # speculative, so both need a checkpoint
+        self.gen_predicted_branch(self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.gen_branch(offset=self.gen_params.fetch_block_bytes, taken=False)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # A JAL never needs one
+        self.gen_predicted_jal(2 * self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        self.gen_jal(offset=2 * self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # A predicted JALR is speculated, so it does need one
+        self.gen_predicted_jalr(3 * self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
+
+        # An unpredicted JALR stalls the frontend instead, so it doesn't
+        self.gen_jalr(3 * self.gen_params.fetch_block_bytes)
+        for _ in range(self.gen_params.fetch_width):
+            self.gen_non_branch_instr(rvc=False)
 
         self.run_sim()
 

@@ -5,6 +5,13 @@ import os
 from typing import Any
 from collections.abc import Coroutine
 from dataclasses import dataclass
+from pathlib import Path
+from filelock import FileLock
+import subprocess
+import tempfile
+import sys
+import xml.etree.ElementTree as eT
+import argparse
 
 import cocotb
 from cocotb.clock import Clock, Timer
@@ -14,11 +21,20 @@ from cocotb_bus.bus import Bus
 from cocotb.result import SimTimeoutError
 
 from .memory import *
-from .common import SimulationBackend, SimulationExecutionResult
+from .common import SimulationBackend, SimulationExecutionResult, START_PC
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
 from transactron.utils.gen import GenerationInfo
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
+TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
+
+VERILOG_ROOT = BUILD_ROOT / "verilog"
+CORE_V = VERILOG_ROOT / "core.v"
+CORE_V_JSON = VERILOG_ROOT / "core.v.json"
 
 
 @dataclass
@@ -325,3 +341,121 @@ def generate_tests(test_function: Callable[[Any, Any], Coroutine[Any, Any, None]
 
     for test_name in test_names:
         setattr(mod, test_name, _create_test(test_function, test_name, mod, test_name))
+
+
+def get_cocotb_lock_prefix(traces: bool) -> Path:
+    sim = os.environ.get("SIM", "verilator")
+    return BUILD_ROOT / f"{sim}{'-traces' if traces else ''}"
+
+
+def _extend_env_path_like(value: str, to_add: str) -> str:
+    if value:
+        return to_add + os.pathsep + value
+    else:
+        return to_add
+
+
+def run_cocotb_entrypoint(
+    entrypoint_module_name: str,
+    traces: bool,
+    additional_args: list[str] | None = None,
+    additional_env: dict[str, str] | None = None,
+    ensure_built: bool = True,
+) -> bool:
+    if ensure_built:
+        ensure_cocotb_built(traces)
+
+    arglist = ["make", "-C", str(TEST_ROOT)]
+
+    arglist += [f"MODULE={entrypoint_module_name}"]
+    arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
+    arglist += [f"VERILOG_SOURCES={CORE_V}"]
+    if traces:
+        arglist += ["TRACES=1"]
+
+    if additional_args is not None:
+        arglist += additional_args
+
+    env = os.environ.copy()
+    env["PATH"] = _extend_env_path_like(env.get("PATH", ""), str(TEST_ROOT.resolve()))
+    env["PYTHONPATH"] = _extend_env_path_like(env.get("PYTHONPATH", ""), str(REPO_ROOT.resolve()))
+    env["SIM"] = os.environ.get("SIM", "verilator")
+    if additional_env is not None:
+        env.update(additional_env)
+
+    with tempfile.NamedTemporaryFile("r") as tmp_result_file:
+        arglist += [f"COCOTB_RESULTS_FILE={tmp_result_file.name}"]
+
+        subprocess.run(arglist, env=env, check=True)
+        tree = eT.parse(tmp_result_file.name)
+        return len(list(tree.iter("failure"))) == 0
+
+
+def ensure_core_verilog_generated():
+    lock = BUILD_ROOT / "verilog.lock"
+    stamp = BUILD_ROOT / "verilog.stamp"
+
+    VERILOG_ROOT.mkdir(parents=True, exist_ok=True)
+
+    if stamp.exists():
+        return
+
+    with FileLock(lock):
+        if stamp.exists():
+            return
+
+        command = [
+            sys.executable,
+            "-m",
+            "coreblocks.gen_verilog",
+            "--config",
+            "full",
+            "--reset-pc",
+            f"0x{START_PC:x}",
+            "--with-socks",
+            "-o",
+            str(CORE_V),
+        ]
+
+        env = os.environ.copy()
+        # always generate evlog interfaces - the choice to output them is made at runtime
+        env["__TRANSACTRON_EVLOG"] = "1"
+
+        subprocess.run(command, check=True, cwd=REPO_ROOT, env=env)
+        stamp.touch()
+
+
+def ensure_cocotb_built(traces: bool):
+    ensure_core_verilog_generated()
+
+    path = get_cocotb_lock_prefix(traces)
+    lock = path.with_suffix(".lock")
+    stamp = path.with_suffix(".stamp")
+
+    path.mkdir(parents=True, exist_ok=True)
+
+    if stamp.exists():
+        return
+
+    with FileLock(lock):
+        if stamp.exists():
+            return
+
+        assert run_cocotb_entrypoint(
+            entrypoint_module_name="empty_module",
+            traces=traces,
+            ensure_built=False,
+        ), "Failed to build cocotb testbench"
+        stamp.touch()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Prebuild cocotb testbench for coreblocks")
+    parser.add_argument("--traces", action="store_true", help="Enable cocotb trace generation")
+    args = parser.parse_args()
+
+    ensure_cocotb_built(traces=args.traces)
+
+
+if __name__ == "__main__":
+    main()

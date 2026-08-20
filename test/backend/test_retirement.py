@@ -3,14 +3,14 @@ from coreblocks.arch.isa_consts import PrivilegeLevel
 from coreblocks.backend.retirement import *
 from coreblocks.priv.csr.csr_instances import CSRInstances
 
-from transactron.lib import FIFO, Adapter
+from transactron.lib import BasicFifo, Adapter
 from transactron.core import TModule
 from transactron.utils import DependencyContext
 from coreblocks.core_structs.rat import RRAT
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
-from coreblocks.interface.layouts import FetchTargetQueueLayouts
-from coreblocks.interface.keys import CSRInstancesKey, SideFxGuardKey, FTQCommitKey
+from coreblocks.interface.layouts import FetchTargetQueueLayouts, RATLayouts
+from coreblocks.interface.keys import ActiveTagsKey, CSRInstancesKey, SideFxGuardKey, FTQCommitKey
 from transactron.lib.adapters import AdapterTrans
 
 from transactron.testing import *
@@ -26,7 +26,7 @@ class RetirementTestCircuit(Elaboratable):
         m = TModule()
 
         m.submodules.r_rat = self.rat = RRAT(gen_params=self.gen_params)
-        m.submodules.free_rf_list = self.free_rf = FIFO(
+        m.submodules.free_rf_list = self.free_rf = BasicFifo(
             [("ident", range(self.gen_params.phys_regs))], self.gen_params.phys_regs
         )
 
@@ -55,8 +55,8 @@ class RetirementTestCircuit(Elaboratable):
         m.submodules.mock_exception_clear = self.mock_exception_clear = TestbenchIO(
             Adapter.create(self.retirement.exception_cause_clear)
         )
-        m.submodules.mock_fetch_continue = self.mock_fetch_continue = TestbenchIO(
-            Adapter.create(self.retirement.fetch_continue)
+        m.submodules.mock_fetch_redirect = self.mock_fetch_redirect = TestbenchIO(
+            Adapter.create(self.retirement.fetch_redirect)
         )
         m.submodules.mock_instr_decrement = self.mock_instr_decrement = TestbenchIO(
             Adapter.create(self.retirement.instr_decrement)
@@ -70,8 +70,9 @@ class RetirementTestCircuit(Elaboratable):
             Adapter.create(self.retirement.checkpoint_tag_free)
         )
         m.submodules.mock_checkpoint_get_active_tags = self.mock_checkpoint_get_active_tags = TestbenchIO(
-            Adapter.create(self.retirement.checkpoint_get_active_tags)
+            Adapter(o=self.gen_params.get(RATLayouts).get_active_tags_out)
         )
+        DependencyContext.get().add_dependency(ActiveTagsKey(), self.mock_checkpoint_get_active_tags.adapter.iface)
         m.submodules.mock_c_rat_restore = self.mock_c_rat_restore = TestbenchIO(
             Adapter.create(self.retirement.c_rat_restore)
         )
@@ -126,9 +127,12 @@ class TestRetirement(TestCaseWithSimulator):
         def eff():
             self.submit_q.popleft()
 
-    @def_method_mock(lambda self: self.retc.mock_rob_peek, enable=lambda self: bool(self.submit_q))
+    @def_method_mock(lambda self: self.retc.mock_rob_peek)
     def peek_process(self):
-        return {"count": 1, "entries": [self.submit_q[0]]}
+        if self.submit_q:
+            return {"count": 1, "entries": [self.submit_q[0]]}
+        else:
+            return {"count": 0}
 
     async def free_reg_process(self, sim: TestbenchContext):
         while self.rf_exp_q:
@@ -164,7 +168,7 @@ class TestRetirement(TestCaseWithSimulator):
 
     @def_method_mock(lambda self: self.retc.mock_exception_cause)
     def exception_cause_process(self):
-        return {"cause": 0, "rob_id": 0}  # keep exception cause method enabled
+        return {"valid": 0}  # keep exception cause method enabled
 
     @def_method_mock(lambda self: self.retc.mock_exception_clear)
     def exception_clear_process(self):
@@ -178,17 +182,19 @@ class TestRetirement(TestCaseWithSimulator):
     def mock_trap_entry_process(self, cause):
         return {"target_priv": PrivilegeLevel.MACHINE}
 
-    @def_method_mock(lambda self: self.retc.mock_fetch_continue)
-    def mock_fetch_continue_process(self, pc):
+    @def_method_mock(lambda self: self.retc.mock_fetch_redirect)
+    def mock_fetch_redirect_process(self, pc, ftq_ptr):
         pass
 
     @def_method_mock(lambda self: self.retc.mock_async_interrupt_cause)
     def mock_async_interrupt_cause(self):
         return {"cause": 0}
 
-    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)
+    @def_method_mock(lambda self: self.retc.mock_checkpoint_get_active_tags)  # type: ignore
     def mock_checkpoint_get_active_tags(self):
-        return {"active_tags": -1}
+        return {
+            "active_tags": [1 for _ in range(self.retc.mock_checkpoint_get_active_tags.adapter.iface.layout_out.size)]
+        }
 
     @def_method_mock(lambda self: self.retc.mock_c_rat_restore)
     def mock_c_rat_restore(self):
