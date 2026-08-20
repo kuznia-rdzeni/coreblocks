@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787224341451,
+  "lastUpdate": 1787224343740,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -76307,6 +76307,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 333,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3055bf1de0203d05a7da7dc0d60917f214f4ac06",
+          "message": "Fix konata wakeup deps (#1069)",
+          "timestamp": "2026-08-20T12:13:18+02:00",
+          "tree_id": "bb61ba8082cd5caffa325290a464b5c810d79848",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/3055bf1de0203d05a7da7dc0d60917f214f4ac06"
+        },
+        "date": 1787224343156,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 52.83,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 18384,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 8249,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 337,
             "unit": "Slice"
           },
           {
