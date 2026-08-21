@@ -510,67 +510,67 @@ Instructions still in flight when the event log ends are left unterminated.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_alloc">
-<span class="sig-name descname"><span class="pre">on_alloc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_alloc" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_alloc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.FTQAlloc" title="coreblocks.telemetry.events.FTQAlloc"><span class="pre">FTQAlloc</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_alloc" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_commit">
-<span class="sig-name descname"><span class="pre">on_commit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_commit" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_commit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.FTQCommit" title="coreblocks.telemetry.events.FTQCommit"><span class="pre">FTQCommit</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_commit" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_exec_complete">
-<span class="sig-name descname"><span class="pre">on_exec_complete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_exec_complete" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_exec_complete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.ExecComplete" title="coreblocks.telemetry.events.ExecComplete"><span class="pre">ExecComplete</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_exec_complete" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_fetch_request">
-<span class="sig-name descname"><span class="pre">on_fetch_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_fetch_request" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_fetch_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.FetchRequest" title="coreblocks.telemetry.events.FetchRequest"><span class="pre">FetchRequest</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_fetch_request" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_fu_issue">
-<span class="sig-name descname"><span class="pre">on_fu_issue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_fu_issue" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_fu_issue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.FuIssue" title="coreblocks.telemetry.events.FuIssue"><span class="pre">FuIssue</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_fu_issue" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_instr_decoded">
-<span class="sig-name descname"><span class="pre">on_instr_decoded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_instr_decoded" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_instr_decoded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.InstrDecoded" title="coreblocks.telemetry.events.InstrDecoded"><span class="pre">InstrDecoded</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_instr_decoded" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_instr_fetched">
-<span class="sig-name descname"><span class="pre">on_instr_fetched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_instr_fetched" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_instr_fetched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.InstrFetched" title="coreblocks.telemetry.events.InstrFetched"><span class="pre">InstrFetched</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_instr_fetched" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_rob_allocate">
-<span class="sig-name descname"><span class="pre">on_rob_allocate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rob_allocate" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_rob_allocate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.RobAllocate" title="coreblocks.telemetry.events.RobAllocate"><span class="pre">RobAllocate</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rob_allocate" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_rob_flush">
-<span class="sig-name descname"><span class="pre">on_rob_flush</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rob_flush" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_rob_flush</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.RobFlush" title="coreblocks.telemetry.events.RobFlush"><span class="pre">RobFlush</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rob_flush" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_rob_retire">
-<span class="sig-name descname"><span class="pre">on_rob_retire</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rob_retire" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_rob_retire</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.RobRetire" title="coreblocks.telemetry.events.RobRetire"><span class="pre">RobRetire</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rob_retire" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_rollback">
-<span class="sig-name descname"><span class="pre">on_rollback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rollback" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_rollback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.FTQRollback" title="coreblocks.telemetry.events.FTQRollback"><span class="pre">FTQRollback</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_rollback" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_scheduler_enter">
-<span class="sig-name descname"><span class="pre">on_scheduler_enter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_scheduler_enter" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_scheduler_enter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.SchedulerEnter" title="coreblocks.telemetry.events.SchedulerEnter"><span class="pre">SchedulerEnter</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_scheduler_enter" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.konata.KonataParser.on_update">
-<span class="sig-name descname"><span class="pre">on_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_update" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">on_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodedEvent</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#coreblocks.telemetry.events.OperandWakeup" title="coreblocks.telemetry.events.OperandWakeup"><span class="pre">OperandWakeup</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.telemetry.konata.KonataParser.on_update" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -589,7 +589,7 @@ matters for consumers of formats requiring monotonic timestamps.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIAggregator">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.telemetry.rvvi.</span></span><span class="sig-name descname"><span class="pre">RVVIAggregator</span></span><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIAggregator" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev135)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
 <p>A module that aggregates multiple RVVIHartCollector modules into a RVVI-TRACE interface.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIAggregator.__init__">
@@ -601,7 +601,7 @@ matters for consumers of formats requiring monotonic timestamps.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIHartCollector">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.telemetry.rvvi.</span></span><span class="sig-name descname"><span class="pre">RVVIHartCollector</span></span><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIHartCollector" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev135)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/wiring.html#amaranth.lib.wiring.Component" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a></p>
 <p>A module that collects information required for RVVI-TRACE interface for a single hart.</p>
 <p>Currently doesn’t implement <cite>pc_wdata</cite>, <cite>f_*</cite>, <cite>v_*</cite>, <cite>csr_*</cite>.</p>
 <p>Made as a simulation module, so critical path nor area is not optimized.
@@ -613,7 +613,7 @@ Either way exposing more than 128k wires is not feasible.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port">
-<span class="sig-name descname"><span class="pre">retire_port</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev135)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">retire_port</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port" title="Link to this definition"></a></dt>
 <dd><p>Single hart worth of data of RVVI-TRACE interface.</p>
 </dd></dl>
 
@@ -647,7 +647,7 @@ Either way exposing more than 128k wires is not feasible.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 12:23 2026-08-20.
+      <span class="lastupdated">Last updated on 18:02 2026-08-21.
       </span></p>
   </div>
 
