@@ -123,6 +123,7 @@ class FetchUnit(Elaboratable):
             depth=serializer_depth,
             read_width=self.gen_params.frontend_superscalarity,
             write_width=fetch_width,
+            write_max_count=True,
         )
 
         with Transaction(name="cont").body(m):
@@ -552,7 +553,7 @@ class FetchUnit(Elaboratable):
 
                 # Make sure this is called only once to avoid a huge mux on arguments
                 m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
-                serializer.write(m, data=aligner.outputs, count=aligner.output_cnt)
+                serializer.write(m, data=aligner.outputs, count=aligner.output_cnt, max_count=popcount(instr_valid))
 
         @def_method(m, self.flush)
         def _():
