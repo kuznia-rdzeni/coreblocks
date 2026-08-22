@@ -13,6 +13,11 @@ on:
 
 jobs:
   build-core:
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [full]
+        rvvi: [false, true]
     name: Synthesize full core
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -33,13 +38,16 @@ jobs:
           python3 -m pip install .
 
       - name: Generate Verilog
+        env:
+          PYTHONHASHSEED: 0
+          TRANSACTRON_VERBOSE: 1
         run: |
           . venv/bin/activate
-          PYTHONHASHSEED=0 TRANSACTRON_VERBOSE=1 python3 -m coreblocks.gen_verilog --verbose --config full
+          python3 -m coreblocks.gen_verilog --verbose --config "${{ matrix.config }}" "${{ matrix.rvvi == 'true' && '--with-rvvi' || '' }}"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: "verilog-full-core"
+          name: "verilog-${{ matrix.config }}-core${{ matrix.rvvi == 'true' && '-rvvi' || '' }}"
           path: |
             core.v
             core.v.json
