@@ -2,7 +2,7 @@ import random
 import math
 from collections import deque
 
-from parameterized import parameterized_class
+import pytest
 
 from coreblocks.func_blocks.fu.unsigned_multiplication.pipelined import PipelinedUnsignedMul
 
@@ -13,7 +13,7 @@ from coreblocks.params import configurations
 from transactron.testing.functions import data_const_to_dict
 
 
-@parameterized_class(
+@pytest.mark.parametrize(
     ("dsp_width", "dsp_number"),
     [
         (18, 4),
@@ -26,7 +26,10 @@ class TestPipelinedUnsignedMul(TestCaseWithSimulator):
     dsp_width: int
     dsp_number: int
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, dsp_width: int, dsp_number: int):
+        self.dsp_width = dsp_width
+        self.dsp_number = dsp_number
         self.gen_params = GenParams(configurations.test)
         self.m = SimpleTestCircuit(PipelinedUnsignedMul(self.gen_params, self.dsp_width, self.dsp_number))
         self.n_padding = self.dsp_width * 2 ** (math.ceil(math.log2(self.gen_params.isa.xlen / self.dsp_width)))

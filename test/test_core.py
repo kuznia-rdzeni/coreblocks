@@ -24,7 +24,6 @@ import random
 import subprocess
 import tempfile
 import pytest
-from parameterized import parameterized_class
 
 from transactron.utils.dependencies import DependencyContext
 
@@ -78,11 +77,11 @@ class CoreTestElaboratable(Elaboratable):
 
 class TestCoreBase(TestCaseWithSimulator):
     configuration: CoreConfiguration
-    gen_params: GenParams
     m: CoreTestElaboratable
 
-    def setup_method(self):
-        self.configuration = self.configuration.replace(_generate_test_hardware=True)
+    @pytest.fixture(autouse=True)
+    def setup_configuration(self, configuration: CoreConfiguration):
+        self.configuration = configuration.replace(_generate_test_hardware=True)
 
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
         return sim.get(self.m.core.RRAT.entries[reg_id])
@@ -94,9 +93,16 @@ class TestCoreBase(TestCaseWithSimulator):
 
 class TestCoreAsmSourceBase(TestCoreBase):
     base_dir: str = "test/asm/"
-    cycle_count: int
-    expected_regvals: dict[int, int]
-    exit_csr: bool = True
+
+    @pytest.fixture(name="exit_csr")
+    def fixture_exit_csr(self):
+        return True
+
+    @pytest.fixture(autouse=True)
+    def setup_asm(self, cycle_count: int, expected_regvals: dict[int, int], exit_csr: bool):
+        self.cycle_count = cycle_count
+        self.expected_regvals = expected_regvals
+        self.exit_csr = exit_csr
 
     def prepare_source(self, filename, *, c_extension=False):
         with (
@@ -180,39 +186,35 @@ class TestCoreAsmSourceBase(TestCoreBase):
             assert self.get_arch_reg_val(sim, reg_id) == val, "Bad register value"
 
 
-@parameterized_class(
-    ("name", "source_file", "cycle_count", "expected_regvals", "exit_csr", "configuration"),
+@pytest.mark.parametrize(
+    ("source_file", "cycle_count", "expected_regvals", "exit_csr", "configuration"),
     [
-        ("fibonacci", "fibonacci.asm", 700, {2: 2971215073}, True, configurations.basic),
-        ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, False, configurations.basic),
-        ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, False, configurations.tiny),
-        ("csr", "csr.asm", 400, {1: 1, 2: 4}, True, configurations.full),
-        ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, True, configurations.full),
-        ("exception", "exception.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
-        ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
-        ("exception_handler", "exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, False, configurations.full),
-        ("wfi_no_int", "wfi_no_int.asm", 200, {1: 1}, False, configurations.full),
-        ("mtval", "mtval.asm", 2000, {8: 5 * 8}, True, configurations.full),
-        ("socks_clint", "socks_clint.asm", 1600, {2: 5, 8: 1}, True, configurations.basic),
-        ("socks_plic", "plic.asm", 1000, {31: 0xCAFE}, True, configurations.basic),
-        ("pmp_fetch", "pmp_fetch.asm", 1000, {1: 1}, True, configurations.full),
-        ("pmp_lsu", "pmp_lsu.asm", 1000, {1: 1}, True, configurations.full),
-        ("smode_exception", "smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, False, configurations.full),
-        ("sv32_translation", "sv32_translation.asm", 500, {9: 5, 10: 1}, True, configurations.full),
+        ("fibonacci.asm", 700, {2: 2971215073}, True, configurations.basic),
+        ("fibonacci_mem.asm", 400, {3: 55}, False, configurations.basic),
+        ("fibonacci_mem.asm", 250, {3: 55}, False, configurations.tiny),
+        ("csr.asm", 400, {1: 1, 2: 4}, True, configurations.full),
+        ("csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, True, configurations.full),
+        ("exception.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
+        ("exception_mem.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
+        ("exception_handler.asm", 2000, {2: 987, 11: 0xAAAA, 15: 16}, False, configurations.full),
+        ("wfi_no_int.asm", 200, {1: 1}, False, configurations.full),
+        ("mtval.asm", 2000, {8: 5 * 8}, True, configurations.full),
+        ("socks_clint.asm", 1600, {2: 5, 8: 1}, True, configurations.basic),
+        ("socks_plic.asm", 1000, {31: 0xCAFE}, True, configurations.basic),
+        ("pmp_fetch.asm", 1000, {1: 1}, True, configurations.full),
+        ("pmp_lsu.asm", 1000, {1: 1}, True, configurations.full),
+        ("smode_exception.asm", 800, {5: 1, 6: 1, 7: 1, 8: 1}, False, configurations.full),
+        ("sv32_translation.asm", 500, {9: 5, 10: 1}, True, configurations.full),
     ],
 )
 @pytest.mark.collection_order(1)
 class TestCoreBasicAsm(TestCoreAsmSourceBase):
-    name: str
-    source_file: str
-    configuration: CoreConfiguration
+    def test_asm_source(self, source_file: str):
+        bin_src = self.prepare_source(source_file)
 
-    def test_asm_source(self):
-        bin_src = self.prepare_source(self.source_file)
-
-        if self.name == "mtval":
+        if source_file == "mtval.asm":
             bin_src["text"] = bin_src["text"][: 0x1000 // 4]  # force instruction memory size clip in `mtval` test
-        socks_test = self.name.startswith("socks_")
+        socks_test = source_file.startswith("socks_")
         if socks_test:
             self.configuration = self.configuration.replace(_generate_test_hardware=True, interrupt_custom_count=4)
 
@@ -228,7 +230,7 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 
 # test interrupts with varying triggering frequency (parametrizable amount of cycles between
 # returning from an interrupt and triggering it again with 'lo' and 'hi' parameters)
-@parameterized_class(
+@pytest.mark.parametrize(
     ("source_file", "cycle_count", "start_regvals", "expected_regvals", "lo", "hi", "edge_only"),
     [
         (
@@ -258,20 +260,13 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
 )
 @pytest.mark.collection_order(0)
 class TestCoreInterrupt(TestCoreAsmSourceBase):
-    source_file: str
-    start_regvals: dict[int, int]
-    lo: int
-    hi: int
-    edge_only: bool
-
-    reg_init_mem_offset: int = 0x100
-
-    def setup_method(self):
-        self.configuration = configurations.full.replace(
+    @pytest.fixture(name="configuration")
+    def fixture_configuration(self):
+        return configurations.full.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
         )
-        self.gen_params = GenParams(self.configuration)
-        random.seed(1500100900)
+
+    reg_init_mem_offset: int = 0x100
 
     async def clear_level_interrupt_process(self, sim: ProcessContext):
         async for *_, value in sim.tick().sample(self.m.core.csr_instances.csr_coreblocks_test.value):
@@ -341,9 +336,16 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
         await self.run_and_check(sim)
 
-    def test_interrupted_prog(self):
-        bin_src = self.prepare_source(self.source_file)
-        for reg_id, val in self.start_regvals.items():
+    def test_interrupted_prog(self, source_file: str, start_regvals: dict[int, int], lo: int, hi: int, edge_only: bool):
+        self.lo = lo
+        self.hi = hi
+        self.edge_only = edge_only
+
+        self.gen_params = GenParams(self.configuration)
+        random.seed(1500100900)
+
+        bin_src = self.prepare_source(source_file)
+        for reg_id, val in start_regvals.items():
             bin_src["data"][self.reg_init_mem_offset // 4 + reg_id] = val
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
         with self.run_simulation(self.m) as sim:
@@ -351,7 +353,7 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
             sim.add_process(self.clear_level_interrupt_process)
 
 
-@parameterized_class(
+@pytest.mark.parametrize(
     ("source_file", "cycle_count", "expected_regvals", "always_mmode"),
     [
         ("user_mode.asm", 1800, {4: 6}, False),
@@ -360,15 +362,11 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 )
 @pytest.mark.collection_order(0)
 class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
-    source_file: str
-    always_mmode: bool
-
-    def setup_method(self):
-        self.configuration = configurations.full.replace(
+    @pytest.fixture(name="configuration")
+    def fixture_configuration(self):
+        return configurations.full.replace(
             _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
         )
-        self.gen_params = GenParams(self.configuration)
-        random.seed(161453)
 
     async def run_with_interrupt_process(self, sim: TestbenchContext):
         ticks = DependencyContext.get().get_dependency(TicksKey())
@@ -400,26 +398,31 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
 
         await self.run_and_check(sim)
 
-    def test_interrupted_prog(self):
-        bin_src = self.prepare_source(self.source_file)
+    def test_interrupted_prog(self, source_file: str, always_mmode: bool):
+        self.always_mmode = always_mmode
+
+        self.gen_params = GenParams(self.configuration)
+        random.seed(161453)
+
+        bin_src = self.prepare_source(source_file)
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.run_with_interrupt_process)
 
 
+@pytest.mark.parametrize(
+    ("source_file", "cycle_count", "expected_regvals"),
+    [("smode_interrupt.asm", 600, {5: 1, 7: 1, 8: 0x80000011, 31: 0xDE})],
+)
 class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
-    source_file: str = "smode_interrupt.asm"
-    cycle_count: int = 600
-    expected_regvals: dict[int, int] = {5: 1, 7: 1, 8: 0x80000011, 31: 0xDE}
-
-    def setup_method(self):
-        self.configuration = configurations.full.replace(
+    @pytest.fixture(name="configuration")
+    def fixture_configuration(self):
+        return configurations.full.replace(
             _generate_test_hardware=True,
             interrupt_custom_count=2,
             interrupt_custom_edge_trig_mask=0b01,
         )
-        self.gen_params = GenParams(self.configuration)
 
     async def run_with_smode_interrupt_process(self, sim: TestbenchContext):
         ticks = DependencyContext.get().get_dependency(TicksKey())
@@ -445,27 +448,25 @@ class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
 
         await self.run_and_check(sim)
 
-    def test_smode_delegated_interrupt(self):
-        bin_src = self.prepare_source(self.source_file)
+    def test_smode_delegated_interrupt(self, source_file: str):
+        self.gen_params = GenParams(self.configuration)
+        bin_src = self.prepare_source(source_file)
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 
         with self.run_simulation(self.m) as sim:
             sim.add_testbench(self.run_with_smode_interrupt_process)
 
 
+@pytest.mark.parametrize(("source_file", "cycle_count", "expected_regvals", "exit_csr"), [("rvvi.asm", 200, {}, False)])
 @pytest.mark.collection_order(1)
 class TestCoreRVVI(TestCoreAsmSourceBase):
-    cycle_count: int = 200
-    expected_regvals: dict[int, int] = {}
-    exit_csr: bool = False
-
-    def setup_method(self):
-        self.configuration = configurations.tiny.replace(
+    @pytest.fixture(name="configuration")
+    def fixture_configuration(self):
+        return configurations.tiny.replace(
             _generate_test_hardware=True,
             with_rvvi=True,
             compressed=True,
         )
-        self.gen_params = GenParams(self.configuration)
 
     @dataclass
     class TraceItem:
@@ -473,7 +474,9 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
         instr: int
         reg_write: tuple[int, int] | None = None  # (reg_id, reg_val)
 
-    def test_asm_source(self):
+    def test_asm_source(self, source_file: str):
+        self.gen_params = GenParams(self.configuration)
+
         expected_trace = [
             self.TraceItem(0x00, 0x0001, None),  # c.nop
             self.TraceItem(0x02, 0x4085, (1, 0x1)),  # c.li x1, 1
@@ -513,7 +516,7 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
 
                 await sim.tick()
 
-        bin_src = self.prepare_source("rvvi.asm", c_extension=True)
+        bin_src = self.prepare_source(source_file, c_extension=True)
 
         self.m = CoreTestElaboratable(self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"])
 

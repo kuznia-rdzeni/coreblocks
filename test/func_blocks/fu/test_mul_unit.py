@@ -1,4 +1,4 @@
-from parameterized import parameterized_class
+import pytest
 
 from coreblocks.arch import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.mul_unit import MulFn, MulComponent, MulType
@@ -8,25 +8,13 @@ from transactron.utils import signed_to_int, int_to_signed
 from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 
 
-@parameterized_class(
-    ("name", "func_unit"),
+@pytest.mark.parametrize(
+    "func_unit",
     [
-        (
-            "recursive_multiplier",
-            MulComponent(MulType.RECURSIVE_MUL, dsp_width=8),
-        ),
-        (
-            "pipelined_multiplier",
-            MulComponent(MulType.PIPELINED_MUL, dsp_width=8, dsp_number=4),
-        ),
-        (
-            "sequential_multiplier",
-            MulComponent(MulType.SEQUENCE_MUL, dsp_width=8),
-        ),
-        (
-            "shift_multiplier",
-            MulComponent(MulType.SHIFT_MUL),
-        ),
+        MulComponent(MulType.RECURSIVE_MUL, dsp_width=8),
+        MulComponent(MulType.PIPELINED_MUL, dsp_width=8, dsp_number=4),
+        MulComponent(MulType.SEQUENCE_MUL, dsp_width=8),
+        MulComponent(MulType.SHIFT_MUL),
     ],
 )
 class TestMultiplierUnit(FunctionalUnitTestCase[MulFn.Fn]):

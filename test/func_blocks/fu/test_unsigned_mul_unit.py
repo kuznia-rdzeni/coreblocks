@@ -1,7 +1,7 @@
 import random
 from collections import deque
 
-from parameterized import parameterized_class
+import pytest
 
 from coreblocks.func_blocks.fu.unsigned_multiplication.common import MulBaseUnsigned
 from coreblocks.func_blocks.fu.unsigned_multiplication.fast_recursive import RecursiveUnsignedMul
@@ -16,31 +16,21 @@ from coreblocks.params import configurations
 from transactron.testing.functions import data_const_to_dict
 
 
-@parameterized_class(
-    ("name", "mul_unit"),
+@pytest.mark.parametrize(
+    "mul_unit",
     [
-        (
-            "recursive_multiplier",
-            RecursiveUnsignedMul,
-        ),
-        (
-            "sequential_multiplier",
-            SequentialUnsignedMul,
-        ),
-        (
-            "shift_multiplier",
-            ShiftUnsignedMul,
-        ),
-        (
-            "pipelined_multiplier",
-            PipelinedUnsignedMul,
-        ),
+        RecursiveUnsignedMul,
+        SequentialUnsignedMul,
+        ShiftUnsignedMul,
+        PipelinedUnsignedMul,
     ],
 )
 class TestUnsignedMultiplicationUnit(TestCaseWithSimulator):
     mul_unit: type[MulBaseUnsigned]
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup(self, mul_unit: type[MulBaseUnsigned]):
+        self.mul_unit = mul_unit
         self.gen_params = GenParams(configurations.test)
         self.m = SimpleTestCircuit(self.mul_unit(self.gen_params))
         self.waiting_time = 10

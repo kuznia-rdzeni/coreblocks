@@ -1,4 +1,4 @@
-from parameterized import parameterized_class
+import pytest
 
 from amaranth import *
 from amaranth_types import ValueLike
@@ -268,13 +268,18 @@ RV64_TESTS = [
 ]
 
 
-@parameterized_class(
-    ("name", "isa_xlen", "test_cases"),
-    [("rv32ic", 32, COMMON_TESTS + RV32_TESTS), ("rv64ic", 64, COMMON_TESTS + RV64_TESTS)],
+@pytest.mark.parametrize(
+    ("isa_xlen", "test_cases"),
+    [(32, COMMON_TESTS + RV32_TESTS), (64, COMMON_TESTS + RV64_TESTS)],
 )
 class TestInstrDecompress(TestCaseWithSimulator):
     isa_xlen: int
     test_cases: list[tuple[int, ValueLike]]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, isa_xlen: int, test_cases: list[tuple[int, ValueLike]]):
+        self.isa_xlen = isa_xlen
+        self.test_cases = test_cases
 
     def test(self):
         self.gen_params = GenParams(
@@ -356,13 +361,18 @@ ZCB_RV64_ONLY_TESTS = [
 ]
 
 
-@parameterized_class(
-    ("name", "isa_xlen", "test_cases"),
-    [("rv32imc_zcb_zbb", 32, ZCB_COMMON_TESTS), ("rv64imc_zcb_zbb", 64, ZCB_COMMON_TESTS + ZCB_RV64_ONLY_TESTS)],
+@pytest.mark.parametrize(
+    ("isa_xlen", "test_cases"),
+    [(32, ZCB_COMMON_TESTS), (64, ZCB_COMMON_TESTS + ZCB_RV64_ONLY_TESTS)],
 )
 class TestInstrDecompressZcb(TestCaseWithSimulator):
     isa_xlen: int
     test_cases: list[tuple[int, ValueLike]]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, isa_xlen: int, test_cases: list[tuple[int, ValueLike]]):
+        self.isa_xlen = isa_xlen
+        self.test_cases = test_cases
 
     def test(self):
         self.gen_params = GenParams(

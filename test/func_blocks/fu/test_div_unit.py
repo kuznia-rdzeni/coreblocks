@@ -1,4 +1,4 @@
-from parameterized import parameterized_class
+import pytest
 
 from coreblocks.arch import Funct3, Funct7, OpType
 from coreblocks.func_blocks.fu.div_unit import DivFn, DivComponent
@@ -8,10 +8,7 @@ from test.func_blocks.fu.functional_common import ExecFn, FunctionalUnitTestCase
 from transactron.utils import signed_to_int, int_to_signed
 
 
-@parameterized_class(
-    ("name", "func_unit"),
-    [("ipc" + str(s), DivComponent(ipc=s)) for s in [3, 4, 5, 8]],
-)
+@pytest.mark.parametrize("func_unit", [DivComponent(ipc=s) for s in [3, 4, 5, 8]])
 class TestDivisionUnit(FunctionalUnitTestCase[DivFn.Fn]):
     ops = {
         DivFn.Fn.DIVU: ExecFn(OpType.DIV_REM, Funct3.DIVU, Funct7.MULDIV),

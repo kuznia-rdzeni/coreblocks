@@ -41,7 +41,6 @@ dev = [
     "pytest==8.0.0",
     "pytest-xdist==3.5.0",
     "hypothesis==6.99.6",
-    "parameterized==0.8.1",
     "cocotb==1.9.2",
     "cocotb-bus==0.2.1",
     "docutils==0.21.2",

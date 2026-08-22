@@ -1,4 +1,4 @@
-from parameterized import parameterized_class
+import pytest
 
 from coreblocks.func_blocks.fu.zbc import ZbcFn, ZbcComponent
 from coreblocks.arch import Funct3, Funct7, OpType
@@ -33,21 +33,12 @@ def clmulr(i1: int, i2: int, xlen: int) -> int:
     return output % (2**xlen)
 
 
-@parameterized_class(
-    ("name", "func_unit"),
+@pytest.mark.parametrize(
+    "func_unit",
     [
-        (
-            "iterative",
-            ZbcComponent(recursion_depth=0),
-        ),
-        (
-            "recursive_3",
-            ZbcComponent(recursion_depth=3),
-        ),
-        (
-            "recursive_full",
-            ZbcComponent(recursion_depth=configurations.test.xlen.bit_length() - 1),
-        ),
+        ZbcComponent(recursion_depth=0),
+        ZbcComponent(recursion_depth=3),
+        ZbcComponent(recursion_depth=configurations.test.xlen.bit_length() - 1),
     ],
 )
 class TestZbcUnit(FunctionalUnitTestCase[ZbcFn.Fn]):

@@ -66,6 +66,10 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
     zero_imm = True
     core_config = configurations.test
 
+    ops_fixture = pytest.fixture(name="ops")(lambda self: None)
+    func_unit_fixture = pytest.fixture(name="func_unit")(lambda self: None)
+    compute_result_fixture = pytest.fixture(name="compute_result")(lambda self: None)
+
     @staticmethod
     def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: _T, xlen: int) -> dict[str, int]:
         """
@@ -89,7 +93,14 @@ class FunctionalUnitTestCase(TestCaseWithSimulator, Generic[_T]):
         raise NotImplementedError
 
     @pytest.fixture(autouse=True)
-    def setup(self, fixture_initialize_testing_env):
+    def setup(self, fixture_initialize_testing_env, ops, func_unit, compute_result):
+        if ops is not None:
+            self.ops = ops
+        if func_unit is not None:
+            self.func_unit = func_unit
+        if compute_result is not None:
+            self.compute_result = staticmethod(compute_result)
+
         self.gen_params = GenParams(configurations.test)
 
         self.report_mock = TestbenchIO(Adapter(i=self.gen_params.get(ExceptionInformationRegisterLayouts).report))
