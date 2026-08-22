@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787385563589,
+  "lastUpdate": 1787385566333,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -75218,6 +75218,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUTs used as carry: (ECP5)",
             "value": 4238,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 3628,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 14183,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5343818bf08e2c8e50ed5197d6e9a1c42f539792",
+          "message": "fetch: cut the critical path in WideFifo (#1068)",
+          "timestamp": "2026-08-22T08:58:34+02:00",
+          "tree_id": "4fa2c1e49caf28f500d9d86041dcc28a9a944359",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5343818bf08e2c8e50ed5197d6e9a1c42f539792"
+        },
+        "date": 1787385565472,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 38.97,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 62628,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 4234,
             "unit": "LUT"
           },
           {
