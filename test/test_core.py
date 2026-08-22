@@ -480,16 +480,16 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
             self.TraceItem(0x00, 0x00000297, (5, 0)),  # auipc x5, 0x0
             self.TraceItem(0x04, 0x02428293, (5, 0x24)),  # addi x5, x5, 0x24
             self.TraceItem(0x08, 0x30529073),  # csrw mtvec, x5
-            self.TraceItem(0x0c, 0x4085, (1, 1)),  # li x1, 0x1
-            self.TraceItem(0x0e, 0x00209113, (2, 4)),  # slli x2, x1, 0x2
+            self.TraceItem(0x0C, 0x4085, (1, 1)),  # li x1, 0x1
+            self.TraceItem(0x0E, 0x00209113, (2, 4)),  # slli x2, x1, 0x2
             self.TraceItem(0x12, 0x00417193, (3, 4)),  # andi x3, x2, 0x4
             self.TraceItem(0x16, 0x00019363),  # bnez x3, 0x1c [continue]
-            self.TraceItem(0x1c, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0x0
+            self.TraceItem(0x1C, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0x0
             self.TraceItem(0x20, 0x0000, trap=True),  # unimp
-            self.TraceItem(0x24, 0xa001, intr=True),  # j 0x24 [trap]
-            self.TraceItem(0x24, 0xa001),  # j 0x24 [trap]
-            self.TraceItem(0x24, 0xa001),  # j 0x24 [trap]
-            self.TraceItem(0x24, 0xa001),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xA001, intr=True),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xA001),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xA001),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xA001),  # j 0x24 [trap]
         ]
 
         async def run_and_check_rvvi(sim: TestbenchContext):
