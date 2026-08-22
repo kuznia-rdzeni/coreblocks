@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787385566333,
+  "lastUpdate": 1787385569036,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -81013,6 +81013,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5343818bf08e2c8e50ed5197d6e9a1c42f539792",
+          "message": "fetch: cut the critical path in WideFifo (#1068)",
+          "timestamp": "2026-08-22T08:58:34+02:00",
+          "tree_id": "4fa2c1e49caf28f500d9d86041dcc28a9a944359",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5343818bf08e2c8e50ed5197d6e9a1c42f539792"
+        },
+        "date": 1787385568167,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 69.74,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7461,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2820,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 154,
             "unit": "Slice"
           },
           {
