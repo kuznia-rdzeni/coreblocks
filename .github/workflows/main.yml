@@ -43,7 +43,7 @@ jobs:
           TRANSACTRON_VERBOSE: 1
         run: |
           . venv/bin/activate
-          python3 -m coreblocks.gen_verilog --verbose --config "${{ matrix.config }}" "${{ matrix.rvvi == 'true' && '--with-rvvi' || '' }}"
+          python3 -m coreblocks.gen_verilog --verbose --config "${{ matrix.config }}" ${{ matrix.rvvi == 'true' && '--with-rvvi' || '' }}
 
       - uses: actions/upload-artifact@v7
         with:
