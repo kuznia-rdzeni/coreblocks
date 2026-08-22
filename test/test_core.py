@@ -455,12 +455,12 @@ class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
 
 @pytest.mark.collection_order(1)
 class TestCoreRVVI(TestCoreAsmSourceBase):
-    cycle_count: int = 200
+    cycle_count: int = 400
     expected_regvals: dict[int, int] = {}
     exit_csr: bool = False
 
     def setup_method(self):
-        self.configuration = configurations.tiny.replace(
+        self.configuration = configurations.basic.replace(
             _generate_test_hardware=True,
             with_rvvi=True,
             compressed=True,
@@ -472,22 +472,29 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
         pc: int
         instr: int
         reg_write: tuple[int, int] | None = None  # (reg_id, reg_val)
+        trap: bool = False
+        intr: bool = False
 
     def test_asm_source(self):
         expected_trace = [
-            self.TraceItem(0x00, 0x0001, None),  # c.nop
-            self.TraceItem(0x02, 0x4085, (1, 0x1)),  # c.li x1, 1
-            self.TraceItem(0x04, 0x00209113, (2, 0x4)),  # slli x2, x1, 2
-            self.TraceItem(0x08, 0x00417193, (3, 0x4)),  # andi x3, x2, 0x4
-            self.TraceItem(0x0C, 0x00019363),  # bnez x3, 0x12 [continue]
-            self.TraceItem(0x12, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0(x0)
-            self.TraceItem(0x16, 0xA001),  # c.j 0x1c [loop]
-            self.TraceItem(0x16, 0xA001),  # c.j 0x1c [loop]
-            self.TraceItem(0x16, 0xA001),  # c.j 0x1c [loop]
+            self.TraceItem(0x00, 0x00000297, (5, 0)),  # auipc x5, 0x0
+            self.TraceItem(0x04, 0x02428293, (5, 0x24)),  # addi x5, x5, 0x24
+            self.TraceItem(0x08, 0x30529073),  # csrw mtvec, x5
+            self.TraceItem(0x0c, 0x4085, (1, 1)),  # li x1, 0x1
+            self.TraceItem(0x0e, 0x00209113, (2, 4)),  # slli x2, x1, 0x2
+            self.TraceItem(0x12, 0x00417193, (3, 4)),  # andi x3, x2, 0x4
+            self.TraceItem(0x16, 0x00019363),  # bnez x3, 0x1c [continue]
+            self.TraceItem(0x1c, 0x00002203, (4, 0xDEADBEEF)),  # lw x4, 0x0
+            self.TraceItem(0x20, 0x0000, trap=True),  # unimp
+            self.TraceItem(0x24, 0xa001, intr=True),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xa001),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xa001),  # j 0x24 [trap]
+            self.TraceItem(0x24, 0xa001),  # j 0x24 [trap]
         ]
 
         async def run_and_check_rvvi(sim: TestbenchContext):
             ticks = DependencyContext.get().get_dependency(TicksKey())
+            assert len(self.m.core.rvvi_collector.retire_port) == 1
             port = self.m.core.rvvi_collector.retire_port[0]
 
             for i, trace_item in enumerate(expected_trace):
@@ -499,17 +506,20 @@ class TestCoreRVVI(TestCoreAsmSourceBase):
 
                 assert sim.get(port.valid)
                 assert sim.get(port.order) == i, "not in-order retire on RVVI port"
-
-                reg_write = None
-                for i in range(32):
-                    if sim.get(port.x_wb[i]):
-                        if reg_write is not None:
-                            assert False, "Multiple register writes in a single instruction"
-                        reg_write = (i, sim.get(port.x_wdata[i]))
-
                 assert sim.get(port.pc_rdata) == trace_item.pc
-                assert sim.get(port.insn) == trace_item.instr
-                assert reg_write == trace_item.reg_write
+                assert sim.get(port.trap) == trace_item.trap
+
+                if not trace_item.trap:
+                    reg_write = None
+                    for i in range(32):
+                        if sim.get(port.x_wb[i]):
+                            if reg_write is not None:
+                                assert False, "Multiple register writes in a single instruction"
+                            reg_write = (i, sim.get(port.x_wdata[i]))
+
+                    assert sim.get(port.insn) == trace_item.instr
+                    assert reg_write == trace_item.reg_write
+                    assert sim.get(port.intr) == trace_item.intr
 
                 await sim.tick()
 

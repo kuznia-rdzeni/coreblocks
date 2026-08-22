@@ -1037,5 +1037,4 @@ class RVVILayouts:
             fields.rl_dst,
             fields.rp_dst,
             ("trap", 1),
-            ("interrupt", 1),
         )
