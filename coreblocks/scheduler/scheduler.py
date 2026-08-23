@@ -435,9 +435,10 @@ class RSInsertion(Elaboratable):
 
                 # RS insertion guarantees RF response for present instructions
                 # Nested transaction used to avoid locking
-                with Transaction().always_body(m, ready=(i < instrs.count)):
+                with (tr := Transaction()).body(m):
                     source1 = self.rf_read_resp[2 * i](m, reg_id=instr.regs_p.rp_s1)
                     source2 = self.rf_read_resp[2 * i + 1](m, reg_id=instr.regs_p.rp_s2)
+                log.assertion(m, tr.run == (i < instrs.count), f"invalid RF response for instr {i}")
 
                 rs_data = Signal(self.gen_params.get(RSFullDataLayout).data_layout)
                 m.d.av_comb += assign(
