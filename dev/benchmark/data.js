@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787559816150,
+  "lastUpdate": 1787559818132,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -78912,6 +78912,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT DFF used",
             "value": 14248,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1019,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8eeb74e78d9cc3ea1351b8b400b70f8aca7511f0",
+          "message": "ftq: count unpredicted JALRs as mispredictions (#1075)",
+          "timestamp": "2026-08-24T09:23:07+02:00",
+          "tree_id": "4741aaa8a2f2001c8c9e249b7ce98d35328d0523",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8eeb74e78d9cc3ea1351b8b400b70f8aca7511f0"
+        },
+        "date": 1787559817680,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 40.4,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 46173,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 14327,
             "unit": "LUT"
           },
           {
