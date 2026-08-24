@@ -266,13 +266,13 @@ The size_class signal selects the value from these.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.paddr">
-<span class="sig-name descname"><span class="pre">paddr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.paddr" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">paddr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.paddr" title="Link to this definition"></a></dt>
 <dd><p>Memory address, for which PMP checks are requested. Must be aligned to the size class.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.result">
-<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.result" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.result" title="Link to this definition"></a></dt>
 <dd><p>RWX permission bits for the given address based on current PMP configuration
 and privilege mode. Bits are set to 0 if access is denied.
 layout: PMPLayout</p>
@@ -280,13 +280,13 @@ layout: PMPLayout</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.size_class">
-<span class="sig-name descname"><span class="pre">size_class</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.size_class" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">size_class</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.size_class" title="Link to this definition"></a></dt>
 <dd><p>The size class for which to check uniformity and attributes. See size_classes in constructor.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.DynamicAreaPMPChecker.uniform">
-<span class="sig-name descname"><span class="pre">uniform</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.uniform" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">uniform</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.DynamicAreaPMPChecker.uniform" title="Link to this definition"></a></dt>
 <dd><p>Is the address range fully inside a single PMP entry.</p>
 </dd></dl>
 
@@ -314,13 +314,13 @@ layout: PMPLayout</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.paddr">
-<span class="sig-name descname"><span class="pre">paddr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.paddr" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">paddr</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.paddr" title="Link to this definition"></a></dt>
 <dd><p>Memory address, for which PMP checks are requested.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.result">
-<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.result" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.View" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">View</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.result" title="Link to this definition"></a></dt>
 <dd><p>RWX permission bits for the given address based on current PMP configuration
 and privilege mode. Bits are set to 0 if access is denied.
 layout: PMPLayout</p>
@@ -328,7 +328,7 @@ layout: PMPLayout</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPChecker.uniform">
-<span class="sig-name descname"><span class="pre">uniform</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.uniform" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">uniform</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><span class="pre">Value</span></a></em><a class="headerlink" href="#coreblocks.priv.pmp.PMPChecker.uniform" title="Link to this definition"></a></dt>
 <dd><p>Is the address range fully inside a single PMP entry.</p>
 </dd></dl>
 
@@ -337,7 +337,7 @@ layout: PMPLayout</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPLayout</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayout.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayout.__init__" title="Link to this definition"></a></dt>
@@ -348,7 +348,7 @@ layout: PMPLayout</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayoutFull">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.priv.pmp.</span></span><span class="sig-name descname"><span class="pre">PMPLayoutFull</span></span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayoutFull" title="Link to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev136)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/data.html#amaranth.lib.data.StructLayout" title="(in Amaranth language &amp; toolchain v0.6.0.dev137)"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructLayout</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.priv.pmp.PMPLayoutFull.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.priv.pmp.PMPLayoutFull.__init__" title="Link to this definition"></a></dt>
@@ -399,7 +399,7 @@ layout: PMPLayout</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 06:59 2026-08-22.
+      <span class="lastupdated">Last updated on 07:24 2026-08-24.
       </span></p>
   </div>
 
