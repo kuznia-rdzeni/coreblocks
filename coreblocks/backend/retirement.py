@@ -20,7 +20,7 @@ from transactron.lib.metrics import *
 from coreblocks.telemetry import RobFlush, RobRetire
 
 from coreblocks.params.genparams import GenParams
-from coreblocks.arch import ExceptionCause, HPMEvent, PrivilegeLevel
+from coreblocks.arch import ExceptionCause, PrivilegeLevel
 from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.interface.keys import (
     ActiveTagsKey,
@@ -87,9 +87,6 @@ class Retirement(Elaboratable):
             "Number of retired instructions",
             ways=gen_params.retirement_superscalarity,
         )
-        self.perf_mispredictions = HwCounter(
-            "backend.retirement.mispredictions", "Number of committed branch mispredictions"
-        )
         self.perf_trap_latency = FIFOLatencyMeasurer(
             "backend.retirement.trap_latency",
             "Cycles spent flushing the core after a trap",
@@ -108,7 +105,7 @@ class Retirement(Elaboratable):
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules += [self.perf_instr_ret, self.perf_mispredictions, self.perf_trap_latency]
+        m.submodules += [self.perf_instr_ret, self.perf_trap_latency]
 
         csr_instances = self.dependency_manager.get_dependency(CSRInstancesKey())
         m_csr = csr_instances.m_mode
@@ -182,7 +179,6 @@ class Retirement(Elaboratable):
         first_tag_incr_mask = Signal.like(tag_incr_mask)
         limiting_instruction_mask = Signal.like(tag_incr_mask)
         free_tag = Signal()
-        last_retired_active = Signal()
 
         with Transaction().always_body(m):
             rob_entries = self.rob_peek(m)
@@ -323,11 +319,9 @@ class Retirement(Elaboratable):
 
                                 m.d.av_comb += last_commit_ftq_ptr.eq(entry.rob_data.ftq_ptr)
                                 m.d.av_comb += last_commit_ftq_ptr_v.eq(1)
-                                m.d.sync += last_retired_active.eq(1)
                             with m.Else():
                                 # flush inactive instruction - CRAT entry was already rolled back
                                 flush_instr(i, entry)
-                                m.d.sync += last_retired_active.eq(0)
 
                         with m.Elif(i < retire_count):
                             # hard flush instruction for trap handling
@@ -342,16 +336,6 @@ class Retirement(Elaboratable):
                                         rp_dst=0,
                                         trap=1,
                                     )
-
-                    # TODO: this is some approximation of misprediction events - looking for active -> inactive
-                    # changes in retired instructions.
-                    # More metadata needs to be stored for an accurate result, improve.
-                    active_mask_with_prev = Signal(tag_active_mask.shape().width + 1)
-                    m.d.comb += active_mask_with_prev.eq(Cat(last_retired_active, tag_active_mask))
-                    change_mask = active_mask_with_prev & ~tag_active_mask
-                    with m.If((change_mask & retiring_mask).any()):  # without last bit
-                        self.perf_mispredictions.incr(m)
-                        m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(last_commit_ftq_ptr_v):
@@ -412,7 +396,6 @@ class Retirement(Elaboratable):
                     m.d.av_comb += handler_pc.eq((tvec_base << 2) + tvec_offset)
 
                     self.fetch_redirect(m, ftq_ptr=ftq_commit_ptr, pc=handler_pc)
-                    m.d.sync += last_retired_active.eq(1)
 
                     # Release pending trap state - allow accepting new reports and unstall fetch
                     self.exception_cause_clear(m)
