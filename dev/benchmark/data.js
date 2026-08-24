@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787385574381,
+  "lastUpdate": 1787559805452,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -27413,6 +27413,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/5343818bf08e2c8e50ed5197d6e9a1c42f539792"
         },
         "date": 1787385546268,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5514026943841768,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332363669945053,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.47560361720870864,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6630925765387599,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.38764021831546036,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.41681566142356,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5013666637387166,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8eeb74e78d9cc3ea1351b8b400b70f8aca7511f0",
+          "message": "ftq: count unpredicted JALRs as mispredictions (#1075)",
+          "timestamp": "2026-08-24T09:23:07+02:00",
+          "tree_id": "4741aaa8a2f2001c8c9e249b7ce98d35328d0523",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8eeb74e78d9cc3ea1351b8b400b70f8aca7511f0"
+        },
+        "date": 1787559794498,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
