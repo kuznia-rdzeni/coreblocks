@@ -21,7 +21,10 @@ class FetchAddressUnit(Elaboratable):
     read: Provided[Method]
     """Consume the current fetch PC. Blocks until a valid PC is available."""
     ifu_redirect: Provided[Method]
-    """Redirect the fetch PC after a misprediction detected by the IFU."""
+    """
+    Redirect the fetch PC after a misprediction detected by the IFU, or - when `pc_valid` is
+    low - invalidate it, because the IFU doesn't know where to fetch next.
+    """
     backend_redirect: Provided[Method]
     """Redirect the fetch PC after a misprediction resolved by the backend."""
 
@@ -33,7 +36,7 @@ class FetchAddressUnit(Elaboratable):
 
         self.write = Method(i=make_layout(fields.pc))
         self.read = Method(o=layouts.fetch_request)
-        self.ifu_redirect = Method(i=layouts.redirect)
+        self.ifu_redirect = Method(i=layouts.ifu_redirect)
         self.backend_redirect = Method(i=layouts.redirect)
 
     def elaborate(self, platform):
@@ -61,9 +64,9 @@ class FetchAddressUnit(Elaboratable):
             return next_fetch_addr_fwd
 
         @def_method(m, self.ifu_redirect)
-        def _(pc):
+        def _(pc, pc_valid):
             m.d.sync += next_fetch_addr.eq(pc)
-            m.d.sync += next_fetch_addr_v.eq(1)
+            m.d.sync += next_fetch_addr_v.eq(pc_valid)
 
         @def_method(m, self.backend_redirect)
         def _(pc):

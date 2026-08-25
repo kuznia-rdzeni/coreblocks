@@ -60,9 +60,6 @@ class FetchUnit(Elaboratable):
     cont: Required[Method]
     """Should be invoked to send fetched instruction to the next step."""
 
-    stall_unsafe: Required[Method]
-    """Called when an unsafe instruction is fetched."""
-
     check_stale: Required[Methods]
     """
     Asks the FTQ whether a fetch request is stale. One instance per stage (1 and 2).
@@ -83,7 +80,6 @@ class FetchUnit(Elaboratable):
         """
         self.gen_params = gen_params
         self.icache = icache
-        self.stall_unsafe = Method()
 
         self.layouts = self.gen_params.get(FetchLayouts)
 
@@ -509,9 +505,6 @@ class FetchUnit(Elaboratable):
                         )
 
             with m.If(~s2_stale):
-                with m.If(fault_any | stall_core):
-                    self.stall_unsafe(m)
-
                 self.fetch_writeback(
                     m,
                     ftq_ptr=ftq_ptr,
