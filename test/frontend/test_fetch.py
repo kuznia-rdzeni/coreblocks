@@ -258,10 +258,6 @@ class TestFetchUnit(TestCaseWithSimulator):
         if self.output_q:
             return self.output_q[0]
 
-    @def_method_mock(lambda self: self.fetch.stall_unsafe)
-    def stall_guard_unsafe(self):
-        pass
-
     @def_method_mock(lambda self: self.fetch.fetch_writeback)
     def fetch_writeback_mock(self, ftq_ptr, redirect, stall, cfi_idx, cfi_type, cfi_target):
         # Mirror the FTQ: redirect to `cfi_target` when there is a known target,

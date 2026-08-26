@@ -99,8 +99,9 @@ class FetchTargetQueue(Elaboratable):
 
     ifu_writeback: Provided[Method]
     """
-    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
-    redirect fetch to a new PC.
+    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and either
+    redirect fetch to a new PC or invalidate the fetch PC, which stalls fetching until the
+    backend resumes it.
     """
     check_stale: Provided[Methods]
     """
@@ -299,8 +300,7 @@ class FetchTargetQueue(Elaboratable):
 
                 evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
 
-                with m.If(redirect):
-                    fetch_address_unit.ifu_redirect(m, pc=cfi_target)
+                fetch_address_unit.ifu_redirect(m, pc=cfi_target, pc_valid=redirect)
 
         # Commits arrive in order, so training simply walks the queue behind the commit
         # pointer. An entry is trained once commit moves past it, i.e. once all of its
