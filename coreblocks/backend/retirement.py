@@ -239,10 +239,14 @@ class Retirement(Elaboratable):
                     commit_trapping = Signal()
 
                     cause_register = self.exception_cause_get(m).data
-                    arch_trap = Signal(init=1)
 
                     with m.If(exception):
                         self.perf_trap_latency.start(m)
+
+                        if rvvi is not None:
+                            # The instruction after this cycle ends will be the first instruction
+                            # of the trap handler -> inform RVVI about it.
+                            rvvi.register_next_is_trap_handler(m)
 
                         cause_entry = Signal(self.gen_params.isa.xlen)
 
@@ -302,7 +306,7 @@ class Retirement(Elaboratable):
 
                         with m.If(i - commit_trapping < no_trap_count):
                             with m.If(tag_active_mask[i]):
-                                retire_instr(i, rob_entries.entries[i])
+                                retire_instr(i, entry)
 
                                 if rvvi is not None:
                                     rvvi.finalize_retire[i](
@@ -310,20 +314,28 @@ class Retirement(Elaboratable):
                                         rob_id=entry.rob_id,
                                         rl_dst=entry.rob_data.rl_dst,
                                         rp_dst=entry.rob_data.rp_dst,
-                                        trap=entry.exception & arch_trap,
-                                        interrupt=entry.exception
-                                        & (cause_register.cause == ExceptionCause._COREBLOCKS_ASYNC_INTERRUPT),
+                                        trap=0,
                                     )
 
-                                m.d.av_comb += last_commit_ftq_ptr.eq(rob_entries.entries[i].rob_data.ftq_ptr)
+                                m.d.av_comb += last_commit_ftq_ptr.eq(entry.rob_data.ftq_ptr)
                                 m.d.av_comb += last_commit_ftq_ptr_v.eq(1)
                             with m.Else():
                                 # flush inactive instruction - CRAT entry was already rolled back
-                                flush_instr(i, rob_entries.entries[i])
+                                flush_instr(i, entry)
 
                         with m.Elif(i < retire_count):
                             # hard flush instruction for trap handling
-                            flush_instr(i, rob_entries.entries[i])
+                            flush_instr(i, entry)
+
+                            if rvvi is not None:
+                                with m.If(~commit_trapping & (i == no_trap_count)):
+                                    rvvi.finalize_retire[i](
+                                        m,
+                                        rob_id=entry.rob_id,
+                                        rl_dst=0,
+                                        rp_dst=0,
+                                        trap=1,
+                                    )
 
                     # Commit the FTQ entry for the last retired instruction this cycle.
                     with m.If(last_commit_ftq_ptr_v):
