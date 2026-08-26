@@ -165,7 +165,6 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_writeback"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_writeback</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.flush"><code class="docutils literal notranslate"><span class="pre">FetchUnit.flush</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.read_prediction"><code class="docutils literal notranslate"><span class="pre">FetchUnit.read_prediction</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.stall_unsafe"><code class="docutils literal notranslate"><span class="pre">FetchUnit.stall_unsafe</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.Predecoder"><code class="docutils literal notranslate"><span class="pre">Predecoder</span></code></a><ul>
@@ -209,7 +208,8 @@ It selects the next fetch PC based on reset, backend redirects, IFU redirects, a
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.ifu_redirect">
 <span class="sig-name descname"><span class="pre">ifu_redirect</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.fetch_addr_unit.FetchAddressUnit.ifu_redirect" title="Link to this definition"></a></dt>
-<dd><p>Redirect the fetch PC after a misprediction detected by the IFU.</p>
+<dd><p>Redirect the fetch PC after a misprediction detected by the IFU, or - when <cite>pc_valid</cite> is
+low - invalidate it, because the IFU doesn’t know where to fetch next.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -403,8 +403,9 @@ was invalidated by a redirect after it was issued.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.ifu_writeback">
 <span class="sig-name descname"><span class="pre">ifu_writeback</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.ifu_writeback" title="Link to this definition"></a></dt>
-<dd><p>Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
-redirect fetch to a new PC.</p>
+<dd><p>Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and either
+redirect fetch to a new PC or invalidate the fetch PC, which stalls fetching until the
+backend resumes it.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -446,9 +447,9 @@ redirect fetch to a new PC.</p>
 <dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.stall_controller.</span></span><span class="sig-name descname"><span class="pre">StallController</span></span><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
-<p>The stall controller is responsible for managing all stall/unstall signals
-that may be triggered in the core and based on them deciding if and where
-the frontend should be resumed.</p>
+<p>The stall controller watches for exceptions raised on the speculative path and stalls the
+frontend until the backend redirects it to the trap handler (or a rollback invalidates the
+exception and redirects the frontend itself).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.__init__" title="Link to this definition"></a></dt>
@@ -466,28 +467,9 @@ the frontend should be resumed.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.redirect_frontend">
-<span class="sig-name descname"><span class="pre">redirect_frontend</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">REQUIRED:</span> <span class="pre">2&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.redirect_frontend" title="Link to this definition"></a></dt>
-<dd><p>A method that will be called when the frontend needs to be redirected. Should be always ready.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.resume_from_exception">
-<span class="sig-name descname"><span class="pre">resume_from_exception</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.resume_from_exception" title="Link to this definition"></a></dt>
-<dd><p>Signals that the backend handled the exception and the frontend can be resumed.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.stall_guard">
 <span class="sig-name descname"><span class="pre">stall_guard</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.stall_guard" title="Link to this definition"></a></dt>
 <dd><p>A non-exclusive method whose readiness denotes if the frontend is currently stalled.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.frontend.stall_controller.StallController.stall_unsafe">
-<span class="sig-name descname"><span class="pre">stall_unsafe</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.stall_controller.StallController.stall_unsafe" title="Link to this definition"></a></dt>
-<dd><p>Signals that the frontend should be stalled because an unsafe (i.e. causing
-difficult to handle side effects) instruction was just fetched.</p>
 </dd></dl>
 
 </dd></dl>
@@ -510,7 +492,7 @@ difficult to handle side effects) instruction was just fetched.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 07:44 2026-08-26.
+      <span class="lastupdated">Last updated on 21:39 2026-08-26.
       </span></p>
   </div>
 
