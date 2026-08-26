@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787783917193,
+  "lastUpdate": 1787783919814,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -82445,6 +82445,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 157,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "475cf299db59d07cc198a5bfd16e285a745a7fab",
+          "message": "frontend: clean up unsafe stall logic (#1076)",
+          "timestamp": "2026-08-26T23:38:20+02:00",
+          "tree_id": "c71d1568d97b55e9235ec13097ef9270fe03cc58",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/475cf299db59d07cc198a5bfd16e285a745a7fab"
+        },
+        "date": 1787783918922,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 66.5,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7540,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2819,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 155,
             "unit": "Slice"
           },
           {
