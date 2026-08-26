@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1787733850733,
+  "lastUpdate": 1787733853582,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -82087,6 +82087,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 154,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "43b52c84715a41b0574f64c6a315b5156d9cc26f",
+          "message": "restore RVVI functionality (#1074)",
+          "timestamp": "2026-08-26T09:43:16+02:00",
+          "tree_id": "11811b802df926d654c987724a1bd5a3b9d7c4b1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/43b52c84715a41b0574f64c6a315b5156d9cc26f"
+        },
+        "date": 1787733852703,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 71.22,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7489,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2820,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 157,
             "unit": "Slice"
           },
           {
