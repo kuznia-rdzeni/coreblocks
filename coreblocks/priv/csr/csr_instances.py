@@ -259,7 +259,7 @@ class MachineModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR, DoubleShadowCSR)):
                 m.submodules[name] = value
 
         with Transaction().always_body(m):
@@ -543,7 +543,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR, DoubleShadowCSR)):
                 m.submodules[name] = value
 
         return m
