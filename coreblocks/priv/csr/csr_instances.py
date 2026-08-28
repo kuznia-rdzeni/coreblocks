@@ -565,7 +565,7 @@ class CSRInstances(Elaboratable):
         self.time_shadow = DoubleShadowCSR(
             self.gen_params,
             self.time,
-            None,
+            None,  # the writeable CSR is MMIO register
             None,
             CSRAddress.TIME,
             CSRAddress.TIMEH,
