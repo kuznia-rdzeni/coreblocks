@@ -10,10 +10,14 @@ from transactron.testing import (
 )
 from transactron.testing.method_mock import MethodMock
 
+from transactron.utils import DependencyContext, ModuleConnector
+
 from coreblocks.arch import CfiType
 from coreblocks.frontend.ftq import FetchTargetQueue
+from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import GenParams
 from coreblocks.params import configurations
+from coreblocks.priv.csr.csr_instances import CSRInstances
 
 
 class TestFetchTargetQueue(TestCaseWithSimulator):
@@ -26,7 +30,11 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
         self.bpu_updates: deque = deque()
         self.bpu_flush_count: int = 0
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
 
     @def_method_mock(lambda self: self.ftq.stall_guard)
     def stall_guard_mock(self):
@@ -90,7 +98,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             assert self.ifu_requests[0]["pc"] == self.start_pc
             assert self.ifu_requests[0]["ftq_ptr"] == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -105,7 +113,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 assert self.ifu_requests[i]["pc"] == self.start_pc + 4 * i
                 assert self.ifu_requests[i]["ftq_ptr"] == i
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -119,7 +127,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             )
             assert self.bpu_flush_count > flush_count_before
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -142,7 +150,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 await sim.tick()
             assert redirect_pc in [req["pc"] for req in self.ifu_requests]
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_testbench(proc)
 
     def test_backend_redirect_restarts_fetch_from_new_pc(self):
@@ -155,7 +163,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 await sim.tick()
             assert redirect_pc in [req["pc"] for req in self.ifu_requests]
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_testbench(proc)
 
     def test_fetch_gen_starts_at_one_and_is_unique_per_entry(self):
@@ -171,7 +179,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
                 assert self.ifu_requests[i]["ftq_ptr"] == i
                 assert self.ifu_requests[i]["fetch_gen"] == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -182,7 +190,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             assert len(self.ifu_requests) >= 3
             assert await self.check_stale(sim, self.ifu_requests[0]) == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -196,7 +204,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             req["fetch_gen"] = 0
             assert await self.check_stale(sim, req) == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -207,7 +215,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             future = {"ftq_ptr": self.gen_params.ftq_size - 1, "parity": 0, "fetch_gen": 1}
             assert await self.check_stale(sim, future) == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -254,7 +262,7 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             assert await self.check_stale(sim, reissued[0]) == 0
             assert await self.check_stale(sim, squashed) == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -268,7 +276,11 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
         self.ifu_requests: deque = deque()
         self.bpu_requests: deque = deque()
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
 
     @def_method_mock(lambda self: self.ftq.stall_guard)
     def stall_guard_mock(self):
@@ -325,7 +337,7 @@ class TestFetchTargetQueueFull(TestCaseWithSimulator):
                 await sim.tick()
             assert len(self.ifu_requests) == ftq_size + 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -339,7 +351,11 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
         self.bpu_requests: deque = deque()
         self.bpu_updates: deque = deque()
 
+        self.csr_instances = CSRInstances(self.gen_params)
+        DependencyContext.get().add_dependency(CSRInstancesKey(), self.csr_instances)
+
         self.ftq = SimpleTestCircuit(FetchTargetQueue(self.gen_params))
+        self.dut = ModuleConnector(ftq=self.ftq, csr_instances=self.csr_instances)
 
     @def_method_mock(lambda self: self.ftq.stall_guard)
     def stall_guard_mock(self):
@@ -414,7 +430,7 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
             assert update["taken"] == 1
             assert update["mispredict"] == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -425,7 +441,7 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
                 await sim.tick()
             assert len(self.bpu_updates) == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -441,7 +457,7 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
             assert update["taken"] == 1
             assert update["mispredict"] == 0
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)
 
@@ -458,6 +474,6 @@ class TestFetchTargetQueueTrain(TestCaseWithSimulator):
             assert update["taken"] == 1
             assert update["mispredict"] == 1
 
-        with self.run_simulation(self.ftq) as sim:
+        with self.run_simulation(self.dut) as sim:
             sim.add_process(self.auto_bpu_process)
             sim.add_testbench(proc)

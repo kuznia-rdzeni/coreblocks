@@ -108,7 +108,7 @@ class CSRRegister(CSRRegisterBase):
 
         # Timer register that increments on each cycle and resets if read by CSR instruction
         csr = CSRRegister(1, gen_params)
-        with Transaction.body(m):
+        with Transaction().body(m):
             csr_val = csr.read()
             with m.If(csr_val.read):
                 csr.write(0)

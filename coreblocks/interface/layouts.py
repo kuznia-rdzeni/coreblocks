@@ -731,6 +731,8 @@ class FetchLayouts:
         to resume (fault or unsafe instruction). Both drop the FTQ entries after ftq_ptr."""
         self.redirect = make_layout(fields.pc)
 
+        self.ifu_redirect = make_layout(fields.pc, ("pc_valid", 1))
+
         # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
         # (or have already been) committed before the instruction the core is being redirected to.
         self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
@@ -1040,5 +1042,4 @@ class RVVILayouts:
             fields.rl_dst,
             fields.rp_dst,
             ("trap", 1),
-            ("interrupt", 1),
         )

@@ -18,7 +18,7 @@ from coreblocks.interface.layouts import (
     FTQPtr,
     FetchTargetQueueLayouts,
 )
-from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey
+from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey, CSRInstancesKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
 from coreblocks.telemetry import FetchRequest, FTQAlloc, FTQCommit, FTQRollback
 
@@ -99,8 +99,9 @@ class FetchTargetQueue(Elaboratable):
 
     ifu_writeback: Provided[Method]
     """
-    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and optionally
-    redirect fetch to a new PC.
+    Handle an IFU-detected misprediction/unsafe instruction: flush the BPU and either
+    redirect fetch to a new PC or invalidate the fetch PC, which stalls fetching until the
+    backend resumes it.
     """
     check_stale: Provided[Methods]
     """
@@ -158,11 +159,17 @@ class FetchTargetQueue(Elaboratable):
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
         self.dep_manager.add_dependency(FTQCommitKey(), self.commit)
 
+        self.perf_mispredictions = HwCounter("frontend.ftq.mispredictions", "Number of committed branch mispredictions")
+
     def elaborate(self, platform):
         m = TModule()
 
+        m.submodules += [self.perf_mispredictions]
+
         fields = self.gen_params.get(CommonLayoutFields)
         fetch_layouts = self.gen_params.get(FetchLayouts)
+
+        m_csr = self.dep_manager.get_dependency(CSRInstancesKey()).m_mode
 
         m.submodules.fetch_address_unit = fetch_address_unit = FetchAddressUnit(self.gen_params)
 
@@ -293,8 +300,7 @@ class FetchTargetQueue(Elaboratable):
 
                 evlog.emit(m, FTQRollback.hw(ftq_ptr=ftq_ptr_plus_one, cause="ifu_writeback"))
 
-                with m.If(redirect):
-                    fetch_address_unit.ifu_redirect(m, pc=cfi_target)
+                fetch_address_unit.ifu_redirect(m, pc=cfi_target, pc_valid=redirect)
 
         # Commits arrive in order, so training simply walks the queue behind the commit
         # pointer. An entry is trained once commit moves past it, i.e. once all of its
@@ -303,6 +309,12 @@ class FetchTargetQueue(Elaboratable):
             record = train_mem.read(m).data
             status = train_status[train_mem.read_ptr.ptr]
             with m.If(status.valid):
+                # At most one CFI per block mispredicts and `resolve` keeps the oldest one,
+                # so each committed misprediction is counted once.
+                with m.If(status.mispredict):
+                    self.perf_mispredictions.incr(m)
+                    m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
+
                 self.bpu_update(
                     m,
                     pc=record.pc,
