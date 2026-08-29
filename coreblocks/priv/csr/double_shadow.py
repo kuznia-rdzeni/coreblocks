@@ -3,7 +3,7 @@ from typing import Optional
 from amaranth import *
 from amaranth_types import ValueLike
 
-from transactron.core import Method, TModule
+from transactron.core import TModule
 from transactron.utils import get_src_loc, SrcLoc
 
 from coreblocks.arch import CSRAddress
@@ -57,8 +57,6 @@ class DoubleShadowCSR(Elaboratable):
 
         self.gen_params = gen_params
 
-        self.increment = Method()
-
         self.src_loc = get_src_loc(src_loc)
 
         self.register_low = self.register_high = None
@@ -66,7 +64,11 @@ class DoubleShadowCSR(Elaboratable):
 
         if low_addr is not None:
             self.register_low = ShadowCSR(
-                low_addr, gen_params, shadowed, width=gen_params.isa.xlen, offset=0, src_loc=self.src_loc
+                low_addr,
+                gen_params,
+                shadowed,
+                offset=0,
+                src_loc=self.src_loc,
             )
 
         if high_addr is not None and gen_params.isa.xlen == 32:
@@ -74,8 +76,7 @@ class DoubleShadowCSR(Elaboratable):
                 high_addr,
                 gen_params,
                 shadowed,
-                width=gen_params.isa.xlen,
-                offset=gen_params.isa.xlen,
+                offset=32,
                 src_loc=self.src_loc,
             )
 
@@ -84,7 +85,6 @@ class DoubleShadowCSR(Elaboratable):
                 shadow_low_addr,
                 gen_params,
                 shadowed,
-                width=gen_params.isa.xlen,
                 offset=0,
                 write_mask=0,
                 access_filter=shadow_access_filter,
@@ -96,8 +96,7 @@ class DoubleShadowCSR(Elaboratable):
                 shadow_high_addr,
                 gen_params,
                 shadowed,
-                width=gen_params.isa.xlen,
-                offset=gen_params.isa.xlen,
+                offset=32,
                 write_mask=0,
                 access_filter=shadow_access_filter,
                 src_loc=self.src_loc,

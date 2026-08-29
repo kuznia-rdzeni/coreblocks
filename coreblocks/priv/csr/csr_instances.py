@@ -561,7 +561,12 @@ class CSRInstances(Elaboratable):
             self.csr_coreblocks_test = CSRRegister(CSRAddress.COREBLOCKS_TEST_CSR, gen_params)
             self.csr_coreblocks_test_exit = CSRRegister(CSRAddress.COREBLOCKS_TEST_EXIT_CSR, gen_params)
 
-        self.time = CSRRegister(None, self.gen_params, width=64)
+        self.time = CSRRegister(
+            None,
+            self.gen_params,
+            width=64,
+            ro_bits=~0,
+        )
         self.time_shadow = DoubleShadowCSR(
             self.gen_params,
             self.time,
@@ -593,7 +598,7 @@ class CSRInstances(Elaboratable):
             m.d.sync += time_source.eq(time_source + 1)
 
         with Transaction().always_body(m):
-            self.time.write(m, data=time_source)
+            self.time.write(m, time_source)
 
         m.submodules.time = self.time
         m.submodules.time_shadow = self.time_shadow
