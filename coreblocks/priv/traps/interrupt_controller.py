@@ -305,7 +305,7 @@ class InternalInterruptController(Component):
         m.d.comb += self.wfi_resume.eq(interrupt_pending)
 
         with Transaction().always_body(m):
-            mip_value = self.mip.read_comb(m).data & ~self.mip.ro_bits
+            mip_value = (self.mip.read_comb(m).data & ~self.mip.ro_bits) | (self.mip.read(m).data & self.mip.ro_bits)
             new_data = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
 
