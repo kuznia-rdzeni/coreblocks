@@ -23,6 +23,7 @@ from coreblocks.priv.csr.aliased import AliasedCSR
 from coreblocks.priv.csr.csr_register import CSRRegister, CSRRegisterBase
 from coreblocks.priv.csr.double_counter import DoubleCounterCSR
 from coreblocks.priv.csr.shadow import ShadowCSR
+from coreblocks.priv.csr.double_shadow import DoubleShadowCSR
 from coreblocks.socks.clint import ClintMtimeKey
 from coreblocks.interface.keys import CSRInstancesKey
 from typing import Optional
@@ -73,16 +74,23 @@ class MachineModeCSRRegisters(Elaboratable):
         self.mscratch = CSRRegister(CSRAddress.MSCRATCH, gen_params)
         self.mconfigptr = CSRRegister(CSRAddress.MCONFIGPTR, gen_params, init=0)
 
-        self.mstatus = AliasedCSR(CSRAddress.MSTATUS, gen_params)
-        self.mstatush = None
-        if gen_params.isa.xlen == 32:
-            self.mstatush = AliasedCSR(CSRAddress.MSTATUSH, gen_params)
+        self.mstatus = AliasedCSR(None, gen_params, width=64)
+        self.mstatus_shadow = DoubleShadowCSR(
+            gen_params,
+            self.mstatus,
+            CSRAddress.MSTATUS,
+            CSRAddress.MSTATUSH,
+        )
 
-        self.menvcfg = self.menvcfgh = None
+        self.menvcfg = None
         if gen_params.user_mode:
-            self.menvcfg = AliasedCSR(CSRAddress.MENVCFG, gen_params)
-            if gen_params.isa.xlen == 32:
-                self.menvcfgh = AliasedCSR(CSRAddress.MENVCFGH, gen_params)
+            self.menvcfg = AliasedCSR(None, gen_params, width=64)
+            self.menvcfg_shadow = DoubleShadowCSR(
+                gen_params,
+                self.menvcfg,
+                CSRAddress.MENVCFG,
+                CSRAddress.MENVCFGH,
+            )
 
         self.mcause = CSRRegister(CSRAddress.MCAUSE, gen_params)
         # CY/TM/IR bits are writable, unsupported HPM bits are read-only zero.
@@ -218,8 +226,8 @@ class MachineModeCSRRegisters(Elaboratable):
             self.priv_mode_public = AliasedCSR(CSRAddress.COREBLOCKS_TEST_PRIV_MODE, gen_params)
             self.priv_mode_public.add_field(0, self.priv_mode)
 
-        self._mstatus_fields_implementation(gen_params, self.mstatus, self.mstatush)
-        self._menvcfg_fields_implementation(gen_params, self.menvcfg, self.menvcfgh)
+        self._mstatus_fields_implementation(gen_params, self.mstatus)
+        self._menvcfg_fields_implementation(gen_params, self.menvcfg)
         self._mtvec_fields_implementation(gen_params, self.mtvec)
 
         self.hpm_counters_count = gen_params.hpm_counters_count
@@ -251,7 +259,7 @@ class MachineModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR, DoubleShadowCSR)):
                 m.submodules[name] = value
 
         with Transaction().always_body(m):
@@ -275,9 +283,7 @@ class MachineModeCSRRegisters(Elaboratable):
 
         return m
 
-    def _menvcfg_fields_implementation(
-        self, gen_params: GenParams, menvcfg: Optional[AliasedCSR], menvcfgh: Optional[AliasedCSR]
-    ):
+    def _menvcfg_fields_implementation(self, gen_params: GenParams, menvcfg: Optional[AliasedCSR]):
         self.menvcfg_fiom = None
         if menvcfg is None:
             return
@@ -306,7 +312,6 @@ class MachineModeCSRRegisters(Elaboratable):
         self,
         gen_params: GenParams,
         mstatus: AliasedCSR,
-        mstatush: Optional[AliasedCSR],
     ):
         def filter_legal_priv_mode(m: TModule, v: Value):
             legal = Signal(1)
@@ -354,13 +359,8 @@ class MachineModeCSRRegisters(Elaboratable):
 
         # Little-endianness
         mstatus.add_read_only_field(MstatusFieldOffsets.UBE, 1, 0)
-        if gen_params.isa.xlen == 32:
-            assert mstatush
-            mstatush.add_read_only_field(MstatusFieldOffsets.SBE - mstatus.width, 1, 0)
-            mstatush.add_read_only_field(MstatusFieldOffsets.MBE - mstatus.width, 1, 0)
-        elif gen_params.isa.xlen == 64:
-            mstatus.add_read_only_field(MstatusFieldOffsets.SBE, 1, 0)
-            mstatus.add_read_only_field(MstatusFieldOffsets.MBE, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.SBE, 1, 0)
+        mstatus.add_read_only_field(MstatusFieldOffsets.MBE, 1, 0)
 
         self.mstatus_mprv = CSRRegister(None, gen_params, width=1, ro_bits=0 if gen_params.user_mode else 1)
         mstatus.add_field(MstatusFieldOffsets.MPRV, self.mstatus_mprv)
@@ -404,7 +404,7 @@ class MachineModeCSRRegisters(Elaboratable):
         mstatus.add_read_only_field(MstatusFieldOffsets.XS, 2, 0)
         # SD field - set to one when one of the states is dirty
         mstatus.add_read_only_field(
-            MstatusFieldOffsets.SD % mstatus.width,  # SD is last bit of `mstatus` (depends on xlen)
+            MstatusFieldOffsets.SD % gen_params.isa.xlen,  # SD is last bit of `mstatus` (depends on xlen)
             1,
             Extension.V in gen_params.isa.extensions or Extension.F in gen_params.isa.extensions,
         )
@@ -543,7 +543,7 @@ class SupervisorModeCSRRegisters(Elaboratable):
         m = TModule()
 
         for name, value in vars(self).items():
-            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR)):
+            if isinstance(value, (CSRRegisterBase, DoubleCounterCSR, DoubleShadowCSR)):
                 m.submodules[name] = value
 
         return m
@@ -562,16 +562,20 @@ class CSRInstances(Elaboratable):
             self.csr_coreblocks_test_exit = CSRRegister(CSRAddress.COREBLOCKS_TEST_EXIT_CSR, gen_params)
 
         self.time = CSRRegister(
-            CSRAddress.TIME,
+            None,
             self.gen_params,
-            fu_access_filter=counteren_access_filter(self.gen_params, CounterEnableFieldOffsets.TM),
+            width=64,
+            ro_bits=~0,
         )
-        if gen_params.isa.xlen == 32:
-            self.timeh = CSRRegister(
-                CSRAddress.TIMEH,
-                self.gen_params,
-                fu_access_filter=counteren_access_filter(self.gen_params, CounterEnableFieldOffsets.TM),
-            )
+        self.time_shadow = DoubleShadowCSR(
+            self.gen_params,
+            self.time,
+            None,  # the writeable CSR is MMIO register
+            None,
+            CSRAddress.TIME,
+            CSRAddress.TIMEH,
+            shadow_access_filter=counteren_access_filter(self.gen_params, CounterEnableFieldOffsets.TM),
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -587,19 +591,17 @@ class CSRInstances(Elaboratable):
         # TIME CSR is a R/O alias to Memory-Mapped `mtime` value (from clint). If `mtime` is not available,
         # then fallback to providing a cycle counter source.
         clint_mtime = DependencyContext.get().get_optional_dependency(ClintMtimeKey())
-        time_counter = Signal(64)
-        m.d.sync += time_counter.eq(time_counter + 1)
-        time_source = time_counter if clint_mtime is None else clint_mtime
+        if clint_mtime is not None:
+            time_source = clint_mtime
+        else:
+            time_source = Signal(64)
+            m.d.sync += time_source.eq(time_source + 1)
 
         with Transaction().always_body(m):
-            if clint_mtime is not None:
-                self.time.write(m, data=time_source[: self.time.width])
-                if self.gen_params.isa.xlen == 32:
-                    self.timeh.write(m, data=time_source[self.time.width :])
+            self.time.write(m, time_source)
 
         m.submodules.time = self.time
-        if self.gen_params.isa.xlen == 32:
-            m.submodules.timeh = self.timeh
+        m.submodules.time_shadow = self.time_shadow
 
         with Transaction().always_body(m):
             priv_mode = self.m_mode.priv_mode.read(m).data

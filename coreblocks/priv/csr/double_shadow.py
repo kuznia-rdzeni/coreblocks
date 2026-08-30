@@ -3,8 +3,8 @@ from typing import Optional
 from amaranth import *
 from amaranth_types import ValueLike
 
-from transactron.core import Method, TModule
-from transactron.utils import get_src_loc
+from transactron.core import TModule
+from transactron.utils import get_src_loc, SrcLoc
 
 from coreblocks.arch import CSRAddress
 from coreblocks.params.genparams import GenParams
@@ -30,6 +30,7 @@ class DoubleShadowCSR(Elaboratable):
         shadow_low_addr: Optional[CSRAddress] = None,
         shadow_high_addr: Optional[CSRAddress] = None,
         shadow_access_filter: Optional[Callable[[TModule, Value], ValueLike]] = None,
+        src_loc: SrcLoc | int = 0,
     ):
         """
         Parameters
@@ -52,42 +53,61 @@ class DoubleShadowCSR(Elaboratable):
         """
         assert (low_addr is None) == (high_addr is None)
         assert (shadow_low_addr is None) == (shadow_high_addr is None)
+        assert shadowed.width == 64
 
         self.gen_params = gen_params
 
-        self.increment = Method()
+        self.src_loc = get_src_loc(src_loc)
 
-        self.register_low = ShadowCSR(low_addr, gen_params, shadowed, width=gen_params.isa.xlen)
-        self.register_high = (
-            ShadowCSR(high_addr, gen_params, shadowed, width=gen_params.isa.xlen, offset=gen_params.isa.xlen)
-            if gen_params.isa.xlen == 32
-            else None
-        )
-
+        self.register_low = self.register_high = None
         self.shadow_low = self.shadow_high = None
+
+        if low_addr is not None:
+            self.register_low = ShadowCSR(
+                low_addr,
+                gen_params,
+                shadowed,
+                offset=0,
+                src_loc=self.src_loc,
+            )
+
+        if high_addr is not None and gen_params.isa.xlen == 32:
+            self.register_high = ShadowCSR(
+                high_addr,
+                gen_params,
+                shadowed,
+                offset=32,
+                src_loc=self.src_loc,
+            )
+
         if shadow_low_addr is not None:
             self.shadow_low = ShadowCSR(
                 shadow_low_addr,
                 gen_params,
-                self.register_low,
+                shadowed,
+                offset=0,
                 write_mask=0,
                 access_filter=shadow_access_filter,
-                src_loc=get_src_loc(1),
+                src_loc=self.src_loc,
             )
-            if self.register_high is not None:
-                self.shadow_high = ShadowCSR(
-                    shadow_high_addr,
-                    gen_params,
-                    self.register_high,
-                    write_mask=0,
-                    access_filter=shadow_access_filter,
-                    src_loc=get_src_loc(1),
-                )
+
+        if shadow_high_addr is not None and gen_params.isa.xlen == 32:
+            self.shadow_high = ShadowCSR(
+                shadow_high_addr,
+                gen_params,
+                shadowed,
+                offset=32,
+                write_mask=0,
+                access_filter=shadow_access_filter,
+                src_loc=self.src_loc,
+            )
 
     def elaborate(self, platform):
         m = TModule()
 
-        m.submodules.register_low = self.register_low
+        if self.register_low is not None:
+            m.submodules.register_low = self.register_low
+
         if self.register_high is not None:
             m.submodules.register_high = self.register_high
 

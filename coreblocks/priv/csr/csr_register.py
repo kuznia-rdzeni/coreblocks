@@ -109,11 +109,11 @@ class CSRRegister(CSRRegisterBase):
         # Timer register that increments on each cycle and resets if read by CSR instruction
         csr = CSRRegister(1, gen_params)
         with Transaction().body(m):
-            csr_val = csr.read()
+            csr_val = csr.read(m)
             with m.If(csr_val.read):
-                csr.write(0)
+                csr.write(m, 0)
             with m.Else():
-                csr.write(csr_val.data + 1)
+                csr.write(m, csr_val.data + 1)
     """
 
     def __init__(
@@ -228,7 +228,7 @@ class CSRRegister(CSRRegisterBase):
     def elaborate(self, platform):
         m = TModule()
 
-        internal_method_layout = StructLayout({"data": self.gen_params.isa.xlen, "active": 1})
+        internal_method_layout = StructLayout({"data": self.width, "active": 1})
         write_internal = Signal(internal_method_layout)
         fu_write_internal = Signal(internal_method_layout)
 
