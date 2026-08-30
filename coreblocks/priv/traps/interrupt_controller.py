@@ -76,7 +76,8 @@ class InternalInterruptController(Component):
         self.level_interrupts = Signal(self.gen_params.isa.xlen)
         self.new_edge_interrupts = Signal(self.gen_params.isa.xlen)
 
-        self.m_mode_csr = m_mode_csr = self.dm.get_dependency(CSRInstancesKey()).m_mode
+        self.csr_instances = self.dm.get_dependency(CSRInstancesKey())
+        self.m_mode_csr = m_mode_csr = self.csr_instances.m_mode
         self.mstatus_mie = m_mode_csr.mstatus_mie
         self.mstatus_mpie = m_mode_csr.mstatus_mpie
         self.mstatus_mpp = m_mode_csr.mstatus_mpp
@@ -99,7 +100,7 @@ class InternalInterruptController(Component):
         self.mip_writeable = self.mie_writeable & self.edge_reported_mask
 
         if gen_params.supervisor_mode:
-            # mip_stip_no_stimecmp_acc
+            # mip_stip_no_stimecmp_acc / mip_stip_stimecmp_acc (with sstc the STI gets overwritten by stimecmp logic)
             # mip_ssip_acc
             # mip_seip_acc
             self.mip_writeable |= (
@@ -190,6 +191,20 @@ class InternalInterruptController(Component):
                 write_mask=self.sip_write_mask.method,
             )
 
+            if gen_params.sstc:
+
+                def stimecmp_access_filter(m, arg):
+                    assert m_mode_csr.menvcfg_stce
+                    priv = m_mode_csr.priv_mode.read(m).data
+                    stce = m_mode_csr.menvcfg_stce.read(m).data
+                    mcounteren_tm = m_mode_csr.mcounteren.read(m).data[1]
+                    return (priv == PrivilegeLevel.MACHINE) | (stce & mcounteren_tm)
+
+                self.stimecmp = CSRRegister(None, gen_params, width=64, fu_access_filter=stimecmp_access_filter)
+                self.stimecmp_shadow = DoubleShadowCSR(
+                    gen_params, self.stimecmp, CSRAddress.STIMECMP, CSRAddress.STIMECMPH
+                )
+
         self.interrupt_insert = Signal()
         self.dm.add_dependency(AsyncInterruptInsertSignalKey(), self.interrupt_insert)
 
@@ -218,7 +233,10 @@ class InternalInterruptController(Component):
         if self.gen_params.supervisor_mode:
             m.submodules += [self.sie, self.sip, self.mideleg, self.medeleg, self.medeleg_shadow, self.sip_write_mask]
 
-        priv_mode = self.dm.get_dependency(CSRInstancesKey()).m_mode.priv_mode
+        if self.gen_params.sstc:
+            m.submodules += [self.stimecmp, self.stimecmp_shadow]
+
+        priv_mode = self.m_mode_csr.priv_mode
 
         interrupt_enable_m = Signal()
         interrupt_enable_s = Signal()
@@ -231,6 +249,7 @@ class InternalInterruptController(Component):
             self.internal_report_level,
             self.custom_report,
         )
+
         for i in range(ISA_RESERVED_INTERRUPTS + self.gen_params.interrupt_custom_count):
             if self.edge_reported_mask & (1 << i):
                 m.d.comb += self.new_edge_interrupts[i].eq(all_interrupts[i])
@@ -289,6 +308,14 @@ class InternalInterruptController(Component):
             mip_value = self.mip.read_comb(m).data
             new_data = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
+
+            if self.gen_params.sstc:
+                stce = self.m_mode_csr.menvcfg_stce.read(m).data
+                stimecmp = self.stimecmp.read(m).data
+                time = self.csr_instances.time.read(m).data
+                with m.If(stce):
+                    m.d.av_comb += new_data[InterruptCauseNumber.STI].eq(time >= stimecmp)
+
             self.mip.write(m, {"data": new_data})
 
         @def_method(m, self.mret)

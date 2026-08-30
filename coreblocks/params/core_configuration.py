@@ -124,6 +124,8 @@ class _CoreConfigurationDataClass:
     phys_addr_bits: int | None
         Width of physical addresses in bits. If not set, defaults to 34 for RV32 if supported_vm_schemes has
         SV32 enabled, 32 for RV32 with only BARE mode and 56 for RV64.
+    sstc: bool
+        Enable Supervisor Mode Timer Counter (SSTC) extension. (only apllicable if supervisor_mode is enabled)
     hpm_counters_count: int
         Number of implemented HPM counters (mhpmcounter3..mhpmcounter31).
     tlb_config: TLBCacheConfiguration
@@ -199,6 +201,9 @@ class _CoreConfigurationDataClass:
     asidlen: int | None = None
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE, SatpMode.SV32)
     phys_addr_bits: int | None = None
+
+    sstc: bool = True
+
     hpm_counters_count: int = 0
 
     tlb_config: TLBCacheConfiguration = TLBCacheConfiguration()
