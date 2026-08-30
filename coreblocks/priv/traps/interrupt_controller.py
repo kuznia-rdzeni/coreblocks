@@ -310,6 +310,7 @@ class InternalInterruptController(Component):
             m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
 
             if self.gen_params.sstc:
+                assert self.m_mode_csr.menvcfg_stce is not None
                 stce = self.m_mode_csr.menvcfg_stce.read(m).data
                 stimecmp = self.stimecmp.read(m).data
                 time = self.csr_instances.time.read(m).data
