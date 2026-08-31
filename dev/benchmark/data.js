@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788198129063,
+  "lastUpdate": 1788198131473,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -83867,6 +83867,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 7518,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 2819,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 153,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "05f5f272cf905865ab201bc5d068c2a9f6d1386f",
+          "message": "fix misa CSR value calculation (#1081)",
+          "timestamp": "2026-08-31T18:40:07+02:00",
+          "tree_id": "9214071eadd825dac22fb8bb3f7faa1b6065e035",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/05f5f272cf905865ab201bc5d068c2a9f6d1386f"
+        },
+        "date": 1788198130796,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 73.68,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 7483,
             "unit": "LUT"
           },
           {
