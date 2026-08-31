@@ -110,6 +110,10 @@ class CSRAddress(IntEnum, shape=12):
     # Supervisor Protection and Translation
     SATP = 0x180  # Supervisor address translation and protection
 
+    # Supervisor Timer Compare
+    STIMECMP = 0x14D  # Supervisor timer compare
+    STIMECMPH = 0x15D  # Upper 32 bits of `stimecmp`, RV32 only
+
     # Debug/Trace Registers
     SCONTEXT = 0x5A8  # Supervisor-mode context register
 

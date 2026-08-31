@@ -129,6 +129,7 @@ class GenParams(DependentCache):
 
         self.user_mode = cfg.user_mode
         self.supervisor_mode = cfg.supervisor_mode
+        self.sstc = cfg.sstc and self.supervisor_mode
         self.hpm_counters_count = cfg.hpm_counters_count
 
         self.tlb_config = cfg.tlb_config
