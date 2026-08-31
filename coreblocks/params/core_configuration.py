@@ -117,6 +117,8 @@ class _CoreConfigurationDataClass:
         Enable User Mode.
     supervisor_mode: bool
         Enable Supervisor Mode.
+    sstc: bool
+        Enable Supervisor Mode Timer Counter (SSTC) extension. (only apllicable if supervisor_mode is enabled)
     asidlen: int
         Number of writable ASID bits in SATP.
     supported_vm_schemes: Collection[SatpMode]
@@ -196,9 +198,12 @@ class _CoreConfigurationDataClass:
     user_mode: bool = True
     supervisor_mode: bool = True
 
+    sstc: bool = True
+
     asidlen: int | None = None
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE, SatpMode.SV32)
     phys_addr_bits: int | None = None
+
     hpm_counters_count: int = 0
 
     tlb_config: TLBCacheConfiguration = TLBCacheConfiguration()

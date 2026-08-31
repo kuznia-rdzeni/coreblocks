@@ -285,12 +285,15 @@ class MachineModeCSRRegisters(Elaboratable):
 
     def _menvcfg_fields_implementation(self, gen_params: GenParams, menvcfg: Optional[AliasedCSR]):
         self.menvcfg_fiom = None
+        self.menvcfg_stce = None
         if menvcfg is None:
             return
 
         fiom_ro = gen_params.vmem_params.supported_schemes == {SatpMode.BARE}
         self.menvcfg_fiom = CSRRegister(None, gen_params, width=1, ro_bits=1 if fiom_ro else 0)
         menvcfg.add_field(MenvcfgFieldOffsets.FIOM, self.menvcfg_fiom)
+        self.menvcfg_stce = CSRRegister(None, gen_params, width=1, ro_bits=1 if not gen_params.sstc else 0)
+        menvcfg.add_field(MenvcfgFieldOffsets.STCE, self.menvcfg_stce)
 
     def _mtvec_fields_implementation(self, gen_params: GenParams, mtvec: AliasedCSR):
         def filter_legal_mode(m: TModule, v: Value):
