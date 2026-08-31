@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788096084249,
+  "lastUpdate": 1788188093831,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -27797,6 +27797,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/453277dc6231229198fe796a103d655e141f0613"
         },
         "date": 1788096058855,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5514026943841768,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332363669945053,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.47560361720870864,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6630925765387599,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.38764021831546036,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.41681566142356,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5013666637387166,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "501ad2fd6a6a638304c892b67a5372a5d0e4d5ed",
+          "message": "implement Sstc (#1079)",
+          "timestamp": "2026-08-31T15:49:57+02:00",
+          "tree_id": "bd67fdfc2ee2681446efd4c889f959b3f5767bdb",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/501ad2fd6a6a638304c892b67a5372a5d0e4d5ed"
+        },
+        "date": 1788188079316,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
