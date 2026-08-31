@@ -413,7 +413,7 @@ class MachineModeCSRRegisters(Elaboratable):
         misa_ext = MisaExtension(0)
 
         for ext in gen_params.isa.extensions:
-            if ext.name in dir(MisaExtension):
+            if ext.name in MisaExtension.__members__:
                 misa_ext |= MisaExtension[ext.name]
 
         if gen_params.supervisor_mode:
