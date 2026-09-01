@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import unittest
 import asyncio
 import argparse
 import json
@@ -9,6 +8,8 @@ import sys
 import os
 import subprocess
 import tabulate
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 from pathlib import Path
 
@@ -17,8 +18,10 @@ sys.path.insert(0, str(topdir))
 
 import test.regression.benchmark  # noqa: E402
 from test.regression.benchmark import BenchmarkResult  # noqa: E402
+from test.regression.common import SimulationBackend  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
-from test.regression.cocotb import run_cocotb_entrypoint  # noqa: E402
+from test.regression.cocotb import clean_cocotb_build, run_cocotb_entrypoint  # noqa: E402
+from test.regression.verilog import clean_core_verilog  # noqa: E402
 
 
 def cd_to_topdir():
@@ -57,6 +60,16 @@ def load_benchmarks():
     return ret
 
 
+def clean_build_artifacts(backend: Literal["pysim", "cocotb"]):
+    if backend == "pysim":
+        return
+
+    print("Discarding the generated Verilog and the built testbench...")
+
+    clean_core_verilog()
+    clean_cocotb_build()
+
+
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     return run_cocotb_entrypoint(
         "benchmark_entrypoint",
@@ -68,35 +81,50 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     )
 
 
-def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool) -> bool:
-    suite = unittest.TestSuite()
+def run_benchmarks_with_backend(
+    benchmarks: list[str], make_backend: Callable[[str], SimulationBackend], jobs: int
+) -> bool:
+    failures: list[str] = []
 
-    def _gen_test(test_name: str):
-        def test_fn():
-            traces_file = None
-            if traces:
-                traces_file = "benchmark." + test_name
-            asyncio.run(test.regression.benchmark.run_benchmark(PySimulation(traces_file=traces_file), test_name))
+    def run_one(benchmark_name: str):
+        asyncio.run(test.regression.benchmark.run_benchmark(make_backend(benchmark_name), benchmark_name))
 
-        test_fn.__name__ = test_name
-        test_fn.__qualname__ = test_name
+    with ThreadPoolExecutor(max_workers=jobs) as executor:
+        futures = {executor.submit(run_one, name): name for name in benchmarks}
 
-        return test_fn
+        for done, future in enumerate(as_completed(futures), start=1):
+            name = futures[future]
+            progress = f"[{done}/{len(benchmarks)}]"
+            try:
+                future.result()
+            except Exception as e:
+                failures.append(name)
+                print(f"{progress} FAIL {name}: {e}")
+            else:
+                print(f"{progress} ok   {name}")
 
-    for test_name in benchmarks:
-        suite.addTest(unittest.FunctionTestCase(_gen_test(test_name)))
+    if failures:
+        print(f"{len(failures)} of {len(benchmarks)} benchmarks failed: {', '.join(sorted(failures))}")
 
-    runner = unittest.TextTestRunner(verbosity=2)
-    result = runner.run(suite)
-
-    return result.wasSuccessful()
+    return not failures
 
 
-def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool) -> bool:
+def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, jobs: int) -> bool:
+    def make_backend(benchmark_name: str) -> SimulationBackend:
+        return PySimulation(traces_file="benchmark." + benchmark_name if traces else None)
+
+    return run_benchmarks_with_backend(benchmarks, make_backend, jobs)
+
+
+def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool, jobs: int) -> bool:
+    # The cocotb backend schedules the benchmarks inside its own testbench.
+    parallelism = "" if backend == "cocotb" else f", {jobs} at a time"
+    print(f"Running {len(benchmarks)} benchmarks with the {backend} backend{parallelism}", flush=True)
+
     if backend == "cocotb":
         return run_benchmarks_with_cocotb(benchmarks, traces)
     elif backend == "pysim":
-        return run_benchmarks_with_pysim(benchmarks, traces)
+        return run_benchmarks_with_pysim(benchmarks, traces, jobs)
     return False
 
 
@@ -104,7 +132,15 @@ def build_result_table(results: dict[str, BenchmarkResult], tablefmt: str) -> st
     if len(results) == 0:
         return ""
 
-    header = ["Testbench name", "Cycles", "Instructions", "IPC", "Mispredicts/1k instr"]
+    header = [
+        "Testbench name",
+        "Cycles",
+        "Instructions",
+        "IPC",
+        "Mispredicts/1k instr",
+        "Wall time [s]",
+        "Sim speed [kcycles/s]",
+    ]
 
     # First fetch all metrics names to build the header
     result = next(iter(results.values()))
@@ -118,7 +154,9 @@ def build_result_table(results: dict[str, BenchmarkResult], tablefmt: str) -> st
         ipc = result.instr / result.cycles
         mpki = result.mispredicts / result.instr * 1000
 
-        column = [benchmark_name, result.cycles, result.instr, ipc, mpki]
+        speed = result.simulated_cycles / result.wall_time / 1000 if result.wall_time else 0
+
+        column = [benchmark_name, result.cycles, result.instr, ipc, mpki, result.wall_time, speed]
 
         for metric_name in sorted(result.metric_values.keys()):
             regs = result.metric_values[metric_name]
@@ -142,6 +180,18 @@ def main():
     parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
     parser.add_argument("--evlog", action="store_true", help="Write captured event logs")
     parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Discard the generated Verilog and the built testbench",
+    )
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=len(os.sched_getaffinity(0)),
+        help="Number of benchmarks to run in parallel. Default: all cores",
+    )
     parser.add_argument(
         "-o",
         "--output",
@@ -177,7 +227,10 @@ def main():
     if args.evlog:
         os.environ["__TRANSACTRON_EVLOG"] = "1"
 
-    success = run_benchmarks(benchmarks, args.backend, args.trace)
+    if args.clean:
+        clean_build_artifacts(args.backend)
+
+    success = run_benchmarks(benchmarks, args.backend, args.trace, args.jobs)
     if not success:
         print("Benchmark execution failed")
         sys.exit(1)
