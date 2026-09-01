@@ -8,7 +8,6 @@ import asyncio
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
 from .pysim import PySimulation
-from .common import START_PC
 from .memory import (
     CoreMemoryModel,
     MMIOSegment,
@@ -178,7 +177,7 @@ def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
         if traces:
             traces_file = REGRESSION_ARCH_TESTS_PREFIX + elf_path.stem
 
-        pysim = PySimulation(reset_pc=START_PC, with_socks=True, traces_file=traces_file)
+        pysim = PySimulation(traces_file=traces_file)
         asyncio.run(run_arch_elf(pysim, elf_path, timeout_cycles=2_000_000))
 
 
