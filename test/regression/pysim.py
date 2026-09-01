@@ -11,6 +11,7 @@ from transactron.core.keys import TransactionManagerKey
 from transactron.profiler import Profile
 from transactron.testing.tick_count import make_tick_count_process
 
+from .core import REGRESSION_CORE
 from .memory import *
 from .common import SimulationBackend, SimulationExecutionResult
 
@@ -27,22 +28,14 @@ from transactron.utils.dependencies import DependencyContext, DependencyManager
 from transactron.lib.metrics import HardwareMetricsManager
 from ..peripherals.test_wishbone import WishboneInterfaceWrapper
 
-from coreblocks.core import Core
-from coreblocks.socks.socks import Socks
-from coreblocks.params import GenParams
-from coreblocks.params import configurations
-
 
 class PySimulation(SimulationBackend):
-    def __init__(self, traces_file: Optional[str] = None, with_socks: bool = False, reset_pc: Optional[int] = None):
-        conf = configurations.full
-        if reset_pc is not None:
-            conf = conf.replace(start_pc=reset_pc)
-        self.gp = GenParams(conf)
+    def __init__(self, traces_file: Optional[str] = None):
+        self.core = REGRESSION_CORE
+        self.gp = self.core.gen_params()
         self.running = False
         self.cycle_cnt = 0
         self.traces_file = traces_file
-        self.with_socks = with_socks
 
         self.log_level = parse_logging_level(os.environ["__TRANSACTRON_LOG_LEVEL"])
         self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
@@ -142,10 +135,7 @@ class PySimulation(SimulationBackend):
         memory = CoreMemoryEmulation(mem_model)
 
         with DependencyContext(DependencyManager()):
-            core = Core(gen_params=self.gp)
-
-            if self.with_socks:
-                core = Socks(core, core_gen_params=self.gp)
+            core = self.core.elaborate(self.gp)
 
             wb_instr_ctrl = WishboneInterfaceWrapper(core.wb_instr)
             wb_data_ctrl = WishboneInterfaceWrapper(core.wb_data)
@@ -208,7 +198,7 @@ class PySimulation(SimulationBackend):
 
             self.pretty_dump_metrics(metric_values)
 
-            return SimulationExecutionResult(success, metric_values, profile, evlog)
+            return SimulationExecutionResult(success, metric_values, profile, evlog, self.cycle_cnt)
 
     def stop(self):
         self.running = False
