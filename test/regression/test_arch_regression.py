@@ -7,11 +7,10 @@ import os
 import asyncio
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
-from .pysim import PySimulation
-from .common import START_PC
-from .memory import (
+from test.sim.pysim import PySimulation
+from test.sim.memory import (
     CoreMemoryModel,
-    MemorySegment,
+    MMIOSegment,
     ReadReply,
     ReadRequest,
     ReplyStatus,
@@ -20,7 +19,8 @@ from .memory import (
     WriteRequest,
     load_segments_from_elf,
 )
-from .cocotb import run_cocotb_entrypoint
+from test.sim.cocotb import run_cocotb_entrypoint
+from test.sim.cxxsim import CxxSimulation
 
 REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
 
@@ -30,7 +30,7 @@ INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
 ACCESS_FAULT_ADDRESS = 0x00000000
 
 
-class EndTestMMIO(MemorySegment):
+class EndTestMMIO(MMIOSegment):
     def __init__(self, on_finish):
         super().__init__(range(END_TEST_ADDRESS, END_TEST_ADDRESS + 8), SegmentFlags.WRITE)
         self.on_finish = on_finish
@@ -50,7 +50,7 @@ class EndTestMMIO(MemorySegment):
         return WriteReply()
 
 
-class ConsoleMMIO(MemorySegment):
+class ConsoleMMIO(MMIOSegment):
     def __init__(self):
         super().__init__(range(CONSOLE_ADDRESS, CONSOLE_ADDRESS + 8), SegmentFlags.WRITE)
         self.buffer = bytearray()
@@ -77,7 +77,7 @@ class ConsoleMMIO(MemorySegment):
         print(self.buffer.decode(errors="replace"), end="")
 
 
-class AccessFaultAddressMMIO(MemorySegment):
+class AccessFaultAddressMMIO(MMIOSegment):
     def __init__(self):
         super().__init__(
             range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 128),
@@ -91,7 +91,7 @@ class AccessFaultAddressMMIO(MemorySegment):
         return WriteReply(status=ReplyStatus.ERROR)
 
 
-class InterruptGeneratorMMIO(MemorySegment):
+class InterruptGeneratorMMIO(MMIOSegment):
     def __init__(self):
         super().__init__(
             range(INTERRUPT_GENERATOR_ADDRESS, INTERRUPT_GENERATOR_ADDRESS + 4),
@@ -178,8 +178,16 @@ def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
         if traces:
             traces_file = REGRESSION_ARCH_TESTS_PREFIX + elf_path.stem
 
-        pysim = PySimulation(reset_pc=START_PC, with_socks=True, traces_file=traces_file)
+        pysim = PySimulation(traces_file=traces_file)
         asyncio.run(run_arch_elf(pysim, elf_path, timeout_cycles=2_000_000))
+
+
+def regression_body_with_cxxsim(elf_paths: list[Path], traces: bool):
+    if traces:
+        raise RuntimeError("The cxxsim backend does not support traces")
+
+    for elf_path in elf_paths:
+        asyncio.run(run_arch_elf(CxxSimulation(), elf_path, timeout_cycles=2_000_000))
 
 
 @pytest.fixture(scope="session")
@@ -192,7 +200,7 @@ def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
-def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb", "cxxsim"], traces_enabled: bool):
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
     if not path.exists():
         raise FileNotFoundError(f"ELF file not found for test {arch_test_name}: {path}")
@@ -201,12 +209,14 @@ def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"]
         regression_body_with_pysim([path], traces=traces_enabled)
     elif sim_backend == "cocotb":
         regression_body_with_cocotb([path], traces=traces_enabled)
+    elif sim_backend == "cxxsim":
+        regression_body_with_cxxsim([path], traces=traces_enabled)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run a single Coreblocks arch-test ELF")
     parser.add_argument("elf_path", type=Path, nargs="*", help="Paths to the ELF file to execute")
-    parser.add_argument("--backend", choices=["cocotb", "pysim"], default="cocotb", help="Simulation backend")
+    parser.add_argument("--backend", choices=["cocotb", "pysim", "cxxsim"], default="cocotb", help="Simulation backend")
     parser.add_argument("--timeout-cycles", type=int, default=2_000_000, help="Maximum simulated cycles")
     parser.add_argument("--traces", action="store_true", help="Enable cocotb trace generation")
     args = parser.parse_args()
@@ -220,6 +230,8 @@ def main():
         regression_body_with_cocotb(elf_paths, traces=args.traces)
     elif args.backend == "pysim":
         regression_body_with_pysim(elf_paths, traces=args.traces)
+    elif args.backend == "cxxsim":
+        regression_body_with_cxxsim(elf_paths, traces=args.traces)
 
 
 if __name__ == "__main__":

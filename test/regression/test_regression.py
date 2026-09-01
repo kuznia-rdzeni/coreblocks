@@ -1,9 +1,11 @@
-from .memory import *
-from .common import SimulationBackend, START_PC
+from test.sim.memory import *
+from test.sim.common import SimulationBackend
 from .conftest import riscv_tests_dir, profile_dir, evlog_dir
-from .cocotb import run_cocotb_entrypoint
-from test.regression.pysim import PySimulation
+from test.sim.cocotb import run_cocotb_entrypoint
+from test.sim.cxxsim import CxxSimulation
+from test.sim.pysim import PySimulation
 import asyncio
+from collections.abc import Callable
 from typing import Literal
 import os
 import pytest
@@ -18,7 +20,7 @@ exclude_write_protection = ["rv32uc-rvc"]
 force_executable_memory = ["rv32ui-fence_i"]
 
 
-class MMIO(MemorySegment):
+class MMIO(MMIOSegment):
     def __init__(self, on_finish: Callable[[], None]):
         super().__init__(range(0xF0000000, 0xF0000000 + 4), SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
@@ -75,7 +77,13 @@ def regression_body_with_pysim(test_name: str, traces: bool):
     traces_file = None
     if traces:
         traces_file = REGRESSION_TESTS_PREFIX + test_name
-    asyncio.run(run_test(PySimulation(traces_file=traces_file, reset_pc=START_PC), test_name))
+    asyncio.run(run_test(PySimulation(traces_file=traces_file), test_name))
+
+
+def regression_body_with_cxxsim(test_name: str, traces: bool):
+    if traces:
+        raise RuntimeError("The cxxsim backend does not support traces")
+    asyncio.run(run_test(CxxSimulation(), test_name))
 
 
 @pytest.fixture
@@ -88,8 +96,10 @@ def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
-def test_entrypoint(test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+def test_entrypoint(test_name: str, sim_backend: Literal["pysim", "cocotb", "cxxsim"], traces_enabled: bool):
     if sim_backend == "cocotb":
         regression_body_with_cocotb(test_name, traces_enabled)
     elif sim_backend == "pysim":
         regression_body_with_pysim(test_name, traces_enabled)
+    elif sim_backend == "cxxsim":
+        regression_body_with_cxxsim(test_name, traces_enabled)

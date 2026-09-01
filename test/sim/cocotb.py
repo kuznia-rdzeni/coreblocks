@@ -2,14 +2,14 @@ from decimal import Decimal
 import inspect
 import re
 import os
-from typing import Any
-from collections.abc import Coroutine
+from typing import Any, Optional
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 from filelock import FileLock
 import subprocess
 import tempfile
-import sys
 import xml.etree.ElementTree as eT
 import argparse
 
@@ -17,24 +17,21 @@ import cocotb
 from cocotb.clock import Clock, Timer
 from cocotb.handle import ModifiableObject
 from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
+from cocotb.utils import get_sim_time
 from cocotb_bus.bus import Bus
 from cocotb.result import SimTimeoutError
 
 from .memory import *
-from .common import SimulationBackend, SimulationExecutionResult, START_PC
+from .common import SimulationBackend, SimulationExecutionResult
+from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, REPO_ROOT, ensure_core_verilog_generated
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
 from transactron.utils.gen import GenerationInfo
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
 TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
-
-VERILOG_ROOT = BUILD_ROOT / "verilog"
-CORE_V = VERILOG_ROOT / "core.v"
-CORE_V_JSON = VERILOG_ROOT / "core.v.json"
+COCOTB_BUILD_ROOT = BUILD_ROOT / "cocotb"
 
 
 @dataclass
@@ -78,12 +75,19 @@ class WishboneBus(Bus):
 
 class WishboneSlave:
     def __init__(
-        self, entity, name: str, clock, model: CoreMemoryModel, is_instr_bus: bool, word_bits: int = 2, delay: int = 0
+        self,
+        entity,
+        name: str,
+        clock,
+        memory: CoreMemoryEmulation,
+        is_instr_bus: bool,
+        word_bits: int = 2,
+        delay: int = 0,
     ):
         self.entity = entity
         self.name = name
         self.clock = clock
-        self.model = model
+        self.memory = memory
         self.is_instr_bus = is_instr_bus
         self.word_size = 2**word_bits
         self.word_bits = word_bits
@@ -105,7 +109,7 @@ class WishboneSlave:
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
-                resp = self.model.write(
+                resp = self.memory.write(
                     WriteRequest(
                         addr=addr,
                         data=sig_m.dat_w,
@@ -114,7 +118,7 @@ class WishboneSlave:
                     )
                 )
             else:
-                resp = self.model.read(
+                resp = self.memory.read(
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
@@ -268,14 +272,18 @@ class CocotbSimulation(SimulationBackend):
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
 
+        start_time = get_sim_time("ns")
+
         self.dut.rst.value = 1
         await Timer(Decimal(1), "ns")
         self.dut.rst.value = 0
 
-        instr_wb = WishboneSlave(self.dut, "wb_instr", self.dut.clk, mem_model, is_instr_bus=True)
+        memory = CoreMemoryEmulation(mem_model)
+
+        instr_wb = WishboneSlave(self.dut, "wb_instr", self.dut.clk, memory, is_instr_bus=True)
         cocotb.start_soon(instr_wb.start())
 
-        data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
+        data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, memory, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
 
         if get_interrupt_value is not None:
@@ -310,6 +318,7 @@ class CocotbSimulation(SimulationBackend):
 
         result.profile = profile
         result.evlog = evlog
+        result.simulated_cycles = int(get_sim_time("ns") - start_time)
 
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}
@@ -343,9 +352,9 @@ def generate_tests(test_function: Callable[[Any, Any], Coroutine[Any, Any, None]
         setattr(mod, test_name, _create_test(test_function, test_name, mod, test_name))
 
 
-def get_cocotb_lock_prefix(traces: bool) -> Path:
+def get_cocotb_build_dir(traces: bool) -> Path:
     sim = os.environ.get("SIM", "verilator")
-    return BUILD_ROOT / f"{sim}{'-traces' if traces else ''}"
+    return COCOTB_BUILD_ROOT / f"{sim}{'-trace' if traces else ''}"
 
 
 def _extend_env_path_like(value: str, to_add: str) -> str:
@@ -368,6 +377,7 @@ def run_cocotb_entrypoint(
     arglist = ["make", "-C", str(TEST_ROOT)]
 
     arglist += [f"MODULE={entrypoint_module_name}"]
+    arglist += [f"SIM_BUILD={get_cocotb_build_dir(traces)}"]
     arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
     arglist += [f"VERILOG_SOURCES={CORE_V}"]
     if traces:
@@ -391,45 +401,20 @@ def run_cocotb_entrypoint(
         return len(list(tree.iter("failure"))) == 0
 
 
-def ensure_core_verilog_generated():
-    lock = BUILD_ROOT / "verilog.lock"
-    stamp = BUILD_ROOT / "verilog.stamp"
+def clean_cocotb_build():
+    for traces in [False, True]:
+        path = get_cocotb_build_dir(traces)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
-    VERILOG_ROOT.mkdir(parents=True, exist_ok=True)
-
-    if stamp.exists():
-        return
-
-    with FileLock(lock):
-        if stamp.exists():
-            return
-
-        command = [
-            sys.executable,
-            "-m",
-            "coreblocks.gen_verilog",
-            "--config",
-            "full",
-            "--reset-pc",
-            f"0x{START_PC:x}",
-            "--with-socks",
-            "--with-rvvi",
-            "-o",
-            str(CORE_V),
-        ]
-
-        env = os.environ.copy()
-        # always generate evlog interfaces - the choice to output them is made at runtime
-        env["__TRANSACTRON_EVLOG"] = "1"
-
-        subprocess.run(command, check=True, cwd=REPO_ROOT, env=env)
-        stamp.touch()
+        with FileLock(path.with_suffix(".lock")):
+            path.with_suffix(".stamp").unlink(missing_ok=True)
+            shutil.rmtree(path, ignore_errors=True)
 
 
 def ensure_cocotb_built(traces: bool):
     ensure_core_verilog_generated()
 
-    path = get_cocotb_lock_prefix(traces)
+    path = get_cocotb_build_dir(traces)
     lock = path.with_suffix(".lock")
     stamp = path.with_suffix(".stamp")
 
