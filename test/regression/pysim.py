@@ -1,6 +1,8 @@
 import re
 import os
 import logging
+from collections.abc import Callable
+from typing import Optional
 
 from amaranth.utils import exact_log2
 from amaranth import *
@@ -48,7 +50,7 @@ class PySimulation(SimulationBackend):
         self.metrics_manager = HardwareMetricsManager()
 
     def _wishbone_slave(
-        self, mem_model: CoreMemoryModel, wb_ctrl: WishboneInterfaceWrapper, is_instr_bus: bool, delay: int = 0
+        self, memory: CoreMemoryEmulation, wb_ctrl: WishboneInterfaceWrapper, is_instr_bus: bool, delay: int = 0
     ):
         async def f(sim: TestbenchContext):
             while True:
@@ -64,11 +66,9 @@ class PySimulation(SimulationBackend):
                 resp_data = 0
 
                 if sim.get(wb_ctrl.wb.we):
-                    resp = mem_model.write(
-                        WriteRequest(addr=addr, data=dat_w, byte_count=word_width_bytes, byte_sel=sel)
-                    )
+                    resp = memory.write(WriteRequest(addr=addr, data=dat_w, byte_count=word_width_bytes, byte_sel=sel))
                 else:
-                    resp = mem_model.read(
+                    resp = memory.read(
                         ReadRequest(
                             addr=addr,
                             byte_count=word_width_bytes,
@@ -139,6 +139,8 @@ class PySimulation(SimulationBackend):
         timeout_cycles: int = 5000,
         get_interrupt_value: Optional[Callable[[], int]] = None,
     ) -> SimulationExecutionResult:
+        memory = CoreMemoryEmulation(mem_model)
+
         with DependencyContext(DependencyManager()):
             core = Core(gen_params=self.gp)
 
@@ -161,8 +163,8 @@ class PySimulation(SimulationBackend):
 
                 sim.add_process(interrupt_generator_process)
 
-            sim.add_testbench(self._wishbone_slave(mem_model, wb_instr_ctrl, is_instr_bus=True), background=True)
-            sim.add_testbench(self._wishbone_slave(mem_model, wb_data_ctrl, is_instr_bus=False), background=True)
+            sim.add_testbench(self._wishbone_slave(memory, wb_instr_ctrl, is_instr_bus=True), background=True)
+            sim.add_testbench(self._wishbone_slave(memory, wb_data_ctrl, is_instr_bus=False), background=True)
 
             def on_error():
                 raise RuntimeError("Simulation finished due to an error")

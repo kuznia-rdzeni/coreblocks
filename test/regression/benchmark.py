@@ -1,4 +1,5 @@
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from pathlib import Path
@@ -38,7 +39,7 @@ class BenchmarkResult:
     metric_values: dict[str, dict[str, int]]
 
 
-class MMIO(RandomAccessMemory):
+class MMIO(MMIOSegment):
     """Memory Mapped IO.
 
     The structure of the MMIO is as follows:
@@ -54,30 +55,32 @@ class MMIO(RandomAccessMemory):
     COUNTERS_OFFSET = 0x10
 
     def __init__(self, on_finish: Callable[[], None]):
-        super().__init__(
-            range(0xF0000000, 0xF0000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * MMIO.SIZE
-        )
+        super().__init__(range(0xF0000000, 0xF0000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
+        self.registers = RandomAccessMemoryEmulation(b"\x00" * MMIO.SIZE)
+
+    def read(self, req: ReadRequest) -> ReadReply:
+        return self.registers.read(req)
 
     def write(self, req: WriteRequest) -> WriteReply:
         if req.addr == 0x0:
             self.on_finish()
             return WriteReply()
         else:
-            return super().write(req)
+            return self.registers.write(req)
 
     def _counter(self, index: int) -> int:
         offset = MMIO.COUNTERS_OFFSET + 8 * index
-        return int.from_bytes(self.data[offset : offset + 8], "little")
+        return int.from_bytes(self.registers.data[offset : offset + 8], "little")
 
     def return_code(self):
-        return int.from_bytes(self.data[4:8], "little", signed=True)
+        return int.from_bytes(self.registers.data[4:8], "little", signed=True)
 
     def mcause(self):
-        return int.from_bytes(self.data[8:12], "little")
+        return int.from_bytes(self.registers.data[8:12], "little")
 
     def mepc(self):
-        return int.from_bytes(self.data[12:16], "little")
+        return int.from_bytes(self.registers.data[12:16], "little")
 
     def cycle_cnt(self):
         return self._counter(0)
