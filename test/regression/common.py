@@ -31,6 +31,7 @@ class SimulationExecutionResult:
 class SimulationBackend(ABC):
     @abstractmethod
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int) -> SimulationExecutionResult:
+        """Runs a program, described by the memory model it is loaded into."""
         raise NotImplementedError
 
     @abstractmethod

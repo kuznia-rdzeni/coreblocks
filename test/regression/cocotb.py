@@ -2,8 +2,8 @@ from decimal import Decimal
 import inspect
 import re
 import os
-from typing import Any
-from collections.abc import Coroutine
+from typing import Any, Optional
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from pathlib import Path
 from filelock import FileLock
@@ -78,12 +78,19 @@ class WishboneBus(Bus):
 
 class WishboneSlave:
     def __init__(
-        self, entity, name: str, clock, model: CoreMemoryModel, is_instr_bus: bool, word_bits: int = 2, delay: int = 0
+        self,
+        entity,
+        name: str,
+        clock,
+        memory: CoreMemoryEmulation,
+        is_instr_bus: bool,
+        word_bits: int = 2,
+        delay: int = 0,
     ):
         self.entity = entity
         self.name = name
         self.clock = clock
-        self.model = model
+        self.memory = memory
         self.is_instr_bus = is_instr_bus
         self.word_size = 2**word_bits
         self.word_bits = word_bits
@@ -105,7 +112,7 @@ class WishboneSlave:
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
-                resp = self.model.write(
+                resp = self.memory.write(
                     WriteRequest(
                         addr=addr,
                         data=sig_m.dat_w,
@@ -114,7 +121,7 @@ class WishboneSlave:
                     )
                 )
             else:
-                resp = self.model.read(
+                resp = self.memory.read(
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
@@ -272,10 +279,12 @@ class CocotbSimulation(SimulationBackend):
         await Timer(Decimal(1), "ns")
         self.dut.rst.value = 0
 
-        instr_wb = WishboneSlave(self.dut, "wb_instr", self.dut.clk, mem_model, is_instr_bus=True)
+        memory = CoreMemoryEmulation(mem_model)
+
+        instr_wb = WishboneSlave(self.dut, "wb_instr", self.dut.clk, memory, is_instr_bus=True)
         cocotb.start_soon(instr_wb.start())
 
-        data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, mem_model, is_instr_bus=False)
+        data_wb = WishboneSlave(self.dut, "wb_data", self.dut.clk, memory, is_instr_bus=False)
         cocotb.start_soon(data_wb.start())
 
         if get_interrupt_value is not None:

@@ -4,6 +4,7 @@ from .conftest import riscv_tests_dir, profile_dir, evlog_dir
 from .cocotb import run_cocotb_entrypoint
 from test.regression.pysim import PySimulation
 import asyncio
+from collections.abc import Callable
 from typing import Literal
 import os
 import pytest
@@ -18,7 +19,7 @@ exclude_write_protection = ["rv32uc-rvc"]
 force_executable_memory = ["rv32ui-fence_i"]
 
 
-class MMIO(MemorySegment):
+class MMIO(MMIOSegment):
     def __init__(self, on_finish: Callable[[], None]):
         super().__init__(range(0xF0000000, 0xF0000000 + 4), SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
