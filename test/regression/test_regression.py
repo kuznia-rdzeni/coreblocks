@@ -2,6 +2,7 @@ from test.sim.memory import *
 from test.sim.common import SimulationBackend
 from .conftest import riscv_tests_dir, profile_dir, evlog_dir
 from test.sim.cocotb import run_cocotb_entrypoint
+from test.sim.cxxsim import CxxSimulation
 from test.sim.pysim import PySimulation
 import asyncio
 from collections.abc import Callable
@@ -79,6 +80,12 @@ def regression_body_with_pysim(test_name: str, traces: bool):
     asyncio.run(run_test(PySimulation(traces_file=traces_file), test_name))
 
 
+def regression_body_with_cxxsim(test_name: str, traces: bool):
+    if traces:
+        raise RuntimeError("The cxxsim backend does not support traces")
+    asyncio.run(run_test(CxxSimulation(), test_name))
+
+
 @pytest.fixture
 def sim_backend(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_backend")
@@ -89,8 +96,10 @@ def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
-def test_entrypoint(test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+def test_entrypoint(test_name: str, sim_backend: Literal["pysim", "cocotb", "cxxsim"], traces_enabled: bool):
     if sim_backend == "cocotb":
         regression_body_with_cocotb(test_name, traces_enabled)
     elif sim_backend == "pysim":
         regression_body_with_pysim(test_name, traces_enabled)
+    elif sim_backend == "cxxsim":
+        regression_body_with_cxxsim(test_name, traces_enabled)

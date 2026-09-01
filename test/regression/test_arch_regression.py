@@ -20,6 +20,7 @@ from test.sim.memory import (
     load_segments_from_elf,
 )
 from test.sim.cocotb import run_cocotb_entrypoint
+from test.sim.cxxsim import CxxSimulation
 
 REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
 
@@ -181,6 +182,14 @@ def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
         asyncio.run(run_arch_elf(pysim, elf_path, timeout_cycles=2_000_000))
 
 
+def regression_body_with_cxxsim(elf_paths: list[Path], traces: bool):
+    if traces:
+        raise RuntimeError("The cxxsim backend does not support traces")
+
+    for elf_path in elf_paths:
+        asyncio.run(run_arch_elf(CxxSimulation(), elf_path, timeout_cycles=2_000_000))
+
+
 @pytest.fixture(scope="session")
 def sim_backend(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_backend")
@@ -191,7 +200,7 @@ def traces_enabled(request: pytest.FixtureRequest):
     return request.config.getoption("coreblocks_traces")
 
 
-def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"], traces_enabled: bool):
+def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb", "cxxsim"], traces_enabled: bool):
     path = Path(arch_tests_dir.joinpath(arch_test_name + ".elf"))
     if not path.exists():
         raise FileNotFoundError(f"ELF file not found for test {arch_test_name}: {path}")
@@ -200,12 +209,14 @@ def test_entrypoint(arch_test_name: str, sim_backend: Literal["pysim", "cocotb"]
         regression_body_with_pysim([path], traces=traces_enabled)
     elif sim_backend == "cocotb":
         regression_body_with_cocotb([path], traces=traces_enabled)
+    elif sim_backend == "cxxsim":
+        regression_body_with_cxxsim([path], traces=traces_enabled)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run a single Coreblocks arch-test ELF")
     parser.add_argument("elf_path", type=Path, nargs="*", help="Paths to the ELF file to execute")
-    parser.add_argument("--backend", choices=["cocotb", "pysim"], default="cocotb", help="Simulation backend")
+    parser.add_argument("--backend", choices=["cocotb", "pysim", "cxxsim"], default="cocotb", help="Simulation backend")
     parser.add_argument("--timeout-cycles", type=int, default=2_000_000, help="Maximum simulated cycles")
     parser.add_argument("--traces", action="store_true", help="Enable cocotb trace generation")
     args = parser.parse_args()
@@ -219,6 +230,8 @@ def main():
         regression_body_with_cocotb(elf_paths, traces=args.traces)
     elif args.backend == "pysim":
         regression_body_with_pysim(elf_paths, traces=args.traces)
+    elif args.backend == "cxxsim":
+        regression_body_with_cxxsim(elf_paths, traces=args.traces)
 
 
 if __name__ == "__main__":

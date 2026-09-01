@@ -20,6 +20,8 @@ import test.benchmark.benchmark  # noqa: E402
 from test.benchmark.benchmark import BenchmarkResult  # noqa: E402
 from test.sim.common import SimulationBackend  # noqa: E402
 from test.sim.pysim import PySimulation  # noqa: E402
+from test.sim.cxxsim import CxxSimulation  # noqa: E402
+from test.sim.cxx_build import clean_cxxsim_build, ensure_cxxsim_built  # noqa: E402
 from test.sim.cocotb import clean_cocotb_build, run_cocotb_entrypoint  # noqa: E402
 from test.sim.verilog import clean_core_verilog  # noqa: E402
 
@@ -60,14 +62,17 @@ def load_benchmarks():
     return ret
 
 
-def clean_build_artifacts(backend: Literal["pysim", "cocotb"]):
+def clean_build_artifacts(backend: Literal["pysim", "cocotb", "cxxsim"]):
     if backend == "pysim":
         return
 
     print("Discarding the generated Verilog and the built testbench...")
 
     clean_core_verilog()
-    clean_cocotb_build()
+    if backend == "cocotb":
+        clean_cocotb_build()
+    elif backend == "cxxsim":
+        clean_cxxsim_build()
 
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
@@ -116,7 +121,19 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, jobs: int) ->
     return run_benchmarks_with_backend(benchmarks, make_backend, jobs)
 
 
-def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], traces: bool, jobs: int) -> bool:
+def run_benchmarks_with_cxxsim(benchmarks: list[str], traces: bool, jobs: int) -> bool:
+    if traces:
+        print("The cxxsim backend does not support traces")
+        sys.exit(1)
+
+    ensure_cxxsim_built()
+
+    return run_benchmarks_with_backend(benchmarks, lambda _: CxxSimulation(), jobs)
+
+
+def run_benchmarks(
+    benchmarks: list[str], backend: Literal["pysim", "cocotb", "cxxsim"], traces: bool, jobs: int
+) -> bool:
     # The cocotb backend schedules the benchmarks inside its own testbench.
     parallelism = "" if backend == "cocotb" else f", {jobs} at a time"
     print(f"Running {len(benchmarks)} benchmarks with the {backend} backend{parallelism}", flush=True)
@@ -125,6 +142,8 @@ def run_benchmarks(benchmarks: list[str], backend: Literal["pysim", "cocotb"], t
         return run_benchmarks_with_cocotb(benchmarks, traces)
     elif backend == "pysim":
         return run_benchmarks_with_pysim(benchmarks, traces, jobs)
+    elif backend == "cxxsim":
+        return run_benchmarks_with_cxxsim(benchmarks, traces, jobs)
     return False
 
 
@@ -179,7 +198,9 @@ def main():
     parser.add_argument("--log-filter", default=".*", action="store", help="Regexp used to filter out logs.")
     parser.add_argument("-p", "--profile", action="store_true", help="Write execution profiles")
     parser.add_argument("--evlog", action="store_true", help="Write captured event logs")
-    parser.add_argument("-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend")
+    parser.add_argument(
+        "-b", "--backend", default="cocotb", choices=["cocotb", "pysim", "cxxsim"], help="Simulation backend"
+    )
     parser.add_argument(
         "--clean",
         action="store_true",
