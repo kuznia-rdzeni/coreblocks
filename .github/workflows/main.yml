@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 60
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
-    needs: [ build-regression-tests, build-core ]
+    needs: [ build-regression-tests, build-cxxsim ]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -124,12 +124,6 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install ".[dev]"
 
-      - uses: actions/download-artifact@v8
-        name: Download full verilog core
-        with:
-          name: "verilog-full-core"
-          path: .
-
       - uses: actions/cache@v4
         name: Download tests from cache
         env:
@@ -145,10 +139,16 @@ jobs:
             ) }}
           fail-on-cache-miss: true
 
+      - uses: actions/download-artifact@v8
+        name: Download the C++ simulator
+        with:
+          name: cxxsim
+          path: test/sim/build
+
       - name: Run tests
         run: |
           . venv/bin/activate
-          scripts/run_tests.py -a regression -v
+          scripts/run_tests.py -a -b cxxsim regression -v
 
       - name: Check regression with pysim
         run: |
@@ -219,12 +219,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [cocotb, pysim]
+        config: [cxxsim, pysim]
     name: Run arch regression tests (riscv-arch-test)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
     timeout-minutes: 180
-    needs: [ build-arch-regression-tests ]
+    needs: [ build-arch-regression-tests, build-cxxsim ]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -262,14 +262,117 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install ".[dev]"
 
+      - if: ${{ matrix.config == 'cxxsim' }}
+        uses: actions/download-artifact@v8
+        name: Download the C++ simulator
+        with:
+          name: cxxsim
+          path: test/sim/build
+
       - name: Run arch regression tests
         run: |
           . venv/bin/activate
-          if [ "${{ matrix.config }}" = "cocotb" ]; then
-            ./scripts/run_tests.py --arch-tests -v -b cocotb regression
+          if [ "${{ matrix.config }}" = "cxxsim" ]; then
+            ./scripts/run_tests.py --arch-tests -v -b cxxsim regression
           else
             ./scripts/run_tests.py --arch-tests -v -b pysim -c 1 -j 0 'regression.*not'
           fi
+
+  build-cxxsim:
+    name: Build the C++ simulator
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
+
+      - name: Build the simulator
+        run: |
+          . venv/bin/activate
+          python3 -m test.sim.cxx_build
+
+      - name: Upload the simulator
+        uses: actions/upload-artifact@v7
+        with:
+          name: cxxsim
+          # Everything needed to run, and to convince the build that it is up to date.
+          path: |
+            test/sim/build/verilog
+            test/sim/build/verilog.stamp
+            test/sim/build/cxxsim/Vtop__ALL.a
+            test/sim/build/cxxsim/*.so
+            test/sim/build/cxxsim/*.stamp
+
+  build-embench:
+    name: Build performance benchmarks (embench)
+    runs-on: ubuntu-latest
+    container: ghcr.io/kuznia-rdzeni/riscv-toolchain:2024.12.07
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Build embench
+        run: cd test/external/embench && make
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: "embench"
+          path: test/external/embench/build
+
+  run-benchmarks:
+    name: Run performance benchmarks
+    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    timeout-minutes: 60
+    needs: [ build-cxxsim, build-embench ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install ".[dev]"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: "embench"
+          path: test/external/embench/build
+
+      - uses: actions/download-artifact@v8
+        name: Download the C++ simulator
+        with:
+          name: cxxsim
+          path: test/sim/build
+
+      - name: Run benchmarks
+        run: |
+          . venv/bin/activate
+          ./scripts/run_benchmarks.py -b cxxsim -o cxxsim_benchmark.json --summary cxxsim_benchmark.md
+          cat cxxsim_benchmark.md >> $GITHUB_STEP_SUMMARY
 
   unit-test:
     name: Run unit tests
