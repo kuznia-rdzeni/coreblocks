@@ -16,12 +16,12 @@ from pathlib import Path
 topdir = Path(__file__).parent.parent
 sys.path.insert(0, str(topdir))
 
-import test.regression.benchmark  # noqa: E402
-from test.regression.benchmark import BenchmarkResult  # noqa: E402
-from test.regression.common import SimulationBackend  # noqa: E402
-from test.regression.pysim import PySimulation  # noqa: E402
-from test.regression.cocotb import clean_cocotb_build, run_cocotb_entrypoint  # noqa: E402
-from test.regression.verilog import clean_core_verilog  # noqa: E402
+import test.benchmark.benchmark  # noqa: E402
+from test.benchmark.benchmark import BenchmarkResult  # noqa: E402
+from test.sim.common import SimulationBackend  # noqa: E402
+from test.sim.pysim import PySimulation  # noqa: E402
+from test.sim.cocotb import clean_cocotb_build, run_cocotb_entrypoint  # noqa: E402
+from test.sim.verilog import clean_core_verilog  # noqa: E402
 
 
 def cd_to_topdir():
@@ -29,14 +29,14 @@ def cd_to_topdir():
 
 
 def load_benchmarks():
-    all_tests = test.regression.benchmark.get_all_benchmark_names()
+    all_tests = test.benchmark.benchmark.get_all_benchmark_names()
     if len(all_tests) == 0:
         res = subprocess.run(["make", "-C", "test/external/embench"])
         if res.returncode != 0:
             print("Couldn't build benchmarks")
             sys.exit(1)
 
-        all_tests = test.regression.benchmark.get_all_benchmark_names()
+        all_tests = test.benchmark.benchmark.get_all_benchmark_names()
 
     exclude = {
         "cubic",
@@ -87,7 +87,7 @@ def run_benchmarks_with_backend(
     failures: list[str] = []
 
     def run_one(benchmark_name: str):
-        asyncio.run(test.regression.benchmark.run_benchmark(make_backend(benchmark_name), benchmark_name))
+        asyncio.run(test.benchmark.benchmark.run_benchmark(make_backend(benchmark_name), benchmark_name))
 
     with ThreadPoolExecutor(max_workers=jobs) as executor:
         futures = {executor.submit(run_one, name): name for name in benchmarks}
@@ -242,7 +242,7 @@ def main():
     results: dict[str, BenchmarkResult] = {}
 
     for name in benchmarks:
-        with open(f"{str(test.regression.benchmark.results_dir)}/{name}.json", "r") as f:
+        with open(f"{str(test.benchmark.benchmark.results_dir)}/{name}.json", "r") as f:
             result = BenchmarkResult.from_json(f.read())  # type: ignore
 
         results[name] = result

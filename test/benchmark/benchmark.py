@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from pathlib import Path
 
-from .memory import *
-from .memory_emulation import RAMEmulation
-from .common import SimulationBackend
+from test.sim.memory import *
+from test.sim.memory_emulation import RAMEmulation
+from test.sim.common import SimulationBackend
 
 from coreblocks.arch import ExceptionCause
 
