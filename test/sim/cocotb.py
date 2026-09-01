@@ -31,6 +31,7 @@ from transactron.utils.gen import GenerationInfo
 
 
 TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
+COCOTB_BUILD_ROOT = BUILD_ROOT / "cocotb"
 
 
 @dataclass
@@ -351,9 +352,9 @@ def generate_tests(test_function: Callable[[Any, Any], Coroutine[Any, Any, None]
         setattr(mod, test_name, _create_test(test_function, test_name, mod, test_name))
 
 
-def get_cocotb_lock_prefix(traces: bool) -> Path:
+def get_cocotb_build_dir(traces: bool) -> Path:
     sim = os.environ.get("SIM", "verilator")
-    return BUILD_ROOT / f"{sim}{'-traces' if traces else ''}"
+    return COCOTB_BUILD_ROOT / f"{sim}{'-trace' if traces else ''}"
 
 
 def _extend_env_path_like(value: str, to_add: str) -> str:
@@ -376,6 +377,7 @@ def run_cocotb_entrypoint(
     arglist = ["make", "-C", str(TEST_ROOT)]
 
     arglist += [f"MODULE={entrypoint_module_name}"]
+    arglist += [f"SIM_BUILD={get_cocotb_build_dir(traces)}"]
     arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
     arglist += [f"VERILOG_SOURCES={CORE_V}"]
     if traces:
@@ -400,22 +402,19 @@ def run_cocotb_entrypoint(
 
 
 def clean_cocotb_build():
-    sim = os.environ.get("SIM", "verilator")
-
     for traces in [False, True]:
-        prefix = get_cocotb_lock_prefix(traces)
-        prefix.parent.mkdir(parents=True, exist_ok=True)
+        path = get_cocotb_build_dir(traces)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
-        with FileLock(prefix.with_suffix(".lock")):
-            prefix.with_suffix(".stamp").unlink(missing_ok=True)
-            shutil.rmtree(prefix, ignore_errors=True)
-            shutil.rmtree(BUILD_ROOT / f"{sim}{'-trace' if traces else ''}", ignore_errors=True)
+        with FileLock(path.with_suffix(".lock")):
+            path.with_suffix(".stamp").unlink(missing_ok=True)
+            shutil.rmtree(path, ignore_errors=True)
 
 
 def ensure_cocotb_built(traces: bool):
     ensure_core_verilog_generated()
 
-    path = get_cocotb_lock_prefix(traces)
+    path = get_cocotb_build_dir(traces)
     lock = path.with_suffix(".lock")
     stamp = path.with_suffix(".stamp")
 

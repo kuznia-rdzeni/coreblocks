@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from pathlib import Path
 
-from .memory import *
-from .common import SimulationBackend
+from test.sim.memory import *
+from test.sim.common import SimulationBackend
 
 from coreblocks.arch import ExceptionCause
 

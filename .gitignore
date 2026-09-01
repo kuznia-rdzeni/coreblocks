@@ -37,10 +37,12 @@ _coreblocks_regression.lock
 _coreblocks_regression.counter
 .hypothesis
 
-# cocotb build
-/test/regression/cocotb/build
-/test/regression/cocotb/results.xml
-/test/regression/cocotb/cocotb-config.cache
+# Regression build: the generated Verilog and the cocotb testbenches
+/test/sim/build
+
+# cocotb leftovers
+/test/sim/cocotb/results.xml
+/test/sim/cocotb/cocotb-config.cache
 
 # riscv-arch-test
 /test/external/riscv-arch-test/elfs
@@ -53,7 +55,7 @@ test/external/riscv-tests/test-*
 # embench benchmark
 test/external/embench/build
 test/external/embench/logs
-/test/regression/benchmark_results
+/test/benchmark/benchmark_results
 
 # Documentation build
 build/
