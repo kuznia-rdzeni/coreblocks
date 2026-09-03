@@ -59,14 +59,14 @@ class TreePLRU(Elaboratable):
         def _(k: int, way: Value):
             pass
 
-        def apply_touch(cur: dict[int, Value], valid: Value, way: Value) -> dict[int, Value]:
-            new = dict(cur)
+        def apply_touch(cur: Value, valid: Value, way: Value) -> Value:
+            new = Signal(self.ways - 1)
 
             def walk(node: int, level: int, on_path: Value):
                 if level == self.ways_log:
                     return
                 direction = way[self.ways_log - 1 - level]
-                new[node] = Mux(valid & on_path, ~direction, cur[node])
+                m.d.comb += new[node].eq(Mux(valid & on_path, ~direction, cur[node]))
                 walk(2 * node + 1, level + 1, on_path & ~direction)
                 walk(2 * node + 2, level + 1, on_path & direction)
 
@@ -74,10 +74,10 @@ class TreePLRU(Elaboratable):
             return new
 
         # Apply each touch in port order; a higher-indexed port wins on shared nodes
-        state = {node: tree[node] for node in range(self.ways - 1)}
+        new_state = tree
         for port in self.touch:
-            state = apply_touch(state, port.run, port.data_in.way)
+            new_state = apply_touch(new_state, port.run, port.data_in.way)
 
-        m.d.sync += tree.eq(Cat(state[node] for node in range(self.ways - 1)))
+        m.d.sync += tree.eq(new_state)
 
         return m
