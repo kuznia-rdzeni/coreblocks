@@ -16,7 +16,7 @@ from coreblocks.params import GenParams
 from coreblocks.params.instr import *
 from coreblocks.params import configurations
 from coreblocks.params.core_configuration import CoreConfiguration
-from coreblocks.peripherals.wishbone import WishboneMemorySlave
+from coreblocks.peripherals.wishbone import WishboneArbiter, WishboneMemorySlave
 from coreblocks.priv.traps.interrupt_controller import ISA_RESERVED_INTERRUPTS
 from coreblocks.socks.socks import Socks
 
@@ -34,24 +34,21 @@ TEST_EXIT_FAILURE = 0x12
 
 class CoreTestElaboratable(Elaboratable):
     def __init__(
-        self, gen_params: GenParams, instr_mem: list[int] = [0], data_mem: list[int] = [], with_socks: bool = False
+        self,
+        gen_params: GenParams,
+        instr_mem: list[int] = [0],
+        data_mem: list[int] = [],
+        with_socks: bool = False,
+        shared_instr_data: bool = False,
     ):
         self.gen_params = gen_params
         self.instr_mem = instr_mem
         self.data_mem = data_mem
         self.with_socks = with_socks
+        self.shared_instr_data = shared_instr_data
 
     def elaborate(self, platform):
         m = Module()
-
-        # Align the size of the memory to the length of a cache line.
-        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
-        self.wb_mem_slave = WishboneMemorySlave(
-            wb_params=self.gen_params.wb_params, shape=32, depth=instr_mem_depth, init=self.instr_mem
-        )
-        self.wb_mem_slave_data = WishboneMemorySlave(
-            wb_params=self.gen_params.wb_params, shape=32, depth=len(self.data_mem), init=self.data_mem
-        )
 
         self.core = Core(gen_params=self.gen_params)
         self.top = Socks(self.core, self.gen_params) if self.with_socks else self.core
@@ -66,12 +63,32 @@ class CoreTestElaboratable(Elaboratable):
                 Cat(self.interrupt_edge, self.interrupt_level) << ISA_RESERVED_INTERRUPTS
             )
 
-        m.submodules.wb_mem_slave = self.wb_mem_slave
-        m.submodules.wb_mem_slave_data = self.wb_mem_slave_data
         m.submodules.c = self.top
 
-        connect(m, self.top.wb_instr, self.wb_mem_slave.bus)
-        connect(m, self.top.wb_data, self.wb_mem_slave_data.bus)
+        # Align the size of the memory to the length of a cache line.
+        instr_mem_depth = align_to_power_of_two(len(self.instr_mem), self.gen_params.icache_params.line_bytes_log)
+        if self.shared_instr_data:
+            # shared address space
+            assert len(self.data_mem) == 0
+            m.submodules.wb_mem_slave_all = self.wb_mem_slave_all = WishboneMemorySlave(
+                wb_params=self.gen_params.wb_params, shape=32, depth=instr_mem_depth, init=self.instr_mem
+            )
+            m.submodules.wb_mem_arbiter = self.wb_mem_arbiter = WishboneArbiter(
+                wb_params=self.gen_params.wb_params, num_masters=2
+            )
+            connect(m, self.wb_mem_slave_all.bus, self.wb_mem_arbiter.slave_wb)
+            connect(m, self.top.wb_instr, self.wb_mem_arbiter.masters[0])
+            connect(m, self.top.wb_data, self.wb_mem_arbiter.masters[1])
+        else:
+            m.submodules.wb_mem_slave = self.wb_mem_slave = WishboneMemorySlave(
+                wb_params=self.gen_params.wb_params, shape=32, depth=instr_mem_depth, init=self.instr_mem
+            )
+            m.submodules.wb_mem_slave_data = self.wb_mem_slave_data = WishboneMemorySlave(
+                wb_params=self.gen_params.wb_params, shape=32, depth=len(self.data_mem), init=self.data_mem
+            )
+
+            connect(m, self.top.wb_instr, self.wb_mem_slave.bus)
+            connect(m, self.top.wb_data, self.wb_mem_slave_data.bus)
 
         return m
 
@@ -112,7 +129,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
                     "-mabi=ilp32",
                     # Specified manually, because toolchains from most distributions don't support new extensioins
                     # and this test should be accessible locally.
-                    f"-march=rv32im{'c' if c_extension else ''}_zicsr",
+                    f"-march=rv32im{'c' if c_extension else ''}_zicsr_zifencei",
                     "-I",
                     self.base_dir,
                     "-o",
@@ -190,6 +207,7 @@ class TestCoreAsmSourceBase(TestCoreBase):
         ("fibonacci_mem", "fibonacci_mem.asm", 400, {3: 55}, False, configurations.basic),
         ("fibonacci_mem_tiny", "fibonacci_mem.asm", 250, {3: 55}, False, configurations.tiny),
         ("csr", "csr.asm", 400, {1: 1, 2: 4}, True, configurations.full),
+        ("fencei", "fencei.asm", 1500, {10: 12, 16: 13}, True, configurations.full),
         ("csr_mmode", "csr_mmode.asm", 1000, {1: 0, 2: 44, 3: 0, 4: 0, 5: 0, 6: 4, 15: 0}, True, configurations.full),
         ("exception", "exception.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
         ("exception_mem", "exception_mem.asm", 200, {1: 1, 2: 2}, False, configurations.basic),
@@ -222,7 +240,11 @@ class TestCoreBasicAsm(TestCoreAsmSourceBase):
         self.gen_params = GenParams(self.configuration)
 
         self.m = CoreTestElaboratable(
-            self.gen_params, instr_mem=bin_src["text"], data_mem=bin_src["data"], with_socks=socks_test
+            self.gen_params,
+            instr_mem=bin_src["text"],
+            data_mem=bin_src["data"],
+            with_socks=socks_test,
+            shared_instr_data=self.name == "fencei",
         )
 
         with self.run_simulation(self.m) as sim:
