@@ -1,9 +1,10 @@
-from .memory import *
-from .common import SimulationBackend, START_PC
+from test.sim.memory import *
+from test.sim.common import SimulationBackend
 from .conftest import riscv_tests_dir, profile_dir, evlog_dir
-from .cocotb import run_cocotb_entrypoint
-from test.regression.pysim import PySimulation
+from test.sim.cocotb import run_cocotb_entrypoint
+from test.sim.pysim import PySimulation
 import asyncio
+from collections.abc import Callable
 from typing import Literal
 import os
 import pytest
@@ -18,7 +19,7 @@ exclude_write_protection = ["rv32uc-rvc"]
 force_executable_memory = ["rv32ui-fence_i"]
 
 
-class MMIO(MemorySegment):
+class MMIO(MMIOSegment):
     def __init__(self, on_finish: Callable[[], None]):
         super().__init__(range(0xF0000000, 0xF0000000 + 4), SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
@@ -75,7 +76,7 @@ def regression_body_with_pysim(test_name: str, traces: bool):
     traces_file = None
     if traces:
         traces_file = REGRESSION_TESTS_PREFIX + test_name
-    asyncio.run(run_test(PySimulation(traces_file=traces_file, reset_pc=START_PC), test_name))
+    asyncio.run(run_test(PySimulation(traces_file=traces_file), test_name))
 
 
 @pytest.fixture
