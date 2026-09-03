@@ -2,6 +2,7 @@ from amaranth import *
 from amaranth.lib.wiring import Component, In
 
 from coreblocks.arch import CSRAddress, InterruptCauseNumber, PrivilegeLevel
+from coreblocks.arch.csr_address import CounterEnableFieldOffsets
 from coreblocks.arch.isa_consts import ExceptionCause
 from coreblocks.interface.layouts import CSRRegisterLayouts, InternalInterruptControllerLayouts
 from coreblocks.priv.csr.csr_register import CSRRegister
@@ -143,10 +144,11 @@ class InternalInterruptController(Component):
             # Only software bits participate in the write logic - use the value of the register for CSRRS/CSRRC
             # rather than what happens normally - using the returned value to the software.
             old_data = self.mip.read(m).data
+            data = data & self.mip_writeable
 
             with m.Switch(op_type):
                 with m.Case(CSRRegisterLayouts.WriteOpType.CSR_WRITE):
-                    m.d.comb += new_data.eq(data)
+                    m.d.comb += new_data.eq((old_data & ~self.mip_writeable) | data)
                 with m.Case(CSRRegisterLayouts.WriteOpType.CSR_SET):
                     m.d.comb += new_data.eq(old_data | data)
                 with m.Case(CSRRegisterLayouts.WriteOpType.CSR_CLEAR):
@@ -197,7 +199,7 @@ class InternalInterruptController(Component):
                     assert m_mode_csr.menvcfg_stce
                     priv = m_mode_csr.priv_mode.read(m).data
                     stce = m_mode_csr.menvcfg_stce.read(m).data
-                    mcounteren_tm = m_mode_csr.mcounteren.read(m).data[1]
+                    mcounteren_tm = m_mode_csr.mcounteren.read(m).data[CounterEnableFieldOffsets.TM]
                     return (priv == PrivilegeLevel.MACHINE) | (stce & mcounteren_tm)
 
                 self.stimecmp = CSRRegister(None, gen_params, width=64, fu_access_filter=stimecmp_access_filter)
@@ -305,7 +307,7 @@ class InternalInterruptController(Component):
         m.d.comb += self.wfi_resume.eq(interrupt_pending)
 
         with Transaction().always_body(m):
-            mip_value = (self.mip.read_comb(m).data & ~self.mip.ro_bits) | (self.mip.read(m).data & self.mip.ro_bits)
+            mip_value = self.mip.read_comb(m).data
             new_data = Signal(self.gen_params.isa.xlen)
             m.d.av_comb += new_data.eq(mip_value | self.new_edge_interrupts)
 
