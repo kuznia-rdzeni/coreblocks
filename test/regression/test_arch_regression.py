@@ -8,10 +8,9 @@ import asyncio
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
 from .pysim import PySimulation
-from .common import START_PC
 from .memory import (
     CoreMemoryModel,
-    MemorySegment,
+    MMIOSegment,
     ReadReply,
     ReadRequest,
     ReplyStatus,
@@ -30,7 +29,7 @@ INTERRUPT_GENERATOR_ADDRESS = 0xF0002000
 ACCESS_FAULT_ADDRESS = 0x00000000
 
 
-class EndTestMMIO(MemorySegment):
+class EndTestMMIO(MMIOSegment):
     def __init__(self, on_finish):
         super().__init__(range(END_TEST_ADDRESS, END_TEST_ADDRESS + 8), SegmentFlags.WRITE)
         self.on_finish = on_finish
@@ -50,7 +49,7 @@ class EndTestMMIO(MemorySegment):
         return WriteReply()
 
 
-class ConsoleMMIO(MemorySegment):
+class ConsoleMMIO(MMIOSegment):
     def __init__(self):
         super().__init__(range(CONSOLE_ADDRESS, CONSOLE_ADDRESS + 8), SegmentFlags.WRITE)
         self.buffer = bytearray()
@@ -77,7 +76,7 @@ class ConsoleMMIO(MemorySegment):
         print(self.buffer.decode(errors="replace"), end="")
 
 
-class AccessFaultAddressMMIO(MemorySegment):
+class AccessFaultAddressMMIO(MMIOSegment):
     def __init__(self):
         super().__init__(
             range(ACCESS_FAULT_ADDRESS, ACCESS_FAULT_ADDRESS + 128),
@@ -91,7 +90,7 @@ class AccessFaultAddressMMIO(MemorySegment):
         return WriteReply(status=ReplyStatus.ERROR)
 
 
-class InterruptGeneratorMMIO(MemorySegment):
+class InterruptGeneratorMMIO(MMIOSegment):
     def __init__(self):
         super().__init__(
             range(INTERRUPT_GENERATOR_ADDRESS, INTERRUPT_GENERATOR_ADDRESS + 4),
@@ -178,7 +177,7 @@ def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
         if traces:
             traces_file = REGRESSION_ARCH_TESTS_PREFIX + elf_path.stem
 
-        pysim = PySimulation(reset_pc=START_PC, with_socks=True, traces_file=traces_file)
+        pysim = PySimulation(traces_file=traces_file)
         asyncio.run(run_arch_elf(pysim, elf_path, timeout_cycles=2_000_000))
 
 

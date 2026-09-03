@@ -1,9 +1,12 @@
 import os
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from pathlib import Path
 
 from .memory import *
+from .memory_emulation import RAMEmulation
 from .common import SimulationBackend
 
 from coreblocks.arch import ExceptionCause
@@ -30,15 +33,21 @@ class BenchmarkResult:
         A count of branch mispredictions during the benchmark, from the HPM counter.
     metric_values: dict[str, dict[str, int]]
         Values of the core metrics taken at the end of the simulation.
+    wall_time: float
+        How long running the benchmark took, in seconds.
+    simulated_cycles: int
+        A count of cycles which were simulated.
     """
 
     cycles: int
     instr: int
     mispredicts: int
     metric_values: dict[str, dict[str, int]]
+    wall_time: float = 0.0
+    simulated_cycles: int = 0
 
 
-class MMIO(RandomAccessMemory):
+class MMIO(MMIOSegment):
     """Memory Mapped IO.
 
     The structure of the MMIO is as follows:
@@ -54,30 +63,32 @@ class MMIO(RandomAccessMemory):
     COUNTERS_OFFSET = 0x10
 
     def __init__(self, on_finish: Callable[[], None]):
-        super().__init__(
-            range(0xF0000000, 0xF0000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE, b"\x00" * MMIO.SIZE
-        )
+        super().__init__(range(0xF0000000, 0xF0000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
+        self.registers = RAMEmulation(b"\x00" * MMIO.SIZE)
+
+    def read(self, req: ReadRequest) -> ReadReply:
+        return self.registers.read(req)
 
     def write(self, req: WriteRequest) -> WriteReply:
         if req.addr == 0x0:
             self.on_finish()
             return WriteReply()
         else:
-            return super().write(req)
+            return self.registers.write(req)
 
     def _counter(self, index: int) -> int:
         offset = MMIO.COUNTERS_OFFSET + 8 * index
-        return int.from_bytes(self.data[offset : offset + 8], "little")
+        return int.from_bytes(self.registers.data[offset : offset + 8], "little")
 
     def return_code(self):
-        return int.from_bytes(self.data[4:8], "little", signed=True)
+        return int.from_bytes(self.registers.data[4:8], "little", signed=True)
 
     def mcause(self):
-        return int.from_bytes(self.data[8:12], "little")
+        return int.from_bytes(self.registers.data[8:12], "little")
 
     def mepc(self):
-        return int.from_bytes(self.data[12:16], "little")
+        return int.from_bytes(self.registers.data[12:16], "little")
 
     def cycle_cnt(self):
         return self._counter(0)
@@ -102,7 +113,9 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     mem_model = CoreMemoryModel(mem_segments)
 
-    result = await sim_backend.run(mem_model, timeout_cycles=2000000)
+    start_time = time.monotonic()
+    result = await sim_backend.run(mem_model, timeout_cycles=10000000)
+    wall_time = time.monotonic() - start_time
 
     if result.profile is not None:
         os.makedirs(profile_dir, exist_ok=True)
@@ -129,6 +142,8 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
         instr=mmio.instr_cnt(),
         mispredicts=mmio.mispredict_cnt(),
         metric_values=result.metric_values,
+        wall_time=wall_time,
+        simulated_cycles=result.simulated_cycles,
     )
 
     os.makedirs(str(results_dir), exist_ok=True)
