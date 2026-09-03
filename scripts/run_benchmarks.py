@@ -189,7 +189,7 @@ def main():
         "-j",
         "--jobs",
         type=int,
-        default=len(os.sched_getaffinity(0)),
+        default=0,
         help="Number of benchmarks to run in parallel. Default: all cores",
     )
     parser.add_argument(
@@ -230,7 +230,9 @@ def main():
     if args.clean:
         clean_build_artifacts(args.backend)
 
-    success = run_benchmarks(benchmarks, args.backend, args.trace, args.jobs)
+    jobs = len(os.sched_getaffinity(0)) if args.jobs == 0 else args.jobs
+
+    success = run_benchmarks(benchmarks, args.backend, args.trace, jobs)
     if not success:
         print("Benchmark execution failed")
         sys.exit(1)
