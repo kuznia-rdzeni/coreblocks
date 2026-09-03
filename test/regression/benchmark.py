@@ -5,6 +5,7 @@ from dataclasses_json import dataclass_json
 from pathlib import Path
 
 from .memory import *
+from .memory_emulation import RAMEmulation
 from .common import SimulationBackend
 
 from coreblocks.arch import ExceptionCause
@@ -57,7 +58,7 @@ class MMIO(MMIOSegment):
     def __init__(self, on_finish: Callable[[], None]):
         super().__init__(range(0xF0000000, 0xF0000000 + MMIO.SIZE), SegmentFlags.READ | SegmentFlags.WRITE)
         self.on_finish = on_finish
-        self.registers = RandomAccessMemoryEmulation(b"\x00" * MMIO.SIZE)
+        self.registers = RAMEmulation(b"\x00" * MMIO.SIZE)
 
     def read(self, req: ReadRequest) -> ReadReply:
         return self.registers.read(req)

@@ -21,6 +21,7 @@ from cocotb_bus.bus import Bus
 from cocotb.result import SimTimeoutError
 
 from .memory import *
+from .memory_emulation import CoreMemoryEmulation
 from .common import SimulationBackend, SimulationExecutionResult, START_PC
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader

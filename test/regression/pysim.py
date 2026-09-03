@@ -12,6 +12,7 @@ from transactron.profiler import Profile
 from transactron.testing.tick_count import make_tick_count_process
 
 from .memory import *
+from .memory_emulation import CoreMemoryEmulation
 from .common import SimulationBackend, SimulationExecutionResult
 
 from transactron.testing import (

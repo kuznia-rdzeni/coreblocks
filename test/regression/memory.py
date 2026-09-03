@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from enum import Enum, IntFlag, auto
-from typing import Optional, TypeVar
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
+
 from coreblocks.params.configurations import CoreConfiguration
 from transactron.utils import align_to_power_of_two, align_down_to_power_of_two
 
@@ -15,13 +14,10 @@ __all__ = [
     "ReadReply",
     "WriteRequest",
     "WriteReply",
-    "MemoryEmulation",
     "MemorySegment",
     "RandomAccessMemory",
-    "RandomAccessMemoryEmulation",
     "MMIOSegment",
     "CoreMemoryModel",
-    "CoreMemoryEmulation",
     "load_segment",
     "load_segments_from_elf",
 ]
@@ -66,21 +62,6 @@ class WriteReply:
     status: ReplyStatus = ReplyStatus.OK
 
 
-class MemoryEmulation(ABC):
-    """Emulates the behaviour of a memory segment in Python.
-
-    Request addresses are relative to the start of the segment.
-    """
-
-    @abstractmethod
-    def read(self, req: ReadRequest) -> ReadReply:
-        raise NotImplementedError
-
-    @abstractmethod
-    def write(self, req: WriteRequest) -> WriteReply:
-        raise NotImplementedError
-
-
 @dataclass
 class MemorySegment:
     """Describes a range of the address space."""
@@ -100,40 +81,19 @@ class RandomAccessMemory(MemorySegment):
             raise ValueError("Data length must be equal to the length of the address range")
 
 
-class MMIOSegment(MemorySegment, MemoryEmulation):
-    """A segment whose accesses are handled by Python code."""
+class MMIOSegment(MemorySegment, ABC):
+    """A segment whose accesses are handled by Python code, on any backend.
 
+    Request addresses are relative to the start of the segment.
+    """
 
-class RandomAccessMemoryEmulation(MemoryEmulation):
-    """Byte-addressable storage."""
-
-    def __init__(self, data: bytes):
-        self.data = bytearray(data)
-
+    @abstractmethod
     def read(self, req: ReadRequest) -> ReadReply:
-        return ReadReply(data=int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
+        raise NotImplementedError
 
+    @abstractmethod
     def write(self, req: WriteRequest) -> WriteReply:
-        mask_bytes = [b"\x00", b"\xff"]
-        mask = int.from_bytes(b"".join(mask_bytes[1 & (req.byte_sel >> i)] for i in range(4)), "little")
-        old = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little")
-        self.data[req.addr : req.addr + req.byte_count] = (old & ~mask | req.data & mask).to_bytes(4, "little")
-        return WriteReply()
-
-
-def _emulate_segment(segment: MemorySegment) -> MemoryEmulation:
-    """Realizes a segment description in Python."""
-    match segment:
-        case RandomAccessMemory():
-            return RandomAccessMemoryEmulation(segment.contents)
-        case MMIOSegment():
-            return segment
-        case _:
-            raise RuntimeError(f"Cannot emulate {type(segment).__name__} in Python")
-
-
-TReq = TypeVar("TReq", bound=ReadRequest | WriteRequest)
-TRep = TypeVar("TRep", bound=ReadReply | WriteReply)
+        raise NotImplementedError
 
 
 @dataclass
@@ -146,49 +106,6 @@ class CoreMemoryModel:
     # The core may do undefined reads speculatively
     fail_on_undefined_read: bool = False
     fail_on_undefined_write: bool = True
-
-
-class CoreMemoryEmulation:
-    def __init__(self, model: CoreMemoryModel):
-        self.model = model
-        self.emulations = [_emulate_segment(segment) for segment in model.segments]
-
-    def _run_on_range(self, f: Callable[[MemorySegment, MemoryEmulation, TReq], TRep], req: TReq) -> Optional[TRep]:
-        for seg, emulation in zip(self.model.segments, self.emulations):
-            if req.addr in seg.address_range:
-                return f(seg, emulation, req)
-
-    def _do_read(self, seg: MemorySegment, emulation: MemoryEmulation, req: ReadRequest) -> ReadReply:
-        if SegmentFlags.READ not in seg.flags:
-            raise RuntimeError("Tried to read from non-read memory: %x" % req.addr)
-        if req.exec and SegmentFlags.EXECUTABLE not in seg.flags:
-            raise RuntimeError("Memory is not executable: %x" % req.addr)
-
-        return emulation.read(replace(req, addr=req.addr - seg.address_range.start))
-
-    def _do_write(self, seg: MemorySegment, emulation: MemoryEmulation, req: WriteRequest) -> WriteReply:
-        if SegmentFlags.WRITE not in seg.flags:
-            raise RuntimeError("Tried to write to non-writable memory: %x" % req.addr)
-
-        return emulation.write(replace(req, addr=req.addr - seg.address_range.start))
-
-    def read(self, req: ReadRequest) -> ReadReply:
-        rep = self._run_on_range(self._do_read, req)
-        if rep is not None:
-            return rep
-        if self.model.fail_on_undefined_read:
-            raise RuntimeError("Undefined read: %x" % req.addr)
-        else:
-            return ReadReply(status=ReplyStatus.ERROR)
-
-    def write(self, req: WriteRequest) -> WriteReply:
-        rep = self._run_on_range(self._do_write, req)
-        if rep is not None:
-            return rep
-        if self.model.fail_on_undefined_write:
-            raise RuntimeError("Undefined write: %x <= %x" % (req.addr, req.data))
-        else:
-            return WriteReply(status=ReplyStatus.ERROR)
 
 
 def load_segment(
