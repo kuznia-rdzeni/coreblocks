@@ -13,7 +13,7 @@ from coreblocks.arch import ExceptionCause
 
 test_dir = Path(__file__).parent.parent
 embench_dir = test_dir.joinpath("external/embench/build/src")
-results_dir = test_dir.joinpath("regression/benchmark_results")
+results_dir = test_dir.joinpath("benchmark/benchmark_results")
 profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
