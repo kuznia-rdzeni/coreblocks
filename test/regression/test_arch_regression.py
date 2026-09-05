@@ -132,7 +132,6 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
     mem_model, endtest, int_generator = build_memory_model(
         elf_path,
         sim_backend.stop,
-        do_workarounds=False,
         disable_write_protection=re.match("Zifencei", elf_path.name) is not None,
         force_executable=True,
     )
