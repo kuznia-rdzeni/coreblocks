@@ -1,22 +1,25 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from enum import Enum, IntFlag, auto
-from typing import Optional, TypeVar
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile, Segment
+
 from coreblocks.params.configurations import CoreConfiguration
 from transactron.utils import align_to_power_of_two, align_down_to_power_of_two
 
-all = [
+__all__ = [
     "ReplyStatus",
+    "SegmentFlags",
     "ReadRequest",
     "ReadReply",
     "WriteRequest",
     "WriteReply",
-    "MemoryModel",
-    "RAMSegment",
+    "MemorySegment",
+    "RandomAccessMemory",
+    "MMIOSegment",
     "CoreMemoryModel",
+    "load_segment",
+    "load_segments_from_elf",
 ]
 
 
@@ -59,87 +62,50 @@ class WriteReply:
     status: ReplyStatus = ReplyStatus.OK
 
 
-class MemorySegment(ABC):
-    def __init__(self, address_range: range, flags: SegmentFlags):
-        self.address_range = address_range
-        self.flags = flags
+@dataclass
+class MemorySegment:
+    """Describes a range of the address space."""
 
-    @abstractmethod
-    def read(self, req: ReadRequest) -> ReadReply:
-        raise NotImplementedError
-
-    @abstractmethod
-    def write(self, req: WriteRequest) -> WriteReply:
-        raise NotImplementedError
+    address_range: range
+    flags: SegmentFlags
 
 
+@dataclass
 class RandomAccessMemory(MemorySegment):
-    def __init__(self, address_range: range, flags: SegmentFlags, data: bytes):
-        super().__init__(address_range, flags)
-        self.data = bytearray(data)
+    """Plain memory, described by its initial contents."""
 
-        if len(self.data) != len(address_range):
+    contents: bytes
+
+    def __post_init__(self):
+        if len(self.contents) != len(self.address_range):
             raise ValueError("Data length must be equal to the length of the address range")
 
+
+class MMIOSegment(MemorySegment, ABC):
+    """A segment whose accesses are handled by Python code, on any backend.
+
+    Request addresses are relative to the start of the segment.
+    """
+
+    @abstractmethod
     def read(self, req: ReadRequest) -> ReadReply:
-        if self.flags & SegmentFlags.EXECUTABLE:
-            pass  # print("Executing from address %x" % (self.address_range.start + req.addr))
-        return ReadReply(data=int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little"))
+        raise NotImplementedError
 
+    @abstractmethod
     def write(self, req: WriteRequest) -> WriteReply:
-        mask_bytes = [b"\x00", b"\xff"]
-        mask = int.from_bytes(b"".join(mask_bytes[1 & (req.byte_sel >> i)] for i in range(4)), "little")
-        old = int.from_bytes(self.data[req.addr : req.addr + req.byte_count], "little")
-        self.data[req.addr : req.addr + req.byte_count] = (old & ~mask | req.data & mask).to_bytes(4, "little")
-        return WriteReply()
+        raise NotImplementedError
 
 
-TReq = TypeVar("TReq", bound=ReadRequest | WriteRequest)
-TRep = TypeVar("TRep", bound=ReadReply | WriteReply)
-
-
+@dataclass
 class CoreMemoryModel:
-    def __init__(self, segments: list[MemorySegment], fail_on_undefined_read=False, fail_on_undefined_write=True):
-        self.segments = segments
-        self.fail_on_undefined_read = fail_on_undefined_read  # Core may do undefined reads speculatively
-        self.fail_on_undefined_write = fail_on_undefined_write
+    """The memory map of the core: the segments, plus the policy for accesses which
+    fall outside all of them.
+    """
 
-    def _run_on_range(self, f: Callable[[MemorySegment, TReq], TRep], req: TReq) -> Optional[TRep]:
-        for seg in self.segments:
-            if req.addr in seg.address_range:
-                return f(seg, req)
-
-    def _do_read(self, seg: MemorySegment, req: ReadRequest) -> ReadReply:
-        if SegmentFlags.READ not in seg.flags:
-            raise RuntimeError("Tried to read from non-read memory: %x" % req.addr)
-        if req.exec and SegmentFlags.EXECUTABLE not in seg.flags:
-            raise RuntimeError("Memory is not executable: %x" % req.addr)
-
-        return seg.read(replace(req, addr=req.addr - seg.address_range.start))
-
-    def _do_write(self, seg: MemorySegment, req: WriteRequest) -> WriteReply:
-        if SegmentFlags.WRITE not in seg.flags:
-            raise RuntimeError("Tried to write to non-writable memory: %x" % req.addr)
-
-        return seg.write(replace(req, addr=req.addr - seg.address_range.start))
-
-    def read(self, req: ReadRequest) -> ReadReply:
-        rep = self._run_on_range(self._do_read, req)
-        if rep is not None:
-            return rep
-        if self.fail_on_undefined_read:
-            raise RuntimeError("Undefined read: %x" % req.addr)
-        else:
-            return ReadReply(status=ReplyStatus.ERROR)
-
-    def write(self, req: WriteRequest) -> WriteReply:
-        rep = self._run_on_range(self._do_write, req)
-        if rep is not None:
-            return rep
-        if self.fail_on_undefined_write:
-            raise RuntimeError("Undefined write: %x <= %x" % (req.addr, req.data))
-        else:
-            return WriteReply(status=ReplyStatus.ERROR)
+    segments: list[MemorySegment]
+    # The core may do undefined reads speculatively
+    fail_on_undefined_read: bool = False
+    fail_on_undefined_write: bool = True
 
 
 def load_segment(
@@ -155,6 +121,9 @@ def load_segment(
 
     seg_start = paddr
     seg_end = paddr + memsz
+
+    # The bus is word-addressed, so a segment cannot end in the middle of a word.
+    seg_end = align_to_power_of_two(seg_end, 2)
 
     data = segment.data()
 
