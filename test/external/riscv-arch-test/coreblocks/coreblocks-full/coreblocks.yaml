@@ -30,6 +30,7 @@ implemented_extensions:
   - { name: Sm, version: "= 1.13.0" }
   - { name: Zihpm, version: "= 2.0.0" }
   - { name: Sscounterenw, version: "= 1.0.0" }
+  - { name: Sstc, version: "= 1.0.0" }
   - { name: Sstvala, version: "= 1.0.0" }
   - { name: Sstvecd, version: "= 1.0.0" }
   - { name: Sstvecv, version: "= 1.0.0" }
