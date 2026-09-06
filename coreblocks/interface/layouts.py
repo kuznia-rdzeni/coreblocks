@@ -663,11 +663,39 @@ class BranchPredictionLayouts:
         fields = gen_params.get(CommonLayoutFields)
         fetch_layouts = gen_params.get(FetchLayouts)
 
+        self.meta: LayoutListField = ("meta", gen_params.bpd_meta_width)
+        """Per-block predictor metadata returned to the BPU for training."""
+
         self.request = make_layout(fields.pc, fields.ftq_ptr)
-        self.write_prediction = make_layout(fields.pc, fields.ftq_ptr, ("prediction", fetch_layouts.bpu_prediction))
-        self.update = make_layout(
-            fields.pc, fields.cfi_target, fields.cfi_idx, fields.cfi_type, ("taken", 1), ("mispredict", 1)
+
+        self.fetch_target = make_layout(fields.pc, fields.ftq_ptr)
+        """Next fetch PC, tagged with the FTQ entry it was predicted for."""
+
+        self.prediction_details = make_layout(
+            fields.ftq_ptr,
+            fields.pc,
+            ("prediction", fetch_layouts.bpu_prediction),
+            self.meta,
         )
+        """An FTQ entry's prediction, metadata, and lookup PC.
+
+        Training must use this PC to select the predictor entries described by the metadata.
+        """
+        self.update = make_layout(
+            fields.pc,
+            ("branch_mask", gen_params.fetch_width),
+            ("cfi_valid", 1),
+            fields.cfi_target,
+            fields.cfi_idx,
+            fields.cfi_type,
+            ("taken", 1),
+            ("mispredict", 1),
+            self.meta,
+        )
+        """Train one fetch block using its prediction's `pc` and `meta`.
+
+        `cfi_idx` is the CFI's index within the fetch block.
+        """
 
 
 class FetchTargetQueueLayouts:
@@ -676,7 +704,6 @@ class FetchTargetQueueLayouts:
 
         self.branch_resolve = make_layout(
             fields.ftq_ptr,
-            ("from_pc", gen_params.isa.xlen),
             ("misprediction", 1),
             ("taken", 1),
             fields.cfi_idx,
