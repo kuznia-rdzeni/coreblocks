@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788695525742,
+  "lastUpdate": 1788726036453,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28053,6 +28053,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9a9db1ed957ee6657ccc1abb4e8d274dfafd1b9e"
         },
         "date": 1788695495523,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5817876108550312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332168747017992,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5223000987166831,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6621861757871236,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.48412786764516985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.49734006643082823,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5340697687218607,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "38064efbde0d07b8a90153abe87c14276f4b5e73",
+          "message": "regression: separate memory segment descriptions from their emulation (#1083)",
+          "timestamp": "2026-09-06T21:18:01+02:00",
+          "tree_id": "9782911df81dba88aa17370b457f5245f7dbaeb5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/38064efbde0d07b8a90153abe87c14276f4b5e73"
+        },
+        "date": 1788726018901,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
