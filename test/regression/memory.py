@@ -122,9 +122,6 @@ def load_segment(
     seg_start = paddr
     seg_end = paddr + memsz
 
-    # The bus is word-addressed, so a segment cannot end in the middle of a word.
-    seg_end = align_to_power_of_two(seg_end, 2)
-
     data = segment.data()
 
     # fill the rest of the segment with zeroes
