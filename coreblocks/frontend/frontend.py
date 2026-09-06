@@ -148,6 +148,7 @@ class CoreFrontend(Elaboratable):
         self.ftq.bpu_update.provide(self.bpu.update)
         self.ftq.stall_guard.provide(self.stall_ctrl.stall_guard)
         self.bpu.write_fetch_target.provide(self.ftq.bpu_fetch_target)
+        self.bpu.correct_fetch_target.provide(self.ftq.bpu_correct_fetch_target)
         self.bpu.write_prediction_details.provide(self.ftq.bpu_prediction_details)
 
         self.ftq.ifu_request.provide(self.fetch.fetch_request)

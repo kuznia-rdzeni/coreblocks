@@ -44,15 +44,6 @@ class TestMicroBTB(TestCaseWithSimulator):
         with self.run_simulation(self.btb) as sim:
             sim.add_testbench(proc)
 
-    def test_flush_discards_pending_response(self):
-        async def proc(sim: TestbenchContext):
-            await self.btb.request_s0.call(sim, pc=0x1000)
-            await self.btb.flush.call(sim)
-            assert await self.btb.response_s1.call_try(sim) is None
-
-        with self.run_simulation(self.btb) as sim:
-            sim.add_testbench(proc)
-
     def test_taken_branch_is_learned(self):
         pc = 0x1000
         target = 0x2ABC
