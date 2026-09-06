@@ -114,14 +114,28 @@ class BranchPredictionConfig:
     ras: RASConfig = RASConfig()
 
     fast_predictor: FastPredictorConfig = MicroBTBConfig()
+    cfi_predictor: CfiPredictorConfig | None = None
+    direction_predictor: DirectionPredictorConfig | None = None
 
     def components(self) -> tuple[BPUPredictorConfig, ...]:
-        return (self.fast_predictor,)
+        return tuple(
+            component
+            for component in (
+                self.fast_predictor,
+                self.cfi_predictor,
+                self.direction_predictor,
+            )
+            if component is not None
+        )
 
     def bpd_meta_width(self, fetch_width: int) -> int:
         return sum(component.meta_width(fetch_width) for component in self.components())
 
     def validate(self):
         self.ras.validate()
+
+        if (self.cfi_predictor is None) != (self.direction_predictor is None):
+            raise ValueError("CFI and direction predictors must either both be configured or both be omitted")
+
         for component in self.components():
             component.validate()
