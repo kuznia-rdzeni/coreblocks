@@ -15,6 +15,7 @@ __all__ = [
     "RobFlush",
     "FuIssue",
     "ExecComplete",
+    "OperandWakeup",
     "func_unit_kind",
 ]
 
@@ -134,8 +135,8 @@ class ExecComplete(Event):
     rob_id: int
 
 
-@event("backend.update")
-class Update(Event):
+@event("backend.operand_wakeup")
+class OperandWakeup(Event):
     """The instruction is waiting for execution and one of its operands
     was just announced."""
 

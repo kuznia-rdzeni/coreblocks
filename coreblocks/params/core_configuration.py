@@ -25,6 +25,7 @@ from coreblocks.func_blocks.fu.lsu.pma import PMARegion
 from coreblocks.func_blocks.csr.csr_unit import CSRBlockComponent
 from coreblocks.arch.isa_consts import SatpMode
 from coreblocks.params.vmem_params import TLBCacheConfiguration
+from coreblocks.params.bpu_params import BranchPredictionConfig
 
 __all__ = [
     "CoreConfiguration",
@@ -103,6 +104,8 @@ class _CoreConfigurationDataClass:
         Log of the size of the fetch block (in bytes).
     ftq_size_log: int
         Log of the number of entries in the Fetch Target Queue
+    bpu_config: BranchPredictionConfig
+        Configuration of the branch prediction unit and its sub-predictors (e.g. their sizes).
     instr_buffer_size: int
         Size of the instruction buffer.
     interrupt_custom_count: int
@@ -117,6 +120,8 @@ class _CoreConfigurationDataClass:
         Enable User Mode.
     supervisor_mode: bool
         Enable Supervisor Mode.
+    sstc: bool
+        Enable Supervisor Mode Timer Counter (SSTC) extension. (only apllicable if supervisor_mode is enabled)
     asidlen: int
         Number of writable ASID bits in SATP.
     supported_vm_schemes: Collection[SatpMode]
@@ -187,6 +192,8 @@ class _CoreConfigurationDataClass:
     fetch_block_bytes_log: int = 2
     ftq_size_log: int = 4
 
+    bpu_config: BranchPredictionConfig = BranchPredictionConfig()
+
     instr_buffer_size: int = 4
 
     interrupt_custom_count: int = 16
@@ -196,9 +203,12 @@ class _CoreConfigurationDataClass:
     user_mode: bool = True
     supervisor_mode: bool = True
 
+    sstc: bool = True
+
     asidlen: int | None = None
     supported_vm_schemes: Collection[SatpMode] = (SatpMode.BARE, SatpMode.SV32)
     phys_addr_bits: int | None = None
+
     hpm_counters_count: int = 0
 
     tlb_config: TLBCacheConfiguration = TLBCacheConfiguration()

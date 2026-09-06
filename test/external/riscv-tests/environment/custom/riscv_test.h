@@ -10,7 +10,7 @@
 //-----------------------------------------------------------------------
 
 #define TESTNUM gp
-#define DEBUG_REG 0x80000000
+#define DEBUG_REG 0xf0000000
 
 #define RVTEST_RV64U                                                    \
   .macro init;                                                          \

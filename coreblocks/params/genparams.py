@@ -98,6 +98,9 @@ class GenParams(DependentCache):
         self.ftq_size_log = cfg.ftq_size_log
         self.ftq_size = 2**cfg.ftq_size_log
 
+        self.bpu_config = cfg.bpu_config
+        self.bpu_config.validate()
+
         self.frontend_superscalarity = cfg.frontend_superscalarity
         self.announcement_superscalarity = cfg.announcement_superscalarity
         self.retirement_superscalarity = cfg.retirement_superscalarity
@@ -129,6 +132,7 @@ class GenParams(DependentCache):
 
         self.user_mode = cfg.user_mode
         self.supervisor_mode = cfg.supervisor_mode
+        self.sstc = cfg.sstc and self.supervisor_mode
         self.hpm_counters_count = cfg.hpm_counters_count
 
         self.tlb_config = cfg.tlb_config

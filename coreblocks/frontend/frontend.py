@@ -1,11 +1,13 @@
+from typing import Sequence
+
 from amaranth import *
 
 from transactron.core import *
 from transactron.lib import BasicFifo, Connect, Pipe
-from transactron.utils import assign
+from transactron.utils import assign, logging, popcount, MethodStruct, OneHotMux
+from transactron.utils.assign import AssignArg
 from transactron.utils.dependencies import DependencyContext
 
-from coreblocks.arch.optypes import OpType
 from coreblocks.interface.layouts import ExceptionInformationRegisterLayouts
 from coreblocks.params.genparams import GenParams
 from coreblocks.frontend.ftq import FetchTargetQueue
@@ -16,8 +18,10 @@ from coreblocks.frontend.bpu.bpu import BranchPredictionUnit
 from coreblocks.cache.icache import ICache, ICacheBypass
 from coreblocks.cache.refiller import SimpleCommonBusCacheRefiller
 from coreblocks.interface.layouts import *
-from coreblocks.interface.keys import FlushICacheKey, RollbackKey
+from coreblocks.interface.keys import FlushICacheKey, RollbackKey, UnsafeInstructionResolvedKey
 from coreblocks.peripherals.bus_adapter import BusMasterInterface
+
+log = logging.HardwareLogger("frontend")
 
 
 class RollbackTagger(Elaboratable):
@@ -56,16 +60,10 @@ class RollbackTagger(Elaboratable):
 
             out = Signal(self.gen_params.get(DecodeLayouts).tagged_decode_result)
             m.d.av_comb += assign(out, instrs)
-            # TODO: as branch is always the first insn, these should be per group
+            # TODO: as the checkpointing insn is always the last one, these should be per group
             for i in range(self.gen_params.frontend_superscalarity):
-                # fetcher guarantees that if branch is present, it's the last insn
-                # but computing this for each insn is simpler
-                is_branch = instrs.data[i].exec_fn.op_type == OpType.BRANCH
-                # no need to make checkpoint at JALR, we currently stall the fetch on it
-
                 m.d.av_comb += out.data[i].rollback_tag.eq(rollback_tag)
                 m.d.av_comb += out.data[i].rollback_tag_v.eq(rollback_tag_v)
-                m.d.av_comb += out.data[i].commit_checkpoint.eq(is_branch)
 
             m.d.sync += rollback_tag_v.eq(0)
 
@@ -123,6 +121,9 @@ class CoreFrontend(Elaboratable):
         self.consume_instr = Method(o=self.gen_params.get(SchedulerLayouts).scheduler_in)
         self.redirect = Method(i=layouts.backend_redirect)
 
+        self._resume_from_unsafe = Method(i=layouts.backend_redirect)
+        self.connections.add_dependency(UnsafeInstructionResolvedKey(), self._resume_from_unsafe)
+
         self.get_exception_information = Method(o=gen_params.get(ExceptionInformationRegisterLayouts).get)
 
     def elaborate(self, platform):
@@ -137,7 +138,6 @@ class CoreFrontend(Elaboratable):
 
         m.submodules.fetch = self.fetch
         self.fetch.cont.provide(self.instr_buffer.write)
-        self.fetch.stall_unsafe.provide(self.stall_ctrl.stall_unsafe)
         m.submodules.instr_buffer = self.instr_buffer
 
         m.submodules.ftq = self.ftq
@@ -168,7 +168,6 @@ class CoreFrontend(Elaboratable):
         m.submodules.output_pipe = self.output_pipe
 
         m.submodules.stall_ctrl = self.stall_ctrl
-        self.stall_ctrl.redirect_frontend.provide(self.redirect)
         self.stall_ctrl.get_exception_information.provide(self.get_exception_information)
 
         rollback = Method(i=self.gen_params.get(RATLayouts).rollback_in)
@@ -178,10 +177,20 @@ class CoreFrontend(Elaboratable):
         def _(ftq_ptr, pc):
             flush(m)
             self.ftq.backend_redirect(m, ftq_ptr=ftq_ptr, pc=pc)
-            self.stall_ctrl.on_redirect_frontend(m)
 
         @def_method(m, rollback)
         def _(tag, pc, ftq_ptr):
+            self.redirect(m, ftq_ptr=ftq_ptr, pc=pc)
+
+        def resume_combiner(m: Module, args: Sequence[MethodStruct], runs: Value) -> AssignArg:
+            # Make sure that there is at most one caller - there can be only one unsafe instruction
+            log.assertion(m, popcount(runs) <= 1)
+            return OneHotMux.create(m, [(runs[i], args[i]) for i in range(len(args))])
+
+        @def_method(m, self._resume_from_unsafe, nonexclusive=True, combiner=resume_combiner)
+        def _(ftq_ptr, pc):
+            log.info(m, True, "Unsafe instruction resolved to pc=0x{:x}", pc)
+
             self.redirect(m, ftq_ptr=ftq_ptr, pc=pc)
 
         @def_method(m, flush, nonexclusive=True)

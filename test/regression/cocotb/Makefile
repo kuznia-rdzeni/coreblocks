@@ -4,9 +4,9 @@
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
 ifeq ($(TRACES),1)
-	SIM_BUILD ?= build/$(BUILD_NAME)/$(SIM)-trace
+	SIM_BUILD ?= build/$(SIM)-trace
 else
-	SIM_BUILD ?= build/$(BUILD_NAME)/$(SIM)
+	SIM_BUILD ?= build/$(SIM)
 endif
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file

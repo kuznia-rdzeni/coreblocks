@@ -18,6 +18,7 @@ sys.path.insert(0, str(topdir))
 import test.regression.benchmark  # noqa: E402
 from test.regression.benchmark import BenchmarkResult  # noqa: E402
 from test.regression.pysim import PySimulation  # noqa: E402
+from test.regression.cocotb import run_cocotb_entrypoint  # noqa: E402
 
 
 def cd_to_topdir():
@@ -57,23 +58,14 @@ def load_benchmarks():
 
 
 def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
-    arglist = ["make", "-C", "test/regression/cocotb", "-f", "benchmark.Makefile", "--no-print-directory"]
-
-    test_cases = ",".join(benchmarks)
-    arglist += [f"TESTCASE={test_cases}"]
-
-    verilog_code = topdir.joinpath("core.v")
-    gen_info_path = f"{verilog_code}.json"
-
-    arglist += [f"VERILOG_SOURCES={verilog_code}"]
-    arglist += [f"_COREBLOCKS_GEN_INFO={gen_info_path}"]
-
-    if traces:
-        arglist += ["TRACES=1"]
-
-    res = subprocess.run(arglist)
-
-    return res.returncode == 0
+    return run_cocotb_entrypoint(
+        "benchmark_entrypoint",
+        traces=traces,
+        additional_args=[
+            "--no-print-directory",
+            f"TESTCASE={','.join(benchmarks)}",
+        ],
+    )
 
 
 def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool) -> bool:

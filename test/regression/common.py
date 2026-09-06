@@ -6,6 +6,9 @@ from transactron.evlog import EventLog
 from transactron.profiler import Profile
 
 
+START_PC = 0x80000000
+
+
 @dataclass
 class SimulationExecutionResult:
     """Information about the result of the simulation.
@@ -28,6 +31,7 @@ class SimulationExecutionResult:
 class SimulationBackend(ABC):
     @abstractmethod
     async def run(self, mem_model: CoreMemoryModel, timeout_cycles: int) -> SimulationExecutionResult:
+        """Runs a program, described by the memory model it is loaded into."""
         raise NotImplementedError
 
     @abstractmethod

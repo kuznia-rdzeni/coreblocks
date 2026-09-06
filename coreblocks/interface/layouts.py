@@ -666,6 +666,9 @@ class BranchPredictionLayouts:
             fields.pc, fields.cfi_target, fields.cfi_idx, fields.cfi_type, ("taken", 1), ("mispredict", 1)
         )
 
+        self.predictor_request = make_layout(fields.pc)
+        self.predictor_predict = make_layout(("hit", 1), fields.cfi_target, fields.cfi_idx, fields.cfi_type)
+
 
 class FetchTargetQueueLayouts:
     def __init__(self, gen_params: GenParams):
@@ -710,7 +713,7 @@ class FetchLayouts:
             fields.pc,
             self.access_fault,
             fields.rvc,
-            fields.cfi_type,
+            fields.commit_checkpoint,
             fields.ftq_ptr,
             fields.ftq_offset,
         )
@@ -727,6 +730,8 @@ class FetchLayouts:
         """redirect - steer fetch to cfi_target; stall - rewind, but wait for the backend
         to resume (fault or unsafe instruction). Both drop the FTQ entries after ftq_ptr."""
         self.redirect = make_layout(fields.pc)
+
+        self.ifu_redirect = make_layout(fields.pc, ("pc_valid", 1))
 
         # The ftq_ptr points to an FTQ entry such that no newer entries contain instructions that will be
         # (or have already been) committed before the instruction the core is being redirected to.
@@ -777,6 +782,7 @@ class DecodeLayouts:
             fields.imm,
             fields.csr,
             fields.pc,
+            fields.commit_checkpoint,
             fields.ftq_ptr,
             fields.ftq_offset,
         )
@@ -1036,5 +1042,4 @@ class RVVILayouts:
             fields.rl_dst,
             fields.rp_dst,
             ("trap", 1),
-            ("interrupt", 1),
         )

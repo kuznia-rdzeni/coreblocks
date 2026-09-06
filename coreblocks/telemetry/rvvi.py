@@ -4,7 +4,7 @@ from amaranth.lib.data import ArrayLayout, View
 from amaranth.lib.wiring import Component, Out
 
 from transactron import *
-from transactron.utils import DependencyContext, make_layout, logging
+from transactron.utils import DependencyContext, make_layout, logging, popcount
 from transactron.utils.amaranth_ext.component_interface import ComponentInterface, COut
 
 from coreblocks.arch.isa_consts import PrivilegeLevel, XlenEncoding
@@ -78,6 +78,7 @@ class RVVIHartCollector(Component):
         self.register_ftq = Method(i=self.layouts.register_ftq)
         self.register_ftq_rob_assoc = Methods(self.frontend_ports, i=self.layouts.register_ftq_rob_assoc)
         self.register_reg_write = Methods(self.reg_write_ports, i=self.layouts.register_reg_write)
+        self.register_next_is_trap_handler = Method()
         self.finalize_retire = Methods(self.retire_ports, i=self.layouts.finalize_retire)
 
         super().__init__(
@@ -111,13 +112,6 @@ class RVVIHartCollector(Component):
             shape=self.gen_params.isa.xlen, depth=self.gen_params.phys_regs, init=[]
         )
 
-        ftq_write_ports = [ftq_mem.write_port() for _ in range(self.gen_params.fetch_width)]
-        ftq_read_ports = [ftq_mem.read_port(domain="comb") for _ in range(self.frontend_ports)]
-        rob_write_ports = [rob_mem.write_port() for _ in range(self.frontend_ports)]
-        rob_read_ports = [rob_mem.read_port(domain="comb") for _ in range(self.retire_ports)]
-        rf_write_ports = [rf_mem.write_port() for _ in range(self.reg_write_ports)]
-        rf_read_ports = [rf_mem.read_port(domain="comb") for _ in range(self.retire_ports)]
-
         ixl = XlenEncoding.from_xlen(self.gen_params.isa.xlen)
 
         order = Signal(64)
@@ -130,8 +124,7 @@ class RVVIHartCollector(Component):
             priv_mode = csr.m_mode.priv_mode.read(m)
 
             for i in range(self.gen_params.fetch_width):
-                port = ftq_write_ports[i]
-
+                port = ftq_mem.write_port()
                 m.d.av_comb += port.addr.eq(ftq_ptr.ptr * self.gen_params.fetch_width + i)
                 m.d.av_comb += port.data.info.eq(instrs[i])
                 m.d.av_comb += port.data.priv_mode.eq(priv_mode)
@@ -139,8 +132,8 @@ class RVVIHartCollector(Component):
 
         @def_methods(m, self.register_ftq_rob_assoc)
         def _(i, ftq_ptr, ftq_offset, rob_id):
-            rport = ftq_read_ports[i]
-            wport = rob_write_ports[i]
+            rport = ftq_mem.read_port(domain="comb")
+            wport = rob_mem.write_port()
 
             m.d.av_comb += rport.addr.eq(ftq_ptr.ptr * self.gen_params.fetch_width + ftq_offset)
             m.d.av_comb += wport.addr.eq(rob_id)
@@ -149,34 +142,48 @@ class RVVIHartCollector(Component):
 
         @def_methods(m, self.register_reg_write)
         def _(i, reg_id, reg_val):
-            m.d.av_comb += rf_write_ports[i].addr.eq(reg_id)
-            m.d.av_comb += rf_write_ports[i].data.eq(reg_val)
-            m.d.comb += rf_write_ports[i].en.eq(reg_id != 0)
+            port = rf_mem.write_port()
+            m.d.av_comb += port.addr.eq(reg_id)
+            m.d.av_comb += port.data.eq(reg_val)
+            m.d.comb += port.en.eq(reg_id != 0)
+
+        valids = Cat(self.retire_port[i].valid for i in range(self.retire_ports))
+        m.d.sync += order.eq(order + popcount(valids))
+        with m.If(valids.any()):
+            m.d.sync += intr_next.eq(0)
+
+        @def_method(m, self.register_next_is_trap_handler, nonexclusive=True)
+        def _():
+            # The instruction after this cycle ends will be the first instruction
+            # of the trap handler -> inform RVVI about it.
+            m.d.sync += intr_next.eq(1)
 
         @def_methods(m, self.finalize_retire)
-        def _(i, rob_id, rl_dst, rp_dst, trap, interrupt):
+        def _(i, rob_id, rl_dst, rp_dst, trap):
             port = self.retire_port[i]
 
-            rob_port = rob_read_ports[i]
+            rob_port = rob_mem.read_port(domain="comb")
             m.d.av_comb += rob_port.addr.eq(rob_id)
 
             m.d.comb += port.valid.eq(1)
-            m.d.av_comb += port.order.eq(order + i)
+            m.d.comb += port.trap.eq(trap)
+            m.d.av_comb += port.order.eq(order + popcount(Cat(0, valids[:i])))
 
             m.d.av_comb += port.insn.eq(rob_port.data.info.instr)
-            m.d.av_comb += port.trap.eq(trap)
             m.d.av_comb += port.debug_mode.eq(0)
-            m.d.av_comb += port.intr.eq(intr_next if i == 0 else 0)
+            m.d.av_comb += port.intr.eq(intr_next & (port.order == order))
             m.d.av_comb += port.halt.eq(0)  # never happens
             m.d.av_comb += port.pc_rdata.eq(rob_port.data.info.pc)
             m.d.av_comb += port.pc_wdata.eq(0)  # not implemented
 
-            rf_port = rf_read_ports[i]
+            rf_port = rf_mem.read_port(domain="comb")
             m.d.av_comb += rf_port.addr.eq(rp_dst)
             m.d.av_comb += [port.x_wdata[k].eq(rf_port.data) for k in range(32)]
-            for k in range(1, 32):
-                with m.If(k == rl_dst):
-                    m.d.av_comb += port.x_wb[k].eq(1)
+            with m.If(~trap):
+                m.d.comb += port.x_wb[0].eq(0)
+                for k in range(1, 32):
+                    with m.If(k == rl_dst):
+                        m.d.comb += port.x_wb[k].eq(1)
 
             # f_* not implemented
 
@@ -189,21 +196,28 @@ class RVVIHartCollector(Component):
             m.d.av_comb += port.mode_virt.eq(0)  # always 0
             m.d.av_comb += port.ixl.eq(ixl)
 
-            # set order/intr_next to the last retire port
-            m.d.sync += order.eq(order + (i + 1))
-            m.d.sync += intr_next.eq(interrupt | trap)
-
-            log.info(
-                m,
-                True,
-                "Retired instruction #{}: pc 0x{:x}, rl_dst x{} = 0x{:x}, rob_id 0x{:x}, instr 0x{:x}",
-                i,
-                rob_port.data.info.pc,
-                rl_dst,
-                rf_port.data,
-                rob_id,
-                rob_port.data.info.instr,
-            )
+            with m.If(~trap):
+                log.info(
+                    m,
+                    True,
+                    "Retired instruction #{}: pc 0x{:x}, rl_dst x{} = 0x{:x}, rob_id 0x{:x}, instr 0x{:x}",
+                    i,
+                    port.pc_rdata,
+                    rl_dst,
+                    rf_port.data[:],
+                    rob_id,
+                    port.insn,
+                )
+            with m.Else():
+                log.info(
+                    m,
+                    True,
+                    "Trapping instruction #{}: pc 0x{:x}, rob_id 0x{:x}, instr 0x{:x}",
+                    i,
+                    port.pc_rdata,
+                    rob_id,
+                    port.insn,
+                )
 
         return m
 

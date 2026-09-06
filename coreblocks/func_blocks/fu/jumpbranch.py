@@ -211,8 +211,9 @@ class JumpBranchFuncUnit(FuncUnitBase[JumpBranchFn]):
                     pc=jump_result,
                     mtval=0,
                 )
-            with m.Elif(is_jalr):
-                # JALR stalls the fetch (with unsafe reason) and doesn't create checkpoint.
+            with m.Elif(is_jalr & ~predicted_taken):
+                # The frontend didn't predict this JALR, so it stalled on it and no checkpoint was created.
+                # Nothing was speculated past it so we should just resume the frontend
                 with m.If(active_tags[instr.tag]):
                     unsafe_resolved(m, pc=jump_result, ftq_ptr=instr.ftq_ptr)
             with m.Elif(misprediction):
