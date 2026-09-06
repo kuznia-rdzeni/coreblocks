@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788198136865,
+  "lastUpdate": 1788694453682,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -27925,6 +27925,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/05f5f272cf905865ab201bc5d068c2a9f6d1386f"
         },
         "date": 1788198106568,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5514026943841768,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332363669945053,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.47560361720870864,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6630925765387599,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.38764021831546036,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.41681566142356,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5013666637387166,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0cfae569b055af41db6730c4bcb39fa941a7f313",
+          "message": "Increase timeout for regression tests (#1091)\n\nIncreased timeout for regression tests from 60 to 120 minutes.",
+          "timestamp": "2026-09-06T12:30:39+02:00",
+          "tree_id": "a4352650ec3b8f23ad0339d29fa132310011e499",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0cfae569b055af41db6730c4bcb39fa941a7f313"
+        },
+        "date": 1788694441964,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
