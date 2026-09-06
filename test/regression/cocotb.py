@@ -413,6 +413,7 @@ def ensure_core_verilog_generated():
             "--reset-pc",
             f"0x{START_PC:x}",
             "--with-socks",
+            "--with-rvvi",
             "-o",
             str(CORE_V),
         ]

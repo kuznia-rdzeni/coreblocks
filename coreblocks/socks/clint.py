@@ -68,8 +68,10 @@ class ClintPeriph(Component, SocksPeripheral):
             m.d.comb += self.bus.ack.eq(0)
 
         for hart in range(self.hart_count):
-            gen_memory_mapped_register(m, self, self.msip_offset + self.ipi_width * hart, self.ipi[hart])
-            gen_memory_mapped_register(m, self, self.mtimecmp_offset + self.time_width * hart, self.mtimecmp[hart])
+            gen_memory_mapped_register(m, self, self.msip_offset + (self.ipi_width // 8) * hart, self.ipi[hart])
+            gen_memory_mapped_register(
+                m, self, self.mtimecmp_offset + (self.time_width // 8) * hart, self.mtimecmp[hart]
+            )
 
         gen_memory_mapped_register(m, self, self.mtime_offset, self.mtime)
 

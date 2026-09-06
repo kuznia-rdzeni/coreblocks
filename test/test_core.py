@@ -82,7 +82,10 @@ class TestCoreBase(TestCaseWithSimulator):
     m: CoreTestElaboratable
 
     def setup_method(self):
-        self.configuration = self.configuration.replace(_generate_test_hardware=True)
+        self.configuration = self.configuration.replace(
+            _generate_test_hardware=True,
+            with_rvvi=True,
+        )
 
     def get_phys_reg_rrat(self, sim: TestbenchContext, reg_id):
         return sim.get(self.m.core.RRAT.entries[reg_id])
@@ -268,7 +271,10 @@ class TestCoreInterrupt(TestCoreAsmSourceBase):
 
     def setup_method(self):
         self.configuration = configurations.full.replace(
-            _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
+            _generate_test_hardware=True,
+            interrupt_custom_count=2,
+            interrupt_custom_edge_trig_mask=0b01,
+            with_rvvi=True,
         )
         self.gen_params = GenParams(self.configuration)
         random.seed(1500100900)
@@ -365,7 +371,10 @@ class TestCoreInterruptOnPrivMode(TestCoreAsmSourceBase):
 
     def setup_method(self):
         self.configuration = configurations.full.replace(
-            _generate_test_hardware=True, interrupt_custom_count=2, interrupt_custom_edge_trig_mask=0b01
+            _generate_test_hardware=True,
+            interrupt_custom_count=2,
+            interrupt_custom_edge_trig_mask=0b01,
+            with_rvvi=True,
         )
         self.gen_params = GenParams(self.configuration)
         random.seed(161453)
@@ -418,6 +427,7 @@ class TestCoreSModeInterruptDelegation(TestCoreAsmSourceBase):
             _generate_test_hardware=True,
             interrupt_custom_count=2,
             interrupt_custom_edge_trig_mask=0b01,
+            with_rvvi=True,
         )
         self.gen_params = GenParams(self.configuration)
 
