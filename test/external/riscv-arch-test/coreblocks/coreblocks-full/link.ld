@@ -40,6 +40,7 @@ SECTIONS
   . = ALIGN(16);
   __stack_bottom = .;
   . += __stack_size * __num_harts;
+  . = ALIGN(0x40);
   __stack_top = .;
 
   . = ALIGN(0x1000);
