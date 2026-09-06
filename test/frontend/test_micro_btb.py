@@ -19,7 +19,7 @@ class TestMicroBTB(TestCaseWithSimulator):
         self.config = MicroBTBConfig(entries_log=2)
         self.gen_params = GenParams(
             configurations.test.replace(
-                fetch_block_bytes_log=4, bpu_config=BranchPredictionConfig(micro_btb=self.config)
+                fetch_block_bytes_log=4, bpu_config=BranchPredictionConfig(fast_predictor=self.config)
             )
         )
         self.num_entries = 2**self.config.entries_log
@@ -28,8 +28,8 @@ class TestMicroBTB(TestCaseWithSimulator):
 
     async def lookup(self, sim: TestbenchContext, pc: int):
         """Issue a request and read back the prediction it produces next cycle"""
-        await self.btb.request.call(sim, pc=pc)
-        return await self.btb.predict.call(sim)
+        await self.btb.request_s0.call(sim, pc=pc)
+        return await self.btb.response_s1.call(sim)
 
     async def train(self, sim: TestbenchContext, pc, cfi_target, taken, cfi_idx=0, cfi_type=CfiType.BRANCH):
         await self.btb.update.call(
@@ -39,7 +39,16 @@ class TestMicroBTB(TestCaseWithSimulator):
     def test_unknown_block_misses(self):
         async def proc(sim: TestbenchContext):
             res = await self.lookup(sim, 0x1000)
-            assert res["hit"] == 0
+            assert res["valid"] == 0
+
+        with self.run_simulation(self.btb) as sim:
+            sim.add_testbench(proc)
+
+    def test_flush_discards_pending_response(self):
+        async def proc(sim: TestbenchContext):
+            await self.btb.request_s0.call(sim, pc=0x1000)
+            await self.btb.flush.call(sim)
+            assert await self.btb.response_s1.call_try(sim) is None
 
         with self.run_simulation(self.btb) as sim:
             sim.add_testbench(proc)
@@ -49,13 +58,14 @@ class TestMicroBTB(TestCaseWithSimulator):
         target = 0x2ABC
 
         async def proc(sim: TestbenchContext):
-            assert (await self.lookup(sim, pc))["hit"] == 0
+            assert (await self.lookup(sim, pc))["valid"] == 0
 
             await self.train(sim, pc, target, taken=1)
 
             res = await self.lookup(sim, pc)
-            assert res["hit"] == 1
-            assert res["cfi_target"] == target
+            assert res["valid"] == 1
+            assert res["target_valid"] == 1
+            assert res["target"] == target
 
         with self.run_simulation(self.btb) as sim:
             sim.add_testbench(proc)
@@ -67,8 +77,9 @@ class TestMicroBTB(TestCaseWithSimulator):
             await self.train(sim, pc, cfi_target=0x2000, taken=1, cfi_idx=2, cfi_type=CfiType.JAL)
 
             res = await self.lookup(sim, pc)
-            assert res["hit"] == 1
-            assert res["cfi_target"] == 0x2000
+            assert res["valid"] == 1
+            assert res["target_valid"] == 1
+            assert res["target"] == 0x2000
             assert res["cfi_idx"] == 2
             assert res["cfi_type"] == CfiType.JAL
 
@@ -81,17 +92,17 @@ class TestMicroBTB(TestCaseWithSimulator):
 
         async def proc(sim: TestbenchContext):
             await self.train(sim, pc, target, taken=1)
-            assert (await self.lookup(sim, pc))["hit"] == 1
+            assert (await self.lookup(sim, pc))["valid"] == 1
 
             # The usefulness counter starts saturated, so a single not-taken
             # resolution weakens the entry but keeps it valid
             for _ in range(self.useful_max - 1):
                 await self.train(sim, pc, cfi_target=0, taken=0)
-                assert (await self.lookup(sim, pc))["hit"] == 1
+                assert (await self.lookup(sim, pc))["valid"] == 1
 
             # One more not-taken drives the counter to zero and invalidates it
             await self.train(sim, pc, cfi_target=0, taken=0)
-            assert (await self.lookup(sim, pc))["hit"] == 0
+            assert (await self.lookup(sim, pc))["valid"] == 0
 
         with self.run_simulation(self.btb) as sim:
             sim.add_testbench(proc)
@@ -111,16 +122,16 @@ class TestMicroBTB(TestCaseWithSimulator):
             new_pc, new_target = 0x90000, 0x99000
             await self.train(sim, new_pc, new_target, taken=1)
 
-            assert (await self.lookup(sim, blocks[0][0]))["hit"] == 0
+            assert (await self.lookup(sim, blocks[0][0]))["valid"] == 0
 
             res = await self.lookup(sim, new_pc)
-            assert res["hit"] == 1
-            assert res["cfi_target"] == new_target
+            assert res["valid"] == 1
+            assert res["target"] == new_target
 
             for pc, target in blocks[1:]:
                 res = await self.lookup(sim, pc)
-                assert res["hit"] == 1
-                assert res["cfi_target"] == target
+                assert res["valid"] == 1
+                assert res["target"] == target
 
         with self.run_simulation(self.btb) as sim:
             sim.add_testbench(proc)
@@ -137,16 +148,16 @@ class TestMicroBTB(TestCaseWithSimulator):
 
             # The table holds num_entries blocks, so exactly one of the num_entries+1
             # must have been evicted - which one is up to the replacement policy
-            resident = [pc for pc, res in results.items() if res["hit"]]
+            resident = [pc for pc, res in results.items() if res["valid"]]
             assert len(resident) == self.num_entries
 
             # The just-installed block survives; the evicted one is an older block
-            assert results[blocks[-1][0]]["hit"] == 1
+            assert results[blocks[-1][0]]["valid"] == 1
 
             # Every resident block still predicts its own target
             targets = dict(blocks)
             for pc in resident:
-                assert results[pc]["cfi_target"] == targets[pc]
+                assert results[pc]["target"] == targets[pc]
 
         with self.run_simulation(self.btb) as sim:
             sim.add_testbench(proc)
