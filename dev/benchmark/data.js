@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788694456010,
+  "lastUpdate": 1788694458087,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -56042,6 +56042,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 24147,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 1708,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 2248,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 8673,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0cfae569b055af41db6730c4bcb39fa941a7f313",
+          "message": "Increase timeout for regression tests (#1091)\n\nIncreased timeout for regression tests from 60 to 120 minutes.",
+          "timestamp": "2026-09-06T12:30:39+02:00",
+          "tree_id": "a4352650ec3b8f23ad0339d29fa132310011e499",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0cfae569b055af41db6730c4bcb39fa941a7f313"
+        },
+        "date": 1788694457599,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 53.36,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 23978,
             "unit": "LUT4"
           },
           {
