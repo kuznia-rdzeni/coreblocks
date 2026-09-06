@@ -37,7 +37,7 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
 
         branch_resolve_layout = gen_params.get(FetchTargetQueueLayouts).branch_resolve
         self.branch_resolve_verify = layout_subset(
-            branch_resolve_layout, fields={"from_pc", "misprediction", "taken", "cfi_target"}
+            branch_resolve_layout, fields={"misprediction", "taken", "cfi_target"}
         )
 
         self.target_pred_req = Method(i=layouts.predicted_jump_target_req)
@@ -105,7 +105,6 @@ class JumpBranchWrapper(FuncUnit, Elaboratable):
                 ret = ret | {
                     "cfi_target": verify.cfi_target,
                     "taken": verify.taken,
-                    "from_pc": verify.from_pc,
                     "misprediction": verify.misprediction,
                 }
 
@@ -177,7 +176,6 @@ def compute_result(i1: int, i2: int, i_imm: int, pc: int, fn: JumpBranchFn.Fn, x
 
     return {
         "result": res,
-        "from_pc": pc,
         "misprediction": misprediction,
         "cfi_target": cfi_target,
         "taken": cfi_taken,
