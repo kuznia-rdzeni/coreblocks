@@ -17,10 +17,12 @@ SECTIONS
 
   .text : {
     *(.text .text.*)
+    . = ALIGN(0x40);
   } >imem
 
   .rodata : {
     *(.rodata .rodata.*)
+    . = ALIGN(0x40);
   } >dmem
 
   .data :
@@ -56,7 +58,7 @@ SECTIONS
   .stack : {
     __stack_end = .;
     . += _STACK_SIZE;
-    . = ALIGN(16);
+    . = ALIGN(0x40);
     __stack_top = .;
   } >dmem
 
