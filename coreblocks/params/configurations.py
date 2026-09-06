@@ -1,4 +1,5 @@
 from coreblocks.arch.isa import Extension
+from coreblocks.params.bpu_params import BranchPredictionConfig, MicroBTBConfig
 from coreblocks.params.core_configuration import CoreConfiguration
 from coreblocks.arch.isa_consts import SatpMode
 
@@ -119,6 +120,7 @@ full = CoreConfiguration(
     retirement_superscalarity=2,
     interrupt_custom_count=15,
     hpm_counters_count=2,
+    bpu_config=BranchPredictionConfig(micro_btb=MicroBTBConfig(entries_log=5)),
 )
 
 # Core configuration used in internal testbenches
