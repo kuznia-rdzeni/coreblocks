@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788695517757,
+  "lastUpdate": 1788695520454,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -84593,6 +84593,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 157,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9a9db1ed957ee6657ccc1abb4e8d274dfafd1b9e",
+          "message": "BPU: add micro-BTB predictor (#1028)",
+          "timestamp": "2026-09-06T12:50:34+02:00",
+          "tree_id": "36531101b2890ecdce781282fe2f84b4a72e8888",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9a9db1ed957ee6657ccc1abb4e8d274dfafd1b9e"
+        },
+        "date": 1788695519654,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 77.05,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8736,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3429,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 153,
             "unit": "Slice"
           },
           {
