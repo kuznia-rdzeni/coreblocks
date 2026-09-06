@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788737834083,
+  "lastUpdate": 1788737836597,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -85309,6 +85309,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 154,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0c73d759ca3c222303b6bca74691d3bd09ff1049",
+          "message": "Align regression ELF segments to 64B (#1090)",
+          "timestamp": "2026-09-07T00:36:14+02:00",
+          "tree_id": "e6a20bddf95b80a929ea37fce2bf3c1b8a9a048c",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0c73d759ca3c222303b6bca74691d3bd09ff1049"
+        },
+        "date": 1788737835801,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 66.93,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8746,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3429,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 157,
             "unit": "Slice"
           },
           {
