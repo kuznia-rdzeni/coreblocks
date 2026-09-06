@@ -20,6 +20,14 @@ coreblocks.cache.iface module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.cache.plru module
+----------------------------
+
+.. automodule:: coreblocks.cache.plru
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 coreblocks.cache.refiller module
 --------------------------------
 

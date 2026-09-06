@@ -212,6 +212,39 @@ the cache.</p>
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.cache.plru">
+<span id="coreblocks-cache-plru-module"></span><h2>coreblocks.cache.plru module<a class="headerlink" href="#module-coreblocks.cache.plru" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.cache.plru.TreePLRU">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.cache.plru.</span></span><span class="sig-name descname"><span class="pre">TreePLRU</span></span><a class="headerlink" href="#coreblocks.cache.plru.TreePLRU" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>Tree-based pseudo-LRU replacement state over a power-of-two number of ways.</p>
+<p>Tree-PLRU keeps one bit per internal node of a balanced binary tree. For a cache
+with N ways, it requires exactly N - 1 bits. Each internal node indicates which
+side was accessed less recently (0 - the left side).</p>
+<p>To find the least recently used item, we traverse down the tree from the root node,
+following the directions indicated by each bit.</p>
+<p>When accessing an item, the bits along its specific path are flipped to point in
+the opposite direction, so it is not selected for subsequent evictions.</p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>get_victim: Method (nonexclusive)</strong></p></td>
+<td><p>Returns the way to replace.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>touch: Methods</strong></p></td>
+<td><p>Each method marks its <cite>way</cite> argument as most-recently-used. Touches are applied in port order, so a higher-indexed port wins.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.cache.plru.TreePLRU.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ways</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">touch_ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.cache.plru.TreePLRU.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.cache.refiller">
 <span id="coreblocks-cache-refiller-module"></span><h2>coreblocks.cache.refiller module<a class="headerlink" href="#module-coreblocks.cache.refiller" title="Link to this heading"></a></h2>
 <dl class="py class">
@@ -243,7 +276,7 @@ the cache.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:31 2026-09-06.
+      <span class="lastupdated">Last updated on 10:51 2026-09-06.
       </span></p>
   </div>
 

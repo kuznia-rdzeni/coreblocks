@@ -12,6 +12,14 @@ coreblocks.frontend.bpu.bpu module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.frontend.bpu.micro\_btb module
+-----------------------------------------
+
+.. automodule:: coreblocks.frontend.bpu.micro_btb
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

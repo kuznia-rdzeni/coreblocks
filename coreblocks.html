@@ -1052,6 +1052,13 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.cache.html#module-coreblocks.cache.plru">coreblocks.cache.plru module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.plru.TreePLRU"><code class="docutils literal notranslate"><span class="pre">TreePLRU</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.plru.TreePLRU.__init__"><code class="docutils literal notranslate"><span class="pre">TreePLRU.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.cache.html#module-coreblocks.cache.refiller">coreblocks.cache.refiller module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller"><code class="docutils literal notranslate"><span class="pre">SimpleCommonBusCacheRefiller</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.cache.html#coreblocks.cache.refiller.SimpleCommonBusCacheRefiller.__init__"><code class="docutils literal notranslate"><span class="pre">SimpleCommonBusCacheRefiller.__init__()</span></code></a></li>
@@ -1100,6 +1107,7 @@
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.bpu.html">coreblocks.frontend.bpu package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#submodules">Submodules</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">coreblocks.frontend.bpu.bpu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.micro_btb">coreblocks.frontend.bpu.micro_btb module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu">Module contents</a></li>
 </ul>
 </li>
@@ -1234,6 +1242,22 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="coreblocks.params.html">coreblocks.params package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.bpu_params">coreblocks.params.bpu_params module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.__init__"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.micro_btb"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.micro_btb</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.validate"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.__init__"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.entries_log"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.entries_log</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.useful_cnt_width"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.useful_cnt_width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.validate"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.validate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.configurations">coreblocks.params.configurations module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.params.html#module-coreblocks.params.core_configuration">coreblocks.params.core_configuration module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.core_configuration.CoreConfiguration"><code class="docutils literal notranslate"><span class="pre">CoreConfiguration</span></code></a><ul>
@@ -1758,7 +1782,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 10:31 2026-09-06.
+      <span class="lastupdated">Last updated on 10:51 2026-09-06.
       </span></p>
   </div>
 

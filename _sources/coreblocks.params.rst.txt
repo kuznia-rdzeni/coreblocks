@@ -4,6 +4,14 @@ coreblocks.params package
 Submodules
 ----------
 
+coreblocks.params.bpu\_params module
+------------------------------------
+
+.. automodule:: coreblocks.params.bpu_params
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 coreblocks.params.configurations module
 ---------------------------------------
 
