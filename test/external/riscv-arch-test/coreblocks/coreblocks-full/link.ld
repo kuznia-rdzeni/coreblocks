@@ -23,10 +23,10 @@ SECTIONS
   ASSERT(TEST_BASE >= ORIGIN(ram) && TEST_BASE < ORIGIN(ram) + LENGTH(ram), "TEST_BASE is outside RAM; update TEST_BASE and RAM_ORIGIN/RAM_LENGTH in link.ld, and the matching memory.regions entry in sail.json")
 
   .text.init   TEST_BASE : { *(.text.init) } > ram
-  .text.rvtest . : { *(.text.rvtest) *(.text.rvtest.*) } > ram
+  .text.rvtest . : { *(.text.rvtest) *(.text.rvtest.*) . = ALIGN(0x40); } > ram
 
   . = ALIGN(0x4000);
-  .rodata . : { *(.rodata) *(.rodata.*) *(.srodata) *(.srodata.*) } > ram
+  .rodata . : { *(.rodata) *(.rodata.*) *(.srodata) *(.srodata.*) . = ALIGN(0x40); } > ram
   .data   . : { *(.data) *(.data.*) *(.sdata) *(.sdata.*) } > ram
 
   . = ALIGN(16);
@@ -37,13 +37,15 @@ SECTIONS
     __bss_end = .;
   } > ram
 
-  . = ALIGN(16);
-  __stack_bottom = .;
-  . += __stack_size * __num_harts;
-  __stack_top = .;
+  .stack (NOLOAD) : {
+    __stack_bottom = .;
+    . += __stack_size * __num_harts;
+    . = ALIGN(0x40);
+    __stack_top = .;
+  } > ram
 
   . = ALIGN(0x1000);
-  .text.rvmodel . : { *(.text.rvmodel) *(.text.rvmodel.*) *(.text) *(.text.*) } > ram
+  .text.rvmodel . : { *(.text.rvmodel) *(.text.rvmodel.*) *(.text) *(.text.*) . = ALIGN(0x40); } > ram
 
   . = ALIGN(0x1000);
   _end = .;
