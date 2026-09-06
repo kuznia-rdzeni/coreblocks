@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788694464074,
+  "lastUpdate": 1788694466006,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -80997,6 +80997,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1079,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0cfae569b055af41db6730c4bcb39fa941a7f313",
+          "message": "Increase timeout for regression tests (#1091)\n\nIncreased timeout for regression tests from 60 to 120 minutes.",
+          "timestamp": "2026-09-06T12:30:39+02:00",
+          "tree_id": "a4352650ec3b8f23ad0339d29fa132310011e499",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0cfae569b055af41db6730c4bcb39fa941a7f313"
+        },
+        "date": 1788694465530,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 42.58,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 46646,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 14616,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1077,
             "unit": "Slice"
           },
           {
