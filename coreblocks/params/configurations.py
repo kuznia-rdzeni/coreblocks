@@ -66,7 +66,7 @@ small_linux = CoreConfiguration(
                 MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
-            rs_entries=3,
+            rs_entries=4,
         ),
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=2, rs_type=FifoRS),
         CSRBlockComponent(),
@@ -85,7 +85,7 @@ full = CoreConfiguration(
                 ZbkxComponent(),
                 ZbsComponent(),
             ],
-            rs_entries=3,  # reduced RS size to reduce impact of bad predictions
+            rs_entries=4,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
@@ -98,14 +98,14 @@ full = CoreConfiguration(
                 ExceptionUnitComponent(),
                 PrivilegedUnitComponent(supervisor_enable=True),
             ],
-            rs_entries=3,  # reduced RS size to reduce impact of bad predictions
+            rs_entries=4,  # reduced RS size to reduce impact of bad predictions
         ),
         RSBlockComponent(
             [
                 MulComponent(mul_unit_type=MulType.PIPELINED_MUL),
                 DivComponent(),
             ],
-            rs_entries=3,
+            rs_entries=4,
         ),
         RSBlockComponent([LSUAtomicWrapperComponent(LSUComponent())], rs_entries=4, rs_type=FifoRS),
         CSRBlockComponent(),
