@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788783553383,
+  "lastUpdate": 1788783555916,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -86373,6 +86373,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 8710,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3429,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2e7cb2e7eacaf1dd384cca16df7402bfa4f265c6",
+          "message": "Fix typo in licence, align with EU template. (#1092)",
+          "timestamp": "2026-09-07T13:19:05+02:00",
+          "tree_id": "b4b346a971e3dcf1a920c2d82a07b835450977ce",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2e7cb2e7eacaf1dd384cca16df7402bfa4f265c6"
+        },
+        "date": 1788783555235,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 76.22,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8819,
             "unit": "LUT"
           },
           {
