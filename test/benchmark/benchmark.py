@@ -1,18 +1,19 @@
 import os
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from pathlib import Path
 
-from .memory import *
-from .memory_emulation import RAMEmulation
-from .common import SimulationBackend
+from test.sim.memory import *
+from test.sim.memory_emulation import RAMEmulation
+from test.sim.common import SimulationBackend
 
 from coreblocks.arch import ExceptionCause
 
 test_dir = Path(__file__).parent.parent
 embench_dir = test_dir.joinpath("external/embench/build/src")
-results_dir = test_dir.joinpath("regression/benchmark_results")
+results_dir = test_dir.joinpath("benchmark/benchmark_results")
 profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
@@ -32,12 +33,18 @@ class BenchmarkResult:
         A count of branch mispredictions during the benchmark, from the HPM counter.
     metric_values: dict[str, dict[str, int]]
         Values of the core metrics taken at the end of the simulation.
+    wall_time: float
+        How long running the benchmark took, in seconds.
+    simulated_cycles: int
+        A count of cycles which were simulated.
     """
 
     cycles: int
     instr: int
     mispredicts: int
     metric_values: dict[str, dict[str, int]]
+    wall_time: float = 0.0
+    simulated_cycles: int = 0
 
 
 class MMIO(MMIOSegment):
@@ -106,7 +113,9 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
 
     mem_model = CoreMemoryModel(mem_segments)
 
-    result = await sim_backend.run(mem_model, timeout_cycles=2000000)
+    start_time = time.monotonic()
+    result = await sim_backend.run(mem_model, timeout_cycles=10000000)
+    wall_time = time.monotonic() - start_time
 
     if result.profile is not None:
         os.makedirs(profile_dir, exist_ok=True)
@@ -133,6 +142,8 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
         instr=mmio.instr_cnt(),
         mispredicts=mmio.mispredict_cnt(),
         metric_values=result.metric_values,
+        wall_time=wall_time,
+        simulated_cycles=result.simulated_cycles,
     )
 
     os.makedirs(str(results_dir), exist_ok=True)

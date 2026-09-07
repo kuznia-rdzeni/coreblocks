@@ -7,9 +7,8 @@ import os
 import asyncio
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
-from .pysim import PySimulation
-from .common import START_PC
-from .memory import (
+from test.sim.pysim import PySimulation
+from test.sim.memory import (
     CoreMemoryModel,
     MMIOSegment,
     ReadReply,
@@ -20,7 +19,7 @@ from .memory import (
     WriteRequest,
     load_segments_from_elf,
 )
-from .cocotb import run_cocotb_entrypoint
+from test.sim.cocotb import run_cocotb_entrypoint
 
 REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
 
@@ -132,7 +131,6 @@ async def run_arch_elf(sim_backend, elf_path: str | Path, timeout_cycles: int = 
     mem_model, endtest, int_generator = build_memory_model(
         elf_path,
         sim_backend.stop,
-        do_workarounds=False,
         disable_write_protection=re.match("Zifencei", elf_path.name) is not None,
         force_executable=True,
     )
@@ -178,7 +176,7 @@ def regression_body_with_pysim(elf_paths: list[Path], traces: bool):
         if traces:
             traces_file = REGRESSION_ARCH_TESTS_PREFIX + elf_path.stem
 
-        pysim = PySimulation(reset_pc=START_PC, with_socks=True, traces_file=traces_file)
+        pysim = PySimulation(traces_file=traces_file)
         asyncio.run(run_arch_elf(pysim, elf_path, timeout_cycles=2_000_000))
 
 
