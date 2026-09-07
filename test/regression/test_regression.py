@@ -1,8 +1,8 @@
-from .memory import *
-from .common import SimulationBackend
+from test.sim.memory import *
+from test.sim.common import SimulationBackend
 from .conftest import riscv_tests_dir, profile_dir, evlog_dir
-from .cocotb import run_cocotb_entrypoint
-from test.regression.pysim import PySimulation
+from test.sim.cocotb import run_cocotb_entrypoint
+from test.sim.pysim import PySimulation
 import asyncio
 from collections.abc import Callable
 from typing import Literal

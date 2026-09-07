@@ -6,7 +6,7 @@ from filelock import FileLock
 from .core import REGRESSION_CORE
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
+BUILD_ROOT = Path(__file__).resolve().parent / "build"
 
 VERILOG_ROOT = BUILD_ROOT / "verilog"
 CORE_V = VERILOG_ROOT / "core.v"

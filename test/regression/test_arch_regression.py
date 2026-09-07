@@ -7,8 +7,8 @@ import os
 import asyncio
 
 from .conftest import arch_tests_dir, profile_dir, evlog_dir
-from .pysim import PySimulation
-from .memory import (
+from test.sim.pysim import PySimulation
+from test.sim.memory import (
     CoreMemoryModel,
     MMIOSegment,
     ReadReply,
@@ -19,7 +19,7 @@ from .memory import (
     WriteRequest,
     load_segments_from_elf,
 )
-from .cocotb import run_cocotb_entrypoint
+from test.sim.cocotb import run_cocotb_entrypoint
 
 REGRESSION_ARCH_TESTS_PREFIX = "test.arch_regression."
 
