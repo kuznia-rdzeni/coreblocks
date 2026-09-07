@@ -153,6 +153,8 @@ class CoreFrontend(Elaboratable):
         self.fetch.fetch_writeback.provide(self.ftq.ifu_writeback)
         self.fetch.check_stale.provide(self.ftq.check_stale)
         self.fetch.read_prediction.provide(self.ftq.read_prediction)
+        self.fetch.ras_peek.provide(self.ftq.ras_peek)
+        self.fetch.ras_predict.provide(self.ftq.ras_predict)
 
         m.submodules.decode = decode = DecodeStage(gen_params=self.gen_params)
         decode.get_raw.provide(self.instr_buffer.read)

@@ -68,6 +68,12 @@ class FetchUnit(Elaboratable):
     read_prediction: Required[Method]
     """Return the branch prediction stored for a given FTQ entry. """
 
+    ras_peek: Required[Method]
+    """Read the address on top of the return address stack."""
+
+    ras_predict: Required[Method]
+    """Speculatively push/pop the return address stack for a fetched block."""
+
     def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
@@ -88,6 +94,9 @@ class FetchUnit(Elaboratable):
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
         self.check_stale = Methods(2, i=self.layouts.check_stale_req, o=self.layouts.check_stale_resp)
         self.read_prediction = Method(i=self.layouts.read_prediction_req, o=self.layouts.bpu_prediction)
+
+        self.ras_peek = Method(o=self.layouts.ras_top)
+        self.ras_predict = Method(i=self.layouts.ras_predict)
 
         self.flush = Method()
 
@@ -396,6 +405,8 @@ class FetchUnit(Elaboratable):
             # Predecode instructions
             predecoded_instr = [predecoders[i].predecode(m, instrs[i]) for i in range(fetch_width)]
 
+            ras_top = self.ras_peek(m)
+
             s2_stale = self.check_stale[1](m, ftq_ptr=ftq_ptr, fetch_gen=s1_data.fetch_gen).stale
 
             with m.If(~s2_stale):
@@ -440,15 +451,52 @@ class FetchUnit(Elaboratable):
             exit_reached = Signal()
             m.d.av_comb += exit_reached.eq(~has_unsafe | (exit_idx < unsafe_idx))
 
+            # The stack effect of this block: that of the CFI the frontend leaves through,
+            # if the exit is reached at all
+            ras_actions = Signal(ArrayLayout(RasAction, fetch_width))
+            for i in range(fetch_width):
+                m.d.av_comb += ras_actions[i].eq(predecoded_instr[i].ras_action)
+
+            exit_on_path = Signal()
+            m.d.av_comb += exit_on_path.eq(exit_reached & cfi_followed & instr_valid.bit_select(exit_idx, 1))
+
+            exit_ras_action = Signal(RasAction)
+            m.d.av_comb += exit_ras_action.eq(mux(exit_on_path, ras_actions[exit_idx], RasAction.NONE))
+
+            # The address a call leaves behind is the one right after it
+            exit_pc = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += exit_pc.eq(params.pc_from_fb(fetch_block_addr, exit_idx))
+            if Extension.ZCA in self.gen_params.isa.extensions:
+                with m.If(s1_data.starts_mid_instr & (exit_idx == 0)):
+                    m.d.av_comb += exit_pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
+            exit_ret_addr = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += exit_ret_addr.eq(exit_pc + Mux(s1_data.rvc.bit_select(exit_idx, 1), 2, 4))
+
+            # A return leaving through this block is predicted by the stack, if it has
+            # anything to predict with
+            ras_hit = Signal()
+            m.d.av_comb += ras_hit.eq(RasAction.has_pop(exit_ras_action) & ras_top.valid)
+
+            # The prediction checker validates a JALR's target against nothing (predecode
+            # cannot compute it), so a return the BPU got wrong is only caught here
+            ras_mistarget = Signal()
+            m.d.av_comb += ras_mistarget.eq(
+                ras_hit
+                & ~predcheck_res.mispredicted
+                & (prediction.cfi_type == CfiType.JALR)
+                & (~prediction.cfi_target_valid | (prediction.cfi_target != ras_top.addr))
+            )
+
             # A JALR's target cannot be computed from predecode, so a mispredicted JALR
-            # can't redirect - we stall until the backend executes it instead
+            # can't redirect - we stall until the backend executes it instead. A return is
+            # the exception: the stack knows where it goes
             eff_cfi_valid = Signal()
             eff_redirect_target = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += eff_cfi_valid.eq(predcheck_res.cfi_type != CfiType.JALR)
-            m.d.av_comb += eff_redirect_target.eq(exit_target)
+            m.d.av_comb += eff_cfi_valid.eq((predcheck_res.cfi_type != CfiType.JALR) | ras_hit)
+            m.d.av_comb += eff_redirect_target.eq(Mux(ras_hit, ras_top.addr, exit_target))
 
             mispredict = Signal()
-            m.d.av_comb += mispredict.eq(predcheck_res.mispredicted)
+            m.d.av_comb += mispredict.eq(predcheck_res.mispredicted | ras_mistarget)
 
             # Stall either on an unsafe instruction cutting the block (~exit_reached), or on
             # an exit through a mispredicted JALR whose target we don't know (~eff_cfi_valid)
@@ -529,6 +577,8 @@ class FetchUnit(Elaboratable):
                         ]
                     with m.Elif(fault_any | stall_core | redirect):
                         m.d.sync += prev_half_v.eq(0)
+
+                self.ras_predict(m, ftq_ptr=ftq_ptr, ras_action=exit_ras_action, addr=exit_ret_addr)
 
                 self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 

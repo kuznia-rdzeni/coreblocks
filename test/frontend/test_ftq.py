@@ -12,7 +12,7 @@ from transactron.testing.method_mock import MethodMock
 
 from transactron.utils import DependencyContext, ModuleConnector
 
-from coreblocks.arch import CfiType
+from coreblocks.arch import CfiType, RasAction
 from coreblocks.frontend.ftq import FetchTargetQueue
 from coreblocks.interface.keys import CSRInstancesKey
 from coreblocks.params import GenParams
@@ -162,6 +162,30 @@ class TestFetchTargetQueue(TestCaseWithSimulator):
             for _ in range(5):
                 await sim.tick()
             assert redirect_pc in [req["pc"] for req in self.ifu_requests]
+
+        with self.run_simulation(self.dut) as sim:
+            sim.add_testbench(proc)
+
+    @pytest.mark.parametrize("checkpoint_idx", [0, 3])
+    def test_backend_redirect_restores_ras_checkpoint(self, checkpoint_idx):
+        async def proc(sim: TestbenchContext):
+            checkpoint_ptr = {"ptr": checkpoint_idx, "parity": 0}
+            await self.ftq.ras_predict.call(sim, ftq_ptr=checkpoint_ptr, ras_action=RasAction.PUSH, addr=0x1000)
+            await self.ftq.ras_predict.call(sim, ftq_ptr=checkpoint_ptr, ras_action=RasAction.PUSH, addr=0x2000)
+            await self.ftq.ras_predict.call(
+                sim, ftq_ptr={"ptr": checkpoint_idx + 1, "parity": 0}, ras_action=RasAction.POP_AND_PUSH, addr=0xDEAD
+            )
+            assert (await self.ftq.ras_peek.call(sim))["addr"] == 0xDEAD
+
+            await self.ftq.backend_redirect.call(sim, ftq_ptr=checkpoint_ptr, pc=0x400)
+            await sim.tick()
+            top = await self.ftq.ras_peek.call(sim)
+            assert top["valid"] == 1
+            assert top["addr"] == 0x2000
+            await self.ftq.ras_predict.call(sim, ftq_ptr=checkpoint_ptr, ras_action=RasAction.POP, addr=0)
+            top = await self.ftq.ras_peek.call(sim)
+            assert top["valid"] == 1
+            assert top["addr"] == 0x1000
 
         with self.run_simulation(self.dut) as sim:
             sim.add_testbench(proc)
