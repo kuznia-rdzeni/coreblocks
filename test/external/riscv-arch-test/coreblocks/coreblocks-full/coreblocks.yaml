@@ -41,6 +41,7 @@ implemented_extensions:
   - { name: Svvptc, version: "= 1.0.0" }
   - { name: Ssccptr, version: "= 1.0.0" }
   - { name: Zkt, version: "= 1.0.0" }  # data independent execution latency
+  - { name: Ssstrict, version: "= 1.0.0" }
 
 params:
   # A params
