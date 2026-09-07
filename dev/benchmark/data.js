@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788783406077,
+  "lastUpdate": 1788783408138,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -86015,6 +86015,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 8741,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3429,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2241c65c240fe87c49e52ccddc856981b7659bd0",
+          "message": " regression: split the simulation framework from the suites which use it  (#1085)",
+          "timestamp": "2026-09-07T13:15:04+02:00",
+          "tree_id": "6e8b7408852a3720924361a38f1fd34e5c49c2c5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2241c65c240fe87c49e52ccddc856981b7659bd0"
+        },
+        "date": 1788783407656,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 75.96,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8710,
             "unit": "LUT"
           },
           {
