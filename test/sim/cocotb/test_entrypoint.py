@@ -1,4 +1,4 @@
-from test.regression.cocotb import CocotbSimulation, generate_tests
+from test.sim.cocotb import CocotbSimulation, generate_tests
 from test.regression.test_regression import run_test
 from test.regression.conftest import get_all_test_names
 
