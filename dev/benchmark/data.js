@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788767297935,
+  "lastUpdate": 1788783399425,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28245,6 +28245,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/9fa1459fc3812806ad00d0585f3f2264234d2779"
         },
         "date": 1788767271586,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5817876108550312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332168747017992,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5223000987166831,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6621861757871236,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.48412786764516985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.49734006643082823,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5340697687218607,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2241c65c240fe87c49e52ccddc856981b7659bd0",
+          "message": " regression: split the simulation framework from the suites which use it  (#1085)",
+          "timestamp": "2026-09-07T13:15:04+02:00",
+          "tree_id": "6e8b7408852a3720924361a38f1fd34e5c49c2c5",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2241c65c240fe87c49e52ccddc856981b7659bd0"
+        },
+        "date": 1788783387215,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
