@@ -6,10 +6,10 @@ from typing import Any, Optional
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 from filelock import FileLock
 import subprocess
 import tempfile
-import sys
 import xml.etree.ElementTree as eT
 import argparse
 
@@ -17,25 +17,21 @@ import cocotb
 from cocotb.clock import Clock, Timer
 from cocotb.handle import ModifiableObject
 from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
+from cocotb.utils import get_sim_time
 from cocotb_bus.bus import Bus
 from cocotb.result import SimTimeoutError
 
 from .memory import *
 from .memory_emulation import CoreMemoryEmulation
-from .common import SimulationBackend, SimulationExecutionResult, START_PC
+from .common import SimulationBackend, SimulationExecutionResult
+from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, REPO_ROOT, ensure_core_verilog_generated
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
 from transactron.utils.gen import GenerationInfo
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_ROOT = Path(__file__).resolve().parent / "cocotb" / "build"
 TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
-
-VERILOG_ROOT = BUILD_ROOT / "verilog"
-CORE_V = VERILOG_ROOT / "core.v"
-CORE_V_JSON = VERILOG_ROOT / "core.v.json"
 
 
 @dataclass
@@ -276,6 +272,8 @@ class CocotbSimulation(SimulationBackend):
         clk = Clock(self.dut.clk, 1, "ns")
         cocotb.start_soon(clk.start())
 
+        start_time = get_sim_time("ns")
+
         self.dut.rst.value = 1
         await Timer(Decimal(1), "ns")
         self.dut.rst.value = 0
@@ -320,6 +318,7 @@ class CocotbSimulation(SimulationBackend):
 
         result.profile = profile
         result.evlog = evlog
+        result.simulated_cycles = int(get_sim_time("ns") - start_time)
 
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}
@@ -401,39 +400,17 @@ def run_cocotb_entrypoint(
         return len(list(tree.iter("failure"))) == 0
 
 
-def ensure_core_verilog_generated():
-    lock = BUILD_ROOT / "verilog.lock"
-    stamp = BUILD_ROOT / "verilog.stamp"
+def clean_cocotb_build():
+    sim = os.environ.get("SIM", "verilator")
 
-    VERILOG_ROOT.mkdir(parents=True, exist_ok=True)
+    for traces in [False, True]:
+        prefix = get_cocotb_lock_prefix(traces)
+        prefix.parent.mkdir(parents=True, exist_ok=True)
 
-    if stamp.exists():
-        return
-
-    with FileLock(lock):
-        if stamp.exists():
-            return
-
-        command = [
-            sys.executable,
-            "-m",
-            "coreblocks.gen_verilog",
-            "--config",
-            "full",
-            "--reset-pc",
-            f"0x{START_PC:x}",
-            "--with-socks",
-            "--with-rvvi",
-            "-o",
-            str(CORE_V),
-        ]
-
-        env = os.environ.copy()
-        # always generate evlog interfaces - the choice to output them is made at runtime
-        env["__TRANSACTRON_EVLOG"] = "1"
-
-        subprocess.run(command, check=True, cwd=REPO_ROOT, env=env)
-        stamp.touch()
+        with FileLock(prefix.with_suffix(".lock")):
+            prefix.with_suffix(".stamp").unlink(missing_ok=True)
+            shutil.rmtree(prefix, ignore_errors=True)
+            shutil.rmtree(BUILD_ROOT / f"{sim}{'-trace' if traces else ''}", ignore_errors=True)
 
 
 def ensure_cocotb_built(traces: bool):

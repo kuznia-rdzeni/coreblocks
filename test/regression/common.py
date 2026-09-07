@@ -6,9 +6,6 @@ from transactron.evlog import EventLog
 from transactron.profiler import Profile
 
 
-START_PC = 0x80000000
-
-
 @dataclass
 class SimulationExecutionResult:
     """Information about the result of the simulation.
@@ -20,12 +17,15 @@ class SimulationExecutionResult:
         no exceptions, no failed assertions etc.
     metric_values: dict[str, dict[str, int]]
         Values of the core metrics taken at the end of the simulation.
+    simulated_cycles: Optional[int]
+        The number of cycles which were simulated.
     """
 
     success: bool
     metric_values: dict[str, dict[str, int]] = field(default_factory=dict)
     profile: Optional[Profile] = None
     evlog: Optional[EventLog] = None
+    simulated_cycles: int = 0
 
 
 class SimulationBackend(ABC):
