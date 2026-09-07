@@ -164,6 +164,9 @@ class CommonLayoutFields:
         self.cfi_type: LayoutListField = ("cfi_type", CfiType)
         """Type of a CFI instruction"""
 
+        self.ras_action: LayoutListField = ("ras_action", RasAction)
+        """Effect a CFI instruction has on the return address stack."""
+
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
         """A mask denoting which instruction in a fetch blocks is a branch."""
 
@@ -737,7 +740,9 @@ class FetchLayouts:
         # (or have already been) committed before the instruction the core is being redirected to.
         self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
 
-        self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
+        self.predecoded_instr = make_layout(
+            fields.cfi_type, fields.ras_action, ("cfi_offset", signed(21)), ("unsafe", 1)
+        )
 
         self.bpu_prediction = make_layout(
             fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
