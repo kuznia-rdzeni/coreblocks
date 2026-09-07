@@ -20,6 +20,7 @@ from coreblocks.interface.layouts import (
 )
 from coreblocks.interface.keys import PredictedJumpTargetKey, BranchResolveKey, FTQCommitKey, CSRInstancesKey
 from coreblocks.frontend.fetch_addr_unit import FetchAddressUnit
+from coreblocks.frontend.bpu.ras import RAS
 from coreblocks.telemetry import FetchRequest, FTQAlloc, FTQCommit, FTQRollback
 
 
@@ -113,6 +114,11 @@ class FetchTargetQueue(Elaboratable):
     read_prediction: Provided[Method]
     """Return the branch prediction stored for a given FTQ entry (read by the fetch unit)."""
 
+    ras_peek: Provided[Method]
+    """Read the address on top of the return address stack."""
+    ras_predict: Provided[Method]
+    """Apply a fetch block's speculative effect on the return address stack and checkpoint it."""
+
     jump_target_req: Provided[Method]
     """Request the predicted jump target for a given FTQ entry (stub)."""
     jump_target_resp: Provided[Method]
@@ -145,6 +151,9 @@ class FetchTargetQueue(Elaboratable):
         self.check_stale = Methods(2, i=ifu_layouts.check_stale_req, o=ifu_layouts.check_stale_resp)
         self.bpu_update = Method(i=bpu_layouts.update)
         self.read_prediction = Method(i=ifu_layouts.read_prediction_req, o=ifu_layouts.bpu_prediction)
+
+        self.ras_peek = Method(o=ifu_layouts.ras_top)
+        self.ras_predict = Method(i=ifu_layouts.ras_predict)
 
         jb_layouts = self.gen_params.get(JumpBranchLayouts)
         self.jump_target_req = Method(i=jb_layouts.predicted_jump_target_req)
@@ -192,6 +201,11 @@ class FetchTargetQueue(Elaboratable):
         train_status_layout = make_layout(("valid", 1), fields.cfi_idx, ("mispredict", 1))
         train_status = Array(
             Signal(train_status_layout, name=f"train_status_{i}") for i in range(self.gen_params.ftq_size)
+        )
+
+        m.submodules.ras = ras = RAS(self.gen_params, self.gen_params.bpu_config.ras)
+        m.submodules.ras_checkpoint = ras_checkpoint = MemoryBank(
+            shape=ras.state_layout, depth=self.gen_params.ftq_size
         )
 
         # Three pointers in the queue.
@@ -248,6 +262,16 @@ class FetchTargetQueue(Elaboratable):
         def _(pc, ftq_ptr, prediction):
             fetch_address_unit.write(m, pc=pc)
             prediction_mem.write(m, ftq_ptr=ftq_ptr, data=prediction)
+
+        @def_method(m, self.ras_peek, nonexclusive=True)
+        def _():
+            return ras.peek(m)
+
+        @def_method(m, self.ras_predict)
+        def _(ftq_ptr, ras_action, addr):
+            log.assertion(m, ~ras_checkpoint.read_resp[0].ready, "RAS prediction before checkpoint recovery completed")
+            new_state = ras.update(m, push=RasAction.has_push(ras_action), pop=RasAction.has_pop(ras_action), addr=addr)
+            ras_checkpoint.write(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr, data=new_state)
 
         @def_method(m, self.read_prediction)
         def _(ftq_ptr):
@@ -356,7 +380,13 @@ class FetchTargetQueue(Elaboratable):
             pc_mem.rollback[1](m, ftq_ptr=ftq_ptr_plus_one)
             prediction_mem.rollback[0](m, ftq_ptr=ftq_ptr_plus_one)
 
+            ras_checkpoint.read_req(m, addr=FTQPtr(ftq_ptr, gen_params=self.gen_params).ptr)
+
             log.assertion(m, ~FTQPtr.queue_empty(ftq_ptr_plus_one, commit_ptr), "FTQ backend redirect overflow")
+
+        with Transaction(name="FTQ_RAS_Recover").body(m):
+            redirect_checkpoint = ras_checkpoint.read_resp(m).data
+            ras.recover(m, sp=redirect_checkpoint.sp, count=redirect_checkpoint.count, top=redirect_checkpoint.top)
 
         @def_method(m, self.jump_target_req)
         def _(ftq_ptr):

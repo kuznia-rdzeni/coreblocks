@@ -756,6 +756,13 @@ class FetchLayouts:
 
         self.read_prediction_req = make_layout(fields.ftq_ptr)
 
+        self.ras_top = make_layout(("valid", 1), ("addr", gen_params.isa.xlen))
+        """The address on top of the return address stack, if the stack holds one."""
+
+        self.ras_predict = make_layout(fields.ftq_ptr, fields.ras_action, ("addr", gen_params.isa.xlen))
+        """Speculative update of the return address stack for the CFI a fetch block exits
+        through."""
+
         self.pred_checker_i = make_layout(
             fields.fb_addr,
             ("starts_mid_instr", 1),
