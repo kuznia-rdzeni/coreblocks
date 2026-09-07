@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788783412225,
+  "lastUpdate": 1788783545068,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28309,6 +28309,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2241c65c240fe87c49e52ccddc856981b7659bd0"
         },
         "date": 1788783387215,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5817876108550312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332168747017992,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5223000987166831,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6621861757871236,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.48412786764516985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.49734006643082823,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5340697687218607,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "34948061+lekcyjna123@users.noreply.github.com",
+            "name": "lekcyjna123",
+            "username": "lekcyjna123"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2e7cb2e7eacaf1dd384cca16df7402bfa4f265c6",
+          "message": "Fix typo in licence, align with EU template. (#1092)",
+          "timestamp": "2026-09-07T13:19:05+02:00",
+          "tree_id": "b4b346a971e3dcf1a920c2d82a07b835450977ce",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2e7cb2e7eacaf1dd384cca16df7402bfa4f265c6"
+        },
+        "date": 1788783532739,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
