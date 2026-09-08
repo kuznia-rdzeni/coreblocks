@@ -14,7 +14,7 @@ ARCH_EXPECTED_FAIL = {
     # [#961] with virtual memory, we need reservation set <=2^12
     ".*exceptions.*zalrsc.*",
     "pmpzalrsc_cfg_wr",
-    # [#960] misaligned amo should cause write flavoured exception
+    # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
     # [#1086] lr.w needs rs2=0
