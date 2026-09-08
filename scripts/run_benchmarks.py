@@ -123,8 +123,7 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, jobs: int) ->
 
 def run_benchmarks_with_cxxsim(benchmarks: list[str], traces: bool, jobs: int) -> bool:
     if traces:
-        print("The cxxsim backend does not support traces")
-        sys.exit(1)
+        raise RuntimeError("The cxxsim backend does not support traces")
 
     ensure_cxxsim_built()
 

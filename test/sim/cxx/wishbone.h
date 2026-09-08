@@ -13,7 +13,7 @@ struct WishboneSignals {
     const uint8_t* stb;
     const uint8_t* we;
     const uint8_t* sel;
-    const uint32_t* adr;
+    const address_t* adr;
     const uint32_t* dat_w;
 
     // Driven by us.

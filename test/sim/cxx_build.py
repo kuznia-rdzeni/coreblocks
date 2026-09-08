@@ -37,9 +37,24 @@ VERILATOR_WARNING_FLAGS = [
     "-Wno-UNOPTFLAT",
 ]
 
-OPTIMIZATION_FLAGS = ["-O3", "-march=native", "-DNDEBUG", "-std=c++17"]
+MODULE_CXX_FLAGS = [
+    "-std=c++17",
+    "-fPIC",
+    "-fvisibility=hidden",
+    "-Os",
+    "-fstrict-aliasing",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    # The Verilator runtime is compiled in the same invocation and triggers these
+    # warnings so let's just silence them
+    "-Wno-unused-parameter",
+    "-Wno-unused-variable",
+    "-Wno-format",
+]
+
 # The verilated core ends up in a shared library, so it has to be position independent.
-VERILATED_CFLAGS = " ".join(OPTIMIZATION_FLAGS + ["-fPIC"])
+VERILATED_CXX_FLAGS = ["-fPIC"]
 
 
 def _verilator_version() -> tuple[int, ...]:
@@ -71,8 +86,10 @@ def _verilate_command() -> list[str]:
         "0",
         "-O3",
         "--no-timing",
+        "--x-initial",
+        "fast",
         "-CFLAGS",
-        VERILATED_CFLAGS,
+        " ".join(VERILATED_CXX_FLAGS),
     ]
     command += VERILATOR_WARNING_FLAGS
     if _verilator_version() >= (5, 40):
@@ -91,9 +108,15 @@ def _module_command() -> list[str]:
     verilator_root = _verilator_root()
     includes = {sysconfig.get_paths()["include"], sysconfig.get_paths()["platinclude"], pybind11.get_include()}
 
-    command = ["g++", "-shared", "-fPIC", "-fvisibility=hidden"] + OPTIMIZATION_FLAGS
+    command = ["g++", "-shared"] + MODULE_CXX_FLAGS
     command += [f"-I{include}" for include in sorted(includes)]
-    command += [f"-I{BUILD_DIR}", f"-I{verilator_root}/include", f"-I{verilator_root}/include/vltstd"]
+    command += [
+        f"-I{BUILD_DIR}",
+        "-isystem",
+        f"{verilator_root}/include",
+        "-isystem",
+        f"{verilator_root}/include/vltstd",
+    ]
     command += [str(CXX_ROOT / source) for source in SOURCES]
     # The Verilator runtime, which is not part of the generated library.
     command += [str(verilator_root / "include" / name) for name in ["verilated.cpp", "verilated_threads.cpp"]]

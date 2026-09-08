@@ -332,7 +332,8 @@ jobs:
           submodules: recursive
 
       - name: Build embench
-        run: cd test/external/embench && make
+        working-directory: test/external/embench
+        run: make
 
       - uses: actions/upload-artifact@v7
         with:

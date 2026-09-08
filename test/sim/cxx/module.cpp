@@ -1,26 +1,32 @@
+#include <pybind11/functional.h>
+#include <pybind11/native_enum.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "memory.h"
 #include "simulation.h"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(coreblocks_cxxsim, m) {
+PYBIND11_MODULE(coreblocks_cxxsim, m, py::mod_gil_not_used(), py::multiple_interpreters::per_interpreter_gil()) {
     using namespace cxxsim;
 
-    py::enum_<SegmentFlags>(m, "SegmentFlags", py::arithmetic())
+    py::native_enum<SegmentFlags>(m, "SegmentFlags", "enum.IntFlag")
         .value("READ", SEGMENT_READ)
         .value("WRITE", SEGMENT_WRITE)
-        .value("EXECUTABLE", SEGMENT_EXECUTABLE);
+        .value("EXECUTABLE", SEGMENT_EXECUTABLE)
+        .finalize();
 
-    py::enum_<ReplyStatus>(m, "ReplyStatus")
+    py::native_enum<ReplyStatus>(m, "ReplyStatus", "enum.Enum")
         .value("OK", ReplyStatus::Ok)
         .value("ERROR", ReplyStatus::Error)
-        .value("RETRY", ReplyStatus::Retry);
+        .value("RETRY", ReplyStatus::Retry)
+        .finalize();
 
-    py::enum_<FinishReason>(m, "FinishReason")
+    py::native_enum<FinishReason>(m, "FinishReason", "enum.Enum")
         .value("STOPPED", FinishReason::Stopped)
-        .value("TIMEOUT", FinishReason::Timeout);
+        .value("TIMEOUT", FinishReason::Timeout)
+        .finalize();
 
     py::class_<RunResult>(m, "RunResult")
         .def_readonly("reason", &RunResult::reason)
@@ -34,5 +40,5 @@ PYBIND11_MODULE(coreblocks_cxxsim, m) {
              py::arg("on_read"), py::arg("on_write"))
         .def("request_stop", &Simulation::request_stop)
         .def("set_interrupts", &Simulation::set_interrupts, py::arg("interrupts"))
-        .def("run", &Simulation::run);
+        .def("run", &Simulation::run, py::call_guard<py::gil_scoped_release>());
 }

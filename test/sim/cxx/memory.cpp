@@ -1,7 +1,5 @@
 #include "memory.h"
 
-#include <pybind11/stl.h>
-
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
@@ -21,7 +19,7 @@ uint32_t byte_sel_mask(uint8_t byte_sel, uint8_t byte_count) {
     return mask;
 }
 
-[[noreturn]] void fail(const char* what, uint32_t addr) {
+[[noreturn]] void fail(const char* what, address_t addr) {
     char buffer[128];
     std::snprintf(buffer, sizeof(buffer), "%s: %08x", what, addr);
     throw std::runtime_error(buffer);
@@ -29,20 +27,20 @@ uint32_t byte_sel_mask(uint8_t byte_sel, uint8_t byte_count) {
 
 }  // namespace
 
-RamSegment::RamSegment(uint64_t start, uint64_t end, uint32_t flags, std::vector<uint8_t> data)
+RamSegment::RamSegment(address_t start, address_t end, uint32_t flags, std::vector<uint8_t> data)
     : MemorySegment(start, end, flags), data_(std::move(data)) {
     if (data_.size() != end - start) {
         throw std::runtime_error("RAM segment contents do not match the length of its address range");
     }
 }
 
-ReadResult RamSegment::read(uint32_t addr, uint8_t byte_count, uint8_t /*byte_sel*/, bool /*exec*/) {
+ReadResult RamSegment::read(address_t addr, uint8_t byte_count, uint8_t /*byte_sel*/, bool /*exec*/) {
     uint32_t data = 0;
     std::memcpy(&data, data_.data() + (addr - start()), byte_count);
     return ReadResult{ReplyStatus::Ok, data};
 }
 
-ReplyStatus RamSegment::write(uint32_t addr, uint32_t data, uint8_t byte_count, uint8_t byte_sel) {
+ReplyStatus RamSegment::write(address_t addr, uint32_t data, uint8_t byte_count, uint8_t byte_sel) {
     uint8_t* dst = data_.data() + (addr - start());
 
     uint32_t mask = byte_sel_mask(byte_sel, byte_count);
@@ -55,24 +53,19 @@ ReplyStatus RamSegment::write(uint32_t addr, uint32_t data, uint8_t byte_count, 
     return ReplyStatus::Ok;
 }
 
-ReadResult CallbackSegment::read(uint32_t addr, uint8_t byte_count, uint8_t byte_sel, bool exec) {
-    py::gil_scoped_acquire gil;
-
-    auto reply = on_read_(addr - start(), byte_count, byte_sel, exec).cast<std::pair<ReplyStatus, uint32_t>>();
-    return ReadResult{reply.first, reply.second};
+ReadResult CallbackSegment::read(address_t addr, uint8_t byte_count, uint8_t byte_sel, bool exec) {
+    return on_read_(addr - start(), byte_count, byte_sel, exec);
 }
 
-ReplyStatus CallbackSegment::write(uint32_t addr, uint32_t data, uint8_t byte_count, uint8_t byte_sel) {
-    py::gil_scoped_acquire gil;
-
-    return on_write_(addr - start(), data, byte_count, byte_sel).cast<ReplyStatus>();
+ReplyStatus CallbackSegment::write(address_t addr, uint32_t data, uint8_t byte_count, uint8_t byte_sel) {
+    return on_write_(addr - start(), data, byte_count, byte_sel);
 }
 
 void MemoryMap::add_segment(std::unique_ptr<MemorySegment> segment) {
     segments_.push_back(std::move(segment));
 }
 
-MemorySegment* MemoryMap::find(uint32_t addr) {
+MemorySegment* MemoryMap::find(address_t addr) {
     for (auto& segment : segments_) {
         if (segment->contains(addr)) {
             return segment.get();
@@ -81,7 +74,7 @@ MemorySegment* MemoryMap::find(uint32_t addr) {
     return nullptr;
 }
 
-ReadResult MemoryMap::read(uint32_t addr, uint8_t byte_count, uint8_t byte_sel, bool exec) {
+ReadResult MemoryMap::read(address_t addr, uint8_t byte_count, uint8_t byte_sel, bool exec) {
     MemorySegment* segment = find(addr);
     if (segment == nullptr) {
         // The core may issue undefined reads speculatively.
@@ -104,7 +97,7 @@ ReadResult MemoryMap::read(uint32_t addr, uint8_t byte_count, uint8_t byte_sel, 
     return segment->read(addr, byte_count, byte_sel, exec);
 }
 
-ReplyStatus MemoryMap::write(uint32_t addr, uint32_t data, uint8_t byte_count, uint8_t byte_sel) {
+ReplyStatus MemoryMap::write(address_t addr, uint32_t data, uint8_t byte_count, uint8_t byte_sel) {
     MemorySegment* segment = find(addr);
     if (segment == nullptr) {
         if (fail_on_undefined_write_) {

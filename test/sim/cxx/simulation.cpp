@@ -35,22 +35,21 @@ Simulation::Simulation(uint64_t timeout_cycles, bool fail_on_undefined_read, boo
 
 Simulation::~Simulation() = default;
 
-void Simulation::add_ram(uint64_t start, uint64_t end, uint32_t flags, const py::bytes& initial_data) {
-    const std::string_view contents = std::string_view(initial_data);
-    memory_.add_segment(std::make_unique<RamSegment>(
-        start, end, flags, std::vector<uint8_t>(contents.begin(), contents.end())));
+void Simulation::add_ram(address_t start, address_t end, uint32_t flags, std::string_view initial_data) {
+    memory_.add_segment(
+        std::make_unique<RamSegment>(start, end, flags, std::vector<uint8_t>(initial_data.begin(), initial_data.end())));
 }
 
-void Simulation::add_mmio(uint64_t start, uint64_t end, uint32_t flags, py::object on_read, py::object on_write) {
+void Simulation::add_mmio(address_t start, address_t end, uint32_t flags, read_callback_t on_read,
+                          write_callback_t on_write) {
     memory_.add_segment(
         std::make_unique<CallbackSegment>(start, end, flags, std::move(on_read), std::move(on_write)));
 }
 
 RunResult Simulation::run() {
-    if (has_run_) {
+    if (has_run_.exchange(true, std::memory_order_relaxed)) {
         throw std::runtime_error("A simulation can only be run once");
     }
-    has_run_ = true;
 
     Vtop& top = *top_;
 
@@ -70,9 +69,6 @@ RunResult Simulation::run() {
         top.clk = 0;
         top.eval();
     };
-
-    // The callbacks take the GIL back for the duration of a call.
-    py::gil_scoped_release gil;
 
     top.rst = 1;
     cycle();

@@ -25,7 +25,7 @@ void WishboneSlave::drive(const Reply& reply) {
 
 WishboneSlave::Reply WishboneSlave::handle_request() {
     // Wishbone addresses words, so the address has to be shifted to get a byte address.
-    uint32_t addr = *signals_.adr << ADDR_SHIFT;
+    address_t addr = *signals_.adr << ADDR_SHIFT;
     uint8_t sel = *signals_.sel;
 
     Reply reply;
@@ -33,8 +33,8 @@ WishboneSlave::Reply WishboneSlave::handle_request() {
         reply.status = memory_.write(addr, *signals_.dat_w, WORD_BYTES, sel);
     } else {
         ReadResult result = memory_.read(addr, WORD_BYTES, sel, is_instr_bus_);
-        reply.status = result.status;
-        reply.data = result.data;
+        reply.status = result.first;
+        reply.data = result.second;
     }
 
     return reply;
