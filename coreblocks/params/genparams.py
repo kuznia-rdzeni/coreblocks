@@ -1,4 +1,5 @@
 from __future__ import annotations
+import itertools
 
 from amaranth.utils import ceil_log2, exact_log2
 
@@ -22,6 +23,17 @@ class GenParams(DependentCache):
         super().__init__()
 
         self.func_units_config = cfg.func_units_config
+
+        if cfg.announcement_config is None:
+            self.announcement_config = (tuple(range(len(self.func_units_config))),) * cfg.announcement_superscalarity
+        else:
+            if len(cfg.announcement_config) != cfg.announcement_superscalarity:
+                raise ValueError("Invalid announcement config length")
+            referenced_units = set(itertools.chain(*cfg.announcement_config))
+            all_units = set(range(len(self.func_units_config)))
+            if referenced_units != all_units:
+                raise ValueError(f"Invalid announcement config: {referenced_units} referenced, {all_units} valid")
+            self.announcement_config = tuple(frozenset(s) for s in cfg.announcement_config)
 
         ext_partial, ext_full = extensions_supported(self.func_units_config, cfg.embedded, cfg.compressed, cfg.zcb)
         extensions = ext_partial if cfg.allow_partial_extensions else ext_full
