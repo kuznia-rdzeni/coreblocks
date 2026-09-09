@@ -623,14 +623,10 @@ class Predecoder(Elaboratable):
                 with m.Case(Opcode.JALR):
                     m.d.av_comb += ret.cfi_type.eq(CfiType.JALR)
                     m.d.av_comb += ret.cfi_offset.eq(iimm)
-                    with m.If(rd_is_link & rs1_is_link & (rd != rs1)):
-                        m.d.av_comb += ret.ras_action.eq(RasAction.POP_AND_PUSH)
-                    with m.Elif(rd_is_link):
-                        m.d.av_comb += ret.ras_action.eq(RasAction.PUSH)
-                    with m.Elif(rs1_is_link):
-                        m.d.av_comb += ret.ras_action.eq(RasAction.POP)
-                    with m.Else():
-                        m.d.av_comb += ret.ras_action.eq(RasAction.NONE)
+                    m.d.av_comb += ret.ras_action.eq(
+                        Mux(rd_is_link, RasAction.PUSH, RasAction.NONE)
+                        | Mux(rs1_is_link & (rd != rs1), RasAction.POP, RasAction.NONE)
+                    )
                 with m.Default():
                     m.d.av_comb += ret.cfi_type.eq(CfiType.INVALID)
 

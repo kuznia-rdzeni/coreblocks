@@ -1,5 +1,5 @@
 from amaranth import *
-from amaranth.lib.enum import unique, Enum, IntEnum, auto
+from amaranth.lib.enum import unique, Enum, Flag, IntEnum, auto
 
 from amaranth_types import ValueLike
 
@@ -78,8 +78,7 @@ class CfiType(Enum, shape=2):
     JAL = 0b11  # Jump and Link
 
 
-@unique
-class RasAction(Enum, shape=2):
+class RasAction(Flag, shape=2):
     """
     Effect a control flow instruction has on the return address stack.
     """
@@ -87,7 +86,7 @@ class RasAction(Enum, shape=2):
     NONE = 0b00
     POP = 0b01  # a return: jumps to the address on top of the stack
     PUSH = 0b10  # a call: leaves its own return address on the stack
-    POP_AND_PUSH = 0b11  # returns and calls at once, e.g. jalr x1, 0(x5)
+    POP_AND_PUSH = POP | PUSH  # returns and calls at once, e.g. jalr x1, 0(x5)
 
     @staticmethod
     def has_push(val: ValueLike) -> Value:
