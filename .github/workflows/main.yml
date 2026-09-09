@@ -103,9 +103,8 @@ jobs:
       matrix:
         config: [cxxsim, pysim]
     name: Run regression tests (riscv-tests)
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
+    runs-on: ubuntu-latest
     timeout-minutes: 120
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     needs: [ build-regression-tests, build-cxxsim ]
     steps:
       - name: Checkout
@@ -225,8 +224,7 @@ jobs:
       matrix:
         config: [cxxsim, pysim]
     name: Run arch regression tests (riscv-arch-test)
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
+    runs-on: ubuntu-latest
     timeout-minutes: 180
     needs: [ build-arch-regression-tests, build-cxxsim ]
     steps:
@@ -343,8 +341,7 @@ jobs:
 
   run-benchmarks:
     name: Run performance benchmarks
-    runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [ build-cxxsim, build-embench ]
     steps:
