@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788966899669,
+  "lastUpdate": 1788966901809,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -82807,6 +82807,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT used",
             "value": 51231,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 16859,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1079,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a1d90db6b35edd50fec848a177e566820fd01e1",
+          "message": "fix rvvi on cocotb (#1094)",
+          "timestamp": "2026-09-09T16:14:40+02:00",
+          "tree_id": "cdecbd70d84c501782f245616a51b8b77a85fcd0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8a1d90db6b35edd50fec848a177e566820fd01e1"
+        },
+        "date": 1788966901330,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 33.56,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 50897,
             "unit": "LUT"
           },
           {
