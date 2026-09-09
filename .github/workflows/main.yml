@@ -103,7 +103,7 @@ jobs:
       matrix:
         config: [cxxsim, pysim]
     name: Run regression tests (riscv-tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     needs: [ build-regression-tests, build-cxxsim ]
     steps:
@@ -224,7 +224,7 @@ jobs:
       matrix:
         config: [cxxsim, pysim]
     name: Run arch regression tests (riscv-arch-test)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 180
     needs: [ build-arch-regression-tests, build-cxxsim ]
     steps:
@@ -341,7 +341,7 @@ jobs:
 
   run-benchmarks:
     name: Run performance benchmarks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     needs: [ build-cxxsim, build-embench ]
     steps:
