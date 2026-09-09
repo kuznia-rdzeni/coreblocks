@@ -9,6 +9,7 @@ __all__ = [
     "OpType",
     "impure_optypes",
     "CfiType",
+    "RasAction",
 ]
 
 
@@ -66,43 +67,35 @@ impure_optypes = frozenset(optype for optype in range(OpType.JAL, OpType.ARITHME
 
 
 @unique
-class CfiType(Enum, shape=3):
+class CfiType(Enum, shape=2):
     """
     Types of control flow instructions.
-
-    There are 4 main types: invalid, branch, JAL, and JALR. CALL and RET are
-    just special cases of respectively JAL and JALR and thus the encoding
-    was chosen in the way that it is sufficient to check the lowest two bits to
-    get the main type and the third bit is just a hint about the specialized type.
-
-    Because of these encoding tweaks, helper functions should be preferred to use
-    to get the CFI type.
     """
 
-    INVALID = 0b000  # Not a CFI
-    BRANCH = 0b001
+    INVALID = 0b00  # Not a CFI
+    BRANCH = 0b01
+    JALR = 0b10  # Jump and Link Register
+    JAL = 0b11  # Jump and Link
 
-    JALR = 0b010  # Jump and Link Register
-    RET = 0b110  # Return from a function (JALR with rs1 equal to x1 or x5)
 
-    JAL = 0b011  # Jump and Link
-    CALL = 0b111  # Call a function (JAL with rd equal to x1 or x5))
+@unique
+class RasAction(Enum, shape=2):
+    """
+    Effect a control flow instruction has on the return address stack.
+    """
 
-    @staticmethod
-    def valid(val: ValueLike) -> Value:
-        return Value.cast(val)[0:2] != CfiType.INVALID
-
-    @staticmethod
-    def is_branch(val: ValueLike) -> Value:
-        return Value.cast(val)[0:2] == CfiType.BRANCH
-
-    @staticmethod
-    def is_jal(val: ValueLike) -> Value:
-        return Value.cast(val)[0:2] == CfiType.JAL
+    NONE = 0b00
+    POP = 0b01  # a return: jumps to the address on top of the stack
+    PUSH = 0b10  # a call: leaves its own return address on the stack
+    POP_AND_PUSH = 0b11  # returns and calls at once, e.g. jalr x1, 0(x5)
 
     @staticmethod
-    def is_jalr(val: ValueLike) -> Value:
-        return Value.cast(val)[0:2] == CfiType.JALR
+    def has_push(val: ValueLike) -> Value:
+        return Value.cast(val)[1]
+
+    @staticmethod
+    def has_pop(val: ValueLike) -> Value:
+        return Value.cast(val)[0]
 
 
 #

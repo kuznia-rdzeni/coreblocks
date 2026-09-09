@@ -69,7 +69,7 @@ class BranchPredictionUnit(Elaboratable):
                 pred.cfi_target_valid.eq(hit),
                 pred.cfi_idx.eq(Mux(hit, prediction.cfi_idx, 0)),
                 pred.cfi_type.eq(Mux(hit, prediction.cfi_type, CfiType.INVALID)),
-                pred.branch_mask.eq(Mux(hit & CfiType.is_branch(prediction.cfi_type), 1 << prediction.cfi_idx, 0)),
+                pred.branch_mask.eq(Mux(hit & (prediction.cfi_type == CfiType.BRANCH), 1 << prediction.cfi_idx, 0)),
             ]
             self.write_prediction(m, pc=next_pc, ftq_ptr=stage.ftq_ptr, prediction=pred)
 

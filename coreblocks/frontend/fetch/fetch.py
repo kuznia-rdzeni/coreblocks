@@ -68,6 +68,12 @@ class FetchUnit(Elaboratable):
     read_prediction: Required[Method]
     """Return the branch prediction stored for a given FTQ entry. """
 
+    ras_peek: Required[Method]
+    """Read the address on top of the return address stack."""
+
+    ras_predict: Required[Method]
+    """Speculatively push/pop the return address stack for a fetched block."""
+
     def __init__(self, gen_params: GenParams, icache: CacheInterface) -> None:
         """
         Parameters
@@ -88,6 +94,9 @@ class FetchUnit(Elaboratable):
         self.fetch_writeback = Method(i=self.layouts.fetch_writeback)
         self.check_stale = Methods(2, i=self.layouts.check_stale_req, o=self.layouts.check_stale_resp)
         self.read_prediction = Method(i=self.layouts.read_prediction_req, o=self.layouts.bpu_prediction)
+
+        self.ras_peek = Method(o=self.layouts.ras_top)
+        self.ras_predict = Method(i=self.layouts.ras_predict)
 
         self.flush = Method()
 
@@ -396,6 +405,8 @@ class FetchUnit(Elaboratable):
             # Predecode instructions
             predecoded_instr = [predecoders[i].predecode(m, instrs[i]) for i in range(fetch_width)]
 
+            ras_top = self.ras_peek(m)
+
             s2_stale = self.check_stale[1](m, ftq_ptr=ftq_ptr, fetch_gen=s1_data.fetch_gen).stale
 
             with m.If(~s2_stale):
@@ -425,7 +436,7 @@ class FetchUnit(Elaboratable):
 
             # Is there any control flow instruction that we should follow?
             cfi_followed = Signal()
-            m.d.av_comb += cfi_followed.eq(CfiType.valid(predcheck_res.cfi_type))
+            m.d.av_comb += cfi_followed.eq(predcheck_res.cfi_type != CfiType.INVALID)
 
             # The point where control leaves the block (its "exit")
             # If we didn't follow any CFI, then our exit point is the last instruction
@@ -440,15 +451,52 @@ class FetchUnit(Elaboratable):
             exit_reached = Signal()
             m.d.av_comb += exit_reached.eq(~has_unsafe | (exit_idx < unsafe_idx))
 
+            # The stack effect of this block: that of the CFI the frontend leaves through,
+            # if the exit is reached at all
+            ras_actions = Signal(ArrayLayout(RasAction, fetch_width))
+            for i in range(fetch_width):
+                m.d.av_comb += ras_actions[i].eq(predecoded_instr[i].ras_action)
+
+            exit_on_path = Signal()
+            m.d.av_comb += exit_on_path.eq(exit_reached & cfi_followed & instr_valid.bit_select(exit_idx, 1))
+
+            exit_ras_action = Signal(RasAction)
+            m.d.av_comb += exit_ras_action.eq(mux(exit_on_path, ras_actions[exit_idx], RasAction.NONE))
+
+            # The address a call leaves behind is the one right after it
+            exit_pc = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += exit_pc.eq(params.pc_from_fb(fetch_block_addr, exit_idx))
+            if Extension.ZCA in self.gen_params.isa.extensions:
+                with m.If(s1_data.starts_mid_instr & (exit_idx == 0)):
+                    m.d.av_comb += exit_pc.eq(params.pc_from_fb(fetch_block_addr, 0) - 2)
+            exit_ret_addr = Signal(self.gen_params.isa.xlen)
+            m.d.av_comb += exit_ret_addr.eq(exit_pc + Mux(s1_data.rvc.bit_select(exit_idx, 1), 2, 4))
+
+            # A return leaving through this block is predicted by the stack, if it has
+            # anything to predict with
+            ras_hit = Signal()
+            m.d.av_comb += ras_hit.eq(RasAction.has_pop(exit_ras_action) & ras_top.valid)
+
+            # The prediction checker validates a JALR's target against nothing (predecode
+            # cannot compute it), so a return the BPU got wrong is only caught here
+            ras_mistarget = Signal()
+            m.d.av_comb += ras_mistarget.eq(
+                ras_hit
+                & ~predcheck_res.mispredicted
+                & (prediction.cfi_type == CfiType.JALR)
+                & (~prediction.cfi_target_valid | (prediction.cfi_target != ras_top.addr))
+            )
+
             # A JALR's target cannot be computed from predecode, so a mispredicted JALR
-            # can't redirect - we stall until the backend executes it instead
+            # can't redirect - we stall until the backend executes it instead. A return is
+            # the exception: the stack knows where it goes
             eff_cfi_valid = Signal()
             eff_redirect_target = Signal(self.gen_params.isa.xlen)
-            m.d.av_comb += eff_cfi_valid.eq(~CfiType.is_jalr(predcheck_res.cfi_type))
-            m.d.av_comb += eff_redirect_target.eq(exit_target)
+            m.d.av_comb += eff_cfi_valid.eq((predcheck_res.cfi_type != CfiType.JALR) | ras_hit)
+            m.d.av_comb += eff_redirect_target.eq(Mux(ras_hit, ras_top.addr, exit_target))
 
             mispredict = Signal()
-            m.d.av_comb += mispredict.eq(predcheck_res.mispredicted)
+            m.d.av_comb += mispredict.eq(predcheck_res.mispredicted | ras_mistarget)
 
             # Stall either on an unsafe instruction cutting the block (~exit_reached), or on
             # an exit through a mispredicted JALR whose target we don't know (~eff_cfi_valid)
@@ -475,10 +523,10 @@ class FetchUnit(Elaboratable):
             #  - a branch always is,
             #  - a JALR only when the frontend followed a prediction; otherwise fetch stalls on
             #    it and the backend resolves it by resuming the frontend instead
-            branch_mask = Cat(CfiType.is_branch(instr.cfi_type) for instr in predecoded_instr)
+            branch_mask = Cat(instr.cfi_type == CfiType.BRANCH for instr in predecoded_instr)
             followed_jalr = Signal()
             commit_checkpoint_mask = Signal(fetch_width)
-            m.d.av_comb += followed_jalr.eq(cfi_followed & ~stall_core & CfiType.is_jalr(predcheck_res.cfi_type))
+            m.d.av_comb += followed_jalr.eq(cfi_followed & ~stall_core & (predcheck_res.cfi_type == CfiType.JALR))
             m.d.av_comb += commit_checkpoint_mask.eq(Mux(fault_any, 0, branch_mask | (followed_jalr << exit_idx)))
 
             # Aggregate all signals that will be sent out of the fetch unit.
@@ -521,7 +569,7 @@ class FetchUnit(Elaboratable):
                 # INVALID) steers to the next sequential block, so this whole block is on-path
                 # and the carry must be re-established instead.
                 if Extension.ZCA in self.gen_params.isa.extensions:
-                    with m.If(redirect & s1_data.ends_mid_instr & ~CfiType.valid(predcheck_res.cfi_type)):
+                    with m.If(redirect & s1_data.ends_mid_instr & (predcheck_res.cfi_type == CfiType.INVALID)):
                         m.d.sync += [
                             prev_half_v.eq(1),
                             prev_half.eq(s1_data.last_half),
@@ -529,6 +577,8 @@ class FetchUnit(Elaboratable):
                         ]
                     with m.Elif(fault_any | stall_core | redirect):
                         m.d.sync += prev_half_v.eq(0)
+
+                self.ras_predict(m, ftq_ptr=ftq_ptr, ras_action=exit_ras_action, addr=exit_ret_addr)
 
                 self.perf_fetch_utilization.incr(m, popcount(fetch_mask))
 
@@ -592,6 +642,15 @@ class Predecoder(Elaboratable):
             rd = instr[7:12]
             rs1 = instr[15:20]
 
+            # The section "Return-address stack prediction hints” of RISC-V specification
+            # says that x1 and x5 are treated specially as link registers for return-address prediction.
+            rd_is_link = Signal()
+            rs1_is_link = Signal()
+            m.d.av_comb += [
+                rd_is_link.eq((rd == Registers.X1) | (rd == Registers.X5)),
+                rs1_is_link.eq((rs1 == Registers.X1) | (rs1 == Registers.X5)),
+            ]
+
             bimm = Signal(signed(13))
             jimm = Signal(signed(21))
             iimm = Signal(signed(12))
@@ -609,20 +668,26 @@ class Predecoder(Elaboratable):
                     m.d.av_comb += ret.cfi_type.eq(CfiType.BRANCH)
                     m.d.av_comb += ret.cfi_offset.eq(bimm)
                 with m.Case(Opcode.JAL):
-                    m.d.av_comb += ret.cfi_type.eq(
-                        Mux((rd == Registers.X1) | (rd == Registers.X5), CfiType.CALL, CfiType.JAL)
-                    )
+                    m.d.av_comb += ret.cfi_type.eq(CfiType.JAL)
                     m.d.av_comb += ret.cfi_offset.eq(jimm)
+                    m.d.av_comb += ret.ras_action.eq(Mux(rd_is_link, RasAction.PUSH, RasAction.NONE))
                 with m.Case(Opcode.JALR):
-                    m.d.av_comb += ret.cfi_type.eq(
-                        Mux((rs1 == Registers.X1) | (rs1 == Registers.X5), CfiType.RET, CfiType.JALR)
-                    )
+                    m.d.av_comb += ret.cfi_type.eq(CfiType.JALR)
                     m.d.av_comb += ret.cfi_offset.eq(iimm)
+                    with m.If(rd_is_link & rs1_is_link & (rd != rs1)):
+                        m.d.av_comb += ret.ras_action.eq(RasAction.POP_AND_PUSH)
+                    with m.Elif(rd_is_link):
+                        m.d.av_comb += ret.ras_action.eq(RasAction.PUSH)
+                    with m.Elif(rs1_is_link):
+                        m.d.av_comb += ret.ras_action.eq(RasAction.POP)
+                    with m.Else():
+                        m.d.av_comb += ret.ras_action.eq(RasAction.NONE)
                 with m.Default():
                     m.d.av_comb += ret.cfi_type.eq(CfiType.INVALID)
 
             with m.If(quadrant != 0b11):
                 m.d.av_comb += ret.cfi_type.eq(CfiType.INVALID)
+                m.d.av_comb += ret.ras_action.eq(RasAction.NONE)
 
             m.d.av_comb += ret.unsafe.eq(
                 (opcode == Opcode.SYSTEM) | ((opcode == Opcode.MISC_MEM) & (funct3 == Funct3.FENCEI))
@@ -694,10 +759,10 @@ class PredictionChecker(Elaboratable):
                 # taken. This prediction will be used if the branch prediction unit
                 # didn't detect the branch at all.
                 m.d.av_comb += decoded_redirections[i].eq(
-                    CfiType.is_jal(predecoded[i].cfi_type)
-                    | CfiType.is_jalr(predecoded[i].cfi_type)
+                    (predecoded[i].cfi_type == CfiType.JAL)
+                    | (predecoded[i].cfi_type == CfiType.JALR)
                     | (
-                        CfiType.is_branch(predecoded[i].cfi_type)
+                        (predecoded[i].cfi_type == CfiType.BRANCH)
                         & ~prediction.branch_mask[i]
                         & (predecoded[i].cfi_offset < 0)
                     )
@@ -748,8 +813,8 @@ class PredictionChecker(Elaboratable):
             )
 
             preceding_redirection = ~pd_redirection_enc.n & (
-                ((CfiType.valid(prediction.cfi_type) & (pd_redirect_idx < prediction.cfi_idx)))
-                | ~CfiType.valid(prediction.cfi_type)
+                ((prediction.cfi_type != CfiType.INVALID) & (pd_redirect_idx < prediction.cfi_idx))
+                | (prediction.cfi_type == CfiType.INVALID)
             )
 
             decoded_cfi_type_at_pred = mux(
@@ -758,13 +823,13 @@ class PredictionChecker(Elaboratable):
                 CfiType.INVALID,
             )
 
-            mispredicted_cfi_type = CfiType.valid(prediction.cfi_type) & (
+            mispredicted_cfi_type = (prediction.cfi_type != CfiType.INVALID) & (
                 prediction.cfi_type != decoded_cfi_type_at_pred
             )
 
-            mispredicted_cfi_target = (CfiType.is_branch(prediction.cfi_type) | CfiType.is_jal(prediction.cfi_type)) & (
-                ~prediction.cfi_target_valid | (decoded_target_for_predicted_cfi != prediction.cfi_target)
-            )
+            mispredicted_cfi_target = (
+                (prediction.cfi_type == CfiType.BRANCH) | (prediction.cfi_type == CfiType.JAL)
+            ) & (~prediction.cfi_target_valid | (decoded_target_for_predicted_cfi != prediction.cfi_target))
 
             ret = Signal.like(self.check.data_out)
 
