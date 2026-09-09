@@ -128,3 +128,29 @@ class TestRAS(TestCaseWithSimulator):
 
         with self.run_simulation(self.ras) as sim:
             sim.add_testbench(proc)
+
+    def test_consecutive_pops_without_a_gap(self):
+        addrs = [0x1000 * (i + 1) for i in range(self.depth)]
+
+        async def proc(sim: TestbenchContext):
+            for addr in addrs:
+                await self.push(sim, addr)
+
+            for addr in reversed(addrs[:-1]):
+                assert (await self.pop(sim))["top"] == addr
+
+        with self.run_simulation(self.ras) as sim:
+            sim.add_testbench(proc)
+
+    def test_pop_immediately_after_recover(self):
+        async def proc(sim: TestbenchContext):
+            await self.push(sim, 0x1000)
+            checkpoint = await self.push(sim, 0x2000)
+            await self.push(sim, 0xDEAD)
+
+            await self.recover(sim, checkpoint)
+
+            assert (await self.pop(sim))["top"] == 0x1000
+
+        with self.run_simulation(self.ras) as sim:
+            sim.add_testbench(proc)
