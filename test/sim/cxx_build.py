@@ -22,7 +22,8 @@ BUILD_LOCK = BUILD_ROOT / "cxxsim.lock"
 
 MODULE_NAME = "coreblocks_cxxsim"
 MODULE_PATH = BUILD_DIR / (MODULE_NAME + EXTENSION_SUFFIXES[0])
-ARCHIVE = BUILD_DIR / "Vtop__ALL.a"
+CORE_LIB = BUILD_DIR / "libVtop.a"
+RUNTIME_LIB = BUILD_DIR / "libverilated.a"
 
 SOURCES = ["module.cpp", "memory.cpp", "simulation.cpp", "wishbone.cpp"]
 
@@ -46,11 +47,6 @@ MODULE_CXX_FLAGS = [
     "-Wall",
     "-Wextra",
     "-Wpedantic",
-    # The Verilator runtime is compiled in the same invocation and triggers these
-    # warnings so let's just silence them
-    "-Wno-unused-parameter",
-    "-Wno-unused-variable",
-    "-Wno-format",
 ]
 
 # The verilated core ends up in a shared library, so it has to be position independent.
@@ -118,9 +114,8 @@ def _module_command() -> list[str]:
         f"{verilator_root}/include/vltstd",
     ]
     command += [str(CXX_ROOT / source) for source in SOURCES]
-    # The Verilator runtime, which is not part of the generated library.
-    command += [str(verilator_root / "include" / name) for name in ["verilated.cpp", "verilated_threads.cpp"]]
-    command += [str(ARCHIVE), "-pthread", "-latomic", "-o", str(MODULE_PATH)]
+    command += [f"-L{BUILD_DIR}", "-lVtop", "-lverilated"]
+    command += ["-o", str(MODULE_PATH)]
 
     return command
 
@@ -161,13 +156,14 @@ def ensure_cxxsim_built():
         _build_step(
             "Verilating the core, this takes a few minutes",
             "verilate.stamp",
-            ARCHIVE,
+            CORE_LIB,
             verilate_command,
             _fingerprint(verilate_command, [CORE_V]),
         )
 
         module_command = _module_command()
-        sources = sorted(CXX_ROOT.glob("*.h")) + [CXX_ROOT / source for source in SOURCES] + [ARCHIVE]
+        sources = sorted(CXX_ROOT.glob("*.h")) + [CXX_ROOT / source for source in SOURCES]
+        sources += [CORE_LIB, RUNTIME_LIB]
         _build_step(
             "Building the simulator module",
             f"module{EXTENSION_SUFFIXES[0]}.stamp",

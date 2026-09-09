@@ -105,7 +105,7 @@ jobs:
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 120
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     needs: [ build-regression-tests, build-cxxsim ]
     steps:
       - name: Checkout
@@ -226,7 +226,7 @@ jobs:
         config: [cxxsim, pysim]
     name: Run arch regression tests (riscv-arch-test)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     timeout-minutes: 180
     needs: [ build-arch-regression-tests, build-cxxsim ]
     steps:
@@ -285,7 +285,7 @@ jobs:
   build-cxxsim:
     name: Build the C++ simulator
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -316,7 +316,8 @@ jobs:
           path: |
             test/sim/build/verilog
             test/sim/build/verilog.stamp
-            test/sim/build/cxxsim/Vtop__ALL.a
+            test/sim/build/cxxsim/libVtop.a
+            test/sim/build/cxxsim/libverilated.a
             test/sim/build/cxxsim/*.so
             test/sim/build/cxxsim/*.stamp
 
@@ -343,7 +344,7 @@ jobs:
   run-benchmarks:
     name: Run performance benchmarks
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    container: ghcr.io/kuznia-rdzeni/verilator:v5.032-2026.04.15
     timeout-minutes: 60
     needs: [ build-cxxsim, build-embench ]
     steps:
