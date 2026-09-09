@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1788783560826,
+  "lastUpdate": 1788966887549,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28373,6 +28373,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/2e7cb2e7eacaf1dd384cca16df7402bfa4f265c6"
         },
         "date": 1788783532739,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5817876108550312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.6332168747017992,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5223000987166831,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6621861757871236,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.48412786764516985,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.49734006643082823,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5340697687218607,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a1d90db6b35edd50fec848a177e566820fd01e1",
+          "message": "fix rvvi on cocotb (#1094)",
+          "timestamp": "2026-09-09T16:14:40+02:00",
+          "tree_id": "cdecbd70d84c501782f245616a51b8b77a85fcd0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8a1d90db6b35edd50fec848a177e566820fd01e1"
+        },
+        "date": 1788966875588,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
