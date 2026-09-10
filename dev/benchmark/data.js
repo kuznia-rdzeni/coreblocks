@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789042170553,
+  "lastUpdate": 1789066634582,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28501,6 +28501,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/036faec5f67405a890eb357af337c3e2527b3aca"
         },
         "date": 1789042139906,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5813646257719299,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7663593182453199,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5489852245372292,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6653897808436603,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.39366855929087863,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5040746816933557,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5205336197394081,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.539770925698265,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "810f1d0f0ae32298e85e4556daf15368c657fbda",
+          "message": "Instr decoding fixes (#1098)",
+          "timestamp": "2026-09-10T19:49:49+02:00",
+          "tree_id": "655799ed33ddd5d9c9bd2535dcc0c8b01a9d7589",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/810f1d0f0ae32298e85e4556daf15368c657fbda"
+        },
+        "date": 1789066620747,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
