@@ -11,27 +11,30 @@ profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
 
 ARCH_EXPECTED_FAIL = {
-    # [?] misaligned exceptions should be either before address translation at the very end
-    "ExceptionsS",
-    "sv32_exceptions_mprv_(S|U)_Mmode",
-    # [?] trap loop
-    "sv32_exceptions_(S|U)mode",
-    # [?] sail requires size of reservation set <= 12
+    # [#961] with virtual memory, we need reservation set <=2^12
     ".*exceptions.*zalrsc.*",
     "pmpzalrsc_cfg_wr",
-    # misaligned amo should cause write flavoured exception
+    # [#960] AMOs should cause write flavoured exception
     ".*exceptions.*zaamo.*",
     "pmpzaamo_cfg_wr",
-    # [?] ?????
-    "InterruptsU",
-    # coreblocks assertion
+    # [#1086] lr.w needs rs2=0
+    r"Ssstrict(Sm|S|U)_IllegalInstr-05.elf",
+    # [#1089] fence.i with nonzero rd free physical register
     r"Zifencei-.*",
+    # [riscv/riscv-arch-test#2248] sail always implements mcountinhibit, but coreblocks doesn't
+    r"Sm_mcsr_access",
+    r"Sm_mcsr_cntr",
+    r"Sm_mcsr_walk-02",
+    r"SsstrictSm_CSR-07",
+    # ???? _generate_user_wfi_tests, _generate_user_wfi_timeout_tests
+    "InterruptsU",
+    # ???? _generate_interrupts_m_tests
+    "InterruptsSSm",
 }
 
 ARCH_EXPECTED_TIMEOUT = {
+    # ???? _generate_wfi_s_tests, _generate_user_msi_tests, _generate_user_mei_tests
     "InterruptsS",
-    "InterruptsSSm",
-    "U",
 }
 
 

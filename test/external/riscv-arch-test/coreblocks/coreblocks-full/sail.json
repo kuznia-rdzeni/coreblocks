@@ -187,13 +187,13 @@
         // (use `{"Some": "AlignmentException"}`).
         // This option controls scalar loads/stores.
         "load_store": {
-          "Some": "AlignmentException"
+          "None" : null
         },
         "vector": {
-          "Some": "AlignmentException"
+          "None" : null
         },
         "amo": {
-          "Some": "AlignmentException"
+          "None" : null
         },
         "lrsc": "AlignmentException"
       },
