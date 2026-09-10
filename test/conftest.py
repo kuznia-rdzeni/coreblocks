@@ -11,7 +11,7 @@ def pytest_addoption(parser: pytest.Parser):
     group.addoption(
         "--coreblocks-backend",
         default="cocotb",
-        choices=["cocotb", "pysim"],
+        choices=["cocotb", "pysim", "cxxsim"],
         help="Simulation backend for regression tests",
     )
     group.addoption("--coreblocks-traces", action="store_true", help="Generate traces from regression tests")

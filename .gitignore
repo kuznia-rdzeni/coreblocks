@@ -37,7 +37,7 @@ _coreblocks_regression.lock
 _coreblocks_regression.counter
 .hypothesis
 
-# Regression build: the generated Verilog and the cocotb testbenches
+# Simulation build
 /test/sim/build
 
 # cocotb leftovers
