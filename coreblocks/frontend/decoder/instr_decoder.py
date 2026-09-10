@@ -223,6 +223,7 @@ class InstrDecoder(Elaboratable):
 
         rd_invalid = Signal()
         rs1_invalid = Signal()
+        rs2_invalid = Signal()
 
         m.d.comb += self.optype.eq(OpType.UNKNOWN)
 
@@ -237,6 +238,7 @@ class InstrDecoder(Elaboratable):
                 & (self.funct12 == enc.funct12 if enc.funct12 is not None else 1)
                 & (self.rd == 0 if enc.rd_zero else 1)
                 & (self.rs1 == 0 if enc.rs1_zero else 1)
+                & (self.rs2 == 0 if enc.rs2_zero else 1)
             ):
                 m.d.comb += self.optype.eq(encoding_to_optype[enc])
 
@@ -245,6 +247,7 @@ class InstrDecoder(Elaboratable):
 
                 m.d.comb += rd_invalid.eq(enc.rd_zero)
                 m.d.comb += rs1_invalid.eq(enc.rs1_zero)
+                m.d.comb += rs2_invalid.eq(enc.rs2_zero or enc.funct12 is not None)
 
                 m.d.comb += self.funct3_v.eq(enc.funct3 is not None)
                 m.d.comb += self.funct7_v.eq(enc.funct7 is not None)
@@ -255,8 +258,18 @@ class InstrDecoder(Elaboratable):
         m.d.comb += [
             self.rd_v.eq(reduce(or_, (instruction_type == t for t in _rd_itypes)) & ~rd_invalid),
             self.rs1_v.eq(reduce(or_, (instruction_type == t for t in _rs1_itypes)) & ~rs1_invalid),
-            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes)) & ~self.funct12_v),
+            self.rs2_v.eq(reduce(or_, (instruction_type == t for t in _rs2_itypes)) & ~rs2_invalid),
         ]
+
+        with m.If(self.optype == OpType.FENCEI):
+            # The unused fields in the FENCE.I instruction, funct12, rs1, and rd, are
+            # reserved for finer-grain fences in future extensions. For forward compatibility,
+            # base implementations shall ignore these fields, and standard software shall zero these fields.
+            m.d.comb += [
+                self.rd_v.eq(0),
+                self.rs1_v.eq(0),
+                self.rs2_v.eq(0),
+            ]
 
         # Immediate
 
