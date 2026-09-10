@@ -112,7 +112,10 @@ class TestDecoder(TestCaseWithSimulator):
         InstrTest(0x00100073, Opcode.SYSTEM, Funct3.PRIV, funct12=Funct12.EBREAK, op=OpType.EBREAK),
     ]
     DECODER_TESTS_ZIFENCEI = [
-        InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, rd=0, rs1=0, imm=0, op=OpType.FENCEI),
+        InstrTest(0x0000100F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI),
+        InstrTest(0x00001b0F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI), # non-zero rd
+        InstrTest(0x000a100F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI), # non-zero rs1
+        InstrTest(0x1e50100F, Opcode.MISC_MEM, Funct3.FENCEI, op=OpType.FENCEI), # non-zero funct12
     ]
     DECODER_TESTS_ZICSR = [
         InstrTest(0x001A9A73, Opcode.SYSTEM, Funct3.CSRRW, rd=20, rs1=21, csr=0x01, op=OpType.CSR_REG),
