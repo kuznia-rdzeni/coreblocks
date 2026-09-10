@@ -524,6 +524,8 @@
 </li>
         <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.__new__">(coreblocks.arch.optypes.OpType method)</a>
 </li>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.__new__">(coreblocks.arch.optypes.RasAction method)</a>
+</li>
         <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.div_unit.DivFn.Fn.__new__">(coreblocks.func_blocks.fu.div_unit.DivFn.Fn method)</a>
 </li>
         <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes.__new__">(coreblocks.func_blocks.fu.fpu.fpu_common.ComparisionTypes method)</a>
@@ -782,8 +784,6 @@
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheInterface">CacheInterface (class in coreblocks.cache.iface)</a>
 </li>
       <li><a href="coreblocks.cache.html#coreblocks.cache.iface.CacheRefillerInterface">CacheRefillerInterface (class in coreblocks.cache.iface)</a>
-</li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.CALL">CALL (coreblocks.arch.optypes.CfiType attribute)</a>
 </li>
       <li><a href="coreblocks.telemetry.html#coreblocks.telemetry.events.FTQRollback.cause">cause (coreblocks.telemetry.events.FTQRollback attribute)</a>
 </li>
@@ -2397,6 +2397,10 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.H">H (coreblocks.arch.isa_consts.Funct3 attribute)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.has_pop">has_pop() (coreblocks.arch.optypes.RasAction static method)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.has_push">has_push() (coreblocks.arch.optypes.RasAction static method)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HCONTEXT">HCONTEXT (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HCOUNTEREN">HCOUNTEREN (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2509,10 +2513,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER16H">HPMCOUNTER16H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER17">HPMCOUNTER17 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER17">HPMCOUNTER17 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER17H">HPMCOUNTER17H (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.HPMCOUNTER18">HPMCOUNTER18 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -2703,10 +2707,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InstrType">InstrType (class in coreblocks.arch.isa_consts)</a>
 </li>
-      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslatorMode.INSTRUCTION">INSTRUCTION (coreblocks.priv.vmem.translation.AddressTranslatorMode attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.priv.vmem.html#coreblocks.priv.vmem.translation.AddressTranslatorMode.INSTRUCTION">INSTRUCTION (coreblocks.priv.vmem.translation.AddressTranslatorMode attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ACCESS_FAULT">INSTRUCTION_ACCESS_FAULT (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.INSTRUCTION_ADDRESS_MISALIGNED">INSTRUCTION_ADDRESS_MISALIGNED (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
@@ -2741,13 +2745,7 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CounterEnableFieldOffsets.IR">IR (coreblocks.arch.csr_address.CounterEnableFieldOffsets attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_branch">is_branch() (coreblocks.arch.optypes.CfiType static method)</a>
-</li>
       <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.rvc.is_instr_compressed">is_instr_compressed() (in module coreblocks.frontend.decoder.rvc)</a>
-</li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_jal">is_jal() (coreblocks.arch.optypes.CfiType static method)</a>
-</li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_jalr">is_jalr() (coreblocks.arch.optypes.CfiType static method)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.ISA">ISA (class in coreblocks.arch.isa)</a>
 </li>
@@ -3614,10 +3612,10 @@
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_INF">NEG_INF (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_NORM">NEG_NORM (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_SUB">NEG_SUB (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.NEG_ZERO">NEG_ZERO (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
@@ -3625,7 +3623,11 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.HPMEvent.NO_EVENT">NO_EVENT (coreblocks.arch.isa_consts.HPMEvent attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.FenceFm.NONE">NONE (coreblocks.arch.isa_consts.FenceFm attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.NONE">(coreblocks.arch.optypes.RasAction attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -3842,12 +3844,12 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR47">PMPADDR47 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR48">PMPADDR48 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR49">PMPADDR49 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR5">PMPADDR5 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR50">PMPADDR50 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -3930,6 +3932,10 @@
 </li>
       <li><a href="coreblocks.priv.html#coreblocks.priv.pmp.PMPOperationMode">PMPOperationMode (class in coreblocks.priv.pmp)</a>
 </li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.POP">POP (coreblocks.arch.optypes.RasAction attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.POP_AND_PUSH">POP_AND_PUSH (coreblocks.arch.optypes.RasAction attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_INF">POS_INF (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses.POS_NORM">POS_NORM (coreblocks.func_blocks.fu.fpu.fpu_common.FPUClasses attribute)</a>
@@ -3959,6 +3965,8 @@
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.priv.PrivilegedUnitComponent">PrivilegedUnitComponent (class in coreblocks.func_blocks.fu.priv)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.PrivilegeLevel">PrivilegeLevel (class in coreblocks.arch.isa_consts)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.PUSH">PUSH (coreblocks.arch.optypes.RasAction attribute)</a>
 </li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend.RollbackTagger.push_instr">push_instr (coreblocks.frontend.frontend.RollbackTagger attribute)</a>
 </li>
@@ -3997,6 +4005,8 @@
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.InstrType.R">R (coreblocks.arch.isa_consts.InstrType attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.RA">RA (coreblocks.arch.isa_consts.Registers attribute)</a>
+</li>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction">RasAction (class in coreblocks.arch.optypes)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.raw_float_layout">raw_float_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
 </li>
@@ -4103,8 +4113,6 @@
       <li><a href="coreblocks.peripherals.html#coreblocks.peripherals.axi_lite.AXILiteMaster.result_handler">result_handler() (coreblocks.peripherals.axi_lite.AXILiteMaster method)</a>
 </li>
       <li><a href="coreblocks.backend.html#coreblocks.backend.announcement.ResultAnnouncement">ResultAnnouncement (class in coreblocks.backend.announcement)</a>
-</li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.RET">RET (coreblocks.arch.optypes.CfiType attribute)</a>
 </li>
       <li><a href="coreblocks.telemetry.html#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port">retire_port (coreblocks.telemetry.rvvi.RVVIHartCollector attribute)</a>
 </li>
@@ -4626,8 +4634,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa.Extension.V">V (coreblocks.arch.isa.Extension attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.valid">valid() (coreblocks.arch.optypes.CfiType static method)</a>
-</li>
       <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.validate">validate() (coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
 
       <ul>
@@ -4640,10 +4646,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSATP">VSATP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSCAUSE">VSCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSEPC">VSEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSIE">VSIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -4945,7 +4951,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:15 2026-09-09.
+      <span class="lastupdated">Last updated on 11:08 2026-09-10.
       </span></p>
   </div>
 

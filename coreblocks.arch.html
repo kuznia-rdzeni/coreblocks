@@ -4173,20 +4173,9 @@ selectable via the <cite>mhpmeventN</cite> CSRs.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.optypes.</span></span><span class="sig-name descname"><span class="pre">CfiType</span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.Enum" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
 <p>Types of control flow instructions.</p>
-<p>There are 4 main types: invalid, branch, JAL, and JALR. CALL and RET are
-just special cases of respectively JAL and JALR and thus the encoding
-was chosen in the way that it is sufficient to check the lowest two bits to
-get the main type and the third bit is just a hint about the specialized type.</p>
-<p>Because of these encoding tweaks, helper functions should be preferred to use
-to get the CFI type.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.BRANCH">
 <span class="sig-name descname"><span class="pre">BRANCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.BRANCH" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.CALL">
-<span class="sig-name descname"><span class="pre">CALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.CALL" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -4204,34 +4193,9 @@ to get the CFI type.</p>
 <span class="sig-name descname"><span class="pre">JALR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.JALR" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.RET">
-<span class="sig-name descname"><span class="pre">RET</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.RET" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.__new__">
 <span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.__new__" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_branch">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_branch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><span class="pre">Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_branch" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_jal">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><span class="pre">Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jal" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.is_jalr">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_jalr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><span class="pre">Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.is_jalr" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="coreblocks.arch.optypes.CfiType.valid">
-<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">valid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><span class="pre">Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.CfiType.valid" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -4439,6 +4403,48 @@ to get the CFI type.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.arch.optypes.</span></span><span class="sig-name descname"><span class="pre">RasAction</span></span><a class="headerlink" href="#coreblocks.arch.optypes.RasAction" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/stdlib/enum.html#amaranth.lib.enum.Flag" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Flag</span></code></a></p>
+<p>Effect a control flow instruction has on the return address stack.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.POP">
+<span class="sig-name descname"><span class="pre">POP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.POP" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.POP_AND_PUSH">
+<span class="sig-name descname"><span class="pre">POP_AND_PUSH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.POP_AND_PUSH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.PUSH">
+<span class="sig-name descname"><span class="pre">PUSH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.PUSH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.__new__">
+<span class="sig-name descname"><span class="pre">__new__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.__new__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.has_pop">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_pop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><span class="pre">Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.has_pop" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.arch.optypes.RasAction.has_push">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">has_push</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.14)"><span class="pre">Enum</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.ValueCastable" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">ValueCastable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://amaranth-lang.org/docs/amaranth/latest/reference.html#amaranth.hdl.Value" title="(in Amaranth language &amp; toolchain v0.6.0.dev138)"><span class="pre">Value</span></a></span></span><a class="headerlink" href="#coreblocks.arch.optypes.RasAction.has_push" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-coreblocks.arch">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.arch" title="Link to this heading"></a></h2>
@@ -4457,7 +4463,7 @@ to get the CFI type.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:15 2026-09-09.
+      <span class="lastupdated">Last updated on 11:08 2026-09-10.
       </span></p>
   </div>
 

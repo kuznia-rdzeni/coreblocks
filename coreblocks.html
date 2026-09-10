@@ -941,16 +941,10 @@
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.arch.html#module-coreblocks.arch.optypes">coreblocks.arch.optypes module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType"><code class="docutils literal notranslate"><span class="pre">CfiType</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.BRANCH"><code class="docutils literal notranslate"><span class="pre">CfiType.BRANCH</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.CALL"><code class="docutils literal notranslate"><span class="pre">CfiType.CALL</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.INVALID"><code class="docutils literal notranslate"><span class="pre">CfiType.INVALID</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.JAL"><code class="docutils literal notranslate"><span class="pre">CfiType.JAL</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.JALR"><code class="docutils literal notranslate"><span class="pre">CfiType.JALR</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.RET"><code class="docutils literal notranslate"><span class="pre">CfiType.RET</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.__new__"><code class="docutils literal notranslate"><span class="pre">CfiType.__new__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_branch"><code class="docutils literal notranslate"><span class="pre">CfiType.is_branch()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_jal"><code class="docutils literal notranslate"><span class="pre">CfiType.is_jal()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.is_jalr"><code class="docutils literal notranslate"><span class="pre">CfiType.is_jalr()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.CfiType.valid"><code class="docutils literal notranslate"><span class="pre">CfiType.valid()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.OpType"><code class="docutils literal notranslate"><span class="pre">OpType</span></code></a><ul>
@@ -993,6 +987,16 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">OpType.UNKNOWN</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.WFI"><code class="docutils literal notranslate"><span class="pre">OpType.WFI</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.OpType.__new__"><code class="docutils literal notranslate"><span class="pre">OpType.__new__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction"><code class="docutils literal notranslate"><span class="pre">RasAction</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.NONE"><code class="docutils literal notranslate"><span class="pre">RasAction.NONE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.POP"><code class="docutils literal notranslate"><span class="pre">RasAction.POP</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.POP_AND_PUSH"><code class="docutils literal notranslate"><span class="pre">RasAction.POP_AND_PUSH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.PUSH"><code class="docutils literal notranslate"><span class="pre">RasAction.PUSH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.__new__"><code class="docutils literal notranslate"><span class="pre">RasAction.__new__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.has_pop"><code class="docutils literal notranslate"><span class="pre">RasAction.has_pop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction.has_push"><code class="docutils literal notranslate"><span class="pre">RasAction.has_push()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1782,7 +1786,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 14:15 2026-09-09.
+      <span class="lastupdated">Last updated on 11:08 2026-09-10.
       </span></p>
   </div>
 
