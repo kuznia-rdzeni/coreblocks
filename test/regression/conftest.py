@@ -24,8 +24,6 @@ ARCH_EXPECTED_FAIL = {
     "pmpzaamo_cfg_wr",
     # [?] ?????
     "InterruptsU",
-    # coreblocks assertion
-    r"Zifencei-.*",
 }
 
 ARCH_EXPECTED_TIMEOUT = {
