@@ -159,7 +159,9 @@ class FetchTargetQueue(Elaboratable):
         self.dep_manager.add_dependency(BranchResolveKey(), self.resolve)
         self.dep_manager.add_dependency(FTQCommitKey(), self.commit)
 
-        self.perf_mispredictions = HwCounter("frontend.ftq.mispredictions", "Number of committed branch mispredictions")
+        self.perf_mispredictions = TaggedCounter(
+            "frontend.ftq.mispredictions", "Number of committed branch mispredictions", tags=CfiType
+        )
 
     def elaborate(self, platform):
         m = TModule()
@@ -287,7 +289,7 @@ class FetchTargetQueue(Elaboratable):
                 m,
                 addr=ftq_ptr.ptr,
                 data={
-                    "valid": CfiType.valid(cfi_type) & ~stall,
+                    "valid": (cfi_type != CfiType.INVALID) & ~stall,
                     "cfi_idx": cfi_idx,
                     "cfi_target": cfi_target,
                 },
@@ -312,7 +314,7 @@ class FetchTargetQueue(Elaboratable):
                 # At most one CFI per block mispredicts and `resolve` keeps the oldest one,
                 # so each committed misprediction is counted once.
                 with m.If(status.mispredict):
-                    self.perf_mispredictions.incr(m)
+                    self.perf_mispredictions.incr(m, record.cfi_type)
                     m_csr.hpm_event_report(m, events=1 << HPMEvent.BRANCH_MISPREDICTION)
 
                 self.bpu_update(
