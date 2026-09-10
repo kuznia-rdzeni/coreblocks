@@ -482,7 +482,7 @@ class FetchUnit(Elaboratable):
             m.d.av_comb += commit_checkpoint_mask.eq(Mux(fault_any, 0, branch_mask | (followed_jalr << exit_idx)))
 
             # Aggregate all signals that will be sent out of the fetch unit.
-            raw_instrs = Signal(ArrayLayout(self.layouts.raw_instr, fetch_width))
+            raw_instrs = [Signal(self.layouts.raw_instr, name=f"raw_instr{i}") for i in range(fetch_width)]
             for i in range(fetch_width):
                 m.d.av_comb += [
                     raw_instrs[i].instr.eq(instrs[i]),
@@ -545,7 +545,8 @@ class FetchUnit(Elaboratable):
                     )
 
                 # Make sure this is called only once to avoid a huge mux on arguments
-                m.d.av_comb += [aligner.valids.eq(fetch_mask), aligner.inputs.eq(raw_instrs)]
+                m.d.av_comb += aligner.valids.eq(fetch_mask)
+                m.d.av_comb += assign(aligner.inputs, raw_instrs)
                 serializer.write(m, data=aligner.outputs, count=aligner.output_cnt, max_count=popcount(instr_valid))
 
         @def_method(m, self.flush)
