@@ -12,14 +12,16 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as eT
 import argparse
+import logging
 
 import cocotb
-from cocotb.clock import Clock, Timer
-from cocotb.handle import ModifiableObject
+import cocotb.logging
+from cocotb.clock import Clock
+from cocotb.triggers import Timer, SimTimeoutError
+from cocotb.handle import LogicObject
 from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
 from cocotb.utils import get_sim_time
 from cocotb_bus.bus import Bus
-from cocotb.result import SimTimeoutError
 
 from .memory import *
 from .memory_emulation import CoreMemoryEmulation
@@ -55,16 +57,16 @@ class WishboneBus(Bus):
     _signals = ["cyc", "stb", "we", "adr", "dat_r", "dat_w", "ack"]
     _optional_signals = ["sel", "err", "rty"]
 
-    cyc: ModifiableObject
-    stb: ModifiableObject
-    we: ModifiableObject
-    adr: ModifiableObject
-    dat_r: ModifiableObject
-    dat_w: ModifiableObject
-    ack: ModifiableObject
-    sel: ModifiableObject
-    err: ModifiableObject
-    rty: ModifiableObject
+    cyc: LogicObject
+    stb: LogicObject
+    we: LogicObject
+    adr: LogicObject
+    dat_r: LogicObject
+    dat_w: LogicObject
+    ack: LogicObject
+    sel: LogicObject
+    err: LogicObject
+    rty: LogicObject
 
     def __init__(self, entity, name):
         # case_insensitive is a workaround for cocotb_bus/verilator problem
@@ -106,16 +108,16 @@ class WishboneSlave:
             sig_m = WishboneMasterSignals()
             self.bus.sample(sig_m)
 
-            addr = sig_m.adr << self.word_bits
+            addr = sig_m.adr.to_unsigned() << self.word_bits
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
                 resp = self.memory.write(
                     WriteRequest(
                         addr=addr,
-                        data=sig_m.dat_w,
+                        data=sig_m.dat_w.to_unsigned(),
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel,
+                        byte_sel=sig_m.sel.to_unsigned(),
                     )
                 )
             else:
@@ -123,7 +125,7 @@ class WishboneSlave:
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel,
+                        byte_sel=sig_m.sel.to_unsigned(),
                         exec=self.is_instr_bus,
                     )
                 )
@@ -133,11 +135,11 @@ class WishboneSlave:
                 case ReplyStatus.OK:
                     sig_s.ack = 1
                 case ReplyStatus.ERROR:
-                    if not self.bus.err:
+                    if not self.bus.err.get():
                         raise ValueError("Bus doesn't support err")
                     sig_s.err = 1
                 case ReplyStatus.RETRY:
-                    if not self.bus.rty:
+                    if not self.bus.rty.get():
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
@@ -164,22 +166,22 @@ class CocotbSimulation(SimulationBackend):
         self.log_level = os.environ["__TRANSACTRON_LOG_LEVEL"]
         self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
 
-        cocotb.logging.getLogger().setLevel(self.log_level)
+        cocotb.log.setLevel(self.log_level)
 
-    def get_cocotb_handle(self, path_components: list[str]) -> ModifiableObject:
+    def get_cocotb_handle(self, path_components: list[str]) -> LogicObject:
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
             try:
                 # As the component may start with '_' character, we need to use '_id'
                 # function instead of 'getattr' - this is required by cocotb.
-                obj = obj._id(component, extended=False)
-            except AttributeError:
+                obj = obj[component]
+            except KeyError:
                 # Try with escaped or unescaped name
                 if component[0] != "\\" and component[-1] != " ":
-                    obj = obj._id("\\" + component + " ", extended=False)
+                    obj = obj[rf"\{component} "]
                 elif component[0] == "\\":
-                    obj = obj._id(component[1:], extended=False)
+                    obj = obj[component[1:]]
                 else:
                     raise
 
@@ -230,7 +232,7 @@ class CocotbSimulation(SimulationBackend):
     async def logging_handler(self, clock):
         clock_edge_event = FallingEdge(clock)
 
-        log_level = cocotb.logging.getLogger().level
+        log_level = cocotb.log.level
 
         logs = [
             (rec, self.get_cocotb_handle(rec.trigger_location))
@@ -249,7 +251,7 @@ class CocotbSimulation(SimulationBackend):
 
                 formatted_msg = rec.format(*values)
 
-                cocotb_log = cocotb.logging.getLogger(rec.logger_name)
+                cocotb_log = cocotb.logging.SimLog(rec.logger_name)
 
                 cocotb_log.log(
                     rec.level,
@@ -259,7 +261,7 @@ class CocotbSimulation(SimulationBackend):
                     formatted_msg,
                 )
 
-                if rec.level >= cocotb.logging.ERROR:
+                if rec.level >= logging.ERROR:
                     assert False, f"Assertion failed at {rec.location[0], rec.location[1]}: {formatted_msg}"
 
             await clock_edge_event  # type: ignore
@@ -324,9 +326,9 @@ class CocotbSimulation(SimulationBackend):
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}
             for reg_name, reg_loc in metric_loc.regs.items():
-                value = int(self.get_cocotb_handle(reg_loc))
+                value = int(self.get_cocotb_handle(reg_loc).value)
                 result.metric_values[metric_name][reg_name] = value
-                cocotb.logging.info(f"Metric {metric_name}/{reg_name}={value}")
+                cocotb.log.info(f"Metric {metric_name}/{reg_name}={value}")
 
         return result
 
