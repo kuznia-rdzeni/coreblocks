@@ -21,6 +21,9 @@ jobs:
             container: ecp5-2025.01.31
           - platform: xc7k480t
             container: xilinx-2026.07.20
+        exclude:
+          - config: full
+            platform: ecp5
     name: Run synthesis benchmarks
     if: >
       github.ref == 'refs/heads/master' ||
@@ -306,16 +309,6 @@ jobs:
           name: Fmax and LCs (basic, ECP5)
           tool: 'customBiggerIsBetter'
           output-file-path: './synth-benchmark-basic-ecp5.json'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
-          benchmark-data-dir-path: "dev/benchmark"
-
-      - name: Store synthesis benchmark result (full, ECP5)
-        uses: benchmark-action/github-action-benchmark@v1
-        with:
-          name: Fmax and LCs (full, ECP5)
-          tool: 'customBiggerIsBetter'
-          output-file-path: './synth-benchmark-full-ecp5.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           benchmark-data-dir-path: "dev/benchmark"
