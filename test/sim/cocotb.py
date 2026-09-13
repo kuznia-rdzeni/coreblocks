@@ -21,13 +21,14 @@ from cocotb.triggers import Timer, SimTimeoutError
 from cocotb.handle import LogicObject
 from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
 from cocotb.utils import get_sim_time
+from cocotb_tools.runner import VerilatorControlFile, Verilog
 from cocotb_bus.bus import Bus
 
 from .memory import *
 from .memory_emulation import CoreMemoryEmulation
 from .common import SimulationBackend, SimulationExecutionResult
 from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, CORE_V_VLT, REPO_ROOT, ensure_core_verilog_generated
-from .cocotb_runner import VerilatorManualPublic, VerilatorControlFile, Verilog
+from .cocotb_runner import VerilatorManualPublic
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
@@ -448,7 +449,7 @@ def ensure_cocotb_built(traces: bool) -> VerilatorManualPublic:
 
         args = []
         args += VERILATOR_WARNING_FLAGS
-        if _verilator_version() >= (5,40):
+        if _verilator_version() >= (5, 40):
             args += ["-Wno-ALWNEVER"]
 
         runner.build(
