@@ -12,19 +12,22 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as eT
 import argparse
+import logging
 
 import cocotb
-from cocotb.clock import Clock, Timer
-from cocotb.handle import ModifiableObject
+import cocotb.logging
+from cocotb.clock import Clock
+from cocotb.triggers import Timer, SimTimeoutError
+from cocotb.handle import LogicObject
 from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
 from cocotb.utils import get_sim_time
 from cocotb_bus.bus import Bus
-from cocotb.result import SimTimeoutError
 
 from .memory import *
 from .memory_emulation import CoreMemoryEmulation
 from .common import SimulationBackend, SimulationExecutionResult
-from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, REPO_ROOT, ensure_core_verilog_generated
+from .verilog import BUILD_ROOT, CORE_V, CORE_V_JSON, CORE_V_VLT, REPO_ROOT, ensure_core_verilog_generated
+from .cocotb_runner import VerilatorManualPublic, VerilatorControlFile, Verilog
 
 from transactron.evlog import EventLog, GeneratedEvLogSampler, SignalHandle, SignalReader
 from transactron.profiler import CycleProfile, MethodSamples, Profile, ProfileSamples, TransactionSamples
@@ -55,16 +58,16 @@ class WishboneBus(Bus):
     _signals = ["cyc", "stb", "we", "adr", "dat_r", "dat_w", "ack"]
     _optional_signals = ["sel", "err", "rty"]
 
-    cyc: ModifiableObject
-    stb: ModifiableObject
-    we: ModifiableObject
-    adr: ModifiableObject
-    dat_r: ModifiableObject
-    dat_w: ModifiableObject
-    ack: ModifiableObject
-    sel: ModifiableObject
-    err: ModifiableObject
-    rty: ModifiableObject
+    cyc: LogicObject
+    stb: LogicObject
+    we: LogicObject
+    adr: LogicObject
+    dat_r: LogicObject
+    dat_w: LogicObject
+    ack: LogicObject
+    sel: LogicObject
+    err: LogicObject
+    rty: LogicObject
 
     def __init__(self, entity, name):
         # case_insensitive is a workaround for cocotb_bus/verilator problem
@@ -106,16 +109,16 @@ class WishboneSlave:
             sig_m = WishboneMasterSignals()
             self.bus.sample(sig_m)
 
-            addr = sig_m.adr << self.word_bits
+            addr = sig_m.adr.to_unsigned() << self.word_bits
 
             sig_s = WishboneSlaveSignals()
             if sig_m.we:
                 resp = self.memory.write(
                     WriteRequest(
                         addr=addr,
-                        data=sig_m.dat_w,
+                        data=sig_m.dat_w.to_unsigned(),
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel,
+                        byte_sel=sig_m.sel.to_unsigned(),
                     )
                 )
             else:
@@ -123,7 +126,7 @@ class WishboneSlave:
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel,
+                        byte_sel=sig_m.sel.to_unsigned(),
                         exec=self.is_instr_bus,
                     )
                 )
@@ -133,11 +136,11 @@ class WishboneSlave:
                 case ReplyStatus.OK:
                     sig_s.ack = 1
                 case ReplyStatus.ERROR:
-                    if not self.bus.err:
+                    if not self.bus.err.get():
                         raise ValueError("Bus doesn't support err")
                     sig_s.err = 1
                 case ReplyStatus.RETRY:
-                    if not self.bus.rty:
+                    if not self.bus.rty.get():
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
@@ -164,22 +167,22 @@ class CocotbSimulation(SimulationBackend):
         self.log_level = os.environ["__TRANSACTRON_LOG_LEVEL"]
         self.log_filter = os.environ["__TRANSACTRON_LOG_FILTER"]
 
-        cocotb.logging.getLogger().setLevel(self.log_level)
+        cocotb.log.setLevel(self.log_level)
 
-    def get_cocotb_handle(self, path_components: list[str]) -> ModifiableObject:
+    def get_cocotb_handle(self, path_components: list[str]) -> LogicObject:
         obj = self.dut
         # Skip the first component, as it is already referenced in "self.dut"
         for component in path_components[1:]:
             try:
                 # As the component may start with '_' character, we need to use '_id'
                 # function instead of 'getattr' - this is required by cocotb.
-                obj = obj._id(component, extended=False)
-            except AttributeError:
+                obj = obj[component]
+            except KeyError:
                 # Try with escaped or unescaped name
                 if component[0] != "\\" and component[-1] != " ":
-                    obj = obj._id("\\" + component + " ", extended=False)
+                    obj = obj[rf"\{component} "]
                 elif component[0] == "\\":
-                    obj = obj._id(component[1:], extended=False)
+                    obj = obj[component[1:]]
                 else:
                     raise
 
@@ -230,7 +233,7 @@ class CocotbSimulation(SimulationBackend):
     async def logging_handler(self, clock):
         clock_edge_event = FallingEdge(clock)
 
-        log_level = cocotb.logging.getLogger().level
+        log_level = cocotb.log.level
 
         logs = [
             (rec, self.get_cocotb_handle(rec.trigger_location))
@@ -249,7 +252,7 @@ class CocotbSimulation(SimulationBackend):
 
                 formatted_msg = rec.format(*values)
 
-                cocotb_log = cocotb.logging.getLogger(rec.logger_name)
+                cocotb_log = logging.getLogger(f"{rec.logger_name}.0x{0:x}")
 
                 cocotb_log.log(
                     rec.level,
@@ -259,7 +262,7 @@ class CocotbSimulation(SimulationBackend):
                     formatted_msg,
                 )
 
-                if rec.level >= cocotb.logging.ERROR:
+                if rec.level >= logging.ERROR:
                     assert False, f"Assertion failed at {rec.location[0], rec.location[1]}: {formatted_msg}"
 
             await clock_edge_event  # type: ignore
@@ -324,9 +327,9 @@ class CocotbSimulation(SimulationBackend):
         for metric_name, metric_loc in self.gen_info.metrics_location.items():
             result.metric_values[metric_name] = {}
             for reg_name, reg_loc in metric_loc.regs.items():
-                value = int(self.get_cocotb_handle(reg_loc))
+                value = int(self.get_cocotb_handle(reg_loc).value)
                 result.metric_values[metric_name][reg_name] = value
-                cocotb.logging.info(f"Metric {metric_name}/{reg_name}={value}")
+                cocotb.log.info(f"Metric {metric_name}/{reg_name}={value}")
 
         return result
 
@@ -365,25 +368,33 @@ def _extend_env_path_like(value: str, to_add: str) -> str:
         return to_add
 
 
+VERILATOR_WARNING_FLAGS = [
+    "-Wno-CASEINCOMPLETE",
+    "-Wno-CASEOVERLAP",
+    "-Wno-WIDTHEXPAND",
+    "-Wno-WIDTHTRUNC",
+    "-Wno-UNSIGNED",
+    "-Wno-CMPCONST",
+    "-Wno-LITENDIAN",
+    "-Wno-UNOPTFLAT",
+]
+
+
+def _verilator_version() -> tuple[int, ...]:
+    output = subprocess.run(["verilator", "--version"], check=True, capture_output=True, text=True).stdout
+    return tuple(int(part) for part in output.split()[1].split("."))
+
+
 def run_cocotb_entrypoint(
     entrypoint_module_name: str,
     traces: bool,
+    testcases: list[str] | None = None,
     additional_args: list[str] | None = None,
     additional_env: dict[str, str] | None = None,
-    ensure_built: bool = True,
 ) -> bool:
-    if ensure_built:
-        ensure_cocotb_built(traces)
+    runner = ensure_cocotb_built(traces)
 
-    arglist = ["make", "-C", str(TEST_ROOT)]
-
-    arglist += [f"MODULE={entrypoint_module_name}"]
-    arglist += [f"SIM_BUILD={get_cocotb_build_dir(traces)}"]
-    arglist += [f"_COREBLOCKS_GEN_INFO={CORE_V_JSON}"]
-    arglist += [f"VERILOG_SOURCES={CORE_V}"]
-    if traces:
-        arglist += ["TRACES=1"]
-
+    arglist = []
     if additional_args is not None:
         arglist += additional_args
 
@@ -391,14 +402,25 @@ def run_cocotb_entrypoint(
     env["PATH"] = _extend_env_path_like(env.get("PATH", ""), str(TEST_ROOT.resolve()))
     env["PYTHONPATH"] = _extend_env_path_like(env.get("PYTHONPATH", ""), str(REPO_ROOT.resolve()))
     env["SIM"] = os.environ.get("SIM", "verilator")
+    env["_COREBLOCKS_GEN_INFO"] = str(CORE_V_JSON.resolve())
     if additional_env is not None:
         env.update(additional_env)
 
     with tempfile.NamedTemporaryFile("r") as tmp_result_file:
-        arglist += [f"COCOTB_RESULTS_FILE={tmp_result_file.name}"]
+        result = runner.test(
+            test_module=entrypoint_module_name,
+            hdl_toplevel="top",
+            hdl_toplevel_lang="verilog",
+            build_dir=get_cocotb_build_dir(traces),
+            waves=traces,
+            test_args=arglist,
+            extra_env=env,
+            results_xml=tmp_result_file.name,
+            testcase=testcases,
+            test_dir=TEST_ROOT,
+        )
 
-        subprocess.run(arglist, env=env, check=True)
-        tree = eT.parse(tmp_result_file.name)
+        tree = eT.parse(result)
         return len(list(tree.iter("failure"))) == 0
 
 
@@ -412,7 +434,7 @@ def clean_cocotb_build():
             shutil.rmtree(path, ignore_errors=True)
 
 
-def ensure_cocotb_built(traces: bool):
+def ensure_cocotb_built(traces: bool) -> VerilatorManualPublic:
     ensure_core_verilog_generated()
 
     path = get_cocotb_build_dir(traces)
@@ -421,19 +443,37 @@ def ensure_cocotb_built(traces: bool):
 
     path.mkdir(parents=True, exist_ok=True)
 
+    def do_build(skip_build):
+        runner = VerilatorManualPublic(skip_build)
+
+        args = []
+        args += VERILATOR_WARNING_FLAGS
+        if _verilator_version() >= (5,40):
+            args += ["-Wno-ALWNEVER"]
+
+        runner.build(
+            sources=[
+                Verilog(CORE_V),
+                VerilatorControlFile(CORE_V_VLT),
+            ],
+            build_dir=path,
+            waves=traces,
+            build_args=args,
+            hdl_toplevel="top",
+        )
+
+        return runner
+
     if stamp.exists():
-        return
+        return do_build(True)
 
     with FileLock(lock):
-        if stamp.exists():
-            return
+        if not stamp.exists():
+            runner = do_build(False)
+            stamp.touch()
+            return runner
 
-        assert run_cocotb_entrypoint(
-            entrypoint_module_name="empty_module",
-            traces=traces,
-            ensure_built=False,
-        ), "Failed to build cocotb testbench"
-        stamp.touch()
+    return do_build(True)
 
 
 def main():
