@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789312905067,
+  "lastUpdate": 1789312907538,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -87815,6 +87815,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 157,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Janeczko Jakub",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8414befa34fcdb4e4d6d32876be3db1bf86f4688",
+          "message": "add verilator control (#1100)",
+          "timestamp": "2026-09-13T15:56:14+02:00",
+          "tree_id": "b28fcf4229f30924464f960d07b320121746e765",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/8414befa34fcdb4e4d6d32876be3db1bf86f4688"
+        },
+        "date": 1789312906919,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 78.11,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8710,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3421,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 156,
             "unit": "Slice"
           },
           {
