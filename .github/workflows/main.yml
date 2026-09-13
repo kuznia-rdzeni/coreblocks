@@ -101,7 +101,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [cxxsim, pysim]
+        config: [cocotb, cxxsim, pysim]
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 120
@@ -150,13 +150,13 @@ jobs:
           name: cxxsim
           path: test/sim/build/cxxsim
 
-      - name: Run arch regression tests
+      - name: Run regression tests
         run: |
           . venv/bin/activate
-          if [ "${{ matrix.config }}" = "cxxsim" ]; then
-            ./scripts/run_tests.py -a -b cxxsim regression -v
-          else
+          if [ "${{ matrix.config }}" = "pysim" ]; then
             ./scripts/run_tests.py -c 1 -a -b pysim regression
+          else
+            ./scripts/run_tests.py -a -b "${{ matrix.config }}" regression -v
           fi
 
   build-arch-regression-tests:
@@ -223,7 +223,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [cxxsim, pysim]
+        config: [cocotb, cxxsim, pysim]
     name: Run arch regression tests (riscv-arch-test)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     container: verilator/verilator:v5.052
@@ -276,10 +276,10 @@ jobs:
       - name: Run arch regression tests
         run: |
           . venv/bin/activate
-          if [ "${{ matrix.config }}" = "cxxsim" ]; then
-            ./scripts/run_tests.py --arch-tests -v -b cxxsim regression
-          else
+          if [ "${{ matrix.config }}" = "pysim" ]; then
             ./scripts/run_tests.py --arch-tests -v -b pysim -c 1 -j 0 'regression.*not'
+          else
+            ./scripts/run_tests.py --arch-tests -v -b "${{ matrix.config }}" regression
           fi
 
   build-cxxsim:
