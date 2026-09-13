@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789318242839,
+  "lastUpdate": 1789318244858,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -88173,6 +88173,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 156,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0d6fc2d4d2b4b28fedcfd00175b3f30fa2784082",
+          "message": "Use verilator from dockerhub (#1103)",
+          "timestamp": "2026-09-13T14:58:29+02:00",
+          "tree_id": "edb1be3ab4b062d887589397a5bc623427a7d3a0",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/0d6fc2d4d2b4b28fedcfd00175b3f30fa2784082"
+        },
+        "date": 1789318244375,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 77.29,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8833,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3421,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 157,
             "unit": "Slice"
           },
           {
