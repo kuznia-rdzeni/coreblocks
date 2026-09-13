@@ -750,7 +750,12 @@ class TestPredictionChecker(TestCaseWithSimulator):
         for _ in range(self.gen_params.fetch_width - len(predecoded)):
             predecoded.append((CfiType.INVALID, 0))
         predecoded_raw = [
-            {"cfi_type": predecoded[i][0], "cfi_offset": predecoded[i][1], "unsafe": 0}
+            {
+                "cfi_type": predecoded[i][0],
+                "ras_action": RasAction.NONE,
+                "cfi_offset": predecoded[i][1],
+                "unsafe": 0,
+            }
             for i in range(self.gen_params.fetch_width)
         ]
 
