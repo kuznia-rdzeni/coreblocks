@@ -5,25 +5,18 @@ benchmarks.
 """
 
 import argparse
-import hashlib
 import shutil
 import subprocess
 import sysconfig
-from importlib.machinery import EXTENSION_SUFFIXES
 from pathlib import Path
 
 from filelock import FileLock
 
+from .cxxsim_paths import BUILD_DIR, MODULE_PATH
 from .verilog import BUILD_ROOT, CORE_V, clean_core_verilog, ensure_core_verilog_generated
 
 CXX_ROOT = Path(__file__).resolve().parent / "cxx"
-BUILD_DIR = BUILD_ROOT / "cxxsim"
 BUILD_LOCK = BUILD_ROOT / "cxxsim.lock"
-
-MODULE_NAME = "coreblocks_cxxsim"
-MODULE_PATH = BUILD_DIR / (MODULE_NAME + EXTENSION_SUFFIXES[0])
-CORE_LIB = BUILD_DIR / "libVtop.a"
-RUNTIME_LIB = BUILD_DIR / "libverilated.a"
 
 SOURCES = ["module.cpp", "memory.cpp", "simulation.cpp", "wishbone.cpp"]
 
@@ -120,57 +113,20 @@ def _module_command() -> list[str]:
     return command
 
 
-def _fingerprint(command: list[str], files: list[Path]) -> str:
-    digest = hashlib.sha256()
-    digest.update(" ".join(command).encode())
-
-    for file in files:
-        digest.update(file.read_bytes())
-
-    return digest.hexdigest()
-
-
-def _build_step(description: str, stamp_name: str, product: Path, command: list[str], fingerprint: str) -> bool:
-    """Runs one build step, unless its result is already up to date."""
-    stamp = BUILD_DIR / stamp_name
-
-    if product.exists() and stamp.exists() and stamp.read_text() == fingerprint:
-        return False
-
-    print(f"{description}...", flush=True)
-
-    stamp.unlink(missing_ok=True)
-    subprocess.run(command, check=True, cwd=CXX_ROOT)
-    stamp.write_text(fingerprint)
-
-    return True
-
-
-def ensure_cxxsim_built():
-    ensure_core_verilog_generated()
-
-    BUILD_DIR.mkdir(parents=True, exist_ok=True)
-
+def build_cxxsim():
+    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
     with FileLock(BUILD_LOCK):
-        verilate_command = _verilate_command()
-        _build_step(
-            "Verilating the core, this takes a few minutes",
-            "verilate.stamp",
-            CORE_LIB,
-            verilate_command,
-            _fingerprint(verilate_command, [CORE_V]),
-        )
+        clean_core_verilog()
+        shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
-        module_command = _module_command()
-        sources = sorted(CXX_ROOT.glob("*.h")) + [CXX_ROOT / source for source in SOURCES]
-        sources += [CORE_LIB, RUNTIME_LIB]
-        _build_step(
-            "Building the simulator module",
-            f"module{EXTENSION_SUFFIXES[0]}.stamp",
-            MODULE_PATH,
-            module_command,
-            _fingerprint(module_command, sources),
-        )
+        ensure_core_verilog_generated()
+        BUILD_DIR.mkdir(parents=True, exist_ok=True)
+
+        print("Verilating the core, this takes a few minutes...", flush=True)
+        subprocess.run(_verilate_command(), check=True, cwd=CXX_ROOT)
+
+        print("Building the simulator module...", flush=True)
+        subprocess.run(_module_command(), check=True, cwd=CXX_ROOT)
 
 
 def clean_cxxsim_build():
@@ -182,19 +138,9 @@ def clean_cxxsim_build():
 
 def main():
     parser = argparse.ArgumentParser(description="Build the C++ simulator for coreblocks")
-    parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="Discard the generated Verilog and the built simulator first",
-    )
-    args = parser.parse_args()
+    parser.parse_args()
 
-    if args.clean:
-        print("Discarding the generated Verilog and the built simulator...", flush=True)
-        clean_core_verilog()
-        clean_cxxsim_build()
-
-    ensure_cxxsim_built()
+    build_cxxsim()
     print(f"Built {MODULE_PATH}")
 
 

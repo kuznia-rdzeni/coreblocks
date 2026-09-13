@@ -6,7 +6,7 @@ from types import ModuleType
 from typing import Callable, Optional
 
 from .common import SimulationBackend, SimulationExecutionResult
-from .cxx_build import MODULE_NAME, MODULE_PATH, ensure_cxxsim_built
+from .cxxsim_paths import MODULE_NAME, MODULE_PATH
 from .memory import (
     CoreMemoryModel,
     MMIOSegment,
@@ -19,6 +19,8 @@ from .memory import (
 _native: Optional[ModuleType] = None
 _native_lock = threading.Lock()
 
+_NOT_BUILT_MESSAGE = "The cxxsim backend has not been built. Run: python3 -m test.sim.cxx_build"
+
 
 def load_native_module() -> ModuleType:
     global _native
@@ -26,12 +28,15 @@ def load_native_module() -> ModuleType:
     with _native_lock:
         if _native is None:
             if not MODULE_PATH.exists():
-                ensure_cxxsim_built()
+                raise RuntimeError(_NOT_BUILT_MESSAGE)
 
             spec = importlib.util.spec_from_file_location(MODULE_NAME, MODULE_PATH)
             assert spec is not None and spec.loader is not None
             module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            try:
+                spec.loader.exec_module(module)
+            except (ImportError, OSError) as error:
+                raise RuntimeError(f"Could not load the cxxsim backend. {_NOT_BUILT_MESSAGE}") from error
             _native = module
 
     return _native

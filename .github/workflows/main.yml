@@ -148,7 +148,7 @@ jobs:
         name: Download the C++ simulator
         with:
           name: cxxsim
-          path: test/sim/build
+          path: test/sim/build/cxxsim
 
       - name: Run arch regression tests
         run: |
@@ -271,7 +271,7 @@ jobs:
         name: Download the C++ simulator
         with:
           name: cxxsim
-          path: test/sim/build
+          path: test/sim/build/cxxsim
 
       - name: Run arch regression tests
         run: |
@@ -312,14 +312,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: cxxsim
-          # Everything needed to run, and to convince the build that it is up to date.
-          path: |
-            test/sim/build/verilog
-            test/sim/build/verilog.stamp
-            test/sim/build/cxxsim/libVtop.a
-            test/sim/build/cxxsim/libverilated.a
-            test/sim/build/cxxsim/*.so
-            test/sim/build/cxxsim/*.stamp
+          path: test/sim/build/cxxsim/*.so
 
   build-embench:
     name: Build performance benchmarks (embench)
@@ -372,7 +365,7 @@ jobs:
         name: Download the C++ simulator
         with:
           name: cxxsim
-          path: test/sim/build
+          path: test/sim/build/cxxsim
 
       - name: Run benchmarks
         run: |

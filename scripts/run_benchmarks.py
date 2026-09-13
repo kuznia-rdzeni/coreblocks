@@ -21,7 +21,7 @@ from test.benchmark.benchmark import BenchmarkResult  # noqa: E402
 from test.sim.common import SimulationBackend  # noqa: E402
 from test.sim.pysim import PySimulation  # noqa: E402
 from test.sim.cxxsim import CxxSimulation  # noqa: E402
-from test.sim.cxx_build import clean_cxxsim_build, ensure_cxxsim_built  # noqa: E402
+from test.sim.cxx_build import clean_cxxsim_build  # noqa: E402
 from test.sim.cocotb import clean_cocotb_build, run_cocotb_entrypoint  # noqa: E402
 from test.sim.verilog import clean_core_verilog  # noqa: E402
 
@@ -124,8 +124,6 @@ def run_benchmarks_with_pysim(benchmarks: list[str], traces: bool, jobs: int) ->
 def run_benchmarks_with_cxxsim(benchmarks: list[str], traces: bool, jobs: int) -> bool:
     if traces:
         raise RuntimeError("The cxxsim backend does not support traces")
-
-    ensure_cxxsim_built()
 
     return run_benchmarks_with_backend(benchmarks, lambda _: CxxSimulation(), jobs)
 
