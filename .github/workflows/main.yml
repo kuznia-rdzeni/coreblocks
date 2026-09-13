@@ -101,7 +101,7 @@ jobs:
     name: Run regression tests (riscv-tests)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
     timeout-minutes: 120
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    container: verilator/verilator:v5.052
     needs: [ build-regression-tests, build-core ]
     steps:
       - name: Checkout
@@ -222,7 +222,7 @@ jobs:
         config: [cocotb, pysim]
     name: Run arch regression tests (riscv-arch-test)
     runs-on: ubuntu-22.04  # older version for compatibility with Docker image
-    container: ghcr.io/kuznia-rdzeni/verilator:v5.008-2023.11.19_v
+    container: verilator/verilator:v5.052
     timeout-minutes: 180
     needs: [ build-arch-regression-tests ]
     steps:
