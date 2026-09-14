@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789427997041,
+  "lastUpdate": 1789427999525,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -81484,6 +81484,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 379,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b649321ccb7e8cbf73681cd55fb6111b58230ce5",
+          "message": "sim: a simulation backend written in C++ (#1082)",
+          "timestamp": "2026-09-15T00:15:52+02:00",
+          "tree_id": "9e16e60c0b1a48aa0185240cbd60bf7afc88731d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b649321ccb7e8cbf73681cd55fb6111b58230ce5"
+        },
+        "date": 1789427998926,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 47.15,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20272,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9076,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 383,
             "unit": "Slice"
           },
           {
