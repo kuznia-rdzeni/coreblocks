@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789408585213,
+  "lastUpdate": 1789408587764,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -81322,6 +81322,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 378,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 3,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c5deae7582fe7d47f3a26a42da74d5489347501e",
+          "message": "Remove full-ECP5 benchmark (#1104)",
+          "timestamp": "2026-09-14T18:52:41+02:00",
+          "tree_id": "1726d6ee5eca5e7337d950702c992ee97cb424fc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c5deae7582fe7d47f3a26a42da74d5489347501e"
+        },
+        "date": 1789408587061,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 49.57,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 20419,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 9076,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 379,
             "unit": "Slice"
           },
           {
