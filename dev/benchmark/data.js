@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789408577216,
+  "lastUpdate": 1789408579846,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -86167,6 +86167,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Device utilisation: (ECP5)",
             "value": 9040,
+            "unit": "LUT4"
+          },
+          {
+            "name": "LUTs used as carry: (ECP5)",
+            "value": 692,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as ram: (ECP5)",
+            "value": 1220,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUTs used as DFF: (ECP5)",
+            "value": 3375,
+            "unit": "LUT"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tilk@tilk.eu",
+            "name": "Marek Materzok",
+            "username": "tilk"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c5deae7582fe7d47f3a26a42da74d5489347501e",
+          "message": "Remove full-ECP5 benchmark (#1104)",
+          "timestamp": "2026-09-14T18:52:41+02:00",
+          "tree_id": "1726d6ee5eca5e7337d950702c992ee97cb424fc",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c5deae7582fe7d47f3a26a42da74d5489347501e"
+        },
+        "date": 1789408579152,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 61.43,
+            "unit": "MHz"
+          },
+          {
+            "name": "Device utilisation: (ECP5)",
+            "value": 10012,
             "unit": "LUT4"
           },
           {
