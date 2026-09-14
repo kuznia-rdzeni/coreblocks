@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789408590606,
+  "lastUpdate": 1789427990313,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28757,6 +28757,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/c5deae7582fe7d47f3a26a42da74d5489347501e"
         },
         "date": 1789408564494,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5619359814886232,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7811574390521759,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5749540875650653,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6851633586346707,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3937007230687528,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.503692946427776,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.513953228777139,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5251243363765755,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b649321ccb7e8cbf73681cd55fb6111b58230ce5",
+          "message": "sim: a simulation backend written in C++ (#1082)",
+          "timestamp": "2026-09-15T00:15:52+02:00",
+          "tree_id": "9e16e60c0b1a48aa0185240cbd60bf7afc88731d",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/b649321ccb7e8cbf73681cd55fb6111b58230ce5"
+        },
+        "date": 1789427977607,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
