@@ -17,7 +17,7 @@ import cocotb
 import cocotb.logging
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, SimTimeoutError
-from cocotb.handle import LogicObject
+from cocotb.handle import LogicObject, LogicArrayObject
 from cocotb.triggers import Event, with_timeout
 from cocotb.utils import get_sim_time
 from cocotb_tools.runner import VerilatorControlFile, Verilog
@@ -41,9 +41,9 @@ class WishboneBus:
     cyc: LogicObject
     stb: LogicObject
     we: LogicObject
-    adr: LogicObject
-    dat_r: LogicObject
-    dat_w: LogicObject
+    adr: LogicArrayObject
+    dat_r: LogicArrayObject
+    dat_w: LogicArrayObject
     ack: LogicObject
     sel: LogicObject | None
     err: LogicObject | None
