@@ -90,7 +90,7 @@ class WishboneSlave:
             while not (self.bus.stb.value and self.bus.cyc.value):
                 await clock_edge_event  # type: ignore
 
-            addr = int(self.bus.adr) << self.word_bits
+            addr = int(self.bus.adr.value) << self.word_bits
 
             if self.bus.we.value:
                 resp = self.memory.write(
