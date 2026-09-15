@@ -67,7 +67,7 @@ class WishboneSlave:
         self,
         entity,
         name: str,
-        clock,
+        clock: LogicObject,
         memory: CoreMemoryEmulation,
         is_instr_bus: bool,
         word_bits: int = 2,
@@ -84,7 +84,7 @@ class WishboneSlave:
         self.bus = WishboneBus(entity, name)
 
     async def start(self):
-        clock_edge_event = self.clock.failling_edge
+        clock_edge_event = self.clock.falling_edge
 
         while True:
             while not (self.bus.stb.value and self.bus.cyc.value):
@@ -174,9 +174,7 @@ class CocotbSimulation(SimulationBackend):
 
         return obj
 
-    async def profile_handler(self, clock, profile: Profile):
-        clock_edge_event = clock.rising_edge
-
+    async def profile_handler(self, clock: LogicObject, profile: Profile):
         while True:
             samples = ProfileSamples()
 
@@ -195,9 +193,9 @@ class CocotbSimulation(SimulationBackend):
             cprof = CycleProfile.make(samples, self.gen_info.profile_data)
             profile.cycles.append(cprof)
 
-            await clock_edge_event  # type: ignore
+            await clock.rising_edge
 
-    async def evlog_handler(self, clock, evlog: EventLog):
+    async def evlog_handler(self, clock: LogicObject, evlog: EventLog):
         generated = self.gen_info.evlog
         if not generated.schema.sites:
             return
@@ -215,7 +213,7 @@ class CocotbSimulation(SimulationBackend):
             cycle += 1
             await clock.falling_edge
 
-    async def logging_handler(self, clock):
+    async def logging_handler(self, clock: LogicObject):
         log_level = cocotb.log.level
 
         logs = [
