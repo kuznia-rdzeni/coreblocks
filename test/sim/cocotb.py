@@ -57,18 +57,9 @@ class WishboneBus:
         self.dat_r = entity[f"{name}__dat_r"]
         self.dat_w = entity[f"{name}__dat_w"]
         self.ack = entity[f"{name}__ack"]
-        try:
-            self.sel = entity[f"{name}__sel"]
-        except KeyError:
-            self.sel = None
-        try:
-            self.err = entity[f"{name}__err"]
-        except KeyError:
-            self.err = None
-        try:
-            self.rty = entity[f"{name}__rty"]
-        except KeyError:
-            self.rty = None
+        self.sel = getattr(entity, f"{name}__sel", None)
+        self.err = getattr(entity, f"{name}__err", None)
+        self.rty = getattr(entity, f"{name}__rty", None)
 
 
 class WishboneSlave:
