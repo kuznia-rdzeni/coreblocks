@@ -120,7 +120,7 @@ full = CoreConfiguration(
     retirement_superscalarity=2,
     interrupt_custom_count=15,
     hpm_counters_count=2,
-    bpu_config=BranchPredictionConfig(micro_btb=MicroBTBConfig(entries_log=5), ras=RASConfig(entries_log=4)),
+    bpu_config=BranchPredictionConfig(ras=RASConfig(entries_log=4), fast_predictor=MicroBTBConfig(entries_log=5)),
 )
 
 # Core configuration used in internal testbenches

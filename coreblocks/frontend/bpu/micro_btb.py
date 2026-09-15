@@ -8,8 +8,8 @@ from transactron.utils.amaranth_ext.coding import PriorityEncoder
 
 from coreblocks.params import GenParams, MicroBTBConfig
 from coreblocks.arch import CfiType
-from coreblocks.interface.layouts import BranchPredictionLayouts
 from coreblocks.frontend import FrontendParams
+from coreblocks.frontend.bpu.component import FastPredictor
 from coreblocks.cache.plru import TreePLRU
 
 __all__ = ["MicroBTB"]
@@ -17,7 +17,7 @@ __all__ = ["MicroBTB"]
 log = logging.HardwareLogger("frontend.bpu.btb")
 
 
-class MicroBTB(Elaboratable):
+class MicroBTB(FastPredictor):
     """A small, fully-associative, single-cycle branch target buffer (micro-BTB).
 
     The micro-BTB maps a fetch block address to a predicted next-fetch PC and
@@ -35,7 +35,7 @@ class MicroBTB(Elaboratable):
     """
 
     def __init__(self, gen_params: GenParams, config: MicroBTBConfig):
-        self.gen_params = gen_params
+        super().__init__(gen_params, meta_width=config.meta_width(gen_params.fetch_width))
 
         self.num_entries = 2**config.entries_log
         self.useful_cnt_width = config.useful_cnt_width
@@ -44,12 +44,6 @@ class MicroBTB(Elaboratable):
         # The tag is the full fetch-block address - aliasing is impossible
         # TODO: maybe some aliasing is fine?
         self.tag_width = xlen - gen_params.fetch_block_bytes_log
-
-        self.layouts = gen_params.get(BranchPredictionLayouts)
-
-        self.request = Method(i=self.layouts.predictor_request)
-        self.predict = Method(o=self.layouts.predictor_predict)
-        self.update = Method(i=self.layouts.update)
 
         self.perf_lookups = HwCounter("frontend.bpu.ubtb.lookups", "Number of prediction requests to the micro-BTB")
         self.perf_hits = TaggedCounter(
@@ -82,7 +76,7 @@ class MicroBTB(Elaboratable):
 
         req_fb = Signal(self.tag_width)
         req_valid = Signal()
-        m.d.sync += req_valid.eq(self.request.run)
+        m.d.sync += req_valid.eq(self.request_s0.run & ~self.flush.run)
 
         def match_vec(fb: Value) -> list[Value]:
             return [(entry.useful != 0) & (entry.tag == fb) for entry in entries]
@@ -97,15 +91,14 @@ class MicroBTB(Elaboratable):
         m.submodules.not_useful_enc = not_useful_enc = PriorityEncoder(self.num_entries)
         m.d.comb += not_useful_enc.i.eq(not_useful)
 
-        @def_method(m, self.request)
+        @def_method(m, self.request_s0)
         def _(pc):
             m.d.sync += req_fb.eq(fparams.fb_addr(pc))
 
-        @def_method(m, self.predict, ready=req_valid)
+        @def_method(m, self.response_s1, ready=req_valid)
         def _():
             req_matches = match_vec(req_fb)
             req_entry, req_hit_idx = select_entry(req_matches)
-
             hits = Cat(req_matches)
             log.assertion(m, popcount(hits) <= 1, "micro-BTB hit vector must be one-hot")
 
@@ -117,14 +110,20 @@ class MicroBTB(Elaboratable):
             self.perf_hits.incr(m, tag=req_entry.cfi_type, enable_call=hits.any())
 
             return {
-                "hit": hits.any(),
-                "cfi_target": req_entry.target,
+                "valid": hits.any(),
                 "cfi_idx": req_entry.cfi_idx,
                 "cfi_type": req_entry.cfi_type,
+                "target_valid": hits.any(),
+                "target": req_entry.target,
+                "meta": C(0, self.meta_width),
             }
 
+        @def_method(m, self.flush, nonexclusive=True)
+        def _():
+            pass
+
         @def_method(m, self.update)
-        def _(pc, cfi_target, cfi_idx, cfi_type, taken, mispredict):
+        def _(pc, branch_mask, cfi_target, cfi_idx, cfi_type, taken, mispredict, meta):
             fb = Signal(self.tag_width)
             m.d.av_comb += fb.eq(fparams.fb_addr(pc))
 
