@@ -144,6 +144,8 @@
 </li>
         <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.micro_btb.MicroBTB.__init__">(coreblocks.frontend.bpu.micro_btb.MicroBTB method)</a>
 </li>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.__init__">(coreblocks.frontend.bpu.ras.RAS method)</a>
+</li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.decode_stage.Decode.__init__">(coreblocks.frontend.decoder.decode_stage.Decode method)</a>
 </li>
         <li><a href="coreblocks.frontend.decoder.html#coreblocks.frontend.decoder.decode_stage.DecodeStage.__init__">(coreblocks.frontend.decoder.decode_stage.DecodeStage method)</a>
@@ -339,6 +341,8 @@
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.__init__">(coreblocks.params.bpu_params.BranchPredictionConfig method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.__init__">(coreblocks.params.bpu_params.MicroBTBConfig method)</a>
+</li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.__init__">(coreblocks.params.bpu_params.RASConfig method)</a>
 </li>
         <li><a href="coreblocks.params.html#coreblocks.params.fu_params.BlockComponentParams.__init__">(coreblocks.params.fu_params.BlockComponentParams method)</a>
 </li>
@@ -1029,6 +1033,13 @@
 
       <ul>
         <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.micro_btb">module</a>
+</li>
+      </ul></li>
+      <li>
+    coreblocks.frontend.bpu.ras
+
+      <ul>
+        <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.ras">module</a>
 </li>
       </ul></li>
       <li>
@@ -1990,7 +2001,11 @@
       <li><a href="coreblocks.func_blocks.fu.lsu.html#coreblocks.func_blocks.fu.lsu.pma.PMARegion.end">end (coreblocks.func_blocks.fu.lsu.pma.PMARegion attribute)</a>
 </li>
       <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.entries_log">entries_log (coreblocks.params.bpu_params.MicroBTBConfig attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.entries_log">(coreblocks.params.bpu_params.RASConfig attribute)</a>
 </li>
+      </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.ENVIRONMENT_CALL_FROM_M">ENVIRONMENT_CALL_FROM_M (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.ExceptionCause.ENVIRONMENT_CALL_FROM_S">ENVIRONMENT_CALL_FROM_S (coreblocks.arch.isa_consts.ExceptionCause attribute)</a>
@@ -3281,6 +3296,8 @@
 </li>
         <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.micro_btb">coreblocks.frontend.bpu.micro_btb</a>
 </li>
+        <li><a href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.ras">coreblocks.frontend.bpu.ras</a>
+</li>
         <li><a href="coreblocks.frontend.decoder.html#module-coreblocks.frontend.decoder">coreblocks.frontend.decoder</a>
 </li>
         <li><a href="coreblocks.frontend.decoder.html#module-coreblocks.frontend.decoder.decode_stage">coreblocks.frontend.decoder.decode_stage</a>
@@ -3744,6 +3761,8 @@
       </ul></li>
       <li><a href="coreblocks.frontend.html#coreblocks.frontend.frontend_params.FrontendParams.pc_from_fb">pc_from_fb() (coreblocks.frontend.frontend_params.FrontendParams method)</a>
 </li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.peek">peek (coreblocks.frontend.bpu.ras.RAS attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.mul_unit.MulType.PIPELINED_MUL">PIPELINED_MUL (coreblocks.func_blocks.fu.mul_unit.MulType attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.unsigned_multiplication.html#coreblocks.func_blocks.fu.unsigned_multiplication.pipelined.PipelinedUnsignedMul">PipelinedUnsignedMul (class in coreblocks.func_blocks.fu.unsigned_multiplication.pipelined)</a>
@@ -3846,10 +3865,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR48">PMPADDR48 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR49">PMPADDR49 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR49">PMPADDR49 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR5">PMPADDR5 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.PMPADDR50">PMPADDR50 (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -4006,7 +4025,25 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Registers.RA">RA (coreblocks.arch.isa_consts.Registers attribute)</a>
 </li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS">RAS (class in coreblocks.frontend.bpu.ras)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.ras">ras (coreblocks.params.bpu_params.BranchPredictionConfig attribute)</a>
+</li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.ras_peek">ras_peek (coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ras_peek">(coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.ras_predict">ras_predict (coreblocks.frontend.fetch.fetch.FetchUnit attribute)</a>
+
+      <ul>
+        <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ras_predict">(coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
+</li>
+      </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.optypes.RasAction">RasAction (class in coreblocks.arch.optypes)</a>
+</li>
+      <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig">RASConfig (class in coreblocks.params.bpu_params)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.fpu.html#coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout.raw_float_layout">raw_float_layout (coreblocks.func_blocks.fu.fpu.fpu_add_sub.FPUAddSubMethodLayout attribute)</a>
 </li>
@@ -4034,6 +4071,8 @@
         <li><a href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.read_prediction">(coreblocks.frontend.ftq.FetchTargetQueue attribute)</a>
 </li>
       </ul></li>
+      <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.recover">recover (coreblocks.frontend.bpu.ras.RAS attribute)</a>
+</li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbc.ZbcComponent.recursion_depth">recursion_depth (coreblocks.func_blocks.fu.zbc.ZbcComponent attribute)</a>
 </li>
       <li><a href="coreblocks.func_blocks.fu.html#coreblocks.func_blocks.fu.zbc.ClMultiplier.recursive_module">recursive_module() (coreblocks.func_blocks.fu.zbc.ClMultiplier method)</a>
@@ -4116,6 +4155,8 @@
 </li>
       <li><a href="coreblocks.telemetry.html#coreblocks.telemetry.rvvi.RVVIHartCollector.retire_port">retire_port (coreblocks.telemetry.rvvi.RVVIHartCollector attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.backend.html#coreblocks.backend.retirement.Retirement">Retirement (class in coreblocks.backend.retirement)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct3.REV8">REV8 (coreblocks.arch.isa_consts.Funct3 attribute)</a>
@@ -4126,8 +4167,6 @@
       </ul></li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct12.REV8_32">REV8_32 (coreblocks.arch.isa_consts.Funct12 attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="coreblocks.arch.html#coreblocks.arch.isa_consts.Funct12.REV8_64">REV8_64 (coreblocks.arch.isa_consts.Funct12 attribute)</a>
 </li>
       <li><a href="coreblocks.scheduler.html#coreblocks.scheduler.scheduler.Scheduler.rf_read_req">rf_read_req (coreblocks.scheduler.scheduler.Scheduler attribute)</a>
@@ -4617,6 +4656,8 @@
       <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.bpu.BranchPredictionUnit.update">update (coreblocks.frontend.bpu.bpu.BranchPredictionUnit attribute)</a>
 
       <ul>
+        <li><a href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.update">(coreblocks.frontend.bpu.ras.RAS attribute)</a>
+</li>
         <li><a href="coreblocks.func_blocks.interface.html#coreblocks.func_blocks.interface.func_protocols.FuncBlock.update">(coreblocks.func_blocks.interface.func_protocols.FuncBlock attribute)</a>
 </li>
       </ul></li>
@@ -4641,6 +4682,8 @@
       <ul>
         <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.validate">(coreblocks.params.bpu_params.MicroBTBConfig method)</a>
 </li>
+        <li><a href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.validate">(coreblocks.params.bpu_params.RASConfig method)</a>
+</li>
       </ul></li>
       <li><a href="coreblocks.params.html#coreblocks.params.vmem_params.VirtualMemoryParameters">VirtualMemoryParameters (class in coreblocks.params.vmem_params)</a>
 </li>
@@ -4648,10 +4691,10 @@
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSATP">VSATP (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
-      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSCAUSE">VSCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSCAUSE">VSCAUSE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
+</li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSEPC">VSEPC (coreblocks.arch.csr_address.CSRAddress attribute)</a>
 </li>
       <li><a href="coreblocks.arch.html#coreblocks.arch.csr_address.CSRAddress.VSIE">VSIE (coreblocks.arch.csr_address.CSRAddress attribute)</a>
@@ -4953,7 +4996,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 12:50 2026-09-15.
+      <span class="lastupdated">Last updated on 12:51 2026-09-15.
       </span></p>
   </div>
 

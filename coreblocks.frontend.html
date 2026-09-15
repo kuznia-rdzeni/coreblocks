@@ -110,6 +110,16 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.ras">coreblocks.frontend.bpu.ras module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS"><code class="docutils literal notranslate"><span class="pre">RAS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.__init__"><code class="docutils literal notranslate"><span class="pre">RAS.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.peek"><code class="docutils literal notranslate"><span class="pre">RAS.peek</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.recover"><code class="docutils literal notranslate"><span class="pre">RAS.recover</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#coreblocks.frontend.bpu.ras.RAS.update"><code class="docutils literal notranslate"><span class="pre">RAS.update</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu">Module contents</a></li>
 </ul>
 </li>
@@ -172,6 +182,8 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_request"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_request</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.fetch_writeback"><code class="docutils literal notranslate"><span class="pre">FetchUnit.fetch_writeback</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.flush"><code class="docutils literal notranslate"><span class="pre">FetchUnit.flush</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.ras_peek"><code class="docutils literal notranslate"><span class="pre">FetchUnit.ras_peek</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.ras_predict"><code class="docutils literal notranslate"><span class="pre">FetchUnit.ras_predict</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.fetch.html#coreblocks.frontend.fetch.fetch.FetchUnit.read_prediction"><code class="docutils literal notranslate"><span class="pre">FetchUnit.read_prediction</span></code></a></li>
 </ul>
 </li>
@@ -429,6 +441,18 @@ backend resumes it.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.ras_peek">
+<span class="sig-name descname"><span class="pre">ras_peek</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.ras_peek" title="Link to this definition"></a></dt>
+<dd><p>Read the address on top of the return address stack.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.ras_predict">
+<span class="sig-name descname"><span class="pre">ras_predict</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.ras_predict" title="Link to this definition"></a></dt>
+<dd><p>Apply a fetch block’s speculative effect on the return address stack and checkpoint it.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="coreblocks.frontend.ftq.FetchTargetQueue.read_prediction">
 <span class="sig-name descname"><span class="pre">read_prediction</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.ftq.FetchTargetQueue.read_prediction" title="Link to this definition"></a></dt>
 <dd><p>Return the branch prediction stored for a given FTQ entry (read by the fetch unit).</p>
@@ -500,7 +524,7 @@ exception and redirects the frontend itself).</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 12:50 2026-09-15.
+      <span class="lastupdated">Last updated on 12:51 2026-09-15.
       </span></p>
   </div>
 

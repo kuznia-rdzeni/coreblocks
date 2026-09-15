@@ -1112,6 +1112,7 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#submodules">Submodules</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.bpu">coreblocks.frontend.bpu.bpu module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.micro_btb">coreblocks.frontend.bpu.micro_btb module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu.ras">coreblocks.frontend.bpu.ras module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.bpu.html#module-coreblocks.frontend.bpu">Module contents</a></li>
 </ul>
 </li>
@@ -1189,6 +1190,8 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ifu_writeback"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ifu_writeback</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.jump_target_req"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.jump_target_req</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.jump_target_resp"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.jump_target_resp</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ras_peek"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ras_peek</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.ras_predict"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.ras_predict</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.read_prediction"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.read_prediction</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.resolve"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.resolve</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.frontend.html#coreblocks.frontend.ftq.FetchTargetQueue.stall_guard"><code class="docutils literal notranslate"><span class="pre">FetchTargetQueue.stall_guard</span></code></a></li>
@@ -1250,6 +1253,7 @@
 <li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.__init__"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.micro_btb"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.micro_btb</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.ras"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.ras</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.BranchPredictionConfig.validate"><code class="docutils literal notranslate"><span class="pre">BranchPredictionConfig.validate()</span></code></a></li>
 </ul>
 </li>
@@ -1258,6 +1262,12 @@
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.entries_log"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.entries_log</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.useful_cnt_width"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.useful_cnt_width</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.MicroBTBConfig.validate"><code class="docutils literal notranslate"><span class="pre">MicroBTBConfig.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig"><code class="docutils literal notranslate"><span class="pre">RASConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.__init__"><code class="docutils literal notranslate"><span class="pre">RASConfig.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.entries_log"><code class="docutils literal notranslate"><span class="pre">RASConfig.entries_log</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig.validate"><code class="docutils literal notranslate"><span class="pre">RASConfig.validate()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1786,7 +1796,7 @@
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 12:50 2026-09-15.
+      <span class="lastupdated">Last updated on 12:51 2026-09-15.
       </span></p>
   </div>
 

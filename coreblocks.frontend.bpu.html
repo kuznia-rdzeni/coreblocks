@@ -150,6 +150,41 @@ the touched entries.</p>
 </dd></dl>
 
 </section>
+<section id="module-coreblocks.frontend.bpu.ras">
+<span id="coreblocks-frontend-bpu-ras-module"></span><h2>coreblocks.frontend.bpu.ras module<a class="headerlink" href="#module-coreblocks.frontend.bpu.ras" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.ras.RAS">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">coreblocks.frontend.bpu.ras.</span></span><span class="sig-name descname"><span class="pre">RAS</span></span><a class="headerlink" href="#coreblocks.frontend.bpu.ras.RAS" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Elaboratable</span></code></p>
+<p>A simple return address stack.</p>
+<p>It is only a best-effort prediction, so overflow and underflow are allowed. Wrong-path
+speculation can also corrupt the stack, as a checkpoint only recovers the top entry.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.ras.RAS.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gen_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.genparams.GenParams" title="coreblocks.params.genparams.GenParams"><span class="pre">GenParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="coreblocks.params.html#coreblocks.params.bpu_params.RASConfig" title="coreblocks.params.bpu_params.RASConfig"><span class="pre">RASConfig</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#coreblocks.frontend.bpu.ras.RAS.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.ras.RAS.peek">
+<span class="sig-name descname"><span class="pre">peek</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.ras.RAS.peek" title="Link to this definition"></a></dt>
+<dd><p>Return the address on top of the stack, if there is one.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.ras.RAS.recover">
+<span class="sig-name descname"><span class="pre">recover</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.ras.RAS.recover" title="Link to this definition"></a></dt>
+<dd><p>Restore a state previously returned by <cite>update</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="coreblocks.frontend.bpu.ras.RAS.update">
+<span class="sig-name descname"><span class="pre">update</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">PROVIDED:</span> <span class="pre">1&gt;]</span></em><a class="headerlink" href="#coreblocks.frontend.bpu.ras.RAS.update" title="Link to this definition"></a></dt>
+<dd><p>Push and/or pop a return address. Returns the new state, to be saved in a checkpoint.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-coreblocks.frontend.bpu">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-coreblocks.frontend.bpu" title="Link to this heading"></a></h2>
 </section>
@@ -167,7 +202,7 @@ the touched entries.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright Kuźnia Rdzeni, 2026.
-      <span class="lastupdated">Last updated on 12:50 2026-09-15.
+      <span class="lastupdated">Last updated on 12:51 2026-09-15.
       </span></p>
   </div>
 

@@ -20,6 +20,14 @@ coreblocks.frontend.bpu.micro\_btb module
    :show-inheritance:
    :undoc-members:
 
+coreblocks.frontend.bpu.ras module
+----------------------------------
+
+.. automodule:: coreblocks.frontend.bpu.ras
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 
