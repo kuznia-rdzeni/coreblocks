@@ -19,17 +19,29 @@ __all__ = [
 class BPUComponentLayouts:
     """Shared predictor layouts."""
 
-    def __init__(self, gen_params: GenParams):
+    def __init__(self, gen_params: GenParams, *, meta_width: int):
         fields = gen_params.get(CommonLayoutFields)
+        self._meta = ("meta", meta_width)
 
-        self._request_fields = [fields.pc]
+        # S0 request with the fetch PC, which may start within a fetch block.
+        self.request = make_layout(fields.pc)
 
         self.cfi_hint = make_layout(("valid", 1), fields.cfi_idx, fields.cfi_type)
         self.cfi_candidate = make_layout(
             ("valid", 1), fields.cfi_idx, fields.cfi_type, ("target_valid", 1), ("target", gen_params.isa.xlen)
         )
 
-        self._update_fields = [
+        self.fast_prediction = make_layout(
+            ("valid", 1),
+            fields.cfi_idx,
+            fields.cfi_type,
+            ("target_valid", 1),
+            ("target", gen_params.isa.xlen),
+            self._meta,
+        )
+        self.direction_prediction = make_layout(("taken", gen_params.fetch_width), self._meta)
+
+        self.update = make_layout(
             fields.pc,
             ("branch_mask", gen_params.fetch_width),
             fields.cfi_target,
@@ -37,36 +49,17 @@ class BPUComponentLayouts:
             fields.cfi_type,
             ("taken", 1),
             ("mispredict", 1),
-        ]
-
-    def request(self):
-        """S0 request with the fetch PC, which may start within a fetch block."""
-        return make_layout(*self._request_fields)
-
-    def fast_prediction(self, meta_width: int):
-        return make_layout(
-            ("valid", 1),
-            ("cfi_idx", self.cfi_hint.members["cfi_idx"]),
-            ("cfi_type", self.cfi_hint.members["cfi_type"]),
-            ("target_valid", 1),
-            ("target", self.cfi_candidate.members["target"]),
-            ("meta", meta_width),
+            self._meta,
         )
 
     def cfi_hints(self, candidate_count: int):
         return make_layout(("candidates", ArrayLayout(self.cfi_hint, candidate_count)))
 
-    def cfi_prediction(self, candidate_count: int, meta_width: int):
+    def cfi_prediction(self, candidate_count: int):
         return make_layout(
             ("candidates", ArrayLayout(self.cfi_candidate, candidate_count)),
-            ("meta", meta_width),
+            self._meta,
         )
-
-    def direction_prediction(self, fetch_width: int, meta_width: int):
-        return make_layout(("taken", fetch_width), ("meta", meta_width))
-
-    def update(self, meta_width: int):
-        return make_layout(*self._update_fields, ("meta", meta_width))
 
 
 class BPUComponent(Elaboratable):
@@ -78,9 +71,9 @@ class BPUComponent(Elaboratable):
     def __init__(self, gen_params: GenParams, meta_width: int):
         self.gen_params = gen_params
         self.meta_width = meta_width
-        self.component_layouts = gen_params.get(BPUComponentLayouts)
+        self.component_layouts = gen_params.get(BPUComponentLayouts, meta_width=meta_width)
 
-        self.update = Method(i=self.component_layouts.update(meta_width))
+        self.update = Method(i=self.component_layouts.update)
 
     def elaborate(self, platform) -> TModule:
         raise NotImplementedError()
@@ -95,8 +88,8 @@ class FastPredictor(BPUComponent):
 
     def __init__(self, gen_params: GenParams, meta_width: int):
         super().__init__(gen_params, meta_width)
-        self.request_s0 = Method(i=self.component_layouts.request())
-        self.response_s1 = Method(o=self.component_layouts.fast_prediction(meta_width))
+        self.request_s0 = Method(i=self.component_layouts.request)
+        self.response_s1 = Method(o=self.component_layouts.fast_prediction)
         self.flush = Method()
 
 
@@ -111,9 +104,9 @@ class CfiPredictor(BPUComponent):
     def __init__(self, gen_params: GenParams, meta_width: int, candidate_count: int):
         super().__init__(gen_params, meta_width)
         self.candidate_count = candidate_count
-        self.request_s0 = Method(i=self.component_layouts.request())
+        self.request_s0 = Method(i=self.component_layouts.request)
         self.response_s1 = Method(o=self.component_layouts.cfi_hints(candidate_count))
-        self.response_s2 = Method(o=self.component_layouts.cfi_prediction(candidate_count, meta_width))
+        self.response_s2 = Method(o=self.component_layouts.cfi_prediction(candidate_count))
         self.flush = Method()
 
 
@@ -127,12 +120,12 @@ class DirectionPredictor(BPUComponent):
 
     def __init__(self, gen_params: GenParams, meta_width: int, candidate_count: int):
         super().__init__(gen_params, meta_width)
-        self.request_s0 = Method(i=self.component_layouts.request())
+        self.request_s0 = Method(i=self.component_layouts.request)
         self.accept_s1_hints = Method(
             i=make_layout(
                 ("pc", gen_params.isa.xlen),
                 ("hints", self.component_layouts.cfi_hints(candidate_count)),
             )
         )
-        self.response_s2 = Method(o=self.component_layouts.direction_prediction(gen_params.fetch_width, meta_width))
+        self.response_s2 = Method(o=self.component_layouts.direction_prediction)
         self.flush = Method()
