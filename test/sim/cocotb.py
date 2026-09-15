@@ -98,7 +98,7 @@ class WishboneSlave:
                         addr=addr,
                         data=int(self.bus.dat_w.value),
                         byte_count=self.word_size,
-                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else 0,
+                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else ~0,
                     )
                 )
             else:
@@ -106,7 +106,7 @@ class WishboneSlave:
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
-                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else 0,
+                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else ~0,
                         exec=self.is_instr_bus,
                     )
                 )
