@@ -30,10 +30,10 @@ def cd_to_topdir():
     os.chdir(str(topdir))
 
 
-def load_benchmarks():
+def load_benchmarks(fast: bool):
     all_tests = test.benchmark.benchmark.get_all_benchmark_names()
     if len(all_tests) == 0:
-        res = subprocess.run(["make", "-C", "test/external/embench"])
+        res = subprocess.run(["make", "-C", "test/external/embench"] + (["build-fast"] if fast else []))
         if res.returncode != 0:
             print("Couldn't build benchmarks")
             sys.exit(1)
@@ -41,21 +41,27 @@ def load_benchmarks():
         all_tests = test.benchmark.benchmark.get_all_benchmark_names()
 
     exclude = {
-        "cubic",
-        "huffbench",
+        "huffbench",  # TODO: debug why it fails
         "nbody",
         "picojpeg",
         "primecount",
         "qrduino",
-        "sglib-combined",
-        "st",
         "wikisort",
-        "matmult-int",
-        "edn",
-        "nettle-aes",
-        "md5sum",
-        "tarfind",
     }
+
+    # Each benchmark repeats LOCAL_SCALE_FACTOR * CPU_MHZ times, truncated to an integer. In the fast build
+    # (cpu_mhz = 0.01) this is zero for benchmarks with LOCAL_SCALE_FACTOR < 100, so they would not run anything.
+    if fast:
+        exclude |= {
+            "cubic",
+            "sglib-combined",
+            "st",
+            "matmult-int",
+            "edn",
+            "nettle-aes",
+            "md5sum",
+            "tarfind",
+        }
 
     ret = list(set(all_tests) - exclude)
     ret.sort()
@@ -217,11 +223,17 @@ def main():
         help="Selects output file to write information to. Default: %(default)s",
     )
     parser.add_argument("--summary", default="", action="store", help="Write Markdown summary to this file")
+    parser.add_argument(
+        "--fast", action="store_true", help="Use the build-fast build (cpu_mhz = 0.01) instead of the default one"
+    )
     parser.add_argument("benchmark_name", nargs="?")
 
     args = parser.parse_args()
 
-    benchmarks = load_benchmarks()
+    if args.fast:
+        os.environ["__COREBLOCKS_EMBENCH_FAST"] = "1"
+
+    benchmarks = load_benchmarks(args.fast)
 
     if args.list:
         for name in benchmarks:
