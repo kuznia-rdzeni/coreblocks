@@ -254,8 +254,7 @@ class CocotbSimulation(SimulationBackend):
         timeout_cycles: int = 5000,
         get_interrupt_value: Optional[Callable[[], int]] = None,
     ) -> SimulationExecutionResult:
-        clk = Clock(self.dut.clk, 1, "ns")
-        clk.start()
+        Clock(self.dut.clk, 1, "ns").start()
 
         start_time = get_sim_time("ns")
 

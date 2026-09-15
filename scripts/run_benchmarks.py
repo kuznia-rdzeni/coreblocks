@@ -79,10 +79,8 @@ def run_benchmarks_with_cocotb(benchmarks: list[str], traces: bool) -> bool:
     return run_cocotb_entrypoint(
         "benchmark_entrypoint",
         traces=traces,
-        additional_args=[
-            "--no-print-directory",
-            f"TESTCASE={','.join(benchmarks)}",
-        ],
+        additional_args=["--no-print-directory"],
+        testcases=benchmarks
     )
 
 
