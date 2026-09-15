@@ -381,7 +381,6 @@ def run_cocotb_entrypoint(
     env = os.environ.copy()
     env["PATH"] = _extend_env_path_like(env.get("PATH", ""), str(TEST_ROOT.resolve()))
     env["PYTHONPATH"] = _extend_env_path_like(env.get("PYTHONPATH", ""), str(REPO_ROOT.resolve()))
-    env["SIM"] = os.environ.get("SIM", "verilator")
     env["_COREBLOCKS_GEN_INFO"] = str(CORE_V_JSON.resolve())
     if additional_env is not None:
         env.update(additional_env)
