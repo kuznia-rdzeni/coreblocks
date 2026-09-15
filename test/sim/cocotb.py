@@ -18,7 +18,7 @@ import cocotb.logging
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, SimTimeoutError
 from cocotb.handle import LogicObject
-from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
+from cocotb.triggers import Event, with_timeout
 from cocotb.utils import get_sim_time
 from cocotb_tools.runner import VerilatorControlFile, Verilog
 
@@ -84,7 +84,7 @@ class WishboneSlave:
         self.bus = WishboneBus(entity, name)
 
     async def start(self):
-        clock_edge_event = FallingEdge(self.clock)
+        clock_edge_event = self.clock.failling_edge
 
         while True:
             while not (self.bus.stb.value and self.bus.cyc.value):
@@ -175,7 +175,7 @@ class CocotbSimulation(SimulationBackend):
         return obj
 
     async def profile_handler(self, clock, profile: Profile):
-        clock_edge_event = RisingEdge(clock)
+        clock_edge_event = clock.rising_edge
 
         while True:
             samples = ProfileSamples()
@@ -208,17 +208,14 @@ class CocotbSimulation(SimulationBackend):
 
         sampler = GeneratedEvLogSampler(generated, resolve)
 
-        clock_edge_event = FallingEdge(clock)
         cycle = 0
 
         while True:
             sampler.sample(cycle, evlog)
             cycle += 1
-            await clock_edge_event  # type: ignore
+            await clock.falling_edge
 
     async def logging_handler(self, clock):
-        clock_edge_event = FallingEdge(clock)
-
         log_level = cocotb.log.level
 
         logs = [
@@ -251,7 +248,7 @@ class CocotbSimulation(SimulationBackend):
                 if rec.level >= logging.ERROR:
                     assert False, f"Assertion failed at {rec.location[0], rec.location[1]}: {formatted_msg}"
 
-            await clock_edge_event  # type: ignore
+            await clock.falling_edge
 
     async def run(
         self,
@@ -260,7 +257,7 @@ class CocotbSimulation(SimulationBackend):
         get_interrupt_value: Optional[Callable[[], int]] = None,
     ) -> SimulationExecutionResult:
         clk = Clock(self.dut.clk, 1, "ns")
-        cocotb.start_soon(clk.start())
+        clk.start()
 
         start_time = get_sim_time("ns")
 
@@ -281,7 +278,7 @@ class CocotbSimulation(SimulationBackend):
             async def interrupt_generator_process():
                 while True:
                     self.dut.interrupts.value = get_interrupt_value()
-                    await RisingEdge(self.dut.clk)
+                    await self.dut.clk.rising_edge
 
             cocotb.start_soon(interrupt_generator_process())
 
