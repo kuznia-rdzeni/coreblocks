@@ -69,7 +69,7 @@ def regression_body_with_cocotb(test_name: str, traces: bool):
     assert run_cocotb_entrypoint(
         "test_entrypoint",
         traces=traces,
-        additional_args=[f"TESTCASE={test_name}"],
+        testcases=[test_name],
     )
 
 
