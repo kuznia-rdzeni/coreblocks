@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789481355664,
+  "lastUpdate": 1789481358822,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -89404,6 +89404,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "LUT DFF used",
             "value": 3421,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6c64f1b22403f1e9f49d62d66234ce5ebb58b47a",
+          "message": "frontend/bpu: add the return address stack (#1097)",
+          "timestamp": "2026-09-15T14:50:02+02:00",
+          "tree_id": "bc36bbdac1dabc2e590fa89f9e223be5540cc2c1",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c64f1b22403f1e9f49d62d66234ce5ebb58b47a"
+        },
+        "date": 1789481357857,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 78.66,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 8954,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3560,
             "unit": "LUT"
           },
           {
