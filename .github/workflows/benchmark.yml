@@ -35,7 +35,7 @@ jobs:
         )
       )
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 120
     container: ghcr.io/kuznia-rdzeni/amaranth-synth:${{ matrix.container }}
     steps:
       - uses: actions/checkout@v6
