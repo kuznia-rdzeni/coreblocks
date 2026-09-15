@@ -137,11 +137,11 @@ class WishboneSlave:
                 case ReplyStatus.OK:
                     sig_s.ack = 1
                 case ReplyStatus.ERROR:
-                    if not self.bus.err.get():
+                    if not self.bus.err:
                         raise ValueError("Bus doesn't support err")
                     sig_s.err = 1
                 case ReplyStatus.RETRY:
-                    if not self.bus.rty.get():
+                    if not self.bus.rty:
                         raise ValueError("Bus doesn't support rty")
                     sig_s.rty = 1
 
