@@ -12,7 +12,13 @@ from test.sim.common import SimulationBackend
 from coreblocks.arch import ExceptionCause
 
 test_dir = Path(__file__).parent.parent
-embench_dir = test_dir.joinpath("external/embench/build/src")
+
+
+def get_embench_dir() -> Path:
+    build = "build-fast" if os.environ.get("__COREBLOCKS_EMBENCH_FAST") == "1" else "build"
+    return test_dir.joinpath(f"external/embench/{build}/src")
+
+
 results_dir = test_dir.joinpath("benchmark/benchmark_results")
 profile_dir = test_dir.joinpath("__profiles__")
 evlog_dir = test_dir.joinpath("__evlogs__")
@@ -101,6 +107,7 @@ class MMIO(MMIOSegment):
 
 
 def get_all_benchmark_names():
+    embench_dir = get_embench_dir()
     return os.listdir(embench_dir) if os.path.exists(embench_dir) else []
 
 
@@ -108,7 +115,7 @@ async def run_benchmark(sim_backend: SimulationBackend, benchmark_name: str):
     mmio = MMIO(lambda: sim_backend.stop())
 
     mem_segments: list[MemorySegment] = []
-    mem_segments += load_segments_from_elf(str(embench_dir.joinpath(f"{benchmark_name}/{benchmark_name}")))
+    mem_segments += load_segments_from_elf(str(get_embench_dir().joinpath(f"{benchmark_name}/{benchmark_name}")))
     mem_segments.append(mmio)
 
     mem_model = CoreMemoryModel(mem_segments)
