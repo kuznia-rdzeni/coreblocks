@@ -4,7 +4,6 @@ import re
 import os
 from typing import Any, Optional
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
 from pathlib import Path
 import shutil
 from filelock import FileLock
@@ -22,7 +21,6 @@ from cocotb.handle import LogicObject
 from cocotb.triggers import FallingEdge, Event, RisingEdge, with_timeout
 from cocotb.utils import get_sim_time
 from cocotb_tools.runner import VerilatorControlFile, Verilog
-from cocotb_bus.bus import Bus
 
 from .memory import *
 from .memory_emulation import CoreMemoryEmulation
@@ -39,26 +37,7 @@ TEST_ROOT = Path(__file__).resolve().parent / "cocotb"
 COCOTB_BUILD_ROOT = BUILD_ROOT / "cocotb"
 
 
-@dataclass
-class WishboneMasterSignals:
-    adr: Any = 0
-    we: Any = 0
-    sel: Any = 0
-    dat_w: Any = 0
-
-
-@dataclass
-class WishboneSlaveSignals:
-    dat_r: Any = 0
-    ack: Any = 0
-    err: Any = 0
-    rty: Any = 0
-
-
-class WishboneBus(Bus):
-    _signals = ["cyc", "stb", "we", "adr", "dat_r", "dat_w", "ack"]
-    _optional_signals = ["sel", "err", "rty"]
-
+class WishboneBus:
     cyc: LogicObject
     stb: LogicObject
     we: LogicObject
@@ -66,16 +45,30 @@ class WishboneBus(Bus):
     dat_r: LogicObject
     dat_w: LogicObject
     ack: LogicObject
-    sel: LogicObject
-    err: LogicObject
-    rty: LogicObject
+    sel: LogicObject | None
+    err: LogicObject | None
+    rty: LogicObject | None
 
     def __init__(self, entity, name):
-        # case_insensitive is a workaround for cocotb_bus/verilator problem
-        # see https://github.com/cocotb/cocotb/issues/3259
-        super().__init__(
-            entity, name, self._signals, self._optional_signals, bus_separator="__", case_insensitive=False
-        )
+        self.cyc = entity[f"{name}__cyc"]
+        self.stb = entity[f"{name}__stb"]
+        self.we = entity[f"{name}__we"]
+        self.adr = entity[f"{name}__adr"]
+        self.dat_r = entity[f"{name}__dat_r"]
+        self.dat_w = entity[f"{name}__dat_w"]
+        self.ack = entity[f"{name}__ack"]
+        try:
+            self.sel = entity[f"{name}__sel"]
+        except KeyError:
+            self.sel = None
+        try:
+            self.err = entity[f"{name}__err"]
+        except KeyError:
+            self.err = None
+        try:
+            self.rty = entity[f"{name}__rty"]
+        except KeyError:
+            self.rty = None
 
 
 class WishboneSlave:
@@ -98,7 +91,6 @@ class WishboneSlave:
         self.word_bits = word_bits
         self.delay = delay
         self.bus = WishboneBus(entity, name)
-        self.bus.drive(WishboneSlaveSignals())
 
     async def start(self):
         clock_edge_event = FallingEdge(self.clock)
@@ -107,19 +99,15 @@ class WishboneSlave:
             while not (self.bus.stb.value and self.bus.cyc.value):
                 await clock_edge_event  # type: ignore
 
-            sig_m = WishboneMasterSignals()
-            self.bus.sample(sig_m)
+            addr = int(self.bus.adr) << self.word_bits
 
-            addr = sig_m.adr.to_unsigned() << self.word_bits
-
-            sig_s = WishboneSlaveSignals()
-            if sig_m.we:
+            if self.bus.we.value:
                 resp = self.memory.write(
                     WriteRequest(
                         addr=addr,
-                        data=sig_m.dat_w.to_unsigned(),
+                        data=int(self.bus.dat_w.value),
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel.to_unsigned(),
+                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else 0,
                     )
                 )
             else:
@@ -127,30 +115,36 @@ class WishboneSlave:
                     ReadRequest(
                         addr=addr,
                         byte_count=self.word_size,
-                        byte_sel=sig_m.sel.to_unsigned(),
+                        byte_sel=int(self.bus.sel.value) if self.bus.sel is not None else 0,
                         exec=self.is_instr_bus,
                     )
                 )
-                sig_s.dat_r = resp.data
-
-            match resp.status:
-                case ReplyStatus.OK:
-                    sig_s.ack = 1
-                case ReplyStatus.ERROR:
-                    if not self.bus.err:
-                        raise ValueError("Bus doesn't support err")
-                    sig_s.err = 1
-                case ReplyStatus.RETRY:
-                    if not self.bus.rty:
-                        raise ValueError("Bus doesn't support rty")
-                    sig_s.rty = 1
 
             for _ in range(self.delay):
                 await clock_edge_event  # type: ignore
 
-            self.bus.drive(sig_s)
+            match resp.status:
+                case ReplyStatus.OK:
+                    self.bus.ack.value = 1
+                case ReplyStatus.ERROR:
+                    if self.bus.err is None:
+                        raise ValueError("Bus doesn't support err")
+                    self.bus.err.value = 1
+                case ReplyStatus.RETRY:
+                    if self.bus.rty is None:
+                        raise ValueError("Bus doesn't support rty")
+                    self.bus.rty.value = 1
+
+            if isinstance(resp, ReadReply):
+                self.bus.dat_r.value = resp.data
+
             await clock_edge_event  # type: ignore
-            self.bus.drive(WishboneSlaveSignals())
+
+            self.bus.ack.value = 0
+            if self.bus.err is not None:
+                self.bus.err.value = 0
+            if self.bus.rty is not None:
+                self.bus.rty.value = 0
 
 
 class CocotbSimulation(SimulationBackend):
