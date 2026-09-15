@@ -2,6 +2,7 @@ import cocotb_tools
 import cocotb_tools.config
 from cocotb_tools.runner import Verilator, _Command
 from typing import Optional
+from multiprocessing import cpu_count
 
 
 class VerilatorManualPublic(Verilator):
@@ -16,7 +17,7 @@ class VerilatorManualPublic(Verilator):
         self._simulator_in_path_build_only()
 
         # for checking
-        cmds_orig = super()._build_command()
+        super()._build_command()
 
         if self.skip_build:
             return []
@@ -48,7 +49,7 @@ class VerilatorManualPublic(Verilator):
                 "-LDFLAGS",
                 f"-Wl,-rpath,{cocotb_tools.config.libs_dir} -L{cocotb_tools.config.libs_dir} -lcocotbvpi_verilator",
             ]
-            + (["--trace-fst", "--trace-structs"] if self.waves else [])
+            + (["--trace-fst", "--trace-structs"] if self.waves else [])  # originally "--trace"
             + [arg.value for arg in self._build_args]
             + (["--timescale", "{}/{}".format(*self.timescale)] if self.timescale is not None else [])
             + self._get_define_options(self.defines)
@@ -58,6 +59,17 @@ class VerilatorManualPublic(Verilator):
             + [str(source.value) for source in sources]
         )
 
-        cmds.append(cmds_orig[1])
+        cmds.append(
+            [
+                "make",
+                "-j",
+                f"{cpu_count()}",
+                "-C",
+                str(self.build_dir),
+                "-f",
+                "Vtop.mk",
+                f"VM_TRACE={int(self.waves)}",
+            ]
+        )
 
         return cmds
