@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789574882336,
+  "lastUpdate": 1789574885044,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -85123,6 +85123,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 1098,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 5,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4fe7c7e37250763a98c06ba1939623754e490177",
+          "message": "migrate to cocotb 2.1 (#1101)",
+          "timestamp": "2026-09-16T17:10:26+02:00",
+          "tree_id": "43ec4f83e7e7de096b3529b865d9bd726ceb4681",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4fe7c7e37250763a98c06ba1939623754e490177"
+        },
+        "date": 1789574884223,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 41.44,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 53224,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 17903,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 1095,
             "unit": "Slice"
           },
           {
