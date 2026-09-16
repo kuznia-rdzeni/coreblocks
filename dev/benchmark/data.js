@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789574885044,
+  "lastUpdate": 1789597220868,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29077,6 +29077,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4fe7c7e37250763a98c06ba1939623754e490177"
         },
         "date": 1789574856742,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5640896597111997,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7819591743642377,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5847590627763042,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6884523677935859,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3939678854078095,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5395539267615312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5270885206490942,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5282892516088287,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "68a88ffe46b49eedf220c17291d63bccd9471904",
+          "message": "frontend/bpu: introduce a uniform predictor component protocol (#1105)",
+          "timestamp": "2026-09-16T23:01:28+02:00",
+          "tree_id": "70ddf51a86ec7f889d420222d6f21c2b5f272da8",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/68a88ffe46b49eedf220c17291d63bccd9471904"
+        },
+        "date": 1789597205684,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
