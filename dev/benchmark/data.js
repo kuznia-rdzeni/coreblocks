@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789597225936,
+  "lastUpdate": 1789597228574,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -90336,6 +90336,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "Slice carry chains used",
             "value": 155,
+            "unit": "Slice"
+          },
+          {
+            "name": "Block RAM used",
+            "value": 0,
+            "unit": "RAMB36E1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "68a88ffe46b49eedf220c17291d63bccd9471904",
+          "message": "frontend/bpu: introduce a uniform predictor component protocol (#1105)",
+          "timestamp": "2026-09-16T23:01:28+02:00",
+          "tree_id": "70ddf51a86ec7f889d420222d6f21c2b5f272da8",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/68a88ffe46b49eedf220c17291d63bccd9471904"
+        },
+        "date": 1789597227887,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "Max clock frequency (Fmax)",
+            "value": 68.44,
+            "unit": "MHz"
+          },
+          {
+            "name": "LUT used",
+            "value": 9069,
+            "unit": "LUT"
+          },
+          {
+            "name": "LUT DFF used",
+            "value": 3560,
+            "unit": "LUT"
+          },
+          {
+            "name": "Slice carry chains used",
+            "value": 154,
             "unit": "Slice"
           },
           {
