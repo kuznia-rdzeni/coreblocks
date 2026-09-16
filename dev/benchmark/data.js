@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789481364697,
+  "lastUpdate": 1789567800870,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -28949,6 +28949,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/6c64f1b22403f1e9f49d62d66234ce5ebb58b47a"
         },
         "date": 1789481335531,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5640896597111997,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7819591743642377,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5847590627763042,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6884523677935859,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3939678854078095,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5395539267615312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5270885206490942,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5282892516088287,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "xthaid@gmail.com",
+            "name": "Jakub Urbańczyk",
+            "username": "xThaid"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bc629484614da5abdce1a0fbc8fa98d799b3ab54",
+          "message": "embench: add build-fast and run more benchmarks by default (#1108)",
+          "timestamp": "2026-09-16T15:10:04+02:00",
+          "tree_id": "2384246410b130f9be355ced945523b049075b99",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bc629484614da5abdce1a0fbc8fa98d799b3ab54"
+        },
+        "date": 1789567788273,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
