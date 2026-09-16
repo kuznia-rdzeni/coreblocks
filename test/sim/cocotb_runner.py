@@ -41,7 +41,7 @@ class VerilatorManualPublic(Verilator):
                 "--top-module",
                 self.hdl_toplevel,
                 "--vpi",
-                "--public-flat-rw",
+                # "--public-flat-rw",
                 "--prefix",
                 "Vtop",
                 "-o",
