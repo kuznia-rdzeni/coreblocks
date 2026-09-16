@@ -22,7 +22,11 @@ def main():
     parser.add_argument("-a", "--all", action="store_true", default=False, help="Run all tests")
     parser.add_argument("--arch-tests", action="store_true", default=False, help="Run riscv-arch-tests")
     parser.add_argument(
-        "-b", "--backend", default="cocotb", choices=["cocotb", "pysim"], help="Simulation backend for regression tests"
+        "-b",
+        "--backend",
+        default="cocotb",
+        choices=["cocotb", "pysim", "cxxsim"],
+        help="Simulation backend for regression tests",
     )
     parser.add_argument("-c", "--count", type=int, help="Start `c` first tests which match regexp")
     parser.add_argument(

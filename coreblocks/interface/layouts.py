@@ -164,6 +164,9 @@ class CommonLayoutFields:
         self.cfi_type: LayoutListField = ("cfi_type", CfiType)
         """Type of a CFI instruction"""
 
+        self.ras_action: LayoutListField = ("ras_action", RasAction)
+        """Effect a CFI instruction has on the return address stack."""
+
         self.branch_mask: LayoutListField = ("branch_mask", gen_params.fetch_width)
         """A mask denoting which instruction in a fetch blocks is a branch."""
 
@@ -737,7 +740,9 @@ class FetchLayouts:
         # (or have already been) committed before the instruction the core is being redirected to.
         self.backend_redirect = make_layout(fields.ftq_ptr, fields.pc)
 
-        self.predecoded_instr = make_layout(fields.cfi_type, ("cfi_offset", signed(21)), ("unsafe", 1))
+        self.predecoded_instr = make_layout(
+            fields.cfi_type, fields.ras_action, ("cfi_offset", signed(21)), ("unsafe", 1)
+        )
 
         self.bpu_prediction = make_layout(
             fields.branch_mask, fields.cfi_idx, fields.cfi_type, fields.cfi_target, ("cfi_target_valid", 1)
@@ -750,6 +755,13 @@ class FetchLayouts:
         """A stale fetch block must be dropped without side effects."""
 
         self.read_prediction_req = make_layout(fields.ftq_ptr)
+
+        self.ras_top = make_layout(("valid", 1), ("addr", gen_params.isa.xlen))
+        """The address on top of the return address stack, if the stack holds one."""
+
+        self.ras_predict = make_layout(fields.ftq_ptr, fields.ras_action, ("addr", gen_params.isa.xlen))
+        """Speculative update of the return address stack for the CFI a fetch block exits
+        through."""
 
         self.pred_checker_i = make_layout(
             fields.fb_addr,

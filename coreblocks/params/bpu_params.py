@@ -3,6 +3,7 @@ from dataclasses import dataclass
 __all__ = [
     "BranchPredictionConfig",
     "MicroBTBConfig",
+    "RASConfig",
 ]
 
 
@@ -24,10 +25,25 @@ class MicroBTBConfig:
 
 
 @dataclass(frozen=True)
+class RASConfig:
+    """Configuration of the return address stack."""
+
+    entries_log: int = 1
+    """Log of the number of entries."""
+
+    def validate(self):
+        if self.entries_log < 1:
+            raise ValueError("RAS must have at least 2 entries")
+
+
+@dataclass(frozen=True)
 class BranchPredictionConfig:
     """Configuration of the branch prediction unit and all of its sub-predictors."""
 
     micro_btb: MicroBTBConfig = MicroBTBConfig()
 
+    ras: RASConfig = RASConfig()
+
     def validate(self):
         self.micro_btb.validate()
+        self.ras.validate()

@@ -1,0 +1,148 @@
+"""Building the C++ simulator.
+
+One shared library serves every regression suite - riscv-tests, arch tests and
+benchmarks.
+"""
+
+import argparse
+import shutil
+import subprocess
+import sysconfig
+from pathlib import Path
+
+from filelock import FileLock
+
+from .cxxsim_paths import BUILD_DIR, MODULE_PATH
+from .verilog import BUILD_ROOT, CORE_V, clean_core_verilog, ensure_core_verilog_generated
+
+CXX_ROOT = Path(__file__).resolve().parent / "cxx"
+BUILD_LOCK = BUILD_ROOT / "cxxsim.lock"
+
+SOURCES = ["module.cpp", "memory.cpp", "simulation.cpp", "wishbone.cpp"]
+
+VERILATOR_WARNING_FLAGS = [
+    "-Wno-CASEINCOMPLETE",
+    "-Wno-CASEOVERLAP",
+    "-Wno-WIDTHEXPAND",
+    "-Wno-WIDTHTRUNC",
+    "-Wno-UNSIGNED",
+    "-Wno-CMPCONST",
+    "-Wno-LITENDIAN",
+    "-Wno-UNOPTFLAT",
+]
+
+MODULE_CXX_FLAGS = [
+    "-std=c++17",
+    "-fPIC",
+    "-fvisibility=hidden",
+    "-Os",
+    "-fstrict-aliasing",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+]
+
+# The verilated core ends up in a shared library, so it has to be position independent.
+VERILATED_CXX_FLAGS = ["-fPIC"]
+
+
+def _verilator_version() -> tuple[int, ...]:
+    output = subprocess.run(["verilator", "--version"], check=True, capture_output=True, text=True).stdout
+    return tuple(int(part) for part in output.split()[1].split("."))
+
+
+def _verilator_root() -> Path:
+    output = subprocess.run(
+        ["verilator", "--getenv", "VERILATOR_ROOT"], check=True, capture_output=True, text=True
+    ).stdout
+    return Path(output.strip())
+
+
+def _verilate_command() -> list[str]:
+    """Builds the verilated core into a static library."""
+    command = [
+        "verilator",
+        "--cc",
+        str(CORE_V),
+        "--top-module",
+        "top",
+        "--prefix",
+        "Vtop",
+        "-Mdir",
+        str(BUILD_DIR),
+        "--build",
+        "-j",
+        "0",
+        "-O3",
+        "--no-timing",
+        "--x-initial",
+        "fast",
+        "-CFLAGS",
+        " ".join(VERILATED_CXX_FLAGS),
+    ]
+    command += VERILATOR_WARNING_FLAGS
+    if _verilator_version() >= (5, 40):
+        command += ["-Wno-ALWNEVER"]
+
+    return command
+
+
+def _module_command() -> list[str]:
+    """Links the verilated core and the simulator into a Python extension module."""
+    try:
+        import pybind11
+    except ImportError:
+        raise RuntimeError("Building the cxxsim backend requires pybind11")
+
+    verilator_root = _verilator_root()
+    includes = {sysconfig.get_paths()["include"], sysconfig.get_paths()["platinclude"], pybind11.get_include()}
+
+    command = ["g++", "-shared"] + MODULE_CXX_FLAGS
+    command += [f"-I{include}" for include in sorted(includes)]
+    command += [
+        f"-I{BUILD_DIR}",
+        "-isystem",
+        f"{verilator_root}/include",
+        "-isystem",
+        f"{verilator_root}/include/vltstd",
+    ]
+    command += [str(CXX_ROOT / source) for source in SOURCES]
+    command += [f"-L{BUILD_DIR}", "-lVtop", "-lverilated"]
+    command += ["-o", str(MODULE_PATH)]
+
+    return command
+
+
+def build_cxxsim():
+    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+    with FileLock(BUILD_LOCK):
+        clean_core_verilog()
+        shutil.rmtree(BUILD_DIR, ignore_errors=True)
+
+        ensure_core_verilog_generated()
+        BUILD_DIR.mkdir(parents=True, exist_ok=True)
+
+        print("Verilating the core, this takes a few minutes...", flush=True)
+        subprocess.run(_verilate_command(), check=True, cwd=CXX_ROOT)
+
+        print("Building the simulator module...", flush=True)
+        subprocess.run(_module_command(), check=True, cwd=CXX_ROOT)
+
+
+def clean_cxxsim_build():
+    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+
+    with FileLock(BUILD_LOCK):
+        shutil.rmtree(BUILD_DIR, ignore_errors=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Build the C++ simulator for coreblocks")
+    parser.parse_args()
+
+    build_cxxsim()
+    print(f"Built {MODULE_PATH}")
+
+
+if __name__ == "__main__":
+    main()

@@ -37,7 +37,7 @@ _coreblocks_regression.lock
 _coreblocks_regression.counter
 .hypothesis
 
-# Regression build: the generated Verilog and the cocotb testbenches
+# Simulation build
 /test/sim/build
 
 # cocotb leftovers
@@ -55,6 +55,8 @@ test/external/riscv-tests/test-*
 # embench benchmark
 test/external/embench/build
 test/external/embench/logs
+test/external/embench/build-fast
+test/external/embench/logs-fast
 /test/benchmark/benchmark_results
 
 # Documentation build
