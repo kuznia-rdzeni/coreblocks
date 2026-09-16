@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1789567813023,
+  "lastUpdate": 1789574870455,
   "repoUrl": "https://github.com/kuznia-rdzeni/coreblocks",
   "entries": {
     "Performance (IPC)": [
@@ -29013,6 +29013,70 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/bc629484614da5abdce1a0fbc8fa98d799b3ab54"
         },
         "date": 1789567788273,
+        "tool": "customBiggerIsBetter",
+        "benches": [
+          {
+            "name": "aha-mont64",
+            "value": 0.5640896597111997,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "crc32",
+            "value": 0.7819591743642377,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "minver",
+            "value": 0.5847590627763042,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nettle-sha256",
+            "value": 0.6884523677935859,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "nsichneu",
+            "value": 0.3939678854078095,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "slre",
+            "value": 0.5395539267615312,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "statemate",
+            "value": 0.5270885206490942,
+            "unit": "Instructions Per Cycle"
+          },
+          {
+            "name": "ud",
+            "value": 0.5282892516088287,
+            "unit": "Instructions Per Cycle"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kuba@ev1.pl",
+            "name": "Jakub Janeczko",
+            "username": "qbojj"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4fe7c7e37250763a98c06ba1939623754e490177",
+          "message": "migrate to cocotb 2.1 (#1101)",
+          "timestamp": "2026-09-16T17:10:26+02:00",
+          "tree_id": "43ec4f83e7e7de096b3529b865d9bd726ceb4681",
+          "url": "https://github.com/kuznia-rdzeni/coreblocks/commit/4fe7c7e37250763a98c06ba1939623754e490177"
+        },
+        "date": 1789574856742,
         "tool": "customBiggerIsBetter",
         "benches": [
           {
